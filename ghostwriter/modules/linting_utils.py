@@ -1,4 +1,4 @@
-"""This contains utilities and values used by the ``TemplateLinter`` class."""
+"""This contains utilities and values used by template linting."""
 
 # Example JSON reporting data for loading into templates for rendering tests
 LINTER_CONTEXT = {
@@ -356,6 +356,7 @@ LINTER_CONTEXT = {
             "network_detection_techniques_rt": "",
             "references": "",
             "references_rt": "",
+            "mitigation": "",
             "finding_guidance": "",
             "complete": False,
             "tags": ["tag1", "tag2", "tag3"],

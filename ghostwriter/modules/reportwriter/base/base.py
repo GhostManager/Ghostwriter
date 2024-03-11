@@ -30,17 +30,21 @@ class ExportBase:
     jinja_env: jinja2.Environment
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
 
-    def __init__(self, input_object: Any):
-        self.jinja_env = prepare_jinja2_env(debug=False)
-        self.input_object = input_object
-        self.data = self.serialize_object(input_object)
+    def __init__(self, input_object: Any, is_raw=False, jinja_debug=False):
+        self.jinja_env = prepare_jinja2_env(debug=jinja_debug)
+        if is_raw:
+            self.input_object = None
+            self.data = input_object
+        else:
+            self.input_object = input_object
+            self.data = self.serialize_object(input_object)
         self.extra_fields_spec_cache = {}
 
     def serialize_object(self, object: Any) -> Any:
         """
-        Serializes the input object to a format appropriate for use in a jinja environment.
+        Called by __init__ to serialize the input object to a format appropriate for use in a jinja environment.
 
-        By default returns it as `object`.
+        By default does nothing and returns `object` unchanged.
         """
         return object
 

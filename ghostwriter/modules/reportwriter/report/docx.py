@@ -1,9 +1,12 @@
 
+import copy
 import io
 import logging
 
 from docxtpl import DocxTemplate, RichText
+from ghostwriter.commandcenter.models import ExtraFieldSpec
 
+from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter.base.docx import ExportDocxBase
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.oplog.models import OplogEntry
@@ -14,8 +17,13 @@ from ghostwriter.shepherd.models import Domain, StaticServer
 logger = logging.getLogger(__name__)
 
 
-class ExportReportDocx(ExportReportBase, ExportDocxBase):
+class ExportReportDocx(ExportDocxBase, ExportReportBase):
     word_doc: DocxTemplate
+
+    def __init__(self, object, template_loc=None, p_style=None, **kwargs):
+        if p_style is None:
+            p_style = object.docx_template.p_style
+        super().__init__(object, template_loc=template_loc, p_style=p_style, **kwargs)
 
     def process_richtext(self, context: dict):
         """
@@ -28,13 +36,11 @@ class ExportReportDocx(ExportReportBase, ExportDocxBase):
             Pre-defined template context
         """
 
-        p_style = self.input_object.docx_template.p_style
-
         base_context = self.jinja_richtext_base_context()
         base_evidences = {e["friendly_name"]: e for e in context["evidence"]}
 
         def base_render(text):
-            return self.process_rich_text_docx(text, base_context, base_evidences, p_style)
+            return self.process_rich_text_docx(text, base_context, base_evidences)
 
         self.process_extra_fields(context["extra_fields"], Report, base_render)
 
@@ -46,7 +52,7 @@ class ExportReportDocx(ExportReportBase, ExportDocxBase):
             finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
 
             def finding_render(text):
-                return self.process_rich_text_docx(text, finding_context, finding_evidences, p_style)
+                return self.process_rich_text_docx(text, finding_context, finding_evidences)
 
             self.process_extra_fields(finding["extra_fields"], Finding, finding_render)
 
@@ -149,3 +155,30 @@ class ExportReportDocx(ExportReportBase, ExportDocxBase):
     def run(self) -> io.BytesIO:
         self.process_richtext(self.data)
         return super().run()
+
+    @classmethod
+    def generate_lint_data(cls):
+        context = copy.deepcopy(LINTER_CONTEXT)
+        for field in ExtraFieldSpec.objects.filter(target_model=Report._meta.label):
+            context["extra_fields"][field.internal_name] = field.empty_value()
+        for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):
+            context["project"]["extra_fields"][field.internal_name] = field.empty_value()
+        for field in ExtraFieldSpec.objects.filter(target_model=Client._meta.label):
+            context["client"]["extra_fields"][field.internal_name] = field.empty_value()
+        for field in ExtraFieldSpec.objects.filter(target_model=Finding._meta.label):
+            for finding in context["findings"]:
+                finding["extra_fields"][field.internal_name] = field.empty_value()
+        for field in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
+            for log in context["logs"]:
+                for entry in log["entries"]:
+                    entry["extra_fields"][field.internal_name] = field.empty_value()
+        for field in ExtraFieldSpec.objects.filter(target_model=Domain._meta.label):
+            for domain in context["infrastructure"]["domains"]:
+                domain["extra_fields"][field.internal_name] = field.empty_value()
+        for field in ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label):
+            for server in context["infrastructure"]["servers"]:
+                server["extra_fields"][field.internal_name] = field.empty_value()
+        for field in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label):
+            for obs in context["observations"]:
+                obs["extra_fields"][field.internal_name] = field.empty_value()
+        return context

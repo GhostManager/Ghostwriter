@@ -1,8 +1,11 @@
 
 import io
 import logging
+import os
+from typing import List, Tuple
 
 from bs4 import BeautifulSoup
+from jinja2 import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
 from pptx import Presentation
 from pptx.parts.presentation import PresentationPart
 from pptx.exc import PackageNotFoundError
@@ -11,6 +14,7 @@ from pptx.oxml.ns import nsdecls
 from pptx.enum.text import MSO_AUTO_SIZE
 
 from ghostwriter.commandcenter.models import CompanyInformation
+from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
 
@@ -26,9 +30,19 @@ class ExportBasePptx(ExportBase):
     """
     ppt_presentation: PresentationPart
     company_config: CompanyInformation
+    linting: bool
 
-    def __init__(self, object, template_loc=None):
-        super().__init__(object)
+    def __init__(
+        self,
+        object,
+        template_loc: str = None,
+        linting: bool = False,
+        **kwargs
+    ):
+        if "jinja_debug" not in kwargs:
+            kwargs["jinja_debug"] = linting
+        super().__init__(object, **kwargs)
+        self.linting = linting
 
         try:
             self.ppt_presentation = Presentation(template_loc)
@@ -74,6 +88,48 @@ class ExportBasePptx(ExportBase):
         out = io.BytesIO()
         self.ppt_presentation.save(out)
         return out
+
+    @classmethod
+    def lint(cls, template_loc: str) -> Tuple[List[str], List[str]]:
+        warnings = []
+        errors = []
+        try:
+            if not os.path.exists(template_loc):
+                logger.error("Template file path did not exist: %r", template_loc)
+                errors.append("Template file does not exist – upload it again")
+                return warnings, errors
+
+            # Test 1: Check if the document is a PPTX file
+            template_document = Presentation(template_loc)
+
+            # Test 2: Check for existing slides
+            slide_count = len(template_document.slides)
+            logger.info("Slide count was %s", slide_count)
+            if slide_count > 0:
+                warnings.append(
+                    "Template can be used, but it has slides when it should be empty (see documentation)"
+                )
+        except TemplateSyntaxError as error:
+            logger.error("Template syntax error: %s", error)
+            errors.append(f"Template syntax error: {error}")
+        except UndefinedError as error:
+            logger.error("Template undefined variable error: %s", error)
+            errors.append(f"Template syntax error: {error}")
+        except InvalidFilterValue as error:
+            logger.error("Invalid value provided to filter: %s", error)
+            errors.append(f"Invalid filter value: {error.message}")
+        except TypeError as error:
+            logger.exception("TypeError during template linting")
+            errors.append(f": {error}")
+        except TemplateRuntimeError as error:
+            logger.error("Invalid filter or expression: %s", error)
+            errors.append(f"Invalid filter or expression: {error}")
+        except Exception:
+            logger.exception("Template failed linting")
+            errors.append("Template rendering failed unexpectedly")
+
+        logger.info("Linting finished: %d warnings, %d errors", len(warnings), len(errors))
+        return warnings, errors
 
 
 def add_slide_number(txtbox):
