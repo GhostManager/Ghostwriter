@@ -62,7 +62,7 @@ from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
-from ghostwriter.modules.reportwriter.lint import TemplateLinter
+from ghostwriter.modules.reportwriter.lint import lint_template
 from ghostwriter.reporting.filters import (
     ArchiveFilter,
     FindingFilter,
@@ -778,28 +778,8 @@ class ReportTemplateLint(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         template = self.get_object()
-        linter = TemplateLinter(template=template)
-        if template.doc_type.doc_type == "docx":
-            results = linter.lint_docx()
-        elif template.doc_type.doc_type == "pptx":
-            results = linter.lint_pptx()
-        else:
-            logger.warning(
-                "Template had an unknown filetype not supported by the linter: %s",
-                template.doc_type,
-            )
-            results = {}
-        template.lint_result = results
+        data = lint_template(template)
         template.save()
-
-        data = results
-        if data["result"] == "success":
-            data["message"] = "Template linter returned results with no errors or warnings."
-        elif not data["result"]:
-            data["message"] = f"Template had an unknown filetype not supported by the linter: {template.doc_type}"
-        else:
-            data["message"] = "Template linter returned results with issues that require attention."
-
         return JsonResponse(data)
 
 

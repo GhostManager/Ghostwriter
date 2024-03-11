@@ -1531,8 +1531,6 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         return ctx
 
     def form_invalid(self, form):
-        # DEBUG DO NOT COMMIT
-        logger.error("DEBUG: %r", form.errors)
         return super().form_invalid(form)
 
     def form_valid(self, form):

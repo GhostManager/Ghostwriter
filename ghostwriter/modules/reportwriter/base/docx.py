@@ -1,14 +1,18 @@
 
+from typing import Tuple, List
 import io
 import logging
+import os
 
 from docxtpl import DocxTemplate
 from docx.opc.exceptions import PackageNotFoundError
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt
-from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
+from jinja2.exceptions import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
 
+from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
+from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
 
@@ -26,9 +30,22 @@ class ExportDocxBase(ExportBase):
 
     word_doc: DocxTemplate
     company_config: CompanyInformation
+    linting: bool
+    p_style: str
 
-    def __init__(self, object, template_loc=None):
-        super().__init__(object)
+    def __init__(
+        self,
+        object,
+        template_loc: str,
+        p_style: str,
+        linting: bool = False,
+        **kwargs
+    ):
+        if "jinja_debug" not in kwargs:
+            kwargs["jinja_debug"] = linting
+        super().__init__(object, **kwargs)
+        self.linting = linting
+        self.p_style = p_style
 
         # Create Word document writer using the specified template file
         try:
@@ -130,7 +147,7 @@ class ExportDocxBase(ExportBase):
             # Keep first and last lines together after repagination
             block_par.widow_control = True
 
-    def process_rich_text_docx(self, text, template_vars, evidences, p_style=None):
+    def process_rich_text_docx(self, text, template_vars, evidences):
         """
         Converts HTML from the TinyMCE rich text editor to a Word subdoc.
         """
@@ -140,7 +157,7 @@ class ExportDocxBase(ExportBase):
             HtmlToDocxWithEvidence.run(
                 text,
                 doc=doc,
-                p_style=p_style,
+                p_style=self.p_style,
                 evidences=evidences,
                 figure_label=self.label_figure,
                 figure_prefix=self.prefix_figure,
@@ -165,3 +182,76 @@ class ExportDocxBase(ExportBase):
                 extra_fields[field.internal_name] = field.empty_value()
             if field.type == "rich_text":
                 extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
+
+    @classmethod
+    def generate_lint_data(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    def lint(cls, template_loc: str, p_style: str) -> Tuple[List[str], List[str]]:
+        warnings = []
+        errors = []
+
+        logger.info("Linting docx file %r", template_loc)
+        try:
+            if not os.path.exists(template_loc):
+                logger.error("Template file path did not exist: %r", template_loc)
+                errors.append("Template file does not exist – upload it again")
+                return warnings, errors
+
+            lint_data = cls.generate_lint_data()
+            exporter = cls(
+                lint_data,
+                is_raw=True,
+                linting=True,
+                template_loc=template_loc,
+                p_style=p_style,
+            )
+            logger.info("Template loaded for linting")
+
+            for variable in exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env):
+                if variable not in lint_data:
+                    warnings.append("Potential undefined variable: {!r}".format(variable))
+
+            document_styles = exporter.word_doc.styles
+            for style in [
+                "Bullet List",
+                "Number List",
+                "CodeBlock",
+                "CodeInline",
+                "Caption",
+                "List Paragraph",
+                "Blockquote",
+            ]:
+                if style not in document_styles:
+                    warnings.append("Template is missing a recommended style (see documentation): " + style)
+            if "Table Grid" not in document_styles:
+                errors.append("Template is missing a required style (see documentation): Table Grid")
+            if p_style and p_style not in document_styles:
+                warnings.append("Template is missing your configured default paragraph style: " + exporter.word_doc.p_style)
+
+            exporter.run()
+
+            for var in exporter.jinja_undefined_variables:
+                warnings.append("Undefined variable: {!r}".format(var))
+        except TemplateSyntaxError as error:
+            logger.error("Template syntax error: %s", error)
+            errors.append(f"Template syntax error: {error}")
+        except UndefinedError as error:
+            logger.exception("Template undefined variable error: %s", error)
+            errors.append(f"Template syntax error: {error}")
+        except InvalidFilterValue as error:
+            logger.error("Invalid value provided to filter: %s", error)
+            errors.append(f"Invalid filter value: {error.message}")
+        except TypeError as error:
+            logger.exception("TypeError during template linting")
+            errors.append(f": {error}")
+        except TemplateRuntimeError as error:
+            logger.error("Invalid filter or expression: %s", error)
+            errors.append(f"Invalid filter or expression: {error}")
+        except Exception:
+            logger.exception("Template failed linting")
+            errors.append("Template rendering failed unexpectedly")
+
+        logger.info("Linting finished: %d warnings, %d errors", len(warnings), len(errors))
+        return warnings, errors
