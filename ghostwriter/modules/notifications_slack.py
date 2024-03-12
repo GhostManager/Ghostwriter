@@ -3,15 +3,16 @@ import json
 import logging
 from typing import Union
 
-# 3rd Party Libraries
-import requests
-
 # Django Imports
 from django.urls import reverse
+
+# 3rd Party Libraries
+import requests
 from django_q.models import Task
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import SlackConfiguration
+from ghostwriter.commandcenter.models import GeneralConfiguration, SlackConfiguration
+from ghostwriter.oplog.models import Oplog
 
 # Using __name__ resolves to ghostwriter.shepherd.tasks
 logger = logging.getLogger(__name__)
@@ -28,6 +29,9 @@ class SlackNotification:
         self.slack_emoji = slack_config.slack_emoji
         self.slack_channel = slack_config.slack_channel
         self.slack_alert_target = slack_config.slack_alert_target
+
+        general_config = GeneralConfiguration.get_solo()
+        self.hostname = general_config.hostname
 
     def send_msg(self, message: str, channel: str = None, blocks: list = None) -> dict:
         """
@@ -382,20 +386,18 @@ class SlackNotification:
         ]
         return blocks
 
-    def craft_inactive_log_msg(
-        self, oplog: str, project: str, hours_inactive: int, last_entry_date: str = None
-    ) -> list:
+    def craft_inactive_log_msg(self, oplog: Oplog, hours_inactive: int, last_entry_date: str = None) -> list:
         """
         Create the blocks for a nicely formatted Slack message for inactive oplog notifications.
 
         **Parameters**
 
         ``oplog``
-            Name of the oplog
-        ``project``
-            Name of the project associated with the oplog
+            Instance of :model:`ghostwriter.oplog.models.Oplog`
+        ``hours_inactive``
+            Number of hours the log has been inactive
         ``last_entry_date``
-            Date of the last entry in the oplog
+            Date of the last entry in the log
         """
         if last_entry_date:
             last_entry_date = f"Last entry was submitted on {last_entry_date} UTC."
@@ -414,11 +416,11 @@ class SlackNotification:
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Oplog:*\n{oplog}",
+                        "text": f"*Oplog:*\n{oplog.name} (ID {oplog.id})",
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Project:*\n{project}",
+                        "text": f"*Project:*\n{oplog.project}",
                     },
                 ],
             },
@@ -434,6 +436,17 @@ class SlackNotification:
                 "text": {
                     "type": "mrkdwn",
                     "text": f"{last_entry_date}",
+                },
+            },
+            {
+                "type": "section",
+                "text": {"type": "plain_text", "text": " "},
+                "accessory": {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "View Log", "emoji": True},
+                    "value": "view_inactive_log",
+                    "url": f"https://{self.hostname}{oplog.get_absolute_url()}",
+                    "action_id": "button-action",
                 },
             },
         ]
