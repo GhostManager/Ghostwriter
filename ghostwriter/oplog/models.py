@@ -51,7 +51,6 @@ class Oplog(models.Model):
         return reverse("oplog:oplog_entries", args=[str(self.id)])
 
 
-
 class OplogEntry(models.Model):
     """Stores an individual log entry, related to :model:`oplog.Oplog`."""
 
