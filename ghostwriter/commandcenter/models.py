@@ -290,6 +290,11 @@ class GeneralConfiguration(SingletonModel):
         default="America/Los_Angeles",
         help_text="Select a default timezone for clients and projects",
     )
+    hostname = models.CharField(
+        max_length=255,
+        default="ghostwriter.local",
+        help_text="Hostname or IP address for Ghostwtiter (used for links in notifications)",
+    )
 
     def __str__(self):
         return "General Settings"
