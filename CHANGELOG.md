@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1-rc2] - 12 March 2024
+
+### Added
+
+* Added a `getExtraFieldSpec` query to the GraphQL API that returns the extra field specification for a model
+  * This query is useful for extensions that need to know the extra fields available for a model
+* Added a note to the WYSIWYG editor to call-out it is possible to access a browser's context menu by using CTRL+right-click
+* Added a new `hostname` configuration option to the General Settings in the admin panel
+  * This option allows you to set the hostname for the Ghostwriter server
+  * The hostname is used to generate links in Slack notifications and other places where a link to the server is needed
+
+### Changed
+
+* Default values for extra fields are now set when creating a new entry with empty extra fields 
+  * Default values now appear in the edit forms for the entries
+  * The default value must be set before creating the entry for it to appear in the form or be set as the default value
+
 ## [4.1-rc1] - 21 February 2024
 
 ### Added
