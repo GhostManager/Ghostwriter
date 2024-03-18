@@ -34,7 +34,7 @@
     <div class="container">
         <h2>{{ reporttemplate.name }}</h2>
     </div>
-    <span class="badge {% if reporttemplate.doc_type.doc_type == "docx" %}badge-word">Word{% else %}badge-pptx">PowerPoint{% endif %}</span>
+    <span class="badge {% if reporttemplate.doc_type.extension == "docx" %}badge-word">Word{% else %}badge-pptx">PowerPoint{% endif %}</span>
     {% for tag in reporttemplate.tags.names %}
         <span class="badge badge-secondary">{{ tag|bleach }}</span>
     {% endfor %}
@@ -85,7 +85,7 @@
                 <td class="text-left bold">Orientation</td>
                 <td class="text-center">{% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}</td>
             </tr>
-            {% if reporttemplate.doc_type.doc_type == "docx" %}
+            {% if reporttemplate.doc_type.extension == "docx" %}
               <tr>
                   <td class="text-left bold">New Paragraph Style</td>
                   <td class="text-center">{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</td>

@@ -201,7 +201,7 @@ class DocTypeModelTests(TestCase):
 
     def test_crud_doc_type(self):
         # Create
-        doc_type = DocTypeFactory(doc_type="docx")
+        doc_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx")
 
         # Read
         self.assertEqual(doc_type.doc_type, "docx")
