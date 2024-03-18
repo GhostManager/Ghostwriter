@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from django.test import TestCase
 from .test_rich_text_docx import clean_xml
 
-from ghostwriter.modules.reportwriter.html_to_pptx import HtmlToPptx
+from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptx
 
 PPTX_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
