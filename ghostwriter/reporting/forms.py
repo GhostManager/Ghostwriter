@@ -815,7 +815,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["name"].widget.attrs["placeholder"] = "Default Red Team Report"
         self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
         self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
-        self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
+        self.fields["doc_type"].empty_label = "-- Select a Matching Template Type --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"

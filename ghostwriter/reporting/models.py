@@ -243,6 +243,16 @@ class DocType(models.Model):
         help_text="Enter a file extension for a report template filetype",
     )
 
+    extension = models.CharField(
+        "Document Extension",
+        max_length=10,
+    )
+
+    name = models.CharField(
+        "Name",
+        max_length=255,
+    )
+
     class Meta:
         ordering = [
             "doc_type",
@@ -251,7 +261,7 @@ class DocType(models.Model):
         verbose_name_plural = "Document types"
 
     def __str__(self):
-        return f"{self.doc_type}"
+        return f"{self.name}"
 
 
 class ReportTemplate(models.Model):
@@ -319,7 +329,7 @@ class ReportTemplate(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="Select the filetype for this template",
+        help_text="Select the file type and target for this template",
     )
     p_style = models.CharField(
         "New Paragraph Style",

@@ -1637,8 +1637,8 @@ class ReportTemplateListViewTests(TestCase):
         cls.ReportTemplate.objects.all().delete()
         cls.DocType.objects.all().delete()
 
-        docx_type = DocTypeFactory(doc_type="docx", id=1)
-        pptx_type = DocTypeFactory(doc_type="pptx", id=2)
+        docx_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx", id=1)
+        pptx_type = DocTypeFactory(doc_type="pptx", extension="pptx", name="pptx", id=2)
 
         cls.num_of_templates = 5
         cls.templates = []
