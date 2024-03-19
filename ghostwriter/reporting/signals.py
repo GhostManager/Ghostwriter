@@ -9,7 +9,6 @@ from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.lint import lint_template
 from ghostwriter.reporting.models import (
     ReportTemplate,
     Severity,
@@ -78,7 +77,7 @@ def clean_template(sender, instance, created, **kwargs):
         )
 
         try:
-            lint_template(instance)
+            instance.lint()
 
             # Disconnect signal to save model and avoid infinite loop
             post_save.disconnect(clean_template, sender=ReportTemplate)

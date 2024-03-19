@@ -102,6 +102,14 @@ class ExportBase:
     def run(self) -> io.BytesIO:
         raise NotImplementedError()
 
+    @classmethod
+    def mime_type(cls) -> str:
+        raise NotImplementedError()
+
+    @classmethod
+    def extension(cls) -> str:
+        raise NotImplementedError()
+
 
 def _valid_xml_char_ordinal(c):
     """

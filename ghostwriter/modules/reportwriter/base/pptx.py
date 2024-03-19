@@ -2,8 +2,11 @@
 import io
 import logging
 import os
+from datetime import date
 from typing import List, Tuple
 
+from django.conf import settings
+from django.utils.dateformat import format as dateformat
 from bs4 import BeautifulSoup
 from jinja2 import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
 from pptx import Presentation
@@ -31,6 +34,14 @@ class ExportBasePptx(ExportBase):
     ppt_presentation: PresentationPart
     company_config: CompanyInformation
     linting: bool
+
+    @classmethod
+    def mime_type(cls) -> str:
+        return "application/application/vnd.openxmlformats-officedocument.presentationml.presentation"
+
+    @classmethod
+    def extension(cls) -> str:
+        return "pptx"
 
     def __init__(
         self,
@@ -84,6 +95,42 @@ class ExportBasePptx(ExportBase):
             logger.warning("Input text: %r", text)
             raise
 
+    def process_footers(self):
+        """
+        Add footer elements (if there is one) to all slides based on the footer placeholder in the template
+        """
+        for idx, slide in enumerate(self.ppt_presentation.slides):
+            date_placeholder_idx = -1
+            footer_placeholder_idx = -1
+            slide_number_placeholder_idx = -1
+            slide_layout = slide.slide_layout
+
+            for idx, place in enumerate(slide_layout.placeholders):
+                if "Footer" in place.name:
+                    footer_placeholder_idx = idx
+                if "Slide Number" in place.name:
+                    slide_number_placeholder_idx = idx
+                if "Date" in place.name:
+                    date_placeholder_idx = idx
+
+            # Skip the title slide at index 0
+            if idx > 0:
+                if footer_placeholder_idx > 0:
+                    footer_layout_placeholder, footer_placeholder = clone_placeholder(
+                        slide, slide_layout, footer_placeholder_idx
+                    )
+                    footer_placeholder.text = footer_layout_placeholder.text
+                if slide_number_placeholder_idx > 0:
+                    _, slide_number_placeholder = clone_placeholder(
+                        slide, slide_layout, slide_number_placeholder_idx
+                    )
+                    add_slide_number(slide_number_placeholder)
+                if date_placeholder_idx > 0:
+                    _, date_placeholder = clone_placeholder(
+                        slide, slide_layout, date_placeholder_idx
+                    )
+                    date_placeholder.text = dateformat(date.today(), settings.DATE_FORMAT)
+
     def run(self):
         out = io.BytesIO()
         self.ppt_presentation.save(out)
@@ -130,6 +177,12 @@ class ExportBasePptx(ExportBase):
 
         logger.info("Linting finished: %d warnings, %d errors", len(warnings), len(errors))
         return warnings, errors
+
+
+# Slide styles (From Master Style counting top to bottom from 0..n)
+SLD_LAYOUT_TITLE = 0
+SLD_LAYOUT_TITLE_AND_CONTENT = 1
+SLD_LAYOUT_FINAL = 12
 
 
 def add_slide_number(txtbox):

@@ -16,3 +16,11 @@ class ExportBaseJson(ExportBase):
         json.dump(self.data, s_out, indent=4, ensure_ascii=True)
         s_out.flush()
         return s_out.detach()
+
+    @classmethod
+    def mime_type(cls) -> str:
+        return "application/json"
+
+    @classmethod
+    def extension(cls) -> str:
+        return "json"

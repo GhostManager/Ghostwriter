@@ -33,6 +33,14 @@ class ExportDocxBase(ExportBase):
     linting: bool
     p_style: str
 
+    @classmethod
+    def mime_type(cls) -> str:
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    @classmethod
+    def extension(cls) -> str:
+        return "docx"
+
     def __init__(
         self,
         object,

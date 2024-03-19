@@ -238,7 +238,7 @@ class DocType(models.Model):
 
     doc_type = models.CharField(
         "Document Type",
-        max_length=5,
+        max_length=20,
         unique=True,
         help_text="Enter a file extension for a report template filetype",
     )
@@ -361,13 +361,85 @@ class ReportTemplate(models.Model):
             try:
                 result_code = self.lint_result["result"]
             except json.decoder.JSONDecodeError:  # pragma: no cover
-                logger.exception("Could not decode data in model as JSON: %s", self.lint_result)
+                logger.exception("Could not decode data in model as JSON: %r", self.lint_result)
             except Exception:  # pragma: no cover
                 logger.exception(
-                    "Encountered an exception while trying to decode this as JSON: %s",
+                    "Encountered an exception while trying to decode this as JSON: %r",
                     self.lint_result,
                 )
         return result_code
+
+    def exporter(self, object):
+        """
+        Returns an ExportBase subclass instance based on the template and the passed-in object.
+        Call the `run` method to generate the corresponding report.
+        """
+        # Import in function to avoid circular references
+        from ghostwriter.rolodex.models import Project
+
+        if self.doc_type.doc_type == "docx":
+            assert isinstance(object, Report)
+            from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+            return ExportReportDocx(object, template_loc=self.document.path, p_style=self.p_style)
+        if self.doc_type.doc_type == "project_docx":
+            assert isinstance(object, Project)
+            from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
+            return ExportProjectDocx(object, template_loc=self.document.path, p_style=self.p_style)
+        if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
+            from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+            return ExportReportPptx(object, template_loc=self.document.path)
+        if self.doc_type.doc_type == "pptx" and isinstance(object, Project):
+            from ghostwriter.modules.reportwriter.project.pptx import ExportProjectPptx
+            return ExportProjectPptx(object, template_loc=self.document.path)
+        raise RuntimeError(f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database.")
+
+    def lint(self):
+        """
+        Lints a `ReportTemplate`. Sets `self.lint_results` and returns a `results` object
+        for the frontend. Be sure to save the template afterwards.
+        """
+
+        try:
+            warnings, errors = self.lint_raw()
+        except Exception:
+            logging.exception("Could not lint template %d (%s)", self.pk, self.document.path)
+            warnings = []
+            errors = ["Unexpected error while linting template"]
+
+        results = {
+            "warnings": warnings,
+            "errors": errors,
+        }
+        if errors:
+            results["result"] = "failed"
+        elif warnings:
+            results["result"] = "warning"
+        else:
+            results["result"] = "success"
+        self.lint_result = results.copy()
+
+        if results["result"] == "success":
+            results["message"] = "Template linter returned results with no errors or warnings."
+        else:
+            results["message"] = "Template linter returned results with issues that require attention."
+        return results
+
+    def lint_raw(self):
+        """
+        Runs the linter and returns the results. Does not set the template's `lint_results`.
+        """
+        # Import in function to avoid circular references
+        if self.doc_type.doc_type == "docx":
+            from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+            return ExportReportDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+        if self.doc_type.doc_type == "project_docx":
+            from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
+            return ExportProjectDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+        if self.doc_type.doc_type == "pptx":
+            # Report PPTX exporter exports more content, so use it to lint
+            from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+            return ExportReportPptx.lint(template_loc=self.document.path)
+        raise RuntimeError(f"Lint for doc_type {self.doc_type.doc_type} not implemented. Either this is a bug or an admin messed with the database.")
 
 
 class Report(models.Model):

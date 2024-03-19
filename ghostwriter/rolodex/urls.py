@@ -143,6 +143,11 @@ urlpatterns += [
         views.ProjectTaskRefresh.as_view(),
         name="ajax_update_objective_tasks",
     ),
+    path(
+        "ajax/projects/export/<int:pk>/<str:type_or_template_id>",
+        views.GenerateProjectReport.as_view(),
+        name="ajax_project_generate_report",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views
