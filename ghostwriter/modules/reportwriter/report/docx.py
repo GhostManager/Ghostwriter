@@ -3,14 +3,15 @@ import copy
 import io
 import logging
 
-from docxtpl import DocxTemplate, RichText
+from docxtpl import RichText
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter.base.docx import ExportDocxBase
+from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.oplog.models import OplogEntry
-from ghostwriter.reporting.models import Finding, Observation, Report
+from ghostwriter.reporting.models import Finding, Observation, Report, ReportTemplate
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
@@ -18,12 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class ExportReportDocx(ExportDocxBase, ExportReportBase):
-    word_doc: DocxTemplate
-
-    def __init__(self, object, template_loc=None, p_style=None, **kwargs):
+    def __init__(self, object: ReportTemplate, p_style=None, **kwargs):
         if p_style is None:
             p_style = object.docx_template.p_style
-        super().__init__(object, template_loc=template_loc, p_style=p_style, **kwargs)
+        super().__init__(object, p_style=p_style, **kwargs)
 
     def process_richtext(self, context: dict):
         """
@@ -75,72 +74,12 @@ class ExportReportDocx(ExportDocxBase, ExportReportBase):
             finding["network_detection_techniques_rt"] = finding_render(finding["network_detection_techniques"])
             finding["references_rt"] = finding_render(finding["references"])
 
-        # Client
-        context["client"]["note_rt"] = base_render(context["client"]["note"])
-        context["client"]["address_rt"] = base_render(context["client"]["address"])
-        self.process_extra_fields(context["client"]["extra_fields"], Client, base_render)
-
         # Project
         context["project"]["note_rt"] = base_render(context["project"]["note"])
         self.process_extra_fields(context["project"]["extra_fields"], Project, base_render)
 
-        # Assignments
-        for assignment in context["team"]:
-            if isinstance(assignment, dict):
-                if assignment["note"]:
-                    assignment["note_rt"] = base_render(assignment["note"])
-
-        # Contacts
-        for contact in context["client"]["contacts"]:
-            if isinstance(contact, dict):
-                if contact["note"]:
-                    contact["note_rt"] = base_render(contact["note"])
-
-        # Objectives
-        for objective in context["objectives"]:
-            if isinstance(objective, dict):
-                if objective["description"]:
-                    objective["description_rt"] = base_render(objective["description"])
-
-        # Scope Lists
-        for scope_list in context["scope"]:
-            if isinstance(scope_list, dict):
-                if scope_list["description"]:
-                    scope_list["description_rt"] = base_render(scope_list["description"])
-
-        # Targets
-        for target in context["targets"]:
-            if isinstance(target, dict):
-                if target["note"]:
-                    target["note_rt"] = base_render(target["note"])
-
-        # Deconfliction Events
-        for event in context["deconflictions"]:
-            if isinstance(event, dict):
-                if event["description"]:
-                    event["description_rt"] = base_render(event["description"])
-
-        # White Cards
-        for card in context["whitecards"]:
-            if isinstance(card, dict):
-                if card["description"]:
-                    card["description_rt"] = base_render(card["description"])
-
-        # Infrastructure
-        for asset_type in context["infrastructure"]:
-            for asset in context["infrastructure"][asset_type]:
-                if isinstance(asset, dict):
-                    if asset["note"]:
-                        asset["note_rt"] = base_render(asset["note"])
-        for asset in context["infrastructure"]["domains"]:
-            self.process_extra_fields(asset["extra_fields"], Domain, base_render)
-        for asset in context["infrastructure"]["servers"]:
-            self.process_extra_fields(asset["extra_fields"], StaticServer, base_render)
-
-        # Logs
-        for log in context["logs"]:
-            for entry in log["entries"]:
-                self.process_extra_fields(entry["extra_fields"], OplogEntry, base_render)
+        # Fields on Project
+        ExportProjectDocx.process_projects_richtext(context, base_render, self.process_extra_fields)
 
         # Observations
         for observation in context["observations"]:

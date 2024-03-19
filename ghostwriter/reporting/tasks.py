@@ -61,8 +61,8 @@ def archive_projects():
             docx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.docx")
             pptx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.pptx")
 
-            word_doc = ExportReportDocx(report, docx_template_loc).run()
-            ppt_doc = ExportReportPptx(report, pptx_template_loc).run()
+            word_doc = ExportReportDocx(report, template_loc=docx_template_loc).run()
+            ppt_doc = ExportReportPptx(report, template_loc=pptx_template_loc).run()
             excel_doc = ExportReportXlsx(report).run()
             json_doc = ExportReportJson(report).run()
 

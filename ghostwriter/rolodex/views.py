@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.db.models import Q
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -31,6 +32,8 @@ from ghostwriter.api.utils import (
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
+from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
+from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
     ClientContactFormSet,
@@ -239,6 +242,40 @@ def ajax_update_project_objectives(request):
     else:
         data = {"result": "error"}
     return JsonResponse(data)
+
+
+class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Generates a project report"""
+
+    model = Project
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object())
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def get(self, *args, **kwargs):
+        project = self.get_object()
+
+        type_or_template_id = self.kwargs["type_or_template_id"]
+        try:
+            type_or_template_id = int(type_or_template_id)
+        except ValueError:
+            pass
+
+        if type_or_template_id == "json":
+            exporter = ExportProjectJson(project)
+        else:
+            template = ReportTemplate.objects.filter(
+                Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+            ).filter(
+                Q(client=project.client) | Q(client__isnull=True)
+            ).select_related("doc_type").get(pk=type_or_template_id)
+            exporter = template.exporter(project)
+        response = HttpResponse(exporter.run().getvalue(), content_type=exporter.mime_type())
+        response["Content-Disposition"] = f'attachment; filename="{project}.{exporter.extension()}"'
+        return response
 
 
 class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -1458,9 +1495,14 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
+    def get_context_data(self, object, **kwargs):
+        ctx = super().get_context_data(object=object, **kwargs)
         ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
+        ctx["export_templates"] = ReportTemplate.objects.filter(
+            Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+        ).filter(
+            Q(client=object.client) | Q(client__isnull=True)
+        )
         return ctx
 
 

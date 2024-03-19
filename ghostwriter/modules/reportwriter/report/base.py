@@ -40,7 +40,8 @@ class ExportReportBase(ExportBase):
                 base_context["_old_dot_vars"][evidence["friendly_name"]] = jinja_funcs.evidence(evidence["friendly_name"])
         return base_context
 
-    def jinja_richtext_finding_context(self, base_context: dict, finding: dict) -> dict:
+    @staticmethod
+    def jinja_richtext_finding_context(base_context: dict, finding: dict) -> dict:
         """
         Generates a Jinja context for use in finding-related rich text fields
         """

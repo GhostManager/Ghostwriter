@@ -112,6 +112,15 @@
     }
   },
   {
+    "model": "reporting.doctype",
+    "pk": 3,
+    "fields": {
+      "doc_type": "project_docx",
+      "name": "Project DOCX",
+      "extension": "docx"
+    }
+  },
+  {
     "model": "reporting.reporttemplate",
     "pk": 1,
     "fields": {

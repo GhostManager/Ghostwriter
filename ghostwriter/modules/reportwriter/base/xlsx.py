@@ -26,6 +26,14 @@ class ExportXlsxBase(ExportBase):
             "strings_to_urls": False,
         })
 
+    @classmethod
+    def mime_type(cls) -> str:
+        return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    @classmethod
+    def extension(cls) -> str:
+        return "xlsx"
+
     def process_rich_text_xlsx(self, html, template_vars, evidences) -> str:
         """
         Converts HTML from the TinyMCE rich text editor and returns a plain string
