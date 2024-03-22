@@ -60,7 +60,7 @@
 
     <div class="tab-content">
       {% comment %} Status Tab {% endcomment %}
-      <div id="status" class="tab-pane in active">
+      <div id="status" class="tab-pane">
         <h4>Report Status</h4>
         <hr/>
 
@@ -185,13 +185,11 @@
       </div>
 
       {% comment %} Findings Tab {% endcomment %}
-      <div id="findings" class="tab-pane">
+      <div id="findings" class="tab-pane in active">
         <h4>Current Findings</h4>
         <hr>
 
-        <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your
-          desired
-          finding.</p>
+        <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired finding.</p>
 
         <!-- Search Section -->
         <form action="{% url 'reporting:findings' %}" method="GET">
@@ -1009,6 +1007,16 @@
 
     {% comment %} Save template selection on change {% endcomment %}
     $(document).ready(function () {
+      // Check if the URL included a tab anchor and set it as the tab to show if so
+      let hash = $(location).attr('hash');
+      if (hash) {
+        localStorage.setItem('reportDefaultTab', hash);
+      }
+
+      // Display whatever tab was last selected or default – if null, default to the Findings tab
+      let defaultTab = (localStorage.getItem('reportDefaultTab') !== null ? localStorage.getItem('reportDefaultTab') : 'findings');
+      $('[href="' + defaultTab + '"]').tab('show');
+
       $('#report-template-swap-form').change(function () {
         let url = $(this).attr('action');
         let $docxTemplate = $('#id_docx_template')
@@ -1153,6 +1161,12 @@
             }
           }
         }
+      });
+
+      // Store the last selected tab to return to it on page reload
+      $('.nav-link').click(function () {
+        let tab = $(this).attr('href');
+        localStorage.setItem("reportDefaultTab", tab);
       });
     </script>
   {% endif %}
