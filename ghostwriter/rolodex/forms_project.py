@@ -1205,8 +1205,8 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     Row(
-                        Column("start_time", css_class="form-group col-md-4 mb-0"),
-                        Column("end_time", css_class="form-group col-md-4 mb-0"),
+                        Column(Field("start_time", step=1), css_class="form-group col-md-4 mb-0"),
+                        Column(Field("end_time", step=1), css_class="form-group col-md-4 mb-0"),
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
@@ -1494,12 +1494,14 @@ class ProjectComponentForm(forms.ModelForm):
         ]
 
         if has_extra_fields:
-            tabs.append(CustomTab(
-                "Extra Fields",
-                "extra_fields",
-                link_css_class="tab-icon custom-field-icon",
-                css_id="extra-fields",
-            ))
+            tabs.append(
+                CustomTab(
+                    "Extra Fields",
+                    "extra_fields",
+                    link_css_class="tab-icon custom-field-icon",
+                    css_id="extra-fields",
+                )
+            )
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
