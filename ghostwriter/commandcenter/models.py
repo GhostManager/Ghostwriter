@@ -370,6 +370,7 @@ class ExtraFieldSpec(models.Model):
     target_model = models.ForeignKey(to=ExtraFieldModel, on_delete=models.CASCADE)
     internal_name = models.CharField(max_length=255)
     display_name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
     type = models.CharField(
         max_length=255, choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
     )
@@ -388,7 +389,7 @@ class ExtraFieldSpec(models.Model):
         return EXTRA_FIELD_TYPES[self.type].empty_value()
 
     def form_field(self, *args, **kwargs):
-        return EXTRA_FIELD_TYPES[self.type].form_field(label=self.display_name, *args, **kwargs)
+        return EXTRA_FIELD_TYPES[self.type].form_field(label=self.display_name, help_text=self.description, *args, **kwargs)
 
     def form_widget(self, *args, **kwargs):
         return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)

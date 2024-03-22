@@ -118,6 +118,7 @@ class ExtraFieldsWidget(forms.Widget):
             subwidgets.append(
                 {
                     "label": spec.display_name,
+                    "description": spec.description,
                     "widget": widget_ctx,
                 }
             )
