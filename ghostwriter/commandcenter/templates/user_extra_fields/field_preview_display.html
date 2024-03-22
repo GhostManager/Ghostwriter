@@ -1,5 +1,7 @@
 {% load bleach_tags extra_fields %}
 
+<p class="mt-2">Preview and edit the extra fields here. If you want to add or change a field, admins can do that in the admin panel.</p>
+
 {% comment %} List non-rich text fields first {% endcomment %}
 {% for field_spec in object_extra_fields_spec %}
   {% if field_spec.type != "rich_text" %}
