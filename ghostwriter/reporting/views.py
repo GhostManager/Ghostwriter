@@ -56,8 +56,10 @@ from ghostwriter.api.utils import (
 )
 from ghostwriter.commandcenter.forms import SingleExtraFieldForm
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
+from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
+from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
@@ -115,41 +117,35 @@ def get_position(report_pk, severity):
     return 1
 
 
-def generate_report_name(report_instance):
+def generate_report_name(report_instance, template=None):
     """
     Generate a filename for a report based on the current time and attributes of an
     individual :model:`reporting.Report`. All illegal characters are removed to keep
     the filename browser-friendly.
     """
 
-    def replace_placeholders(name, instance):
-        """Replace placeholders in the report name with the appropriate values."""
-        company_info = CompanyInformation.get_solo()
-        name = name.replace("{title}", instance.title)
-        name = name.replace("{company}", company_info.company_name)
-        name = name.replace("{client}", instance.project.client.name)
-        name = name.replace("{date}", dateformat.format(timezone.now(), settings.DATE_FORMAT))
-        name = name.replace("{assessment_type}", instance.project.project_type.project_type)
-        return name
-
-    def replace_date_format(name):
-        """Replace date format placeholders in the report name with the appropriate values."""
-        # Find all strings wrapped in curly braces
-        datetime_regex = r"(?<=\{)(.*?)(?=\})"
-        for match in re.findall(datetime_regex, name):
-            strfmt = dateformat.format(timezone.now(), match)
-            name = name.replace(match, strfmt)
-        return name
-
     def replace_chars(name):
         """Remove illegal characters from the report name."""
         name = name.replace("–", "-")
         return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", name)
 
-    report_config = ReportConfiguration.get_solo()
-    report_name = report_config.report_filename
-    report_name = replace_placeholders(report_name, report_instance)
-    report_name = replace_date_format(report_name)
+    if template is None:
+        template = ReportConfiguration.get_solo().report_filename
+
+    jinja_env = prepare_jinja2_env()
+    template = jinja_env.from_string(template)
+    if isinstance(report_instance, dict):
+        # May be linting data
+        data = report_instance
+    else:
+        data = ReportDataSerializer(
+            report_instance,
+            exclude=["id"],
+        ).data
+    data["company_name"] = CompanyInformation.get_solo().company_name
+    data["now"] = datetime.now()
+
+    report_name = template.render(data)
     report_name = replace_chars(report_name)
     return report_name.strip()
 
