@@ -466,11 +466,13 @@ def send_slack_complete_msg(task: Task) -> None:
     logger.info("Sending Slack message for completed task %s", task.id)
 
     slack = SlackNotification()
+    general_config = GeneralConfiguration.get_solo()
+    hostname = general_config.hostname
 
     if task.success:
-        task_url = reverse("admin:django_q_success_change", args=(task.id,))
+        task_url = f"https://{hostname}{reverse('admin:django_q_success_change', args=(task.id,))}"
     else:
-        task_url = reverse("admin:django_q_failure_change", args=(task.id,))
+        task_url = f"https://{hostname}{reverse('admin:django_q_failure_change', args=(task.id,))}"
 
     # Blocks for Slack messages – combine lists to assemble the message
     base_blocks = [
@@ -490,7 +492,7 @@ def send_slack_complete_msg(task: Task) -> None:
     failure_blocks = [
         {
             "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*{task.group}* task failed :frowning:"},
+            "text": {"type": "mrkdwn", "text": f"*{task.group}* task failed or logged errors :frowning:"},
         },
     ]
 
@@ -499,14 +501,18 @@ def send_slack_complete_msg(task: Task) -> None:
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Details and task output can be viewed in the admin panel under:\n _{task_url}_",
+                "text": f"Details and task output can be viewed in the admin panel under:\n {task_url}",
             },
         },
     ]
 
     try:
         # Assemble blocks based on task results and send the message
-        if task.success:
+        errors = False
+        if "errors" in task.result:
+            if task.result["errors"]:
+                errors = True
+        if task.success and not errors:
             err = slack.send_msg(
                 "Task successful",
                 blocks=base_blocks + success_blocks + result_blocks,
