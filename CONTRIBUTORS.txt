@@ -21,3 +21,9 @@ Support for custom fields, refactored report writer, and more:
 
 Support for HTML tables:
     @domwhewell
+
+Valuable feedback and testing:
+    Tilman Bender (@er4z0r)
+
+Valuable feedback and testing:
+    Ellen Shaaltiel (@KomodoGal)
