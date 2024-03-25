@@ -406,6 +406,7 @@ class RegistrarSyncNamecheap(RoleBasedAccessControlMixin, View):
             task_id = async_task(
                 "ghostwriter.shepherd.tasks.fetch_namecheap_domains",
                 group="Namecheap Update",
+                hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
             )
             message = "Successfully queued Namecheap update task (Task ID {task}).".format(task=task_id)
         except Exception:
@@ -779,6 +780,8 @@ def update(request):
                 if queryset.success:
                     namecheap_last_update_completed = queryset.stopped
                     namecheap_last_update_time = round(queryset.time_taken() / 60, 2)
+                    if namecheap_last_result["errors"]:
+                        namecheap_last_update_completed = "Failed"
                 else:
                     namecheap_last_update_completed = "Failed"
             except IndexError:
