@@ -108,8 +108,8 @@ class ReportConfiguration(SingletonModel):
     report_filename = models.CharField(
         "Default Name for Report Downloads",
         max_length=255,
-        default="{Y-m-d}_{His} {company} - {client} {assessment_type} Report",
-        help_text="Name of the report file when downloaded that can include the following variables: title, date, company, client, assessment_type, and date format string values",
+        default='{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report',
+        help_text="Jinja2 template for report filenames. All template variables are available, plus {{now}} and {{company_name}}.",
     )
     title_case_captions = models.BooleanField(
         "Title Case Captions",
