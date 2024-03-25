@@ -945,6 +945,19 @@ p.severity-box.info {
   margin-bottom: 0;
 }
 
+.error {
+  color: var(--burned-color);
+}
+
+.error-div {
+  border: 1px solid black;
+  width: 50%;
+  margin: 0 auto;
+  border-radius: 5px;
+  background-color: #f1f1f1;
+  padding: .5em;
+}
+
 /* ---------------------------------------------------
     GENERAL BUTTON STYLES
 ----------------------------------------------------- */
