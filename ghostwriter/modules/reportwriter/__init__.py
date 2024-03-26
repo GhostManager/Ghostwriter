@@ -18,7 +18,30 @@ logger = logging.getLogger(__name__)
 def prepare_jinja2_env(debug=False):
     """Prepare a Jinja2 environment with all custom filters."""
     if debug:
-        undefined = jinja2.DebugUndefined
+        undefined_vars = set()
+
+        class RecordUndefined(jinja2.DebugUndefined):
+            __slots__ = ()
+
+            def _record(self):
+                undefined_vars.add(self._undefined_name)
+
+            def _fail_with_undefined_error(self, *args, **kwargs):
+                self._record()
+                return super()._fail_with_undefined_error(*args, **kwargs)
+
+            def __str__(self) -> str:
+                self._record()
+                return super().__str__()
+
+            def __iter__(self):
+                self._record()
+                return super().__iter__()
+
+            def __bool__(self):
+                self._record()
+                return super().__bool__()
+        undefined = RecordUndefined
     else:
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
 
@@ -33,4 +56,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["regex_search"] = jinja_funcs.regex_search
     env.filters["filter_tags"] = jinja_funcs.filter_tags
 
-    return env
+    if debug:
+        return env, undefined_vars
+    else:
+        return env
