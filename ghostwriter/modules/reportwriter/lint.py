@@ -121,10 +121,6 @@ class TemplateLinter:
                     # Step 4: Test rendering the document
                     try:
                         template_document.render(context, self.jinja_template_env, autoescape=True)
-                        undefined_vars = template_document.undeclared_template_variables
-                        if undefined_vars:
-                            for variable in undefined_vars:
-                                results["warnings"].append(f"Undefined variable: {variable}")
                         if results["warnings"]:
                             results["result"] = "warning"
                         logger.info("Completed document rendering test")
