@@ -13,7 +13,7 @@ from pptx.util import Inches, Pt
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
-from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML
+from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML
 
 
 class HtmlToPptx(BaseHtmlToOOXML):

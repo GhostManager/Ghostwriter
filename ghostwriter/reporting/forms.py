@@ -8,6 +8,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Q
 
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
@@ -810,12 +811,15 @@ class ReportTemplateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        if kwargs.get("instance"):
+            self.fields["doc_type"].disabled = True
+
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Default Red Team Report"
         self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
         self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
-        self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
+        self.fields["doc_type"].empty_label = "-- Select a Matching Template Type --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"

@@ -466,8 +466,10 @@
           </div>
         {% endif %}
       </div>
+
+      {% comment %} Reporting Section {% endcomment %}
       <div id="documents" class="tab-pane ">
-        {% comment %} Reporting Section {% endcomment %}
+
         <h4>Reports & Findings</h4>
         <hr/>
 
@@ -1084,6 +1086,24 @@
           </div>
         {% endif %}
       </div>
+
+      {% comment %} Generate Tab {% endcomment %}
+      <div id="generate" class="tab-pane">
+        <h4>Generate Reports</h4>
+        <hr/>
+
+        <div class="input-group mb-3 offset-2 col-8">
+          <select class="form-control" id="projectExportSelector" data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
+            <option value="json">JSON</option>
+            {% for template in export_templates %}
+              <option value="{{template.pk}}">{{template.name}}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <button id="projectExportButton" class="btn btn-primary col-2">Generate</button>
+        </div>
+      </div>
     </div>
   </div>
 {% endblock %}
@@ -1099,6 +1119,18 @@
     const $projectDescription = $('#projectDescription')
     const $projectDescDropdown = $('#projectDescriptionDropdown')
     const $editTodoInout = $('.edit-todo-input')
+
+    $(document).ready(function() {
+      const projectExportSelector = $("#projectExportSelector");
+      const projectExportButton = $("#projectExportButton");
+      projectExportButton.on("click", function() {
+        const url = projectExportSelector.attr("data-url").replace("replaceme", projectExportSelector.val());
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "";
+        a.click();
+      });
+    });
 
     $(document).ready(function () {
       update_project_contacts();

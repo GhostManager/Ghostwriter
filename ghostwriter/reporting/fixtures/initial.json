@@ -1,4 +1,5 @@
-[  {
+[
+  {
     "model": "reporting.severity",
     "pk": 5,
     "fields": {
@@ -96,14 +97,27 @@
     "model": "reporting.doctype",
     "pk": 1,
     "fields": {
-      "doc_type": "docx"
+      "doc_type": "docx",
+      "name": "Report DOCX",
+      "extension": "docx"
     }
   },
   {
     "model": "reporting.doctype",
     "pk": 2,
     "fields": {
-      "doc_type": "pptx"
+      "doc_type": "pptx",
+      "name": "PPTX",
+      "extension": "pptx"
+    }
+  },
+  {
+    "model": "reporting.doctype",
+    "pk": 3,
+    "fields": {
+      "doc_type": "project_docx",
+      "name": "Project DOCX",
+      "extension": "docx"
     }
   },
   {

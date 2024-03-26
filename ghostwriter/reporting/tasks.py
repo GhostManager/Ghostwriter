@@ -14,10 +14,10 @@ from django.core.files import File
 from django.db.models import Q
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.export_json import ExportReportJson
-from ghostwriter.modules.reportwriter.export_report_docx import ExportReportDocx
-from ghostwriter.modules.reportwriter.export_report_pptx import ExportReportPptx
-from ghostwriter.modules.reportwriter.export_report_xlsx import ExportReportXlsx
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 
 from .models import Archive, Report
 
@@ -61,8 +61,8 @@ def archive_projects():
             docx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.docx")
             pptx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.pptx")
 
-            word_doc = ExportReportDocx(report, docx_template_loc).run()
-            ppt_doc = ExportReportPptx(report, pptx_template_loc).run()
+            word_doc = ExportReportDocx(report, template_loc=docx_template_loc).run()
+            ppt_doc = ExportReportPptx(report, template_loc=pptx_template_loc).run()
             excel_doc = ExportReportXlsx(report).run()
             json_doc = ExportReportJson(report).run()
 
