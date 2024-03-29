@@ -88,6 +88,7 @@ class ExportDocxBase(ExportBase):
         self.create_styles()
 
         self.word_doc.render(self.data, self.jinja_env, autoescape=True)
+        self.render_properties()
 
         out = io.BytesIO()
         self.word_doc.save(out)
@@ -154,6 +155,19 @@ class ExportDocxBase(ExportBase):
             block_par.right_indent = Inches(0.2)
             # Keep first and last lines together after repagination
             block_par.widow_control = True
+
+    def render_properties(self):
+        """
+        Renders templates inside of the word doc properties
+        """
+        attrs = ["author", "category", "comments", "content_status", "identifier", "keywords", "language", "subject", "title", "version"]
+        for attr in attrs:
+            template_src = getattr(self.word_doc.core_properties, attr)
+            if not template_src:
+                continue
+            template = self.jinja_env.from_string(template_src)
+            out = template.render(self.data)
+            setattr(self.word_doc.core_properties, attr, out)
 
     def process_rich_text_docx(self, text, template_vars, evidences):
         """
