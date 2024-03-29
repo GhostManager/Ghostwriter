@@ -76,10 +76,10 @@ def archive_projects():
                 zip_directory(evidence_loc, zf)
             zip_buffer.seek(0)
             with open(os.path.join(archive_loc, report.title + ".zip"), "wb") as archive_file:
-                archive_file.write(zip_buffer.read())
+                archive_file.write(zip_buffer.getvalue())
             new_archive = Archive(
                 project=report.project,
-                report_archive=File(open(os.path.join(archive_loc, report.title + ".zip"), "rb")),
+                report_archive=File(zip_buffer),
             )
             new_archive.save()
             report.archived = True
