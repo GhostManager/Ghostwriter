@@ -48,7 +48,7 @@
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
-        toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
+        toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
         contextmenu: 'table formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
@@ -194,6 +194,16 @@
                 },
             });
 
+            editor.ui.registry.addButton('highlight', {
+                context: 'format',
+                icon: 'highlight-bg-color',
+                text: '',
+                tooltip: 'Highlight selected text',
+                onAction: function (_) {
+                    tinymce.activeEditor.formatter.toggle('highlight')
+                },
+            });
+
             // https://www.martyfriedel.com/blog/tinymce-5-url-dialog-component-and-window-messaging
             editor.ui.registry.addButton('evidenceUpload', {
                 icon: 'upload',
@@ -299,9 +309,9 @@
     /*
     Initiate TinyMCE targeting all ``textarea`` inputs
 
-    The init is wrapped in a function so it can be called to reinitialize TinyMCE as needed
+    The init is wrapped in a function, so it can be called to reinitialize TinyMCE as needed
 
-    Editors must be reinitiated when an empty formset form is copied and added to a form
+    Editors must be reinitialized when an empty formset form is copied and added to a form
     */
 
     function tinyInit() {
