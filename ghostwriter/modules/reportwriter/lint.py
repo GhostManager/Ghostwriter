@@ -25,7 +25,7 @@ class TemplateLinter:
     def __init__(self, template):
         self.template = template
         self.template_loc = template.document.path
-        self.jinja_template_env = prepare_jinja2_env(debug=True)
+        self.jinja_template_env, self.jinja_undefined_vars = prepare_jinja2_env(debug=True)
 
     def lint_docx(self):
         """
@@ -88,9 +88,6 @@ class TemplateLinter:
                                 f"Template is missing your configured default paragraph style: {self.template.p_style}"
                             )
 
-                    if results["warnings"]:
-                        results["result"] = "warning"
-
                     logger.info("Completed Word style checks")
 
                     # Step 3: Prepare context
@@ -121,12 +118,6 @@ class TemplateLinter:
                     # Step 4: Test rendering the document
                     try:
                         template_document.render(context, self.jinja_template_env, autoescape=True)
-                        undefined_vars = template_document.undeclared_template_variables
-                        if undefined_vars:
-                            for variable in undefined_vars:
-                                results["warnings"].append(f"Undefined variable: {variable}")
-                        if results["warnings"]:
-                            results["result"] = "warning"
                         logger.info("Completed document rendering test")
                     except TemplateSyntaxError as error:
                         logger.exception("Template syntax error: %s", error)
@@ -176,6 +167,13 @@ class TemplateLinter:
                 }
         else:
             logger.error("Received a `None` value for template location")
+
+        results.setdefault("warnings", [])
+        for var in self.jinja_undefined_vars:
+            results["warnings"].append(f"Undefined variable: {var}")
+
+        if results["result"] == "success" and results["warnings"]:
+            results["result"] = "warning"
 
         logger.info("Template linting completed")
         return results

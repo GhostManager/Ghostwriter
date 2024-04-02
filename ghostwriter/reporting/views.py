@@ -18,7 +18,6 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
-from django.core.files.base import ContentFile
 from django.db.models import Q, Max
 from django.http import (
     FileResponse,
@@ -1409,11 +1408,11 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 zip_directory(evidence_loc, zf)
             zip_buffer.seek(0)
             with open(os.path.join(archive_loc, report_name + ".zip"), "wb+") as archive_file:
-                archive_file = ContentFile(zip_buffer.read(), name=report_name + ".zip")
-                new_archive = Archive(
-                    project=report_instance.project,
-                    report_archive=File(archive_file),
-                )
+                archive_file.write(zip_buffer.getvalue())
+            new_archive = Archive(
+                project=report_instance.project,
+                report_archive=File(zip_buffer, name=report_name + ".zip"),
+            )
             new_archive.save()
             messages.success(
                 self.request,
