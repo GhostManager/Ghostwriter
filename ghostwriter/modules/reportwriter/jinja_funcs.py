@@ -9,10 +9,10 @@ import re
 
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
-from markupsafe import Markup
 from dateutil.parser._parser import ParserError
 from django.conf import settings
 from django.utils.dateformat import format as dateformat
+from markupsafe import Markup
 
 from ghostwriter.modules.exceptions import InvalidFilterValue
 
@@ -90,9 +90,9 @@ def strip_html(s):
     ``s``
         String of HTML text to strip down
     """
-    html = BeautifulSoup(s, "lxml")
+    soup = BeautifulSoup(s, "lxml")
     output = ""
-    for tag in html.descendants:
+    for tag in soup.descendants:
         if isinstance(tag, str):
             output += tag
         elif tag.name in ("br", "p"):
@@ -114,11 +114,11 @@ def compromised(targets):
         for target in targets:
             if target["compromised"]:
                 filtered_targets.append(target)
-    except (KeyError, TypeError):
+    except (KeyError, TypeError) as e:
         logger.exception("Error parsing ``targets`` as a list of dictionaries: %s", targets)
         raise InvalidFilterValue(
             "Invalid list of targets passed into `compromised()` filter; must be the `{{ targets }}` object"
-        )
+        ) from e
     return filtered_targets
 
 
@@ -136,9 +136,9 @@ def add_days(date, days):
     new_date = None
     try:
         days = int(days)
-    except ValueError:
+    except ValueError as e:
         logger.exception("Error parsing ``days`` as an integer: %s", days)
-        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into the `add_days()` filter')
+        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into the `add_days()` filter') from e
 
     try:
         date_obj = parse_datetime(date)
@@ -163,9 +163,9 @@ def add_days(date, days):
                     continue
                 days += 1
         new_date = dateformat(date_obj, settings.DATE_FORMAT)
-    except ParserError:
+    except ParserError as e:
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `add_days()` filter')
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `add_days()` filter') from e
     return new_date
 
 
@@ -183,9 +183,9 @@ def format_datetime(date, new_format):
     try:
         date_obj = parse_datetime(date)
         formatted_date = dateformat(date_obj, new_format)
-    except ParserError:
+    except ParserError as e:
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter')
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter') from e
     return formatted_date
 
 
@@ -202,12 +202,12 @@ def get_item(lst, index):
     """
     try:
         return lst[index]
-    except TypeError:
+    except TypeError as e:
         logger.exception("Error getting list index %s from this list: %s", index, lst)
-        raise InvalidFilterValue("Invalid list or string passed into the `get_item()` filter")
-    except IndexError:
+        raise InvalidFilterValue("Invalid list or string passed into the `get_item()` filter") from e
+    except IndexError as e:
         logger.exception("Error getting index %s from this list: %s", index, lst)
-        raise InvalidFilterValue("Invalid or unavailable index passed into the `get_item()` filter")
+        raise InvalidFilterValue("Invalid or unavailable index passed into the `get_item()` filter") from e
 
 
 def regex_search(text, regex):
@@ -248,11 +248,11 @@ def filter_tags(objects, allowlist):
             common_tags = set(obj["tags"]) & set(allowlist)
             if common_tags:
                 filtered_values.append(obj)
-    except (KeyError, TypeError):
+    except (KeyError, TypeError) as e:
         logger.exception("Error parsing object as a list of dictionaries: %s", object)
         raise InvalidFilterValue(
             "Invalid list of objects passed into `filter_tags()` filter; must be an object with a `tags` key"
-        )
+        ) from e
     return filtered_values
 
 

@@ -321,7 +321,7 @@ EXTRA_FIELD_TYPES = {
         display_name="Checkbox",
         form_field=lambda *args, **kwargs: forms.BooleanField(required=False, *args, **kwargs),
         form_widget=forms.widgets.CheckboxInput,
-        from_str=lambda s: bool(s),
+        from_str=bool,
         empty_value=lambda: False,
     ),
     "single_line_text": ExtraFieldType(
@@ -342,14 +342,14 @@ EXTRA_FIELD_TYPES = {
         display_name="Integer",
         form_field=lambda *args, **kwargs: forms.IntegerField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
-        from_str=lambda s: int(s),
+        from_str=int,
         empty_value=lambda: 0,
     ),
     "float": ExtraFieldType(
         display_name="Number",
         form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
-        from_str=lambda s: float(s),
+        from_str=float,
         empty_value=lambda: 0.0,
     ),
 }
@@ -399,7 +399,7 @@ class ExtraFieldSpec(models.Model):
 
     @classmethod
     def initial_json(cls, model):
-        obj = dict()
+        obj = {}
         for spec in cls.objects.filter(target_model=model._meta.label):
             obj[spec.internal_name] = spec.initial_value()
         return obj

@@ -165,7 +165,7 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             entry_field_specs = ExtraFieldsSpecSerializer(
                 ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
             ).data
-            fields, extra_fields = parse_fields(json_data, entry_field_specs)
+            fields, _ = parse_fields(json_data, entry_field_specs)
 
             logger.info(
                 "Sanitizing log entries for %s %s by request of %s", obj.__class__.__name__, obj.id, self.request.user

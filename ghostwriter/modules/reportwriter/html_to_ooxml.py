@@ -65,8 +65,7 @@ class BaseHtmlToOOXML:
                 raise ValueError(
                     "found text node that was not enclosed in a paragraph or other block item: {!r}".format(el.text)
                 )
-            else:
-                return
+            return
         text = strip_text_whitespace(str(el))
         if not text:
             return
@@ -128,7 +127,7 @@ class BaseHtmlToOOXML:
                     font_list = value.split(",")
                     priority_font = font_list[0].replace("'", "").replace('"', "").strip()
                     style["font_family"] = priority_font
-                elif key == "color" or key == "background-color":
+                elif key in ("color", "background-color"):
                     value = value.replace("#", "")
                     r, g, b = (int(value[i * 2 : i * 2 + 2], 16) for i in range(3))
                     if key == "color":

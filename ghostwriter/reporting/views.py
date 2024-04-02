@@ -1781,8 +1781,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     def _create_crispy_field(spec):
         if spec.type == "rich_text":
             return Field(spec.internal_name, css_class="enable-evidence-upload")
-        else:
-            return Field(spec.internal_name)
+        return Field(spec.internal_name)
 
 
 class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):

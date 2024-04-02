@@ -2,7 +2,6 @@
 
 # Django Imports
 from django import forms
-from django.db.models import Q
 from django.forms.widgets import TextInput
 
 # 3rd Party Libraries
@@ -14,7 +13,6 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import (
     Archive,
-    DocType,
     Finding,
     FindingType,
     Observation,

@@ -146,7 +146,6 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
         if "data-gw-evidence" in el.attrs:
             evidence = self.evidences.get(el.attrs["data-gw-evidence"])
             if not evidence:
-                # TODO: log
                 return
             par._p.getparent().remove(par._p)
             self.make_evidence(self.slide, evidence)
@@ -165,7 +164,7 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
             run.text = f"See {ref_name}"
             run.font.italic = True
         else:
-            return super().tag_span(el, par=par, **kwargs)
+            super().tag_span(el, par=par, **kwargs)
 
     @staticmethod
     def make_evidence(slide, evidence):

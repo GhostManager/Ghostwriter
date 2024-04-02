@@ -11,8 +11,6 @@ from django.dispatch import receiver
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.lint import TemplateLinter
 from ghostwriter.reporting.models import (
-    Evidence,
-    ReportFindingLink,
     ReportTemplate,
     Severity,
 )

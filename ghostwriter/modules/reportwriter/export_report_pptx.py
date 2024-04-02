@@ -532,12 +532,12 @@ class ExportReportPptx(ExportReportBase):
                     )
                     footer_placeholder.text = footer_layout_placeholder.text
                 if slide_number_placeholder_idx > 0:
-                    slide_number_layout_placeholder, slide_number_placeholder = clone_placeholder(
+                    _, slide_number_placeholder = clone_placeholder(
                         slide, slide_layout, slide_number_placeholder_idx
                     )
                     add_slide_number(slide_number_placeholder)
                 if date_placeholder_idx > 0:
-                    date_layout_placeholder, date_placeholder = clone_placeholder(
+                    _, date_placeholder = clone_placeholder(
                         slide, slide_layout, date_placeholder_idx
                     )
                     date_placeholder.text = dateformat(date.today(), settings.DATE_FORMAT)

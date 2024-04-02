@@ -32,7 +32,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def __init__(self, doc, p_style):
         self.doc = doc
         self.p_style = p_style
-        self.list_styles_cache = dict()
+        self.list_styles_cache = {}
 
     def text(self, el, par=None, style={}, **kwargs):
         # Process hyperlinks on top of the usual text rules
@@ -186,14 +186,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         Ref: https://github.com/python-openxml/python-docx/issues/209
         """
-        for t_idx, table in enumerate(self.doc.tables):
+        for t_idx, _ in enumerate(self.doc.tables):
             self.doc.tables[t_idx].autofit = True
             self.doc.tables[t_idx].allow_autofit = True
             self.doc.tables[t_idx]._tblPr.xpath("./w:tblW")[0].attrib[
                 "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
             ] = "auto"
-            for row_idx, r_val in enumerate(self.doc.tables[t_idx].rows):
-                for cell_idx, c_val in enumerate(self.doc.tables[t_idx].rows[row_idx].cells):
+            for row_idx, _ in enumerate(self.doc.tables[t_idx].rows):
+                for cell_idx, _ in enumerate(self.doc.tables[t_idx].rows[row_idx].cells):
                     self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
                     self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.w = 0
         return self.doc
@@ -233,7 +233,6 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         if "data-gw-evidence" in el.attrs:
             evidence = self.evidences.get(el.attrs["data-gw-evidence"])
             if not evidence:
-                # TODO: log
                 return
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
@@ -245,21 +244,21 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             ref_name = el.attrs["data-gw-ref"]
             self.make_cross_ref(par, ref_name)
         else:
-            return super().tag_span(el, par=par, **kwargs)
+            super().tag_span(el, par=par, **kwargs)
 
-    def title_except(self, str):
+    def title_except(self, s):
         """
         Title case the given string except for articles and words in the provided exceptions list.
 
         Ref: https://stackoverflow.com/a/3729957
         """
         if self.title_case_captions:
-            word_list = re.split(" ", str)  # re.split behaves as expected
+            word_list = re.split(" ", s)  # re.split behaves as expected
             final = [word_list[0].capitalize()]
             for word in word_list[1:]:
                 final.append(word if word in self.title_case_exceptions else word.capitalize())
-            str = " ".join(final)
-        return str
+            s = " ".join(final)
+        return s
 
     def make_figure(self, par, ref: str | None = None):
         if ref:
@@ -323,7 +322,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         extension = file_path.split(".")[-1].lower()
         if extension in TEXT_EXTENSIONS:
-            with open(file_path, "r") as evidence_file:
+            with open(file_path, "r", encoding="utf-8") as evidence_file:
                 evidence_text = evidence_file.read()
             par.text = evidence_text
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -449,7 +448,7 @@ class ListTracking:
             raise Exception(
                 "Tried to add level {} to a list with {} existing levels".format(level, len(self.level_list_is_ordered))
             )
-        elif level == len(self.level_list_is_ordered):
+        if level == len(self.level_list_is_ordered):
             self.level_list_is_ordered.append(is_ordered)
         self.paragraphs.append((pg, level))
 

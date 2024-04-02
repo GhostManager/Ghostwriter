@@ -26,10 +26,9 @@ class ExportBase:
         label = model._meta.label
         if label in self.extra_fields_spec_cache:
             return self.extra_fields_spec_cache[label]
-        else:
-            specs = ExtraFieldSpec.objects.filter(target_model=label)
-            self.extra_fields_spec_cache[label] = specs
-            return specs
+        specs = ExtraFieldSpec.objects.filter(target_model=label)
+        self.extra_fields_spec_cache[label] = specs
+        return specs
 
     def preprocess_rich_text(self, text: str, template_vars: Any):
         """
@@ -50,8 +49,7 @@ class ExportBase:
                 return jinja_funcs.caption("")
             elif contents.startswith("caption "):
                 return jinja_funcs.caption(contents[8:].strip())
-            else:
-                return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
+            return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
 
         text_old_dot_subbed = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
 

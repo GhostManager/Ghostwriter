@@ -124,7 +124,7 @@ class ExtraFieldsSerField(serializers.Field):
         self.root_ser = root_ser
 
     def to_representation(self, value):
-        out = dict()
+        out = {}
 
         # Fetch field specs, and cache them at the root serializer
         if not hasattr(self.root_ser, "_extra_fields_specs") or self.root_ser._extra_fields_specs is None:

@@ -92,7 +92,7 @@ def get_file_type(file):
         else:
             filetype = "missing"
 
-        return filetype
+    return filetype
 
 
 @register.filter
