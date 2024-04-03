@@ -1,0 +1,66 @@
+table:
+  name: reporting_observation
+  schema: public
+configuration:
+  column_config:
+    extra_fields:
+      custom_name: extraFields
+  custom_column_names:
+    extra_fields: extraFields
+  custom_root_fields: {}
+insert_permissions:
+  - role: manager
+    permission:
+      check: {}
+      columns:
+        - description
+        - extra_fields
+        - title
+  - role: user
+    permission:
+      check: {}
+      columns:
+        - description
+        - extra_fields
+        - title
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - id
+        - title
+        - extra_fields
+        - description
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - id
+        - title
+        - extra_fields
+        - description
+      filter: {}
+update_permissions:
+  - role: manager
+    permission:
+      columns:
+        - description
+        - extra_fields
+        - title
+      filter: {}
+      check: {}
+  - role: user
+    permission:
+      columns:
+        - description
+        - extra_fields
+        - title
+      filter: {}
+      check: {}
+delete_permissions:
+  - role: manager
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter: {}

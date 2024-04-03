@@ -62,6 +62,7 @@ class Client(models.Model):
         help_text="An address to be used for reports or shipping",
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
 
     class Meta:
         ordering = ["name"]
@@ -210,6 +211,8 @@ class Project(models.Model):
         null=False,
         help_text="Select a category for this project that best describes the work being performed",
     )
+
+    extra_fields = models.JSONField(default=dict)
 
     def count_findings(self):
         """
@@ -408,19 +411,20 @@ class ObjectivePriority(models.Model):
         return f"{self.priority}"
 
 
+def _get_default_status():
+    """Get the default status for the status field."""
+    try:
+        active_status = ObjectiveStatus.objects.get(objective_status="Active")
+        return active_status.id
+    except ObjectiveStatus.DoesNotExist:
+        return 1
+
+
 class ProjectObjective(models.Model):
     """
     Stores an individual project objective, related to an individual :model:`rolodex.Project`
     and :model:`rolodex.ObjectiveStatus`.
     """
-
-    def get_status():  # pragma: no cover
-        """Get the default status for the status field."""
-        try:
-            active_status = ObjectiveStatus.objects.get(objective_status="Active")
-            return active_status.id
-        except ObjectiveStatus.DoesNotExist:
-            return 1
 
     objective = models.CharField(
         "Objective",
@@ -462,7 +466,7 @@ class ProjectObjective(models.Model):
     status = models.ForeignKey(
         ObjectiveStatus,
         on_delete=models.PROTECT,
-        default=get_status,
+        default=_get_default_status,
         help_text="Set the status for this objective",
     )
     priority = models.ForeignKey(
@@ -513,14 +517,6 @@ class ProjectSubTask(models.Model):
     and :model:`rolodex.ObjectiveStatus`.
     """
 
-    def get_status():  # pragma: no cover
-        """Get the default status for the status field."""
-        try:
-            active_status = ObjectiveStatus.objects.get(objective_status="Active")
-            return active_status.id
-        except ObjectiveStatus.DoesNotExist:
-            return 1
-
     task = models.TextField("Task", null=True, blank=True, help_text="Provide a concise objective")
     complete = models.BooleanField("Completed", default=False, help_text="Mark the objective as complete")
     deadline = models.DateField(
@@ -541,7 +537,7 @@ class ProjectSubTask(models.Model):
     status = models.ForeignKey(
         ObjectiveStatus,
         on_delete=models.PROTECT,
-        default=get_status,
+        default=_get_default_status,
         help_text="Set the status for this objective",
     )
 

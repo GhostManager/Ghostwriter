@@ -1,10 +1,10 @@
 <li class="nav-item">
-    <a id="id_general" class="nav-link active tab-icon user-icon-circle" data-toggle="tab" href="#general">
+    <a id="id_general" class="nav-link active tab-icon company-icon" data-toggle="tab" href="#general">
         General Info
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_contacts" class="nav-link tab-icon user-icon-circle" data-toggle="tab" href="#contacts">
+    <a id="id_contacts" class="nav-link tab-icon poc-icon" data-toggle="tab" href="#contacts">
         Points of Contact <span class="badge badge-pill badge-light">{{ client.clientcontact_set.all.count }}</span>
     </a>
 </li>
@@ -18,6 +18,13 @@
         Infrastructure History <span class="badge badge-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
     </a>
 </li>
+{% if client_extra_fields_spec %}
+    <li class="nav-item">
+        <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-toggle="tab" href="#extra_fields">
+            Extra Fields
+        </a>
+    </li>
+{% endif %}
 <li class="nav-item">
     <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
         Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>

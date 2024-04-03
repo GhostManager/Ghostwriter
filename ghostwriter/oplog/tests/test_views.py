@@ -12,11 +12,15 @@ from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    AdminFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
+    MgrFactory,
     OplogEntryFactory,
     OplogFactory,
+    ProjectAssignmentFactory,
     ProjectFactory,
     UserFactory,
-    ProjectAssignmentFactory,
 )
 
 logging.disable(logging.CRITICAL)
@@ -454,11 +458,8 @@ class OplogMuteToggleViewTests(TestCase):
         self.client_auth = Client()
         self.client_mgr = Client()
         self.client_admin = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
-        self.assertTrue(self.client_admin.login(username=self.mgr_user.username, password=PASSWORD))
-        self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
         self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -587,3 +588,150 @@ class OplogExportViewTests(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+
+class OplogSanitizeViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogSanitize`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.log = OplogFactory()
+        cls.OplogEntry = OplogEntryFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = MgrFactory(password=PASSWORD)
+        cls.admin_user = AdminFactory(password=PASSWORD)
+        cls.uri = reverse("oplog:ajax_oplog_sanitize", kwargs={"pk": cls.log.pk})
+
+        oplog_extra_field = ExtraFieldModelFactory(
+            model_internal_name="oplog.OplogEntry", model_display_name="Oplog Entries"
+        )
+        ExtraFieldSpecFactory(
+            internal_name="test_field",
+            display_name="Test Field",
+            type="single_line_text",
+            target_model=oplog_extra_field,
+        )
+        ExtraFieldSpecFactory(
+            internal_name="test_field_2",
+            display_name="Test Field 2",
+            type="single_line_text",
+            target_model=oplog_extra_field,
+        )
+
+        cls.entry = OplogEntryFactory(oplog_id=cls.log)
+        OplogEntryFactory.create_batch(5, oplog_id=cls.log)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.client_admin = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        data = {
+            "result": "success",
+            "message": "Successfully sanitized log entries.",
+        }
+        response = self.client_mgr.post(
+            self.uri,
+            data={"fields": '[{"name": "user_context", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_requires_login(self):
+        response = self.client.post(
+            self.uri,
+            data={"fields": '[{"name": "user_context", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_permissions(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={"fields": '[{"name": "user_context", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 403)
+        data = {
+            "result": "error",
+            "message": "Only a manager or admin can choose to sanitize a log.",
+        }
+        self.assertJSONEqual(force_str(response.content), data)
+
+        response = self.client_mgr.post(
+            self.uri,
+            data={"fields": '[{"name": "user_context", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("success", force_str(response.content))
+
+        response = self.client_admin.post(
+            self.uri,
+            data={"fields": '[{"name": "user_context", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("success", force_str(response.content))
+
+    def test_view_with_invalid_fields(self):
+        response = self.client_mgr.post(
+            self.uri,
+            data={"fields": '[{"name": "not_a_field", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("One of the fields submitted for sanitization does not exist", force_str(response.content))
+
+    def test_view_with_empty_fields(self):
+        data = {
+            "result": "failed",
+            "message": "No fields selected for sanitization.",
+        }
+        response = self.client_mgr.post(
+            self.uri,
+            data={"fields": "[]"},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        response = self.client_mgr.post(
+            self.uri,
+            data={"not_fields": '[{"name": "not_a_field", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_field_sanitization_with_extra_field(self):
+        data = {
+            "result": "success",
+            "message": "Successfully sanitized log entries.",
+        }
+        entries = self.OplogEntry.objects.filter(oplog_id=self.log)
+        for entry in entries:
+            entry.user_context = "some_user"
+            entry.command = "some command with spaces"
+            entry.extra_fields = {"test_field": "some value"}
+            entry.extra_fields = {"test_field_2": "test value"}
+            entry.save()
+        response = self.client_mgr.post(
+            self.uri,
+            data={
+                "fields": '[{"name": "user_context", "value": "on"}, {"name": "command", "value": "on"}, {"name": "test_field", "value": "on"}]'
+            },
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.user_context, None)
+        self.assertEqual(self.entry.command, "some")
+        self.assertEqual(self.entry.extra_fields, {"test_field": None, "test_field_2": "test value"})

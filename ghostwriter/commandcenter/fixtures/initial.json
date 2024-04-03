@@ -1,0 +1,58 @@
+[
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "rolodex.Project",
+    "fields": {
+      "model_display_name": "Projects"
+    }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "rolodex.Client",
+    "fields": {
+      "model_display_name": "Clients"
+    }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "reporting.Finding",
+    "fields": {
+      "model_display_name": "Findings"
+    }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "oplog.OplogEntry",
+    "fields": {
+      "model_display_name": "Oplog Entries"
+    }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "shepherd.Domain",
+    "fields": {
+      "model_display_name": "Domains"
+    }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "shepherd.StaticServer",
+    "fields": {
+      "model_display_name": "Servers"
+    }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "reporting.Report",
+    "fields": {
+      "model_display_name": "Reports"
+    }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "reporting.Observation",
+    "fields": {
+      "model_display_name": "Observations"
+    }
+  }
+]

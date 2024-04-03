@@ -1,0 +1,22 @@
+{% load bleach_tags report_tags custom_tags static %}
+
+{% with evidence|get_file_type as file_type %}
+  {% if file_type == "image" %}
+    <img class="img-evidence" {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}src="{% url 'reporting:evidence_download' evidence.id %}"/>
+  {% elif evidence|get_file_type == "text" %}
+    {% with evidence|get_file_content as file_content %}
+      {% if file_content %}
+        <pre class="text-evidence" {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}><code>{{ file_content|bleach }}</code></pre>
+      {% else %}
+        <p>No file content to display.</p>
+      {% endif %}
+    {% endwith %}
+  {% else %}
+    {% if file_type == "missing" %}
+      <p>FILE NOT FOUND</p>
+    {% else %}
+      <p>Evidence file type cannot be displayed.</p>
+    {% endif %}
+  {% endif %}
+  <p class="evidence-caption">{{ report_config.label_figure }} # {{ report_config.prefix_figure }} {{ evidence.caption }}</p>
+{% endwith %}

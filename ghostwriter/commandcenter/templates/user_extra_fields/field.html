@@ -1,0 +1,15 @@
+{% load bleach_tags extra_fields %}
+
+{% with field_value=extra_fields|get_extra_field:field_spec %}
+  {% if field_spec.type == "checkbox" %}
+    {% if field_value %}
+      <span class="align-middle healthy"><i class="fas fa-check"></i></span>
+    {% else %}
+      <span class="align-middle burned"><i class="fas fa-times"></i></span>
+    {% endif %}
+  {% elif field_spec.type == "rich_text" %}
+    {{ field_value|bleach }}
+  {% else %}
+    {% if field_value %}{{ field_value }}{% else %}No Value Set{% endif %}
+  {% endif %}
+{% endwith %}

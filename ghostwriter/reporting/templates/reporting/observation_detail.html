@@ -1,0 +1,117 @@
+{% extends "base_generic.html" %}
+
+{% load bleach_tags %}
+
+{% block pagetitle %}{{ observation.title }} Details{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'reporting:observations' %}">Observations</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ observation.title }}</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <div class="dropdown">
+    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+         onclick="hamburger(this)">
+      <div class="bar1"></div>
+      <div class="bar2"></div>
+      <div class="bar3"></div>
+    </div>
+    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="observation-dropdown-btn">
+      <a class="dropdown-item icon edit-icon" href="{% url 'reporting:observation_update' observation.id %}">Edit</a>
+      <a class="dropdown-item icon add-icon js-assign-observation" assign-observation-id="{{ observation.id }}"
+         href="javascript:void(0);" assign-observation-csrftoken="{{ csrf_token }}"
+         assign-observation-url="{% url 'reporting:ajax_assign_observation' observation.id %}">Add to Report</a>
+      <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:observations' %}">Return to Observations</a>
+      <a class="dropdown-item icon trash-icon" href="{% url 'reporting:observation_delete' observation.id %}">Delete</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>{{ observation.title }}</h2>
+  </div>
+
+  <div id="descriptionCard" class="card mb-3">
+    <div class="card-header finding-header icon writing-icon">
+      Description
+    </div>
+    <div class="card-body observation-content">
+      {% if observation.description %}
+        {{ observation.description|bleach }}
+      {% else %}
+        <p>Description write-up is needed.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if observation_extra_fields_spec %}
+    <h4 class="icon custom-field-icon">Extra Fields</h4>
+    <hr>
+
+    {% for field_spec in observation_extra_fields_spec %}
+      {% if field_spec.type != "rich_text" %}
+        <div class="row justify-content-md-center">
+          <h6 class="col-3 text-left">
+            {{ field_spec.display_name|bleach }}
+          </h6>
+          <div class="mt-2 col-3 text-md-center align-middle offset-2">
+            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+    {% for field_spec in observation_extra_fields_spec %}
+      {% if field_spec.type == "rich_text" %}
+        <div id="extraFieldCard_{{ field_spec.internal_name|bleach }}" class="card mb-3">
+          <div class="card-header finding-header icon custom-field-icon">
+            {{ field_spec.display_name|bleach }}
+          </div>
+          <div class="card-body finding-content">
+            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
+
+  <script>
+    $('.js-assign-observation').click(function () {
+      let url = $(this).attr('assign-observation-url');
+      let observationId = $(this).attr('assign-observation-id');
+      let csrftoken = $(this).attr('assign-observation-csrftoken')
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'observation': observationId
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            // Do Something
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Observation Assigned'});
+          }
+        }
+      });
+    });
+  </script>
+{% endblock %}

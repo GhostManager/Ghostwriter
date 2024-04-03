@@ -68,14 +68,30 @@ hr {
   margin-top: 10px;
 }
 
+/* Images and code blocks will be 6.5" wide in a Word document, so width is 6.5" in these next two classes. */
 .text-evidence {
-  margin-left: 15%;
   text-align: left;
-  max-width: 70%;
+  max-width: 80%;
   word-wrap: break-word;
   line-height: 20px;
   font-family: 'Roboto Mono';
   font-weight: 300;
+  margin: auto;
+  overflow: auto;
+  border: 1pt solid var(--secondary-color);
+}
+
+.img-evidence {
+  height: auto;
+  width: 6.5in;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.evidence-caption {
+  color: var(--secondary-color);
+  text-align: center;
 }
 
 .hidden-element:before {
@@ -240,7 +256,6 @@ hr {
 
 .center {
   text-align: center;
-  display: block;
   margin-left: auto;
   margin-right: auto;
   width: 50%;
@@ -264,6 +279,8 @@ hr {
   margin: 0.5em;
   font-size: var(--main-font-size);
 }
+
+.tox-toolbar__group:last-child { margin-left: auto!important; }
 
 /* ---------------------------------------------------
     HEADER STYLES
@@ -927,6 +944,19 @@ p.severity-box.info {
   margin-bottom: 0;
 }
 
+.error {
+  color: var(--burned-color);
+}
+
+.error-div {
+  border: 1px solid black;
+  width: 50%;
+  margin: 0 auto;
+  border-radius: 5px;
+  background-color: #f1f1f1;
+  padding: .5em;
+}
+
 /* ---------------------------------------------------
     GENERAL BUTTON STYLES
 ----------------------------------------------------- */
@@ -1346,6 +1376,17 @@ fc-hover {
   content: '\f70c';
 }
 
+.calendar-report-icon .fc-event-title:before,
+.calendar-report-icon .fc-list-event-title:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 5px;
+  padding-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f5ad';
+}
+
 .calendar-exec-complete .fc-event-title,
 .calendar-exec-complete .fc-list-event-title {
   text-decoration: line-through;
@@ -1728,6 +1769,14 @@ th.icon {
   padding: 0;
 }
 
+.custom-field-icon:before {
+  content: '\f0d0';
+}
+
+.clean-icon:before {
+  content: '\e06e';
+}
+
 .2fa-icon:before {
   content: '\f577';
 }
@@ -1982,6 +2031,10 @@ th.icon {
 }
 
 .edit-icon:before {
+  content: '\f044';
+}
+
+.edit-icon-right:after {
   content: '\f044';
 }
 
@@ -3464,4 +3517,3 @@ input[type="color"]:focus,
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(126, 239, 104, 0.6);
   outline: 0 none;
 }
-

@@ -28,6 +28,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.rolodex.models import (
@@ -1140,7 +1141,7 @@ class ProjectForm(forms.ModelForm):
 
     class Meta:
         model = Project
-        exclude = ("operator", "complete")
+        exclude = ("operator", "complete", "extra_fields")
         widgets = {
             "start_date": forms.DateInput(
                 format="%Y-%m-%d",
@@ -1166,6 +1167,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -1203,8 +1205,8 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     Row(
-                        Column("start_time", css_class="form-group col-md-4 mb-0"),
-                        Column("end_time", css_class="form-group col-md-4 mb-0"),
+                        Column(Field("start_time", step=1), css_class="form-group col-md-4 mb-0"),
+                        Column(Field("end_time", step=1), css_class="form-group col-md-4 mb-0"),
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
@@ -1419,14 +1421,88 @@ class ProjectComponentForm(forms.ModelForm):
     with an individual :model:`rolodex.Client`.
     """
 
+    extra_fields = ExtraFieldsField(Project._meta.label)
+
     class Meta:
         model = Project
-        fields = ("id",)
+        fields = ("id", "extra_fields")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["extra_fields"].label = ""
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
+        tabs = [
+            CustomTab(
+                "Contacts",
+                Formset("contacts", object_context_name="Contact"),
+                Button(
+                    "add-contact",
+                    "Add Contact",
+                    css_class="btn-block btn-secondary formset-add-contact mb-2 offset-4 col-4",
+                ),
+                link_css_class="poc-icon",
+                css_id="contacts",
+            ),
+            CustomTab(
+                "White Cards",
+                Formset("whitecards", object_context_name="White Card"),
+                Button(
+                    "add-whitecard",
+                    "Add White Card",
+                    css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
+                ),
+                link_css_class="tab-icon whitecard-icon",
+                css_id="whitecards",
+            ),
+            CustomTab(
+                "Scope Lists",
+                Formset("scopes", object_context_name="Scope"),
+                Button(
+                    "add-scope",
+                    "Add Scope List",
+                    css_class="btn-block btn-secondary formset-add-scope mb-2 offset-4 col-4",
+                ),
+                link_css_class="tab-icon list-icon",
+                css_id="scopes",
+            ),
+            CustomTab(
+                "Objectives",
+                Formset("objectives", object_context_name="Objective"),
+                Button(
+                    "add-objective",
+                    "Add Objective",
+                    css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
+                ),
+                link_css_class="objective-icon",
+                css_id="objectives",
+            ),
+            CustomTab(
+                "Targets",
+                Formset("targets", object_context_name="Target"),
+                Button(
+                    "add-target",
+                    "Add Target",
+                    css_class="btn-block btn-secondary formset-add-target mb-2 offset-4 col-4",
+                ),
+                link_css_class="tab-icon list-icon",
+                css_id="targets",
+            ),
+        ]
+
+        if has_extra_fields:
+            tabs.append(
+                CustomTab(
+                    "Extra Fields",
+                    "extra_fields",
+                    link_css_class="tab-icon custom-field-icon",
+                    css_id="extra-fields",
+                )
+            )
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -1434,61 +1510,7 @@ class ProjectComponentForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.layout = Layout(
             TabHolder(
-                CustomTab(
-                    "Contacts",
-                    Formset("contacts", object_context_name="Contact"),
-                    Button(
-                        "add-contact",
-                        "Add Contact",
-                        css_class="btn-block btn-secondary formset-add-contact mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="poc-icon",
-                    css_id="contacts",
-                ),
-                CustomTab(
-                    "White Cards",
-                    Formset("whitecards", object_context_name="White Card"),
-                    Button(
-                        "add-whitecard",
-                        "Add White Card",
-                        css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon whitecard-icon",
-                    css_id="whitecards",
-                ),
-                CustomTab(
-                    "Scope Lists",
-                    Formset("scopes", object_context_name="Scope"),
-                    Button(
-                        "add-scope",
-                        "Add Scope List",
-                        css_class="btn-block btn-secondary formset-add-scope mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon list-icon",
-                    css_id="scopes",
-                ),
-                CustomTab(
-                    "Objectives",
-                    Formset("objectives", object_context_name="Objective"),
-                    Button(
-                        "add-objective",
-                        "Add Objective",
-                        css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="objective-icon",
-                    css_id="objectives",
-                ),
-                CustomTab(
-                    "Targets",
-                    Formset("targets", object_context_name="Target"),
-                    Button(
-                        "add-target",
-                        "Add Target",
-                        css_class="btn-block btn-secondary formset-add-target mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon list-icon",
-                    css_id="targets",
-                ),
+                *tabs,
                 template="tab.html",
                 css_class="nav-justified",
             ),

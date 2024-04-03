@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from io import StringIO
 
 # Django Imports
@@ -141,11 +141,34 @@ class TemplateTagTests(TestCase):
         self.user.save()
         self.assertTrue(custom_tags.can_create_finding(self.user))
 
+        self.user.role = "user"
+        self.user.save()
+
+        self.assertFalse(custom_tags.can_create_observation(self.user))
+        self.user.enable_observation_create = True
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_observation(self.user))
+
+        self.assertFalse(custom_tags.is_privileged(self.user))
+        self.user.role = "manager"
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_observation(self.user))
+
         self.assertFalse(custom_tags.has_2fa(self.user))
         self.user.totpdevice_set.create()
         static_model = self.user.staticdevice_set.create()
         static_model.token_set.create(token=StaticToken.random_token())
         self.assertTrue(custom_tags.has_2fa(self.user))
+
+        test_string = "test,example,sample"
+        result = custom_tags.split_and_join(test_string, ",")
+        self.assertEqual(result, "test, example, sample")
+
+        test_date = datetime(2024, 2, 20)
+        result = custom_tags.add_days(test_date, 5)
+        self.assertEqual(result, datetime(2024, 2, 27))
+        result = custom_tags.add_days(test_date, -5)
+        self.assertEqual(result, datetime(2024, 2, 13))
 
 
 class DashboardTests(TestCase):

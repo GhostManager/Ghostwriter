@@ -25,6 +25,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list, get_project_list
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (
@@ -32,8 +33,10 @@ from ghostwriter.reporting.models import (
     Finding,
     FindingNote,
     LocalFindingNote,
+    Observation,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
     Severity,
 )
@@ -42,6 +45,8 @@ from ghostwriter.rolodex.models import Project
 
 class FindingForm(forms.ModelForm):
     """Save an individual :model:`reporting.Finding`."""
+
+    extra_fields = ExtraFieldsField(Finding._meta.label)
 
     class Meta:
         model = Finding
@@ -67,6 +72,10 @@ class FindingForm(forms.ModelForm):
         ] = "When using this finding in a report be sure to include ..."
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["finding_type"].label = "Finding Type"
+        self.fields["extra_fields"].label = ""
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -232,6 +241,15 @@ class FindingForm(forms.ModelForm):
             ),
             "references",
             "finding_guidance",
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            )
+            if has_extra_fields
+            else None,
+            Field("extra_fields") if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -251,7 +269,7 @@ class ReportForm(forms.ModelForm):
 
     class Meta:
         model = Report
-        exclude = ("creation", "last_update", "created_by", "complete")
+        exclude = ("creation", "last_update", "created_by", "complete", "extra_fields")
 
     def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -337,6 +355,10 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
     individual :model:`reporting.Report`.
     """
 
+    # Note: since ReportFindingLinks are essentially a finding bound to a report, it uses
+    # the finding's extra field specifications, rather than having its own.
+    extra_fields = ExtraFieldsField(Finding._meta.label)
+
     class Meta:
         model = ReportFindingLink
         exclude = (
@@ -344,14 +366,13 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             "position",
             "finding_guidance",
             "added_as_blank",
-            "complete",
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         evidence_upload_url = reverse(
             "reporting:upload_evidence_modal",
-            kwargs={"pk": self.instance.id, "modal": "modal"},
+            kwargs={"parent_type": "finding", "pk": self.instance.id, "modal": "modal"},
         )
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
@@ -369,6 +390,11 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["finding_type"].label = "Finding Type"
         self.fields["assigned_to"].label = "Assigned Editor"
+        self.fields["extra_fields"].label = ""
+        self.fields["complete"].help_text = ""
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -376,6 +402,12 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.helper.form_id = "report-finding-form"
         self.helper.attrs = {"evidence-upload-modal-url": evidence_upload_url}
         self.helper.layout = Layout(
+            Column(
+                SwitchToggle(
+                    "complete",
+                ),
+                css_class="form-group offset-3 col-md-6 mb-0",
+            ),
             HTML(
                 """
                 <h4 class="icon search-icon">Categorization</h4>
@@ -543,6 +575,15 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 """
             ),
             Field("references", css_class="enable-evidence-upload"),
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            )
+            if has_extra_fields
+            else None,
+            Field("extra_fields") if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -995,3 +1036,98 @@ class SeverityForm(forms.ModelForm):
                 )
 
         return color
+
+
+class ObservationForm(forms.ModelForm):
+    """Save an individual :model:`reporting.Observation`."""
+
+    extra_fields = ExtraFieldsField(Observation._meta.label)
+
+    class Meta:
+        model = Observation
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["title"].widget.attrs["placeholder"] = "Observation Title"
+        self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["extra_fields"].label = ""
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column(
+                    "tags",
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row",
+            ),
+            Field("description"),
+            Field("extra_fields"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
+
+
+class ReportObservationLinkUpdateForm(forms.ModelForm):
+    """
+    Update an individual :model:`reporting.ReportObservationLink` associated with an
+    individual :model:`reporting.Report`.
+    """
+
+    # Note: since ReportObservationLinks are essentialy an observation bound to a report, it uses
+    # the observation's extra field specifications, rather than having its own.
+    extra_fields = ExtraFieldsField(Observation._meta.label)
+
+    class Meta:
+        model = ReportObservationLink
+        exclude = (
+            "report",
+            "position",
+            "added_as_blank",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["title"].widget.attrs["placeholder"] = "Observation Title"
+        self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["extra_fields"].label = ""
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.form_id = "report-observation-form"
+        self.helper.layout = Layout(
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            Field("description", css_class="enable-evidence-upload"),
+            Field("extra_fields"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
+                    """
+                ),
+            ),
+        )

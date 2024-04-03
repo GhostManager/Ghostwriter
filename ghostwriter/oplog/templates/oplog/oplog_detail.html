@@ -25,23 +25,28 @@
             </div>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="oplog-dropdown-btn">
                 <a href="{% url 'oplog:oplog_update' oplog.id %}" class="dropdown-item icon edit-icon" >Edit Log</a>
-                <a href="javascript:void(0)" id="createNewEntry" class="dropdown-item icon add-icon">Create Entry</a>
                 <a href="javascript:void(0)" id="importNewEntries" class="dropdown-item icon upload-icon">Import Entries</a>
                 <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
                 <a href="{% url 'rolodex:project_detail' oplog.project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
                 {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
+                    <a id="sanitize-button-{{ oplog.id }}" class="dropdown-item icon clean-icon js-confirm-sanitize" data-toggle="modal"
+                       data-target="#confirm-sanitize-modal" href="javascript:void(0);"
+                       sanitize-target-csrftoken="{{ csrf_token }}" sanitize-target-url="{% url 'oplog:ajax_oplog_sanitize' oplog.id %}"
+                       sanitize-target-id="{{ oplog.id }}">
+                      Sanitize Entries
+                    </a>
                     <a
-                        href="javascript:void(0)"
-                        class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
-                        toggle-mute-csrftoken="{{ csrf_token }}"
-                        toggle-mute-url="{% url 'oplog:ajax_oplog_mute_toggle' oplog.id %}"
-                        toggle-mute-id="{{ oplog.id }}"
+                      href="javascript:void(0)"
+                      class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
+                      toggle-mute-csrftoken="{{ csrf_token }}"
+                      toggle-mute-url="{% url 'oplog:ajax_oplog_mute_toggle' oplog.id %}"
+                      toggle-mute-id="{{ oplog.id }}"
                     >
-                        {% if oplog.mute_notifications %}
-                            Notifications: Off
-                        {% else %}
-                            Notifications: On
-                        {% endif %}
+                      {% if oplog.mute_notifications %}
+                          Notifications: Off
+                      {% else %}
+                          Notifications: On
+                      {% endif %}
                     </a>
                 {% endif %}
             </div>
@@ -104,6 +109,9 @@
 {% endblock %}
 
 {% block morescripts %}
+    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+    {% include "confirm_sanitize_modal.html" %}
+
     <!-- Modal for Spinner -->
     <div id="spinner-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md" role="document">
@@ -129,12 +137,17 @@
         </div>
     </div>
 
+    {{ oplog_entry_extra_fields_spec_ser|json_script:"oplog_entry_extra_fields_spec" }}
+
     <script>
+      const oplog_entry_extra_fields_spec = JSON.parse(document.getElementById('oplog_entry_extra_fields_spec').textContent);
+
       const $table = $('#oplogTable tbody')
       const $tableHeader = $('#oplogTableHeader')
       const $spinnerModal = $('#spinner-modal')
       const $checkboxList = $('#checkboxList')
       const $connectionStatus = $('#connectionStatus')
+      const $sanitizeCheckboxList = $('#sanitize-checklist-form')
 
       let socket = null;
       let emptyTable = true;
@@ -261,8 +274,10 @@
 
       $(document).ready(function () {
         connect()
+        updateColumnInfo(oplog_entry_extra_fields_spec)
         buildColumnsCheckboxes()
         $tableHeader.html(generateTableHeaders())
+        buildSanitizeCheckboxes()
       })
 
       {% comment %} Show or hide the table column select options {% endcomment %}

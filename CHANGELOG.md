@@ -4,6 +4,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1] - 3 April 2024
+
+### Added
+
+* Added support for creating custom fields for findings, domains, servers, projects, clients, and activity log entries
+  * Custom field types include text, integer, float, boolean, and formatted text
+  * Custom fields can be added, edited, and deleted via the admin panel
+  * Formatted text fields use the WYSIWYG editor for formatting
+  * Formatting carries over to report templates like formatted text in findings
+  * Custom fields are available in the report template context
+  * Learn more: [https://ghostwriter.wiki/](https://ghostwriter.wiki/)
+* Added support for using Jinja2 and report context data inside formatted text fields
+  * You can reference `{{ client.name }}` to insert the client's name into a formatted text field
+  * You can also use Jinja2 filters and functions to manipulate the data (e.g., `{{ client.name|upper }}` to make the client's name uppercase)
+* Added the ability to preview formatted text fields in the interface
+  * Formatted text fields can be previewed with the new "Preview" button that appears next to them in the interface
+  * Any evidence referenced in the formatted text field will also be displayed in the preview (rather than just the reference text)
+  * Jinja2 statements and expressions will appear as text in the preview as these must be evaluated in the report template 
+* Added support for tables in the WYSIWYG editor (Closes #355)
+  * Tables use the _Table Grid_ style in the Microsoft Word templates 
+  * Thank you for the contribution, [@domwhewell](https://github.com/domwhewell)!
+* Added support for inserting page breaks in the WYSIWYG editor
+  * Page breaks carry over to the Microsoft Word templates
+* Added an option to "sanitize" activity logs as an alternative to deleting them to remove sensitive information
+  * Sanitizing an activity log will remove selected data from all log entries in the log
+* Added a new library for "observations"
+  * These observations are similar to findings but much simpler
+  * The base model includes a title, description, and tags and can be used to track positive observations for a project
+  * The model is also highly customizable with support for custom fields (see the first item)
+* Added user permissions to control who can create, edit, and delete observations in the library
+* Added support for footer information (e.g., date, footer text, and slide numbers) in the PowerPoint report templates
+  * The footer information is set in your slide deck templates
+* Added a configuration option for the target report delivery date
+  * The target date is configured as a number of business days from the project's end date
+* Added a report configuration option to enforce title case for captions
+  * If enabled, this option will enforce title case for all evidence captions in a report
+  * An accompanying exclusion list allows you to specify words (e.g., articles) that should not be title cased
+* Added a `getExtraFieldSpec` query to the GraphQL API that returns the extra field specification for a model
+  * This query is useful for extensions that need to know the extra fields available for a model
+* Added a note to the WYSIWYG editor to call-out it is possible to access a browser's context menu by using CTRL+right-click
+* Added a new `hostname` configuration option to the General Settings in the admin panel
+  * This option allows you to set the hostname for the Ghostwriter server
+  * The hostname is used to generate links in Slack notifications and other places where a link to the server is needed
+
+### Changed
+
+* The WYSIWYG editor's toolbar and context menu have been updated to support the new table and page break features and make it easier to apply styles
+* Project and report dashboards were redesigned to improve the layout and support the new custom fields
+* Report dashboards now display the global report configuration for easier reference
+* Added tags to the lists of findings, domains, and servers
+* Uploaded evidence files can now be linked to a report rather than a finding
+  * This change allows evidence files to be used in multiple findings, and the new custom formatted text fields
+* When viewing an evidence file, the file contents are now displayed in the interface as they will appear in the report
+  * This change allows you to preview the evidence file's contents with your border and caption before adding it to a report
+  * Border width + color and figure label come from the global report configuration in the admin panel
+* PowerPoint slide decks now include "Assessment Timeline" and "Observations" slides
+  * The "Assessment Timeline" slide includes a table pre-populated with the project's start date, end date, and target report delivery date
+  * The "Observations" slide(s) are similar to the findings slides but for the new observations 
+* Reworked the reporting engine to reduce complexity and pave the way for future enhancements
+  * This is mentioned here primarily for developers and integrators who may be working with the reporting engine
+* Clicking the toast notification after adding a finding to a report will now take you to the report's findings tab
+* Default values for extra fields are now set when creating a new entry with empty extra fields 
+  * Default values now appear in the edit forms for the entries
+  * The default value must be set before creating the entry for it to appear in the form or be set as the default value
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.19
+
+### Deprecated
+
+* The old "dot" variables used in findings (e.g., `{{.project_start}}` or `{{.client}}`) are no longer necessary and will be removed in a future release
+  * The "dot" variables inserted some data previously unavailable while writing a finding inside Ghostwriter
+  * The new support for Jinja2 composition inside the WYSIWYG editor makes these old "dot" variables redundant
+  * The "dot" variables will still work in this release but are no longer referenced in the documentation
+  * This deprecation does not include `{{.ref }}` or `{{.caption }}` which will continue to be used for captioning and creating cross-references references
+
 ## [4.0.8] - 13 February 2024
 
 ### Added

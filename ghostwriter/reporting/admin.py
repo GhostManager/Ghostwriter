@@ -16,6 +16,7 @@ from ghostwriter.reporting.models import (
     FindingNote,
     FindingType,
     LocalFindingNote,
+    Observation,
     Report,
     ReportFindingLink,
     ReportTemplate,
@@ -258,3 +259,8 @@ class ReportTemplateAdmin(admin.ModelAdmin):
 
     def tag_list(self, obj):
         return ", ".join(o.name for o in obj.tags.all())
+
+
+@admin.register(Observation)
+class ObservationAdmin(admin.ModelAdmin):
+    pass

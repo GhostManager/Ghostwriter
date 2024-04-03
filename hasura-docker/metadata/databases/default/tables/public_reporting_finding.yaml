@@ -3,6 +3,12 @@ table:
   schema: public
 configuration:
   column_config:
+    cvss_score:
+      custom_name: cvssScore
+    cvss_vector:
+      custom_name: cvssVector
+    extra_fields:
+      custom_name: extraFields
     finding_guidance:
       custom_name: findingGuidance
     finding_type_id:
@@ -14,6 +20,9 @@ configuration:
     severity_id:
       custom_name: severityId
   custom_column_names:
+    cvss_score: cvssScore
+    cvss_vector: cvssVector
+    extra_fields: extraFields
     finding_guidance: findingGuidance
     finding_type_id: findingTypeId
     host_detection_techniques: hostDetectionTechniques
@@ -44,6 +53,7 @@ insert_permissions:
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -71,6 +81,7 @@ insert_permissions:
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -85,20 +96,21 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - finding_type_id
-        - id
-        - severity_id
-        - cvss_vector
-        - title
         - cvss_score
+        - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
+        - finding_type_id
         - host_detection_techniques
+        - id
         - impact
         - mitigation
         - network_detection_techniques
         - references
         - replication_steps
+        - severity_id
+        - title
       filter: {}
   - role: user
     permission:
@@ -111,6 +123,7 @@ update_permissions:
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -129,6 +142,7 @@ update_permissions:
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques

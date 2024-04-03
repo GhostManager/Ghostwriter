@@ -28,6 +28,7 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
+from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
@@ -406,11 +407,11 @@ class ProjectNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -433,11 +434,11 @@ class ClientNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -1096,6 +1097,9 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["domains"] = client_domains
         ctx["servers"] = client_servers
         ctx["vps"] = client_vps
+
+        ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
+
         return ctx
 
 
@@ -1383,11 +1387,11 @@ class ClientNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
@@ -1453,6 +1457,11 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
+        return ctx
 
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
@@ -1521,6 +1530,11 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
             ctx["assignments"] = assignments
         return ctx
 
+    def form_invalid(self, form):
+        # DEBUG DO NOT COMMIT
+        logger.error("DEBUG: %r", form.errors)
+        return super().form_invalid(form)
+
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
@@ -1530,6 +1544,8 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
+                form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
+
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save()
 
@@ -1877,11 +1893,11 @@ class ProjectNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")

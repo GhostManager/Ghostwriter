@@ -3,77 +3,96 @@
 {% load determine_primary %}
 
 <div id="objective-{{ objective.id }}-tasks">
-    <div class="card-body task-card">
-        {%  if objective.description %}
-            <div class="objective-description pb-2">
-                {{ objective.description|bleach }}
-            </div>
+  <div class="card-body task-card">
+    <div class="objective-description">
+      <div class="alert alert-secondary col-md-12" role="alert">
+        <h6 class="alert-heading">Objective Description</h6>
+        {% if objective.description %}
+          {{ objective.description|bleach }}
+        {% else %}
+          <p>No description provided.</p>
         {% endif %}
 
-        <!-- New Task Form -->
-        <form action="javascript:void(0);" id="new-task-form-{{ objective.id }}" objective-id="{{ objective.id }}" new-task-url="{% url 'rolodex:ajax_create_project_task' objective.id %}" new-task-csrftoken="{{ csrf_token }}" refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}">
-            <div class="form-row my-auto">
-                <div class="pr-1 col-md-6">
-                    <input type="text" name="task" class="form-control add-task" placeholder="Add a New Task & Enter" autocomplete="off">
-                </div>
-                <div class="col-md-4">
-                    <input type="date" name="deadline" class="form-control add-deadline" placeholder="dd/mm/yy">
-                </div>
-                <div class="col-md-2">
-                    <input type="submit" name="submit-task" onclick="createTodo($(this).closest('form'))" class="btn btn-primary" value="Submit Task">
-                </div>
-            </div>
-        </form>
-
-        {% if objective.projectsubtask_set.all %}
-            <p class="mb-0 mt-3 icon info-circle-icon">Click a task or deadline to edit. Click away from the task to save.</p>
-
-            <!-- Task List Filters -->
-            <ul class="nav nav-pills todo-nav">
-                <li role="presentation" class="nav-item all-task active"><a href="#" class="pt-0 nav-link">All</a></li>
-                <li role="presentation" class="nav-item active-task"><a href="#" class="pt-0 nav-link">Active</a></li>
-                <li role="presentation" class="nav-item completed-task"><a href="#" class="pt-0 nav-link">Completed</a></li>
-            </ul>
-
-            <!-- Task List -->
-            <div class="todo-list">
-                {% for task in objective.projectsubtask_set.all %}
-                    <div
-                        class="row no-gutter todo-item {% if task.complete %}complete{% endif %}"
-                        id="task_{{ task.id }}"
-                        task-csrftoken="{{ csrf_token }}"
-                        task-id="{{ task.id }}"
-                        objective-id="{{ objective.id }}"
-                        toggle-task-url="{% url 'rolodex:ajax_toggle_project_task' task.id %}"
-                        update-task-url="{% url 'rolodex:ajax_update_project_task' task.id %}"
-                        delete-task-url="{% url 'rolodex:ajax_delete_project_task' task.id %}"
-                        refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}"
-                    >
-                        <div class="checker col-sm-1 my-auto">
-                            <span class="custom-control custom-switch">
-                                <input type="checkbox" id="subtask_{{ task.id }}" class="form-check-input custom-control-input" onclick="toggleTodo($(this).parent().parent().parent());" {% if task.complete %}checked{% endif %}>
-                                <label class="form-check-label custom-control-label" for="subtask_{{ task.id }}"></label>
-                            </span>
-                        </div>
-
-                        <div class="task-description col-sm-7">
-                            {% if task.complete %}{{ task.task|striptags }}{% else %}<textarea rows="1" name="task-{{ task.id}}" class="empty-form form-control border-0 edit-todo-input bg-transparent" value="{{ task.task|striptags }}" readonly>{{ task.task|striptags }}</textarea>{% endif %}
-                        </div>
-
-                        <div class="col-sm-3 my-auto p-0 text-center">
-                            {% if task.complete %}
-                                <span class="task-deadline">DONE!</span>
-                            {% else %}
-                                <input type="date" name="task-deadline-{{ task.id }}" class="task-deadline form-control border-0 edit-todo-input bg-transparent {% if not task.complete and task.deadline|days_left <= 1 %}task-imminent{% elif not task.complete and task.deadline|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}" placeholder="dd/mm/yy" value="{{ task.deadline|date:'Y-m-d' }}" readonly>
-                            {% endif %}
-                        </div>
-
-                        <div class="col-sm-1 my-auto p-0">
-                            <button class="btn btn-transparent float-right" onclick="deleteTodo($(this).parent().parent());"><i class="fas fa-times"></i></button>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
+      </div>
     </div>
+    <!-- New Task Form -->
+    <form action="javascript:void(0);" id="new-task-form-{{ objective.id }}" objective-id="{{ objective.id }}"
+          new-task-url="{% url 'rolodex:ajax_create_project_task' objective.id %}" new-task-csrftoken="{{ csrf_token }}"
+          refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}">
+      <div class="form-row my-auto">
+        <div class="pr-1 col-md-6">
+          <input type="text" name="task" class="form-control add-task" placeholder="Add a New Task & Enter"
+                 autocomplete="off">
+        </div>
+        <div class="col-md-4">
+          <input type="date" name="deadline" class="form-control add-deadline" placeholder="dd/mm/yy">
+        </div>
+        <div class="col-md-2">
+          <input type="submit" name="submit-task" onclick="createTodo($(this).closest('form'))" class="btn btn-primary"
+                 value="Submit Task">
+        </div>
+      </div>
+    </form>
+
+    {% if objective.projectsubtask_set.all %}
+      <p class="mb-0 mt-3 icon info-circle-icon">Click a task or deadline to edit. Click away from the task to save.</p>
+
+      <!-- Task List Filters -->
+      <ul class="nav nav-pills todo-nav">
+        <li role="presentation" class="nav-item all-task active"><a href="#" class="pt-0 nav-link">All</a></li>
+        <li role="presentation" class="nav-item active-task"><a href="#" class="pt-0 nav-link">Active</a></li>
+        <li role="presentation" class="nav-item completed-task"><a href="#" class="pt-0 nav-link">Completed</a></li>
+      </ul>
+
+      <!-- Task List -->
+      <div class="todo-list">
+        {% for task in objective.projectsubtask_set.all %}
+          <div
+            class="row no-gutter todo-item {% if task.complete %}complete{% endif %}"
+            id="task_{{ task.id }}"
+            task-csrftoken="{{ csrf_token }}"
+            task-id="{{ task.id }}"
+            objective-id="{{ objective.id }}"
+            toggle-task-url="{% url 'rolodex:ajax_toggle_project_task' task.id %}"
+            update-task-url="{% url 'rolodex:ajax_update_project_task' task.id %}"
+            delete-task-url="{% url 'rolodex:ajax_delete_project_task' task.id %}"
+            refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}"
+          >
+            <div class="checker col-sm-1 my-auto">
+                            <span class="custom-control custom-switch">
+                                <input type="checkbox" id="subtask_{{ task.id }}"
+                                       class="form-check-input custom-control-input"
+                                       onclick="toggleTodo($(this).parent().parent().parent());"
+                                       {% if task.complete %}checked{% endif %}>
+                                <label class="form-check-label custom-control-label"
+                                       for="subtask_{{ task.id }}"></label>
+                            </span>
+            </div>
+
+            <div class="task-description col-sm-7">
+              {% if task.complete %}{{ task.task|striptags }}{% else %}<textarea rows="1" name="task-{{ task.id }}"
+                                                                                 class="empty-form form-control border-0 edit-todo-input bg-transparent"
+                                                                                 value="{{ task.task|striptags }}"
+                                                                                 readonly>{{ task.task|striptags }}</textarea>{% endif %}
+            </div>
+
+            <div class="col-sm-3 my-auto p-0 text-center">
+              {% if task.complete %}
+                <span class="task-deadline">DONE!</span>
+              {% else %}
+                <input type="date" name="task-deadline-{{ task.id }}"
+                       class="task-deadline form-control border-0 edit-todo-input bg-transparent {% if not task.complete and task.deadline|days_left <= 1 %}task-imminent{% elif not task.complete and task.deadline|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}"
+                       placeholder="dd/mm/yy" value="{{ task.deadline|date:'Y-m-d' }}" readonly>
+              {% endif %}
+            </div>
+
+            <div class="col-sm-1 my-auto p-0">
+              <button class="btn btn-transparent float-right" onclick="deleteTodo($(this).parent().parent());"><i
+                class="fas fa-times"></i></button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
 </div>

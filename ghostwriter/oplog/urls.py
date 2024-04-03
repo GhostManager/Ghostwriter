@@ -36,4 +36,5 @@ urlpatterns = [
 # URLs for AJAX requests
 urlpatterns += [
     path("ajax/oplog/mute/<int:pk>", views.OplogMuteToggle.as_view(), name="ajax_oplog_mute_toggle"),
+    path("ajax/oplog/sanitize/<int:pk>", views.OplogSanitize.as_view(), name="ajax_oplog_sanitize"),
 ]

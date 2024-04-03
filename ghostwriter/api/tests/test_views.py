@@ -1,15 +1,18 @@
 # Standard Libraries
 import logging
+import os
 from datetime import date, datetime, timedelta
 
 # Django Imports
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
 
 # 3rd Party Libraries
+import factory
 from django_otp.plugins.otp_static.models import StaticToken
 
 # Ghostwriter Libraries
@@ -17,17 +20,22 @@ from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
 from ghostwriter.factories import (
     ActivityTypeFactory,
+    BlankReportFindingLinkFactory,
     ClientFactory,
+    EvidenceOnReportFactory,
     DomainFactory,
     DomainStatusFactory,
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
-    ProjectContactFactory,
     ProjectAssignmentFactory,
-    ProjectObjectiveFactory,
+    ProjectContactFactory,
     ProjectFactory,
+    ProjectObjectiveFactory,
+    ProjectSubtaskFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     ReportTemplateFactory,
@@ -37,7 +45,6 @@ from ghostwriter.factories import (
     SeverityFactory,
     StaticServerFactory,
     UserFactory,
-    ProjectSubtaskFactory,
 )
 
 logging.disable(logging.CRITICAL)
@@ -972,71 +979,6 @@ class CheckoutDeleteViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
 
-class GraphqlDeleteEvidenceActionTests(TestCase):
-    """Collection of tests for :view:`GraphqlDeleteEvidenceAction`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.Evidence = EvidenceFactory._meta.model
-
-        cls.user = UserFactory(password=PASSWORD)
-        cls.uri = reverse("api:graphql_delete_evidence")
-
-        cls.project = ProjectFactory()
-        cls.other_project = ProjectFactory()
-        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
-
-        cls.report = ReportFactory(project=cls.project)
-        cls.other_report = ReportFactory(project=cls.other_project)
-
-        cls.finding = ReportFindingLinkFactory(report=cls.report)
-        cls.other_finding = ReportFindingLinkFactory(report=cls.other_report)
-
-        cls.evidence = EvidenceFactory(finding=cls.finding)
-        cls.other_evidence = EvidenceFactory(finding=cls.other_finding)
-
-    def setUp(self):
-        self.client = Client()
-
-    def generate_data(self, evidence_id):
-        return {
-            "input": {
-                "evidenceId": evidence_id,
-            }
-        }
-
-    def test_deleting_evidence(self):
-        _, token = utils.generate_jwt(self.user)
-        response = self.client.post(
-            self.uri,
-            data=self.generate_data(self.evidence.id),
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(self.Evidence.objects.filter(id=self.evidence.id).exists())
-
-    def test_deleting_evidence_with_invalid_id(self):
-        _, token = utils.generate_jwt(self.user)
-        response = self.client.post(
-            self.uri,
-            data=self.generate_data(999),
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 400)
-
-    def test_deleting_evidence_without_access(self):
-        _, token = utils.generate_jwt(self.user)
-        response = self.client.post(
-            self.uri,
-            data=self.generate_data(self.other_evidence.id),
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 401)
-
-
 class GraphqlDeleteReportTemplateAction(TestCase):
     """Collection of tests for :view:`GraphqlDeleteReportTemplateAction`."""
 
@@ -1224,6 +1166,76 @@ class GraphqlGenerateCodenameActionTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 200)
+
+
+class GraphqlGetExtraFieldSpecActionTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlGetExtraFieldSpecAction`."""
+
+    fixtures = ["ghostwriter/commandcenter/fixtures/initial.json"]
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ExtraFieldModel = ExtraFieldModelFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_get_extra_field_spec")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_graphql_get_extra_field_spec(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "Finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "Reporting.Finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        extra_field_model = self.ExtraFieldModel.objects.get(pk="reporting.Finding")
+        ExtraFieldSpecFactory(
+            internal_name="test_field",
+            display_name="Test Field",
+            type="single_line_text",
+            target_model=extra_field_model,
+        )
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["extraFieldSpec"]["test_field"]["internalName"], "test_field")
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "bad_model_name"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["message"], "Model does not exist")
 
 
 # Tests related to Hasura Event Triggers
@@ -1868,6 +1880,154 @@ class GraphqlProjectSubTaskUpdateEventTests(TestCase):
         self.task.refresh_from_db()
         self.assertFalse(self.task.complete)
         self.assertFalse(self.task.marked_complete)
+
+
+class GraphqlEvidenceUpdateEventTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlEvidenceUpdateEvent`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_evidence_update_event")
+
+        cls.finding = ReportFindingLinkFactory(
+            description="<p>Here is some evidence:</p><p>{{.Test Finding Evidence}}</p><p>{{.ref Test Finding Evidence}}</p>",
+            impact="<p>Here is some evidence:</p><p>{{.Test Report Evidence}}</p><p>{{.ref Test Report Evidence}}</p>",
+            mitigation="<p>Here is some evidence:</p><p>{{.Deleted Evidence}}</p><p>{{.ref Deleted Evidence}}</p>",
+        )
+        cls.finding_evidence = EvidenceOnFindingFactory(
+            friendly_name="Test Finding Evidence",
+            finding=cls.finding,
+            report=None,
+            document=factory.django.FileField(filename="finding_evidence.txt", data=b"lorem ipsum"),
+        )
+        cls.report_evidence = EvidenceOnReportFactory(
+            friendly_name="Test Report Evidence",
+            report=cls.finding.report,
+            document=factory.django.FileField(filename="finding_evidence.txt", data=b"lorem ipsum"),
+        )
+        cls.deleted_evidence = EvidenceOnFindingFactory(finding=cls.finding, friendly_name="Deleted Evidence")
+
+        # Add a blank finding to teh report for regression testing updates on findings with blank fields
+        BlankReportFindingLinkFactory(report=cls.report_evidence.report)
+        EvidenceOnReportFactory(report=cls.report_evidence.report, friendly_name="Blank Test")
+
+        # Sample data for an update that changes the friendly name and document on finding evidence
+        cls.update_data_finding = {
+            "event": {
+                "op": "UPDATE",
+                "data": {
+                    "new": {
+                        "id": cls.finding_evidence.id,
+                        "document": "evidence/some_new_file.txt",
+                        "friendly_name": "New Name",
+                        "finding_id": cls.finding.id,
+                        "report_id": "",
+                    },
+                    "old": {
+                        "id": cls.finding_evidence.id,
+                        "document": str(cls.finding_evidence.document),
+                        "friendly_name": cls.finding_evidence.friendly_name,
+                        "finding_id": cls.finding.id,
+                        "report_id": "",
+                    },
+                },
+            }
+        }
+        # Sample data for an update that changes the friendly name and document on report evidence
+        cls.update_data_report = {
+            "event": {
+                "op": "UPDATE",
+                "data": {
+                    "new": {
+                        "id": cls.report_evidence.id,
+                        "document": str(cls.report_evidence.document),
+                        "friendly_name": "New Name",
+                        "finding_id": "",
+                        "report_id": cls.report_evidence.report.id,
+                    },
+                    "old": {
+                        "id": cls.report_evidence.id,
+                        "document": str(cls.report_evidence.document),
+                        "friendly_name": cls.report_evidence.friendly_name,
+                        "finding_id": "",
+                        "report_id": cls.report_evidence.report.id,
+                    },
+                },
+            }
+        }
+        # Sample data for a delete event
+        cls.delete_data = {
+            "event": {
+                "op": "DELETE",
+                "data": {
+                    "new": {},
+                    "old": {
+                        "id": cls.deleted_evidence.id,
+                        "document": str(cls.deleted_evidence.document),
+                        "friendly_name": cls.deleted_evidence.friendly_name,
+                        "finding_id": cls.finding.id,
+                        "report_id": "",
+                    },
+                },
+            }
+        }
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_graphql_evidence_update_event(self):
+        # Test updating finding evidence
+        self.assertTrue(os.path.exists(self.finding_evidence.document.path))
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.update_data_finding,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        # The document should no longer exist
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(os.path.exists(self.finding_evidence.document.path))
+
+        # The friendly name references should be changed
+        self.finding.refresh_from_db()
+        self.assertEqual(
+            self.finding.description, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
+        )
+
+        # Test updating report evidence
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.update_data_report,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.finding.refresh_from_db()
+        self.assertEqual(
+            self.finding.impact, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
+        )
+
+    def test_graphql_evidence_delete_event(self):
+        self.assertTrue(os.path.exists(self.deleted_evidence.document.path))
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.delete_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(os.path.exists(self.deleted_evidence.document.path))
+        self.finding.refresh_from_db()
+        self.assertEqual(self.finding.mitigation, "<p>Here is some evidence:</p><p></p>")
 
 
 # Tests related to CBVs for :model:`api:APIKey`

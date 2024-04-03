@@ -16,6 +16,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, 
 from ghostwriter.api.utils import get_project_list
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.rolodex.models import Project
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 
 
 class OplogForm(forms.ModelForm):
@@ -81,6 +82,7 @@ class OplogEntryForm(forms.ModelForm):
         input_formats=["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M"],
         required=False,
     )
+    extra_fields = ExtraFieldsField(OplogEntry._meta.label)
 
     class Meta:
         model = OplogEntry
@@ -110,6 +112,7 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["end_date"].initial = make_aware(datetime.utcnow())
         self.fields["end_date"].label = "End Date & Time"
         self.fields["end_date"].help_text = "Date and time the action completed or halted"
+        self.fields["extra_fields"].label = ""
 
         self.fields["command"].widget.attrs["rows"] = 2
         self.fields["output"].widget.attrs["rows"] = 2
@@ -131,6 +134,8 @@ class OplogEntryForm(forms.ModelForm):
                 post_url = reverse("oplog:oplog_entry_create", kwargs={"pk": self.oplog.pk})
         if post_url:
             self.helper.form_action = post_url
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
 
         self.helper.layout = Layout(
             Row(
@@ -164,6 +169,13 @@ class OplogEntryForm(forms.ModelForm):
                 css_class="form-row",
             ),
             "tags",
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            ) if has_extra_fields else None,
+            "extra_fields" if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

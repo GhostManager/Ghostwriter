@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
 
   <!-- TinyMCE -->
-  <script type="application/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
 
   <!-- FullCalendar -->
   <script src="{% static 'js/fullcalendar-main.min.js' %}"></script>
@@ -286,7 +286,7 @@
       ws_proto = 'wss://'
     }
     const protocol = ws_proto
-    const username = '{{ user }}';
+    const username = '{{ user.get_clean_username }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
     const ws_user = new WebSocket(
@@ -351,7 +351,7 @@
       $('.nav-tabs a').click(function (e) {
         {%  comment %} Prevent the scrolling-to-tab animation {% endcomment %}
         $('html,body').stop().animate({
-          scrollTop: $($(this).attr('href')).offset().top - $('.nav').height()
+          scrollTop: $(this).offset().top - 175
         }, 700, 'swing');
         e.preventDefault();
         e.stopImmediatePropagation();

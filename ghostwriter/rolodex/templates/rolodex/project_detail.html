@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -1027,8 +1027,21 @@
             this project.
           </div>
         {% endif %}
-
       </div>
+
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if project_extra_fields_spec %}
+        <div id="extra_fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          <a class="icon edit-icon btn btn-primary mb-1 col-3"
+            href="{% url 'rolodex:project_component_update' project.id %}#extra-fields">Edit Extra Fields</a>
+
+          {% include "user_extra_fields/field_preview_display.html" with object=project object_extra_fields_spec=project_extra_fields_spec %}
+
+        </div>
+      {% endif %}
 
       {% comment %} Notes Tab {% endcomment %}
       <div id="notes" class="tab-pane">
@@ -1055,7 +1068,7 @@
               </div>
             </div>
 
-            {% if request.user == note.operator or request.user.is_staff %}
+            {% if request.user == note.operator or request.user|is_privileged %}
               <div class="pb-3">
                 <a class="note-link" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a> |
                 <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
@@ -1080,6 +1093,8 @@
 {% endblock %}
 
 {% block morescripts %}
+  {% get_solo "commandcenter.ReportConfiguration" as report_config %}
+
   <script>
     const $projectDescription = $('#projectDescription')
     const $projectDescDropdown = $('#projectDescriptionDropdown')
@@ -1555,6 +1570,17 @@
       };
       calendar.addEvent(execWindows);
 
+      let reportingWindows = {
+        title: 'Reporting',
+        allDay: true,
+        start: '{{ project.end_date|plus_days:1|date:"Y-m-d" }}',
+        end: '{{ project.end_date|add_days:report_config.target_delivery_date|plus_days:1|date:"Y-m-d" }}',
+        color: 'var(--secondary-color)',
+        className: 'calendar-report-icon'
+      };
+      console.log(reportingWindows)
+      calendar.addEvent(reportingWindows);
+
       {% comment %} Add project assignments {% endcomment %}
       {% for operator in project.projectassignment_set.all %}
         let operator_{{ operator.id }} = {
@@ -1957,4 +1983,11 @@
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+
+  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% if project_extra_fields_spec %}
+    {% for field_spec in project_extra_fields_spec %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=project.extra_fields field_spec=field_spec %}
+    {% endfor %}
+  {% endif %}
 {% endblock %}

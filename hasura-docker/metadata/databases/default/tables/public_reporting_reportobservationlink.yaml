@@ -1,0 +1,166 @@
+table:
+  name: reporting_reportobservationlink
+  schema: public
+configuration:
+  column_config:
+    extra_fields:
+      custom_name: extraFields
+  custom_column_names:
+    extra_fields: extraFields
+  custom_root_fields: {}
+object_relationships:
+  - name: asssignedTo
+    using:
+      foreign_key_constraint_on: assigned_to_id
+  - name: report
+    using:
+      foreign_key_constraint_on: report_id
+insert_permissions:
+  - role: manager
+    permission:
+      check: {}
+      set:
+        assigned_to_id: x-hasura-User-Id
+      columns:
+        - added_as_blank
+        - assigned_to_id
+        - description
+        - extra_fields
+        - position
+        - report_id
+        - title
+  - role: user
+    permission:
+      check:
+        report:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+      set:
+        assigned_to_id: x-hasura-User-Id
+      columns:
+        - added_as_blank
+        - assigned_to_id
+        - description
+        - extra_fields
+        - position
+        - report_id
+        - title
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - assigned_to_id
+        - id
+        - report_id
+        - added_as_blank
+        - title
+        - position
+        - extra_fields
+        - description
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - assigned_to_id
+        - id
+        - report_id
+        - added_as_blank
+        - title
+        - position
+        - extra_fields
+        - description
+      filter:
+        report:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+update_permissions:
+  - role: manager
+    permission:
+      columns:
+        - added_as_blank
+        - assigned_to_id
+        - description
+        - extra_fields
+        - position
+        - report_id
+        - title
+      filter: {}
+      check: {}
+  - role: user
+    permission:
+      columns:
+        - added_as_blank
+        - assigned_to_id
+        - description
+        - extra_fields
+        - position
+        - report_id
+        - title
+      filter:
+        report:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+      check:
+        report:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+delete_permissions:
+  - role: manager
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter:
+        report:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id

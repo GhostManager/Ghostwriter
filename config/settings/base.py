@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "4.0.8"
+__version__ = "4.1"
 VERSION = __version__
-RELEASE_DATE = "13 February 2024"
+RELEASE_DATE = "3 April 2024"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -424,9 +424,17 @@ BLEACH_ALLOWED_TAGS = [
     "h6",
     "blockquote",
     "br",
+    "table",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "thead",
+    "tfoot",
+    "caption",
 ]
 # Which HTML attributes are allowed
-BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
+BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"]
 # Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
 BLEACH_ALLOWED_STYLES = [
     "color",
@@ -434,6 +442,7 @@ BLEACH_ALLOWED_STYLES = [
     "font-weight",
     "text-decoration",
     "font-variant",
+    "border",
 ]
 # Which protocols (and pseudo-protocols) are allowed in 'src' attributes (assuming src is an allowed attribute)
 BLEACH_ALLOWED_PROTOCOLS = ["http", "https", "data"]

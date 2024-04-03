@@ -2,13 +2,14 @@
 
 # Standard Libraries
 import logging
+import os
 from collections import defaultdict
 
 # Django Imports
 from django import template
 
 # Ghostwriter Libraries
-from ghostwriter.reporting.models import Severity
+from ghostwriter.reporting.models import Evidence, Severity
 
 register = template.Library()
 
@@ -54,3 +55,85 @@ def group_by_severity(queryset):
         severity_dict[str(finding.severity)]["findings"].append(finding)
     # Return a basic dict because templates can't handle defaultdict
     return dict(severity_dict)
+
+
+@register.filter
+def get_file_type(file):
+    """
+    Determine the file type of a given evidence file.
+
+    **Parameters**
+
+    ``file``
+        Instance of :model:`reporting.Evidence`
+    """
+    filetype = "unknown"
+    if isinstance(file, Evidence):
+        if os.path.isfile(file.document.path):
+            if (
+                file.document.name.lower().endswith(".txt")
+                or file.document.name.lower().endswith(".log")
+                or file.document.name.lower().endswith(".md")
+            ):
+                filetype = "text"
+                file_content = []
+                temp = file.document.read().splitlines()
+                for line in temp:
+                    try:
+                        file_content.append(line.decode("utf-8", errors="replace"))
+                    except UnicodeError:
+                        file_content.append(line)
+            elif (
+                file.document.name.lower().endswith(".jpg")
+                or file.document.name.lower().endswith(".png")
+                or file.document.name.lower().endswith(".jpeg")
+            ):
+                filetype = "image"
+        else:
+            filetype = "missing"
+
+    return filetype
+
+
+@register.filter
+def get_file_content(file):
+    """
+    Return the content of a text file (*.txt, *.log, or *.md).
+
+    **Parameters**
+
+    ``file``
+        Instance of :model:`reporting.Evidence`
+    """
+    file_content = []
+    if isinstance(file, Evidence):
+        if os.path.isfile(file.document.path):
+            if (
+                file.document.name.lower().endswith(".txt")
+                or file.document.name.lower().endswith(".log")
+                or file.document.name.lower().endswith(".md")
+            ):
+                with open(file.document.path, "r", encoding="utf-8") as f:
+                    file_content = f.read()
+                    file_content.strip()
+        else:
+            file_content = "FILE NOT FOUND"
+
+    return file_content
+
+
+@register.filter
+def get_file_basename(file):
+    """
+    Return the basename of a file.
+
+    **Parameters**
+
+    ``file``
+        Instance of :model:`reporting.Evidence`
+    """
+    basename = "unknown"
+    if isinstance(file, Evidence):
+        basename = os.path.basename(file.document.name)
+
+    return basename

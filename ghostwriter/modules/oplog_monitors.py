@@ -1,4 +1,4 @@
-"""This contains all of functions for monitoring operational logging activities."""
+"""This contains all functions for monitoring operational logging activities."""
 
 # Standard Libraries
 import logging
@@ -60,7 +60,7 @@ def review_active_logs(hours: int = 24) -> dict:
             except OplogEntry.DoesNotExist:
                 pass
 
-            # If there is a latest log entry, check if it is older than the ``hours`` parameter
+            # If there is log entry, check if it is older than the ``hours`` parameter
             if latest_log_entry:
                 last_activity = latest_log_entry.start_date.replace(tzinfo=timezone.utc)
                 if last_activity < hours_ago:
@@ -83,7 +83,7 @@ def review_active_logs(hours: int = 24) -> dict:
                         channel = log.project.slack_channel
 
                     logger.info("Sending Slack notification about inactive log to %s", channel)
-                    blocks = slack.craft_inactive_log_msg(log.name, log.project, hours, last_activity)
+                    blocks = slack.craft_inactive_log_msg(log, hours, last_activity)
                     err = slack.send_msg(
                         message=f"This activity log has had no activity in the past {hours} hours",
                         channel=channel,

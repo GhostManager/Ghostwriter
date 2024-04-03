@@ -25,6 +25,7 @@ LINTER_CONTEXT = {
         "start_time": "09:00:00",
         "end_time": "17:00:00",
         "tags": ["tag1", "tag2", "tag3"],
+        "extra_fields": {},
     },
     "client": {
         "id": 1,
@@ -56,6 +57,7 @@ LINTER_CONTEXT = {
         "address": "30 Rockefeller Plaza New York City, New York 10112",
         "address_rt": "",
         "tags": ["tag1", "tag2", "tag3"],
+        "extra_fields": {},
     },
     "team": [
         {
@@ -225,6 +227,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Domain for the first phishing campaign</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
             {
                 "activity": "Command and Control",
@@ -241,6 +244,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Domain for long-haul C2 comms</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
             {
                 "activity": "Command and Control",
@@ -257,6 +261,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Domain for the short-haul C2 comms (phishing)</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
         ],
         "servers": [
@@ -271,6 +276,7 @@ LINTER_CONTEXT = {
                 "dns": [{"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}],
                 "note": "<p>Long-haul C2 server</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
             {
                 "name": "CC-02",
@@ -289,6 +295,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Short-haul C2 server for phishing</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
         ],
         "cloud": [
@@ -352,7 +359,17 @@ LINTER_CONTEXT = {
             "finding_guidance": "",
             "complete": False,
             "tags": ["tag1", "tag2", "tag3"],
+            "extra_fields": {},
         },
+    ],
+    "observations": [
+        {
+            "id": 1,
+            "title": "test observation",
+            "description": "",
+            "description_rt": "",
+            "extra_fields": {},
+        }
     ],
     "docx_template": {
         "id": 1,
@@ -384,6 +401,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
                 {
                     "tags": ["tag1", "tag2", "tag3"],
@@ -398,6 +416,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
             ],
             "name": "SpecterOps Red Team Logs",
@@ -417,6 +436,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
                 {
                     "tags": ["tag1", "tag2", "tag3"],
@@ -431,6 +451,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
             ],
             "name": "SpecterOps Red Team Log #2",
@@ -461,4 +482,18 @@ LINTER_CONTEXT = {
         "targets": 1,
     },
     "tools": ["beacon", "covenant", "mythic", "poseidon"],
+    "evidence": [
+        {
+            "id": 1,
+            "file_path": "evidence/2/ghost.png",
+            "url": "/media/evidence/2/ghost.png",
+            "document": "/media/evidence/2/ghost.png",
+            "friendly_name": "Ghostwriter",
+            "upload_date": "2021-03-22",
+            "caption": "Brief Caption for This Evidence",
+            "description": "",
+            "tags": ["tag1", "tag2", "tag3"],
+        }
+    ],
+    "extra_fields": {},
 }

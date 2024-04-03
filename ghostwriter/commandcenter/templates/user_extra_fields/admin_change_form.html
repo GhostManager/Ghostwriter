@@ -1,0 +1,74 @@
+{% extends 'admin/change_form.html' %}
+{% load static %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script type="text/javascript" src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
+<script type="text/javascript">
+    "use strict";
+    (($) => {
+        const INPUT_TYPES = "input, select, textarea";
+
+        function swap_control(row, tag, attrs, set_value) {
+            let container = $(row).find(".field-user_default_value");
+            let existing_input = container.find(INPUT_TYPES);
+            let name = existing_input.attr("name");
+            let id = existing_input.attr("id");
+            let value = existing_input.val();
+
+            container.empty();
+            let new_control = document.createElement(tag);
+            new_control.setAttribute("name", name);
+            new_control.setAttribute("id", id);
+            for(const attr in attrs) {
+                new_control.setAttribute(attr, attrs[attr]);
+            }
+            if(set_value) {
+                set_value(new_control, value);
+            } else {
+                new_control.setAttribute("value", value);
+            }
+            container.append(new_control);
+            return new_control;
+        }
+
+        const SWAP_WIDGET_FUNCTIONS = {
+            "checkbox": row => swap_control(row, "input", {"type": "checkbox"}, (control, value) => {
+                if(value === "on") {
+                    control.setAttribute("checked", "");
+                }
+            }),
+            "single_line_text": row => swap_control(row, "input", {"type": "text"}),
+            "rich_text": row => {
+                let new_control = swap_control(row, "textarea", {"class": "no-auto-tinymce"}, (el, value) => el.innerText = value);
+                let editor = new tinymce.Editor($(new_control).attr("id"), GW_TINYMCE_DEFAULT_CONFIG, tinymce.EditorManager);
+                editor.render();
+            },
+            "integer": row => swap_control(row, "input", {"type": "number", "step": "1"}),
+            "float": row => swap_control(row, "input", {"type": "number"}),
+        };
+
+        function extra_fields_set_default_value_widget(row) {
+            let type = $(row).find(".field-type select").val();
+            if(type !== "") {
+                SWAP_WIDGET_FUNCTIONS[type](row);
+            }
+        }
+
+        function set_field_type_change_listener(row) {
+            $(row).find(".field-type select").on("change", ev => {
+                extra_fields_set_default_value_widget($(row));
+            });
+        }
+
+        $("#extrafieldspec_set-group tr.form-row").each((_, row) => {
+            extra_fields_set_default_value_widget(row);
+            set_field_type_change_listener(row);
+        });
+        $(document).on("formset:added", (event, row, formsetName) => {
+            set_field_type_change_listener(row);
+        });
+    })(django.jQuery);
+</script>
+{% endblock %}

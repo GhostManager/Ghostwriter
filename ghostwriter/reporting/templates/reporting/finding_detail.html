@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags %}
+{% load bleach_tags extra_fields custom_tags %}
 
 {% block pagetitle %}{{ finding.title }} Details{% endblock %}
 
@@ -161,7 +161,7 @@
       References
     </div>
     <div class="card-body finding-content">
-       {% if finding.references %}
+      {% if finding.references %}
         {{ finding.references|bleach }}
       {% else %}
         <p>References are needed.</p>
@@ -175,9 +175,39 @@
         Finding Guidance
       </div>
       <div class="card-body finding-content">
-         {{ finding.finding_guidance|bleach }}
+        {{ finding.finding_guidance|bleach }}
       </div>
     </div>
+  {% endif %}
+
+  {% if finding_extra_fields_spec %}
+    <h4 class="icon custom-field-icon">Extra Fields</h4>
+    <hr>
+
+    {% for field_spec in finding_extra_fields_spec %}
+      {% if field_spec.type != "rich_text" %}
+        <div class="row justify-content-md-center">
+          <h6 class="col-3 text-left">
+            {{ field_spec.display_name|bleach }}
+          </h6>
+          <div class="mt-2 col-3 text-md-center align-middle offset-2">
+            {% include "user_extra_fields/field.html" with extra_fields=finding.extra_fields field_spec=field_spec %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+    {% for field_spec in finding_extra_fields_spec %}
+      {% if field_spec.type == "rich_text" %}
+        <div id="extraFieldCard_{{ field_spec.internal_name|bleach }}" class="card mb-3">
+          <div class="card-header finding-header icon custom-field-icon">
+            {{ field_spec.display_name|bleach }}
+          </div>
+          <div class="card-body finding-content">
+            {% include "user_extra_fields/field.html" with extra_fields=finding.extra_fields field_spec=field_spec %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
   {% endif %}
 
   <h4 class="icon comment-icon">Notes</h4>
@@ -205,7 +235,7 @@
         </div>
       </div>
 
-      {% if request.user == note.operator or request.user.is_staff %}
+      {% if request.user == note.operator or request.user|is_privileged %}
         <div class="pb-3">
           <a class="note-link" href="{% url 'reporting:finding_note_edit' note.id %}">Edit</a> |
           <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
@@ -249,7 +279,7 @@
             // Do Something
           }
           if (data['message']) {
-            displayToastTop({type: data['result'], string: data['message'], title: 'Finding Assigned'});
+            displayToastTop({type: data['result'], string: data['message'], title: 'Finding Assigned', url: data['url']});
           }
         }
       });
