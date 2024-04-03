@@ -136,7 +136,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
     def create_table(self, rows, cols, **kwargs):
         return self.slide.shapes.add_table(rows=rows, cols=cols, left=Inches(10), top=Inches(5), width=Inches(3), height=Inches(1)).table
 
-    def paragraph_for_table_cell(self, cell):
+    def paragraph_for_table_cell(self, cell, td_el):
         return next(iter(cell.text_frame.paragraphs))
 
 

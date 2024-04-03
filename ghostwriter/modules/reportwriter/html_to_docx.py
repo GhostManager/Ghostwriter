@@ -19,7 +19,7 @@ from lxml import etree
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
-from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML
+from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML, parse_styles
 
 logger = logging.getLogger(__name__)
 
@@ -189,8 +189,15 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         return table
 
-    def paragraph_for_table_cell(self, cell):
-        # Each cell starts with a paragraph, so use it
+    def paragraph_for_table_cell(self, cell, td_el):
+        def handle_style(key, value):
+            if key == "background-color":
+                shade = OxmlElement("w:shd")
+                shade.set(qn("w:fill"), value.replace("#", ""))
+                cell._tc.get_or_add_tcPr().append(shade)
+
+        parse_styles(td_el.attrs.get("style", ""), handle_style)
+
         return next(iter(cell.paragraphs))
 
     def set_autofit(self):

@@ -169,32 +169,22 @@ class BaseHtmlToOOXML:
             if cls in classes:
                 style[cls] = True
 
-        # Parse and check styles
-        for style_line in el.attrs.get("style", "").split(";"):
-            if not style_line.strip():
-                continue
-            try:
-                key, value = style_line.split(":")
-                key = key.strip()
-                value = value.strip()
+        def handle_style(key, value):
+            if key == "font-size":
+                style["font_size"] = float(value.replace("pt", ""))
+            elif key == "font-family":
+                font_list = value.split(",")
+                priority_font = font_list[0].replace("'", "").replace('"', "").strip()
+                style["font_family"] = priority_font
+            elif key in ("color", "background-color"):
+                value = value.replace("#", "")
+                r, g, b = (int(value[i * 2 : i * 2 + 2], 16) for i in range(3))
+                if key == "color":
+                    style["font_color"] = (r, g, b)
+                else:
+                    style["background_color"] = (r, g, b)
 
-                if key == "font-size":
-                    style["font_size"] = float(value.replace("pt", ""))
-                elif key == "font-family":
-                    font_list = value.split(",")
-                    priority_font = font_list[0].replace("'", "").replace('"', "").strip()
-                    style["font_family"] = priority_font
-                elif key in ("color", "background-color"):
-                    value = value.replace("#", "")
-                    r, g, b = (int(value[i * 2 : i * 2 + 2], 16) for i in range(3))
-                    if key == "color":
-                        style["font_color"] = (r, g, b)
-                    else:
-                        style["background_color"] = (r, g, b)
-
-            except (ValueError, IndexError):
-                # Invalid input
-                pass
+        parse_styles(el.attrs.get("style", ""), handle_style)
 
         self.process_children(el.children, style=style, **kwargs)
 
@@ -233,7 +223,7 @@ class BaseHtmlToOOXML:
                             merged_cells.add((row_i + row_j, col_i + col_j))
 
                 self.text_tracking.new_block()
-                par = self.paragraph_for_table_cell(cell)
+                par = self.paragraph_for_table_cell(cell, cell_el)
                 self.process_children(cell_el.children, par=par, **kwargs)
 
     @staticmethod
@@ -266,9 +256,17 @@ class BaseHtmlToOOXML:
         return (max_width, max_height)
 
     def create_table(self, rows, cols, **kwargs):
+        """
+        Creates a table with the specified number of rows and columns. Additional arguments passed to `tag_table` are also passed here.
+        """
         raise NotImplementedError()
 
-    def paragraph_for_table_cell(self, cell):
+    def paragraph_for_table_cell(self, cell, td_el):
+        """
+        Gets the ooxml paragraph for a table cell to add contents to.
+
+        This may also style the cell's paragraph if desired, using the passed in `td_el` item.
+        """
         raise NotImplementedError()
 
 
@@ -277,3 +275,24 @@ def strip_text_whitespace(text):
     Consolidates adjacent whitespace into one space, similar to how browsers display it
     """
     return re.sub(r"\s+", " ", text)
+
+
+def parse_styles(style: str, handle):
+    """
+    Does rough parsing of a `style` attribute, calling `handle(key,value)` and catching/ignoring any `ValueError` it throws.
+    """
+    for style_line in style.split(";"):
+        if not style_line.strip():
+            continue
+        try:
+            key, value = style_line.split(":")
+            key = key.strip()
+            value = value.strip()
+        except IndexError:
+            # Invalid input
+            pass
+        try:
+            handle(key, value)
+        except ValueError:
+            # Invalid input
+            pass
