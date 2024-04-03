@@ -19,7 +19,7 @@ from lxml import etree
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
-from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML
+from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML, parse_styles
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +30,12 @@ class HtmlToDocx(BaseHtmlToOOXML):
     """
 
     def __init__(self, doc, p_style):
+        super().__init__()
         self.doc = doc
         self.p_style = p_style
         self.list_styles_cache = {}
 
-    def text(self, el, par=None, style={}, **kwargs):
+    def text(self, el, *, par=None, style={}, **kwargs):
         # Process hyperlinks on top of the usual text rules
         if par is not None and style.get("hyperlink_url"):
             # For Word, this code is modified from this issue:
@@ -88,7 +89,8 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = DocxRgbColor(*style["font_color"])
 
-    def tag_br(self, el, par=None, **kwargs):
+    def tag_br(self, el, *, par=None, **kwargs):
+        self.text_tracking.new_block()
         if "data-gw-pagebreak" in el.attrs:
             self.doc.add_page_break()
         else:
@@ -97,6 +99,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
     def _tag_h(self, el, **kwargs):
         heading_num = int(el.name[1:])
+        self.text_tracking.new_block()
         self.doc.add_heading(el.text, heading_num)
 
     tag_h1 = _tag_h
@@ -106,8 +109,16 @@ class HtmlToDocx(BaseHtmlToOOXML):
     tag_h5 = _tag_h
     tag_h6 = _tag_h
 
-    def tag_p(self, el, **kwargs):
-        par = self.doc.add_paragraph(style=self.p_style)
+    def tag_p(self, el, *, par=None, **kwargs):
+        self.text_tracking.new_block()
+        if par is not None:
+            # <p> nested in another block element like blockquote, use or copy the paragraph object
+            if any(run.text for run in par.runs):
+                # Paragraph has things in it already, make a new one but copy the style
+                par = self.doc.add_paragraph(style=par.style)
+        else:
+            # Top level <p>
+            par = self.doc.add_paragraph(style=self.p_style)
 
         par_classes = set(el.attrs.get("class", "").split())
         if "left" in par_classes:
@@ -121,7 +132,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         self.process_children(el, par=par, **kwargs)
 
-    def tag_pre(self, el, par=None, **kwargs):
+    def tag_pre(self, el, *, par=None, **kwargs):
         if par is None:
             par = self.doc.add_paragraph()
 
@@ -133,7 +144,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             font = run.font
             font.name = "Courier New"
 
-    def tag_ul(self, el, par=None, list_level=None, list_tracking=None, **kwargs):
+    def tag_ul(self, el, *, par=None, list_level=None, list_tracking=None, **kwargs):
         if list_tracking is None:
             list_tracking = ListTracking()
             assert list_level is None
@@ -150,6 +161,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 # TODO: log
                 continue
             par = self.doc.add_paragraph()
+            self.text_tracking.new_block()
             list_tracking.add_paragraph(par, this_list_level, is_ordered)
             self.process_children(
                 child.children, par=par, list_level=this_list_level, list_tracking=list_tracking, **kwargs
@@ -164,6 +176,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         # TODO: if done in a list, this won't preserve the level.
         # Not sure how to do that, since this requires a new paragraph.
         par = self.doc.add_paragraph()
+        self.text_tracking.new_block()
         try:
             par.style = "Blockquote"
         except KeyError:
@@ -176,8 +189,15 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         return table
 
-    def paragraph_for_table_cell(self, cell):
-        # Each cell starts with a paragraph, so use it
+    def paragraph_for_table_cell(self, cell, td_el):
+        def handle_style(key, value):
+            if key == "background-color":
+                shade = OxmlElement("w:shd")
+                shade.set(qn("w:fill"), value.replace("#", ""))
+                cell._tc.get_or_add_tcPr().append(shade)
+
+        parse_styles(td_el.attrs.get("style", ""), handle_style)
+
         return next(iter(cell.paragraphs))
 
     def set_autofit(self):
@@ -224,12 +244,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
 
-    def text(self, el, par=None, **kwargs):
+    def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
             el = self.title_except(el)
         return super().text(el, par=par, **kwargs)
 
-    def tag_span(self, el, par, **kwargs):
+    def tag_span(self, el, *, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
             evidence = self.evidences.get(el.attrs["data-gw-evidence"])
             if not evidence:
@@ -242,6 +262,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_figure(par, ref_name or None)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
+            self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
         else:
             super().tag_span(el, par=par, **kwargs)

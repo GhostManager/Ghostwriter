@@ -35,6 +35,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
         prefix_par.getparent().remove(prefix_par)
 
     def __init__(self, slide, shape):
+        super().__init__()
         self.slide = slide
         self.shape = shape
 
@@ -62,11 +63,13 @@ class HtmlToPptx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = PptxRGBColor(*style["font_color"])
 
-    def tag_br(self, el, par=None, **kwargs):
+    def tag_br(self, el, *, par=None, **kwargs):
+        self.text_tracking.new_block()
         if par is not None:
             par.add_line_break()
 
     def _tag_h(self, el, **kwargs):
+        self.text_tracking.new_block()
         par = self.shape.text_frame.add_paragraph()
         run = par.add_run()
         run.text = el.text
@@ -79,6 +82,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
     tag_h6 = _tag_h
 
     def tag_p(self, el, **kwargs):
+        self.text_tracking.new_block()
         par = self.shape.text_frame.add_paragraph()
 
         par_classes = set(el.attrs.get("class", "").split())
@@ -99,6 +103,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
         width = Inches(4.5)
         height = Inches(3)
         textbox = self.slide.shapes.add_textbox(left, top, width, height)
+        self.text_tracking.new_block()
         par = textbox.text_frame.add_paragraph()
         par.alignment = PP_ALIGN.LEFT
         run = par.add_run()
@@ -108,9 +113,10 @@ class HtmlToPptx(BaseHtmlToOOXML):
 
     def tag_blockquote(self, el, **kwargs):
         par = self.shape.text_frame.add_paragraph()
+        self.text_tracking.new_block()
         self.process_children(el.children, par=par, **kwargs)
 
-    def tag_ul(self, el, par=None, list_level=None, **kwargs):
+    def tag_ul(self, el, *, par=None, list_level=None, **kwargs):
         if list_level is None:
             next_list_level = 1
         else:
@@ -120,6 +126,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
             if child.name != "li":
                 # TODO: log
                 continue
+            self.text_tracking.new_block()
             par = self.shape.text_frame.add_paragraph()
             par.level = next_list_level
             self.process_children(child.children, par=par, list_level=next_list_level, **kwargs)
@@ -129,7 +136,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
     def create_table(self, rows, cols, **kwargs):
         return self.slide.shapes.add_table(rows=rows, cols=cols, left=Inches(10), top=Inches(5), width=Inches(3), height=Inches(1)).table
 
-    def paragraph_for_table_cell(self, cell):
+    def paragraph_for_table_cell(self, cell, td_el):
         return next(iter(cell.text_frame.paragraphs))
 
 
@@ -142,7 +149,7 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
         super().__init__(slide, shape)
         self.evidences = evidences
 
-    def tag_span(self, el, par, **kwargs):
+    def tag_span(self, el, *, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
             evidence = self.evidences.get(el.attrs["data-gw-evidence"])
             if not evidence:

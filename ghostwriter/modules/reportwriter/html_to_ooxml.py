@@ -1,6 +1,7 @@
 # Standard Libraries
 import logging
 import re
+import typing
 
 # 3rd Party Libraries
 import bs4
@@ -14,13 +15,68 @@ def set_style_method(tag_name, style_key, style_value=True):
     and then recurses into its children.
     """
 
-    def tag_style(self, el, style={}, **kwargs):
+    def tag_style(self, el, *, style={}, **kwargs):
         style = style.copy()
         style[style_key] = style_value
         self.process_children(el.children, style=style, **kwargs)
 
     tag_style.__name__ = "tag_" + tag_name
     return tag_style
+
+
+class TextTracking:
+    """
+    Processes raw text nodes, stripping whitespaces and keeping track of segment breaks (runs of whitespace in the source
+    text that may be translated to one whitespace during rendering).
+
+    Ref: https://www.w3.org/TR/css-text-3/#white-space-processing
+    """
+    is_block_start: bool
+    segment_break_run: typing.Any | None
+
+    RE_PART = re.compile(r"^\s+|^[^\s]+")
+
+    def __init__(self) -> None:
+        self.is_block_start = True
+        self.segment_break_run = None
+
+    def new_block(self):
+        """
+        Starts a new block. Whitespace between calling this and the first non-whitespace characters will be dropped,
+        and any pending segment break will be canceled.
+        """
+        self.is_block_start = True
+        self.segment_break_run = None
+
+    def append_text_to_run(self, run, text: str):
+        """
+        Parses the source text and appends it with collapsed spaces to the passed in run.
+
+        If the passed in source text ends in whitespace, the tracker will store the run, as it
+        may need to append a space if later text contains non-space characters.
+        """
+        while text:
+            match = self.RE_PART.search(text)
+            if match[0].isspace():
+                # Setup segment break
+                if not self.is_block_start:
+                    self.segment_break_run = run
+            else:
+                # Non-space text
+                self.is_block_start = False
+                self.force_emit_pending_segment_break()
+                run.text = run.text + match[0]
+            text = text[match.end():]
+
+    def force_emit_pending_segment_break(self):
+        """
+        If there is a pending segment break, forcibly emits it as a space.
+
+        Use this before adding inline content to a paragraph, so that a space between it and the previous text is properly inserted.
+        """
+        if self.segment_break_run is not None:
+            self.segment_break_run.text = self.segment_break_run.text + " "
+            self.segment_break_run = None
 
 
 class BaseHtmlToOOXML:
@@ -30,6 +86,10 @@ class BaseHtmlToOOXML:
 
     Use a subclass that matches the desired document type.
     """
+    text_tracking: TextTracking
+
+    def __init__(self):
+        self.text_tracking = TextTracking()
 
     @classmethod
     def run(cls, text: str, *args, **kwargs):
@@ -57,20 +117,17 @@ class BaseHtmlToOOXML:
         for ch in children_iterable:
             self.process(ch, **kwargs)
 
-    def text(self, el, par=None, style=None, **kwargs):
+    def text(self, el, *, par=None, style=None, **kwargs):
         if par is None:
             # Text without a paragraph. If this is just some trailing whitespace, ignore it, otherwise
             # report an error.
-            if el.text.strip():
+            if el.strip():
                 raise ValueError(
                     "found text node that was not enclosed in a paragraph or other block item: {!r}".format(el.text)
                 )
             return
-        text = strip_text_whitespace(str(el))
-        if not text:
-            return
         run = par.add_run()
-        run.text = text
+        self.text_tracking.append_text_to_run(run, el)
         self.style_run(run, style or {})
 
     def style_run(self, run, style):
@@ -99,11 +156,11 @@ class BaseHtmlToOOXML:
     tag_sup = set_style_method("sup", "superscript")
     tag_del = set_style_method("del", "strikethrough")
 
-    def tag_a(self, el, style={}, **kwargs):
+    def tag_a(self, el, *, style={}, **kwargs):
         style = style | {"hyperlink_url": el.attrs.get("href")}
         self.process_children(el.children, style=style, **kwargs)
 
-    def tag_span(self, el, style={}, **kwargs):
+    def tag_span(self, el, *, style={}, **kwargs):
         style = style.copy()
 
         # Parse and check classes
@@ -112,32 +169,22 @@ class BaseHtmlToOOXML:
             if cls in classes:
                 style[cls] = True
 
-        # Parse and check styles
-        for style_line in el.attrs.get("style", "").split(";"):
-            if not style_line.strip():
-                continue
-            try:
-                key, value = style_line.split(":")
-                key = key.strip()
-                value = value.strip()
+        def handle_style(key, value):
+            if key == "font-size":
+                style["font_size"] = float(value.replace("pt", ""))
+            elif key == "font-family":
+                font_list = value.split(",")
+                priority_font = font_list[0].replace("'", "").replace('"', "").strip()
+                style["font_family"] = priority_font
+            elif key in ("color", "background-color"):
+                value = value.replace("#", "")
+                r, g, b = (int(value[i * 2 : i * 2 + 2], 16) for i in range(3))
+                if key == "color":
+                    style["font_color"] = (r, g, b)
+                else:
+                    style["background_color"] = (r, g, b)
 
-                if key == "font-size":
-                    style["font_size"] = float(value.replace("pt", ""))
-                elif key == "font-family":
-                    font_list = value.split(",")
-                    priority_font = font_list[0].replace("'", "").replace('"', "").strip()
-                    style["font_family"] = priority_font
-                elif key in ("color", "background-color"):
-                    value = value.replace("#", "")
-                    r, g, b = (int(value[i * 2 : i * 2 + 2], 16) for i in range(3))
-                    if key == "color":
-                        style["font_color"] = (r, g, b)
-                    else:
-                        style["background_color"] = (r, g, b)
-
-            except (ValueError, IndexError):
-                # Invalid input
-                pass
+        parse_styles(el.attrs.get("style", ""), handle_style)
 
         self.process_children(el.children, style=style, **kwargs)
 
@@ -175,7 +222,8 @@ class BaseHtmlToOOXML:
                         for col_j in range(colspan):
                             merged_cells.add((row_i + row_j, col_i + col_j))
 
-                par = self.paragraph_for_table_cell(cell)
+                self.text_tracking.new_block()
+                par = self.paragraph_for_table_cell(cell, cell_el)
                 self.process_children(cell_el.children, par=par, **kwargs)
 
     @staticmethod
@@ -208,9 +256,17 @@ class BaseHtmlToOOXML:
         return (max_width, max_height)
 
     def create_table(self, rows, cols, **kwargs):
+        """
+        Creates a table with the specified number of rows and columns. Additional arguments passed to `tag_table` are also passed here.
+        """
         raise NotImplementedError()
 
-    def paragraph_for_table_cell(self, cell):
+    def paragraph_for_table_cell(self, cell, td_el):
+        """
+        Gets the ooxml paragraph for a table cell to add contents to.
+
+        This may also style the cell's paragraph if desired, using the passed in `td_el` item.
+        """
         raise NotImplementedError()
 
 
@@ -219,3 +275,24 @@ def strip_text_whitespace(text):
     Consolidates adjacent whitespace into one space, similar to how browsers display it
     """
     return re.sub(r"\s+", " ", text)
+
+
+def parse_styles(style: str, handle):
+    """
+    Does rough parsing of a `style` attribute, calling `handle(key,value)` and catching/ignoring any `ValueError` it throws.
+    """
+    for style_line in style.split(";"):
+        if not style_line.strip():
+            continue
+        try:
+            key, value = style_line.split(":")
+            key = key.strip()
+            value = value.strip()
+        except IndexError:
+            # Invalid input
+            pass
+        try:
+            handle(key, value)
+        except ValueError:
+            # Invalid input
+            pass
