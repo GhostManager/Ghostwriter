@@ -1,6 +1,7 @@
 # Standard Libraries
 import logging
 import re
+import typing
 
 # 3rd Party Libraries
 import bs4
@@ -23,6 +24,61 @@ def set_style_method(tag_name, style_key, style_value=True):
     return tag_style
 
 
+class TextTracking:
+    """
+    Processes raw text nodes, stripping whitespaces and keeping track of segment breaks (runs of whitespace in the source
+    text that may be translated to one whitespace during rendering).
+
+    Ref: https://www.w3.org/TR/css-text-3/#white-space-processing
+    """
+    is_block_start: bool
+    segment_break_run: typing.Any | None
+
+    RE_PART = re.compile(r"^\s+|^[^\s]+")
+
+    def __init__(self) -> None:
+        self.is_block_start = True
+        self.segment_break_run = None
+
+    def new_block(self):
+        """
+        Starts a new block. Whitespace between calling this and the first non-whitespace characters will be dropped,
+        and any pending segment break will be canceled.
+        """
+        self.is_block_start = True
+        self.segment_break_run = None
+
+    def append_text_to_run(self, run, text: str):
+        """
+        Parses the source text and appends it with collapsed spaces to the passed in run.
+
+        If the passed in source text ends in whitespace, the tracker will store the run, as it
+        may need to append a space if later text contains non-space characters.
+        """
+        while text:
+            match = self.RE_PART.search(text)
+            if match[0].isspace():
+                # Setup segment break
+                if not self.is_block_start:
+                    self.segment_break_run = run
+            else:
+                # Non-space text
+                self.is_block_start = False
+                self.force_emit_pending_segment_break()
+                run.text = run.text + match[0]
+            text = text[match.end():]
+
+    def force_emit_pending_segment_break(self):
+        """
+        If there is a pending segment break, forcibly emits it as a space.
+
+        Use this before adding inline content to a paragraph, so that a space between it and the previous text is properly inserted.
+        """
+        if self.segment_break_run is not None:
+            self.segment_break_run.text = self.segment_break_run.text + " "
+            self.segment_break_run = None
+
+
 class BaseHtmlToOOXML:
     """
     Base HTML to OpenOffice XML converter. Converts HTML from the TinyMCE rich
@@ -30,6 +86,10 @@ class BaseHtmlToOOXML:
 
     Use a subclass that matches the desired document type.
     """
+    text_tracking: TextTracking
+
+    def __init__(self):
+        self.text_tracking = TextTracking()
 
     @classmethod
     def run(cls, text: str, *args, **kwargs):
@@ -61,16 +121,13 @@ class BaseHtmlToOOXML:
         if par is None:
             # Text without a paragraph. If this is just some trailing whitespace, ignore it, otherwise
             # report an error.
-            if el.text.strip():
+            if el.strip():
                 raise ValueError(
                     "found text node that was not enclosed in a paragraph or other block item: {!r}".format(el.text)
                 )
             return
-        text = strip_text_whitespace(str(el))
-        if not text:
-            return
         run = par.add_run()
-        run.text = text
+        self.text_tracking.append_text_to_run(run, el)
         self.style_run(run, style or {})
 
     def style_run(self, run, style):
@@ -175,6 +232,7 @@ class BaseHtmlToOOXML:
                         for col_j in range(colspan):
                             merged_cells.add((row_i + row_j, col_i + col_j))
 
+                self.text_tracking.new_block()
                 par = self.paragraph_for_table_cell(cell)
                 self.process_children(cell_el.children, par=par, **kwargs)
 

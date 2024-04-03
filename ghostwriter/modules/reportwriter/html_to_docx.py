@@ -30,6 +30,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
     """
 
     def __init__(self, doc, p_style):
+        super().__init__()
         self.doc = doc
         self.p_style = p_style
         self.list_styles_cache = {}
@@ -89,6 +90,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             run.font.color.rgb = DocxRgbColor(*style["font_color"])
 
     def tag_br(self, el, *, par=None, **kwargs):
+        self.text_tracking.new_block()
         if "data-gw-pagebreak" in el.attrs:
             self.doc.add_page_break()
         else:
@@ -97,6 +99,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
     def _tag_h(self, el, **kwargs):
         heading_num = int(el.name[1:])
+        self.text_tracking.new_block()
         self.doc.add_heading(el.text, heading_num)
 
     tag_h1 = _tag_h
@@ -107,9 +110,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
     tag_h6 = _tag_h
 
     def tag_p(self, el, *, par=None, **kwargs):
+        self.text_tracking.new_block()
         if par is not None:
             # <p> nested in another block element like blockquote, use or copy the paragraph object
-            if par.runs:
+            if any(run.text for run in par.runs):
                 # Paragraph has things in it already, make a new one but copy the style
                 par = self.doc.add_paragraph(style=par.style)
         else:
@@ -157,6 +161,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 # TODO: log
                 continue
             par = self.doc.add_paragraph()
+            self.text_tracking.new_block()
             list_tracking.add_paragraph(par, this_list_level, is_ordered)
             self.process_children(
                 child.children, par=par, list_level=this_list_level, list_tracking=list_tracking, **kwargs
@@ -171,6 +176,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         # TODO: if done in a list, this won't preserve the level.
         # Not sure how to do that, since this requires a new paragraph.
         par = self.doc.add_paragraph()
+        self.text_tracking.new_block()
         try:
             par.style = "Blockquote"
         except KeyError:
@@ -249,6 +255,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_figure(par, ref_name or None)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
+            self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
         else:
             super().tag_span(el, par=par, **kwargs)
