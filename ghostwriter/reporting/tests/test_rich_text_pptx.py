@@ -1,4 +1,3 @@
-
 import pptx
 from io import BytesIO
 from zipfile import ZipFile
@@ -88,6 +87,7 @@ def mk_test_pptx(name, input, expected_output, add_suffix=True):
                 contents = file.read()
         contents = clean_xml(contents)
         self.assertEqual(contents, expected_output)
+
     test_func.__name__ = name
     return test_func
 
@@ -112,7 +112,7 @@ class RichTextToPptxTests(TestCase):
             <a:p><a:r><a:rPr b="1" /><a:t>Heading two</a:t></a:r></a:p>
             <a:p><a:r><a:rPr b="1" /><a:t>Heading three</a:t></a:r></a:p>
             <a:p><a:r><a:t>Paragraph</a:t></a:r></a:p>
-        """
+        """,
     )
 
     test_formatting = mk_test_pptx(
@@ -131,7 +131,7 @@ class RichTextToPptxTests(TestCase):
         """,
         """
             <a:p>
-                <a:r><a:t> </a:t></a:r>
+                <a:r><a:t/> </a:r>
                 <a:r><a:rPr b="1" /><a:t>Bold</a:t></a:r>
                 <a:r><a:t> </a:t></a:r>
                 <a:r><a:rPr b="1" /><a:t>Strong</a:t></a:r>
@@ -147,9 +147,9 @@ class RichTextToPptxTests(TestCase):
                 <a:r><a:rPr baseline="30000" /><a:t>Superscript</a:t></a:r>
                 <a:r><a:t> </a:t></a:r>
                 <a:r><a:rPr strike="sngStrike" /><a:t>Strikethrough</a:t></a:r>
-                <a:r><a:t> </a:t></a:r>
+                <a:r><a:t/> </a:r>
             </a:p>
-        """
+        """,
     )
 
     test_unordered_list = mk_test_pptx(

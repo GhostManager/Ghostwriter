@@ -136,7 +136,7 @@ class RichTextToDocxTests(TestCase):
         """,
         """
             <w:p>
-                <w:r><w:t xml:space="preserve"> </w:t></w:r>
+                <w:r/>
                 <w:r><w:rPr><w:b/></w:rPr><w:t>Bold</w:t></w:r>
                 <w:r><w:t xml:space="preserve"> </w:t></w:r>
                 <w:r><w:rPr><w:b/></w:rPr><w:t>Strong</w:t></w:r>
@@ -160,7 +160,7 @@ class RichTextToDocxTests(TestCase):
                 <w:r><w:rPr><w:strike/></w:rPr><w:t>Strikethrough</w:t></w:r>
                 <w:r><w:t xml:space="preserve"> </w:t></w:r>
                 <w:r><w:rPr><w:highlight w:val="yellow"/></w:rPr><w:t>Highlight class</w:t></w:r>
-                <w:r><w:t xml:space="preserve"> </w:t></w:r>
+                <w:r/>
             </w:p>
         """,
     )
