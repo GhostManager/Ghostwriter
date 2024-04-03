@@ -34,7 +34,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.p_style = p_style
         self.list_styles_cache = {}
 
-    def text(self, el, par=None, style={}, **kwargs):
+    def text(self, el, *, par=None, style={}, **kwargs):
         # Process hyperlinks on top of the usual text rules
         if par is not None and style.get("hyperlink_url"):
             # For Word, this code is modified from this issue:
@@ -88,7 +88,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = DocxRgbColor(*style["font_color"])
 
-    def tag_br(self, el, par=None, **kwargs):
+    def tag_br(self, el, *, par=None, **kwargs):
         if "data-gw-pagebreak" in el.attrs:
             self.doc.add_page_break()
         else:
@@ -106,8 +106,15 @@ class HtmlToDocx(BaseHtmlToOOXML):
     tag_h5 = _tag_h
     tag_h6 = _tag_h
 
-    def tag_p(self, el, **kwargs):
-        par = self.doc.add_paragraph(style=self.p_style)
+    def tag_p(self, el, *, par=None, **kwargs):
+        if par is not None:
+            # <p> nested in another block element like blockquote, use or copy the paragraph object
+            if par.runs:
+                # Paragraph has things in it already, make a new one but copy the style
+                par = self.doc.add_paragraph(style=par.style)
+        else:
+            # Top level <p>
+            par = self.doc.add_paragraph(style=self.p_style)
 
         par_classes = set(el.attrs.get("class", "").split())
         if "left" in par_classes:
@@ -121,7 +128,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         self.process_children(el, par=par, **kwargs)
 
-    def tag_pre(self, el, par=None, **kwargs):
+    def tag_pre(self, el, *, par=None, **kwargs):
         if par is None:
             par = self.doc.add_paragraph()
 
@@ -133,7 +140,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             font = run.font
             font.name = "Courier New"
 
-    def tag_ul(self, el, par=None, list_level=None, list_tracking=None, **kwargs):
+    def tag_ul(self, el, *, par=None, list_level=None, list_tracking=None, **kwargs):
         if list_tracking is None:
             list_tracking = ListTracking()
             assert list_level is None
@@ -224,12 +231,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
 
-    def text(self, el, par=None, **kwargs):
+    def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
             el = self.title_except(el)
         return super().text(el, par=par, **kwargs)
 
-    def tag_span(self, el, par, **kwargs):
+    def tag_span(self, el, *, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
             evidence = self.evidences.get(el.attrs["data-gw-evidence"])
             if not evidence:

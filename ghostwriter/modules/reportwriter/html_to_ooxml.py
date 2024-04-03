@@ -14,7 +14,7 @@ def set_style_method(tag_name, style_key, style_value=True):
     and then recurses into its children.
     """
 
-    def tag_style(self, el, style={}, **kwargs):
+    def tag_style(self, el, *, style={}, **kwargs):
         style = style.copy()
         style[style_key] = style_value
         self.process_children(el.children, style=style, **kwargs)
@@ -57,7 +57,7 @@ class BaseHtmlToOOXML:
         for ch in children_iterable:
             self.process(ch, **kwargs)
 
-    def text(self, el, par=None, style=None, **kwargs):
+    def text(self, el, *, par=None, style=None, **kwargs):
         if par is None:
             # Text without a paragraph. If this is just some trailing whitespace, ignore it, otherwise
             # report an error.
@@ -99,11 +99,11 @@ class BaseHtmlToOOXML:
     tag_sup = set_style_method("sup", "superscript")
     tag_del = set_style_method("del", "strikethrough")
 
-    def tag_a(self, el, style={}, **kwargs):
+    def tag_a(self, el, *, style={}, **kwargs):
         style = style | {"hyperlink_url": el.attrs.get("href")}
         self.process_children(el.children, style=style, **kwargs)
 
-    def tag_span(self, el, style={}, **kwargs):
+    def tag_span(self, el, *, style={}, **kwargs):
         style = style.copy()
 
         # Parse and check classes

@@ -62,7 +62,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = PptxRGBColor(*style["font_color"])
 
-    def tag_br(self, el, par=None, **kwargs):
+    def tag_br(self, el, *, par=None, **kwargs):
         if par is not None:
             par.add_line_break()
 
@@ -110,7 +110,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
         par = self.shape.text_frame.add_paragraph()
         self.process_children(el.children, par=par, **kwargs)
 
-    def tag_ul(self, el, par=None, list_level=None, **kwargs):
+    def tag_ul(self, el, *, par=None, list_level=None, **kwargs):
         if list_level is None:
             next_list_level = 1
         else:
@@ -142,7 +142,7 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
         super().__init__(slide, shape)
         self.evidences = evidences
 
-    def tag_span(self, el, par, **kwargs):
+    def tag_span(self, el, *, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
             evidence = self.evidences.get(el.attrs["data-gw-evidence"])
             if not evidence:
