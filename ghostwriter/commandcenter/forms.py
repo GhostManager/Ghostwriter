@@ -171,7 +171,7 @@ class ExtraFieldsField(forms.Field):
 
         errors = []
         clean_data = {}
-        for field_spec in ExtraFieldSpec.objects.filter(target_model=self.model_label):
+        for field_spec in self.specs:
             field_obj = field_spec.form_field()
             try:
                 clean_data[field_spec.internal_name] = field_obj.clean(value.get(field_spec.internal_name))

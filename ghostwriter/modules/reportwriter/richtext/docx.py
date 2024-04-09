@@ -19,7 +19,7 @@ from lxml import etree
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
-from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML, parse_styles
+from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML, parse_styles
 
 logger = logging.getLogger(__name__)
 

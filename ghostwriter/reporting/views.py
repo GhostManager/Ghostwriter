@@ -58,11 +58,10 @@ from ghostwriter.commandcenter.forms import SingleExtraFieldForm
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.modules.reportwriter.export_json import ExportReportJson
-from ghostwriter.modules.reportwriter.export_report_docx import ExportReportDocx
-from ghostwriter.modules.reportwriter.export_report_pptx import ExportReportPptx
-from ghostwriter.modules.reportwriter.export_report_xlsx import ExportReportXlsx
-from ghostwriter.modules.reportwriter.lint import TemplateLinter
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.reporting.filters import (
     ArchiveFilter,
     FindingFilter,
@@ -778,28 +777,8 @@ class ReportTemplateLint(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         template = self.get_object()
-        linter = TemplateLinter(template=template)
-        if template.doc_type.doc_type == "docx":
-            results = linter.lint_docx()
-        elif template.doc_type.doc_type == "pptx":
-            results = linter.lint_pptx()
-        else:
-            logger.warning(
-                "Template had an unknown filetype not supported by the linter: %s",
-                template.doc_type,
-            )
-            results = {}
-        template.lint_result = results
+        data = template.lint()
         template.save()
-
-        data = results
-        if data["result"] == "success":
-            data["message"] = "Template linter returned results with no errors or warnings."
-        elif not data["result"]:
-            data["message"] = f"Template had an unknown filetype not supported by the linter: {template.doc_type}"
-        else:
-            data["message"] = "Template linter returned results with issues that require attention."
-
         return JsonResponse(data)
 
 
@@ -1393,8 +1372,8 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 if not pptx_template:
                     raise MissingTemplate
 
-            word_doc = ExportReportDocx(report_instance, docx_template).run()
-            ppt_doc = ExportReportPptx(report_instance, pptx_template).run()
+            word_doc = ExportReportDocx(report_instance, template_loc=docx_template).run()
+            ppt_doc = ExportReportPptx(report_instance, template_loc=pptx_template).run()
             excel_doc = ExportReportXlsx(report_instance).run()
             json_doc = ExportReportJson(report_instance).run()
 
@@ -1515,15 +1494,17 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         form = SelectReportTemplateForm(instance=self.object)
         form.fields["docx_template"].queryset = ReportTemplate.objects.filter(
-            Q(doc_type__doc_type="docx") & Q(client=self.object.project.client)
-            | Q(doc_type__doc_type="docx") & Q(client__isnull=True)
+            doc_type__doc_type="docx",
+        ).filter(
+            Q(client=self.object.project.client) | Q(client__isnull=True)
         ).select_related(
             "doc_type",
             "client",
         )
         form.fields["pptx_template"].queryset = ReportTemplate.objects.filter(
-            Q(doc_type__doc_type="pptx") & Q(client=self.object.project.client)
-            | Q(doc_type__doc_type="pptx") & Q(client__isnull=True)
+            doc_type__doc_type="pptx",
+        ).filter(
+            Q(client=self.object.project.client) | Q(client__isnull=True)
         ).select_related(
             "doc_type",
             "client",
@@ -2106,7 +2087,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
             # Template available and passes linting checks, so proceed with generation
 
-            docx = ExportReportDocx(obj, template_loc).run()
+            docx = ExportReportDocx(obj, template_loc=template_loc).run()
 
             response = HttpResponse(
                 docx.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -2235,7 +2216,7 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             output = ExportReportXlsx(obj).run()
             response = HttpResponse(
                 output.getvalue(),
-                content_type="application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
             response["Content-Disposition"] = f'attachment; filename="{report_name}.xlsx"'
             output.close()
@@ -2431,8 +2412,8 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             pptx_template = pptx_template.document.path
 
             # Generate all types of reports
-            word_doc = ExportReportDocx(obj, docx_template).run()
-            ppt_doc = ExportReportPptx(obj, pptx_template).run()
+            word_doc = ExportReportDocx(obj, template_loc=docx_template).run()
+            ppt_doc = ExportReportPptx(obj, template_loc=pptx_template).run()
             excel_doc = ExportReportXlsx(obj).run()
             json_doc = ExportReportJson(obj).run()
 
@@ -2452,31 +2433,60 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
             return response
         except MissingTemplate:
+            logger.error(
+                "All report generation failed for %s %s and user %s because no template was configured",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "You do not have a PowerPoint template selected and have not configured a default template.",
                 extra_tags="alert-danger",
             )
         except ValueError as exception:
+            logger.exception(
+                "All report generation failed unexpectedly for %s %s and user %s",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 f"Your selected template could not be loaded as a PowerPoint template: {exception}",
                 extra_tags="alert-danger",
             )
         except DocxPackageNotFoundError:
+            logger.exception(
+                "DOCX generation failed for %s %s and user %s because the template file was missing.",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "Your selected Word template could not be found on the server – try uploading it again.",
                 extra_tags="alert-danger",
             )
         except PptxPackageNotFoundError:
+            logger.exception(
+                "PPTX generation failed for %s %s and user %s because the template file was missing",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "Your selected PowerPoint template could not be found on the server – try uploading it again.",
                 extra_tags="alert-danger",
             )
         except Exception as error:
-            logger.exception("Could not generate all reports")
+            logger.exception(
+                "All report generation failed unexpectedly for %s %s and user %s",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "Encountered an error generating the document: {}".format(error),

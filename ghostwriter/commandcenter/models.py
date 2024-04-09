@@ -397,6 +397,9 @@ class ExtraFieldSpec(models.Model):
     def initial_value(self):
         return EXTRA_FIELD_TYPES[self.type].from_str(self.user_default_value)
 
+    def empty_value(self):
+        return EXTRA_FIELD_TYPES[self.type].empty_value()
+
     @classmethod
     def initial_json(cls, model):
         obj = {}

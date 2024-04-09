@@ -754,6 +754,48 @@ class OplogSerializer(TaggitSerializer, CustomModelSerializer):
         fields = "__all__"
 
 
+class FullProjectSerializer(serializers.Serializer):
+    """Serialize :model:`rolodex:Project` and related entries."""
+    project = ProjectSerializer(source="*")
+    client = ClientSerializer()
+    contacts = ProjectContactSerializer(source="projectcontact_set", many=True, exclude=["id", "project"])
+    team = ProjectAssignmentSerializer(source="projectassignment_set", many=True, exclude=["id", "project"])
+    objectives = ProjectObjectiveSerializer(source="projectobjective_set", many=True, exclude=["id", "project"])
+    targets = ProjectTargetSerializer(source="projecttarget_set", many=True, exclude=["id", "project"])
+    scope = ProjectScopeSerializer(source="projectscope_set", many=True, exclude=["id", "project"])
+    deconflictions = DeconflictionSerializer(source="deconfliction_set", many=True, exclude=["id", "project"])
+    whitecards = WhiteCardSerializer(source="whitecard_set", many=True, exclude=["id", "project"])
+    infrastructure = ProjectInfrastructureSerializer(source="*")
+    logs = OplogSerializer(source="oplog_set", many=True, exclude=["id", "mute_notifications", "project"])
+    report_date = SerializerMethodField("get_report_date")
+    company = SerializerMethodField("get_company_info")
+    tools = SerializerMethodField("get_tools")
+    recipient = SerializerMethodField("get_recipient")
+
+    def get_report_date(self, obj):
+        return dateformat.format(datetime.now(), settings.DATE_FORMAT)
+
+    def get_company_info(self, obj):
+        serializer = CompanyInfoSerializer(CompanyInformation.get_solo())
+        return serializer.data
+
+    def get_tools(self, obj):
+        tools = []
+        for oplog in obj.oplog_set.all():
+            for entry in oplog.entries.all():
+                if entry.tool and entry.tool.lower() not in tools:
+                    tools.append(entry.tool.lower())
+        return tools
+
+    def get_recipient(self, obj):
+        primary = None
+        for contact in obj.projectcontact_set.all():
+            if contact.primary:
+                primary = contact
+                break
+        return ProjectContactSerializer(primary, exclude=["id", "project"]).data
+
+
 class ReportDataSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Project` and all related entries."""
 

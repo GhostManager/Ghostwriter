@@ -1,4 +1,5 @@
 
+import io
 from typing import Any, Iterable
 import re
 
@@ -10,14 +11,47 @@ from ghostwriter.modules.reportwriter import jinja_funcs, prepare_jinja2_env
 
 
 class ExportBase:
+    """
+    Base class for exporting things.
+
+    Subclasses should prove a `run` method, and optionally `serialize_object`.
+
+    Users should instantiate the object then call `run` to generate a `BytesIO` containing the exported
+    file. Instances should not be re-used.
+
+    Fields:
+
+    * `input_object`: The object passed into `__init__`, unchanged
+    * `data`: The object passed into `__init__` ran through `serialize_object`, usually a dict, for passing into a Jinja env
+    * `jinja_env`: Jinja2 environment for templating
+    """
+    input_object: Any
     data: Any
     jinja_env: jinja2.Environment
+    jinja_undefined_variables: set[str] | None
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
 
-    def __init__(self, data: Any):
-        self.jinja_env = prepare_jinja2_env(debug=False)
-        self.data = data
+    def __init__(self, input_object: Any, is_raw=False, jinja_debug=False):
+        if jinja_debug:
+            self.jinja_env, self.jinja_undefined_variables = prepare_jinja2_env(debug=True)
+        else:
+            self.jinja_env = prepare_jinja2_env(debug=False)
+            self.jinja_undefined_variables = None
+        if is_raw:
+            self.input_object = None
+            self.data = input_object
+        else:
+            self.input_object = input_object
+            self.data = self.serialize_object(input_object)
         self.extra_fields_spec_cache = {}
+
+    def serialize_object(self, object: Any) -> Any:
+        """
+        Called by __init__ to serialize the input object to a format appropriate for use in a jinja environment.
+
+        By default does nothing and returns `object` unchanged.
+        """
+        return object
 
     def extra_field_specs_for(self, model: Model) -> Iterable[ExtraFieldSpec]:
         """
@@ -64,6 +98,17 @@ class ExportBase:
         # Filter out XML-incompatible characters
         text_char_filtered = "".join(c for c in text_rendered if _valid_xml_char_ordinal(c))
         return text_char_filtered
+
+    def run(self) -> io.BytesIO:
+        raise NotImplementedError()
+
+    @classmethod
+    def mime_type(cls) -> str:
+        raise NotImplementedError()
+
+    @classmethod
+    def extension(cls) -> str:
+        raise NotImplementedError()
 
 
 def _valid_xml_char_ordinal(c):
