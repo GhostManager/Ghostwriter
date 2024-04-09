@@ -375,17 +375,12 @@ def get_logs_list(user):
     ``user``
         The :model:`users.User` object
     """
+    logs = Oplog.objects.select_related("project")
     if verify_user_is_privileged(user):
-        logs = Oplog.objects.select_related("project").all()
+        logs = logs.all()
     else:
         projects = get_project_list(user)
-        logs = (
-            Oplog.objects.select_related("project")
-            .filter(
-                project__in=projects,
-            )
-            .distinct()
-        )
+        logs = logs.filter(project___in=projects).distinct()
     return logs
 
 
