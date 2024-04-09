@@ -2,7 +2,7 @@
 Jinja filters that ghostwriter exposes
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 import html
 import logging
 import re
@@ -141,7 +141,7 @@ def add_days(date, days):
         raise InvalidFilterValue(f'Invalid integer ("{days}") passed into the `add_days()` filter') from e
 
     try:
-        date_obj = parse_datetime(date)
+        date_obj = date if isinstance(date, datetime) else parse_datetime(date)
         # Loop until all days added
         if days > 0:
             while days > 0:
@@ -169,7 +169,7 @@ def add_days(date, days):
     return new_date
 
 
-def format_datetime(date, new_format):
+def format_datetime(date, new_format=None):
     """
     Change the format of a given date string.
 
@@ -178,11 +178,11 @@ def format_datetime(date, new_format):
     ``date``
         Date string to modify
     ``format_str``
-        The format of the provided date
+        The format of the provided date. If omitted, use the global setting.
     """
     try:
-        date_obj = parse_datetime(date)
-        formatted_date = dateformat(date_obj, new_format)
+        date_obj = date if isinstance(date, datetime) else parse_datetime(date)
+        formatted_date = dateformat(date_obj, new_format if new_format is not None else settings.DATE_FORMAT)
     except ParserError as e:
         logger.exception("Error parsing ``date`` as a date: %s", date)
         raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter') from e
