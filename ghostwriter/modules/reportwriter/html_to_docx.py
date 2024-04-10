@@ -120,7 +120,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             # Top level <p>
             par = self.doc.add_paragraph(style=self.p_style)
 
-        par_classes = set(el.attrs.get("class", "").split())
+        par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
         if "center" in par_classes:
