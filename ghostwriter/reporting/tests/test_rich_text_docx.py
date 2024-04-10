@@ -570,3 +570,16 @@ class RichTextToDocxTests(TestCase):
             </w:tbl>
         """,
     )
+
+    test_paragraph_class = mk_test_docx(
+        "test_paragraph_class",
+        """
+        <p class="left">Paragraph with a class</p>
+        """,
+        """
+        <w:p>
+            <w:pPr><w:jc w:val="left"/></w:pPr>
+            <w:r><w:t>Paragraph with a class</w:t></w:r>
+        </w:p>
+        """
+    )

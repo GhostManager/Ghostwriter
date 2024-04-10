@@ -85,7 +85,7 @@ class HtmlToPptx(BaseHtmlToOOXML):
         self.text_tracking.new_block()
         par = self.shape.text_frame.add_paragraph()
 
-        par_classes = set(el.attrs.get("class", "").split())
+        par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:
             par.alignment = PP_ALIGN.LEFT
         if "center" in par_classes:
