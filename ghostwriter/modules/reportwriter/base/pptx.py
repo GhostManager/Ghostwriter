@@ -46,6 +46,7 @@ class ExportBasePptx(ExportBase):
     def __init__(
         self,
         object,
+        *,
         template_loc: str = None,
         linting: bool = False,
         **kwargs

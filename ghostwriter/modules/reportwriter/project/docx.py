@@ -12,7 +12,7 @@ from ghostwriter.shepherd.models import Domain, StaticServer
 
 
 class ExportProjectDocx(ExportDocxBase, ExportProjectBase):
-    def __init__(self, object: ReportTemplate, p_style=None, **kwargs):
+    def __init__(self, object: ReportTemplate, *, p_style=None, **kwargs):
         if p_style is None:
             p_style = object.docx_template.p_style
         super().__init__(object, p_style=p_style, **kwargs)

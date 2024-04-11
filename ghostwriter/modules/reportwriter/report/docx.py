@@ -11,7 +11,7 @@ from ghostwriter.modules.reportwriter.base.docx import ExportDocxBase
 from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.oplog.models import OplogEntry
-from ghostwriter.reporting.models import Finding, Observation, Report, ReportTemplate
+from ghostwriter.reporting.models import Finding, Observation, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class ExportReportDocx(ExportDocxBase, ExportReportBase):
-    def __init__(self, object: ReportTemplate, p_style=None, **kwargs):
-        if p_style is None:
-            p_style = object.docx_template.p_style
-        super().__init__(object, p_style=p_style, **kwargs)
+    def __init__(self, object, **kwargs):
+        if kwargs.get("p_style") is None and not kwargs.get("is_raw"):
+            kwargs["p_style"] = object.docx_template.p_style
+        super().__init__(object, **kwargs)
 
     def process_richtext(self, context: dict):
         """
