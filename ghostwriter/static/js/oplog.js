@@ -1,5 +1,5 @@
 /* JavaScript specific to the log entry view page goes here. */
-$(function() {
+$(document).ready(function() {
     // Get the array of hidden columns from local storage or set to empty array
     let hiddenLogTblColumns = JSON.parse((localStorage.getItem('hiddenLogTblColumns') !== null ? localStorage.getItem('hiddenLogTblColumns') : JSON.stringify([])));
 
@@ -25,11 +25,12 @@ $(function() {
     const $table = $('#oplogTable tbody');
     const oplog_id = parseInt($table.attr("oplog-id"));
     const $tableHeader = $('#oplogTableHeader');
-    const $spinnerModal = $('#spinner-modal');
     const $checkboxList = $('#checkboxList');
     const $connectionStatus = $('#connectionStatus');
     const $sanitizeCheckboxList = $('#sanitize-checklist-form');
     const $searchInput = $('#searchInput');
+    const $oplogTableNoEntries = $('#oplogTableNoEntries');
+    const $oplogTableLoading = $('#oplogTableLoading');
 
     let socket = null;
     let filter = $searchInput.val();
@@ -60,6 +61,9 @@ $(function() {
                 getValue: entry => entry.extra_fields[spec.internal_name],
             });
         });
+
+        $oplogTableNoEntries.find("td").attr("colspan", columnInfo.length.toString());
+        $oplogTableLoading.find("td").attr("colspan", columnInfo.length.toString());
     }
 
     // Generate table headers
@@ -137,13 +141,12 @@ $(function() {
 
     // Add a placeholder row that spans the entire table
     function addPlaceholderRow($table) {
-        console.log('adding placeholder row')
-        $table.prepend(`<tr id="oplogTableNoEntries"><td colspan="100%">No entries to display</td></tr>`)
+        $oplogTableNoEntries.show();
     }
 
     // Remove the placeholder row that spans the entire table
     function removePlaceholderRow($table) {
-        $table.find('#oplogTableNoEntries').remove()
+        $oplogTableNoEntries.hide();
     }
 
     // Match checkboxes and column IDs to show or hide columns based on the checkbox state
@@ -304,13 +307,14 @@ $(function() {
         allEntriesFetched = false;
 
         $table.find('tr').remove();
-        $('#oplogTableNoEntries').hide();
+        $oplogTableNoEntries.hide();
+        $oplogTableLoading.show();
 
         socket.send(JSON.stringify({
-                'action': 'sync',
-                'oplog_id': oplog_id,
-                'offset': $('#oplogTable tr').length,
-                'filter': filter,
+            'action': 'sync',
+            'oplog_id': oplog_id,
+            'offset': $('#oplogTable tr').length,
+            'filter': filter,
         }));
     }
 
@@ -322,7 +326,7 @@ $(function() {
             $connectionStatus.toggleClass('connected');
             errorDisplayed = false;
 
-            $spinnerModal.modal('show');
+            $oplogTableLoading.show();
             refetch();
         }
 
@@ -331,6 +335,9 @@ $(function() {
 
             // Handle the `sync` action that is received whenever the socket (re)connects
             if (message['action'] === 'sync') {
+                if(message['filter'] !== filter)
+                    // Filter updated in the meantime, ignore.
+                    return;
                 let entries = message['data']
 
                 pendingResult = false;
@@ -347,7 +354,7 @@ $(function() {
                     }
                 }
                 hideColumns();
-                $spinnerModal.modal('hide');
+                $oplogTableLoading.hide();
                 $('[data-toggle="tooltip"]').tooltip();
             } else if (message['action'] === 'create') {
                 // Handle the `create` action that is received whenever a new entry is created
@@ -434,13 +441,11 @@ $(function() {
         }
     }
 
-    $(document).ready(function () {
-        connect();
-        updateColumnInfo(oplog_entry_extra_fields_spec);
-        buildColumnsCheckboxes();
-        $tableHeader.html(generateTableHeaders());
-        buildSanitizeCheckboxes();
-    });
+    connect();
+    updateColumnInfo(oplog_entry_extra_fields_spec);
+    buildColumnsCheckboxes();
+    $tableHeader.html(generateTableHeaders());
+    buildSanitizeCheckboxes();
 
     // Show or hide the table column select options
     $('#columnSelectDropdown').click(function () {

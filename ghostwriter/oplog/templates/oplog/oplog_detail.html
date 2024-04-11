@@ -105,26 +105,20 @@
         </thead>
         <tbody id="oplogTableBody" oplog-id="{{ oplog.id }}">
         </tbody>
+        <tfoot>
+          <tr style="display:none" id="oplogTableNoEntries">
+            <td>No entries to display</td>
+          </tr>
+          <tr style="display:none" id="oplogTableLoading">
+            <td><i class="fa fa-sync fa-spin"></i> Loading the log entries...</td>
+          </tr>
+        </tfoot>
     </table>
 {% endblock %}
 
 {% block morescripts %}
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_sanitize_modal.html" %}
-
-  <!-- Modal for Spinner -->
-  <div id="spinner-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-md" role="document">
-          <div class="modal-content">
-              <div class="modal-header">
-                  <h5 class="modal-title">Stand By!</h5>
-              </div>
-              <div class="modal-body text-center">
-                  <h3><i class="fa fa-sync fa-spin"></i> Loading the log entries...</h3>
-              </div>
-          </div>
-      </div>
-  </div>
 
   <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-super-sized" role="document">

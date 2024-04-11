@@ -116,7 +116,7 @@ hr {
 ----------------------------------------------------- */
 
 .custom-file-label::after {
-  min-width:20%;
+  min-width: 20%;
   content: 'Browse';
   width: 10%;
 }
@@ -197,21 +197,28 @@ hr {
 }
 
 .tooltip-inner {
-    color: #fff;
-    background: var(--primary-color);
+  color: #fff;
+  background: var(--primary-color);
 }
 
-.bs-tooltip-auto[x-placement^=bottom] .arrow::before, .bs-tooltip-bottom .arrow::before {
-    border-bottom-color: var(--primary-color);
+.bs-tooltip-auto[x-placement^=bottom] .arrow::before,
+.bs-tooltip-bottom .arrow::before {
+  border-bottom-color: var(--primary-color);
 }
-.bs-tooltip-auto[x-placement^=top] .arrow::before, .bs-tooltip-top .arrow::before {
-    border-top-color: var(--primary-color);
+
+.bs-tooltip-auto[x-placement^=top] .arrow::before,
+.bs-tooltip-top .arrow::before {
+  border-top-color: var(--primary-color);
 }
-.bs-tooltip-auto[x-placement^=left] .arrow::before, .bs-tooltip-left .arrow::before {
-    border-left-color: var(--primary-color);
+
+.bs-tooltip-auto[x-placement^=left] .arrow::before,
+.bs-tooltip-left .arrow::before {
+  border-left-color: var(--primary-color);
 }
-.bs-tooltip-auto[x-placement^=right] .arrow::before, .bs-tooltip-right .arrow::before {
-    border-right-color: var(--primary-color);
+
+.bs-tooltip-auto[x-placement^=right] .arrow::before,
+.bs-tooltip-right .arrow::before {
+  border-right-color: var(--primary-color);
 }
 
 /* ---------------------------------------------------
@@ -280,7 +287,9 @@ hr {
   font-size: var(--main-font-size);
 }
 
-.tox-toolbar__group:last-child { margin-left: auto!important; }
+.tox-toolbar__group:last-child {
+  margin-left: auto !important;
+}
 
 /* ---------------------------------------------------
     HEADER STYLES
@@ -467,8 +476,8 @@ h6 {
 }
 
 .invalid-feedback {
-    display: block;
-  }
+  display: block;
+}
 
 /* ---------------------------------------------------
     FILE UPLOAD STYLES
@@ -977,7 +986,9 @@ p.severity-box.info {
   transition-duration: 0.4s;
 }
 
-.btn:focus{ box-shadow: 0 0 0 0.1rem var(--primary-color) }
+.btn:focus {
+  box-shadow: 0 0 0 0.1rem var(--primary-color)
+}
 
 .button:hover {
   background-color: var(--button-hover-color);
@@ -1254,7 +1265,7 @@ table.scroll tr {
 
 table.scroll tbody {
   display: block;
-  height: 80.5vh;
+  max-height: 80.5vh;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -1335,11 +1346,13 @@ a.fc-event {
   background: var(--secondary-color);
 }
 
-a.fc-event:active {
+a.fc-event:active {}
 
-}
-
-a.fc-event:hover, a.fc-event:active, a.fc-event:hover, a.fc-event:focus, a.fc-event:focus:after {
+a.fc-event:hover,
+a.fc-event:active,
+a.fc-event:hover,
+a.fc-event:focus,
+a.fc-event:focus:after {
   font-size: .85em;
   background: var(--primary-color);
 }
@@ -1790,7 +1803,7 @@ th.icon {
 }
 
 .report-icon:before {
-  content:'\f570';
+  content: '\f570';
 }
 
 .tag-icon:before {
@@ -3477,7 +3490,7 @@ input:checked+.slider:before {
   padding-right: .2em;
 }
 
-.ui-menu-item > a.ui-corner-all {
+.ui-menu-item>a.ui-corner-all {
   display: block;
   padding: 3px 15px;
   clear: both;
@@ -3488,7 +3501,8 @@ input:checked+.slider:before {
   text-decoration: none;
 }
 
-.ui-state-hover, .ui-state-active {
+.ui-state-hover,
+.ui-state-active {
   color: #ffffff;
   text-decoration: none;
   background-color: var(--primary-color);
