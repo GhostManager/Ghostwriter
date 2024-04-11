@@ -196,7 +196,7 @@ class SlackNotification:
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Instance State:*\n{state}",
+                        "text": f"*Instance State:*\n{state.title()}",
                     },
                     {
                         "type": "mrkdwn",
@@ -281,7 +281,7 @@ class SlackNotification:
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Instance State:*\n{state}",
+                        "text": f"*Instance State:*\n{state.title()}",
                     },
                     {
                         "type": "mrkdwn",
