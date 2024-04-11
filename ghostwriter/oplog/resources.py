@@ -76,5 +76,6 @@ class OplogEntryResource(resources.ModelResource):
             "comments",
             "operator_name",
             "tags",
+            "extra_fields",
             "oplog_id",
         )

@@ -48,6 +48,7 @@ class FindingResource(resources.ModelResource):
             "references",
             "finding_guidance",
             "tags",
+            "extra_fields",
         )
         export_order = (
             "id",
@@ -65,4 +66,5 @@ class FindingResource(resources.ModelResource):
             "references",
             "finding_guidance",
             "tags",
+            "extra_fields",
         )
