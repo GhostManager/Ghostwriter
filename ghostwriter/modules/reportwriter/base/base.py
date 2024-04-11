@@ -31,7 +31,7 @@ class ExportBase:
     jinja_undefined_variables: set[str] | None
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
 
-    def __init__(self, input_object: Any, is_raw=False, jinja_debug=False):
+    def __init__(self, input_object: Any, *, is_raw=False, jinja_debug=False):
         if jinja_debug:
             self.jinja_env, self.jinja_undefined_variables = prepare_jinja2_env(debug=True)
         else:
