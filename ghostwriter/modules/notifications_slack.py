@@ -142,6 +142,7 @@ class SlackNotification:
         vps_name: str,
         ip_address: Union[str, list],
         tags: str,
+        state: str,
     ) -> list:
         """
         Create the blocks for a nicely formatted Slack message for cloud asset notifications.
@@ -162,6 +163,8 @@ class SlackNotification:
             IP address of the cloud asset
         ``tags``
             Any tags associated with the cloud asset
+        ``state``
+            State of the cloud asset (e.g., "running", "stopped")
         """
         if ip_address:
             if isinstance(ip_address, list):
@@ -193,6 +196,10 @@ class SlackNotification:
                     },
                     {
                         "type": "mrkdwn",
+                        "text": f"*Instance State:*\n{state}",
+                    },
+                    {
+                        "type": "mrkdwn",
                         "text": f"*Ext IP Address:*\n{ip_address}",
                     },
                     {
@@ -216,6 +223,7 @@ class SlackNotification:
         vps_name: str,
         ip_address: Union[str, list],
         tags: str,
+        state: str,
     ) -> list:
         """
         Create the blocks for a nicely formatted Slack message for unknown cloud asset notifications.
@@ -233,6 +241,8 @@ class SlackNotification:
             IP address of the cloud asset
         ``tags``
             Any tags associated with the cloud asset
+        ``state``
+            State of the cloud asset (e.g., "running", "stopped")
         """
         if ip_address:
             if isinstance(ip_address, list):
@@ -268,6 +278,10 @@ class SlackNotification:
                     {
                         "type": "mrkdwn",
                         "text": f"*Instance Name:*\n{vps_name}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Instance State:*\n{state}",
                     },
                     {
                         "type": "mrkdwn",
