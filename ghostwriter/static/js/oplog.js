@@ -77,7 +77,7 @@ $(document).ready(function() {
     }
 
     // Convert a table row to JSON and copy it to the clipboard
-    function convertRowToJSON(row_id) {
+    window.convertRowToJSON = function(row_id) {
         let $row = document.getElementById(row_id);
         let header = [];
         let rows = [];
@@ -255,7 +255,7 @@ $(document).ready(function() {
     }
 
     // Delete an entry when the delete button is clicked
-    function deleteEntry($ele) {
+    window.deleteEntry = function($ele) {
         let id = $($ele).attr('entry-id')
         socket.send(JSON.stringify({
             'action': 'delete',
@@ -265,7 +265,7 @@ $(document).ready(function() {
     }
 
     // Create a copy of an entry when the copy button is clicked
-    function copyEntry($ele) {
+    window.copyEntry = function($ele) {
         let id = $($ele).attr('entry-id')
         socket.send(JSON.stringify({
             'action': 'copy',
@@ -278,7 +278,7 @@ $(document).ready(function() {
     function stylizeTags(tagString) {
         let tags = tagString.split(',')
         let tagHtml = ''
-        for (tag of tags) {
+        for (const tag of tags) {
             if (tag == '') {
                 continue
             }
