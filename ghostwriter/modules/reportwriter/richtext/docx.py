@@ -118,7 +118,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 par = self.doc.add_paragraph(style=par.style)
         else:
             # Top level <p>
-            par = self.doc.add_paragraph(style=self.p_style)
+            par = self.doc.add_paragraph()
+            try:
+                par.style = self.p_style
+            except KeyError:
+                pass
 
         par_classes = set(el.attrs.get("class", "").split())
         if "left" in par_classes:

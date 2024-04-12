@@ -31,7 +31,7 @@ class ExportDocxBase(ExportBase):
     word_doc: DocxTemplate
     company_config: CompanyInformation
     linting: bool
-    p_style: str
+    p_style: str | None
 
     @classmethod
     def mime_type(cls) -> str:
@@ -44,8 +44,9 @@ class ExportDocxBase(ExportBase):
     def __init__(
         self,
         object,
+        *,
         template_loc: str,
-        p_style: str,
+        p_style: str | None,
         linting: bool = False,
         **kwargs
     ):
@@ -210,7 +211,7 @@ class ExportDocxBase(ExportBase):
         raise NotImplementedError()
 
     @classmethod
-    def lint(cls, template_loc: str, p_style: str) -> Tuple[List[str], List[str]]:
+    def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
         warnings = []
         errors = []
 
@@ -250,7 +251,7 @@ class ExportDocxBase(ExportBase):
             if "Table Grid" not in document_styles:
                 errors.append("Template is missing a required style (see documentation): Table Grid")
             if p_style and p_style not in document_styles:
-                warnings.append("Template is missing your configured default paragraph style: " + exporter.word_doc.p_style)
+                warnings.append("Template is missing your configured default paragraph style: " + p_style)
 
             exporter.run()
 
