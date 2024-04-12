@@ -32,6 +32,9 @@ class ArchiveAdmin(admin.ModelAdmin):
 
 @admin.register(DocType)
 class DocTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "doc_type", "extension")
+    list_display_links = ("name", "doc_type", "extension")
+
     def has_add_permission(self, request, obj=None):
         return False
 
