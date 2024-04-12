@@ -928,6 +928,7 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 assigned_to=self.request.user,
                 position=get_position(obj.id, self.severity),
                 added_as_blank=True,
+                extra_fields=ExtraFieldSpec.initial_json(Finding),
             )
             report_link.save()
 
