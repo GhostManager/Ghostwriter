@@ -8,7 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added a new reporting tab to the project dashboard for generating project documents
+* Added a new reporting tab to the project dashboard for generating project documents with the new project templates
+* Added a third template document type, Project DOCX, for project document templates
+  * These templates are separate from other DOCX templates because they will have access to different context data
+  * Project templates will have access to project data
+  * Report templates will have access to project and report data
+* Added support for templating document properties with Jinja2 in the report templates
+  * You can now use Jinja2 expressions to template document properties like the title, author, and company name
+  * The templated properties are available in the report template context
+* Added template linting checks for the Heading 1-7 styles
+  * These styles should always be present in a Word documents but may be unidentifiable if _styles.xml_ is corrupted
 
 ### Changed
 
