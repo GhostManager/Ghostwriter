@@ -18,6 +18,16 @@ from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidenc
 
 logger = logging.getLogger(__name__)
 
+EXPECTED_STYLES = [
+    "Bullet List",
+    "Number List",
+    "CodeBlock",
+    "CodeInline",
+    "Caption",
+    "List Paragraph",
+    "Blockquote",
+] + [f"Heading {i}" for i in range(1, 7)]
+
 
 class ExportDocxBase(ExportBase):
     """
@@ -237,15 +247,7 @@ class ExportDocxBase(ExportBase):
                     warnings.append("Potential undefined variable: {!r}".format(variable))
 
             document_styles = exporter.word_doc.styles
-            for style in [
-                "Bullet List",
-                "Number List",
-                "CodeBlock",
-                "CodeInline",
-                "Caption",
-                "List Paragraph",
-                "Blockquote",
-            ]:
+            for style in EXPECTED_STYLES:
                 if style not in document_styles:
                     warnings.append("Template is missing a recommended style (see documentation): " + style)
             if "Table Grid" not in document_styles:
