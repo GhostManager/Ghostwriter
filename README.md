@@ -31,7 +31,7 @@ The wiki covers everything from installation and setup information for first tim
 
 ## Getting Help
 
-[![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet?logo=slack)](https://join.slack.com/t/bloodhoundhq/shared_invite/zt-1tgq6ojd2-ixpx5nz9Wjtbhc3i8AVAWw)
+[![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet?logo=slack)](https://ghst.ly/BHSlack)
 
 The quickest way to get help is Slack. The BloodHound Slack Team has a *#ghostwriter* channel for discussing this project and requesting assistance. There is also a *#reporting* channel for discussing various topics related to writing and managing reports and findings.
 
