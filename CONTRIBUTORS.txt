@@ -27,3 +27,15 @@ Valuable feedback and testing:
 
 Valuable feedback and testing:
     Ellen Shaaltiel (@KomodoGal)
+
+Initial support for the CVSS v3 calculator:
+    @therealtoastycat
+
+Contributed adjusted to Docker Compose:
+    @mattreduce
+
+Support for pasting evidence from the clipboard:
+    @brandonscholet
+
+Reported issues and feedback:
+    @dbuentello

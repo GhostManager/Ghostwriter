@@ -47,13 +47,14 @@ We only ask you to limit PR submissions to those that fix a bug, enhance an exis
 
 ## Contributions
 
-The following people have contributed much to this project:
+The following people at SpecterOps have contributed much to this project:
 
 * [@covertgeek](https://github.com/covertgeek)
 * [@hotnops](https://github.com/hotnops)
 * [@andrewchiles](https://github.com/andrewchiles)
+* [@ColonelThirtyTwo](https://github.com/ColonelThirtyTwo)
 
-These folks kindly submitted feedback and PRs to fix bugs and enhance existing features. Thank you!
+These folks kindly submitted feedback and PRs to fix bugs and enhance existing features. Thank you! 
 
 * [@fastlorenzo](https://github.com/fastlorenzo)
 * [@mattreduce](https://github.com/mattreduce)
@@ -61,6 +62,9 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 * [@therealtoastycat](https://github.com/therealtoastycat)
 * [@brandonscholet](https://github.com/brandonscholet)
 * [@er4z0r](https://github.com/er4z0r)
+* [@domwhewell](https://github.com/domwhewell)
+* [@KomodoGal](https://github.com/KomodoGal)
+* [@federicodotta](https://github.com/federicodotta)
 
 ## Supporters
 
