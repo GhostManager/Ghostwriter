@@ -97,7 +97,7 @@ from ghostwriter.reporting.models import (
     ReportTemplate,
     Severity,
 )
-from ghostwriter.reporting.resources import FindingResource
+from ghostwriter.reporting.resources import FindingResource, ObservationResource
 from ghostwriter.rolodex.models import Project, ProjectAssignment
 
 channel_layer = get_channel_layer()
@@ -1107,6 +1107,18 @@ def export_findings_to_csv(request):
     return response
 
 
+@login_required
+def export_observations_to_csv(request):
+    """Export all :model:`reporting.Observation` to a csv file for download."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    observation_resource = ObservationResource()
+    dataset = observation_resource.export()
+    response = HttpResponse(dataset.csv, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{timestamp}_observations.csv"'
+
+    return response
+
+
 ################
 # View Classes #
 ################
@@ -1489,21 +1501,25 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         form = SelectReportTemplateForm(instance=self.object)
-        form.fields["docx_template"].queryset = ReportTemplate.objects.filter(
-            doc_type__doc_type="docx",
-        ).filter(
-            Q(client=self.object.project.client) | Q(client__isnull=True)
-        ).select_related(
-            "doc_type",
-            "client",
+        form.fields["docx_template"].queryset = (
+            ReportTemplate.objects.filter(
+                doc_type__doc_type="docx",
+            )
+            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
+            .select_related(
+                "doc_type",
+                "client",
+            )
         )
-        form.fields["pptx_template"].queryset = ReportTemplate.objects.filter(
-            doc_type__doc_type="pptx",
-        ).filter(
-            Q(client=self.object.project.client) | Q(client__isnull=True)
-        ).select_related(
-            "doc_type",
-            "client",
+        form.fields["pptx_template"].queryset = (
+            ReportTemplate.objects.filter(
+                doc_type__doc_type="pptx",
+            )
+            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
+            .select_related(
+                "doc_type",
+                "client",
+            )
         )
         ctx["form"] = form
 

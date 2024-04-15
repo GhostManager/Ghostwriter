@@ -22,7 +22,7 @@ from ghostwriter.reporting.models import (
     ReportTemplate,
     Severity,
 )
-from ghostwriter.reporting.resources import FindingResource
+from ghostwriter.reporting.resources import FindingResource, ObservationResource
 
 
 @admin.register(Archive)
@@ -269,5 +269,14 @@ class ReportTemplateAdmin(admin.ModelAdmin):
 
 
 @admin.register(Observation)
-class ObservationAdmin(admin.ModelAdmin):
-    pass
+class ObservationAdmin(ImportExportModelAdmin):
+    resource_class = ObservationResource
+    list_display = (
+        "title",
+        "tag_list",
+    )
+    list_filter = ("tags",)
+    list_display_links = ("title",)
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())

@@ -285,4 +285,5 @@ urlpatterns += [
 # URLs for management functions
 urlpatterns += [
     path("export/findings/csv/", views.export_findings_to_csv, name="export_findings_to_csv"),
+    path("export/observations/csv/", views.export_observations_to_csv, name="export_observations_to_csv"),
 ]

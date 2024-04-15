@@ -28,6 +28,7 @@ from ghostwriter.factories import (
     FindingTypeFactory,
     GenerateMockProject,
     LocalFindingNoteFactory,
+    ObservationFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectTargetFactory,
@@ -713,6 +714,36 @@ class FindingExportViewTests(TestCase):
             title = f"Finding {finding_id}"
             cls.findings.append(FindingFactory(title=title, tags=cls.tags))
         cls.uri = reverse("reporting:export_findings_to_csv")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("Content-Type"), "text/csv")
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ObservationExportViewTests(TestCase):
+    """Collection of tests for :view:`reporting.export_observations_to_csv`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.num_of_observations = 10
+        cls.observations = []
+        cls.tags = ["severity:high, att&ck:t1159"]
+        for observation_id in range(cls.num_of_observations):
+            title = f"Observation {observation_id}"
+            cls.observations.append(ObservationFactory(title=title, tags=cls.tags))
+        cls.uri = reverse("reporting:export_observations_to_csv")
 
     def setUp(self):
         self.client = Client()
