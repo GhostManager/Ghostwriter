@@ -824,6 +824,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
+        self.fields["doc_type"].label = "Document Type"
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
