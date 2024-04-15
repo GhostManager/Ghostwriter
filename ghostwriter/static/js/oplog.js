@@ -39,6 +39,17 @@ $(document).ready(function() {
     let pendingResult = false;
     let errorDisplayed = false;
 
+    function updatePlaceholder() {
+        if(pendingResult) {
+            $oplogTableLoading.show();
+            $oplogTableNoEntries.hide();
+            return;
+        }
+
+        $oplogTableLoading.hide();
+        $oplogTableNoEntries.toggle($table.find("> tr").length === 0)
+    }
+
     // Update `columnInfo` with extra fields
     function updateColumnInfo(extra_field_specs) {
         extra_field_specs.forEach(spec => {
@@ -137,11 +148,6 @@ $(document).ready(function() {
         </td></tr>`;
 
         return out;
-    }
-
-    // Add a placeholder row that spans the entire table
-    function addPlaceholderRow($table) {
-        $oplogTableNoEntries.show();
     }
 
     // Remove the placeholder row that spans the entire table
@@ -348,10 +354,7 @@ $(document).ready(function() {
                     })
                 } else {
                     allEntriesFetched = true;
-                    if ($('#oplogTableBody tr').length === 0) {
-                        emptyTable = true;
-                        addPlaceholderRow($table);
-                    }
+                    updatePlaceholder();
                 }
                 hideColumns();
                 $oplogTableLoading.hide();
@@ -381,11 +384,10 @@ $(document).ready(function() {
                     $table.prepend(generateRow(entry));
                     let $newRow = $(`#${entry['id']}`);
                     $newRow.hide();
-                    // If the table was previously empty, remove the placeholder row
-                    if (emptyTable) {
-                        removePlaceholderRow($table)
-                        emptyTable = false
-                    }
+
+                    emptyTable = false;
+                    updatePlaceholder();
+
                     hideColumns();
                     $newRow.fadeIn(500);
                 }
@@ -404,10 +406,7 @@ $(document).ready(function() {
                         $(this).fadeOut('slow', function () {
                             $('.tooltip').tooltip('hide');
                             $(this).remove();
-                            if ($('#oplogTableBody tr').length === 0){
-                                addPlaceholderRow($table);
-                                emptyTable = true;
-                            }
+                            updatePlaceholder();
                         });
                     }
                 })
