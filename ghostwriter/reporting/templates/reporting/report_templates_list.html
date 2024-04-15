@@ -37,6 +37,7 @@
         <th class="align-middle pr-4">Name</th>
         <th class="align-middle pr-4">Orientation</th>
         <th class="align-middle pr-4">Client</th>
+        <th class="align-middle pr-4">Project-Only</th>
         <th class="sorter-false align-middle">Options</th>
       </tr>
       </thead>
@@ -73,6 +74,7 @@
               --
             {% endif %}
           </td>
+          <td class="icon {% if template.doc_type.doc_type == "project_docx" %}check-icon healthy{% else %}cross-icon burned{% endif %}"></td>
           <td class="align-middle">
             <div class="dropdown dropleft">
               <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
