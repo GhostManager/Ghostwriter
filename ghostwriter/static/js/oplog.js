@@ -33,14 +33,14 @@ $(document).ready(function() {
     const $oplogTableLoading = $('#oplogTableLoading');
 
     let socket = null;
-    let filter = $searchInput.val();
-    let emptyTable = true;
     let allEntriesFetched = false;
-    let pendingResult = false;
     let errorDisplayed = false;
 
+    // null | {filter: string, offset: number}
+    let pendingOperation = null;
+
     function updatePlaceholder() {
-        if(pendingResult) {
+        if(pendingOperation) {
             $oplogTableLoading.show();
             $oplogTableNoEntries.hide();
             return;
@@ -150,11 +150,6 @@ $(document).ready(function() {
         return out;
     }
 
-    // Remove the placeholder row that spans the entire table
-    function removePlaceholderRow($table) {
-        $oplogTableNoEntries.hide();
-    }
-
     // Match checkboxes and column IDs to show or hide columns based on the checkbox state
     function coupleCheckboxColumn(checkboxId, columnClass) {
         $(checkboxId).change(function () {
@@ -252,7 +247,7 @@ $(document).ready(function() {
     }
 
     // Create a new entry when the create button is clicked
-    function createEntry(id) {
+    window.createEntry = function(id) {
         socket.send(JSON.stringify({
             'action': 'create',
             'oplog_id': id
@@ -306,21 +301,28 @@ $(document).ready(function() {
         return tagHtml
     }
 
-    function refetch() {
-        if(pendingResult)
+    function fetch(clear_existing) {
+        const new_filter = $searchInput.val();
+        const new_offset = clear_existing ? 0 : $table.find('> tr').length;
+        if(pendingOperation !== null && pendingOperation.filter === new_filter && pendingOperation.new_offset === new_offset)
             return;
-        pendingResult = true;
+
+        pendingOperation = {
+            filter: new_filter,
+            offset: new_offset,
+        };
         allEntriesFetched = false;
 
-        $table.find('tr').remove();
+        if(clear_existing)
+            $table.find('tr').remove();
         $oplogTableNoEntries.hide();
         $oplogTableLoading.show();
 
         socket.send(JSON.stringify({
             'action': 'sync',
             'oplog_id': oplog_id,
-            'offset': $('#oplogTable tr').length,
-            'filter': filter,
+            'offset': new_offset,
+            'filter': new_filter,
         }));
     }
 
@@ -333,7 +335,7 @@ $(document).ready(function() {
             errorDisplayed = false;
 
             $oplogTableLoading.show();
-            refetch();
+            fetch(true);
         }
 
         socket.onmessage = function (e) {
@@ -341,12 +343,14 @@ $(document).ready(function() {
 
             // Handle the `sync` action that is received whenever the socket (re)connects
             if (message['action'] === 'sync') {
-                if(message['filter'] !== filter)
-                    // Filter updated in the meantime, ignore.
+                if(pendingOperation === null || pendingOperation.filter !== message['filter'] || pendingOperation.offset !== message['offset']) {
+                    //console.log("Received sync message that did not match pending operation", pendingOperation, message);
                     return;
+                }
+                pendingOperation = null;
+
                 let entries = message['data']
 
-                pendingResult = false;
                 if (entries.length !== 0) {
                     entries.forEach(element => {
                         let newRow = generateRow(element);
@@ -354,16 +358,17 @@ $(document).ready(function() {
                     })
                 } else {
                     allEntriesFetched = true;
-                    updatePlaceholder();
                 }
+                updatePlaceholder();
                 hideColumns();
                 $oplogTableLoading.hide();
                 $('[data-toggle="tooltip"]').tooltip();
             } else if (message['action'] === 'create') {
                 // Handle the `create` action that is received whenever a new entry is created
 
-                if(filter !== "") {
-                    refetch();
+                if($searchInput.val() !== "") {
+                    // If there's a filter, refech all, since only the server will know if it matches the filter
+                    fetch(true);
                     return;
                 }
 
@@ -386,20 +391,13 @@ $(document).ready(function() {
                     $newRow.hide();
 
                     emptyTable = false;
-                    updatePlaceholder();
-
                     hideColumns();
                     $newRow.fadeIn(500);
                 }
-                $('#oplogTableNoEntries').hide();
+                updatePlaceholder();
                 $('[data-toggle="tooltip"]').tooltip();
             } else if (message['action'] === 'delete') {
                 // Handle the `delete` action that is received whenever an entry is deleted
-                if(filter !== "") {
-                    refetch();
-                    return;
-                }
-
                 let id = message['data'];
                 $('#oplogTable tbody tr').each(function () {
                     if ($(this).attr('id') === id.toString()) {
@@ -454,18 +452,13 @@ $(document).ready(function() {
 
     // Pull additional entries if user scrolls to bottom of ``tbody``
     $('#oplogTableBody').scroll(function() {
-        if (!pendingResult) {
+        if (pendingOperation !== null) {
             // Check if current scroll position + height of div is >= height of the content
             // True if scroll has reached the bottom
 
             if($(this).scrollTop() + $(this).innerHeight() + 1 >= $(this)[0].scrollHeight) {
                 if (allEntriesFetched === false) {
-                    pendingResult = true;
-                    socket.send(JSON.stringify({
-                            'action': 'sync',
-                            'oplog_id': oplog_id,
-                            'offset': $('#oplogTable tr').length
-                    }));
+                    fetch(false);
                 }
             }
         }
@@ -530,8 +523,7 @@ $(document).ready(function() {
         }
         filter_debounce_timeout_id = setTimeout(function() {
             filter_debounce_timeout_id = null;
-            filter = $searchInput.val();
-            refetch();
+            fetch(true);
         }, ev.key === "Enter" ? 0 : 500);
     });
 

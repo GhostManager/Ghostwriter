@@ -152,6 +152,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             message = json.dumps({
                 "action": "sync",
                 "filter": filter,
+                "offset": offset,
                 "data": entries,
             })
 
