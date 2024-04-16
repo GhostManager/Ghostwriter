@@ -469,8 +469,35 @@
 
       {% comment %} Reporting Section {% endcomment %}
       <div id="documents" class="tab-pane ">
+        <h4>Generate Project Documents</h4>
+        <hr/>
 
-        <h4>Reports & Findings</h4>
+        <p class="text-justify offset-2 col-8">
+          Generate JSON with project data or select a template to generate a project document (e.g., SOW, ROE).
+        </p>
+        <p class="text-justify offset-2 col-8">
+          No report data is available to these templates, so only the Word templates that are marked as project templates will be available.
+        </p>
+
+        <div class="input-group mb-3 offset-2 col-8">
+          <div class="input-group-prepend">
+            <span class="input-group-text" id="projectExportFilename">Options</span>
+          </div>
+          <select class="form-control form-select custom-select" id="projectExportSelector" data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
+            <option value="json">JSON</option>
+            {% for template in export_templates %}
+              <option value="{{ template.pk }}">{{ template.name }} ({{ template.doc_type.extension }})</option>
+            {% endfor %}
+          </select>
+          <span class="input-group-append">
+            <button id="projectExportButton" class="btn btn-outline-primary">Generate</button>
+          </span>
+        </div>
+        <div class="form-group">
+
+        </div>
+
+        <h4>Project Reports & Findings</h4>
         <hr/>
 
         {% if project.complete %}
@@ -593,7 +620,7 @@
         <h4>Project Infrastructure</h4>
         <hr/>
 
-        <p>Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project.
+        <p class="text-justify offset-2 col-8">Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project.<br/>
           Associate your domains and subdomains with servers by creating connections.</p>
         {% comment %} Domain Section {% endcomment %}
         <h4>Domains</h4>
@@ -1085,24 +1112,6 @@
           <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this project.
           </div>
         {% endif %}
-      </div>
-
-      {% comment %} Generate Tab {% endcomment %}
-      <div id="generate" class="tab-pane">
-        <h4>Generate Reports</h4>
-        <hr/>
-
-        <div class="input-group mb-3 offset-2 col-8">
-          <select class="form-control" id="projectExportSelector" data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
-            <option value="json">JSON</option>
-            {% for template in export_templates %}
-              <option value="{{template.pk}}">{{template.name}}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-group">
-          <button id="projectExportButton" class="btn btn-primary col-2">Generate</button>
-        </div>
       </div>
     </div>
   </div>
