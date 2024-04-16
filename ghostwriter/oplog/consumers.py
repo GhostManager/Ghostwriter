@@ -8,6 +8,7 @@ from datetime import datetime
 
 # Django Imports
 from django.utils.timezone import make_aware
+from django.contrib.postgres.search import SearchQuery, SearchRank
 
 # 3rd Party Libraries
 from channels.db import database_sync_to_async
@@ -94,19 +95,22 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
     """This consumer handles WebSocket connections for :model:`oplog.OplogEntry`."""
 
     @database_sync_to_async
-    def get_log_entries(self, oplog_id: int, offset: int, user: User) -> ReturnList:
+    def get_log_entries(self, oplog_id: int, offset: int, user: User, filter: str | None = None) -> ReturnList:
         serialized_entries = []
         try:
             oplog = Oplog.objects.get(pk=oplog_id)
             if verify_access(user, oplog.project):
-                entries = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
-                if len(entries) == offset:
-                    serialized_entries = OplogEntrySerializer([], many=True).data
+                entries = OplogEntry.objects.filter(oplog_id=oplog_id)
+                if filter:
+                    query = SearchQuery(filter, search_type="websearch")
+                    entries = entries.annotate(
+                        search=OplogEntry.SEARCH_VECTOR,
+                        rank=SearchRank(OplogEntry.SEARCH_VECTOR, query),
+                    ).filter(search=query).order_by("-rank")
                 else:
-                    if len(entries) < (offset + 100):
-                        serialized_entries = OplogEntrySerializer(entries[offset:], many=True).data
-                    else:
-                        serialized_entries = OplogEntrySerializer(entries[offset : offset + 100], many=True).data
+                    entries = entries.order_by("-start_date")
+                entries = entries[offset : offset + 100]
+                serialized_entries = OplogEntrySerializer(entries, many=True).data
         except Oplog.DoesNotExist:
             logger.warning("Failed to get log entries for log ID %s because that log ID does not exist.", oplog_id)
             serialized_entries = OplogEntrySerializer([], many=True).data
@@ -122,11 +126,6 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             oplog_id = self.scope["url_route"]["kwargs"]["pk"]
             await self.channel_layer.group_add(str(oplog_id), self.channel_name)
             await self.accept()
-
-            serialized_entries = await self.get_log_entries(oplog_id, 0, user)
-            message = json.dumps({"action": "sync", "data": serialized_entries})
-
-            await self.send(text_data=message)
 
     async def disconnect(self, close_code):
         logger.info("WebSocket disconnected with close code: %s", close_code)
@@ -148,7 +147,13 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         if json_data["action"] == "sync":
             oplog_id = json_data["oplog_id"]
             offset = json_data["offset"]
-            entries = await self.get_log_entries(oplog_id, offset, user)
-            message = json.dumps({"action": "sync", "data": entries})
+            filter = json_data.get("filter", "")
+            entries = await self.get_log_entries(oplog_id, offset, user, filter)
+            message = json.dumps({
+                "action": "sync",
+                "filter": filter,
+                "offset": offset,
+                "data": entries,
+            })
 
             await self.send(text_data=message)

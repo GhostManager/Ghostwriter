@@ -9,6 +9,8 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
+from django.contrib.postgres.search import SearchVector
+from django.contrib.postgres.indexes import GinIndex
 
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
@@ -51,8 +53,13 @@ class Oplog(models.Model):
         return reverse("oplog:oplog_entries", args=[str(self.id)])
 
 
+OPLOG_ENTRY_SEARCH_VECTOR = SearchVector("source_ip", "dest_ip", "tool", "command", "description", "output", "comments", "operator_name", config="english")
+
+
 class OplogEntry(models.Model):
     """Stores an individual log entry, related to :model:`oplog.Oplog`."""
+
+    SEARCH_VECTOR = OPLOG_ENTRY_SEARCH_VECTOR
 
     entry_identifier = models.CharField(
         "Identifier",
@@ -151,6 +158,10 @@ class OplogEntry(models.Model):
         verbose_name_plural = "Activity log entries"
         indexes = [
             models.Index(fields=["oplog_id", "entry_identifier"]),
+            GinIndex(
+                OPLOG_ENTRY_SEARCH_VECTOR,
+                name="oplog_fts",
+            ),
         ]
 
     def clean(self, *args, **kwargs):
