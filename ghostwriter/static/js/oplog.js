@@ -31,6 +31,7 @@ $(document).ready(function() {
     const $searchInput = $('#searchInput');
     const $oplogTableNoEntries = $('#oplogTableNoEntries');
     const $oplogTableLoading = $('#oplogTableLoading');
+    const $clearSearchBtn = $('#clearSearchBtn');
 
     let socket = null;
     let allEntriesFetched = false;
@@ -49,6 +50,11 @@ $(document).ready(function() {
         $oplogTableLoading.hide();
         $oplogTableNoEntries.toggle($table.find("> tr").length === 0)
     }
+
+    $clearSearchBtn.click(function () {
+        $searchInput.val("");
+        fetch(true);
+    });
 
     // Update `columnInfo` with extra fields
     function updateColumnInfo(extra_field_specs) {
