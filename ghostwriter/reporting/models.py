@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 
 # 3rd Party Libraries
@@ -492,6 +493,32 @@ class Report(models.Model):
 
     def get_absolute_url(self):
         return reverse("reporting:report_detail", args=[str(self.id)])
+
+    @classmethod
+    def clear_incorrect_template_defaults(cls, updated_template: ReportTemplate):
+        """
+        Find ReportTemplates that use the specified updated_template improperly and clears it.
+
+        Specifically, if the template is for an incorrect document type that its used in, or if
+        the template's client does not match the report's project's client, it will be cleared.
+        """
+        if updated_template.doc_type.doc_type == "docx":
+            filter_docx = Q(pk__in=[])  # Always false
+            filter_pptx = Q(pptx_template=updated_template)
+        elif updated_template.doc_type.doc_type == "pptx":
+            filter_docx = Q(docx_template=updated_template)
+            filter_pptx = Q(pk__in=[])  # Always false
+        else:
+            filter_docx = Q(docx_template=updated_template)
+            filter_pptx = Q(pptx_template=updated_template)
+
+        if updated_template.client is not None:
+            q_mismatched = ~Q(project__client__id=updated_template.client.id)
+            filter_docx = filter_docx | (Q(docx_template__id=updated_template.id) & q_mismatched)
+            filter_pptx = filter_pptx | (Q(pptx_template__id=updated_template.id) & q_mismatched)
+
+        cls.objects.filter(filter_docx).update(docx_template=None)
+        cls.objects.filter(filter_pptx).update(pptx_template=None)
 
     def __str__(self):
         return f"{self.title}"

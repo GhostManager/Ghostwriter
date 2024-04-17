@@ -1908,6 +1908,7 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:templates")
+        ctx["report_configuration"] = ReportConfiguration.get_solo()
         return ctx
 
     def get_success_url(self):
@@ -1923,6 +1924,13 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
         obj.uploaded_by = self.request.user
         obj.save()
         form.save_m2m()
+
+        Report.clear_incorrect_template_defaults(self.object)
+
+        report_config = ReportConfiguration.get_solo()
+        if report_config.clear_incorrect_template_defaults(self.object):
+            report_config.save()
+
         return HttpResponseRedirect(self.get_success_url())
 
     def get_form_kwargs(self):

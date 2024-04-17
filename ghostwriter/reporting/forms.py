@@ -811,8 +811,10 @@ class ReportTemplateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+
         if kwargs.get("instance"):
-            self.fields["doc_type"].disabled = True
+            self.fields["client"].help_text += ". Changing this will unset this template as the global default template and the default templates on reports for other clients."
+            self.fields["doc_type"].help_text += ". Changing this will unset this template as the global default template and the default templates on reports."
 
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"

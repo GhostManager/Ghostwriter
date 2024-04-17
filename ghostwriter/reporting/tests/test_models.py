@@ -12,12 +12,14 @@ from django.test import TestCase
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ArchiveFactory,
+    ClientFactory,
     DocTypeFactory,
     EvidenceOnFindingFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
     LocalFindingNoteFactory,
+    ProjectFactory,
     ReportDocxTemplateFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -327,6 +329,120 @@ class ReportModelTests(TestCase):
             report.get_absolute_url()
         except:
             self.fail("Report.get_absolute_url() raised an exception")
+
+    def test_clear_incorrect_template_defaults_unchanged(self):
+        docx_template = ReportDocxTemplateFactory()
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            docx_template=docx_template,
+            pptx_template=pptx_template,
+        )
+
+        # Don't change anything. Clearing should do nothing.
+
+        self.Report.clear_incorrect_template_defaults(docx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNotNone(new_report.docx_template)
+        self.assertEqual(new_report.docx_template.id, docx_template.id)
+        self.assertIsNotNone(new_report.pptx_template)
+        self.assertEqual(new_report.pptx_template.id, pptx_template.id)
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNotNone(new_report.docx_template)
+        self.assertEqual(new_report.docx_template.id, docx_template.id)
+        self.assertIsNotNone(new_report.pptx_template)
+        self.assertEqual(new_report.pptx_template.id, pptx_template.id)
+
+    def test_clear_incorrect_template_defaults_docx_to_pptx(self):
+        docx_template = ReportDocxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            docx_template=docx_template,
+        )
+
+        docx_template.doc_type = DocTypeFactory(doc_type="pptx", extension="pptx", name="pptx")
+        docx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(docx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNone(new_report.docx_template)
+
+    def test_clear_incorrect_template_defaults_pptx_to_docx(self):
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+        )
+
+        pptx_template.doc_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx")
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNone(new_report.pptx_template)
+
+    def test_clear_incorrect_template_defaults_client_change_clear(self):
+        client = ClientFactory()
+        pptx_template = ReportDocxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+        )
+
+        pptx_template.client = client
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNone(new_report.pptx_template)
+
+    def test_clear_incorrect_template_defaults_client_change_set_same(self):
+        client = ClientFactory()
+        project = ProjectFactory(client=client)
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+            project=project,
+        )
+
+        self.assertEqual(report.project.client, client)
+
+        pptx_template.client = client
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.project.client, client)
+        self.assertIsNotNone(new_report.pptx_template)
+        self.assertEqual(new_report.pptx_template.id, pptx_template.id)
+
+    def test_clear_incorrect_template_defaults_client_change_set_different(self):
+        client = ClientFactory()
+        project = ProjectFactory(client=client)
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+            project=project,
+        )
+
+        self.assertEqual(report.project.client, client)
+
+        pptx_template.client = ClientFactory()
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.project.client, client)
+        self.assertIsNone(new_report.pptx_template)
 
 
 class ReportFindingLinkModelTests(TestCase):
