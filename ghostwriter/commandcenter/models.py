@@ -135,6 +135,7 @@ class ReportConfiguration(SingletonModel):
         on_delete=models.SET_NULL,
         limit_choices_to={
             "doc_type__doc_type__iexact": "docx",
+            "client__isnull": True,
         },
         null=True,
         blank=True,
@@ -146,6 +147,7 @@ class ReportConfiguration(SingletonModel):
         on_delete=models.SET_NULL,
         limit_choices_to={
             "doc_type__doc_type__iexact": "pptx",
+            "client__isnull": True,
         },
         null=True,
         blank=True,
@@ -154,6 +156,18 @@ class ReportConfiguration(SingletonModel):
 
     def __str__(self):
         return "Global Report Configuration"
+
+    def clear_incorrect_template_defaults(self, template):
+        altered = False
+        if self.default_docx_template == template:
+            if template.client is not None or template.doc_type.doc_type != "docx":
+                self.default_docx_template = None
+                altered = True
+        if self.default_pptx_template == template:
+            if template.client is not None or template.doc_type.doc_type != "pptx":
+                self.default_pptx_template = None
+                altered = True
+        return altered
 
     class Meta:
         verbose_name = "Global Report Configuration"
