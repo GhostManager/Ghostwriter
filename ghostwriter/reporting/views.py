@@ -5,7 +5,6 @@ import io
 import json
 import logging.config
 import os
-import re
 import zipfile
 from asgiref.sync import async_to_sync
 from datetime import datetime
@@ -55,11 +54,9 @@ from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
 )
 from ghostwriter.commandcenter.forms import SingleExtraFieldForm
-from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.modules.custom_serializers import ReportDataSerializer
+from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
@@ -115,39 +112,6 @@ def get_position(report_pk, severity):
         last_position = findings[0].position
         return last_position + 1
     return 1
-
-
-def generate_report_name(report_instance, template=None):
-    """
-    Generate a filename for a report based on the current time and attributes of an
-    individual :model:`reporting.Report`. All illegal characters are removed to keep
-    the filename browser-friendly.
-    """
-
-    def replace_chars(name):
-        """Remove illegal characters from the report name."""
-        name = name.replace("–", "-")
-        return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", name)
-
-    if template is None:
-        template = ReportConfiguration.get_solo().report_filename
-
-    jinja_env = prepare_jinja2_env()
-    template = jinja_env.from_string(template)
-    if isinstance(report_instance, dict):
-        # May be linting data
-        data = report_instance
-    else:
-        data = ReportDataSerializer(
-            report_instance,
-            exclude=["id"],
-        ).data
-    data["company_name"] = CompanyInformation.get_solo().company_name
-    data["now"] = datetime.now()
-
-    report_name = template.render(data)
-    report_name = replace_chars(report_name)
-    return report_name.strip()
 
 
 def zip_directory(path, zip_handler):
@@ -1363,7 +1327,6 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         try:
             archive_loc = os.path.join(settings.MEDIA_ROOT, "archives/")
             evidence_loc = os.path.join(settings.MEDIA_ROOT, "evidence", str(report_instance.id))
-            report_name = generate_report_name(report_instance)
 
             # Get the templates for Word and PowerPoint
             report_config = ReportConfiguration.get_solo()
@@ -1380,6 +1343,9 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 if not pptx_template:
                     raise MissingTemplate
 
+            word_exp = ExportReportDocx(report_instance, template_loc=docx_template)
+            report_filename = word_exp.render_filename(ReportConfiguration.get_solo().report_filename, ext="zip")
+
             word_doc = ExportReportDocx(report_instance, template_loc=docx_template).run()
             ppt_doc = ExportReportPptx(report_instance, template_loc=pptx_template).run()
             excel_doc = ExportReportXlsx(report_instance).run()
@@ -1394,11 +1360,11 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 zf.writestr("report.pptx", ppt_doc.getvalue())
                 zip_directory(evidence_loc, zf)
             zip_buffer.seek(0)
-            with open(os.path.join(archive_loc, report_name + ".zip"), "wb+") as archive_file:
+            with open(os.path.join(archive_loc, report_filename), "wb+") as archive_file:
                 archive_file.write(zip_buffer.getvalue())
             new_archive = Archive(
                 project=report_instance.project,
-                report_archive=File(zip_buffer, name=report_name + ".zip"),
+                report_archive=File(zip_buffer, name=report_filename),
             )
             new_archive.save()
             messages.success(
@@ -2075,13 +2041,12 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         )
 
         try:
-            report_name = generate_report_name(obj)
+            report_config = ReportConfiguration.get_solo()
 
             # Get the template for this report
             if obj.docx_template:
                 report_template = obj.docx_template
             else:
-                report_config = ReportConfiguration.get_solo()
                 report_template = report_config.default_docx_template
                 if not report_template:
                     raise MissingTemplate
@@ -2099,12 +2064,14 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
             # Template available and passes linting checks, so proceed with generation
 
-            docx = ExportReportDocx(obj, template_loc=template_loc).run()
+            exporter = ExportReportDocx(obj, template_loc=template_loc)
+            report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
+            docx = exporter.run()
 
             response = HttpResponse(
                 docx.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
-            response["Content-Disposition"] = f'attachment; filename="{report_name}.docx"'
+            response["Content-Disposition"] = f'attachment; filename="{report_name}"'
 
             # Send WebSocket message to update user's webpage
             try:
@@ -2224,13 +2191,15 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         )
 
         try:
-            report_name = generate_report_name(obj)
-            output = ExportReportXlsx(obj).run()
+            report_config = ReportConfiguration.get_solo()
+            exporter = ExportReportXlsx(obj)
+            report_name = exporter.render_filename(report_config.report_filename, ext="xlsx")
+            output = exporter.run()
             response = HttpResponse(
                 output.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-            response["Content-Disposition"] = f'attachment; filename="{report_name}.xlsx"'
+            response["Content-Disposition"] = f'attachment; filename="{report_name}"'
             output.close()
 
             return response
@@ -2272,8 +2241,6 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         )
 
         try:
-            report_name = generate_report_name(obj)
-
             # Get the template for this report
             if obj.pptx_template:
                 report_template = obj.pptx_template
@@ -2295,12 +2262,14 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
             # Template available and passes linting checks, so proceed with generation
-            pptx = ExportReportPptx(obj, template_loc).run()
+            exporter = ExportReportPptx(obj, template_loc)
+            report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
+            pptx = exporter.run()
             response = HttpResponse(
                 pptx.getvalue(),
-                content_type="application/application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             )
-            response["Content-Disposition"] = f'attachment; filename="{report_name}.pptx"'
+            response["Content-Disposition"] = f'attachment; filename="{report_name}"'
 
             return response
         except MissingTemplate:
@@ -2402,45 +2371,44 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         )
 
         try:
-            report_name = generate_report_name(obj)
+            report_config = ReportConfiguration.get_solo()
 
             # Get the templates for Word and PowerPoint
             if obj.docx_template:
                 docx_template = obj.docx_template
             else:
-                report_config = ReportConfiguration.get_solo()
                 docx_template = report_config.default_docx_template
                 if not docx_template:
                     raise MissingTemplate
-            docx_template = docx_template.document.path
 
             if obj.pptx_template:
                 pptx_template = obj.pptx_template
             else:
-                report_config = ReportConfiguration.get_solo()
                 pptx_template = report_config.default_pptx_template
                 if not pptx_template:
                     raise MissingTemplate
-            pptx_template = pptx_template.document.path
 
-            # Generate all types of reports
-            word_doc = ExportReportDocx(obj, template_loc=docx_template).run()
-            ppt_doc = ExportReportPptx(obj, template_loc=pptx_template).run()
-            excel_doc = ExportReportXlsx(obj).run()
-            json_doc = ExportReportJson(obj).run()
+            exporters_and_filename_templates = [
+                (ExportReportDocx(obj, template_loc=docx_template.document.path), docx_template.filename_override or report_config.report_filename),
+                (ExportReportPptx(obj, template_loc=pptx_template.document.path), pptx_template.filename_override or report_config.report_filename),
+                (ExportReportXlsx(obj), report_config.report_filename),
+                (ExportReportJson(obj), report_config.report_filename),
+            ]
+
+            zip_filename = exporters_and_filename_templates[0][0].render_filename(report_config.report_filename, ext="zip")
 
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "a") as zf:
-                zf.writestr(f"{report_name}.json", json_doc.getvalue())
-                zf.writestr(f"{report_name}.docx", word_doc.getvalue())
-                zf.writestr(f"{report_name}.xlsx", excel_doc.getvalue())
-                zf.writestr(f"{report_name}.pptx", ppt_doc.getvalue())
+                for (exporter, filename_template) in exporters_and_filename_templates:
+                    filename = exporter.render_filename(filename_template)
+                    doc = exporter.run()
+                    zf.writestr(filename, doc.getvalue())
             zip_buffer.seek(0)
 
             # Return the buffer in the HTTP response
             response = HttpResponse(content_type="application/x-zip-compressed")
-            response["Content-Disposition"] = f'attachment; filename="{report_name}.zip"'
+            response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
             response.write(zip_buffer.read())
 
             return response

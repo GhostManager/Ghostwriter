@@ -8,7 +8,6 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Q
 
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
@@ -29,6 +28,8 @@ from ghostwriter.api.utils import get_client_list, get_project_list
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
+from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -800,6 +801,20 @@ class LocalFindingNoteForm(forms.ModelForm):
 class ReportTemplateForm(forms.ModelForm):
     """Save an individual :model:`reporting.ReportTemplate`."""
 
+    def clean(self):
+        filename_override = self.cleaned_data["filename_override"]
+        if not filename_override:
+            return
+
+        doc_typ = self.cleaned_data["doc_type"]
+        try:
+            if doc_typ.doc_type == "docx":
+                ExportReportBase.check_filename_template(filename_override)
+            elif doc_typ.doc_type == "pptx" or doc_typ.doc_type == "project_docx":
+                ExportProjectBase.check_filename_template(filename_override)
+        except ValidationError as e:
+            self.add_error("filename_override", e)
+
     class Meta:
         model = ReportTemplate
         exclude = ("upload_date", "last_update", "lint_result", "uploaded_by")
@@ -870,6 +885,7 @@ class ReportTemplateForm(forms.ModelForm):
                 ),
                 css_class="form-row pb-2",
             ),
+            "filename_override",
             "description",
             HTML(
                 """

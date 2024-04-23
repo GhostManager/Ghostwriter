@@ -314,6 +314,13 @@ class ReportTemplate(models.Model):
         default=False,
         help_text="Flag this document as landscape orientation",
     )
+    filename_override = models.CharField(
+        "Filename Template",
+        max_length=255,
+        default="",
+        blank=True,
+        help_text="Jinja2 template. All template variables are available, plus {{now}} and {{company_name}}. The file extension is added to this. If blank, the admin-provided default will be used.",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)

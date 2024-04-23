@@ -56,7 +56,6 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     filter_tags,
 )
 from ghostwriter.reporting.templatetags import report_tags
-from ghostwriter.reporting.views import generate_report_name
 
 logging.disable(logging.CRITICAL)
 
@@ -2238,30 +2237,6 @@ class GenerateReportTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
-    def test_generate_report_name(self):
-        company_config = CompanyInformationFactory()
-        ReportConfigurationFactory(
-            report_filename="{D d m Y} {date} {company} - {client} {assessment_type} {title} <>:'/|?.,:;[]"
-        )
-
-        current_date = timezone.now()
-        date_format = dateformat(current_date, "D d m Y")
-        date_str = dateformat(current_date, settings.DATE_FORMAT)
-
-        # Remove any periods or commas that can appear in the `Faker` generated names
-        client = self.project.client.name.replace(",", "").replace(".", "")
-        company = company_config.company_name.replace(",", "").replace(".", "")
-
-        assessment = self.project.project_type.project_type
-
-        title = self.report.title
-
-        report_name = generate_report_name(self.report)
-        self.assertEqual(
-            report_name,
-            f"{date_format} {date_str} {company} - {client} {assessment} {title}",
-        )
-
     def test_view_json_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.json_uri)
         self.assertEqual(response.status_code, 200)
@@ -2277,14 +2252,14 @@ class GenerateReportTests(TestCase):
         response = self.client_mgr.get(self.xlsx_uri)
         self.assertEqual(
             response.get("Content-Type"),
-            "application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)
         self.assertEqual(
             response.get("Content-Type"),
-            "application/application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         )
 
     def test_view_all_uri_exists_at_desired_location(self):

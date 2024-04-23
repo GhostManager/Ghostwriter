@@ -1,8 +1,5 @@
 
-
-import copy
 import io
-from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter.base.docx import ExportDocxBase
 from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
 from ghostwriter.oplog.models import OplogEntry
@@ -109,20 +106,3 @@ class ExportProjectDocx(ExportDocxBase, ExportProjectBase):
         self.process_extra_fields(context["project"]["extra_fields"], Project, base_render)
 
         return super().run()
-
-    @classmethod
-    def generate_lint_data(cls):
-        return {name: copy.deepcopy(LINTER_CONTEXT[name]) for name in [
-            "project",
-            "client",
-            "team",
-            "objectives",
-            "targets",
-            "scope",
-            "deconflictions",
-            "whitecards",
-            "infrastructure",
-            "logs",
-            "company",
-            "report_date",
-        ]}

@@ -199,7 +199,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
                     evidences=finding_evidences,
                 )
             else:
-                par = finding_body_shape.add_paragraph()
+                par = text_frame.add_paragraph()
                 run = par.add_run()
                 run.text = "No description provided"
 
