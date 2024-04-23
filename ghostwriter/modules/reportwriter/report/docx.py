@@ -1,19 +1,14 @@
 
-import copy
 import io
 import logging
 
 from docxtpl import RichText
-from ghostwriter.commandcenter.models import ExtraFieldSpec
 
-from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter.base.docx import ExportDocxBase
 from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
-from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Finding, Observation, Report
-from ghostwriter.rolodex.models import Client, Project
-from ghostwriter.shepherd.models import Domain, StaticServer
+from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 
@@ -94,30 +89,3 @@ class ExportReportDocx(ExportDocxBase, ExportReportBase):
     def run(self) -> io.BytesIO:
         self.process_richtext(self.data)
         return super().run()
-
-    @classmethod
-    def generate_lint_data(cls):
-        context = copy.deepcopy(LINTER_CONTEXT)
-        for field in ExtraFieldSpec.objects.filter(target_model=Report._meta.label):
-            context["extra_fields"][field.internal_name] = field.empty_value()
-        for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):
-            context["project"]["extra_fields"][field.internal_name] = field.empty_value()
-        for field in ExtraFieldSpec.objects.filter(target_model=Client._meta.label):
-            context["client"]["extra_fields"][field.internal_name] = field.empty_value()
-        for field in ExtraFieldSpec.objects.filter(target_model=Finding._meta.label):
-            for finding in context["findings"]:
-                finding["extra_fields"][field.internal_name] = field.empty_value()
-        for field in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
-            for log in context["logs"]:
-                for entry in log["entries"]:
-                    entry["extra_fields"][field.internal_name] = field.empty_value()
-        for field in ExtraFieldSpec.objects.filter(target_model=Domain._meta.label):
-            for domain in context["infrastructure"]["domains"]:
-                domain["extra_fields"][field.internal_name] = field.empty_value()
-        for field in ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label):
-            for server in context["infrastructure"]["servers"]:
-                server["extra_fields"][field.internal_name] = field.empty_value()
-        for field in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label):
-            for obs in context["observations"]:
-                obs["extra_fields"][field.internal_name] = field.empty_value()
-        return context

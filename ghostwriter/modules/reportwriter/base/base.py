@@ -1,12 +1,15 @@
 
+from datetime import datetime
 import io
 from typing import Any, Iterable
 import re
+from venv import logger
 
+from django.forms import ValidationError
 import jinja2
 from django.db.models import Model
 
-from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import jinja_funcs, prepare_jinja2_env
 
 
@@ -110,6 +113,42 @@ class ExportBase:
     def extension(cls) -> str:
         raise NotImplementedError()
 
+    @classmethod
+    def generate_lint_data(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    def check_filename_template(cls, filename_template: str):
+        exporter = cls(
+            cls.generate_lint_data(),
+            is_raw=True,
+            jinja_debug=True,
+        )
+        try:
+            exporter.render_filename(filename_template, ext="test")
+        except jinja2.TemplateError as e:
+            raise ValidationError(str(e)) from e
+        except TypeError as e:
+            logger.exception("TypeError while validating report filename. May be a syntax error or an actual error.")
+            raise ValidationError(str(e)) from e
+
+    def render_filename(self, filename_template, ext=None):
+        """
+        Generate a filename for an export, rendering the `filename_template` with
+        the jinja data and appending the extension.
+        """
+
+        template = self.jinja_env.from_string(filename_template)
+        data = self.data.copy()
+        data["company_name"] = CompanyInformation.get_solo().company_name
+        data["now"] = datetime.now()
+
+        report_name = template.render(data)
+        report_name = _replace_filename_chars(report_name)
+        if ext is None:
+            ext = self.extension()
+        return report_name.strip() + "." + ext
+
 
 def _valid_xml_char_ordinal(c):
     """
@@ -131,3 +170,9 @@ def _valid_xml_char_ordinal(c):
         or 0xE000 <= codepoint <= 0xFFFD
         or 0x10000 <= codepoint <= 0x10FFFF
     )
+
+
+def _replace_filename_chars(name):
+    """Remove illegal characters from the report name."""
+    name = name.replace("–", "-")
+    return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", name)

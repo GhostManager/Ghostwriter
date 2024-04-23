@@ -37,7 +37,7 @@ class ExportBasePptx(ExportBase):
 
     @classmethod
     def mime_type(cls) -> str:
-        return "application/application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 
     @classmethod
     def extension(cls) -> str:

@@ -29,7 +29,7 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
-from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
@@ -264,8 +264,11 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
         except ValueError:
             pass
 
+        report_config = ReportConfiguration.get_solo()
+
         if type_or_template_id == "json":
             exporter = ExportProjectJson(project)
+            filename = exporter.render_filename(report_config.project_filename)
         else:
             template = ReportTemplate.objects.filter(
                 Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
@@ -273,8 +276,9 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
                 Q(client=project.client) | Q(client__isnull=True)
             ).select_related("doc_type").get(pk=type_or_template_id)
             exporter = template.exporter(project)
+            filename = exporter.render_filename(template.filename_override or report_config.project_filename)
         response = HttpResponse(exporter.run().getvalue(), content_type=exporter.mime_type())
-        response["Content-Disposition"] = f'attachment; filename="{project}.{exporter.extension()}"'
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
 

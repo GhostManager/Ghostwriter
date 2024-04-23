@@ -1,6 +1,5 @@
 """This contains all the forms used by the CommandCenter application."""
 
-import copy
 import logging
 
 # Django Imports
@@ -9,13 +8,13 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-import jinja2
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field, ButtonHolder, Submit, HTML
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import ReportConfiguration, ExtraFieldSpec
-from ghostwriter.modules.linting_utils import LINTER_CONTEXT
+from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
+from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 
 logger = logging.getLogger(__name__)
 
@@ -50,19 +49,12 @@ class ReportConfigurationForm(forms.ModelForm):
         return pptx_template
 
     def clean_report_filename(self):
-        # Import here to resolve circular reference
-        from ghostwriter.reporting.views import generate_report_name
-
         name_template = self.cleaned_data["report_filename"]
-        lint_data = copy.deepcopy(LINTER_CONTEXT)
-        try:
-            generate_report_name(lint_data, name_template)
-        except jinja2.TemplateError as e:
-            raise ValidationError(str(e)) from e
-        except TypeError as e:
-            logger.exception("TypeError while validating report filename. May be a syntax error or an actual error.")
-            raise ValidationError(str(e)) from e
-        return name_template
+        ExportReportBase.check_filename_template(name_template)
+
+    def clean_project_filename(self):
+        name_template = self.cleaned_data["report_filename"]
+        ExportProjectBase.check_filename_template(name_template)
 
 
 # Marker object to signal ExtraFieldsWidget to use the admin-configured defaults in the DB rather than loading from a value.
