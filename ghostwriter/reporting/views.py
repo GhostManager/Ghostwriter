@@ -2248,12 +2248,13 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             self.request.user,
         )
 
+        report_config = ReportConfiguration.get_solo()
+
         try:
             # Get the template for this report
             if obj.pptx_template:
                 report_template = obj.pptx_template
             else:
-                report_config = ReportConfiguration.get_solo()
                 report_template = report_config.default_pptx_template
                 if not report_template:
                     raise MissingTemplate
@@ -2270,7 +2271,7 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
             # Template available and passes linting checks, so proceed with generation
-            exporter = ExportReportPptx(obj, template_loc)
+            exporter = ExportReportPptx(obj, template_loc=template_loc)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             pptx = exporter.run()
             response = HttpResponse(

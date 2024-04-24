@@ -217,10 +217,6 @@ class ExportDocxBase(ExportBase):
                 extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
 
     @classmethod
-    def generate_lint_data(cls):
-        raise NotImplementedError()
-
-    @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
         warnings = []
         errors = []

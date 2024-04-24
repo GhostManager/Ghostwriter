@@ -380,7 +380,7 @@ def get_logs_list(user):
         logs = logs.all()
     else:
         projects = get_project_list(user)
-        logs = logs.filter(project___in=projects).distinct()
+        logs = logs.filter(project__in=projects).distinct()
     return logs
 
 
