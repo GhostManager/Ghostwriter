@@ -51,10 +51,12 @@ class ReportConfigurationForm(forms.ModelForm):
     def clean_report_filename(self):
         name_template = self.cleaned_data["report_filename"]
         ExportReportBase.check_filename_template(name_template)
+        return name_template
 
     def clean_project_filename(self):
-        name_template = self.cleaned_data["report_filename"]
+        name_template = self.cleaned_data["project_filename"]
         ExportProjectBase.check_filename_template(name_template)
+        return name_template
 
 
 # Marker object to signal ExtraFieldsWidget to use the admin-configured defaults in the DB rather than loading from a value.

@@ -84,7 +84,8 @@ class ReportConfigurationFormTests(TestCase):
     def test_clean_default_docx_template(self):
         config = self.config.__dict__.copy()
         form = self.form_data(**config)
-        self.assertTrue(form.is_valid())
+        if not form.is_valid():
+            self.fail(f"Form was not valid, errors: {form.errors!r}")
 
         # Switch config to the invalid template
         config["default_docx_template_id"] = self.invalid_docx_template.pk

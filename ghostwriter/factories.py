@@ -806,7 +806,9 @@ class NamecheapConfigurationFactory(factory.django.DjangoModelFactory):
 class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.ReportConfiguration"
+        django_get_or_create = ["pk"]
 
+    pk = 1
     enable_borders = Faker("boolean")
     border_weight = 2700
     border_color = "2D2B6B"
