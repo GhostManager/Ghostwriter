@@ -124,7 +124,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             except KeyError:
                 pass
 
-        par_classes = set(el.attrs.get("class", "").split())
+        par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
         if "center" in par_classes:
