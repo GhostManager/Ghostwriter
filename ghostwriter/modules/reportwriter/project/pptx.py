@@ -91,6 +91,7 @@ class ProjectSlidesMixin:
 
         finding_body_shape = shapes.placeholders[1]
         self.process_rich_text_pptx(
+            "project.note",
             self.data["project"]["note"],
             slide=slide,
             shape=finding_body_shape,

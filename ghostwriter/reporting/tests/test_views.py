@@ -2256,6 +2256,7 @@ class GenerateReportTests(TestCase):
         self.assertEqual(
             response.get("Content-Type"),
             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            repr(response) + repr([str(msg) for msg in get_messages(response.wsgi_request)]),
         )
 
     def test_view_all_uri_exists_at_desired_location(self):
@@ -2338,7 +2339,7 @@ class GenerateReportTests(TestCase):
         response = self.client_mgr.get(self.docx_uri)
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(
-            str(messages[0]), "Your selected Word template could not be found on the server – try uploading it again."
+            str(messages[0]), "Error: Template document file could not be found - try re-uploading it"
         )
 
         self.report.docx_template = good_template
@@ -2473,7 +2474,7 @@ class ReportTemplateFilterTests(TestCase):
 
     def test_regex_search(self):
         test_string = "This is a test string. It contains the word 'test'."
-        result = regex_search(test_string, "^(.*?)\.")
+        result = regex_search(test_string, r"^(.*?)\.")
         self.assertEqual(result, "This is a test string.")
 
     def test_filter_tags(self):
