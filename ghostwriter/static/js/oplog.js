@@ -23,7 +23,8 @@ $(document).ready(function() {
     const oplog_entry_extra_fields_spec = JSON.parse(document.getElementById('oplog_entry_extra_fields_spec').textContent);
 
     const $table = $('#oplogTable tbody');
-    const oplog_id = parseInt($table.attr("oplog-id"));
+    const oplog_name = $table.attr("data-oplog-name");
+    const oplog_id = parseInt($table.attr("data-oplog-id"));
     const $tableHeader = $('#oplogTableHeader');
     const $checkboxList = $('#checkboxList');
     const $connectionStatus = $('#connectionStatus');
@@ -507,15 +508,10 @@ $(document).ready(function() {
 
     // Download the log as a CSV file when the user clicks the "Export Entries" menu item
     $('#exportEntries').click(function () {
-        let filename = generateDownloadName('{{ oplog.name }}-log-export-{{ id }}.csv');
-        let export_url = "{% url 'oplog:oplog_export' oplog.pk %}";
+        let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
+        let export_url = $table.attr("data-oplog-export-url");
         download(export_url, filename);
     })
-
-    // Open import form page when user clicks the "Import Entries" menu item
-    $('#importNewEntries').click(function () {
-        window.open('{% url "oplog:oplog_import" %}', '_self');
-    });
 
     // Create event to filter results in real-time as search textbox is updated
     let filter_debounce_timeout_id = null;
@@ -579,8 +575,9 @@ $(document).ready(function() {
 
         if(event.ctrlKey && event.keyCode === 83) {
             event.preventDefault();
-            let filename = generateDownloadName('{{ oplog.name }}-log-export-{{ id }}.csv');
-            download(`/oplog/api/entries?export=csv&&oplog_id={{ oplog.pk }}`, filename);
+            let filename = generateDownloadName( oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
+            let export_url = $table.attr("data-oplog-export-url");
+            download(export_url + oplog_id.toString(), filename);
         }
     });
 });
