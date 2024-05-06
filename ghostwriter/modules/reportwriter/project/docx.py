@@ -29,80 +29,82 @@ class ExportProjectDocx(ExportDocxBase, ExportProjectBase):
         """
 
         # Client
-        context["client"]["note_rt"] = base_render(context["client"]["note"])
-        context["client"]["address_rt"] = base_render(context["client"]["address"])
-        process_extra_fields(context["client"]["extra_fields"], Client, base_render)
+        context["client"]["note_rt"] = base_render(f"the note of client {context['client']['name']}", context["client"]["note"])
+        context["client"]["address_rt"] = base_render(f"the address of client {context['client']['name']}", context["client"]["address"])
+        process_extra_fields(f"client {context['client']['name']}", context["client"]["extra_fields"], Client, base_render)
 
         # Assignments
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = base_render(assignment["note"])
+                    assignment["note_rt"] = base_render(f"the note of person {assignment['name']}", assignment["note"])
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = base_render(contact["note"])
+                    contact["note_rt"] = base_render(f"the note of contact {contact['name']}", contact["note"])
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = base_render(objective["description"])
+                    objective["description_rt"] = base_render(f"the description of objective {objective['objective']}", objective["description"])
 
         # Scope Lists
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = base_render(scope_list["description"])
+                    scope_list["description_rt"] = base_render(f"the description of scope {scope_list['name']}", scope_list["description"])
 
         # Targets
         for target in context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = base_render(target["note"])
+                    target["note_rt"] = base_render(f"the note of target {target['ip_address']}", target["note"])
 
         # Deconfliction Events
         for event in context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = base_render(event["description"])
+                    event["description_rt"] = base_render(f"the description of deconfliction event {event['title']}", event["description"])
 
         # White Cards
         for card in context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = base_render(card["description"])
+                    card["description_rt"] = base_render(f"the descriptio of whitecard {card['title']}", card["description"])
 
         # Infrastructure
         for asset_type in context["infrastructure"]:
             for asset in context["infrastructure"][asset_type]:
                 if isinstance(asset, dict):
                     if asset["note"]:
-                        asset["note_rt"] = base_render(asset["note"])
+                        asset["note_rt"] = base_render(f"the note of {asset_type} {asset.get('name') or asset['domain']}",
+                                                       asset["note"])
+
         for asset in context["infrastructure"]["domains"]:
-            process_extra_fields(asset["extra_fields"], Domain, base_render)
+            process_extra_fields(f"domain {asset['domain']}", asset["extra_fields"], Domain, base_render)
         for asset in context["infrastructure"]["servers"]:
-            process_extra_fields(asset["extra_fields"], StaticServer, base_render)
+            process_extra_fields(f"server {asset['name']}", asset["extra_fields"], StaticServer, base_render)
 
         # Logs
         for log in context["logs"]:
             for entry in log["entries"]:
-                process_extra_fields(entry["extra_fields"], OplogEntry, base_render)
+                process_extra_fields(f"log entry {entry['description']} of log {log['name']}", entry["extra_fields"], OplogEntry, base_render)
 
     def run(self) -> io.BytesIO:
         context = self.data
         base_context = self.jinja_richtext_base_context()
 
-        def base_render(text):
-            return self.process_rich_text_docx(text, base_context, {})
+        def base_render(name, text):
+            return self.process_rich_text_docx(name, text, base_context, {})
 
         # Fields on Project
         ExportProjectDocx.process_projects_richtext(context, base_render, self.process_extra_fields)
 
         # Project
-        context["project"]["note_rt"] = base_render(context["project"]["note"])
-        self.process_extra_fields(context["project"]["extra_fields"], Project, base_render)
+        context["project"]["note_rt"] = base_render("project.note", context["project"]["note"])
+        self.process_extra_fields(f"project {context['project']['name']}", context["project"]["extra_fields"], Project, base_render)
 
         return super().run()
