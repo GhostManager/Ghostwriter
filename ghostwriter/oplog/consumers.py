@@ -7,13 +7,17 @@ from copy import deepcopy
 from datetime import datetime
 
 # Django Imports
+from django.db.models import TextField, Func, Subquery, OuterRef, Value, F
+from django.db.models.functions import Cast
+from django.db.models.expressions import CombinedExpression
 from django.utils.timezone import make_aware
-from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 
 # 3rd Party Libraries
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from rest_framework.utils.serializer_helpers import ReturnList
+from taggit.models import TaggedItem
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import verify_access
@@ -96,26 +100,68 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_log_entries(self, oplog_id: int, offset: int, user: User, filter: str | None = None) -> ReturnList:
-        serialized_entries = []
         try:
             oplog = Oplog.objects.get(pk=oplog_id)
-            if verify_access(user, oplog.project):
-                entries = OplogEntry.objects.filter(oplog_id=oplog_id)
-                if filter:
-                    query = SearchQuery(filter, search_type="websearch")
-                    entries = entries.annotate(
-                        search=OplogEntry.SEARCH_VECTOR,
-                        rank=SearchRank(OplogEntry.SEARCH_VECTOR, query),
-                    ).filter(search=query).order_by("-rank")
-                else:
-                    entries = entries.order_by("-start_date")
-                entries = entries[offset : offset + 100]
-                serialized_entries = OplogEntrySerializer(entries, many=True).data
         except Oplog.DoesNotExist:
             logger.warning("Failed to get log entries for log ID %s because that log ID does not exist.", oplog_id)
-            serialized_entries = OplogEntrySerializer([], many=True).data
+            return OplogEntrySerializer([], many=True).data
 
-        return serialized_entries
+        if not verify_access(user, oplog.project):
+            return OplogEntrySerializer([], many=True).data
+
+        entries = OplogEntry.objects.filter(oplog_id=oplog_id)
+        if filter:
+            # Build search vector.
+            # Internally SearchVector just concats each argument with " " in between each argument
+            # and feeds it to the PostgreSQL tokenizer.
+
+            # Built-in fields
+            vector_args = [
+                "entry_identifier",
+                "source_ip",
+                "dest_ip",
+                "tool",
+                "user_context",
+                "command",
+                "description",
+                "output",
+                "comments",
+                "operator_name",
+            ]
+
+            # Subquery to fetch tags
+            vector_args.append(Subquery(
+                TaggedItem.objects.filter(
+                    content_type__app_label=OplogEntry._meta.app_label,
+                    content_type__model=OplogEntry._meta.model_name,
+                    object_id=OuterRef("pk"),
+                ).annotate(
+                    all_tags=Func(F("tag__name"), Value(" "), function="STRING_AGG")
+                ).values("all_tags")
+            ))
+
+            # JSON operations to fetch extra fields
+            for spec in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
+                field = CombinedExpression(
+                    F("extra_fields"),
+                    "->>",
+                    Value(spec.internal_name),
+                )
+                vector_args.append(Cast(field, TextField()))
+
+            # Build filter
+            ps_filter = " & ".join("'" + term.replace("'", "''").replace("\\", "\\\\") + "':*" for term in filter.split())
+
+            vector = SearchVector(*vector_args, config="english")
+            query = SearchQuery(ps_filter, config="english", search_type="raw")
+            entries = entries.annotate(
+                search=vector,
+                rank=SearchRank(vector, query),
+            ).filter(search=query).order_by("-rank")
+        else:
+            entries = entries.order_by("-start_date")
+        entries = entries[offset : offset + 100]
+        return OplogEntrySerializer(entries, many=True).data
 
     async def send_oplog_entry(self, event):
         await self.send(text_data=event["text"])
