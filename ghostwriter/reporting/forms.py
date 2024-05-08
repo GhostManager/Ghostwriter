@@ -28,6 +28,7 @@ from ghostwriter.api.utils import get_client_list, get_project_list
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import (
@@ -53,6 +54,15 @@ class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         fields = "__all__"
+        field_classes = {
+            "description": JinjaRichTextField,
+            "impact": JinjaRichTextField,
+            "mitigation": JinjaRichTextField,
+            "replication_steps": JinjaRichTextField,
+            "host_detection_techniques": JinjaRichTextField,
+            "references": JinjaRichTextField,
+            "finding_guidance": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -369,6 +379,15 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             "finding_guidance",
             "added_as_blank",
         )
+        field_classes = {
+            "description": JinjaRichTextField,
+            "impact": JinjaRichTextField,
+            "mitigation": JinjaRichTextField,
+            "replication_steps": JinjaRichTextField,
+            "host_detection_techniques": JinjaRichTextField,
+            "references": JinjaRichTextField,
+            "finding_guidance": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -617,6 +636,9 @@ class EvidenceForm(forms.ModelForm):
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
         }
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         self.is_modal = kwargs.pop("is_modal", None)
@@ -727,6 +749,9 @@ class FindingNoteForm(forms.ModelForm):
     class Meta:
         model = FindingNote
         fields = ("note",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -767,6 +792,9 @@ class LocalFindingNoteForm(forms.ModelForm):
     class Meta:
         model = LocalFindingNote
         fields = ("note",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1069,6 +1097,9 @@ class ObservationForm(forms.ModelForm):
     class Meta:
         model = Observation
         fields = "__all__"
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1121,6 +1152,9 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
             "position",
             "added_as_blank",
         )
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

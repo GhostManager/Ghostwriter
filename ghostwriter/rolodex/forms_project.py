@@ -31,6 +31,7 @@ from crispy_forms.layout import (
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import (
     Deconfliction,
     Project,
@@ -501,6 +502,9 @@ class ProjectAssignmentForm(forms.ModelForm):
                 format="%Y-%m-%d",
             ),
         }
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -618,6 +622,9 @@ class ProjectObjectiveForm(forms.ModelForm):
                 format="%Y-%m-%d",
             ),
         }
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -723,6 +730,9 @@ class ProjectScopeForm(forms.ModelForm):
     class Meta:
         model = ProjectScope
         fields = ("name", "scope", "description", "disallowed", "requires_caution")
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -818,6 +828,9 @@ class ProjectTargetForm(forms.ModelForm):
             "hostname",
             "note",
         )
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -894,6 +907,9 @@ class WhiteCardForm(forms.ModelForm):
     class Meta:
         model = WhiteCard
         exclude = ("project",)
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1150,6 +1166,9 @@ class ProjectForm(forms.ModelForm):
                 format="%Y-%m-%d",
             ),
         }
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1319,6 +1338,9 @@ class DeconflictionForm(forms.ModelForm):
             "created_at",
             "project",
         )
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

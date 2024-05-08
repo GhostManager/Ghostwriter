@@ -26,6 +26,7 @@ from ghostwriter.commandcenter.forms import ExtraFieldsField
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import Client, ClientContact, ClientNote
 
 # Number of "extra" formsets created by default
@@ -107,6 +108,9 @@ class ClientContactForm(forms.ModelForm):
     class Meta:
         model = ClientContact
         exclude = ("client",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -209,6 +213,10 @@ class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
         fields = "__all__"
+        field_classes = {
+            "note": JinjaRichTextField,
+            "address": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
