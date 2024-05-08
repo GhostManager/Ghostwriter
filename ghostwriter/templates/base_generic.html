@@ -579,15 +579,15 @@
   {% for message in messages %}
     {% if 'no-toast' not in message.tags %}
       {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-        displayToastTop({type: 'success', string: '{{ message }}'});
+        displayToastTop({type: 'success', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-        displayToastTop({type: 'warning', string: '{{ message }}'});
+        displayToastTop({type: 'warning', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-        displayToastTop({type: 'error', string: '{{ message }}'});
+        displayToastTop({type: 'error', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-        displayToastTop({type: 'info', string: '{{ message }}'});
+        displayToastTop({type: 'info', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
-        displayToastTop({type: 'info', string: '{{ message }}'});
+        displayToastTop({type: 'info', string: '{{ message|escapejs }}'});
       {% endif %}
     {% endif %}
   {% endfor %}
