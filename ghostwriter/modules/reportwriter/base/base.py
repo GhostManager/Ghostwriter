@@ -10,6 +10,7 @@ import jinja2
 from django.db.models import Model
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
+from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.reportwriter import jinja_funcs, prepare_jinja2_env
 
 
@@ -138,12 +139,15 @@ class ExportBase:
         the jinja data and appending the extension.
         """
 
-        template = self.jinja_env.from_string(filename_template)
         data = self.data.copy()
         data["company_name"] = CompanyInformation.get_solo().company_name
         data["now"] = datetime.now()
 
-        report_name = template.render(data)
+        report_name = ReportExportError.map_jinja2_render_errors(
+            lambda: self.jinja_env.from_string(filename_template).render(data),
+            "the template filename"
+        )
+
         report_name = _replace_filename_chars(report_name)
         if ext is None:
             ext = self.extension()
@@ -176,3 +180,44 @@ def _replace_filename_chars(name):
     """Remove illegal characters from the report name."""
     name = name.replace("–", "-")
     return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", name)
+
+
+class ReportExportError(Exception):
+    """
+    User-facing error related to report generation
+    """
+    def __init__(self, display_text: str, location: str | None = None):
+        self.display_text = display_text
+        self.location = location
+
+    def __str__(self) -> str:
+        return self.display_text
+
+    def at_error(self) -> str:
+        """
+        If the error has a `location` field, returns a string `" at {the_location}"`, else returns the empty string.
+        """
+        if self.location is None:
+            return ""
+        return f" at {self.location}"
+
+    @classmethod
+    def map_jinja2_render_errors(cls, callback, location: str | None = None):
+        """
+        Runs `callback` with no arguments, catching any Jinja-related exceptions and translating them to `ReportSyntaxError`s
+        while noting the `location`.
+        """
+        try:
+            return callback()
+        except jinja2.TemplateSyntaxError as err:
+            raise ReportExportError(f"Template syntax error: {err}", location) from err
+        except jinja2.UndefinedError as err:
+            raise ReportExportError(f"Template syntax error: {err}", location) from err
+        except InvalidFilterValue as err:
+            raise ReportExportError(f"Invalid filter value: {err.message}", location) from err
+        except jinja2.TemplateError as err:
+            raise ReportExportError(f"Template error: {err}", location) from err
+        except ZeroDivisionError as err:
+            raise ReportExportError("Template attempted to divide by zero", location) from err
+        except TypeError as err:
+            raise ReportExportError(f"Invalid template operation: {err}", location) from err

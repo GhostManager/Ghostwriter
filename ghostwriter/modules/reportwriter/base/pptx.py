@@ -8,7 +8,6 @@ from typing import List, Tuple
 from django.conf import settings
 from django.utils.dateformat import format as dateformat
 from bs4 import BeautifulSoup
-from jinja2 import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
 from pptx import Presentation
 from pptx.parts.presentation import PresentationPart
 from pptx.exc import PackageNotFoundError
@@ -17,8 +16,7 @@ from pptx.oxml.ns import nsdecls
 from pptx.enum.text import MSO_AUTO_SIZE
 
 from ghostwriter.commandcenter.models import CompanyInformation
-from ghostwriter.modules.exceptions import InvalidFilterValue
-from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.base import ExportBase, ReportExportError
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
 
 logger = logging.getLogger(__name__)
@@ -58,18 +56,8 @@ class ExportBasePptx(ExportBase):
 
         try:
             self.ppt_presentation = Presentation(template_loc)
-        except ValueError:
-            logger.exception(
-                "Failed to load the provided template document because it is not a PowerPoint file: %s",
-                template_loc,
-            )
-            raise
-        except PackageNotFoundError:
-            logger.exception(
-                "Failed to load the provided template document because file could not be found: %s",
-                template_loc,
-            )
-            raise
+        except PackageNotFoundError as err:
+            raise ReportExportError("Template document file could not be found - try re-uploading it") from err
         except Exception:
             logger.exception(
                 "Failed to load the provided template document for unknown reason: %s",
@@ -79,22 +67,19 @@ class ExportBasePptx(ExportBase):
 
         self.company_config = CompanyInformation.get_solo()
 
-    def process_rich_text_pptx(self, text, slide, shape, template_vars, evidences):
+    def process_rich_text_pptx(self, name, text, slide, shape, template_vars, evidences):
         """
         Converts HTML from the TinyMCE rich text editor and inserts it into the passed in slide and shape
         """
-        text = self.preprocess_rich_text(text, template_vars)
-        try:
-            HtmlToPptxWithEvidence.run(
-                text,
+        ReportExportError.map_jinja2_render_errors(
+            lambda: HtmlToPptxWithEvidence.run(
+                self.preprocess_rich_text(text, template_vars),
                 slide=slide,
                 shape=shape,
                 evidences=evidences,
-            )
-        except:
-            # Log input text to help diagnose errors
-            logger.warning("Input text: %r", text)
-            raise
+            ),
+            name
+        )
 
     def process_footers(self):
         """
@@ -157,21 +142,9 @@ class ExportBasePptx(ExportBase):
                 warnings.append(
                     "Template can be used, but it has slides when it should be empty (see documentation)"
                 )
-        except TemplateSyntaxError as error:
-            logger.error("Template syntax error: %s", error)
-            errors.append(f"Template syntax error: {error}")
-        except UndefinedError as error:
-            logger.error("Template undefined variable error: %s", error)
-            errors.append(f"Template syntax error: {error}")
-        except InvalidFilterValue as error:
-            logger.error("Invalid value provided to filter: %s", error)
-            errors.append(f"Invalid filter value: {error.message}")
-        except TypeError as error:
-            logger.exception("TypeError during template linting")
-            errors.append(f": {error}")
-        except TemplateRuntimeError as error:
-            logger.error("Invalid filter or expression: %s", error)
-            errors.append(f"Invalid filter or expression: {error}")
+        except ReportExportError as error:
+            logger.exception("Template failed linting%s: %s", error.at_error(), error)
+            errors.append(f"Linting failed{error.at_error()}: {error}")
         except Exception:
             logger.exception("Template failed linting")
             errors.append("Template rendering failed unexpectedly")

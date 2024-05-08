@@ -9,11 +9,10 @@ from docx.opc.exceptions import PackageNotFoundError
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt
-from jinja2.exceptions import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
+from docx.image.exceptions import UnrecognizedImageError
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
-from ghostwriter.modules.exceptions import InvalidFilterValue
-from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.base import ExportBase, ReportExportError
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
 
 logger = logging.getLogger(__name__)
@@ -69,12 +68,9 @@ class ExportDocxBase(ExportBase):
         # Create Word document writer using the specified template file
         try:
             self.word_doc = DocxTemplate(template_loc)
-        except PackageNotFoundError:
-            logger.exception(
-                "Failed to load the provided template document because file could not be found: %s",
-                template_loc,
-            )
-            raise
+        except PackageNotFoundError as err:
+            logger.exception("Failed to load the provided template document: %s", template_loc)
+            raise ReportExportError("Template document file could not be found - try re-uploading it") from err
         except Exception:
             logger.exception("Failed to load the provided template document: %s", template_loc)
             raise
@@ -98,7 +94,14 @@ class ExportDocxBase(ExportBase):
     def run(self) -> io.BytesIO:
         self.create_styles()
 
-        self.word_doc.render(self.data, self.jinja_env, autoescape=True)
+        try:
+            ReportExportError.map_jinja2_render_errors(lambda: self.word_doc.render(self.data, self.jinja_env, autoescape=True), "the DOCX template")
+        except UnrecognizedImageError as err:
+            raise ReportExportError(f"Could not load an image: {err}", "the DOCX template") from err
+        except PackageNotFoundError as err:
+            raise ReportExportError("The word template could not be found on the server – try uploading it again.", "the DOCX template") from err
+        except FileNotFoundError as err:
+            raise ReportExportError("An evidence file was missing – try uploading it again.", "the DOCX template") from err
         self.render_properties()
 
         out = io.BytesIO()
@@ -176,20 +179,21 @@ class ExportDocxBase(ExportBase):
             template_src = getattr(self.word_doc.core_properties, attr)
             if not template_src:
                 continue
-            template = self.jinja_env.from_string(template_src)
-            out = template.render(self.data)
+
+            out = ReportExportError.map_jinja2_render_errors(
+                lambda: self.jinja_env.from_string(template_src).render(self.data),
+                f"DOCX property {attr}"
+            )
             setattr(self.word_doc.core_properties, attr, out)
 
-    def process_rich_text_docx(self, text, template_vars, evidences):
+    def process_rich_text_docx(self, name, text, template_vars, evidences):
         """
         Converts HTML from the TinyMCE rich text editor to a Word subdoc.
         """
-        text = self.preprocess_rich_text(text, template_vars)
-        doc = self.word_doc.new_subdoc()
-        try:
-            HtmlToDocxWithEvidence.run(
-                text,
-                doc=doc,
+        ReportExportError.map_jinja2_render_errors(
+            lambda: HtmlToDocxWithEvidence.run(
+                self.preprocess_rich_text(text, template_vars),
+                doc=self.word_doc.new_subdoc(),
                 p_style=self.p_style,
                 evidences=evidences,
                 figure_label=self.label_figure,
@@ -197,14 +201,11 @@ class ExportDocxBase(ExportBase):
                 title_case_captions=self.title_case_captions,
                 title_case_exceptions=self.title_case_exceptions,
                 border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
-            )
-        except:
-            # Log input text to help diagnose errors
-            logger.warning("Input text: %r", text)
-            raise
-        return doc
+            ),
+            name
+        )
 
-    def process_extra_fields(self, extra_fields, model, render_rich_text):
+    def process_extra_fields(self, name, extra_fields, model, render_rich_text):
         """
         Process the `extra_fields` dict, filling missing extra fields with empty values and rendering
         rich text
@@ -214,7 +215,10 @@ class ExportDocxBase(ExportBase):
             if field.internal_name not in extra_fields:
                 extra_fields[field.internal_name] = field.empty_value()
             if field.type == "rich_text":
-                extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
+                extra_fields[field.internal_name] = render_rich_text(
+                    f"extra field {field.internal_name} of {name}",
+                    str(extra_fields[field.internal_name]),
+                )
 
     @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
@@ -255,21 +259,9 @@ class ExportDocxBase(ExportBase):
 
             for var in exporter.jinja_undefined_variables:
                 warnings.append("Undefined variable: {!r}".format(var))
-        except TemplateSyntaxError as error:
-            logger.error("Template syntax error: %s", error)
-            errors.append(f"Template syntax error: {error}")
-        except UndefinedError as error:
-            logger.exception("Template undefined variable error: %s", error)
-            errors.append(f"Template syntax error: {error}")
-        except InvalidFilterValue as error:
-            logger.error("Invalid value provided to filter: %s", error)
-            errors.append(f"Invalid filter value: {error.message}")
-        except TypeError as error:
-            logger.exception("TypeError during template linting")
-            errors.append(f": {error}")
-        except TemplateRuntimeError as error:
-            logger.error("Invalid filter or expression: %s", error)
-            errors.append(f"Invalid filter or expression: {error}")
+        except ReportExportError as error:
+            logger.exception("Template failed linting%s: %s", error.at_error(), error)
+            errors.append(f"Linting failed{error.at_error()}: {error}")
         except Exception:
             logger.exception("Template failed linting")
             errors.append("Template rendering failed unexpectedly")

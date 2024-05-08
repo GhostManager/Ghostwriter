@@ -95,6 +95,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             if observation.get("description", "").strip():
                 observation_context = self.jinja_richtext_base_context()
                 self.process_rich_text_pptx(
+                    f"the description of observation {observation['title']}",
                     observation["description"],
                     slide=observation_slide,
                     shape=observation_body_shape,
@@ -192,6 +193,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
                 finding_context = self.jinja_richtext_finding_context(base_context, finding)
                 finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
                 self.process_rich_text_pptx(
+                    f"the description of finding `{finding['title']}`",
                     finding["description"],
                     slide=finding_slide,
                     shape=finding_body_shape,

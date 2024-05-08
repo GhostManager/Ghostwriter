@@ -764,8 +764,6 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
             del finding_dict["tags"]
             del finding_dict["tagged_items"]
 
-            del finding_dict["extra_fields"]
-
             report_link = ReportFindingLink(
                 report=report,
                 assigned_to=self.user_obj,

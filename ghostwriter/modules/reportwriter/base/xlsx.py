@@ -3,7 +3,7 @@ import io
 
 from xlsxwriter.workbook import Workbook
 
-from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.base import ExportBase, ReportExportError
 from ghostwriter.modules.reportwriter.richtext.plain_text import html_to_plain_text
 
 
@@ -34,13 +34,15 @@ class ExportXlsxBase(ExportBase):
     def extension(cls) -> str:
         return "xlsx"
 
-    def process_rich_text_xlsx(self, html, template_vars, evidences) -> str:
+    def process_rich_text_xlsx(self, name, html, template_vars, evidences) -> str:
         """
         Converts HTML from the TinyMCE rich text editor and returns a plain string
         for use in XLSX cells
         """
-        text = self.preprocess_rich_text(html, template_vars)
-        return html_to_plain_text(text, evidences)
+        return ReportExportError.map_jinja2_render_errors(
+            lambda: html_to_plain_text(self.preprocess_rich_text(html, template_vars), evidences),
+            name,
+        )
 
     def run(self) -> io.BytesIO:
         self.workbook.close()
