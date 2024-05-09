@@ -7,6 +7,7 @@ from django import forms
 from django.db import models
 
 # 3rd Party Libraries
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
@@ -353,7 +354,7 @@ EXTRA_FIELD_TYPES = {
     ),
     "rich_text": ExtraFieldType(
         display_name="Formatted Text",
-        form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
+        form_field=lambda *args, **kwargs: JinjaRichTextField(required=False, *args, **kwargs),
         form_widget=forms.widgets.Textarea,
         from_str=lambda s: s,
         empty_value=lambda: "",

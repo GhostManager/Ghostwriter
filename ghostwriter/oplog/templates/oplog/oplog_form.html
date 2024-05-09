@@ -28,11 +28,11 @@
         <script>
             {% for field in form %}
                 {% for error in field.errors %}
-                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                    displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
                 {% endfor %}
             {% endfor %}
             {% for error in form.non_field_errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
             {% endfor %}
         </script>
     {% endif %}

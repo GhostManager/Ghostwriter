@@ -27,6 +27,7 @@ from crispy_forms.layout import (
 from ghostwriter.api.utils import get_client_list
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
     AuxServerAddress,
@@ -201,6 +202,9 @@ class ServerForm(forms.ModelForm):
     class Meta:
         model = StaticServer
         exclude = ("last_used_by",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -301,6 +305,9 @@ class TransientServerForm(forms.ModelForm):
     class Meta:
         model = TransientServer
         exclude = ("project",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -376,6 +383,9 @@ class ServerNoteForm(forms.ModelForm):
     class Meta:
         model = ServerNote
         fields = ("note",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
