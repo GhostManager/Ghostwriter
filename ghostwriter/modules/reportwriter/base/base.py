@@ -11,7 +11,8 @@ from django.db.models import Model
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.exceptions import InvalidFilterValue
-from ghostwriter.modules.reportwriter import jinja_funcs, prepare_jinja2_env
+from ghostwriter.modules.reportwriter import prepare_jinja2_env
+from ghostwriter.modules.reportwriter.base import rich_text_template
 
 
 class ExportBase:
@@ -73,32 +74,7 @@ class ExportBase:
         Does jinja and `{{.item}}` substitutions on rich text, in preparation for feeding into the
         `BaseHtmlToOOXML` subclass.
         """
-
-        if not text:
-            return ""
-
-        # Replace old `{{.item}}`` syntax with jinja templates or elements to replace
-        def replace_old_tag(match: re.Match):
-            contents = match.group(1).strip()
-            # These will be swapped out when parsing the HTML
-            if contents.startswith("ref "):
-                return jinja_funcs.ref(contents[4:].strip())
-            elif contents == "caption":
-                return jinja_funcs.caption("")
-            elif contents.startswith("caption "):
-                return jinja_funcs.caption(contents[8:].strip())
-            return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
-
-        text_old_dot_subbed = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
-
-        text_pagebrea_subbed = text_old_dot_subbed.replace(
-            "<p><!-- pagebreak --></p>", '<br data-gw-pagebreak="true" />'
-        )
-
-        # Run template
-        template = self.jinja_env.from_string(text_pagebrea_subbed)
-        text_rendered = template.render(template_vars)
-
+        text_rendered = rich_text_template(self.jinja_env, text).render(template_vars)
         # Filter out XML-incompatible characters
         text_char_filtered = "".join(c for c in text_rendered if _valid_xml_char_ordinal(c))
         return text_char_filtered
