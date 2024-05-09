@@ -190,10 +190,11 @@ class ExportDocxBase(ExportBase):
         """
         Converts HTML from the TinyMCE rich text editor to a Word subdoc.
         """
+        doc = self.word_doc.new_subdoc()
         ReportExportError.map_jinja2_render_errors(
             lambda: HtmlToDocxWithEvidence.run(
                 self.preprocess_rich_text(text, template_vars),
-                doc=self.word_doc.new_subdoc(),
+                doc=doc,
                 p_style=self.p_style,
                 evidences=evidences,
                 figure_label=self.label_figure,
@@ -204,6 +205,7 @@ class ExportDocxBase(ExportBase):
             ),
             name
         )
+        return doc
 
     def process_extra_fields(self, name, extra_fields, model, render_rich_text):
         """
