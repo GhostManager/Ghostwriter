@@ -54,7 +54,7 @@ from ghostwriter.commandcenter.forms import SingleExtraFieldForm
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.modules.reportwriter.base.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx

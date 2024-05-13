@@ -16,7 +16,8 @@ from pptx.oxml.ns import nsdecls
 from pptx.enum.text import MSO_AUTO_SIZE
 
 from ghostwriter.commandcenter.models import CompanyInformation
-from ghostwriter.modules.reportwriter.base.base import ExportBase, ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
 
 logger = logging.getLogger(__name__)

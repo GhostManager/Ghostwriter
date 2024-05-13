@@ -3,7 +3,8 @@ import io
 
 from xlsxwriter.workbook import Workbook
 
-from ghostwriter.modules.reportwriter.base.base import ExportBase, ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.richtext.plain_text import html_to_plain_text
 
 
