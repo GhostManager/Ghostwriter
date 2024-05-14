@@ -12,7 +12,8 @@ from docx.shared import Inches, Pt
 from docx.image.exceptions import UnrecognizedImageError
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
-from ghostwriter.modules.reportwriter.base.base import ExportBase, ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
 
 logger = logging.getLogger(__name__)

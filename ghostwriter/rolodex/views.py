@@ -32,7 +32,7 @@ from ghostwriter.api.utils import (
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.modules.reportwriter.base.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
 from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter

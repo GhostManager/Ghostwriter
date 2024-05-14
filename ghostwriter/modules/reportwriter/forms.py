@@ -4,7 +4,7 @@ from django import forms
 import jinja2
 
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import rich_text_template
+from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
 
 
 class JinjaRichTextField(forms.CharField):
@@ -24,3 +24,5 @@ class JinjaRichTextField(forms.CharField):
         except jinja2.TemplateSyntaxError as e:
             line = value.splitlines()[e.lineno - 1]
             raise forms.ValidationError(f"{e} at `{line}`") from e
+        except ReportExportError as e:
+            raise forms.ValidationError(str(e)) from e
