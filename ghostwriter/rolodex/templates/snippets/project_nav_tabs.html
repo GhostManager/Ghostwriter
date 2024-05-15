@@ -36,11 +36,6 @@
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_documents" class="nav-link tab-icon folder-icon" data-toggle="tab" href="#documents">
-        Reporting
-    </a>
-</li>
-<li class="nav-item">
     <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
         Infrastructure
     </a>
@@ -48,6 +43,11 @@
 <li class="nav-item">
     <a id="id_deconflictions" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#deconflictions">
         Deconflictions <span class="badge badge-pill badge-light">{{ project.deconfliction_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_documents" class="nav-link tab-icon folder-icon" data-toggle="tab" href="#documents">
+        Reporting
     </a>
 </li>
 {% if project_extra_fields_spec %}
