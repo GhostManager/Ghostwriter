@@ -546,7 +546,7 @@
                 <td
                   class="align-middle icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
                   <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{ evidence_file.friendly_name|bleach }} ({{ evidence_file|get_file_basename|bleach }})
+                    {{ evidence_file.friendly_name|bleach }} ({{ evidence_file.filename|bleach }})
                   </a>
                 </td>
                 <td class="align-middle">
