@@ -1,4 +1,5 @@
 # Standard Libraries
+from binascii import hexlify
 import logging
 
 # Django Imports
@@ -53,5 +54,6 @@ class UserModelTests(TestCase):
         self.assertEqual(user.get_full_name(), "Christopher Maddalena")
 
     def test_get_clean_username_property(self):
+        cleaned = hexlify("benny@ghostwriter.wiki".encode()).decode()
         user = UserFactory(username="benny@ghostwriter.wiki")
-        self.assertEqual(user.get_clean_username(), "bennyghostwriterwiki")
+        self.assertEqual(user.get_clean_username(), cleaned)

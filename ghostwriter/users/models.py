@@ -1,5 +1,8 @@
 """This contains all the database models used by the Users application."""
 
+# Standard Libraries
+from binascii import hexlify
+
 # Django Imports
 from django.contrib.auth.models import AbstractUser
 from django.db.models import BooleanField, CharField
@@ -108,8 +111,8 @@ class User(AbstractUser):
         return self.name
 
     def get_clean_username(self):
-        """Return a clean username with special characters replaced for WebSockets."""
-        return self.username.replace("@", "").replace(".", "")
+        """Return a hex-encoded username to ensure the username is safe for WebSockets channel names."""
+        return hexlify(self.username.encode()).decode()
 
     def save(self, *args, **kwargs):
         # Align Django's permissions flags with the chosen role
