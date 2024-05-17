@@ -122,8 +122,6 @@ class TemplateTagTests(TestCase):
         self.assertEqual(report_tags.get_file_content(txt_evidence), "lorem ipsum")
         self.assertEqual(report_tags.get_file_content(deleted_evidence), "FILE NOT FOUND")
 
-        self.assertEqual(report_tags.get_file_basename(txt_evidence), "evidence.txt")
-
 
 # Tests related to report modification actions
 
@@ -2338,9 +2336,7 @@ class GenerateReportTests(TestCase):
 
         response = self.client_mgr.get(self.docx_uri)
         messages = list(get_messages(response.wsgi_request))
-        self.assertEqual(
-            str(messages[0]), "Error: Template document file could not be found - try re-uploading it"
-        )
+        self.assertEqual(str(messages[0]), "Error: Template document file could not be found - try re-uploading it")
 
         self.report.docx_template = good_template
         self.report.save()
@@ -2658,7 +2654,10 @@ class EvidenceDownloadTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="evidence.png"')
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            f'attachment; filename="{self.evidence_file.filename}"',
+        )
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)

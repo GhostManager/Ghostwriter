@@ -513,12 +513,14 @@ class EvidenceModelTests(TestCase):
             evidence.get_absolute_url()
         except:
             self.fail("Evidence.get_absolute_url() raised an exception")
+        evidence.delete()
 
     def test_file_extension_validator(self):
         evidence = EvidenceOnFindingFactory(
-            document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum")
+            document=factory.django.FileField(filename="ext_test.PnG", data=b"lorem ipsum")
         )
-        self.assertEqual(evidence.filename, "evidence.PnG")
+        self.assertEqual(evidence.filename, "ext_test.PnG")
+        evidence.delete()
 
     def test_prop_filename(self):
         evidence = EvidenceOnFindingFactory()
