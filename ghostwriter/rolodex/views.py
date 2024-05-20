@@ -1218,7 +1218,6 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         contacts = ctx["contacts"]
 
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, ``BaseClientContactInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
@@ -1308,7 +1307,6 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
         contacts = ctx["contacts"]
 
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, ``BaseClientContactInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation

@@ -146,50 +146,50 @@ class Finding(models.Model):
     )
     description = models.TextField(
         "Description",
-        null=True,
         blank=True,
+        default="",
         help_text="Provide a description for this finding that introduces it",
     )
     impact = models.TextField(
         "Impact",
-        help_text="Describe the impact of this finding on the affected entities",
-        null=True,
         blank=True,
+        default="",
+        help_text="Describe the impact of this finding on the affected entities",
     )
     mitigation = models.TextField(
         "Mitigation",
-        null=True,
         blank=True,
+        default="",
         help_text="Describe how this finding can be resolved or addressed",
     )
     replication_steps = models.TextField(
         "Replication Steps",
-        null=True,
         blank=True,
+        default="",
         help_text="Provide an explanation for how the reader may reproduce this finding",
     )
     host_detection_techniques = models.TextField(
         "Host Detection Techniques",
-        null=True,
         blank=True,
+        default="",
         help_text="Describe how this finding can be detected on an endpoint - leave blank if this does not apply",
     )
     network_detection_techniques = models.TextField(
         "Network Detection Techniques",
-        null=True,
         blank=True,
+        default="",
         help_text="Describe how this finding can be detected on a network - leave blank if this does not apply",
     )
     references = models.TextField(
         "References",
-        null=True,
         blank=True,
+        default="",
         help_text="Provide solid references for this finding, such as links to tools and white papers",
     )
     finding_guidance = models.TextField(
         "Finding Guidance",
-        null=True,
         blank=True,
+        default="",
         help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
     cvss_score = models.FloatField(
@@ -201,7 +201,7 @@ class Finding(models.Model):
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
-        null=True,
+        default="",
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
@@ -274,7 +274,6 @@ class ReportTemplate(models.Model):
     document = models.FileField(storage=template_storage, blank=True)
     name = models.CharField(
         "Template Name",
-        null=True,
         max_length=255,
         help_text="Provide a name to be used when selecting this template",
     )
@@ -306,7 +305,7 @@ class ReportTemplate(models.Model):
     )
     changelog = models.TextField(
         "Template Change Log",
-        null=True,
+        default="",
         blank=True,
         help_text="Add a line explaining any file changes",
     )
@@ -342,9 +341,8 @@ class ReportTemplate(models.Model):
     p_style = models.CharField(
         "New Paragraph Style",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
-        default=None,
         help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
     )
 
@@ -549,55 +547,55 @@ class ReportFindingLink(models.Model):
     )
     affected_entities = models.TextField(
         "Affected Entities",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a list of the affected entities (e.g. domains, hostnames, IP addresses)",
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a description for this finding that introduces it",
     )
     impact = models.TextField(
         "Impact",
-        null=True,
+        default="",
         blank=True,
         help_text="Describe the impact of this finding on the affected entities",
     )
     mitigation = models.TextField(
         "Mitigation",
-        null=True,
+        default="",
         blank=True,
         help_text="Describe how this finding can be resolved or addressed",
     )
     replication_steps = models.TextField(
         "Replication Steps",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide an explanation for how the reader may reproduce this finding",
     )
     host_detection_techniques = models.TextField(
         "Host Detection Techniques",
-        null=True,
+        default="",
         blank=True,
         help_text="Describe how this finding can be detected on an endpoint - leave blank if this does not apply",
     )
     network_detection_techniques = models.TextField(
         "Network Detection Techniques",
-        null=True,
+        default="",
         blank=True,
         help_text="Describe how this finding can be detected on a network - leave blank if this does not apply",
     )
     references = models.TextField(
         "References",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide solid references for this finding, such as links to reference materials, tooling, and white papers",
     )
     finding_guidance = models.TextField(
         "Finding Guidance",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide notes for your team that describes this finding within this report",
     )
@@ -642,7 +640,7 @@ class ReportFindingLink(models.Model):
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
-        null=True,
+        default="",
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
@@ -675,7 +673,6 @@ class Evidence(models.Model):
     )
     friendly_name = models.CharField(
         "Friendly Name",
-        null=True,
         max_length=255,
         help_text="Provide a simple name to be used to reference this evidence",
     )
@@ -762,8 +759,8 @@ class FindingNote(models.Model):
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
-        null=True,
         blank=True,
+        default="",
         help_text="Provide additional information about the finding",
     )
     # Foreign Keys
@@ -785,7 +782,7 @@ class LocalFindingNote(models.Model):
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide additional information about the finding",
     )
@@ -817,7 +814,7 @@ class Observation(models.Model):
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a description for this observation that introduces it",
     )
@@ -850,7 +847,7 @@ class ReportObservationLink(models.Model):
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a description for this observation that introduces it",
     )

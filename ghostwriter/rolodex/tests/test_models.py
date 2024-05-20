@@ -191,12 +191,12 @@ class ProjectModelTests(TestCase):
         self.assertEqual(project.count_findings(), 3)
 
     def test_update_project_signal(self):
-        project = ProjectFactory(slack_channel=None)
+        project = ProjectFactory(slack_channel="")
         project.end_date = project.end_date + timedelta(days=1)
         project.save()
         project.slack_channel = "#testing"
         project.save()
-        project.slack_channel = None
+        project.slack_channel = ""
         project.save()
 
 
