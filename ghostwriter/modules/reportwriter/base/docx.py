@@ -13,7 +13,7 @@ from docx.image.exceptions import UnrecognizedImageError
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules.reportwriter.base import ReportExportError
-from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.base import ExportBase, LazilyRenderedTemplate
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
 
 logger = logging.getLogger(__name__)
@@ -33,9 +33,17 @@ class ExportDocxBase(ExportBase):
     """
     Base class for exporting DOCX (Word) documents.
 
-    Subclasses should override `run` to replace rich text objects in `self.data` using the
-    `process_rich_text_docx` method, then call this class's `run` method to execute
-    and return the `DocxTemplate`.
+    The basic flow for this exporter is:
+
+    1. Serialize the object into a plain JSON-compatible representation. This is optional - the plain data may be provided directly.
+    2. Add/replace rich text objects in the data with a `LazilyRenderedTemplate` containing the compiled template.
+       The context used for those templates is usually the serialized data augmented with a few jinja functions and variables.
+    3. Copy the context. In the copy, render each template, and replace it with the template render, converting the HTML to
+       a format appropriate for export. The jinja templates will access the old context without the converted templates, and
+       may include other rich texts as raw strings.
+    4. Run the main docx template over the converted rich text objects.
+
+    Subclasses should implement `map_rich_texts` to do step 2.
     """
 
     word_doc: DocxTemplate
@@ -95,15 +103,18 @@ class ExportDocxBase(ExportBase):
     def run(self) -> io.BytesIO:
         self.create_styles()
 
+        rich_text_context = self.map_rich_texts()
+        docx_context = LazilyRenderedTemplate.copy_translate(rich_text_context, self.render_rich_text_docx)
+
         try:
-            ReportExportError.map_jinja2_render_errors(lambda: self.word_doc.render(self.data, self.jinja_env, autoescape=True), "the DOCX template")
+            ReportExportError.map_jinja2_render_errors(lambda: self.word_doc.render(docx_context, self.jinja_env, autoescape=True), "the DOCX template")
+            ReportExportError.map_jinja2_render_errors(lambda: self.render_properties(docx_context), "the DOCX properties")
         except UnrecognizedImageError as err:
             raise ReportExportError(f"Could not load an image: {err}", "the DOCX template") from err
         except PackageNotFoundError as err:
             raise ReportExportError("The word template could not be found on the server – try uploading it again.", "the DOCX template") from err
         except FileNotFoundError as err:
             raise ReportExportError("An evidence file was missing – try uploading it again.", "the DOCX template") from err
-        self.render_properties()
 
         out = io.BytesIO()
         self.word_doc.save(out)
@@ -171,7 +182,7 @@ class ExportDocxBase(ExportBase):
             # Keep first and last lines together after repagination
             block_par.widow_control = True
 
-    def render_properties(self):
+    def render_properties(self, context: dict):
         """
         Renders templates inside of the word doc properties
         """
@@ -182,49 +193,40 @@ class ExportDocxBase(ExportBase):
                 continue
 
             out = ReportExportError.map_jinja2_render_errors(
-                lambda: self.jinja_env.from_string(template_src).render(self.data),
+                lambda: self.jinja_env.from_string(template_src).render(context),
                 f"DOCX property {attr}"
             )
             setattr(self.word_doc.core_properties, attr, out)
 
-    def process_rich_text_docx(self, name, text, template_vars, evidences):
+    def render_rich_text_docx(self, template: LazilyRenderedTemplate):
         """
-        Converts HTML from the TinyMCE rich text editor to a Word subdoc.
+        Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
         """
         doc = self.word_doc.new_subdoc()
         ReportExportError.map_jinja2_render_errors(
             lambda: HtmlToDocxWithEvidence.run(
-                self.preprocess_rich_text(text, template_vars),
+                template.render(),
                 doc=doc,
                 p_style=self.p_style,
-                evidences=evidences,
+                evidences=self.evidences_by_id,
                 figure_label=self.label_figure,
                 figure_prefix=self.prefix_figure,
                 title_case_captions=self.title_case_captions,
                 title_case_exceptions=self.title_case_exceptions,
                 border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
             ),
-            name
+            template.location,
         )
         return doc
 
-    def process_extra_fields(self, name, extra_fields, model, render_rich_text):
-        """
-        Process the `extra_fields` dict, filling missing extra fields with empty values and rendering
-        rich text
-        """
-        specs = self.extra_field_specs_for(model)
-        for field in specs:
-            if field.internal_name not in extra_fields:
-                extra_fields[field.internal_name] = field.empty_value()
-            if field.type == "rich_text":
-                extra_fields[field.internal_name] = render_rich_text(
-                    f"extra field {field.internal_name} of {name}",
-                    str(extra_fields[field.internal_name]),
-                )
-
     @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
+        """
+        Checks a Word template to help ensure that it will export properly.
+
+        Returns two lists: a list of warnings and a list of errors.
+        Linting passes if the errors list is empty.
+        """
         warnings = []
         errors = []
 

@@ -54,7 +54,7 @@ def _process_prefix(input_str: str, soup: bs4.BeautifulSoup, prefix: str):
     in the passed-in soup.
     """
 
-    regex = re.compile(r"^\s*\{%\s*" + re.escape(prefix) + r"\b(.*)%\}\s*$")
+    regex = re.compile(r"^\s*(\{%|\{\{)\s*" + re.escape(prefix) + r"\b(.*)(%\}|\}\})\s*$")
     # Store in list since we mutate the nodes
     matching_strings = list(soup.find_all(string=regex))
     for node in matching_strings:
@@ -69,7 +69,7 @@ def _process_prefix(input_str: str, soup: bs4.BeautifulSoup, prefix: str):
             raise ReportExportError(f"Jinja tag prefixed with '{prefix}' was not a descendant of a {prefix} tag, in line `{line}`")
 
         capture = regex.search(node)
-        parent_tag.replace_with("{%" + capture.group(1) + "%}")
+        parent_tag.replace_with(capture.group(1) + capture.group(2) + capture.group(3))
 
 
 def rich_text_template(env: jinja2.Environment, text: str) -> jinja2.Template:

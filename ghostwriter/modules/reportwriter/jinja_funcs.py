@@ -12,9 +12,11 @@ from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 from django.conf import settings
 from django.utils.dateformat import format as dateformat
+import jinja2
 from markupsafe import Markup
 
 from ghostwriter.modules.exceptions import InvalidFilterValue
+from ghostwriter.modules.reportwriter.base import ReportExportError
 
 logger = logging.getLogger(__name__)
 
@@ -256,16 +258,27 @@ def filter_tags(objects, allowlist):
     return filtered_values
 
 
-def evidence(evidence_name):
-    """
-    `{{evidence(name)}}` function in jinja.
-    """
-    return Markup('<span data-gw-evidence="' + html.escape(evidence_name) + '"></span>')
-
-
 def caption(caption_name):
     return Markup('<span data-gw-caption="' + html.escape(caption_name) + '"></span>')
 
 
 def ref(ref_name):
     return Markup('<span data-gw-ref="' + html.escape(ref_name) + '"></span>')
+
+
+@jinja2.pass_context
+def mk_evidence(context: jinja2.runtime.Context, evidence_name: str) -> Markup:
+    """
+    `{{mk_evidence(name)}}` function in jinja.
+    """
+    evidences = context.get("_evidences")
+    if evidences is None:
+        raise ReportExportError("No evidences are available in this context")
+    evidence_id = evidences.get(evidence_name)
+    if evidence_id is None:
+        raise ReportExportError(f"No such evidence with name '{evidence_name}'")
+    return raw_mk_evidence(evidence_id)
+
+
+def raw_mk_evidence(evidence_id) -> Markup:
+    return Markup('<span data-gw-evidence="' + html.escape(str(evidence_id)) + '"></span>')

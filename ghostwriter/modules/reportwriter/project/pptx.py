@@ -17,7 +17,7 @@ class ProjectSlidesMixin:
     Adds a function for generating Project-related slides - shared between the project and report exports
     """
 
-    def create_project_slides(self, base_context, evidences):
+    def create_project_slides(self, base_context):
         # Add a title slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
@@ -90,14 +90,12 @@ class ProjectSlidesMixin:
         )
 
         finding_body_shape = shapes.placeholders[1]
-        self.process_rich_text_pptx(
-            "project.note",
-            self.data["project"]["note"],
+        self.render_rich_text_pptx(
+            base_context["project"]["note_rt"],
             slide=slide,
             shape=finding_body_shape,
-            template_vars=base_context,
-            evidences=evidences,
         )
+
         # The  method adds a new paragraph, so we need to get the last one to increase the indent level
         text_frame = get_textframe(finding_body_shape)
         p = text_frame.paragraphs[-1]
@@ -192,7 +190,7 @@ class ProjectSlidesMixin:
 
 class ExportProjectPptx(ExportBasePptx, ExportProjectBase, ProjectSlidesMixin):
     def run(self) -> io.BytesIO:
-        base_context = self.jinja_richtext_base_context()
-        self.create_project_slides(base_context, {})
+        base_context = self.map_rich_texts()
+        self.create_project_slides(base_context)
         self.process_footers()
         return super().run()

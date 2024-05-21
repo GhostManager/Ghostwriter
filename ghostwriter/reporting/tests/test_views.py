@@ -2259,9 +2259,11 @@ class GenerateReportTests(TestCase):
 
     def test_view_all_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.all_uri)
+        self.assertEqual(response.status_code, 200, str(response))
         self.assertEqual(
             response.get("Content-Type"),
             "application/x-zip-compressed",
+            str(response)
         )
 
     def test_view_json_requires_login_and_permissions(self):
@@ -2321,7 +2323,7 @@ class GenerateReportTests(TestCase):
 
         assignment = ProjectAssignmentFactory(project=self.report.project, operator=self.user)
         response = self.client_auth.get(self.all_uri)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, str(response.request))
         assignment.delete()
 
     def test_view_docx_with_missing_template(self):
