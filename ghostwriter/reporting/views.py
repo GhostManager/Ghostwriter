@@ -1729,7 +1729,9 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     @staticmethod
     def _create_crispy_field(spec):
         if spec.type == "rich_text":
-            return Field(spec.internal_name, css_class="enable-evidence-upload")
+            # TODO: Return to using the commented line below once evidence uploads support report findings vs. finding-specific uploads
+            # return Field(spec.internal_name, css_class="enable-evidence-upload")
+            return Field(spec.internal_name)
         return Field(spec.internal_name)
 
 
@@ -2093,8 +2095,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
 
         response = HttpResponse(
-            docx.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            docx.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
         response["Content-Disposition"] = f'attachment; filename="{report_name}"'
 
@@ -2290,13 +2291,21 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                     raise MissingTemplate
 
             exporters_and_filename_templates = [
-                (ExportReportDocx(obj, template_loc=docx_template.document.path), docx_template.filename_override or report_config.report_filename),
-                (ExportReportPptx(obj, template_loc=pptx_template.document.path), pptx_template.filename_override or report_config.report_filename),
+                (
+                    ExportReportDocx(obj, template_loc=docx_template.document.path),
+                    docx_template.filename_override or report_config.report_filename,
+                ),
+                (
+                    ExportReportPptx(obj, template_loc=pptx_template.document.path),
+                    pptx_template.filename_override or report_config.report_filename,
+                ),
                 (ExportReportXlsx(obj), report_config.report_filename),
                 (ExportReportJson(obj), report_config.report_filename),
             ]
 
-            zip_filename = exporters_and_filename_templates[0][0].render_filename(report_config.report_filename, ext="zip")
+            zip_filename = exporters_and_filename_templates[0][0].render_filename(
+                report_config.report_filename, ext="zip"
+            )
 
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
