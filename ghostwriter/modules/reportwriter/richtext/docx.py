@@ -255,8 +255,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
     def tag_span(self, el, *, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
-            evidence = self.evidences.get(el.attrs["data-gw-evidence"])
-            if not evidence:
+            try:
+                evidence = self.evidences[int(el.attrs["data-gw-evidence"])]
+            except (KeyError, ValueError):
                 return
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:

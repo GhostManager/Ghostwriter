@@ -8,22 +8,81 @@ from venv import logger
 from django.forms import ValidationError
 import jinja2
 from django.db.models import Model
+from markupsafe import Markup
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
 
 
+class LazilyRenderedTemplate:
+    """
+    Renders a template lazily in the `__str__` method or via `render`.
+
+    This is used for rich text objects
+    """
+    template: jinja2.Template
+    context: dict
+    location: str | None
+    rendered: str | None
+    rendering: bool
+
+    def __init__(self, template: jinja2.Template, location: str | None, context: dict):
+        self.template = template
+        self.context = context
+        self.location = location
+        self.rendered = None
+        self.rendering = False
+
+    def render(self):
+        """
+        Renders the template, caching the result. Same as `str(template)`.
+
+        Will throw a `ReportExportError` if the template attempted to render itself while it was
+        rendering (i.e. infinite recursion).
+        """
+        if self.rendered is None:
+            if self.rendering:
+                raise ReportExportError(f"Circular reference to {self.location} (ensure rich text fields are not referencing each other)")
+            self.rendering = True
+            self.rendered = Markup(
+                ReportExportError.map_jinja2_render_errors(
+                    lambda: self.template.render(self.context),
+                    self.location,
+                )
+            )
+            self.rendering = False
+        return self.rendered
+
+    def __str__(self):
+        return self.render()
+
+    def __html__(self):
+        return self.render()
+
+    @classmethod
+    def copy_translate(cls, value, map_template):
+        """
+        Makes a deep copy of `value`, calling `map_template(value)` if `value` is a `LazilyRenderedTemplate`.
+
+        If `value` is an instance of `LazilyRenderedTemplate`, returns `map_template(v)`.
+        If `value` is a dict or list, makes a deep copy of it by invoking `copy_translate` on each value.
+        Otherwise returns `value` as is.
+        """
+        if isinstance(value, LazilyRenderedTemplate):
+            return map_template(value)
+        if isinstance(value, dict):
+            return {k: cls.copy_translate(v, map_template) for k, v in value.items()}
+        if isinstance(value, list):
+            return [cls.copy_translate(v, map_template) for v in value]
+        return value
+
+
 class ExportBase:
     """
     Base class for exporting things.
 
-    Subclasses should prove a `run` method, and optionally `serialize_object`.
-
-    Users should instantiate the object then call `run` to generate a `BytesIO` containing the exported
-    file. Instances should not be re-used.
-
-    Fields:
+    # Fields
 
     * `input_object`: The object passed into `__init__`, unchanged
     * `data`: The object passed into `__init__` ran through `serialize_object`, usually a dict, for passing into a Jinja env
@@ -34,8 +93,12 @@ class ExportBase:
     jinja_env: jinja2.Environment
     jinja_undefined_variables: set[str] | None
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
+    evidences_by_id: dict
 
     def __init__(self, input_object: Any, *, is_raw=False, jinja_debug=False):
+        self.evidences_by_id = {}
+        self.extra_fields_spec_cache = {}
+
         if jinja_debug:
             self.jinja_env, self.jinja_undefined_variables = prepare_jinja2_env(debug=True)
         else:
@@ -47,7 +110,6 @@ class ExportBase:
         else:
             self.input_object = input_object
             self.data = self.serialize_object(input_object)
-        self.extra_fields_spec_cache = {}
 
     def serialize_object(self, object: Any) -> Any:
         """
@@ -68,15 +130,49 @@ class ExportBase:
         self.extra_fields_spec_cache[label] = specs
         return specs
 
-    def preprocess_rich_text(self, text: str, template_vars: Any):
+    def create_evidences_lookup(self, evidence_list, inherit_from: dict = None) -> dict:
         """
-        Does jinja and `{{.item}}` substitutions on rich text, in preparation for feeding into the
-        `BaseHtmlToOOXML` subclass.
+        Creates a dict that should be set to the rich text context's `"_evidences"` field.
+
+        Adds the evidences in the `evidence_list` iter to the `evidences_by_id` map to
+        allow later access.
+
+        If `inherit_from` is not None, it's copied, and the evidences are placed into the copy.
         """
-        text_rendered = rich_text_template(self.jinja_env, text).render(template_vars)
-        # Filter out XML-incompatible characters
-        text_char_filtered = "".join(c for c in text_rendered if _valid_xml_char_ordinal(c))
-        return text_char_filtered
+        out = inherit_from.copy() if inherit_from is not None else {}
+        for evi in evidence_list:
+            out[evi["friendly_name"]] = evi["id"]
+            self.evidences_by_id[evi["id"]] = evi
+        return out
+
+    def create_lazy_template(self, location: str | None, text: str, context: dict) -> LazilyRenderedTemplate:
+        return LazilyRenderedTemplate(
+            ReportExportError.map_jinja2_render_errors(
+                lambda: rich_text_template(self.jinja_env, text),
+                location,
+            ),
+            location,
+            context,
+        )
+
+    def process_extra_fields(self, location: str, extra_fields: dict, model, context: dict):
+        """
+        Process the `extra_fields` dict, filling missing extra fields with empty values and replacing
+        rich texts with a `LazyRenderedTemplate`.
+        """
+        specs = self.extra_field_specs_for(model)
+        for field in specs:
+            if field.internal_name not in extra_fields:
+                extra_fields[field.internal_name] = field.empty_value()
+            if field.type == "rich_text":
+                extra_fields[field.internal_name] = self.create_lazy_template(
+                    f"extra field {field.internal_name} of {location}",
+                    str(extra_fields[field.internal_name]),
+                    context,
+                )
+
+    def map_rich_texts(self):
+        raise NotImplementedError()
 
     def run(self) -> io.BytesIO:
         raise NotImplementedError()
@@ -131,7 +227,7 @@ class ExportBase:
 
 def _valid_xml_char_ordinal(c):
     """
-    Clean string to make all characters XML compatible for Word documents.
+    Checks if the character is valid to include in XML.
 
     Source:
         https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python

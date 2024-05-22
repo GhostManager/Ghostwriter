@@ -12,23 +12,25 @@ from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidenc
 
 
 class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
+    def severity_rich_text(self, text, severity_color):
+        return text
+
     def run(self) -> io.BytesIO:
         """Generate a complete PowerPoint slide deck for the current report."""
 
-        base_context = self.jinja_richtext_base_context()
-        base_evidences = {e["friendly_name"]: e for e in self.data["evidence"]}
+        base_context = self.map_rich_texts()
 
         # Loop through the findings to create slides
         findings_stats = {}
 
         # Calculate finding stats
-        for finding in self.data["findings"]:
+        for finding in base_context["findings"]:
             findings_stats[finding["severity"]] = 0
 
-        for finding in self.data["findings"]:
+        for finding in base_context["findings"]:
             findings_stats[finding["severity"]] += 1
 
-        self.create_project_slides(base_context, base_evidences)
+        self.create_project_slides(base_context)
 
         # Add Observations slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -40,13 +42,13 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         text_frame = get_textframe(body_shape)
 
         # If there are observations then write a table
-        if len(self.data["observations"]) > 0:
+        if len(base_context["observations"]) > 0:
             # Delete the default text placeholder
             textbox = shapes[1]
             sp = textbox.element
             sp.getparent().remove(sp)
             # Add a table
-            rows = len(self.data["observations"]) + 1
+            rows = len(base_context["observations"]) + 1
             columns = 1
             left = Inches(1.5)
             top = Inches(2)
@@ -62,7 +64,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             cell.fill.fore_color.rgb = pptx.dml.color.RGBColor(0x2D, 0x28, 0x69)
             # Write findings rows
             row_iter = 1
-            for observation in self.data["observations"]:
+            for observation in base_context["observations"]:
                 table.cell(row_iter, 0).text = observation["title"]
                 row_iter += 1
             # Set all cells alignment to center and vertical center
@@ -73,7 +75,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             write_bullet(text_frame, "No observations", 0)
 
         # Create slide for each observation
-        for observation in self.data["observations"]:
+        for observation in base_context["observations"]:
             slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             observation_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = observation_slide.shapes
@@ -93,14 +95,10 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
 
             # Add description to the slide body (other sections will appear in the notes)
             if observation.get("description", "").strip():
-                observation_context = self.jinja_richtext_base_context()
-                self.process_rich_text_pptx(
-                    f"the description of observation {observation['title']}",
-                    observation["description"],
+                self.render_rich_text_pptx(
+                    observation["description_rt"],
                     slide=observation_slide,
                     shape=observation_body_shape,
-                    template_vars=observation_context,
-                    evidences=base_evidences,
                 )
             else:
                 par = observation_body_shape.add_paragraph()
@@ -124,13 +122,13 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         text_frame = get_textframe(body_shape)
 
         # If there are findings then write a table of findings and severity ratings
-        if len(self.data["findings"]) > 0:
+        if len(base_context["findings"]) > 0:
             # Delete the default text placeholder
             textbox = shapes[1]
             sp = textbox.element
             sp.getparent().remove(sp)
             # Add a table
-            rows = len(self.data["findings"]) + 1
+            rows = len(base_context["findings"]) + 1
             columns = 2
             left = Inches(1.5)
             top = Inches(2)
@@ -151,7 +149,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             cell.fill.fore_color.rgb = pptx.dml.color.RGBColor(0x2D, 0x28, 0x69)
             # Write findings rows
             row_iter = 1
-            for finding in self.data["findings"]:
+            for finding in base_context["findings"]:
                 table.cell(row_iter, 0).text = finding["title"]
                 risk_cell = table.cell(row_iter, 1)
                 # Set risk rating
@@ -170,7 +168,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             write_bullet(text_frame, "No findings", 0)
 
         # Create slide for each finding
-        for finding in self.data["findings"]:
+        for finding in base_context["findings"]:
             slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = finding_slide.shapes
@@ -190,15 +188,10 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
 
             # Add description to the slide body (other sections will appear in the notes)
             if finding.get("description", "").strip():
-                finding_context = self.jinja_richtext_finding_context(base_context, finding)
-                finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
-                self.process_rich_text_pptx(
-                    f"the description of finding `{finding['title']}`",
-                    finding["description"],
+                self.render_rich_text_pptx(
+                    finding["description_rt"],
                     slide=finding_slide,
                     shape=finding_body_shape,
-                    template_vars=finding_context,
-                    evidences=finding_evidences,
                 )
             else:
                 par = text_frame.add_paragraph()
