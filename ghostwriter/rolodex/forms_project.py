@@ -7,7 +7,6 @@ from collections import namedtuple
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -411,75 +410,40 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
     """
 
     def clean(self):
-        contacts = []
-        primary_set = False
-        duplicates = False
         super().clean()
         if any(self.errors):
             return
+
+        contacts = set()
+        primary_set = False
         for form in self.forms:
-            if form.cleaned_data:
-                # Only validate if the form is NOT marked for deletion
-                if form.cleaned_data["DELETE"] is False:
-                    name = form.cleaned_data["name"]
-                    job_title = form.cleaned_data["job_title"]
-                    email = form.cleaned_data["email"]
-                    primary = form.cleaned_data["primary"]
+            if not form.cleaned_data or form.cleaned_data["DELETE"]:
+                continue
+            name = form.cleaned_data["name"]
+            primary = form.cleaned_data["primary"]
 
-                    # Check that the same person has not been added more than once
-                    if name:
-                        if name in contacts:
-                            duplicates = True
-                        contacts.append(name)
-                    if duplicates:
-                        form.add_error(
-                            "name",
-                            ValidationError(
-                                _("This person is already assigned as a contact."),
-                                code="duplicate",
-                            ),
-                        )
-                    if primary:
-                        if primary_set:
-                            form.add_error(
-                                "primary",
-                                ValidationError(
-                                    _("You can only set one primary contact."),
-                                    code="duplicate",
-                                ),
-                            )
-                        primary_set = True
+            # Check that the same person has not been added more than once
+            if name:
+                if name in contacts:
+                    form.add_error(
+                        "name",
+                        ValidationError(
+                            _("This person is already assigned as a contact."),
+                            code="duplicate",
+                        ),
+                    )
+                contacts.add(name)
 
-                    # Raise an error if a name is provided without any required details
-                    if name and any(x is None for x in [job_title, email]):
-                        if not job_title:
-                            form.add_error(
-                                "job_title",
-                                ValidationError(
-                                    _("This person is missing a job title / role."),
-                                    code="incomplete",
-                                ),
-                            )
-                        if not email:
-                            form.add_error(
-                                "email",
-                                ValidationError(
-                                    _("This person is missing an email address."),
-                                    code="incomplete",
-                                ),
-                            )
-                    # Check that the email address is in a valid format
-                    if email:
-                        try:
-                            validate_email(email)
-                        except ValidationError:
-                            form.add_error(
-                                "email",
-                                ValidationError(
-                                    _("Enter a valid email address for this contact."),
-                                    code="invalid",
-                                ),
-                            )
+            if primary:
+                if primary_set:
+                    form.add_error(
+                        "primary",
+                        ValidationError(
+                            _("You can only set one primary contact."),
+                            code="duplicate",
+                        ),
+                    )
+                primary_set = True
 
 
 # Forms used with the inline formsets
@@ -1003,6 +967,9 @@ class ProjectContactForm(forms.ModelForm):
     class Meta:
         model = ProjectContact
         exclude = ("project",)
+        field_classes = {
+            "email": forms.EmailField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

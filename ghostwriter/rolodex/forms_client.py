@@ -3,7 +3,6 @@
 # Django Imports
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
@@ -41,62 +40,27 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
     """
 
     def clean(self):
-        contacts = []
-        duplicates = False
         super().clean()
         if any(self.errors):
             return
-        for form in self.forms:
-            if form.cleaned_data:
-                # Only validate if the form is NOT marked for deletion
-                if form.cleaned_data["DELETE"] is False:
-                    name = form.cleaned_data["name"]
-                    job_title = form.cleaned_data["job_title"]
-                    email = form.cleaned_data["email"]
 
-                    # Check that the same person has not been added more than once
-                    if name:
-                        if name in contacts:
-                            duplicates = True
-                        contacts.append(name)
-                    if duplicates:
-                        form.add_error(
-                            "name",
-                            ValidationError(
-                                _("This person is already assigned as a contact."),
-                                code="duplicate",
-                            ),
-                        )
-                    # Raise an error if a name is provided without any required details
-                    if name and any(x is None for x in [job_title, email]):
-                        if not job_title:
-                            form.add_error(
-                                "job_title",
-                                ValidationError(
-                                    _("This person is missing a job title / role."),
-                                    code="incomplete",
-                                ),
-                            )
-                        if not email:
-                            form.add_error(
-                                "email",
-                                ValidationError(
-                                    _("This person is missing an email address."),
-                                    code="incomplete",
-                                ),
-                            )
-                    # Check that the email address is in a valid format
-                    if email:
-                        try:
-                            validate_email(email)
-                        except ValidationError:
-                            form.add_error(
-                                "email",
-                                ValidationError(
-                                    _("Enter a valid email address for this contact."),
-                                    code="invalid",
-                                ),
-                            )
+        contacts = set()
+        for form in self.forms:
+            if not form.cleaned_data or form.cleaned_data["DELETE"]:
+                continue
+            name = form.cleaned_data["name"]
+
+            # Check that the same person has not been added more than once
+            if name:
+                if name in contacts:
+                    form.add_error(
+                        "name",
+                        ValidationError(
+                            _("This person is already assigned as a contact."),
+                            code="duplicate",
+                        ),
+                    )
+                contacts.add(name)
 
 
 class ClientContactForm(forms.ModelForm):
@@ -109,6 +73,7 @@ class ClientContactForm(forms.ModelForm):
         model = ClientContact
         exclude = ("client",)
         field_classes = {
+            "email": forms.EmailField,
             "note": JinjaRichTextField,
         }
 
