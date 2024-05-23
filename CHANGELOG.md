@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 15 May 2024
+## [Unreleased] - 22 May 2024
 
 ### Added
 
@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added filename overrides for report templates
   * You can now set a custom filename for a report template that will override the global default filename
   * The filename supports Jinja2 templating, like the global report filename
+* Added support for referencing custom fields inside other custom fields in the WYSIWYG editor
+  * e.g., You can now reference another custom field or a pre-formated value like `finding.severity_rt` inside a custom field
 
 ### Changed
 
@@ -42,11 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Only the entries that match the filter will appear until the filter is changed or cleared
 * Set a default value of `{}` for extra fields to avoid errors when creating new entries via the GraphQL API with empty extra fields
 * Modified error handling for report generation to provide more detailed error messages when a report fails to generate (e.g., which finding or field caused the error)
+* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via teh GraphQL API
 
 ### Fixed
 
 * Fixed an error that could occur when editing a finding with no editor assigned
 * Fixed blank findings added to a report not having user-defined fields
+* Removed the "Upload Evidence" button from report custom fields as it was not functional
+  * It will be functional in a future release
+* Fixed an issue with generating reports when an attached finding had a null field
 
 ## [4.1] - 3 April 2024
 
