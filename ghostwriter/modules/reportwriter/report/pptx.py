@@ -12,9 +12,6 @@ from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidenc
 
 
 class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
-    def severity_rich_text(self, text, severity_color):
-        return text
-
     def run(self) -> io.BytesIO:
         """Generate a complete PowerPoint slide deck for the current report."""
 

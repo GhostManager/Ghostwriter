@@ -1,10 +1,13 @@
 
+import logging
 import re
 import bs4
 import jinja2
 
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.reportwriter import jinja_funcs
+
+logger = logging.getLogger(__name__)
 
 
 class ReportExportError(Exception):
@@ -45,6 +48,7 @@ class ReportExportError(Exception):
         except ZeroDivisionError as err:
             raise ReportExportError("Template attempted to divide by zero", location) from err
         except TypeError as err:
+            logger.exception("Template TypeError, may be a bug or an issue with the template")
             raise ReportExportError(f"Invalid template operation: {err}", location) from err
 
 

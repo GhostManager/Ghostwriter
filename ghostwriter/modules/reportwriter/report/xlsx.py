@@ -12,9 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
-    def severity_rich_text(self, text, severity_color):
-        return text
-
     def run(self) -> io.BytesIO:
         context = self.map_rich_texts()
 
