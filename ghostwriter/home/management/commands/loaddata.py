@@ -11,9 +11,17 @@ def should_add_record(record):
     """
     Determine if a record should be inserted into the database. Some records are
     customizable and should not be overwritten during a build. If the ``pk`` already
-    exists, err on the side of skipping the insert.
+    exists, err on the side of skipping the insert. Certain models are always seeded.
     """
-    return not apps.get_model(record["model"]).objects.filter(pk=record["pk"]).exists()
+    models_to_seed = [
+        "reporting.doctype",
+    ]
+    if (
+        record["model"] not in models_to_seed
+        and apps.get_model(record["model"]).objects.filter(pk=record["pk"]).exists()
+    ):
+        return False
+    return True
 
 
 class Command(loaddata.Command):
@@ -49,7 +57,9 @@ class Command(loaddata.Command):
         if not json_list_filtered:
             self.stdout.write(self.style.SUCCESS("All required records are present; no new data to load."))
             return
-        self.stdout.write(self.style.WARNING(f"Found {len(json_list_filtered)} new records to insert into the database."))
+        self.stdout.write(
+            self.style.WARNING(f"Found {len(json_list_filtered)} new records to insert into the database.")
+        )
 
         # Write the updated JSON file
         file_dir_and_name, file_ext = os.path.splitext(file_name)
