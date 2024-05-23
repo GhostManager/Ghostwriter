@@ -13,7 +13,8 @@ from docx.image.exceptions import UnrecognizedImageError
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules.reportwriter.base import ReportExportError
-from ghostwriter.modules.reportwriter.base.base import ExportBase, LazilyRenderedTemplate
+from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlAndRich, LazilyRenderedTemplate, deep_copy_with_copiers
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class ExportDocxBase(ExportBase):
     The basic flow for this exporter is:
 
     1. Serialize the object into a plain JSON-compatible representation. This is optional - the plain data may be provided directly.
-    2. Add/replace rich text objects in the data with a `LazilyRenderedTemplate` containing the compiled template.
+    2. Add/replace rich text objects in the data with a `LazilyRenderedTemplate` instance containing the compiled template or `HtmlAndRich` objects.
        The context used for those templates is usually the serialized data augmented with a few jinja functions and variables.
     3. Copy the context. In the copy, render each template, and replace it with the template render, converting the HTML to
        a format appropriate for export. The jinja templates will access the old context without the converted templates, and
@@ -104,7 +105,10 @@ class ExportDocxBase(ExportBase):
         self.create_styles()
 
         rich_text_context = self.map_rich_texts()
-        docx_context = LazilyRenderedTemplate.copy_translate(rich_text_context, self.render_rich_text_docx)
+        docx_context = deep_copy_with_copiers(rich_text_context, {
+            LazilyRenderedTemplate: self.render_rich_text_docx,
+            HtmlAndRich: lambda v: v.rich,
+        })
 
         try:
             ReportExportError.map_jinja2_render_errors(lambda: self.word_doc.render(docx_context, self.jinja_env, autoescape=True), "the DOCX template")
@@ -198,14 +202,14 @@ class ExportDocxBase(ExportBase):
             )
             setattr(self.word_doc.core_properties, attr, out)
 
-    def render_rich_text_docx(self, template: LazilyRenderedTemplate):
+    def render_rich_text_docx(self, rich_text: LazilyRenderedTemplate):
         """
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
         """
         doc = self.word_doc.new_subdoc()
         ReportExportError.map_jinja2_render_errors(
             lambda: HtmlToDocxWithEvidence.run(
-                template.render(),
+                rich_text.render_html(),
                 doc=doc,
                 p_style=self.p_style,
                 evidences=self.evidences_by_id,
@@ -215,7 +219,7 @@ class ExportDocxBase(ExportBase):
                 title_case_exceptions=self.title_case_exceptions,
                 border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
             ),
-            template.location,
+            getattr(rich_text, "location", None),
         )
         return doc
 

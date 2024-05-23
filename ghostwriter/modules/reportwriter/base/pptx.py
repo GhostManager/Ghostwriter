@@ -17,7 +17,8 @@ from pptx.enum.text import MSO_AUTO_SIZE
 
 from ghostwriter.commandcenter.models import CompanyInformation
 from ghostwriter.modules.reportwriter.base import ReportExportError
-from ghostwriter.modules.reportwriter.base.base import ExportBase, LazilyRenderedTemplate
+from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
 
 logger = logging.getLogger(__name__)
@@ -68,19 +69,19 @@ class ExportBasePptx(ExportBase):
 
         self.company_config = CompanyInformation.get_solo()
 
-    def render_rich_text_pptx(self, template: LazilyRenderedTemplate, slide, shape):
+    def render_rich_text_pptx(self, rich_text: LazilyRenderedTemplate, slide, shape):
         """
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor and inserting it into the passed in shape and slide.
         Converts HTML from the TinyMCE rich text editor and inserts it into the passed in slide and shape
         """
         ReportExportError.map_jinja2_render_errors(
             lambda: HtmlToPptxWithEvidence.run(
-                template.render(),
+                rich_text.render_html(),
                 slide=slide,
                 shape=shape,
                 evidences=self.evidences_by_id,
             ),
-            template.location
+            getattr(rich_text, "location", None)
         )
 
     def process_footers(self):

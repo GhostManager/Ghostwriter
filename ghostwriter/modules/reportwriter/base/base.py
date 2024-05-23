@@ -8,74 +8,11 @@ from venv import logger
 from django.forms import ValidationError
 import jinja2
 from django.db.models import Model
-from markupsafe import Markup
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
-
-
-class LazilyRenderedTemplate:
-    """
-    Renders a template lazily in the `__str__` method or via `render`.
-
-    This is used for rich text objects
-    """
-    template: jinja2.Template
-    context: dict
-    location: str | None
-    rendered: str | None
-    rendering: bool
-
-    def __init__(self, template: jinja2.Template, location: str | None, context: dict):
-        self.template = template
-        self.context = context
-        self.location = location
-        self.rendered = None
-        self.rendering = False
-
-    def render(self):
-        """
-        Renders the template, caching the result. Same as `str(template)`.
-
-        Will throw a `ReportExportError` if the template attempted to render itself while it was
-        rendering (i.e. infinite recursion).
-        """
-        if self.rendered is None:
-            if self.rendering:
-                raise ReportExportError(f"Circular reference to {self.location} (ensure rich text fields are not referencing each other)")
-            self.rendering = True
-            self.rendered = Markup(
-                ReportExportError.map_jinja2_render_errors(
-                    lambda: self.template.render(self.context),
-                    self.location,
-                )
-            )
-            self.rendering = False
-        return self.rendered
-
-    def __str__(self):
-        return self.render()
-
-    def __html__(self):
-        return self.render()
-
-    @classmethod
-    def copy_translate(cls, value, map_template):
-        """
-        Makes a deep copy of `value`, calling `map_template(value)` if `value` is a `LazilyRenderedTemplate`.
-
-        If `value` is an instance of `LazilyRenderedTemplate`, returns `map_template(v)`.
-        If `value` is a dict or list, makes a deep copy of it by invoking `copy_translate` on each value.
-        Otherwise returns `value` as is.
-        """
-        if isinstance(value, LazilyRenderedTemplate):
-            return map_template(value)
-        if isinstance(value, dict):
-            return {k: cls.copy_translate(v, map_template) for k, v in value.items()}
-        if isinstance(value, list):
-            return [cls.copy_translate(v, map_template) for v in value]
-        return value
+from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 
 
 class ExportBase:
