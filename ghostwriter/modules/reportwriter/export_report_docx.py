@@ -1,14 +1,16 @@
-
-from copy import deepcopy
-from importlib.metadata import PackageNotFoundError
+# Standard Libraries
 import io
 import logging
+from copy import deepcopy
+from importlib.metadata import PackageNotFoundError
 
-from docxtpl import DocxTemplate, RichText
+# 3rd Party Libraries
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt
+from docxtpl import DocxTemplate, RichText
 
+# Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules.reportwriter.export_report_base import ExportReportBase
 from ghostwriter.modules.reportwriter.html_to_docx import HtmlToDocxWithEvidence
@@ -36,7 +38,9 @@ class ExportReportDocx(ExportReportBase):
             )
             raise
         except Exception:
-            logger.exception("Failed to load the provided template document: %s", template_loc)
+            logger.exception(
+                "Failed to load the provided template document: %s", template_loc
+            )
             raise
 
         global_report_config = ReportConfiguration.get_solo()
@@ -53,7 +57,9 @@ class ExportReportDocx(ExportReportBase):
         label_figure = global_report_config.label_figure.strip()
         self.label_figure = f"{label_figure} "
         self.title_case_captions = global_report_config.title_case_captions
-        self.title_case_exceptions = global_report_config.title_case_exceptions.split(",")
+        self.title_case_exceptions = global_report_config.title_case_exceptions.split(
+            ","
+        )
 
     def process_extra_fields(self, extra_fields, model, render_rich_text):
         specs = self.extra_field_specs_for(model)
@@ -61,7 +67,9 @@ class ExportReportDocx(ExportReportBase):
             if field.internal_name not in extra_fields:
                 extra_fields[field.internal_name] = field.initial_value()
             if field.type == "rich_text":
-                extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
+                extra_fields[field.internal_name] = render_rich_text(
+                    str(extra_fields[field.internal_name])
+                )
 
     def _process_rich_text_docx(self, text, template_vars, evidences, p_style=None):
         """
@@ -79,7 +87,11 @@ class ExportReportDocx(ExportReportBase):
                 figure_prefix=self.prefix_figure,
                 title_case_captions=self.title_case_captions,
                 title_case_exceptions=self.title_case_exceptions,
-                border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                border_color_width=(
+                    (self.border_color, self.border_weight)
+                    if self.enable_borders
+                    else None
+                ),
             )
         except:
             # Log input text to help diagnose errors
@@ -93,7 +105,9 @@ class ExportReportDocx(ExportReportBase):
             if field.internal_name not in extra_fields:
                 extra_fields[field.internal_name] = field.initial_value()
             if field.type == "rich_text":
-                extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
+                extra_fields[field.internal_name] = render_rich_text(
+                    str(extra_fields[field.internal_name])
+                )
 
     def _process_richtext(self, context: dict) -> dict:
         """
@@ -112,7 +126,9 @@ class ExportReportDocx(ExportReportBase):
         base_evidences = {e["friendly_name"]: e for e in context["evidence"]}
 
         def base_render(text):
-            return self._process_rich_text_docx(text, base_context, base_evidences, p_style)
+            return self._process_rich_text_docx(
+                text, base_context, base_evidences, p_style
+            )
 
         self._process_extra_fields(context["extra_fields"], Report, base_render)
 
@@ -121,19 +137,31 @@ class ExportReportDocx(ExportReportBase):
             logger.info("Processing %s", finding["title"])
 
             finding_context = self.jinja_richtext_finding_context(base_context, finding)
-            finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
+            finding_evidences = base_evidences | {
+                e["friendly_name"]: e for e in finding["evidence"]
+            }
 
             def finding_render(text):
-                return self._process_rich_text_docx(text, finding_context, finding_evidences, p_style)
+                return self._process_rich_text_docx(
+                    text, finding_context, finding_evidences, p_style
+                )
 
             self._process_extra_fields(finding["extra_fields"], Finding, finding_render)
 
             # Create ``RichText()`` object for a colored severity category
-            finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
-            finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
-            finding["cvss_vector_rt"] = RichText(finding["cvss_vector"], color=finding["severity_color"])
+            finding["severity_rt"] = RichText(
+                finding["severity"], color=finding["severity_color"]
+            )
+            finding["cvss_score_rt"] = RichText(
+                finding["cvss_score"], color=finding["severity_color"]
+            )
+            finding["cvss_vector_rt"] = RichText(
+                finding["cvss_vector"], color=finding["severity_color"]
+            )
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = finding_render(finding["affected_entities"])
+            finding["affected_entities_rt"] = finding_render(
+                finding["affected_entities"]
+            )
             finding["description_rt"] = finding_render(finding["description"])
             finding["impact_rt"] = finding_render(finding["impact"])
 
@@ -142,19 +170,29 @@ class ExportReportDocx(ExportReportBase):
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = finding_render(finding["replication_steps"])
-            finding["host_detection_techniques_rt"] = finding_render(finding["host_detection_techniques"])
-            finding["network_detection_techniques_rt"] = finding_render(finding["network_detection_techniques"])
+            finding["replication_steps_rt"] = finding_render(
+                finding["replication_steps"]
+            )
+            finding["host_detection_techniques_rt"] = finding_render(
+                finding["host_detection_techniques"]
+            )
+            finding["network_detection_techniques_rt"] = finding_render(
+                finding["network_detection_techniques"]
+            )
             finding["references_rt"] = finding_render(finding["references"])
 
         # Client
         context["client"]["note_rt"] = base_render(context["client"]["note"])
         context["client"]["address_rt"] = base_render(context["client"]["address"])
-        self._process_extra_fields(context["client"]["extra_fields"], Client, base_render)
+        self._process_extra_fields(
+            context["client"]["extra_fields"], Client, base_render
+        )
 
         # Project
         context["project"]["note_rt"] = base_render(context["project"]["note"])
-        self._process_extra_fields(context["project"]["extra_fields"], Project, base_render)
+        self._process_extra_fields(
+            context["project"]["extra_fields"], Project, base_render
+        )
 
         # Assignments
         for assignment in context["team"]:
@@ -178,7 +216,9 @@ class ExportReportDocx(ExportReportBase):
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = base_render(scope_list["description"])
+                    scope_list["description_rt"] = base_render(
+                        scope_list["description"]
+                    )
 
         # Targets
         for target in context["targets"]:
@@ -212,13 +252,17 @@ class ExportReportDocx(ExportReportBase):
         # Logs
         for log in context["logs"]:
             for entry in log["entries"]:
-                self._process_extra_fields(entry["extra_fields"], OplogEntry, base_render)
+                self._process_extra_fields(
+                    entry["extra_fields"], OplogEntry, base_render
+                )
 
         # Observations
         for observation in context["observations"]:
             if observation["description"]:
                 observation["description_rt"] = base_render(observation["description"])
-            self._process_extra_fields(observation["extra_fields"], Observation, base_render)
+            self._process_extra_fields(
+                observation["extra_fields"], Observation, base_render
+            )
 
         # Report Evidence
         # for evidence in context["evidence"]:
