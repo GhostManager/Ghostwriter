@@ -53,7 +53,7 @@ class ExportReportDocx(ExportReportBase):
 
         # Caption options
         prefix_figure = global_report_config.prefix_figure.strip()
-        self.prefix_figure = f" {prefix_figure} "
+        self.prefix_figure = f"{prefix_figure} "
         label_figure = global_report_config.label_figure.strip()
         self.label_figure = f"{label_figure} "
         self.title_case_captions = global_report_config.title_case_captions
