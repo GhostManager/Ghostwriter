@@ -322,6 +322,24 @@ def verify_observation_access(user, mode):
     return False
 
 
+def verify_client_list_access(user):
+    """
+    Verify that the user is flagged as being able to list all clients in the global rolodex.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        return True
+
+    if user.enable_client_list_all:
+        return True
+
+    return False
+
+
 def get_client_list(user):
     """
     Retrieve a filtered list of :model:`rolodex.Client` entries based on the user's role.
@@ -334,7 +352,7 @@ def get_client_list(user):
     ``user``
         The :model:`users.User` object
     """
-    if verify_user_is_privileged(user):
+    if verify_client_list_access(user):
         clients = Client.objects.all().order_by("name")
     else:
         clients = (
