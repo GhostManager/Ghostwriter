@@ -357,12 +357,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             except KeyError:
                 pass
             par_caption = self.doc.add_paragraph(style="Caption")
-            ref_name = re.sub(
-                "[^A-Za-z0-9]+",
-                "",
-                evidence["friendly_name"],
-            )
-            self.make_figure(par_caption, ref_name)
+            self.make_figure(par_caption, evidence["friendly_name"])
             par_caption.add_run(self.title_except(evidence["caption"]))
         elif extension in IMAGE_EXTENSIONS:
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -414,8 +409,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
             # Create the caption for the image
             p = self.doc.add_paragraph(style="Caption")
-            ref_name = re.sub("[^A-Za-z0-9]+", "", evidence["friendly_name"])
-            self.make_figure(p, ref_name)
+            self.make_figure(p, evidence["friendly_name"])
             run = p.add_run(self.title_except(evidence["caption"]))
 
     def make_cross_ref(self, par, ref: str):
@@ -430,7 +424,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = f" REF _Ref{ref} \\h "
+        instrText.text = " REF \"_Ref{}\" \\h ".format(ref.replace('\\', '\\\\').replace('"', '\\"'))
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
