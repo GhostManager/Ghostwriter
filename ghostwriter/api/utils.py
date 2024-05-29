@@ -117,11 +117,24 @@ def get_jwt_payload(token):
     """
     try:
         payload = jwt_decode(token)
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
+    except (
+        jwt.ExpiredSignatureError,
+        jwt.InvalidTokenError,
+        jwt.DecodeError,
+    ) as exception:
         try:
             bad_token = jwt_decode_no_verification(token)
-            logger.warning("%s error (%s) with this payload: %s", type(exception).__name__, exception, bad_token)
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as verify_exception:
+            logger.warning(
+                "%s error (%s) with this payload: %s",
+                type(exception).__name__,
+                exception,
+                bad_token,
+            )
+        except (
+            jwt.ExpiredSignatureError,
+            jwt.InvalidTokenError,
+            jwt.DecodeError,
+        ) as verify_exception:
             logger.error("%s error with this payload: %s", verify_exception, token)
         payload = None
     return payload
@@ -349,7 +362,11 @@ def get_project_list(user):
         The :model:`users.User` object
     """
     if verify_user_is_privileged(user):
-        projects = Project.objects.select_related("client").all().order_by("complete", "client")
+        projects = (
+            Project.objects.select_related("client")
+            .all()
+            .order_by("complete", "client")
+        )
     else:
         clients = get_client_list(user)
         projects = (
@@ -397,7 +414,11 @@ def get_reports_list(user):
         The :model:`users.User` object
     """
     if verify_user_is_privileged(user):
-        reports = Report.objects.select_related("created_by").all().order_by("complete", "title")
+        reports = (
+            Report.objects.select_related("created_by")
+            .all()
+            .order_by("complete", "title")
+        )
     else:
         projects = get_project_list(user)
         reports = (
@@ -424,7 +445,11 @@ def get_archives_list(user):
         The :model:`users.User` object
     """
     if verify_user_is_privileged(user):
-        archives = Archive.objects.select_related("project__client").all().order_by("project__client")
+        archives = (
+            Archive.objects.select_related("project__client")
+            .all()
+            .order_by("project__client")
+        )
     else:
         projects = get_project_list(user)
         archives = (
@@ -471,9 +496,19 @@ class ForbiddenJsonResponse(JsonResponse):
 
     status_code = 403
 
-    def __init__(self, data=None, encoder=DjangoJSONEncoder, safe=True, json_dumps_params=None, **kwargs):
+    def __init__(
+        self,
+        data=None,
+        encoder=DjangoJSONEncoder,
+        safe=True,
+        json_dumps_params=None,
+        **kwargs
+    ):
         if data is None:
-            data = {"result": "error", "message": "Ah ah ah! You didn't say the magic word!"}
+            data = {
+                "result": "error",
+                "message": "Ah ah ah! You didn't say the magic word!",
+            }
         super().__init__(data, encoder, safe, json_dumps_params, **kwargs)
 
 

@@ -342,12 +342,26 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
 
     class Params:
         docx = factory.Trait(
-            document=factory.django.FileField(from_path="DOCS/sample_reports/template.docx"),
-            doc_type=factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx"),
+            document=factory.django.FileField(
+                from_path="DOCS/sample_reports/template.docx"
+            ),
+            doc_type=factory.SubFactory(
+                DocTypeFactory,
+                doc_type="docx",
+                extension="docx",
+                name="docx",
+            ),
         )
         pptx = factory.Trait(
-            document=factory.django.FileField(from_path="DOCS/sample_reports/template.pptx"),
-            doc_type=factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx"),
+            document=factory.django.FileField(
+                from_path="DOCS/sample_reports/template.pptx"
+            ),
+            doc_type=factory.SubFactory(
+                DocTypeFactory,
+                doc_type="pptx",
+                extension="pptx",
+                name="pptx",
+            ),
         )
 
     @factory.post_generation
@@ -489,9 +503,21 @@ class BaseEvidenceFactory(factory.django.DjangoModelFactory):
     uploaded_by = factory.SubFactory(UserFactory)
 
     class Params:
-        img = factory.Trait(document=factory.django.FileField(filename="evidence.png", data=b"lorem ipsum"))
-        txt = factory.Trait(document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"))
-        unknown = factory.Trait(document=factory.django.FileField(filename="evidence.tar", data=b"lorem ipsum"))
+        img = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.png", data=b"lorem ipsum"
+            )
+        )
+        txt = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.txt", data=b"lorem ipsum"
+            )
+        )
+        unknown = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.tar", data=b"lorem ipsum"
+            )
+        )
 
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
@@ -929,7 +955,9 @@ class ExtraFieldSpecFactory(factory.django.DjangoModelFactory):
 
     @factory.lazy_attribute
     def target_model(self):
-        raise ValueError("Value for `target_model` (instance of `ExtraFieldModelFactory`) is required")
+        raise ValueError(
+            "Value for `target_model` (instance of `ExtraFieldModelFactory`) is required"
+        )
 
 
 def GenerateMockProject(
@@ -962,7 +990,9 @@ def GenerateMockProject(
 
     # Generate a batch of client contacts and project assignments
     ClientContactFactory.create_batch(num_of_contacts, client=client)
-    assignments = ProjectAssignmentFactory.create_batch(num_of_assignments, project=project)
+    assignments = ProjectAssignmentFactory.create_batch(
+        num_of_assignments, project=project
+    )
 
     # Generate severity categories and randomly assign them to findings
     severities = [
@@ -1006,7 +1036,9 @@ def GenerateMockProject(
 
     # Generate subtasks for each objective
     for obj in objectives:
-        ProjectSubtaskFactory.create_batch(num_of_subtasks, parent=obj, status=random.choice(obj_status))
+        ProjectSubtaskFactory.create_batch(
+            num_of_subtasks, parent=obj, status=random.choice(obj_status)
+        )
 
     # Generate random domain names and servers used for this project
     domains = HistoryFactory.create_batch(num_of_domains, project=project)
@@ -1033,9 +1065,15 @@ def GenerateMockProject(
 
     for index, domain in enumerate(domains):
         if index % 2 == 0:
-            DomainServerConnectionFactory(domain=domain, static_server=random.choice(servers), transient_server=None)
+            DomainServerConnectionFactory(
+                domain=domain,
+                static_server=random.choice(servers),
+                transient_server=None,
+            )
         else:
-            DomainServerConnectionFactory(domain=domain, transient_server=random.choice(cloud), static_server=None)
+            DomainServerConnectionFactory(
+                domain=domain, transient_server=random.choice(cloud), static_server=None
+            )
 
     # Return the higher level objects to be used in the tests
     return client, project, report
