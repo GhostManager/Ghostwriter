@@ -54,6 +54,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     enable_observation_create = False
     enable_observation_edit = False
     enable_observation_delete = False
+    enable_client_list_all = False
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):
