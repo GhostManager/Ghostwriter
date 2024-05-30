@@ -386,11 +386,9 @@ def get_project_list(user):
             .order_by("complete", "client")
         )
     else:
-        clients = get_client_list(user)
         projects = (
-            Project.objects.select_related("client")
-            .filter(
-                client__in=clients,
+            Project.objects.filter(
+                Q(projectinvite__user=user) | Q(projectassignment__operator=user)
             )
             .order_by("complete", "client")
             .distinct()
