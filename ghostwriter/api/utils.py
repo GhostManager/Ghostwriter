@@ -380,11 +380,7 @@ def get_project_list(user):
         The :model:`users.User` object
     """
     if verify_user_is_privileged(user):
-        projects = (
-            Project.objects.select_related("client")
-            .all()
-            .order_by("complete", "client")
-        )
+        projects = Project.objects.all().order_by("complete", "client")
     else:
         projects = (
             Project.objects.filter(
