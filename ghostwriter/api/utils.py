@@ -322,6 +322,32 @@ def verify_observation_access(user, mode):
     return False
 
 
+def verify_client_access(user, mode):
+    """
+    Verify that the user is flagged as being able to create and/or edit clients.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``mode``
+        The mode to check for (``create``, ``edit``, or ``delete``)
+    """
+    if verify_user_is_privileged(user):
+        return True
+
+    if mode == "create" and user.enable_client_create:
+        return True
+
+    if mode == "edit" and user.enable_client_edit:
+        return True
+
+    if mode == "delete" and user.enable_client_delete:
+        return True
+
+    return False
+
+
 def verify_client_list_access(user):
     """
     Verify that the user is flagged as being able to list all clients in the global rolodex.

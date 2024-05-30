@@ -27,6 +27,7 @@ from ghostwriter.api.utils import (
     get_client_list,
     get_project_list,
     verify_access,
+    verify_client_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
@@ -1223,7 +1224,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "rolodex/client_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_client_access(self.request.user, "create")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1318,7 +1319,7 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "rolodex/client_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_client_access(self.request.user, "edit")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1402,7 +1403,7 @@ class ClientDelete(RoleBasedAccessControlMixin, DeleteView):
     success_url = reverse_lazy("rolodex:clients")
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_client_access(self.request.user, "delete")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
