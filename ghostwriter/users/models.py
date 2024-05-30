@@ -86,6 +86,21 @@ class User(AbstractUser):
         help_text="Allow the user to view all clients (only applies to accounts with the User role)",
         verbose_name="Allow Listing All Clients",
     )
+    enable_client_create = BooleanField(
+        default=False,
+        help_text="Allow the user to create new clients in the library (only applies to account with the User role)",
+        verbose_name="Allow Client Creation",
+    )
+    enable_client_edit = BooleanField(
+        default=False,
+        help_text="Allow the user to edit clients in the library (only applies to accounts with the User role)",
+        verbose_name="Allow Client Editing",
+    )
+    enable_client_delete = BooleanField(
+        default=False,
+        help_text="Allow the user to delete clients in the library (only applies to accounts with the User role)",
+        verbose_name="Allow Client Deletion",
+    )
     require_2fa = BooleanField(
         default=False,
         help_text="Require the user to set up two-factor authentication",
