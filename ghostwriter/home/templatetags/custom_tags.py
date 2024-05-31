@@ -61,7 +61,9 @@ def count_assignments(request):
     """
     user_tasks = (
         ReportFindingLink.objects.select_related("report", "report__project")
-        .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
+        .filter(
+            Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False)
+        )
         .order_by("report__project__end_date")
     )
     return user_tasks.count()
@@ -87,7 +89,9 @@ def get_assignment_data(request):
             active_projects.append(assignment.project)
 
     for active_project in active_projects:
-        reports = Report.objects.filter(Q(project=active_project) & Q(complete=False))
+        reports = Report.objects.filter(
+            Q(project=active_project) & Q(complete=False)
+        )
         for report in reports:
             if report not in active_reports:
                 active_reports.append(report)
