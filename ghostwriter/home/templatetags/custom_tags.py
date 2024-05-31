@@ -18,6 +18,7 @@ from dateutil.parser._parser import ParserError
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     verify_access,
+    verify_client_access,
     verify_finding_access,
     verify_observation_access,
     verify_user_is_privileged,
@@ -151,6 +152,24 @@ def can_create_observation(user):
 def is_privileged(user):
     """Check if the user has the permission to create a finding."""
     return verify_user_is_privileged(user)
+
+
+@register.filter
+def can_edit_or_delete_clients(user):
+    """Check if the user has the permission to edit or delete clients."""
+    return can_edit_clients(user) or can_delete_clients(user)
+
+
+@register.filter
+def can_edit_clients(user):
+    """Check if the user has the permission to edit clients."""
+    return verify_user_is_privileged(user) or verify_client_access(user, "edit")
+
+
+@register.filter
+def can_delete_clients(user):
+    """Check if the user has the permission to delete clients."""
+    return verify_user_is_privileged(user) or verify_client_access(user, "delete")
 
 
 @register.filter
