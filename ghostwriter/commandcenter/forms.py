@@ -26,6 +26,14 @@ class ReportConfigurationForm(forms.ModelForm):
         model = ReportConfiguration
         fields = "__all__"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set `strip=False` for all fields to preserve whitespace so values like " — " for prefixes are not trimmed
+        self.fields["prefix_figure"].strip = False
+        self.fields["label_figure"].strip = False
+        self.fields["prefix_table"].strip = False
+        self.fields["label_table"].strip = False
+
     def clean_default_docx_template(self):
         docx_template = self.cleaned_data["default_docx_template"]
         if docx_template:

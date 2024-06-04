@@ -85,7 +85,7 @@ class ReportConfiguration(SingletonModel):
     prefix_figure = models.CharField(
         "Character Before Figure Captions",
         max_length=255,
-        default="\u2013",
+        default=" \u2013 ",
         help_text="Unicode character to place between the label and your figure caption in Word reports",
     )
     label_figure = models.CharField(
@@ -97,7 +97,7 @@ class ReportConfiguration(SingletonModel):
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
-        default="\u2013",
+        default=" \u2013 ",
         help_text="Unicode character to place between the label and your table caption in Word reports",
     )
     label_table = models.CharField(
@@ -410,7 +410,9 @@ class ExtraFieldSpec(models.Model):
         return EXTRA_FIELD_TYPES[self.type].empty_value()
 
     def form_field(self, *args, **kwargs):
-        return EXTRA_FIELD_TYPES[self.type].form_field(label=self.display_name, help_text=self.description, *args, **kwargs)
+        return EXTRA_FIELD_TYPES[self.type].form_field(
+            label=self.display_name, help_text=self.description, *args, **kwargs
+        )
 
     def form_widget(self, *args, **kwargs):
         return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)
