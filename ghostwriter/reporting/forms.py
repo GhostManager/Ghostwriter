@@ -8,6 +8,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Q
 
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
@@ -730,13 +731,11 @@ class EvidenceForm(forms.ModelForm):
         friendly_name = self.cleaned_data["friendly_name"]
         if self.evidence_queryset:
             # Check if provided name has already been used for another file for this report
-            report_queryset = self.evidence_queryset.values_list("id", "friendly_name")
-            for evidence in report_queryset:
-                if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
-                    raise ValidationError(
-                        _("This friendly name has already been used for a file attached to this finding."),
-                        "duplicate",
-                    )
+            if self.evidence_queryset.filter(Q(friendly_name=friendly_name) & ~Q(id=self.instance.id)).exists():
+                raise ValidationError(
+                    _("This friendly name has already been used for a file attached to this report."),
+                    "duplicate",
+                )
         return friendly_name
 
 
