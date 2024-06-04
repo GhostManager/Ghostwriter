@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * You can now use Jinja2 expressions to template the report filename (e.g., `{{client.name}}` or `{{now|format_datetime("Y-m-d")}}`)
   * The filename template is used when downloading a generated report
 * Added options for importing and exporting observations
-* Added support for loops inside the WYSIWYG editor
+* Added support for Jinja2-style loops inside the WYSIWYG editor
   * You can now use Jinja2 loops to create lists, table rows, and new paragraphs
   * Use `li`, `tr`, and `p` tags with the loops–e.g., `{%li for item in items %}...{%li endfor %}`
 * Added Jinja2 validation checks to the WYSIWYG editor to check if user-submitted content is valid Jinja2 code
@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The filename supports Jinja2 templating, like the global report filename
 * Added support for referencing custom fields inside other custom fields in the WYSIWYG editor
   * e.g., You can now reference another custom field or a pre-formated value like `finding.severity_rt` inside a custom field
+* Added `croniter` to the Docker builds to support scheduling background tasks with Cron syntax
+
 
 ### Changed
 
@@ -45,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Set a default value of `{}` for extra fields to avoid errors when creating new entries via the GraphQL API with empty extra fields
 * Modified error handling for report generation to provide more detailed error messages when a report fails to generate (e.g., which finding or field caused the error)
 * Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via teh GraphQL API
+* Removed the spaces before and after the figure and table prefixes to allow for flexibility
+  * If spaces before or after the prefix are desired, they can be added when setting the value in the report configuration
+  * Current values should be updated to add spaces (if desired) – e.g., change "–" to " – " 
 
 ### Fixed
 
@@ -53,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Removed the "Upload Evidence" button from report custom fields as it was not functional
   * It will be functional in a future release
 * Fixed an issue with generating reports when an attached finding had a null field
+* Fixed an issue with cross-references not working when special characters were present in the reference name (Fixes #444)
 
 ## [4.1] - 3 April 2024
 
