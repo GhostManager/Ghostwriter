@@ -2540,13 +2540,14 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
         if typ == "report":
             self.finding_instance = None
             self.report_instance = get_object_or_404(Report, pk=pk)
-            self.evidence_queryset = Evidence.objects.filter(report=self.report_instance.pk)
+            report = self.report_instance
         elif typ == "finding":
             self.finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
             self.report_instance = None
-            self.evidence_queryset = Evidence.objects.filter(finding=self.finding_instance.pk)
+            report = self.finding_instance.report
         else:
             raise Http404("Unrecognized evidence parent model type: {!r}".format(typ))
+        self.evidence_queryset = report.all_evidences()
 
     def get_template_names(self):
         if "modal" in self.kwargs:
@@ -2639,11 +2640,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        if self.object.finding:
-            evidence_queryset = Evidence.objects.filter(finding=self.object.finding.pk)
-        else:
-            evidence_queryset = Evidence.objects.filter(report=self.object.report.pk)
-        kwargs.update({"evidence_queryset": evidence_queryset})
+        kwargs.update({"evidence_queryset": self.object.associated_report.all_evidences()})
         return kwargs
 
     def get_context_data(self, **kwargs):

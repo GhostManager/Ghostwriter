@@ -525,6 +525,15 @@ class Report(models.Model):
         cls.objects.filter(filter_docx).update(docx_template=None)
         cls.objects.filter(filter_pptx).update(pptx_template=None)
 
+    def all_evidences(self):
+        """
+        Returns a queryset of all evidences attached to the report - both directly attached and through the findings.
+        """
+        return Evidence.objects.filter(
+            Q(report__id=self.pk)
+            | Q(finding__report__id=self.pk)
+        )
+
     def __str__(self):
         return f"{self.title}"
 
@@ -727,7 +736,7 @@ class Evidence(models.Model):
         return self.report
 
     def __str__(self):
-        return f"{self.document.name}"
+        return f"{self.friendly_name} @ {self.document.name}"
 
     @property
     def filename(self):
