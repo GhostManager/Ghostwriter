@@ -5,13 +5,14 @@ import json
 import logging
 from copy import deepcopy
 from datetime import datetime
+from functools import reduce
 
 # Django Imports
 from django.db.models import TextField, Func, Subquery, OuterRef, Value, F
 from django.db.models.functions import Cast
 from django.db.models.expressions import CombinedExpression
 from django.utils.timezone import make_aware
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, SearchVectorField
 
 # 3rd Party Libraries
 from channels.db import database_sync_to_async
@@ -28,6 +29,18 @@ from ghostwriter.users.models import User
 
 # Using __name__ resolves to ghostwriter.oplog.consumers
 logger = logging.getLogger(__name__)
+
+
+class TsVectorConcat(Func):
+    """
+    Raw concat operator.
+
+    Unlike Django's built in Concat function, this does not convert each argument to text first, so
+    it can be used with tsvectors.
+    """
+    template = "(%(expressions)s)"
+    arg_joiner = " || "
+    output_field = SearchVectorField()
 
 
 @database_sync_to_async
@@ -111,26 +124,31 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
         entries = OplogEntry.objects.filter(oplog_id=oplog_id)
         if filter:
-            # Build search vector.
-            # Internally SearchVector just concats each argument with " " in between each argument
-            # and feeds it to the PostgreSQL tokenizer.
+            # Build search vectors.
+            # english_vector_args should contain fields containing mostly English text, and will be stemmed.
+            # simple_vector_args should contain fields that won't be stemmed.
 
             # Built-in fields
-            vector_args = [
+            english_vector_args = [
+                "description",
+                "output",
+                "comments",
+            ]
+
+            simple_vector_args = english_vector_args + [
                 "entry_identifier",
                 "source_ip",
                 "dest_ip",
                 "tool",
                 "user_context",
                 "command",
-                "description",
-                "output",
-                "comments",
                 "operator_name",
+                "start_date",
+                "end_date",
             ]
 
             # Subquery to fetch tags
-            vector_args.append(Subquery(
+            simple_vector_args.append(Subquery(
                 TaggedItem.objects.filter(
                     content_type__app_label=OplogEntry._meta.app_label,
                     content_type__model=OplogEntry._meta.model_name,
@@ -142,18 +160,32 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
             # JSON operations to fetch extra fields
             for spec in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
-                field = CombinedExpression(
+                field = Cast(CombinedExpression(
                     F("extra_fields"),
                     "->>",
                     Value(spec.internal_name),
-                )
-                vector_args.append(Cast(field, TextField()))
+                ), TextField())
+                simple_vector_args.append(field)
+                if spec.type == "rich_text":
+                    english_vector_args.append(field)
 
-            # Build filter
-            ps_filter = " & ".join("'" + term.replace("'", "''").replace("\\", "\\\\") + "':*" for term in filter.split())
+            # Combine search vector
+            vector = TsVectorConcat(
+                SearchVector(*english_vector_args, config="english"),
+                SearchVector(*simple_vector_args, config="simple"),
+            )
 
-            vector = SearchVector(*vector_args, config="english")
-            query = SearchQuery(ps_filter, config="english", search_type="raw")
+            # Build filter.
+            # Search using both english and simple configs, to help match both types of vectors. Also use prefix
+            # terms to help search partial matches.
+
+            def q_term(term):
+                term = "'" + term.replace("'", "''").replace("\\", "\\\\") + "'"
+                return SearchQuery(term, config="english", search_type="raw") | SearchQuery(term + ":*", config="simple", search_type="raw")
+
+            query = reduce(lambda a, b: a & b, (q_term(term) for term in filter.split()))
+
+            # Run query
             entries = entries.annotate(
                 search=vector,
                 rank=SearchRank(vector, query),
