@@ -180,8 +180,8 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             # terms to help search partial matches.
 
             def q_term(term):
-                term = "'" + term.replace("'", "''").replace("\\", "\\\\") + "'"
-                return SearchQuery(term, config="english", search_type="raw") | SearchQuery(term + ":*", config="simple", search_type="raw")
+                term = "'" + term.replace("'", "''").replace("\\", "\\\\") + "':*"
+                return SearchQuery(term, config="english", search_type="raw") | SearchQuery(term, config="simple", search_type="raw")
 
             query = reduce(lambda a, b: a & b, (q_term(term) for term in filter.split()))
 
