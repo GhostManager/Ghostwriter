@@ -70,7 +70,8 @@
     });
 
     $('input[type=file]').on('change', function () {
-      $('#filename').text($(this).val());
+      let filename = $(this).val().split('\\').pop();
+      $('#filename').text(filename);
     });
 
     $doc_type.on('change', function () {
