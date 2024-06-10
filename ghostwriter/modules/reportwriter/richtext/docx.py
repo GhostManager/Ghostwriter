@@ -19,7 +19,7 @@ from lxml import etree
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
-from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML, parse_styles
+from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML, parse_styles
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 par = self.doc.add_paragraph(style=par.style)
         else:
             # Top level <p>
-            par = self.doc.add_paragraph(style=self.p_style)
+            par = self.doc.add_paragraph()
+            try:
+                par.style = self.p_style
+            except KeyError:
+                pass
 
         par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:
@@ -251,8 +255,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
     def tag_span(self, el, *, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
-            evidence = self.evidences.get(el.attrs["data-gw-evidence"])
-            if not evidence:
+            try:
+                evidence = self.evidences[int(el.attrs["data-gw-evidence"])]
+            except (KeyError, ValueError):
                 return
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
@@ -352,12 +357,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             except KeyError:
                 pass
             par_caption = self.doc.add_paragraph(style="Caption")
-            ref_name = re.sub(
-                "[^A-Za-z0-9]+",
-                "",
-                evidence["friendly_name"],
-            )
-            self.make_figure(par_caption, ref_name)
+            self.make_figure(par_caption, evidence["friendly_name"])
             par_caption.add_run(self.title_except(evidence["caption"]))
         elif extension in IMAGE_EXTENSIONS:
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -409,8 +409,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
             # Create the caption for the image
             p = self.doc.add_paragraph(style="Caption")
-            ref_name = re.sub("[^A-Za-z0-9]+", "", evidence["friendly_name"])
-            self.make_figure(p, ref_name)
+            self.make_figure(p, evidence["friendly_name"])
             run = p.add_run(self.title_except(evidence["caption"]))
 
     def make_cross_ref(self, par, ref: str):
@@ -425,7 +424,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = f" REF _Ref{ref} \\h "
+        instrText.text = " REF \"_Ref{}\" \\h ".format(ref.replace('\\', '\\\\').replace('"', '\\"'))
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number

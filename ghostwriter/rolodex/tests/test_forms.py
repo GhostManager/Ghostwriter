@@ -158,7 +158,7 @@ class ClientContactFormSetTests(TestCase):
         form = self.form_data(data)
         errors = form.errors[0]["job_title"].as_data()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "incomplete")
+        self.assertEqual(errors[0].code, "required")
 
     def test_incomplete_contact_form_email(self):
         contact_1 = self.contact_1.__dict__.copy()
@@ -169,7 +169,7 @@ class ClientContactFormSetTests(TestCase):
         form = self.form_data(data)
         errors = form.errors[0]["email"].as_data()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "incomplete")
+        self.assertEqual(errors[0].code, "required")
 
     def test_invalid_email_address(self):
         contact_1 = self.contact_1.__dict__.copy()
@@ -1150,7 +1150,7 @@ class ProjectContactFormSetTests(TestCase):
         form = self.form_data(data)
         errors = form.errors[0]["job_title"].as_data()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "incomplete")
+        self.assertEqual(errors[0].code, "required")
 
     def test_incomplete_contact_form_email(self):
         contact_1 = self.contact_1.__dict__.copy()
@@ -1161,7 +1161,7 @@ class ProjectContactFormSetTests(TestCase):
         form = self.form_data(data)
         errors = form.errors[0]["email"].as_data()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "incomplete")
+        self.assertEqual(errors[0].code, "required")
 
     def test_invalid_email_address(self):
         contact_1 = self.contact_1.__dict__.copy()

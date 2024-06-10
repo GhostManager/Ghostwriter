@@ -5,11 +5,9 @@ import os
 from datetime import datetime
 
 # Django Imports
-from django.conf import settings
 from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.dateformat import format as dateformat
 from django.utils.encoding import force_str
 
@@ -19,7 +17,6 @@ from rest_framework.renderers import JSONRenderer
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ClientFactory,
-    CompanyInformationFactory,
     DocTypeFactory,
     EvidenceOnFindingFactory,
     EvidenceOnReportFactory,
@@ -28,10 +25,10 @@ from ghostwriter.factories import (
     FindingTypeFactory,
     GenerateMockProject,
     LocalFindingNoteFactory,
+    ObservationFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectTargetFactory,
-    ReportConfigurationFactory,
     ReportDocxTemplateFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -55,7 +52,6 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     filter_tags,
 )
 from ghostwriter.reporting.templatetags import report_tags
-from ghostwriter.reporting.views import generate_report_name
 
 logging.disable(logging.CRITICAL)
 
@@ -125,8 +121,6 @@ class TemplateTagTests(TestCase):
 
         self.assertEqual(report_tags.get_file_content(txt_evidence), "lorem ipsum")
         self.assertEqual(report_tags.get_file_content(deleted_evidence), "FILE NOT FOUND")
-
-        self.assertEqual(report_tags.get_file_basename(txt_evidence), "evidence.txt")
 
 
 # Tests related to report modification actions
@@ -713,6 +707,36 @@ class FindingExportViewTests(TestCase):
             title = f"Finding {finding_id}"
             cls.findings.append(FindingFactory(title=title, tags=cls.tags))
         cls.uri = reverse("reporting:export_findings_to_csv")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("Content-Type"), "text/csv")
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ObservationExportViewTests(TestCase):
+    """Collection of tests for :view:`reporting.export_observations_to_csv`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.num_of_observations = 10
+        cls.observations = []
+        cls.tags = ["severity:high, att&ck:t1159"]
+        for observation_id in range(cls.num_of_observations):
+            title = f"Observation {observation_id}"
+            cls.observations.append(ObservationFactory(title=title, tags=cls.tags))
+        cls.uri = reverse("reporting:export_observations_to_csv")
 
     def setUp(self):
         self.client = Client()
@@ -1637,8 +1661,8 @@ class ReportTemplateListViewTests(TestCase):
         cls.ReportTemplate.objects.all().delete()
         cls.DocType.objects.all().delete()
 
-        docx_type = DocTypeFactory(doc_type="docx", id=1)
-        pptx_type = DocTypeFactory(doc_type="pptx", id=2)
+        docx_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx", id=1)
+        pptx_type = DocTypeFactory(doc_type="pptx", extension="pptx", name="pptx", id=2)
 
         cls.num_of_templates = 5
         cls.templates = []
@@ -2207,30 +2231,6 @@ class GenerateReportTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
-    def test_generate_report_name(self):
-        company_config = CompanyInformationFactory()
-        ReportConfigurationFactory(
-            report_filename="{D d m Y} {date} {company} - {client} {assessment_type} {title} <>:'/|?.,:;[]"
-        )
-
-        current_date = timezone.now()
-        date_format = dateformat(current_date, "D d m Y")
-        date_str = dateformat(current_date, settings.DATE_FORMAT)
-
-        # Remove any periods or commas that can appear in the `Faker` generated names
-        client = self.project.client.name.replace(",", "").replace(".", "")
-        company = company_config.company_name.replace(",", "").replace(".", "")
-
-        assessment = self.project.project_type.project_type
-
-        title = self.report.title
-
-        report_name = generate_report_name(self.report)
-        self.assertEqual(
-            report_name,
-            f"{date_format} {date_str} {company} - {client} {assessment} {title}",
-        )
-
     def test_view_json_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.json_uri)
         self.assertEqual(response.status_code, 200)
@@ -2246,21 +2246,24 @@ class GenerateReportTests(TestCase):
         response = self.client_mgr.get(self.xlsx_uri)
         self.assertEqual(
             response.get("Content-Type"),
-            "application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)
         self.assertEqual(
             response.get("Content-Type"),
-            "application/application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            repr(response) + repr([str(msg) for msg in get_messages(response.wsgi_request)]),
         )
 
     def test_view_all_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.all_uri)
+        self.assertEqual(response.status_code, 200, str(response))
         self.assertEqual(
             response.get("Content-Type"),
             "application/x-zip-compressed",
+            str(response)
         )
 
     def test_view_json_requires_login_and_permissions(self):
@@ -2320,7 +2323,7 @@ class GenerateReportTests(TestCase):
 
         assignment = ProjectAssignmentFactory(project=self.report.project, operator=self.user)
         response = self.client_auth.get(self.all_uri)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, str(response.request))
         assignment.delete()
 
     def test_view_docx_with_missing_template(self):
@@ -2335,9 +2338,7 @@ class GenerateReportTests(TestCase):
 
         response = self.client_mgr.get(self.docx_uri)
         messages = list(get_messages(response.wsgi_request))
-        self.assertEqual(
-            str(messages[0]), "Your selected Word template could not be found on the server – try uploading it again."
-        )
+        self.assertEqual(str(messages[0]), "Error: Template document file could not be found - try re-uploading it")
 
         self.report.docx_template = good_template
         self.report.save()
@@ -2471,7 +2472,7 @@ class ReportTemplateFilterTests(TestCase):
 
     def test_regex_search(self):
         test_string = "This is a test string. It contains the word 'test'."
-        result = regex_search(test_string, "^(.*?)\.")
+        result = regex_search(test_string, r"^(.*?)\.")
         self.assertEqual(result, "This is a test string.")
 
     def test_filter_tags(self):
@@ -2655,7 +2656,10 @@ class EvidenceDownloadTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="evidence.png"')
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            f'attachment; filename="{self.evidence_file.filename}"',
+        )
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)

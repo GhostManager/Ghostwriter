@@ -144,7 +144,10 @@ class BaseHtmlToOOXML:
         if style.get("font_family"):
             run.font.name = style["font_family"]
         if style.get("font_size"):
-            run.font.size = "font_size"
+            try:
+                run.font.size = int(style["font_size"])
+            except ValueError:
+                pass
 
     tag_code = set_style_method("code", "inline_code")
     tag_b = set_style_method("b", "bold")

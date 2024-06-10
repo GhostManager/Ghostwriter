@@ -50,6 +50,7 @@ class ReportConfigurationFormTests(TestCase):
         prefix_table=None,
         label_table=None,
         report_filename=None,
+        project_filename=None,
         default_docx_template_id=None,
         default_pptx_template_id=None,
         title_case_captions=None,
@@ -67,6 +68,7 @@ class ReportConfigurationFormTests(TestCase):
                 "prefix_table": prefix_table,
                 "label_table": label_table,
                 "report_filename": report_filename,
+                "project_filename": project_filename,
                 "default_docx_template": default_docx_template_id,
                 "default_pptx_template": default_pptx_template_id,
                 "title_case_captions": title_case_captions,
@@ -82,7 +84,8 @@ class ReportConfigurationFormTests(TestCase):
     def test_clean_default_docx_template(self):
         config = self.config.__dict__.copy()
         form = self.form_data(**config)
-        self.assertTrue(form.is_valid())
+        if not form.is_valid():
+            self.fail(f"Form was not valid, errors: {form.errors!r}")
 
         # Switch config to the invalid template
         config["default_docx_template_id"] = self.invalid_docx_template.pk

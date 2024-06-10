@@ -7,9 +7,8 @@
 <a class="icon edit-icon btn btn-primary mb-3 col-3"
    href="{% url 'rolodex:project_component_update' project.id %}#contacts">Add & Edit Contacts</a>
 
-<p>These are points of contact for this project. You can create project-specific contacts here or add contacts from
-  {{ project.client }}. If a point of contact might be part of more projects, consider adding them to
-  {{ project.client }}.
+<p class="text-justify offset-2 col-8">These are points of contact for this project. You can create project-specific contacts here or add contacts from the
+  client. If a point of contact might be part of more projects, consider adding them to the client for future use.
 </p>
 
 {% if project.projectcontact_set.all %}

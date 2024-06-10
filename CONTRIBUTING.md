@@ -14,7 +14,7 @@ This project and everyone participating in it is governed by the Code of Conduct
 
 Before asking a question, please check for an answer in the wiki: [ghostwriter.wiki](https://ghostwriter/wiki/)
 
-If you still need assistance, you can get in touch via the [SpecterOps/BloodHound Slack](https://bloodhoundgang.herokuapp.com/) and the #ghostwriter channel.
+If you still need assistance, you can get in touch via the [SpecterOps/BloodHound Slack](https://ghst.ly/BHSlack) and the #ghostwriter channel.
 
 If you'd prefer not to use Slack, you can ask your question in under the _Discussions_ tab. Ask your question under the _Q&A_ section.
 

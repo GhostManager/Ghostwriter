@@ -13,7 +13,7 @@ from pptx.util import Inches, Pt
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
-from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML
+from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML
 
 
 class HtmlToPptx(BaseHtmlToOOXML):
@@ -151,8 +151,9 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
 
     def tag_span(self, el, *, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
-            evidence = self.evidences.get(el.attrs["data-gw-evidence"])
-            if not evidence:
+            try:
+                evidence = self.evidences[int(el.attrs["data-gw-evidence"])]
+            except (KeyError, ValueError):
                 return
             par._p.getparent().remove(par._p)
             self.make_evidence(self.slide, evidence)

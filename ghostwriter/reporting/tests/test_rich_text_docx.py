@@ -5,7 +5,7 @@ import docx
 
 from django.test import TestCase
 
-from ghostwriter.modules.reportwriter.html_to_docx import HtmlToDocx
+from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx
 
 WORD_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:mv="urn:schemas-microsoft-com:mac:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14"><w:body>"""  # noqa: E501
@@ -68,7 +68,7 @@ class RichTextToDocxTests(TestCase):
     test_paragraphs = mk_test_docx(
         "test_paragraphs",
         "<p>Hello World!</p><p>This is a test!</p>",
-        """<w:p><w:r><w:t>Hello World!</w:t></w:r></w:p><w:p><w:r><w:t>This is a test!</w:t></w:r></w:p>""",
+        """<w:p><w:pPr/><w:r><w:t>Hello World!</w:t></w:r></w:p><w:p><w:pPr/><w:r><w:t>This is a test!</w:t></w:r></w:p>""",
     )
 
     test_bold = mk_test_docx(
@@ -76,6 +76,7 @@ class RichTextToDocxTests(TestCase):
         "<p>Hello <b>World</b>!</p>",
         """
             <w:p>
+                <w:pPr/>
                 <w:r><w:t xml:space="preserve">Hello </w:t></w:r>
                 <w:r><w:rPr><w:b/></w:rPr><w:t>World</w:t></w:r>
                 <w:r><w:t>!</w:t></w:r>
@@ -100,6 +101,7 @@ class RichTextToDocxTests(TestCase):
                 <w:r><w:t>Heading three</w:t></w:r>
             </w:p>
             <w:p>
+                <w:pPr/>
                 <w:r><w:t>Paragraph</w:t></w:r>
             </w:p>
         """,
@@ -110,6 +112,7 @@ class RichTextToDocxTests(TestCase):
         """<p><span style="color: #ff0000;">Red</span>Text</p>""",
         """
             <w:p>
+                <w:pPr/>
                 <w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>Red</w:t></w:r>
                 <w:r><w:t>Text</w:t></w:r>
             </w:p>
@@ -136,6 +139,7 @@ class RichTextToDocxTests(TestCase):
         """,
         """
             <w:p>
+                <w:pPr/>
                 <w:r/>
                 <w:r><w:rPr><w:b/></w:rPr><w:t>Bold</w:t></w:r>
                 <w:r><w:t xml:space="preserve"> </w:t></w:r>
@@ -184,7 +188,7 @@ class RichTextToDocxTests(TestCase):
             </ul>
         """,
         """
-            <w:p><w:r><w:t>List test one:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
                 <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
@@ -205,7 +209,7 @@ class RichTextToDocxTests(TestCase):
                 <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
-            <w:p><w:r><w:t>List test two:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
                 <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
@@ -236,7 +240,7 @@ class RichTextToDocxTests(TestCase):
             </ol>
         """,
         """
-            <w:p><w:r><w:t>List test one:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
                 <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
@@ -257,7 +261,7 @@ class RichTextToDocxTests(TestCase):
                 <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
-            <w:p><w:r><w:t>List test two:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
                 <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
@@ -292,7 +296,7 @@ class RichTextToDocxTests(TestCase):
             </ol>
         """,
         """
-            <w:p><w:r><w:t>List test one:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
                 <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
@@ -313,7 +317,7 @@ class RichTextToDocxTests(TestCase):
                 <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
-            <w:p><w:r><w:t>List test two:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
                 <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
@@ -344,7 +348,7 @@ class RichTextToDocxTests(TestCase):
         <blockquote>Alas poor <b>Yorik</b>, I knew him well</blockquote>
         """,
         """
-            <w:p><w:r><w:t>A quote:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>A quote:</w:t></w:r></w:p>
             <w:p>
                 <w:r><w:t xml:space="preserve">Alas poor </w:t></w:r>
                 <w:r><w:rPr><w:b/></w:rPr><w:t>Yorik</w:t></w:r>
@@ -362,7 +366,7 @@ class RichTextToDocxTests(TestCase):
 }</pre>
         """,
         """
-            <w:p><w:r><w:t>Some code:</w:t></w:r></w:p>
+            <w:p><w:pPr/><w:r><w:t>Some code:</w:t></w:r></w:p>
             <w:p>
                 <w:pPr><w:jc w:val="left"/></w:pPr>
                 <w:r>

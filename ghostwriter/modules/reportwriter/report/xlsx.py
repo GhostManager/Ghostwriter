@@ -2,10 +2,8 @@
 import io
 import logging
 
-from xlsxwriter.workbook import Workbook
-
-from ghostwriter.modules.reportwriter.html_to_plain_text import html_to_plain_text
-from ghostwriter.modules.reportwriter.export_report_base import ExportReportBase
+from ghostwriter.modules.reportwriter.base.xlsx import ExportXlsxBase
+from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.reporting.models import Evidence, Finding
 
@@ -13,35 +11,9 @@ from ghostwriter.reporting.models import Evidence, Finding
 logger = logging.getLogger(__name__)
 
 
-class ExportReportXlsx(ExportReportBase):
-    output: io.BytesIO
-    workbook: Workbook
-
-    def __init__(self, report):
-        super().__init__(report)
-        self.output = io.BytesIO()
-        self.workbook = Workbook(self.output, {
-            "in_memory": True,
-            "strings_to_formulas": False,
-            "strings_to_urls": False,
-        })
-
-    def _process_rich_text_xlsx(self, html, template_vars, evidences) -> str:
-        """
-        Converts HTML from the TinyMCE rich text editor and returns a plain string
-        """
-        text = self.preprocess_rich_text(html, template_vars)
-        return html_to_plain_text(text, evidences)
-
+class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
     def run(self) -> io.BytesIO:
-        """
-        Generate a complete Excel spreadsheet for the current report.
-
-        **Parameters**
-
-        ``memory_object``
-            In-memory file-like object to write the Excel spreadsheet to
-        """
+        context = self.map_rich_texts()
 
         # Create an in-memory Excel workbook with a named worksheet
         xlsx_doc = self.workbook
@@ -90,7 +62,6 @@ class ExportReportXlsx(ExportReportBase):
         ]
 
         findings_extra_field_specs = self.extra_field_specs_for(Finding)
-        base_evidences = {e["friendly_name"]: e for e in self.data["evidence"]}
 
         # Create 30 width columns and then shrink severity to 10
         for header in headers:
@@ -107,16 +78,13 @@ class ExportReportXlsx(ExportReportBase):
         # Loop through the findings to create the rest of the worksheet
         col = 0
         row = 1
-        base_context = self.jinja_richtext_base_context()
-        for finding in self.data["findings"]:
-            finding_context = self.jinja_richtext_finding_context(base_context, finding)
-            finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
+        for finding in context["findings"]:
 
             # Finding Name
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["title"], finding_context, finding_evidences),
+                finding["title"],
                 bold_format,
             )
             col += 1
@@ -128,7 +96,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["severity"], finding_context, finding_evidences),
+                finding["severity"],
                 severity_format,
             )
             col += 1
@@ -138,14 +106,14 @@ class ExportReportXlsx(ExportReportBase):
                 worksheet.write_string(
                     row,
                     col,
-                    self._process_rich_text_xlsx(finding["cvss_score"], finding_context, finding_evidences),
+                    str(finding["cvss_score"]) if finding["cvss_score"] is not None else "",
                     severity_format,
                 )
             col += 1
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["cvss_vector"], finding_context, finding_evidences),
+                str(finding["cvss_vector"]) if finding["cvss_vector"] is not None else "",
                 severity_format,
             )
             col += 1
@@ -155,7 +123,7 @@ class ExportReportXlsx(ExportReportBase):
                 worksheet.write_string(
                     row,
                     col,
-                    self._process_rich_text_xlsx(finding["affected_entities"], finding_context, finding_evidences),
+                    self.render_rich_text_xlsx(finding["affected_entities_rt"]),
                     asset_format,
                 )
             else:
@@ -166,7 +134,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["description"], finding_context, finding_evidences),
+                self.render_rich_text_xlsx(finding["description_rt"]),
                 wrap_format,
             )
             col += 1
@@ -175,7 +143,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["impact"], finding_context, finding_evidences),
+                self.render_rich_text_xlsx(finding["impact_rt"]),
                 wrap_format,
             )
             col += 1
@@ -184,7 +152,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["recommendation"], finding_context, finding_evidences),
+                self.render_rich_text_xlsx(finding["recommendation_rt"]),
                 wrap_format,
             )
             col += 1
@@ -193,7 +161,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["replication_steps"], finding_context, finding_evidences),
+                self.render_rich_text_xlsx(finding["replication_steps_rt"]),
                 wrap_format,
             )
             col += 1
@@ -202,16 +170,14 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["host_detection_techniques"], finding_context, finding_evidences),
+                self.render_rich_text_xlsx(finding["host_detection_techniques_rt"]),
                 wrap_format,
             )
             col += 1
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(
-                    finding["network_detection_techniques"], finding_context, finding_evidences
-                ),
+                self.render_rich_text_xlsx(finding["network_detection_techniques_rt"]),
                 wrap_format,
             )
             col += 1
@@ -220,7 +186,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding["references"], finding_context, finding_evidences),
+                self.render_rich_text_xlsx(finding["references_rt"]),
                 wrap_format,
             )
             col += 1
@@ -238,7 +204,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(finding_evidence_names, finding_context, finding_evidences),
+                finding_evidence_names,
                 wrap_format,
             )
             col += 1
@@ -247,7 +213,7 @@ class ExportReportXlsx(ExportReportBase):
             worksheet.write_string(
                 row,
                 col,
-                self._process_rich_text_xlsx(", ".join(finding["tags"]), finding_context, finding_evidences),
+                ", ".join(finding["tags"]),
                 wrap_format,
             )
             col += 1
@@ -256,7 +222,7 @@ class ExportReportXlsx(ExportReportBase):
             for field_spec in findings_extra_field_specs:
                 field_value = field_spec.value_of(finding["extra_fields"])
                 if field_spec.type == "rich_text":
-                    field_value = self._process_rich_text_xlsx(field_value, finding_context, finding_evidences)
+                    field_value = self.render_rich_text_xlsx(field_value)
                 else:
                     field_value = str(field_value)
                 worksheet.write_string(row, col, field_value, wrap_format)
@@ -269,6 +235,4 @@ class ExportReportXlsx(ExportReportBase):
         # Add a filter to the worksheet
         worksheet.autofilter("A1:M{}".format(len(self.data["findings"]) + 1))
 
-        # Finalize document
-        xlsx_doc.close()
-        return self.output
+        return super().run()

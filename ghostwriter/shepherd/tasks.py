@@ -1051,24 +1051,24 @@ def review_cloud_infrastructure(aws_only_running=False, do_only_running=False):
                             instance_name,
                             instance["public_ip"],
                             instance["tags"],
+                            instance["state"],
                         )
-                        if slack.enabled:
-                            if result.project.slack_channel:
-                                err = slack.send_msg(
-                                    message=f"Teardown notification for {result.project}",
-                                    channel=result.project.slack_channel,
-                                    blocks=blocks,
-                                )
-                            else:
-                                err = slack.send_msg(
-                                    message=f"Teardown notification for {result.project}",
-                                    blocks=blocks,
-                                )
-                            if err:
-                                logger.warning(
-                                    "Attempt to send a Slack notification returned an error: %s",
-                                    err,
-                                )
+                        if result.project.slack_channel:
+                            err = slack.send_msg(
+                                message=f"Teardown notification for {result.project}",
+                                channel=result.project.slack_channel,
+                                blocks=blocks,
+                            )
+                        else:
+                            err = slack.send_msg(
+                                message=f"Teardown notification for {result.project}",
+                                blocks=blocks,
+                            )
+                        if err:
+                            logger.warning(
+                                "Attempt to send a Slack notification returned an error: %s",
+                                err,
+                            )
                 else:
                     # Project is still active, so track these assets for later
                     assets_in_use.append(instance_id)
@@ -1091,6 +1091,7 @@ def review_cloud_infrastructure(aws_only_running=False, do_only_running=False):
                         instance_name,
                         instance["public_ip"],
                         instance["tags"],
+                        instance["state"],
                     )
                     err = slack.send_msg(
                         message="Untracked cloud asset found",

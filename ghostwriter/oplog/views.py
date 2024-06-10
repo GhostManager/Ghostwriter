@@ -233,6 +233,7 @@ def validate_headers(imported_data):
         "comments",
         "operator_name",
         "tags",
+        "extra_fields",
     ]
     return collections.Counter(imported_data.headers) == collections.Counter(headers)
 

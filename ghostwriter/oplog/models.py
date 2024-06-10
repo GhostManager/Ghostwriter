@@ -56,7 +56,7 @@ class OplogEntry(models.Model):
 
     entry_identifier = models.CharField(
         "Identifier",
-        null=True,
+        default="",
         blank=True,
         help_text="Integrations may use this to track log entries.",
         max_length=65535,
@@ -99,25 +99,25 @@ class OplogEntry(models.Model):
     )
     command = models.TextField(
         "Command",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide the command you executed.",
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="A description of why you executed the command.",
     )
     output = models.TextField(
         "Output",
-        null=True,
+        default="",
         blank=True,
         help_text="The output of the executed command.",
     )
     comments = models.TextField(
         "Comments",
-        null=True,
+        default="",
         blank=True,
         help_text="Any additional comments or useful information.",
     )

@@ -8,7 +8,7 @@ from taggit.models import Tag
 
 # Ghostwriter Libraries
 from ghostwriter.modules.shared import TagFieldImport, TagWidget, taggit_before_import_row
-from ghostwriter.reporting.models import Finding, FindingType, Severity
+from ghostwriter.reporting.models import Finding, FindingType, Observation, Severity
 
 
 class FindingResource(resources.ModelResource):
@@ -48,6 +48,7 @@ class FindingResource(resources.ModelResource):
             "references",
             "finding_guidance",
             "tags",
+            "extra_fields",
         )
         export_order = (
             "id",
@@ -65,4 +66,32 @@ class FindingResource(resources.ModelResource):
             "references",
             "finding_guidance",
             "tags",
+            "extra_fields",
+        )
+
+
+class ObservationResource(resources.ModelResource):
+    """Import and export :model:`reporting.Observation`."""
+
+    tags = TagFieldImport(attribute="tags", column_name="tags", widget=TagWidget(Tag, separator=","))
+
+    def before_import_row(self, row, **kwargs):
+        taggit_before_import_row(row)
+
+    class Meta:
+        model = Observation
+        skip_unchanged = False
+        fields = (
+            "id",
+            "title",
+            "description",
+            "tags",
+            "extra_fields",
+        )
+        export_order = (
+            "id",
+            "title",
+            "description",
+            "tags",
+            "extra_fields",
         )

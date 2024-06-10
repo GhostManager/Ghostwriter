@@ -17,6 +17,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 from ghostwriter.api.utils import get_client_list
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
     Domain,
@@ -172,6 +173,9 @@ class DomainForm(forms.ModelForm):
             "expiration": forms.DateInput(
                 format="%Y-%m-%d",
             ),
+        }
+        field_classes = {
+            "note": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):

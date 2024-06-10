@@ -4,7 +4,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-AVATAR_DIR=/app/ghostwriter/media/user_avatars
+AVATAR_DIR=/app/ghostwriter/media/images/user_avatars
 EVIDENCE_DIR=/app/ghostwriter/media/evidence
 TEMPLATE_DIR=/app/ghostwriter/media/templates
 ARCHIVE_DIR=/app/ghostwriter/media/archives

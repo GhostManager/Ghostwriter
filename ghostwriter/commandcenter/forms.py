@@ -1,16 +1,22 @@
 """This contains all the forms used by the CommandCenter application."""
 
+import logging
+
 # Django Imports
 from typing import Iterable, Iterator, Tuple
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-# Ghostwriter Libraries
-from ghostwriter.commandcenter.models import ReportConfiguration, ExtraFieldSpec
-
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field, ButtonHolder, Submit, HTML
+
+# Ghostwriter Libraries
+from ghostwriter.commandcenter.models import ReportConfiguration, ExtraFieldSpec
+from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
+from ghostwriter.modules.reportwriter.report.base import ExportReportBase
+
+logger = logging.getLogger(__name__)
 
 
 class ReportConfigurationForm(forms.ModelForm):
@@ -19,6 +25,14 @@ class ReportConfigurationForm(forms.ModelForm):
     class Meta:
         model = ReportConfiguration
         fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set `strip=False` for all fields to preserve whitespace so values like " — " for prefixes are not trimmed
+        self.fields["prefix_figure"].strip = False
+        self.fields["label_figure"].strip = False
+        self.fields["prefix_table"].strip = False
+        self.fields["label_table"].strip = False
 
     def clean_default_docx_template(self):
         docx_template = self.cleaned_data["default_docx_template"]
@@ -41,6 +55,16 @@ class ReportConfigurationForm(forms.ModelForm):
                     "invalid",
                 )
         return pptx_template
+
+    def clean_report_filename(self):
+        name_template = self.cleaned_data["report_filename"]
+        ExportReportBase.check_filename_template(name_template)
+        return name_template
+
+    def clean_project_filename(self):
+        name_template = self.cleaned_data["project_filename"]
+        ExportProjectBase.check_filename_template(name_template)
+        return name_template
 
 
 # Marker object to signal ExtraFieldsWidget to use the admin-configured defaults in the DB rather than loading from a value.
@@ -171,7 +195,7 @@ class ExtraFieldsField(forms.Field):
 
         errors = []
         clean_data = {}
-        for field_spec in ExtraFieldSpec.objects.filter(target_model=self.model_label):
+        for field_spec in self.specs:
             field_obj = field_spec.form_field()
             try:
                 clean_data[field_spec.internal_name] = field_obj.clean(value.get(field_spec.internal_name))

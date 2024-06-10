@@ -323,7 +323,7 @@ class ObservationFactory(factory.django.DjangoModelFactory):
 class DocTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.DocType"
-        django_get_or_create = ("doc_type",)
+        django_get_or_create = ("doc_type", "extension", "name")
 
 
 class ReportTemplateFactory(factory.django.DjangoModelFactory):
@@ -337,17 +337,17 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
-    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx")
+    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 
     class Params:
         docx = factory.Trait(
             document=factory.django.FileField(from_path="DOCS/sample_reports/template.docx"),
-            doc_type=factory.SubFactory(DocTypeFactory, doc_type="docx"),
+            doc_type=factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx"),
         )
         pptx = factory.Trait(
             document=factory.django.FileField(from_path="DOCS/sample_reports/template.pptx"),
-            doc_type=factory.SubFactory(DocTypeFactory, doc_type="pptx"),
+            doc_type=factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx"),
         )
 
     @factory.post_generation
@@ -371,7 +371,7 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
-    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx")
+    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 
 
@@ -386,7 +386,7 @@ class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
-    doc_type = factory.SubFactory(DocTypeFactory, doc_type="pptx")
+    doc_type = factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx")
     uploaded_by = factory.SubFactory(UserFactory)
 
 
@@ -806,7 +806,9 @@ class NamecheapConfigurationFactory(factory.django.DjangoModelFactory):
 class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.ReportConfiguration"
+        django_get_or_create = ["pk"]
 
+    pk = 1
     enable_borders = Faker("boolean")
     border_weight = 2700
     border_color = "2D2B6B"
@@ -814,7 +816,8 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     label_figure = Faker("word")
     prefix_table = Faker("word")
     label_table = Faker("word")
-    report_filename = "{Y-m-d}_{His} {company} - {client} {assessment_type} Report"
+    report_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
+    project_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
     title_case_captions = Faker("boolean")
     title_case_exceptions = str(Faker("csv"))[:255]
     target_delivery_date = Faker("pyint")

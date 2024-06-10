@@ -120,20 +120,3 @@ def get_file_content(file):
             file_content = "FILE NOT FOUND"
 
     return file_content
-
-
-@register.filter
-def get_file_basename(file):
-    """
-    Return the basename of a file.
-
-    **Parameters**
-
-    ``file``
-        Instance of :model:`reporting.Evidence`
-    """
-    basename = "unknown"
-    if isinstance(file, Evidence):
-        basename = os.path.basename(file.document.name)
-
-    return basename

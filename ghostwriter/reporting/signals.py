@@ -9,7 +9,6 @@ from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.lint import TemplateLinter
 from ghostwriter.reporting.models import (
     ReportTemplate,
     Severity,
@@ -35,11 +34,11 @@ def clean_template(sender, instance, created, **kwargs):
     Delete the old template file and lint the replacement file for an instance of
     :model:`reporting.ReportTemplate`.
     """
-    lint_template = False
+    should_lint_template = False
     if hasattr(instance, "_current_template"):
         if instance._current_template:
             if instance._current_template.path not in instance.document.path:
-                lint_template = True
+                should_lint_template = True
                 try:
                     if os.path.exists(instance._current_template.path):
                         try:
@@ -68,27 +67,18 @@ def clean_template(sender, instance, created, **kwargs):
 
     if hasattr(instance, "_current_type"):
         if instance._current_type != instance.doc_type:
-            lint_template = True
+            should_lint_template = True
 
-    if created or lint_template:
+    if created or should_lint_template:
         logger.info("Template file change detected, so starting linter")
         logger.info(
             "Linting newly uploaded template: %s",
             instance.document.path,
         )
+
         try:
-            linter = TemplateLinter(template=instance)
-            if instance.doc_type.doc_type == "docx":
-                results = linter.lint_docx()
-            elif instance.doc_type.doc_type == "pptx":
-                results = linter.lint_pptx()
-            else:  # pragma: no cover
-                logger.warning(
-                    "Template had an unknown filetype not supported by the linter: %s",
-                    instance.doc_type,
-                )
-                results = {}
-            instance.lint_result = results
+            instance.lint()
+
             # Disconnect signal to save model and avoid infinite loop
             post_save.disconnect(clean_template, sender=ReportTemplate)
             instance.save()

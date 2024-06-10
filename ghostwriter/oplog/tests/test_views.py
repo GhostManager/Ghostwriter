@@ -141,6 +141,7 @@ class OplogEntriesImportTests(TestCase):
         "operator_name",
         "oplog_id",
         "tags",
+        "extra_fields",
     ]
 
     def build_row(self, entry, tool=None, use_entry_identifier=True, entry_identifier=None, oplog_id=None):

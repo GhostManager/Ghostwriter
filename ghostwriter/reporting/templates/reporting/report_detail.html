@@ -129,11 +129,11 @@
         <table class="table table-responsive-lg table-borderless table-config center">
           <tr>
             <td class="text-left icon tag-icon">Figure Label & Prefix</td>
-            <td class="text-justify">{{ report_config.label_figure }} {{ report_config.prefix_figure }}</td>
+            <td class="text-justify">{{ report_config.label_figure }}{{ report_config.prefix_figure }}</td>
           </tr>
           <tr>
             <td class="text-left icon tag-icon">Table Label & Prefix</td>
-            <td class="text-justify">{{ report_config.label_table }} {{ report_config.prefix_table }}</td>
+            <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
           </tr>
           <tr>
             <td class="text-left icon tag-icon">Title Case Captions</td>
@@ -546,7 +546,7 @@
                 <td
                   class="align-middle icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
                   <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{ evidence_file.friendly_name|bleach }} ({{ evidence_file|get_file_basename|bleach }})
+                    {{ evidence_file.friendly_name|bleach }} ({{ evidence_file.filename|bleach }})
                   </a>
                 </td>
                 <td class="align-middle">
@@ -653,32 +653,45 @@
     const $spinnerModal = $('#spinner-modal')
 
     {% comment %} Connect to channel for report-specific notifications {% endcomment %}
-    let ws_report = new WebSocket(
-      protocol + window.location.host +
-      '/ws/reports/' + {{ report.id }} + '/');
+    function webSocketInit() {
+      ws_report = new WebSocket(
+        protocol + window.location.host +
+        '/ws/reports/' + {{ report.id }} + '/');
 
-    {% comment %} Handle receiving report-specific messages {% endcomment %}
-    ws_report.onmessage = function (e) {
-      let data = JSON.parse(e.data);
-      if (data.message['status'] == 'success') {
-        console.log('Completed report generation');
+      {% comment %} Handle successful WebSocket connection {% endcomment %}
+      ws_report.onopen = function () {
+        console.log('Connected to report notification WebSocket');
+        $spinnerModal.modal('hide');
+      };
+
+      {% comment %} Handle receiving report-specific messages {% endcomment %}
+      ws_report.onmessage = function (e) {
+        let data = JSON.parse(e.data);
+        if (data.message['status'] === 'success') {
+          console.log('Completed report generation');
+          setTimeout(() => {
+            $spinnerModal.modal('hide');
+          }, 1000);
+        }
+      };
+
+      {% comment %} Handle unexpected WebSocket closures {% endcomment %}
+      ws_report.onclose = function () {
+        console.error('Report notification WebSocket closed unexpectedly');
         setTimeout(() => {
-          $spinnerModal.modal('hide');
-        }, 1000);
-      }
-    };
-
-    {% comment %} Handle unexpected WebSocket closures {% endcomment %}
-    ws_report.onclose = function () {
-      console.error('Report notification WebSocket closed unexpectedly');
-    };
+          webSocketInit();
+        }, 2000);
+      };
+    }
+    webSocketInit();
 
     {% comment %} Display the loading spinner while report generates {% endcomment %}
     $('.js-generate-report').click(function () {
       $spinnerModal.modal('show');
+      // Wait 30 seconds and hide the spinner – just in case there is an error that prevents it from closing via WebSockets
       setTimeout(() => {
         $spinnerModal.modal('hide');
-      }, 4000);
+      }, 20000);
     });
 
     let report_id = '{{ report.id }}';

@@ -354,6 +354,11 @@
                 <li><a class="icon export-icon" href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to
                   CSV</a></li>
                 <hr>
+                <li><a class="icon import-icon" href="{% url 'admin:reporting_observation_import' %}">Upload Bulk
+                  Observations</a></li>
+                <li><a class="icon export-icon" href="{% url 'reporting:export_observations_to_csv' %}">Export Observations to
+                  CSV</a></li>
+                <hr>
                 <li><a class="icon import-icon" href="{% url 'admin:shepherd_domain_import' %}">Upload Bulk Domains</a>
                 </li>
                 <li><a class="icon export-icon" href="{% url 'shepherd:export_domains_to_csv' %}">Export Domains to
@@ -574,15 +579,15 @@
   {% for message in messages %}
     {% if 'no-toast' not in message.tags %}
       {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-        displayToastTop({type: 'success', string: '{{ message }}'});
+        displayToastTop({type: 'success', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-        displayToastTop({type: 'warning', string: '{{ message }}'});
+        displayToastTop({type: 'warning', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-        displayToastTop({type: 'error', string: '{{ message }}'});
+        displayToastTop({type: 'error', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-        displayToastTop({type: 'info', string: '{{ message }}'});
+        displayToastTop({type: 'info', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
-        displayToastTop({type: 'info', string: '{{ message }}'});
+        displayToastTop({type: 'info', string: '{{ message|escapejs }}'});
       {% endif %}
     {% endif %}
   {% endfor %}

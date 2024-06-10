@@ -2,7 +2,7 @@
 Jinja filters that ghostwriter exposes
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 import html
 import logging
 import re
@@ -12,9 +12,11 @@ from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 from django.conf import settings
 from django.utils.dateformat import format as dateformat
+import jinja2
 from markupsafe import Markup
 
 from ghostwriter.modules.exceptions import InvalidFilterValue
+from ghostwriter.modules.reportwriter.base import ReportExportError
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +143,7 @@ def add_days(date, days):
         raise InvalidFilterValue(f'Invalid integer ("{days}") passed into the `add_days()` filter') from e
 
     try:
-        date_obj = parse_datetime(date)
+        date_obj = date if isinstance(date, datetime) else parse_datetime(date)
         # Loop until all days added
         if days > 0:
             while days > 0:
@@ -169,7 +171,7 @@ def add_days(date, days):
     return new_date
 
 
-def format_datetime(date, new_format):
+def format_datetime(date, new_format=None):
     """
     Change the format of a given date string.
 
@@ -178,11 +180,11 @@ def format_datetime(date, new_format):
     ``date``
         Date string to modify
     ``format_str``
-        The format of the provided date
+        The format of the provided date. If omitted, use the global setting.
     """
     try:
-        date_obj = parse_datetime(date)
-        formatted_date = dateformat(date_obj, new_format)
+        date_obj = date if isinstance(date, datetime) else parse_datetime(date)
+        formatted_date = dateformat(date_obj, new_format if new_format is not None else settings.DATE_FORMAT)
     except ParserError as e:
         logger.exception("Error parsing ``date`` as a date: %s", date)
         raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter') from e
@@ -256,16 +258,27 @@ def filter_tags(objects, allowlist):
     return filtered_values
 
 
-def evidence(evidence_name):
-    """
-    `{{evidence(name)}}` function in jinja.
-    """
-    return Markup('<span data-gw-evidence="' + html.escape(evidence_name) + '"></span>')
-
-
 def caption(caption_name):
     return Markup('<span data-gw-caption="' + html.escape(caption_name) + '"></span>')
 
 
 def ref(ref_name):
     return Markup('<span data-gw-ref="' + html.escape(ref_name) + '"></span>')
+
+
+@jinja2.pass_context
+def mk_evidence(context: jinja2.runtime.Context, evidence_name: str) -> Markup:
+    """
+    `{{mk_evidence(name)}}` function in jinja.
+    """
+    evidences = context.get("_evidences")
+    if evidences is None:
+        raise ReportExportError("No evidences are available in this context")
+    evidence_id = evidences.get(evidence_name)
+    if evidence_id is None:
+        raise ReportExportError(f"No such evidence with name '{evidence_name}'")
+    return raw_mk_evidence(evidence_id)
+
+
+def raw_mk_evidence(evidence_id) -> Markup:
+    return Markup('<span data-gw-evidence="' + html.escape(str(evidence_id)) + '"></span>')

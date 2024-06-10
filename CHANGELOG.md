@@ -4,6 +4,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v4.2.0] - 10 June 2024
+
+### Added
+
+* Added a third template document type, Project DOCX, for project document templates
+  * These templates are separate from other DOCX templates because they will have access to different context data
+  * Project templates will have access to project data
+  * Report templates will have access to project and report data
+* Added the ability to generate project documents to the project dashboard
+  * This new feature uses the new project docx templates and existing pptx templates
+* Added support for templating document properties with Jinja2 in the report templates
+  * You can now use Jinja2 expressions to template document properties like the title, author, and company name
+  * Edit these properties inside the Word application under _File_ » _Properties_, save the document, and re-upload your template
+  * Thank you, @domwhewell, for the original submission (Closes #397)
+* Added template linting checks for the Heading 1-7 styles
+  * These styles should always be present in a Word document but may be unidentifiable if _styles.xml_ is corrupted
+* Added support for using Jinja2 in the report filename template configured under the _Global Report Configuration_ inside the admin panel
+  * You can now use Jinja2 expressions to template the report filename (e.g., `{{client.name}}` or `{{now|format_datetime("Y-m-d")}}`)
+  * The filename template is used when downloading a generated report
+* Added options for importing and exporting observations
+* Added support for Jinja2-style loops inside the WYSIWYG editor
+  * You can now use Jinja2 loops to create lists, table rows, and new paragraphs
+  * Use `li`, `tr`, and `p` tags with the loops–e.g., `{%li for item in items %}...{%li endfor %}`
+* Added Jinja2 validation checks to the WYSIWYG editor to check if user-submitted content is valid Jinja2 code
+* Added filename overrides for report templates
+  * You can now set a custom filename for a report template that will override the global default filename
+  * The filename supports Jinja2 templating, like the global report filename
+* Added support for referencing custom fields inside other custom fields in the WYSIWYG editor
+  * e.g., You can now reference another custom field or a pre-formated value like `finding.severity_rt` inside a custom field
+* Added `croniter` to the Docker builds to support scheduling background tasks with Cron syntax
+
+
+### Changed
+
+* The _Reports_ tab on the project dashboard has been renamed to _Reporting_ to better reflect the new project document templates
+* Exports now include an `extra_fields` column for any user-defined extra fields associated with the exported data
+* Slack messages for cloud assets now include the asset's current state (e.g., Running, Stopped, etc.) (Closes #417)
+* The activity log filter now searches all log entries for the log, not just the entries on the current page
+  * Log entries will continue to update in real time as new entries are added
+  * Only the entries that match the filter will appear until the filter is changed or cleared
+* Set a default value of `{}` for extra fields to avoid errors when creating new entries via the GraphQL API with empty extra fields
+* Modified error handling for report generation to provide more detailed error messages when a report fails to generate (e.g., which finding or field caused the error)
+* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via teh GraphQL API
+* Removed the spaces before and after the figure and table prefixes to allow for flexibility (Closes #446)
+  * If spaces before or after the prefix are desired, they can be added when setting the value in the report configuration
+  * Current values should be updated to add spaces (if desired) – e.g., change "–" to " – "
+  * Thanks to [@smcgu](https://github.com/smcgu) for the original pull request!
+
+### Fixed
+
+* Fixed an error that could occur when editing a finding with no editor assigned
+* Fixed blank findings added to a report not having user-defined fields
+* Removed the "Upload Evidence" button from report custom fields as it was not functional
+  * It will be functional in a future release
+* Fixed an issue with generating reports when an attached finding had a null field
+* Fixed an issue with cross-references not working when special characters were present in the reference name (Fixes #444)
+* Fixed issue with report generation when adjusting font sizes in the WYSIWYG editor
+
 ## [4.1] - 3 April 2024
 
 ### Added

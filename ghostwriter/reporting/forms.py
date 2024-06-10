@@ -8,6 +8,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Q
 
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
@@ -28,6 +29,9 @@ from ghostwriter.api.utils import get_client_list, get_project_list
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
+from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
+from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -51,6 +55,15 @@ class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         fields = "__all__"
+        field_classes = {
+            "description": JinjaRichTextField,
+            "impact": JinjaRichTextField,
+            "mitigation": JinjaRichTextField,
+            "replication_steps": JinjaRichTextField,
+            "host_detection_techniques": JinjaRichTextField,
+            "references": JinjaRichTextField,
+            "finding_guidance": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -367,6 +380,15 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             "finding_guidance",
             "added_as_blank",
         )
+        field_classes = {
+            "description": JinjaRichTextField,
+            "impact": JinjaRichTextField,
+            "mitigation": JinjaRichTextField,
+            "replication_steps": JinjaRichTextField,
+            "host_detection_techniques": JinjaRichTextField,
+            "references": JinjaRichTextField,
+            "finding_guidance": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -615,6 +637,9 @@ class EvidenceForm(forms.ModelForm):
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
         }
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         self.is_modal = kwargs.pop("is_modal", None)
@@ -706,13 +731,11 @@ class EvidenceForm(forms.ModelForm):
         friendly_name = self.cleaned_data["friendly_name"]
         if self.evidence_queryset:
             # Check if provided name has already been used for another file for this report
-            report_queryset = self.evidence_queryset.values_list("id", "friendly_name")
-            for evidence in report_queryset:
-                if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
-                    raise ValidationError(
-                        _("This friendly name has already been used for a file attached to this finding."),
-                        "duplicate",
-                    )
+            if self.evidence_queryset.filter(Q(friendly_name=friendly_name) & ~Q(id=self.instance.id)).exists():
+                raise ValidationError(
+                    _("This friendly name has already been used for a file attached to this report."),
+                    "duplicate",
+                )
         return friendly_name
 
 
@@ -725,6 +748,9 @@ class FindingNoteForm(forms.ModelForm):
     class Meta:
         model = FindingNote
         fields = ("note",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -765,6 +791,9 @@ class LocalFindingNoteForm(forms.ModelForm):
     class Meta:
         model = LocalFindingNote
         fields = ("note",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -799,6 +828,20 @@ class LocalFindingNoteForm(forms.ModelForm):
 class ReportTemplateForm(forms.ModelForm):
     """Save an individual :model:`reporting.ReportTemplate`."""
 
+    def clean(self):
+        filename_override = self.cleaned_data["filename_override"]
+        if not filename_override:
+            return
+
+        doc_typ = self.cleaned_data["doc_type"]
+        try:
+            if doc_typ.doc_type == "docx":
+                ExportReportBase.check_filename_template(filename_override)
+            elif doc_typ.doc_type == "pptx" or doc_typ.doc_type == "project_docx":
+                ExportProjectBase.check_filename_template(filename_override)
+        except ValidationError as e:
+            self.add_error("filename_override", e)
+
     class Meta:
         model = ReportTemplate
         exclude = ("upload_date", "last_update", "lint_result", "uploaded_by")
@@ -810,16 +853,22 @@ class ReportTemplateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+
+        if kwargs.get("instance"):
+            self.fields["client"].help_text += ". Changing this will unset this template as the global default template and the default templates on reports for other clients."
+            self.fields["doc_type"].help_text += ". Changing this will unset this template as the global default template and the default templates on reports."
+
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Default Red Team Report"
         self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
         self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
-        self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
+        self.fields["doc_type"].empty_label = "-- Select a Matching Template Type --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
+        self.fields["doc_type"].label = "Document Type"
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -865,6 +914,7 @@ class ReportTemplateForm(forms.ModelForm):
                 ),
                 css_class="form-row pb-2",
             ),
+            "filename_override",
             "description",
             HTML(
                 """
@@ -1046,6 +1096,9 @@ class ObservationForm(forms.ModelForm):
     class Meta:
         model = Observation
         fields = "__all__"
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1098,6 +1151,9 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
             "position",
             "added_as_blank",
         )
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
