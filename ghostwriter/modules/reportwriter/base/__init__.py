@@ -93,7 +93,7 @@ def rich_text_template(env: jinja2.Environment, text: str) -> jinja2.Template:
             return jinja_funcs.caption(contents[8:].strip())
         return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
 
-    text = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
+    text = re.sub(r"\{\{\.([^\{\}]*)\}\}", replace_old_tag, text)
 
     # Replace page breaks with something that the parser can easily pick up
     text = text.replace(
