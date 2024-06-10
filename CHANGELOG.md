@@ -47,9 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Set a default value of `{}` for extra fields to avoid errors when creating new entries via the GraphQL API with empty extra fields
 * Modified error handling for report generation to provide more detailed error messages when a report fails to generate (e.g., which finding or field caused the error)
 * Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via teh GraphQL API
-* Removed the spaces before and after the figure and table prefixes to allow for flexibility
+* Removed the spaces before and after the figure and table prefixes to allow for flexibility (Closes #446)
   * If spaces before or after the prefix are desired, they can be added when setting the value in the report configuration
-  * Current values should be updated to add spaces (if desired) – e.g., change "–" to " – " 
+  * Current values should be updated to add spaces (if desired) – e.g., change "–" to " – "
+  * Thanks to [@smcgu](https://github.com/smcgu) for the original pull request!
 
 ### Fixed
 
