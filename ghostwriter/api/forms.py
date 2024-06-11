@@ -2,16 +2,22 @@
 
 # Standard Libraries
 from datetime import timedelta
+import base64
+from binascii import Error as BinAsciiError
 
 # Django Imports
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from django.core.files.base import ContentFile
 
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
+
+from ghostwriter.reporting.models import Evidence, ReportFindingLink
 
 
 class ApiKeyForm(forms.Form):
@@ -71,3 +77,74 @@ class ApiKeyForm(forms.Form):
                     code="invalid_expiry_date",
                 )
         return expiry_date
+
+
+class Base64BytesField(forms.Field):
+    def to_python(self, value):
+        value = super().to_python(value)
+        if value is None:
+            return None
+        try:
+            bytes = base64.b64decode(value, validate=True)
+        except BinAsciiError as err:
+            raise ValidationError("Invalid base64 data", code="invalid") from err
+        return bytes
+
+
+class ApiEvidenceForm(forms.ModelForm):
+    file_base64 = Base64BytesField(required=True)
+    filename = forms.CharField(required=True)
+
+    class Meta:
+        model = Evidence
+        fields = (
+            "friendly_name",
+            "description",
+            "caption",
+            "tags",
+            "finding",
+            "report",
+        )
+
+    def __init__(self, *args, **kwargs):
+        report_queryset = kwargs.pop("report_queryset")
+        finding_queryset = ReportFindingLink.objects.filter(report__in=report_queryset)
+        super().__init__(*args, **kwargs)
+        self.fields["report"].queryset = report_queryset
+        self.fields["finding"].queryset = finding_queryset
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        report = None
+        if "finding" in cleaned_data and "report" in cleaned_data:
+            # Ensure only one of `finding` or `report` is specified
+            finding = cleaned_data["finding"]
+            report = cleaned_data["report"]
+            if (finding is None) == (report is None):
+                # Above is effectively XOR.
+                msg = _("Must specify only one of either 'finding' or 'report'")
+                self.add_error("finding", msg)
+                self.add_error("report", msg)
+            elif finding is not None:
+                report = finding.report
+
+        if report is not None and "friendly_name" in cleaned_data:
+            # Validate that evidence name is unique
+            name = cleaned_data["friendly_name"]
+            if report.all_evidences().filter(friendly_name=name).exists():
+                self.add_error("friendly_name", ValidationError(
+                    _("This friendly name has already been used for a file attached to this report."),
+                    "duplicate",
+                ))
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(False)
+        blob = ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"])
+        instance.document = blob
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance

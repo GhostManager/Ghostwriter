@@ -118,6 +118,17 @@ actions:
       - role: manager
       - role: user
       - role: public
+  - name: uploadEvidence
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/uploadEvidence'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
   - name: whoami
     definition:
       kind: ""
@@ -142,4 +153,5 @@ custom_types:
     - name: attachFindingResponse
     - name: codenameResponse
     - name: ExtraFieldSpecOutput
+    - name: UploadEvidenceResult
   scalars: []

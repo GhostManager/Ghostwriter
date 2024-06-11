@@ -69,6 +69,19 @@ type Mutation {
   ): LoginResponse
 }
 
+type Mutation {
+  uploadEvidence(
+    file_base64: String!
+    filename: String!
+    friendly_name: String!
+    caption: String!
+    description: String
+    tags: String
+    report: Int
+    finding: Int
+  ): UploadEvidenceResult!
+}
+
 type Query {
   whoami: WhoamiOutput
 }
@@ -109,5 +122,9 @@ type codenameResponse {
 
 type ExtraFieldSpecOutput {
   extraFieldSpec: String!
+}
+
+type UploadEvidenceResult {
+  id: Int!
 }
 
