@@ -285,15 +285,14 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
                 mime = exporter.mime_type()
         except ReportExportError as error:
             logger.error(
-                "Project report failed for project %s and user %s%s: %s",
+                "Project report failed for project %s and user %s: %s",
                 project.id,
                 self.request.user,
-                error.at_error(),
                 error
             )
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
             return HttpResponseRedirect(reverse("rolodex:project_detail", kwargs={"pk": project.id}) + "#documents")
