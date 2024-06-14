@@ -34,13 +34,6 @@ class ExportProjectBase(ExportBase):
         # Fields on Project
         ExportProjectBase.process_projects_richtext(self, base_context, rich_text_context)
 
-        # Project
-        base_context["project"]["note_rt"] = self.create_lazy_template(
-            "project note",
-            base_context["project"]["note"],
-            rich_text_context,
-        )
-
         return base_context
 
     @staticmethod
@@ -89,6 +82,10 @@ class ExportProjectBase(ExportBase):
             Client,
             rich_text_context
         )
+
+        # Project
+        base_context["project"]["note_rt"] = ex.create_lazy_template("the project note", base_context["project"]["note"], rich_text_context)
+        ex.process_extra_fields("the project", base_context["project"]["extra_fields"], Project, rich_text_context)
 
         # Assignments
         for assignment in base_context["team"]:
