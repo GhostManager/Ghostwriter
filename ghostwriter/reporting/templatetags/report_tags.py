@@ -120,3 +120,21 @@ def get_file_content(file):
             file_content = "FILE NOT FOUND"
 
     return file_content
+
+
+@register.filter
+def has_non_rt_fields(fields_spec):
+    """
+    Determine if the provided extra fields spec includes any non-RichText fields and return a boolean result.
+
+    **Parameters**
+
+    ``fields_spec``
+        Extra fields spec list
+    """
+    non_rt_fields = False
+    for spec in fields_spec:
+        if spec.type != "rich_text":
+            non_rt_fields = True
+
+    return non_rt_fields
