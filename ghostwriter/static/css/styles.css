@@ -2727,6 +2727,16 @@ ol {
   background-color: var(--pptx-color);
 }
 
+.badge-healthy {
+  color: #fff;
+  background-color: var(--healthy-color);
+}
+
+.badge-unhealthy {
+  color: #fff;
+  background-color: var(--blocked-color);
+}
+
 /* ---------------------------------------------------
     MEDIAQUERIES
 ----------------------------------------------------- */
