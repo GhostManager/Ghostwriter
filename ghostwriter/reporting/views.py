@@ -1351,11 +1351,10 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 json_doc = ExportReportJson(report_instance).run()
             except ReportExportError as error:
                 logger.error(
-                    "Generation failed for %s %s and user %s%s: %s",
+                    "Generation failed for %s %s and user %s: %s",
                     report_instance.__class__.__name__,
                     report_instance.id,
                     self.request.user,
-                    error.at_error(),
                     error,
                 )
                 messages.error(
@@ -2080,16 +2079,15 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             docx = exporter.run()
         except ReportExportError as error:
             logger.error(
-                "DOCX generation failed for %s %s and user %s%s: %s",
+                "DOCX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
                 obj.id,
                 self.request.user,
-                error.at_error(),
                 error,
             )
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
             return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
@@ -2222,16 +2220,15 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             return response
         except ReportExportError as error:
             logger.error(
-                "PPTX generation failed for %s %s and user %s%s: %s",
+                "PPTX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
                 obj.id,
                 self.request.user,
-                error.at_error(),
                 error,
             )
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
         except Exception as error:
@@ -2331,7 +2328,7 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
         except Exception as error:

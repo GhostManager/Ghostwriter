@@ -285,8 +285,8 @@ class ExportDocxBase(ExportBase):
             for var in exporter.jinja_undefined_variables:
                 warnings.append("Undefined variable: {!r}".format(var))
         except ReportExportError as error:
-            logger.exception("Template failed linting%s: %s", error.at_error(), error)
-            errors.append(f"Linting failed{error.at_error()}: {error}")
+            logger.exception("Template failed linting: %s", error)
+            errors.append(f"Linting failed: {error}")
         except Exception:
             logger.exception("Template failed linting")
             errors.append("Template rendering failed unexpectedly")

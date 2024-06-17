@@ -1,8 +1,6 @@
 
 from django import forms
 
-import jinja2
-
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
 
@@ -20,9 +18,6 @@ class JinjaRichTextField(forms.CharField):
         super().validate(value)
         env, _ = prepare_jinja2_env(debug=True)
         try:
-            rich_text_template(env, value)
-        except jinja2.TemplateSyntaxError as e:
-            line = value.splitlines()[e.lineno - 1]
-            raise forms.ValidationError(f"{e} at `{line}`") from e
+            ReportExportError.map_jinja2_render_errors(lambda: rich_text_template(env, value))
         except ReportExportError as e:
             raise forms.ValidationError(str(e)) from e
