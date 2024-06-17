@@ -57,7 +57,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             new_run = docx.oxml.shared.OxmlElement("w:r")
             rPr = docx.oxml.shared.OxmlElement("w:rPr")
             new_run.append(rPr)
-            new_run.text = str(el)
+            self.text_tracking.append_text_to_run(new_run, str(el))
             hyperlink.append(new_run)
             # Create a new Run object and add the hyperlink into it
             run = par.add_run()

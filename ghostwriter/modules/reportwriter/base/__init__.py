@@ -14,29 +14,56 @@ class ReportExportError(Exception):
     """
     User-facing error related to report generation
     """
-    def __init__(self, display_text: str, location: str | None = None):
+
+    # Error message
+    display_text: str
+    # Description of the object where the error occured, such as "the finding's description", if known
+    location: str | None
+    # The code near the source of the error, if known
+    code_context: str | None
+
+    def __init__(self, display_text: str, location: str | None = None, code_context: str | None = None):
         self.display_text = display_text
         self.location = location
+        self.code_context = code_context
 
     def __str__(self) -> str:
-        return self.display_text
+        text = self.display_text
+        ends_with_period = text.rstrip()[-1:] == "."
 
-    def at_error(self) -> str:
-        """
-        If the error has a `location` field, returns a string `" at {the_location}"`, else returns the empty string.
-        """
-        if self.location is None:
-            return ""
-        return f" at {self.location}"
+        if self.location:
+            if ends_with_period:
+                text += " Occured in "
+            else:
+                text += " in "
+            text += self.location
+
+        if self.code_context:
+            if self.location:
+                text += ", near `"
+            elif ends_with_period:
+                text += " Occured near `"
+            else:
+                text += " near `"
+            text += self.code_context
+            text += "`"
+
+        return text
 
     @classmethod
     def map_jinja2_render_errors(cls, callback, location: str | None = None):
         """
         Runs `callback` with no arguments, catching any Jinja-related exceptions and translating them to `ReportSyntaxError`s
         while noting the `location`.
+
+        If the callback raises a `ReportExportError` without its own `location`, this will set it to `location`.
         """
         try:
             return callback()
+        except ReportExportError as err:
+            if location and not err.location:
+                err.location = location
+            raise
         except jinja2.TemplateSyntaxError as err:
             raise ReportExportError(f"Template syntax error: {err}", location) from err
         except jinja2.UndefinedError as err:
@@ -70,7 +97,7 @@ def _process_prefix(input_str: str, soup: bs4.BeautifulSoup, prefix: str):
                 break
         if parent_tag is None:
             line = input_str.splitlines()[node.parent.sourceline - 1]
-            raise ReportExportError(f"Jinja tag prefixed with '{prefix}' was not a descendant of a {prefix} tag, in line `{line}`")
+            raise ReportExportError(f"Jinja tag prefixed with '{prefix}' was not a descendant of a {prefix} tag", code_context=line)
 
         capture = regex.search(node)
         parent_tag.replace_with(capture.group(1) + capture.group(2) + capture.group(3))
@@ -109,4 +136,8 @@ def rich_text_template(env: jinja2.Environment, text: str) -> jinja2.Template:
     text = str(soup)
 
     # Compile
-    return env.from_string(text)
+    try:
+        return env.from_string(text)
+    except jinja2.TemplateSyntaxError as err:
+        line = text.splitlines()[err.lineno - 1]
+        raise ReportExportError(str(err), code_context=line) from err

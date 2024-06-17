@@ -1,12 +1,8 @@
 
-import logging
-
 from docxtpl import RichText
 
 from ghostwriter.modules.reportwriter.base.docx import ExportDocxBase
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
-
-logger = logging.getLogger(__name__)
 
 
 class ExportReportDocx(ExportDocxBase, ExportReportBase):
