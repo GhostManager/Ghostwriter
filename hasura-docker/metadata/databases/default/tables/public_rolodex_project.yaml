@@ -9,6 +9,8 @@ configuration:
       custom_name: endDate
     end_time:
       custom_name: endTime
+    extra_fields:
+      custom_name: extraFields
     operator_id:
       custom_name: operatorId
     project_type_id:
@@ -23,6 +25,7 @@ configuration:
     client_id: clientId
     end_date: endDate
     end_time: endTime
+    extra_fields: extraFields
     operator_id: operatorId
     project_type_id: projectTypeId
     slack_channel: slackChannel
@@ -157,6 +160,7 @@ insert_permissions:
         - codename
         - end_date
         - end_time
+        - extra_fields
         - note
         - project_type_id
         - slack_channel
@@ -172,6 +176,7 @@ select_permissions:
         - complete
         - end_date
         - end_time
+        - extra_fields
         - id
         - note
         - operator_id
@@ -205,6 +210,7 @@ update_permissions:
         - complete
         - end_date
         - end_time
+        - extra_fields
         - note
         - project_type_id
         - slack_channel

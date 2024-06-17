@@ -21,6 +21,7 @@
   {% get_solo "commandcenter.ReportConfiguration" as report_config %}
   {% get_solo "commandcenter.SlackConfiguration" as slack_config %}
   {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
+  {% get_solo "commandcenter.GeneralConfiguration" as general_config %}
 
   <h2>API & Notification Configurations</h2>
   <p>These settings are managed in the Django administration panel under the <em>Command Center</em> application.</p>
@@ -33,8 +34,28 @@
       <th></th>
     </tr>
     <tr>
-      <td class="text-left icon clock-icon">Timezone Time</td>
+      <td class="text-left icon clock-icon">Server Timezone</td>
       <td class="text-justify">{{ timezone }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon clock-icon">Default Timezone for Forms</td>
+      <td class="text-justify">{{ general_config.default_timezone }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon server-icon">Hostname</td>
+      <td class="text-justify">{{ general_config.hostname }}</td>
+    </tr>
+
+    <!-- Spacer -->
+    <tr>
+      <td class="text-justify">&nbsp;</td>
+      <td class="text-justify">&nbsp;</td>
+    </tr>
+
+    <!-- Company Section -->
+    <tr>
+      <th class="text-left icon user-icon">Company Settings</th>
+      <th></th>
     </tr>
     <tr>
       <td class="text-left icon client-icon">Company Name</td>
@@ -181,15 +202,27 @@
     {% endif %}
     <tr>
       <td class="text-left icon tag-icon">Figure Label & Prefix</td>
-      <td class="text-justify">{{ report_config.label_figure }} {{ report_config.prefix_figure }}</td>
+      <td class="text-justify">{{ report_config.label_figure }}{{ report_config.prefix_figure }}</td>
     </tr>
     <tr>
       <td class="text-left icon tag-icon">Table Label & Prefix</td>
-      <td class="text-justify">{{ report_config.label_table }} {{ report_config.prefix_table }}</td>
+      <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon tag-icon">Title Case Captions</td>
+      <td class="text-justify"> {{ report_config.title_case_captions }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon tag-icon">Title Case Exceptions</td>
+      <td class="text-justify"> {{ report_config.title_case_exceptions|split_and_join:"," }}</td>
     </tr>
     <tr>
       <td class="text-left icon signature-icon">Report Download Filename</td>
       <td class="text-justify"> {{ report_config.report_filename }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon calendar-icon">Delivery Date</td>
+      <td class="text-justify">{% if report_config.target_delivery_date > 0 %}+{% endif %}{{ report_config.target_delivery_date }} business days</td>
     </tr>
     <tr>
       <td class="text-left icon word-icon">Default DOCX Template</td>

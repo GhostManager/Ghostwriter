@@ -3,6 +3,7 @@
 # Standard Libraries
 import json
 import logging
+import os
 from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
@@ -10,6 +11,7 @@ from json import JSONDecodeError
 from socket import gaierror
 
 # Django Imports
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
@@ -30,12 +32,12 @@ from dateutil.parser._parser import ParserError
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
+from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
-from ghostwriter.modules.reportwriter import Reportwriter
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
-    Evidence,
     Finding,
     Report,
     ReportFindingLink,
@@ -447,6 +449,8 @@ class GraphqlLoginAction(HasuraActionView):
 
 
 class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for retrieving user data with the ``whoami`` action."""
+
     def post(self, request, *args, **kwargs):
         # Use :model:`api:APIKey` object if the token is an API key
         if APIKey.objects.filter(token=self.encoded_token):
@@ -471,6 +475,69 @@ class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
         return JsonResponse(data, status=self.status)
 
 
+class GraphqlGetExtraFieldSpecAction(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for retrieving a model's field specification with the ``getFieldSpec`` action."""
+
+    required_inputs = [
+        "model",
+    ]
+
+    # Mapping for the two different ways a user might provide a model name
+    # First, the internal model name (used in the database as the `pk`)
+    models = {
+        "project": "rolodex.Project",
+        "domain": "shepherd.Domain",
+        "staticserver": "shepherd.StaticServer",
+        "observation": "reporting.Observation",
+        "finding": "reporting.Finding",
+        "client": "rolodex.Client",
+        "report": "reporting.Report",
+        "oplogentry": "oplog.OplogEntry",
+    }
+    # Second, the model name as it appears in the GraphQL schema
+    internal_models = {
+        "rolodex.project": "rolodex.Project",
+        "shepherd.domain": "shepherd.Domain",
+        "shepherd.staticserver": "shepherd.StaticServer",
+        "reporting.observation": "reporting.Observation",
+        "reporting.finding": "reporting.Finding",
+        "rolodex.client": "rolodex.Client",
+        "reporting.report": "reporting.Report",
+        "oplog.oplogentry": "oplog.OplogEntry",
+    }
+
+    def post(self, request, *args, **kwargs):
+        extra_field_spec = {}
+
+        # Set the model name to all lowercase to remove any chance of user error
+        model = self.input["model"].lower()
+        # Check if the model name is in the mapping, and if not, return an error response
+        if model in self.models:
+            model = self.models[model]
+        elif model in self.internal_models:
+            model = self.internal_models[model]
+        else:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Model does not exist", "ModelDoesNotExist"), status=400
+            )
+
+        # Get the extra field model and its extra field specs to return to Hasura
+        extra_field_model = ExtraFieldModel.objects.get(model_internal_name=model)
+        extra_field_spec_set = extra_field_model.extrafieldspec_set.all()
+
+        for spec in extra_field_spec_set:
+            extra_field_spec[spec.internal_name] = {
+                "internalName": spec.internal_name,
+                "displayName": spec.display_name,
+                "type": spec.type,
+                "default": spec.user_default_value,
+            }
+        data = {
+            "extraFieldSpec": extra_field_spec,
+        }
+        return JsonResponse(data, status=self.status)
+
+
 class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
     """Endpoint for generating a JSON report with the ``generateReport`` action."""
 
@@ -486,9 +553,7 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
         if utils.verify_access(self.user_obj, report.project):
-            engine = Reportwriter(report, template_loc=None)
-            json_report = engine.generate_json()
-            report_bytes = json.dumps(json_report).encode("utf-8")
+            report_bytes = ExportReportJson(report).run().getvalue()
             base64_bytes = b64encode(report_bytes)
             base64_string = base64_bytes.decode("utf-8")
             data = {
@@ -624,37 +689,6 @@ class GraphqlServerCheckoutDelete(HasuraCheckoutDeleteView):
     """
 
     model = ServerHistory
-
-
-class GraphqlDeleteEvidenceAction(JwtRequiredMixin, HasuraActionView):
-    """
-    Endpoint for deleting an individual :model:`reporting.Evidence` with the
-    ``delete_evidence`` action. This is preferable to Hasura's standard delete
-    mutation because it ensures Django's ``pre_delete`` and ``post_delete`` signals
-    for filesystem clean-up.
-    """
-
-    required_inputs = [
-        "evidenceId",
-    ]
-
-    def post(self, request, *args, **kwargs):
-        evidence_id = self.input["evidenceId"]
-        try:
-            evidence = Evidence.objects.get(id=evidence_id)
-        except Evidence.DoesNotExist:
-            return JsonResponse(
-                utils.generate_hasura_error_payload("Evidence does not exist", "EvidenceDoesNotExist"), status=400
-            )
-
-        if utils.verify_access(self.user_obj, evidence.finding.report.project):
-            evidence.delete()
-            data = {
-                "result": "success",
-            }
-            return JsonResponse(data, status=self.status)
-
-        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
 class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
@@ -888,10 +922,7 @@ class GraphqlProjectContactUpdateEvent(HasuraEventView):
 
 
 class GraphqlProjectObjectiveUpdateEvent(HasuraEventView):
-    """
-    Event webhook to make database updates when :model:`rolodex.ProjectObjective`
-    entries change.
-    """
+    """Event webhook to make database updates when :model:`rolodex.ProjectObjective` entries change."""
 
     def post(self, request, *args, **kwargs):
         initial_deadline = self.old_data["deadline"]
@@ -913,10 +944,7 @@ class GraphqlProjectObjectiveUpdateEvent(HasuraEventView):
 
 
 class GraphqlProjectSubTaskUpdateEvent(HasuraEventView):
-    """
-    Event webhook to make database updates when :model:`rolodex.ProjectSubTask`
-    entries change.
-    """
+    """Event webhook to make database updates when :model:`rolodex.ProjectSubTask` entries change."""
 
     def post(self, request, *args, **kwargs):
         instance = ProjectSubTask.objects.select_related("parent").get(id=self.new_data["id"])
@@ -929,6 +957,99 @@ class GraphqlProjectSubTaskUpdateEvent(HasuraEventView):
         else:
             instance.marked_complete = None
         instance.save()
+
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlEvidenceUpdateEvent(HasuraEventView):
+    """
+    Event webhook to delete changed files and update references when an instance of
+    :model:`reporting.Evidence` is updated or deleted.
+    """
+
+    def post(self, request, *args, **kwargs):
+        delete_old_evidence = True
+        if self.event["op"] == "UPDATE":
+            if self.old_data["document"] == self.new_data["document"]:
+                logger.debug("Evidence file did not change, no need to delete old file")
+                delete_old_evidence = False
+        if self.event["op"] == "DELETE":
+            delete_old_evidence = True
+
+        if delete_old_evidence:
+            path = os.path.join(settings.MEDIA_ROOT, self.old_data["document"])
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                    logger.info("Deleted old evidence file %s", self.old_data["document"])
+                except Exception:  # pragma: no cover
+                    logger.exception(
+                        "Failed deleting old evidence file for %s event: %s",
+                        self.event["op"],
+                        self.old_data["document"],
+                    )
+
+        update_references = True
+        if self.event["op"] == "UPDATE":
+            if self.old_data["friendly_name"] == self.new_data["friendly_name"]:
+                update_references = False
+
+        if update_references:
+            field_allowlist = [
+                "title",
+                "affected_entities",
+                "description",
+                "impact",
+                "mitigation",
+                "replication_steps",
+                "host_detection_techniques",
+                "network_detection_techniques",
+                "references",
+            ]
+
+            # Track friendly name if this is an UPDATE event (new data is not present for DELETE events)
+            friendly = None
+            friendly_ref = None
+            if self.event["op"] == "UPDATE":
+                friendly = f"{{{{.{self.new_data['friendly_name']}}}}}"
+                friendly_ref = f"{{{{.ref {self.new_data['friendly_name']}}}}}"
+
+            # Track previous friendly name and reference
+            prev_friendly = f"{{{{.{self.old_data['friendly_name']}}}}}"
+            prev_friendly_ref = f"{{{{.ref {self.old_data['friendly_name']}}}}}"
+
+            logger.info(
+                "Updating content of ReportFindingLink instances with updated name for Evidence %s", self.old_data["id"]
+            )
+
+            update_instances = []
+            if self.old_data["finding_id"]:
+                finding_instance = ReportFindingLink.objects.select_related("report").get(
+                    id=self.old_data["finding_id"]
+                )
+                update_instances.append(finding_instance)
+
+            if self.old_data["report_id"]:
+                report_instance = Report.objects.get(id=self.old_data["report_id"])
+                for finding in report_instance.reportfindinglink_set.all():
+                    update_instances.append(finding)
+
+            for instance in update_instances:
+                try:
+                    for field in instance._meta.get_fields():
+                        if field.name in field_allowlist:
+                            current = getattr(instance, field.name)
+                            if current:
+                                if self.event["op"] == "DELETE":
+                                    new = current.replace(f"<p>{prev_friendly}</p>", "")
+                                    new = new.replace(prev_friendly_ref, "")
+                                else:
+                                    new = current.replace(prev_friendly, friendly)
+                                    new = new.replace(prev_friendly_ref, friendly_ref)
+                                setattr(instance, field.name, new)
+                    instance.save()
+                except ReportFindingLink.DoesNotExist:
+                    logger.exception("Could not find ReportFindingLink for Evidence %s", self.data["id"])
 
         return JsonResponse(self.data, status=self.status)
 

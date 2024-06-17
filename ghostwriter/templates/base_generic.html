@@ -215,6 +215,22 @@
               {% endif %}
             </ul>
           </li>
+          <li>
+            <a href="#observationsSubmenu" data-toggle="collapse" aria-expanded="false"
+               class="dropdown-toggle sidebar-dropdown-toggle">Observations</a>
+            <ul class="collapse list-unstyled text-left" id="observationsSubmenu">
+              {% comment %} Search for observations {% endcomment %}
+              <form class="px-6 py-2" action="{% url 'reporting:observations' %}" method="GET">
+                <input type="search" autocomplete="off" class="form-control" id="observation-search" name="title"
+                       placeholder="Search observations..." autofocus="autofocus">
+              </form>
+              {% comment %} observations Submenu Items {% endcomment %}
+              <li><a class="icon list-icon" href="{% url 'reporting:observations' %}">Observation Library</a></li>
+              {% if request.user|can_create_observation %}
+                <li><a class="icon plus-icon" href="{% url 'reporting:observation_create' %}">Add New Observation</a></li>
+              {% endif %}
+            </ul>
+          </li>
         </ul>
 
         <!-- Operations Section -->
@@ -337,6 +353,11 @@
                 <li><a class="icon import-icon" href="{% url 'admin:reporting_finding_import' %}">Upload Bulk
                   Findings</a></li>
                 <li><a class="icon export-icon" href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to
+                  CSV</a></li>
+                <hr>
+                <li><a class="icon import-icon" href="{% url 'admin:reporting_observation_import' %}">Upload Bulk
+                  Observations</a></li>
+                <li><a class="icon export-icon" href="{% url 'reporting:export_observations_to_csv' %}">Export Observations to
                   CSV</a></li>
                 <hr>
                 <li><a class="icon import-icon" href="{% url 'admin:shepherd_domain_import' %}">Upload Bulk Domains</a>
@@ -529,7 +550,7 @@
 
   {% comment %} Activate Bootstrap hover tooltips {% endcomment %}
   $(document).ready(function () {
-    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="tooltip"]').tooltip({boundary: "window"});
   });
 
   {% comment %} All of the Toastr JavaScript {% endcomment %}
@@ -559,15 +580,15 @@
   {% for message in messages %}
     {% if 'no-toast' not in message.tags %}
       {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-        displayToastTop({type: 'success', string: '{{ message }}'});
+        displayToastTop({type: 'success', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-        displayToastTop({type: 'warning', string: '{{ message }}'});
+        displayToastTop({type: 'warning', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-        displayToastTop({type: 'error', string: '{{ message }}'});
+        displayToastTop({type: 'error', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-        displayToastTop({type: 'info', string: '{{ message }}'});
+        displayToastTop({type: 'info', string: '{{ message|escapejs }}'});
       {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
-        displayToastTop({type: 'info', string: '{{ message }}'});
+        displayToastTop({type: 'info', string: '{{ message|escapejs }}'});
       {% endif %}
     {% endif %}
   {% endfor %}
@@ -579,7 +600,7 @@
       ws_proto = 'wss://'
     }
     const protocol = ws_proto
-    const username = '{{ user }}';
+    const username = '{{ user.get_clean_username }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
     const ws_user = new WebSocket(
@@ -644,7 +665,7 @@
       $('.nav-tabs a').click(function (e) {
         {%  comment %} Prevent the scrolling-to-tab animation {% endcomment %}
         $('html,body').stop().animate({
-          scrollTop: $($(this).attr('href')).offset().top - $('.nav').height()
+          scrollTop: $(this).offset().top - 175
         }, 700, 'swing');
         e.preventDefault();
         e.stopImmediatePropagation();

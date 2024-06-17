@@ -1,0 +1,127 @@
+{% extends "base_generic.html" %}
+
+{% load crispy_forms_tags %}
+
+{% load bleach_tags %}
+
+{% load custom_tags %}
+
+{% block pagetitle %}Finding Entry{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a
+        href="{% url 'rolodex:client_detail' reportobservationlink.report.project.client.id %}">{{ reportobservationlink.report.project.client.name }}</a>
+      </li>
+      <li class="breadcrumb-item"><a
+        href="{% url 'rolodex:project_detail' reportobservationlink.report.project.id %}">{{ reportobservationlink.report.project.start_date|date:"DATE_FORMAT" }} {{ reportobservationlink.report.project.project_type }}</a>
+      </li>
+      <li class="breadcrumb-item"><a
+        href="{% url 'reporting:report_detail' reportobservationlink.report.id %}">{{ reportobservationlink.report }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Update Finding</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <div id="accordion" class="finding-accordion">
+    <!-- Keyword Cheatsheet -->
+    <div class="card">
+      <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
+        <a class="accordion-toggle btn btn-link icon code-icon" data-toggle="collapse" data-target="#collapseKeyword"
+           aria-expanded="false" aria-controls="collapseKeyword">Reference & Instructions</a>
+      </div>
+      <div id="collapseKeyword" class="collapse" aria-labelledby="keyword" data-parent="#accordion">
+        <div class="card-body">
+          <p>Ghostwriter supports several template keywords you may utilize to format text and insert various pieces of
+            information. Begin typing <strong>@</strong> to open the autocomplete dialog for keywords.</p>
+          <table class="table table-striped">
+            <tr>
+              <th class="smallCell">Keyword</th>
+              <th>Usage</th>
+            </tr>
+            <tr>
+            {% verbatim %}
+            <tr>
+              <td class="text-left align-middle">{{.caption}}</td>
+              <td class="text-left align-middle">Start a line of text with this keyword to make it a caption. This is
+                intended to follow a code block.
+              </td>
+            </tr>
+            {% endverbatim %}
+            {% if reportfindinglink.evidence_set.all %}
+              {% for finding in reportfindinglink.evidence_set.all %}
+                <tr>
+                  <td class="text-left align-middle">
+                    {% templatetag openvariable %}.{{ finding.friendly_name|bleach }}{% templatetag closevariable %}
+                  </td>
+                  <td class="text-left align-middle">On a new line, reference this evidence file,
+                    <em>{{ finding.document.name|bleach }}</em>, to insert it into the finding.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-left align-middle">
+                    {% templatetag openvariable %}.ref {{ finding.friendly_name|bleach }}{% templatetag closevariable %}
+                  </td>
+                  <td class="text-left align-middle">Add a cross-reference to the caption of the above evidence file.
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+            {% if reportobservationlink.report.evidence_set.all %}
+              {% for finding in reportobservationlink.report.evidence_set.all %}
+                <tr>
+                  <td class="text-left align-middle">
+                    {% templatetag openvariable %}.{{ finding.friendly_name|bleach }}{% templatetag closevariable %}
+                  </td>
+                  <td class="text-left align-middle">On a new line, reference this evidence file,
+                    <em>{{ finding.document.name|bleach }}</em>, to insert it into the finding.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-left align-middle">
+                    {% templatetag openvariable %}.ref {{ finding.friendly_name|bleach }}{% templatetag closevariable %}
+                  </td>
+                  <td class="text-left align-middle">Add a cross-reference to the caption of the above evidence file.
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </table>
+          <p>Insert evidence by using the above keywords. For additional formatting, utilize the WYSIWIG HTML formatting
+            to apply bold, italic, code, inline code, and other text styles.</p>
+          <p>These styles will carry over to the Word and PowerPoint reports.
+            You may also leverage Jinja2 statements and expressions like you do inside your report templates.</p>
+          <p>See the documentation for more details.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instructions Section -->
+  <p>Use this form to edit "{{ reportobservationlink.title }}" just for this report.</p>
+  <p>When the finding is complete and ready for review, make sure you check the box down below.</p>
+
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
+
+  <!-- Form Section -->
+  {% crispy form form.helper %}
+{% endblock %}
+
+{% block morescripts %}
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
+{% endblock %}

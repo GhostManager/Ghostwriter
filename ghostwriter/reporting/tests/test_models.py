@@ -6,20 +6,20 @@ import os
 import factory
 
 # Django Imports
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ArchiveFactory,
-    BlankReportFindingLinkFactory,
+    ClientFactory,
     DocTypeFactory,
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
     LocalFindingNoteFactory,
+    ProjectFactory,
     ReportDocxTemplateFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -203,7 +203,7 @@ class DocTypeModelTests(TestCase):
 
     def test_crud_doc_type(self):
         # Create
-        doc_type = DocTypeFactory(doc_type="docx")
+        doc_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx")
 
         # Read
         self.assertEqual(doc_type.doc_type, "docx")
@@ -330,6 +330,120 @@ class ReportModelTests(TestCase):
         except:
             self.fail("Report.get_absolute_url() raised an exception")
 
+    def test_clear_incorrect_template_defaults_unchanged(self):
+        docx_template = ReportDocxTemplateFactory()
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            docx_template=docx_template,
+            pptx_template=pptx_template,
+        )
+
+        # Don't change anything. Clearing should do nothing.
+
+        self.Report.clear_incorrect_template_defaults(docx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNotNone(new_report.docx_template)
+        self.assertEqual(new_report.docx_template.id, docx_template.id)
+        self.assertIsNotNone(new_report.pptx_template)
+        self.assertEqual(new_report.pptx_template.id, pptx_template.id)
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNotNone(new_report.docx_template)
+        self.assertEqual(new_report.docx_template.id, docx_template.id)
+        self.assertIsNotNone(new_report.pptx_template)
+        self.assertEqual(new_report.pptx_template.id, pptx_template.id)
+
+    def test_clear_incorrect_template_defaults_docx_to_pptx(self):
+        docx_template = ReportDocxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            docx_template=docx_template,
+        )
+
+        docx_template.doc_type = DocTypeFactory(doc_type="pptx", extension="pptx", name="pptx")
+        docx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(docx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNone(new_report.docx_template)
+
+    def test_clear_incorrect_template_defaults_pptx_to_docx(self):
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+        )
+
+        pptx_template.doc_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx")
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNone(new_report.pptx_template)
+
+    def test_clear_incorrect_template_defaults_client_change_clear(self):
+        client = ClientFactory()
+        pptx_template = ReportDocxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+        )
+
+        pptx_template.client = client
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.id, report.id)
+        self.assertIsNone(new_report.pptx_template)
+
+    def test_clear_incorrect_template_defaults_client_change_set_same(self):
+        client = ClientFactory()
+        project = ProjectFactory(client=client)
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+            project=project,
+        )
+
+        self.assertEqual(report.project.client, client)
+
+        pptx_template.client = client
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.project.client, client)
+        self.assertIsNotNone(new_report.pptx_template)
+        self.assertEqual(new_report.pptx_template.id, pptx_template.id)
+
+    def test_clear_incorrect_template_defaults_client_change_set_different(self):
+        client = ClientFactory()
+        project = ProjectFactory(client=client)
+        pptx_template = ReportPptxTemplateFactory()
+        report = ReportFactory(
+            title="New report",
+            pptx_template=pptx_template,
+            project=project,
+        )
+
+        self.assertEqual(report.project.client, client)
+
+        pptx_template.client = ClientFactory()
+        pptx_template.save()
+
+        self.Report.clear_incorrect_template_defaults(pptx_template)
+        new_report = self.Report.objects.first()
+        self.assertEqual(new_report.project.client, client)
+        self.assertIsNone(new_report.pptx_template)
+
 
 class ReportFindingLinkModelTests(TestCase):
     """Collection of tests for :model:`reporting.ReportFindingLink`."""
@@ -370,11 +484,11 @@ class EvidenceModelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.Evidence = EvidenceFactory._meta.model
+        cls.Evidence = EvidenceOnFindingFactory._meta.model
 
     def test_crud_evidence(self):
         # Create
-        evidence = EvidenceFactory(friendly_name="Test Evidence")
+        evidence = EvidenceOnFindingFactory(friendly_name="Test Evidence")
 
         # Read
         self.assertEqual(evidence.friendly_name, "Test Evidence")
@@ -392,67 +506,28 @@ class EvidenceModelTests(TestCase):
         # Delete
         evidence.delete()
         assert not self.Evidence.objects.all().exists()
-        assert not os.path.exists(evidence.document.path)
 
     def test_get_absolute_url(self):
-        evidence = EvidenceFactory()
+        evidence = EvidenceOnFindingFactory()
         try:
             evidence.get_absolute_url()
         except:
             self.fail("Evidence.get_absolute_url() raised an exception")
+        evidence.delete()
 
     def test_file_extension_validator(self):
-        evidence = EvidenceFactory(document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum"))
-        self.assertEqual(evidence.filename, "evidence.PnG")
+        evidence = EvidenceOnFindingFactory(
+            document=factory.django.FileField(filename="ext_test.PnG", data=b"lorem ipsum")
+        )
+        self.assertEqual(evidence.filename, "ext_test.PnG")
+        evidence.delete()
 
     def test_prop_filename(self):
-        evidence = EvidenceFactory()
+        evidence = EvidenceOnFindingFactory()
         try:
             evidence.filename
         except Exception:
             self.fail("Evidence model `filename` property failed unexpectedly!")
-
-    def test_evidence_update_signal(self):
-        finding = ReportFindingLinkFactory(
-            description="<p>Here is some evidence:</p><p>{{.Evidence}}</p><p>{{.ref Evidence}}</p>"
-        )
-        evidence = EvidenceFactory(
-            finding=finding,
-            friendly_name="Evidence",
-            document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"),
-        )
-
-        self.assertEqual(f"evidence/{finding.report.id}/evidence.txt", evidence.document.name)
-
-        evidence.document = SimpleUploadedFile("new_evidence.txt", b"lorem ipsum")
-        evidence.save()
-        evidence.refresh_from_db()
-
-        self.assertTrue(hasattr(evidence, "_current_evidence"))
-        self.assertTrue(evidence._current_evidence.path not in evidence.document.path)
-        self.assertFalse(os.path.exists(evidence._current_evidence.path))
-        self.assertTrue(os.path.exists(evidence.document.path))
-
-        evidence.friendly_name = "New Name"
-        evidence.save()
-        evidence.refresh_from_db()
-        finding.refresh_from_db()
-
-        self.assertTrue(hasattr(evidence, "_current_friendly_name"))
-        self.assertEqual(evidence._current_friendly_name, "Evidence")
-        self.assertEqual(evidence.friendly_name, "New Name")
-        self.assertEqual(
-            finding.description, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
-        )
-
-        # Regression test for this signal updating a finding with blank fields
-        blank = BlankReportFindingLinkFactory()
-        evidence = EvidenceFactory(finding=blank, friendly_name="Blank Test")
-        evidence.refresh_from_db()
-
-        evidence.friendly_name = "New Name"
-        evidence.save()
-        evidence.refresh_from_db()
 
 
 class FindingNoteModelTests(TestCase):

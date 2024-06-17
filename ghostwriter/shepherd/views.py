@@ -31,9 +31,11 @@ from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
     get_project_list,
     verify_access,
+    verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
+    ExtraFieldSpec,
     NamecheapConfiguration,
     VirusTotalConfiguration,
 )
@@ -404,6 +406,7 @@ class RegistrarSyncNamecheap(RoleBasedAccessControlMixin, View):
             task_id = async_task(
                 "ghostwriter.shepherd.tasks.fetch_namecheap_domains",
                 group="Namecheap Update",
+                hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
             )
             message = "Successfully queued Namecheap update task (Task ID {task}).".format(task=task_id)
         except Exception:
@@ -449,11 +452,12 @@ class ServerNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ServerNote
 
     def test_func(self):
-        return self.request.user.id == self.get_object().operator.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("shepherd:server_detail", kwargs={"pk": self.get_object().server.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -474,11 +478,12 @@ class DomainNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = DomainNote
 
     def test_func(self):
-        return self.request.user.id == self.get_object().operator.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("shepherd:domain_detail", kwargs={"pk": self.get_object().domain.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -775,6 +780,8 @@ def update(request):
                 if queryset.success:
                     namecheap_last_update_completed = queryset.stopped
                     namecheap_last_update_time = round(queryset.time_taken() / 60, 2)
+                    if namecheap_last_result["errors"]:
+                        namecheap_last_update_completed = "Failed"
                 else:
                     namecheap_last_update_completed = "Failed"
             except IndexError:
@@ -1061,6 +1068,11 @@ class DomainDetailView(RoleBasedAccessControlMixin, DetailView):
 
     model = Domain
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["domain_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Domain._meta.label)
+        return ctx
+
 
 class HistoryCreate(RoleBasedAccessControlMixin, CreateView):
     """
@@ -1328,6 +1340,7 @@ class ServerDetailView(RoleBasedAccessControlMixin, DetailView):
         for address in aux_addresses:
             if address.primary:
                 ctx["primary_address"] = address.ip_address
+        ctx["server_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label)
         return ctx
 
 
@@ -1903,11 +1916,12 @@ class DomainNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return self.get_object().operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("shepherd:domain_detail", kwargs={"pk": self.get_object().domain.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
@@ -1987,11 +2001,12 @@ class ServerNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return self.get_object().operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("shepherd:server_detail", kwargs={"pk": self.get_object().server.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")

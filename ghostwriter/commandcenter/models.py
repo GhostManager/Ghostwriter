@@ -1,9 +1,13 @@
 """This contains all the database models for the CommandCenter application."""
 
+from typing import Any, Callable, NamedTuple
+from django import forms
+
 # Django Imports
 from django.db import models
 
 # 3rd Party Libraries
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
@@ -81,7 +85,7 @@ class ReportConfiguration(SingletonModel):
     prefix_figure = models.CharField(
         "Character Before Figure Captions",
         max_length=255,
-        default="\u2013",
+        default=" \u2013 ",
         help_text="Unicode character to place between the label and your figure caption in Word reports",
     )
     label_figure = models.CharField(
@@ -93,7 +97,7 @@ class ReportConfiguration(SingletonModel):
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
-        default="\u2013",
+        default=" \u2013 ",
         help_text="Unicode character to place between the label and your table caption in Word reports",
     )
     label_table = models.CharField(
@@ -105,8 +109,31 @@ class ReportConfiguration(SingletonModel):
     report_filename = models.CharField(
         "Default Name for Report Downloads",
         max_length=255,
-        default="{Y-m-d}_{His} {company} - {client} {assessment_type} Report",
-        help_text="Name of the report file when downloaded that can include the following variables: title, date, company, client, assessment_type, and date format string values",
+        default='{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report',
+        help_text="Jinja2 template for report filenames. All template variables are available, plus {{now}} and {{company_name}}. The file extension is added to this. Individual templates may override this option.",
+    )
+    project_filename = models.CharField(
+        "Default Name for Project Downloads",
+        max_length=255,
+        default='{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report',
+        help_text="Jinja2 template for project filenames. All template variables are available, plus {{now}} and {{company_name}}. The file extension is added to this. Individual templates may override this option.",
+    )
+    title_case_captions = models.BooleanField(
+        "Title Case Captions",
+        default=True,
+        help_text="Capitalize the first letter of each word in figure and table captions",
+    )
+    title_case_exceptions = models.CharField(
+        "Title Case Exceptions",
+        default="a,as,at,an,and,of,the,is,to,by,for,in,on,but,or",
+        help_text="Comma-separated list of words to exclude from title case conversion",
+        blank=True,
+        max_length=255,
+    )
+    target_delivery_date = models.IntegerField(
+        "Target Delivery Date",
+        default=5,
+        help_text="Number of business days from the project's end date to set as the default target delivery date",
     )
     # Foreign Keys
     default_docx_template = models.ForeignKey(
@@ -115,6 +142,7 @@ class ReportConfiguration(SingletonModel):
         on_delete=models.SET_NULL,
         limit_choices_to={
             "doc_type__doc_type__iexact": "docx",
+            "client__isnull": True,
         },
         null=True,
         blank=True,
@@ -126,6 +154,7 @@ class ReportConfiguration(SingletonModel):
         on_delete=models.SET_NULL,
         limit_choices_to={
             "doc_type__doc_type__iexact": "pptx",
+            "client__isnull": True,
         },
         null=True,
         blank=True,
@@ -134,6 +163,18 @@ class ReportConfiguration(SingletonModel):
 
     def __str__(self):
         return "Global Report Configuration"
+
+    def clear_incorrect_template_defaults(self, template):
+        altered = False
+        if self.default_docx_template == template:
+            if template.client is not None or template.doc_type.doc_type != "docx":
+                self.default_docx_template = None
+                altered = True
+        if self.default_pptx_template == template:
+            if template.client is not None or template.doc_type.doc_type != "pptx":
+                self.default_pptx_template = None
+                altered = True
+        return altered
 
     class Meta:
         verbose_name = "Global Report Configuration"
@@ -270,9 +311,126 @@ class GeneralConfiguration(SingletonModel):
         default="America/Los_Angeles",
         help_text="Select a default timezone for clients and projects",
     )
+    hostname = models.CharField(
+        max_length=255,
+        default="ghostwriter.local",
+        help_text="Hostname or IP address for Ghostwtiter (used for links in notifications)",
+    )
 
     def __str__(self):
         return "General Settings"
 
     class Meta:
         verbose_name = "General Settings"
+
+
+class ExtraFieldType(NamedTuple):
+    # Name displayed to the user
+    display_name: str
+    # Creates a form field to use for the field
+    form_field: Callable[..., forms.Field]
+    # Creates a form widget to use for the field
+    form_widget: Callable[..., forms.widgets.Widget]
+    # Parse a value from a string
+    from_str: Callable[[str], Any]
+    # Returns an "empty" value
+    empty_value: Callable[[], Any]
+
+
+EXTRA_FIELD_TYPES = {
+    "checkbox": ExtraFieldType(
+        display_name="Checkbox",
+        form_field=lambda *args, **kwargs: forms.BooleanField(required=False, *args, **kwargs),
+        form_widget=forms.widgets.CheckboxInput,
+        from_str=bool,
+        empty_value=lambda: False,
+    ),
+    "single_line_text": ExtraFieldType(
+        display_name="Single-Line of Text",
+        form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
+        form_widget=forms.widgets.TextInput,
+        from_str=lambda s: s,
+        empty_value=lambda: "",
+    ),
+    "rich_text": ExtraFieldType(
+        display_name="Formatted Text",
+        form_field=lambda *args, **kwargs: JinjaRichTextField(required=False, *args, **kwargs),
+        form_widget=forms.widgets.Textarea,
+        from_str=lambda s: s,
+        empty_value=lambda: "",
+    ),
+    "integer": ExtraFieldType(
+        display_name="Integer",
+        form_field=lambda *args, **kwargs: forms.IntegerField(required=False, *args, **kwargs),
+        form_widget=forms.widgets.NumberInput,
+        from_str=int,
+        empty_value=lambda: 0,
+    ),
+    "float": ExtraFieldType(
+        display_name="Number",
+        form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
+        form_widget=forms.widgets.NumberInput,
+        from_str=float,
+        empty_value=lambda: 0.0,
+    ),
+}
+
+
+class ExtraFieldModel(models.Model):
+    model_internal_name = models.CharField(max_length=255, primary_key=True)
+    model_display_name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return "Extra fields for {}".format(self.model_display_name)
+
+    class Meta:
+        verbose_name = "Extra Field Configuration"
+
+
+class ExtraFieldSpec(models.Model):
+    target_model = models.ForeignKey(to=ExtraFieldModel, on_delete=models.CASCADE)
+    internal_name = models.CharField(max_length=255)
+    display_name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    type = models.CharField(
+        max_length=255, choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
+    )
+    user_default_value = models.TextField(
+        verbose_name="Value for New Objects",
+        blank=True,
+        default="",
+    )
+
+    def __str__(self):
+        return "Extra Field"
+
+    def value_of(self, extra_fields_json):
+        if extra_fields_json is not None and self.internal_name in extra_fields_json:
+            return extra_fields_json[self.internal_name]
+        return EXTRA_FIELD_TYPES[self.type].empty_value()
+
+    def form_field(self, *args, **kwargs):
+        return EXTRA_FIELD_TYPES[self.type].form_field(
+            label=self.display_name, help_text=self.description, *args, **kwargs
+        )
+
+    def form_widget(self, *args, **kwargs):
+        return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)
+
+    def initial_value(self):
+        return EXTRA_FIELD_TYPES[self.type].from_str(self.user_default_value)
+
+    def empty_value(self):
+        return EXTRA_FIELD_TYPES[self.type].empty_value()
+
+    @classmethod
+    def initial_json(cls, model):
+        obj = {}
+        for spec in cls.objects.filter(target_model=model._meta.label):
+            obj[spec.internal_name] = spec.initial_value()
+        return obj
+
+    class Meta:
+        verbose_name = "Extra Field"
+        order_with_respect_to = "target_model"
+        unique_together = [("target_model", "internal_name")]

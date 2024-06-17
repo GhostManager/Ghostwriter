@@ -1,104 +1,115 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags custom_tags %}
 
 {% block pagetitle %}Report Template List{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Report Templates</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Report Templates</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <p>
-        <a class="btn btn-primary icon upload-icon" href="{% url 'reporting:template_create' %}">Upload a Report Template</a>
-    </p>
+  <!-- Filter Section -->
+  <div class="filter-form">
+    {% crispy filter.form filter.helper %}
+  </div>
 
+  {% if filter.qs|length == 0 %}
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no findings yet, or your search
+      returned no results. Create a finding above or adjust your filters.
+    </div>
+  {% else %}
     <!-- Report Templates Table Section -->
-    {% if reporttemplate_list %}
-        <p>This page lists all report templates and their current status. To investigate a status, view the template's details page.</p>
+    <p class="mt-3">This page lists all report templates and their current status. To investigate a status, view the
+      template's details page.</p>
 
-        <p><strong>Note:</strong> Only admins may edit protected report templates.</p>
+    <p><strong>Note:</strong> Only admins and managers may edit protected report templates.</p>
 
-        <table id="reportTemplateTable" class="tablesorter table table-sm table-hover">
-            <thead>
-                <tr>
-                    <th class="align-middle pr-4">Status</th>
-                    <th class="align-middle pr-4">Doc Type</th>
-                    <th class="align-middle pr-4">Name</th>
-                    <th class="align-middle pr-4">Orientation</th>
-                    <th class="align-middle pr-4">Client</th>
-                    <th class="sorter-false align-middle">Options</th>
-                </tr>
-            </thead>
+    <table id="reportTemplateTable" class="tablesorter table table-sm table-hover">
+      <thead>
+      <tr>
+        <th class="align-middle pr-4">Status</th>
+        <th class="align-middle pr-4">Doc Type</th>
+        <th class="align-middle pr-4">Name</th>
+        <th class="align-middle pr-4">Orientation</th>
+        <th class="align-middle pr-4">Client</th>
+        <th class="align-middle pr-4">Project-Only</th>
+        <th class="sorter-false align-middle">Options</th>
+      </tr>
+      </thead>
 
-            {% for template in reporttemplate_list %}
-                <tr>
-                    <td class="align-middle">
-                        {% with template.get_status as status %}
-                            <span class="badge
+      {% for template in filter.qs %}
+        <tr>
+          <td class="align-middle">
+            {% with template.get_status as status %}
+              <span class="badge
                                 {% if status == "success" %}
                                     badge-success">Ready</span>
-                                {% else %}
-                                    {% if status == "warning" %}
-                                        badge-warning
-                                    {% elif status == "unknown" %}
-                                        badge-secondary
-                                    {% else %}
-                                        badge-danger
-                                    {% endif %}
-                                    ">{{ status|capfirst }}</span>
-                                {% endif %}
-                        {% endwith %}
-                    </td>
-                    <td class="align-middle icon {% if template.doc_type.doc_type == "docx" %}word-icon{% else %}pptx-icon{% endif %}"></td>
-                    <td class="align-middle"><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>
-                    <td class="align-middle">{% if template.landscape %}Landscsape{%  else %}Portrait{% endif %}</td>
-                    <td class="align-middle">
-                        {% if template.client %}
-                            {{ template.client }}
-                        {% else%}
-                            --
-                        {% endif %}
-                    </td>
-                    <td class="align-middle">
-                        <div class="dropdown dropleft">
-                            <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                            <div class="dropdown-menu" aria-labelledby="template-dropdown-btn_{{ template.id }}">
-                                <a class="dropdown-item icon download-icon" href="{% url 'reporting:template_download' template.id %}">Download</a>
-                                {% if template.protected and request.user.is_staff or not template.protected %}
-                                    <a class="dropdown-item icon edit-icon" href="{% url 'reporting:template_update' template.id %}">Edit</a>
-                                    <a class="dropdown-item icon trash-icon" href="{% url 'reporting:template_delete' template.id %}">Delete</a>
-                                {% else %}
-                                    <a class="dropdown-item icon locked-icon" href="javascript:void(0)">Editing Locked</a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-        <p>You have not uploaded any templates yet!</p>
-    {% endif %}
+              {% else %}
+                {% if status == "warning" %}
+                  badge-warning
+                {% elif status == "unknown" %}
+                  badge-secondary
+                {% else %}
+                  badge-danger
+                {% endif %}
+                ">{{ status|capfirst }}</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+          <td
+            class="align-middle icon {% if template.doc_type.extension == "docx" %}word-icon{% else %}pptx-icon{% endif %}"></td>
+          <td class="align-middle"><a class="clickable"
+                                      href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a>
+          </td>
+          <td class="align-middle">{% if template.landscape %}Landscsape{% else %}Portrait{% endif %}</td>
+          <td class="align-middle">
+            {% if template.client %}
+              {{ template.client }}
+            {% else %}
+              --
+            {% endif %}
+          </td>
+          <td class="icon {% if template.doc_type.doc_type == "project_docx" %}check-icon healthy{% else %}cross-icon burned{% endif %}"></td>
+          <td class="align-middle">
+            <div class="dropdown dropleft">
+              <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
+                      aria-expanded="false"></button>
+              <div class="dropdown-menu" aria-labelledby="template-dropdown-btn_{{ template.id }}">
+                <a class="dropdown-item icon download-icon" href="{% url 'reporting:template_download' template.id %}">Download</a>
+                {% if template.protected and request.user|is_privileged or not template.protected %}
+                  <a class="dropdown-item icon edit-icon"
+                     href="{% url 'reporting:template_update' template.id %}">Edit</a>
+                  <a class="dropdown-item icon trash-icon" href="{% url 'reporting:template_delete' template.id %}">Delete</a>
+                {% else %}
+                  <a class="dropdown-item icon locked-icon" href="javascript:void(0)">Editing Locked</a>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $("#reportTemplateTable").tablesorter(
-                            {
-                                sortInitialOrder: 'desc',
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-        });
-    </script>
+  <!-- jQuery Tablesorter Script -->
+  <script>
+    $(document).ready(function () {
+      $("#reportTemplateTable").tablesorter(
+        {
+          sortInitialOrder: 'desc',
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('.tablesorter').trigger('update');
+    });
+  </script>
 {% endblock %}

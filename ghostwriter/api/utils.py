@@ -283,6 +283,32 @@ def verify_finding_access(user, mode):
     return False
 
 
+def verify_observation_access(user, mode):
+    """
+    Verify that the user is flagged as being able to create and/or edit observations in the global library.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``mode``
+        The mode to check for (``create``, ``edit``, or ``delete``)
+    """
+    if verify_user_is_privileged(user):
+        return True
+
+    if mode == "create" and user.enable_observation_create:
+        return True
+
+    if mode == "edit" and user.enable_observation_edit:
+        return True
+
+    if mode == "delete" and user.enable_observation_delete:
+        return True
+
+    return False
+
+
 def get_client_list(user):
     """
     Retrieve a filtered list of :model:`rolodex.Client` entries based on the user's role.
@@ -349,17 +375,12 @@ def get_logs_list(user):
     ``user``
         The :model:`users.User` object
     """
+    logs = Oplog.objects.select_related("project")
     if verify_user_is_privileged(user):
-        logs = Oplog.objects.select_related("project").all()
+        logs = logs.all()
     else:
         projects = get_project_list(user)
-        logs = (
-            Oplog.objects.select_related("project")
-            .filter(
-                project__in=projects,
-            )
-            .distinct()
-        )
+        logs = logs.filter(project__in=projects).distinct()
     return logs
 
 

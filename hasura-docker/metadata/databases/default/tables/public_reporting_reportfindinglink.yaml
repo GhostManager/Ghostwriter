@@ -3,10 +3,18 @@ table:
   schema: public
 configuration:
   column_config:
+    added_as_blank:
+      custom_name: addedAsBlank
     affected_entities:
       custom_name: affectedEntities
     assigned_to_id:
       custom_name: assignedToId
+    cvss_score:
+      custom_name: cvssScore
+    cvss_vector:
+      custom_name: cvssVector
+    extra_fields:
+      custom_name: extraFields
     finding_guidance:
       custom_name: findingGuidance
     finding_type_id:
@@ -20,8 +28,12 @@ configuration:
     severity_id:
       custom_name: severityId
   custom_column_names:
+    added_as_blank: addedAsBlank
     affected_entities: affectedEntities
     assigned_to_id: assignedToId
+    cvss_score: cvssScore
+    cvss_vector: cvssVector
+    extra_fields: extraFields
     finding_guidance: findingGuidance
     finding_type_id: findingTypeId
     host_detection_techniques: hostDetectionTechniques
@@ -66,12 +78,14 @@ insert_permissions:
         added_as_blank: "true"
         assigned_to_id: x-hasura-User-Id
       columns:
+        - added_as_blank
         - affected_entities
         - assigned_to_id
         - complete
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -104,12 +118,14 @@ insert_permissions:
         added_as_blank: "true"
         assigned_to_id: x-hasura-User-Id
       columns:
+        - added_as_blank
         - affected_entities
         - assigned_to_id
         - complete
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -133,6 +149,7 @@ select_permissions:
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -157,6 +174,7 @@ select_permissions:
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -188,12 +206,14 @@ update_permissions:
   - role: manager
     permission:
       columns:
+        - added_as_blank
         - affected_entities
         - assigned_to_id
         - complete
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques
@@ -211,12 +231,14 @@ update_permissions:
   - role: user
     permission:
       columns:
+        - added_as_blank
         - affected_entities
         - assigned_to_id
         - complete
         - cvss_score
         - cvss_vector
         - description
+        - extra_fields
         - finding_guidance
         - finding_type_id
         - host_detection_techniques

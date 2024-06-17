@@ -32,6 +32,17 @@
     </script>
   {% endif %}
 
+  <!-- Global default warning -->
+  {% if object == report_configuration.default_docx_template %}
+    <div class="alert alert-warning" role="alert">
+      This template is the global default Word template. Be careful when editing.
+    </div>
+  {% elif object == report_configuration.default_pptx_template %}
+    <div class="alert alert-warning" role="alert">
+      This template is the global default PowerPoint template. Be careful when editing.
+    </div>
+  {% endif %}
+
   <!-- Form Section -->
   {% crispy form form.helper %}
 {% endblock %}
@@ -59,7 +70,8 @@
     });
 
     $('input[type=file]').on('change', function () {
-      $('#filename').text($(this).val());
+      let filename = $(this).val().split('\\').pop();
+      $('#filename').text(filename);
     });
 
     $doc_type.on('change', function () {

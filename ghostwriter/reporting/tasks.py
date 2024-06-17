@@ -14,7 +14,10 @@ from django.core.files import File
 from django.db.models import Q
 
 # Ghostwriter Libraries
-from ghostwriter.modules import reportwriter
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 
 from .models import Archive, Report
 
@@ -57,23 +60,26 @@ def archive_projects():
             evidence_loc = os.path.join(settings.MEDIA_ROOT, "evidence", str(report.project.id))
             docx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.docx")
             pptx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.pptx")
-            output_path = os.path.join(settings.MEDIA_ROOT, report.title)
-            spenny = reportwriter.Reportwriter(report, output_path)
-            json_doc, word_doc, excel_doc, ppt_doc = spenny.generate_all_reports(docx_template_loc, pptx_template_loc)
+
+            word_doc = ExportReportDocx(report, template_loc=docx_template_loc).run()
+            ppt_doc = ExportReportPptx(report, template_loc=pptx_template_loc).run()
+            excel_doc = ExportReportXlsx(report).run()
+            json_doc = ExportReportJson(report).run()
+
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "a") as zf:
-                zf.writestr("report.json", json_doc)
+                zf.writestr("report.json", json_doc.getvalue())
                 zf.writestr("report.docx", word_doc.getvalue())
                 zf.writestr("report.xlsx", excel_doc.getvalue())
                 zf.writestr("report.pptx", ppt_doc.getvalue())
                 zip_directory(evidence_loc, zf)
             zip_buffer.seek(0)
             with open(os.path.join(archive_loc, report.title + ".zip"), "wb") as archive_file:
-                archive_file.write(zip_buffer.read())
+                archive_file.write(zip_buffer.getvalue())
             new_archive = Archive(
                 project=report.project,
-                report_archive=File(open(os.path.join(archive_loc, report.title + ".zip"), "rb")),
+                report_archive=File(zip_buffer),
             )
             new_archive.save()
             report.archived = True

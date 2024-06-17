@@ -33,20 +33,20 @@ class Client(models.Model):
     short_name = models.CharField(
         "Client Short Name",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Provide an abbreviated name to be used in reports",
     )
     codename = models.CharField(
         "Client Codename",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Give the client a codename (might be a ticket number, CMS reference, or something else)",
     )
     note = models.TextField(
         "Client Note",
-        null=True,
+        default="",
         blank=True,
         help_text="Describe the client or provide some additional information",
     )
@@ -57,11 +57,12 @@ class Client(models.Model):
     )
     address = models.TextField(
         "Client Business Address",
-        null=True,
+        default="",
         blank=True,
         help_text="An address to be used for reports or shipping",
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
 
     class Meta:
         ordering = ["name"]
@@ -82,15 +83,11 @@ class ClientContact(models.Model):
     job_title = models.CharField(
         "Title or Role",
         max_length=255,
-        null=True,
-        blank=True,
         help_text="Enter the contact's job title or project role as you want it to appear in a report",
     )
     email = models.CharField(
         "Email",
         max_length=255,
-        null=True,
-        blank=True,
         help_text="Enter an email address for this contact",
     )
     # The ITU E.164 states phone numbers should not exceed 15 characters
@@ -100,7 +97,7 @@ class ClientContact(models.Model):
     phone = models.CharField(
         "Phone",
         max_length=50,
-        null=True,
+        default="",
         blank=True,
         help_text="Enter a phone number for this contact",
     )
@@ -111,7 +108,7 @@ class ClientContact(models.Model):
     )
     note = models.TextField(
         "Contact Note",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide additional information about the contact",
     )
@@ -156,7 +153,7 @@ class Project(models.Model):
     codename = models.CharField(
         "Project Codename",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Give the project a codename (might be a ticket number, PMO reference, or something else)",
     )
@@ -164,14 +161,14 @@ class Project(models.Model):
     end_date = models.DateField("End Date", max_length=12, help_text="Enter the end date of this project")
     note = models.TextField(
         "Notes",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide additional information about the project and planning",
     )
     slack_channel = models.CharField(
         "Project Slack Channel",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Provide an Slack channel to be used for project notifications",
     )
@@ -210,6 +207,8 @@ class Project(models.Model):
         null=False,
         help_text="Select a category for this project that best describes the work being performed",
     )
+
+    extra_fields = models.JSONField(default=dict)
 
     def count_findings(self):
         """
@@ -274,7 +273,7 @@ class ProjectAssignment(models.Model):
     )
     note = models.TextField(
         "Notes",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide additional information about the project role and assignment",
     )
@@ -314,15 +313,11 @@ class ProjectContact(models.Model):
     job_title = models.CharField(
         "Title or Role",
         max_length=255,
-        null=True,
-        blank=True,
         help_text="Enter the contact's job title or project role as you want it to appear in a report",
     )
     email = models.CharField(
         "Email",
         max_length=255,
-        null=True,
-        blank=True,
         help_text="Enter an email address for this contact",
     )
     # The ITU E.164 states phone numbers should not exceed 15 characters
@@ -332,7 +327,7 @@ class ProjectContact(models.Model):
     phone = models.CharField(
         "Phone",
         max_length=50,
-        null=True,
+        default="",
         blank=True,
         help_text="Enter a phone number for this contact",
     )
@@ -343,7 +338,7 @@ class ProjectContact(models.Model):
     )
     note = models.TextField(
         "Contact Note",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide additional information about the contact",
     )
@@ -408,30 +403,31 @@ class ObjectivePriority(models.Model):
         return f"{self.priority}"
 
 
+def _get_default_status():
+    """Get the default status for the status field."""
+    try:
+        active_status = ObjectiveStatus.objects.get(objective_status="Active")
+        return active_status.id
+    except ObjectiveStatus.DoesNotExist:
+        return 1
+
+
 class ProjectObjective(models.Model):
     """
     Stores an individual project objective, related to an individual :model:`rolodex.Project`
     and :model:`rolodex.ObjectiveStatus`.
     """
 
-    def get_status():  # pragma: no cover
-        """Get the default status for the status field."""
-        try:
-            active_status = ObjectiveStatus.objects.get(objective_status="Active")
-            return active_status.id
-        except ObjectiveStatus.DoesNotExist:
-            return 1
-
     objective = models.CharField(
         "Objective",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles",
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a more detailed description, purpose, or context",
     )
@@ -462,7 +458,7 @@ class ProjectObjective(models.Model):
     status = models.ForeignKey(
         ObjectiveStatus,
         on_delete=models.PROTECT,
-        default=get_status,
+        default=_get_default_status,
         help_text="Set the status for this objective",
     )
     priority = models.ForeignKey(
@@ -513,15 +509,7 @@ class ProjectSubTask(models.Model):
     and :model:`rolodex.ObjectiveStatus`.
     """
 
-    def get_status():  # pragma: no cover
-        """Get the default status for the status field."""
-        try:
-            active_status = ObjectiveStatus.objects.get(objective_status="Active")
-            return active_status.id
-        except ObjectiveStatus.DoesNotExist:
-            return 1
-
-    task = models.TextField("Task", null=True, blank=True, help_text="Provide a concise objective")
+    task = models.TextField("Task", blank=True, default="", help_text="Provide a concise objective")
     complete = models.BooleanField("Completed", default=False, help_text="Mark the objective as complete")
     deadline = models.DateField(
         "Due Date",
@@ -541,7 +529,7 @@ class ProjectSubTask(models.Model):
     status = models.ForeignKey(
         ObjectiveStatus,
         on_delete=models.PROTECT,
-        default=get_status,
+        default=_get_default_status,
         help_text="Set the status for this objective",
     )
 
@@ -561,7 +549,7 @@ class ClientNote(models.Model):
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
-        null=True,
+        default="",
         blank=True,
         help_text="Leave the client or related projects",
     )
@@ -585,7 +573,7 @@ class ProjectNote(models.Model):
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
-        null=True,
+        default="",
         blank=True,
         help_text="Leave a note about the project or related client",
     )
@@ -608,19 +596,19 @@ class ProjectScope(models.Model):
     name = models.CharField(
         "Scope Name",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a descriptive name for this list (e.g., External IPs, Cardholder Data Environment)",
     )
     scope = models.TextField(
         "Scope",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a list of IP addresses, ranges, hostnames, or a mix with each entry on a new line",
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a brief description of this list",
     )
@@ -663,7 +651,7 @@ class ProjectTarget(models.Model):
     ip_address = models.CharField(
         "IP Address",
         max_length=45,
-        null=True,
+        default="",
         blank=True,
         validators=[validate_ip_range],
         help_text="Enter the IP address or range of the target host(s)",
@@ -671,13 +659,13 @@ class ProjectTarget(models.Model):
     hostname = models.CharField(
         "Hostname / FQDN",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Provide the target's hostname, fully qualified domain name, or other identifier",
     )
     note = models.TextField(
         "Notes",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide additional information about the target(s) or the environment",
     )
@@ -702,7 +690,7 @@ class ClientInvite(models.Model):
 
     comment = models.TextField(
         "Comment",
-        null=True,
+        default="",
         blank=True,
         help_text="Optional explanation for this invite",
     )
@@ -727,7 +715,7 @@ class ProjectInvite(models.Model):
 
     comment = models.TextField(
         "Comment",
-        null=True,
+        default="",
         blank=True,
         help_text="Optional explanation for this invite",
     )
@@ -799,14 +787,14 @@ class Deconfliction(models.Model):
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide a brief description of this deconfliction request",
     )
     alert_source = models.CharField(
         "Alert Source",
         max_length=255,
-        null=True,
+        default="",
         blank=True,
         help_text="Source of the alert (e.g., user reported, EDR, MDR, etc.)",
     )
@@ -853,13 +841,13 @@ class WhiteCard(models.Model):
         "Title",
         max_length=255,
         blank=True,
-        null=True,
+        default="",
         help_text="Provide a descriptive headline for this white card (e.g., a username, hostname, or short sentence",
     )
     description = models.TextField(
         "Description",
         blank=True,
-        null=True,
+        default="",
         help_text="Provide a brief description of this white card",
     )
     # Foreign Keys

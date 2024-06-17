@@ -25,7 +25,9 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
     AuxServerAddress,
@@ -195,9 +197,14 @@ class ServerForm(forms.ModelForm):
     Save an individual :model:`shepherd.StaticServer`.
     """
 
+    extra_fields = ExtraFieldsField(StaticServer._meta.label)
+
     class Meta:
         model = StaticServer
         exclude = ("last_used_by",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -212,6 +219,10 @@ class ServerForm(forms.ModelForm):
         self.fields["server_provider"].label = "Server Provider"
         self.fields["note"].widget.attrs["placeholder"] = "This server has 8 GPUs, hashcat installed, and ..."
         self.fields["tags"].widget.attrs["placeholder"] = "hashcat, GPU:8, ..."
+        self.fields["extra_fields"].label = ""
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
@@ -237,6 +248,13 @@ class ServerForm(forms.ModelForm):
                     ),
                     "tags",
                     "note",
+                    HTML(
+                        """
+                        <h4 class="icon custom-field-icon">Extra Fields</h4>
+                        <hr />
+                        """
+                    ) if has_extra_fields else None,
+                    "extra_fields" if has_extra_fields else None,
                     link_css_class="icon server-icon",
                     css_id="server",
                 ),
@@ -287,6 +305,9 @@ class TransientServerForm(forms.ModelForm):
     class Meta:
         model = TransientServer
         exclude = ("project",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -362,6 +383,9 @@ class ServerNoteForm(forms.ModelForm):
     class Meta:
         model = ServerNote
         fields = ("note",)
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

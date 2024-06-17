@@ -1,0 +1,43 @@
+table:
+  name: commandcenter_extrafieldspec
+  schema: public
+configuration:
+  column_config:
+    display_name:
+      custom_name: displayName
+    internal_name:
+      custom_name: internalName
+    target_model_id:
+      custom_name: targetModel
+    user_default_value:
+      custom_name: defaultValue
+  custom_column_names:
+    display_name: displayName
+    internal_name: internalName
+    target_model_id: targetModel
+    user_default_value: defaultValue
+  custom_name: extraFieldSpec
+  custom_root_fields: {}
+object_relationships:
+  - name: extraFieldModel
+    using:
+      foreign_key_constraint_on: target_model_id
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - display_name
+        - internal_name
+        - target_model_id
+        - type
+        - user_default_value
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - display_name
+        - internal_name
+        - target_model_id
+        - type
+        - user_default_value
+      filter: {}

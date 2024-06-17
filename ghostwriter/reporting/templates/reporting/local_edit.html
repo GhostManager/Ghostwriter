@@ -30,7 +30,7 @@
     <div class="card">
       <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
         <a class="accordion-toggle btn btn-link icon code-icon" data-toggle="collapse" data-target="#collapseKeyword"
-           aria-expanded="false" aria-controls="collapseKeyword">Keyword Reference & Instructions</a>
+           aria-expanded="false" aria-controls="collapseKeyword">Reference & Instructions</a>
       </div>
       <div id="collapseKeyword" class="collapse" aria-labelledby="keyword" data-parent="#accordion">
         <div class="card-body">
@@ -42,43 +42,6 @@
               <th>Usage</th>
             </tr>
             <tr>
-              {% verbatim %}
-              <td class="text-left align-middle">{{.client}}</td>
-              {% endverbatim %}
-              <td class="text-left align-middle">
-                {% if reportfindinglink.report.project.client.short_name %}
-                  This keyword will be replaced with the client's short name, "
-                  {{ reportfindinglink.report.project.client.short_name }}."
-                {% else %}
-                  No short name is set for this client, so this keyword will be replaced by the full name, "
-                  {{ reportfindinglink.report.project.client.name }}."
-                {% endif %}
-              </td>
-            </tr>
-            <tr>
-              {% verbatim %}
-              <td class="text-left align-middle">{{.project_type}}</td>
-              {% endverbatim %}
-              <td class="text-left align-middle">This keyword will be replaced with the project type in
-                lowercase, {{ reportfindinglink.report.project.project_type|lower }}.
-              </td>
-            </tr>
-            <tr>
-              {% verbatim %}
-              <td class="text-left align-middle">{{.project_start}}</td>
-              {% endverbatim %}
-              <td class="text-left align-middle">This keyword will be replaced with the project's start date in
-                <em>{% settings_value "DATE_FORMAT" %}</em>
-                format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
-            </tr>
-            <tr>
-              {% verbatim %}
-              <td class="text-left align-middle">{{.project_end}}</td>
-              {% endverbatim %}
-              <td class="text-left align-middle">This keyword will be replaced with the project's end date in
-                <em>{% settings_value "DATE_FORMAT" %}</em>
-                format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
-            </tr>
             {% verbatim %}
             <tr>
               <td class="text-left align-middle">{{.caption}}</td>
@@ -91,17 +54,36 @@
               {% for finding in reportfindinglink.evidence_set.all %}
                 <tr>
                   <td class="text-left align-middle">
-                    {% templatetag openvariable %}.{{ finding.friendly_name }}{% templatetag closevariable %}
+                    {% templatetag openvariable %}.{{ finding.friendly_name|bleach }}{% templatetag closevariable %}
                   </td>
                   <td class="text-left align-middle">On a new line, reference this evidence file,
-                    <em>{{ finding.document.name }}</em>, to insert it into the finding.
+                    <em>{{ finding.document.name|bleach }}</em>, to insert it into the finding.
                   </td>
                 </tr>
                 <tr>
                   <td class="text-left align-middle">
-                    {% templatetag openvariable %}.ref {{ finding.friendly_name }}{% templatetag closevariable %}
+                    {% templatetag openvariable %}.ref {{ finding.friendly_name|bleach }}{% templatetag closevariable %}
                   </td>
-                  <td class="text-left align-middle">Add a cross-reference to the caption of thr above evidence file.
+                  <td class="text-left align-middle">Add a cross-reference to the caption of the above evidence file.
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+            {% if reportfindinglink.report.evidence_set.all %}
+              {% for finding in reportfindinglink.report.evidence_set.all %}
+                <tr>
+                  <td class="text-left align-middle">
+                    {% templatetag openvariable %}.{{ finding.friendly_name|bleach }}{% templatetag closevariable %}
+                  </td>
+                  <td class="text-left align-middle">On a new line, reference this evidence file,
+                    <em>{{ finding.document.name|bleach }}</em>, to insert it into the finding.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-left align-middle">
+                    {% templatetag openvariable %}.ref {{ finding.friendly_name|bleach }}{% templatetag closevariable %}
+                  </td>
+                  <td class="text-left align-middle">Add a cross-reference to the caption of the above evidence file.
                   </td>
                 </tr>
               {% endfor %}
@@ -109,8 +91,9 @@
           </table>
           <p>Insert evidence by using the above keywords. For additional formatting, utilize the WYSIWIG HTML formatting
             to apply bold, italic, code, inline code, and other text styles.</p>
-          <p>These styles will carry over to the Word and PowerPoint reports. See the documentaiton for more
-            details.</p>
+          <p>These styles will carry over to the Word and PowerPoint reports.
+            You may also leverage Jinja2 statements and expressions like you do inside your report templates.</p>
+          <p>See the documentation for more details.</p>
         </div>
       </div>
     </div>
@@ -161,7 +144,7 @@
                 </div>
               </div>
 
-              {% if request.user == note.operator or request.user.is_staff %}
+              {% if request.user == note.operator or request.user|is_privileged %}
                 <div class="pb-3">
                   <a class="note-link" href="{% url 'reporting:local_finding_note_edit' note.id %}">Edit</a> |
                   <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
@@ -187,11 +170,11 @@
     <script>
       {% for field in form %}
         {% for error in field.errors %}
-          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+          displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
         {% endfor %}
       {% endfor %}
       {% for error in form.non_field_errors %}
-        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
       {% endfor %}
     </script>
   {% endif %}
@@ -225,16 +208,20 @@
 
     {% comment %} Script for the WYSIWYG editor's AutoComplete {% endcomment %}
     let evidenceFiles = [
-      {text: '\{\{.client\}\}', value: '\{\{.client\}\}'},
       {text: '\{\{.caption\}\}', value: '\{\{.caption\}\}'},
-      {text: '\{\{.project_start\}\}', value: '\{\{.project_start\}\}'},
-      {text: '\{\{.project_end\}\}', value: '\{\{.project_end\}\}'},
-      {text: '\{\{.project_type\}\}', value: '\{\{.project_type\}\}'},
       {% if reportfindinglink.evidence_set.all  %}
-        {% for finding in reportfindinglink.evidence_set.all %}
+        {% for file in reportfindinglink.evidence_set.all %}
           {
-            text: '\{\{.{{ finding.friendly_name|escapejs }}\}\}',
-            value: '\{\{.{{ finding.friendly_name|escapejs }}\}\}'
+            text: '\{\{.{{ file.friendly_name|escapejs }}\}\}',
+            value: '\{\{.{{ file.friendly_name|escapejs }}\}\}'
+          },
+        {% endfor %}
+      {% endif %}
+      {% if reportfindinglink.report.evidence_set.all  %}
+        {% for file in reportfindinglink.report.evidence_set.all %}
+          {
+            text: '\{\{.{{ file.friendly_name|escapejs }}\}\}',
+            value: '\{\{.{{ file.friendly_name|escapejs }}\}\}'
           },
         {% endfor %}
       {% endif %}

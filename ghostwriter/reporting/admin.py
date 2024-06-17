@@ -16,12 +16,13 @@ from ghostwriter.reporting.models import (
     FindingNote,
     FindingType,
     LocalFindingNote,
+    Observation,
     Report,
     ReportFindingLink,
     ReportTemplate,
     Severity,
 )
-from ghostwriter.reporting.resources import FindingResource
+from ghostwriter.reporting.resources import FindingResource, ObservationResource
 
 
 @admin.register(Archive)
@@ -31,7 +32,14 @@ class ArchiveAdmin(admin.ModelAdmin):
 
 @admin.register(DocType)
 class DocTypeAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("name", "doc_type", "extension")
+    list_display_links = ("name", "doc_type", "extension")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Evidence)
@@ -255,6 +263,20 @@ class ReportTemplateAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
+
+
+@admin.register(Observation)
+class ObservationAdmin(ImportExportModelAdmin):
+    resource_class = ObservationResource
+    list_display = (
+        "title",
+        "tag_list",
+    )
+    list_filter = ("tags",)
+    list_display_links = ("title",)
 
     def tag_list(self, obj):
         return ", ".join(o.name for o in obj.tags.all())

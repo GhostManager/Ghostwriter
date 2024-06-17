@@ -1,0 +1,22 @@
+{% load bleach_tags extra_fields %}
+
+{% if field_spec.type == "rich_text" %}
+  <div id="field_spec_{{ field_spec.internal_name|bleach }}" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-super-sized" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ field_spec.display_name|bleach }}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body extra-field-modal-content">
+          {% include "user_extra_fields/field.html" with extra_fields=extra_fields field_spec=field_spec %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}

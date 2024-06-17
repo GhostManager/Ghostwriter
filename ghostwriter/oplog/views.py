@@ -3,11 +3,13 @@
 # Standard Libraries
 import collections
 import csv
+import json
 import logging
 
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -25,6 +27,8 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
+from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -107,6 +111,107 @@ class OplogMuteToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
+def parse_fields(data: dict, entry_field_specs: dict) -> tuple:
+    """
+    Parse a dictionary of fields and return a list of fields and extra fields.
+
+    **Parameters**
+
+    ``data`` (dict)
+        Dictionary of fields
+    ``entry_field_specs`` (dict)
+        Dictionary of field specifications
+    """
+    fields = [field["name"] for field in data]
+    extra_fields = []
+    # Remove any extra fields from the list of fields
+    for field_spec in entry_field_specs:
+        if field_spec["internal_name"] in fields:
+            fields.pop(fields.index(field_spec["internal_name"]))
+            extra_fields.append(field_spec["internal_name"])
+    if extra_fields:
+        fields.append("extra_fields")
+    return fields, extra_fields
+
+
+class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Sanitize all :model:`oplog.OplogEntry` objects associated with an individual :model:`oplog.Oplog`.
+
+    Sanitization nullifies the `source_ip`, `dest_ip`, `description`, `output`, `user_context` and `comments` fields.
+    It also removes everything after the first space in the `command` field. This action keeps the command while
+    removing any arguments or options that may be sensitive (e.g., hashes, keys).
+    """
+
+    model = Oplog
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        data = {"result": "error", "message": "Only a manager or admin can choose to sanitize a log."}
+        return JsonResponse(data, status=403)
+
+    def post(self, *args, **kwargs):
+        obj = self.get_object()
+        data = self.request.POST.get("fields", None)
+        try:
+            json_data = json.loads(data)
+        except (json.JSONDecodeError, TypeError):
+            json_data = None
+
+        if json_data and len(json_data) > 0:
+            entries = obj.entries.all()
+            entry_field_specs = ExtraFieldsSpecSerializer(
+                ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
+            ).data
+            fields, _ = parse_fields(json_data, entry_field_specs)
+
+            logger.info(
+                "Sanitizing log entries for %s %s by request of %s", obj.__class__.__name__, obj.id, self.request.user
+            )
+            data = {
+                "result": "success",
+                "message": "Successfully sanitized log entries.",
+            }
+            try:
+                for entry in entries:
+                    extra_fields_data = entry.extra_fields
+                    for field in json_data:
+                        for field_spec in entry_field_specs:
+                            if field_spec["internal_name"] == field["name"]:
+                                extra_fields_data[field["name"]] = None
+                            else:
+                                if field["name"] == "command":
+                                    if entry.command:
+                                        setattr(entry, field["name"], entry.command.split(" ")[0])
+                                else:
+                                    setattr(entry, field["name"], None)
+                    entry.extra_fields = extra_fields_data
+                try:
+                    OplogEntry.objects.bulk_update(entries, fields)
+                except FieldDoesNotExist as exception:
+                    logger.error("One of the fields submitted for sanitization does not exist: %s", exception)
+                    data = {
+                        "result": "failed",
+                        "message": "One of the fields submitted for sanitization does not exist.",
+                    }
+            except Exception as exception:  # pragma: no cover
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                log_message = template.format(type(exception).__name__, exception.args)
+                logger.error(log_message)
+                data = {
+                    "result": "failed",
+                    "message": "An error occurred while sanitizing log entries.",
+                }
+        else:
+            data = {
+                "result": "failed",
+                "message": "No fields selected for sanitization.",
+            }
+        return JsonResponse(data)
+
+
 ##################
 # View Functions #
 ##################
@@ -128,6 +233,7 @@ def validate_headers(imported_data):
         "comments",
         "operator_name",
         "tags",
+        "extra_fields",
     ]
     return collections.Counter(imported_data.headers) == collections.Counter(headers)
 
@@ -281,6 +387,13 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("oplog:index")
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["oplog_entry_extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
+            ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
+        ).data
+        return ctx
+
 
 class OplogCreate(RoleBasedAccessControlMixin, CreateView):
     """
@@ -430,6 +543,11 @@ class OplogEntryCreate(RoleBasedAccessControlMixin, AjaxTemplateMixin, CreateVie
 
     def get_success_url(self):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
+
+    def form_valid(self, form):
+        # Add defaults for extra fields
+        form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
+        return super().form_valid(self, form)
 
 
 class OplogEntryUpdate(RoleBasedAccessControlMixin, AjaxTemplateMixin, UpdateView):

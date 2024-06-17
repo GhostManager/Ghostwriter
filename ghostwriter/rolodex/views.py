@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.db.models import Q
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -28,8 +29,12 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
+from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
+from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
+from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
     ClientContactFormSet,
@@ -240,6 +245,63 @@ def ajax_update_project_objectives(request):
     return JsonResponse(data)
 
 
+class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Generates a project report"""
+
+    model = Project
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object())
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def get(self, *args, **kwargs):
+        project = self.get_object()
+
+        type_or_template_id = self.kwargs["type_or_template_id"]
+        try:
+            type_or_template_id = int(type_or_template_id)
+        except ValueError:
+            pass
+
+        report_config = ReportConfiguration.get_solo()
+
+        try:
+            if type_or_template_id == "json":
+                exporter = ExportProjectJson(project)
+                filename = exporter.render_filename(report_config.project_filename)
+                out = exporter.run()
+                mime = exporter.mime_type()
+            else:
+                template = ReportTemplate.objects.filter(
+                    Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+                ).filter(
+                    Q(client=project.client) | Q(client__isnull=True)
+                ).select_related("doc_type").get(pk=type_or_template_id)
+                exporter = template.exporter(project)
+                filename = exporter.render_filename(template.filename_override or report_config.project_filename)
+                out = exporter.run()
+                mime = exporter.mime_type()
+        except ReportExportError as error:
+            logger.error(
+                "Project report failed for project %s and user %s%s: %s",
+                project.id,
+                self.request.user,
+                error.at_error(),
+                error
+            )
+            messages.error(
+                self.request,
+                f"Error{error.at_error()}: {error}",
+                extra_tags="alert-danger",
+            )
+            return HttpResponseRedirect(reverse("rolodex:project_detail", kwargs={"pk": project.id}) + "#documents")
+        response = HttpResponse(out.getvalue(), content_type=mime)
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
 class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Update the ``status`` field of an individual :model:`rolodex.ProjectObjective`."""
 
@@ -406,11 +468,11 @@ class ProjectNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -433,11 +495,11 @@ class ClientNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -1096,6 +1158,9 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["domains"] = client_domains
         ctx["servers"] = client_servers
         ctx["vps"] = client_vps
+
+        ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
+
         return ctx
 
 
@@ -1153,7 +1218,6 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         contacts = ctx["contacts"]
 
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, ``BaseClientContactInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
@@ -1243,7 +1307,6 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
         contacts = ctx["contacts"]
 
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, ``BaseClientContactInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
@@ -1383,11 +1446,11 @@ class ClientNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
@@ -1453,6 +1516,16 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
+
+    def get_context_data(self, object, **kwargs):
+        ctx = super().get_context_data(object=object, **kwargs)
+        ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
+        ctx["export_templates"] = ReportTemplate.objects.filter(
+            Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+        ).filter(
+            Q(client=object.client) | Q(client__isnull=True)
+        )
+        return ctx
 
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
@@ -1521,6 +1594,9 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
             ctx["assignments"] = assignments
         return ctx
 
+    def form_invalid(self, form):
+        return super().form_invalid(form)
+
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
@@ -1530,6 +1606,8 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
+                form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
+
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save()
 
@@ -1877,11 +1955,11 @@ class ProjectNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")

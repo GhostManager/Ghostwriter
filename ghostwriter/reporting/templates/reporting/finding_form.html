@@ -21,41 +21,14 @@
         <!-- Keyword Cheatsheet -->
         <div class="card">
             <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
-                <a class="accordion-toggle btn btn-link icon code-icon" data-toggle="collapse" data-target="#collapseKeyword" aria-expanded="false" aria-controls="collapseKeyword">Keyword Reference</a>
+                <a class="accordion-toggle btn btn-link icon code-icon" data-toggle="collapse" data-target="#collapseKeyword" aria-expanded="false" aria-controls="collapseKeyword">Reference & Instructions</a>
             </div>
             <div id="collapseKeyword" class="collapse" aria-labelledby="description" data-parent="#accordion">
                 <div class="card-body">
-                    <p>Ghostwriter supports several template keywords you may utilize to format text and insert various pieces of information:</p>
-                    {% verbatim %}
-                        <table class="table table-striped">
-                            <tr>
-                                <th class="smallCell">Keyword</th>
-                                <th>Usage</th>
-                            </tr>
-                            <tr>
-                                <td class="text-left align-middle">{{.client}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the client's short name. The full name will be used if a short name has not been set for the client.</td>
-                            </tr>
-                            <tr>
-                                <td class="text-left align-middle">{{.project_type}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the project type in lowercase (e.g., penetration test).</td>
-                            </tr>
-                            <tr>
-                                <td class="text-left align-middle">{{.project_start}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in <em>{% settings_value "DATE_FORMAT" %}</em> format (e.g., October 31, 2020).</td>
-                            </tr>
-                            <tr>
-                                <td class="text-left align-middle">{{.project_end}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in <em>{% settings_value "DATE_FORMAT" %}</em>  format (e.g., October 31, 2020).</td>
-                            </tr>
-                            <tr>
-                                <td class="text-left align-middle">{{.caption}}</td>
-                                <td class="text-left align-middle">Start a line of text with this keyword to make it a caption. This is intended to follow a code block.</td>
-                            </tr>
-                        {% endverbatim %}
-                    </table>
-                    <p>For additional formatting, utilize the WYSIWIG HTML formatting to apply bold, italic, code, and inline code text styles.</p>
-                    <p>These styles will carry over to the Word report output as bold, italic, "CodeBlock," and "Code (Inline)" styles respectively.</p>
+                  <p>Utilize the WYSIWIG HTML formatting to apply bold, italic, code, inline code, and other text styles.
+                    These styles will carry over to the Word and PowerPoint reports. <br>
+                    You may also leverage Jinja2 statements and expressions like you do inside your report templates.</p>
+                  <p>See the documentation for more details.</p>
                 </div>
             </div>
         </div>
@@ -69,11 +42,11 @@
         <script>
             {% for field in form %}
                 {% for error in field.errors %}
-                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                    displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
                 {% endfor %}
             {% endfor %}
             {% for error in form.non_field_errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
             {% endfor %}
         </script>
     {% endif %}

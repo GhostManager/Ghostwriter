@@ -66,6 +66,7 @@ class DomainResource(resources.ModelResource):
             "note",
             "burned_explanation",
             "tags",
+            "extra_fields",
         )
 
 
@@ -102,4 +103,5 @@ class StaticServerResource(resources.ModelResource):
             "server_provider",
             "note",
             "tags",
+            "extra_fields",
         )

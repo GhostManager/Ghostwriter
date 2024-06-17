@@ -1,0 +1,30 @@
+{% load bleach_tags extra_fields %}
+
+<p class="mt-2">Preview and edit the extra fields here. If you want to add or change a field, admins can do that in the admin panel.</p>
+
+{% comment %} List non-rich text fields first {% endcomment %}
+{% for field_spec in object_extra_fields_spec %}
+  {% if field_spec.type != "rich_text" %}
+    <div class="row justify-content-md-center mb-1">
+      <h6 class="col-3 text-left">
+        {{ field_spec.display_name }}
+      </h6>
+      <div class="mt-2 col-3 text-md-center align-middle offset-2">
+        {% include "user_extra_fields/field.html" with extra_fields=object.extra_fields field_spec=field_spec %}
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}
+{% comment %} List the remaining extra fields {% endcomment %}
+{% for field_spec in object_extra_fields_spec %}
+  {% if field_spec.type == "rich_text" %}
+    <div class="row justify-content-md-center mb-1">
+      <h6 class="col-3 text-left">
+        {{ field_spec.display_name }}
+      </h6>
+      <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
+              data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
+      </button>
+    </div>
+  {% endif %}
+{% endfor %}

@@ -7,7 +7,6 @@ from collections import namedtuple
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -28,8 +27,10 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import (
     Deconfliction,
     Project,
@@ -409,75 +410,40 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
     """
 
     def clean(self):
-        contacts = []
-        primary_set = False
-        duplicates = False
         super().clean()
         if any(self.errors):
             return
+
+        contacts = set()
+        primary_set = False
         for form in self.forms:
-            if form.cleaned_data:
-                # Only validate if the form is NOT marked for deletion
-                if form.cleaned_data["DELETE"] is False:
-                    name = form.cleaned_data["name"]
-                    job_title = form.cleaned_data["job_title"]
-                    email = form.cleaned_data["email"]
-                    primary = form.cleaned_data["primary"]
+            if not form.cleaned_data or form.cleaned_data["DELETE"]:
+                continue
+            name = form.cleaned_data["name"]
+            primary = form.cleaned_data["primary"]
 
-                    # Check that the same person has not been added more than once
-                    if name:
-                        if name in contacts:
-                            duplicates = True
-                        contacts.append(name)
-                    if duplicates:
-                        form.add_error(
-                            "name",
-                            ValidationError(
-                                _("This person is already assigned as a contact."),
-                                code="duplicate",
-                            ),
-                        )
-                    if primary:
-                        if primary_set:
-                            form.add_error(
-                                "primary",
-                                ValidationError(
-                                    _("You can only set one primary contact."),
-                                    code="duplicate",
-                                ),
-                            )
-                        primary_set = True
+            # Check that the same person has not been added more than once
+            if name:
+                if name in contacts:
+                    form.add_error(
+                        "name",
+                        ValidationError(
+                            _("This person is already assigned as a contact."),
+                            code="duplicate",
+                        ),
+                    )
+                contacts.add(name)
 
-                    # Raise an error if a name is provided without any required details
-                    if name and any(x is None for x in [job_title, email]):
-                        if not job_title:
-                            form.add_error(
-                                "job_title",
-                                ValidationError(
-                                    _("This person is missing a job title / role."),
-                                    code="incomplete",
-                                ),
-                            )
-                        if not email:
-                            form.add_error(
-                                "email",
-                                ValidationError(
-                                    _("This person is missing an email address."),
-                                    code="incomplete",
-                                ),
-                            )
-                    # Check that the email address is in a valid format
-                    if email:
-                        try:
-                            validate_email(email)
-                        except ValidationError:
-                            form.add_error(
-                                "email",
-                                ValidationError(
-                                    _("Enter a valid email address for this contact."),
-                                    code="invalid",
-                                ),
-                            )
+            if primary:
+                if primary_set:
+                    form.add_error(
+                        "primary",
+                        ValidationError(
+                            _("You can only set one primary contact."),
+                            code="duplicate",
+                        ),
+                    )
+                primary_set = True
 
 
 # Forms used with the inline formsets
@@ -499,6 +465,9 @@ class ProjectAssignmentForm(forms.ModelForm):
             "end_date": forms.DateInput(
                 format="%Y-%m-%d",
             ),
+        }
+        field_classes = {
+            "note": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -617,6 +586,9 @@ class ProjectObjectiveForm(forms.ModelForm):
                 format="%Y-%m-%d",
             ),
         }
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -722,6 +694,9 @@ class ProjectScopeForm(forms.ModelForm):
     class Meta:
         model = ProjectScope
         fields = ("name", "scope", "description", "disallowed", "requires_caution")
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -817,6 +792,9 @@ class ProjectTargetForm(forms.ModelForm):
             "hostname",
             "note",
         )
+        field_classes = {
+            "note": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -893,6 +871,9 @@ class WhiteCardForm(forms.ModelForm):
     class Meta:
         model = WhiteCard
         exclude = ("project",)
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -986,6 +967,9 @@ class ProjectContactForm(forms.ModelForm):
     class Meta:
         model = ProjectContact
         exclude = ("project",)
+        field_classes = {
+            "email": forms.EmailField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1140,7 +1124,7 @@ class ProjectForm(forms.ModelForm):
 
     class Meta:
         model = Project
-        exclude = ("operator", "complete")
+        exclude = ("operator", "complete", "extra_fields")
         widgets = {
             "start_date": forms.DateInput(
                 format="%Y-%m-%d",
@@ -1148,6 +1132,9 @@ class ProjectForm(forms.ModelForm):
             "end_date": forms.DateInput(
                 format="%Y-%m-%d",
             ),
+        }
+        field_classes = {
+            "note": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -1166,6 +1153,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -1203,8 +1191,8 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     Row(
-                        Column("start_time", css_class="form-group col-md-4 mb-0"),
-                        Column("end_time", css_class="form-group col-md-4 mb-0"),
+                        Column(Field("start_time", step=1), css_class="form-group col-md-4 mb-0"),
+                        Column(Field("end_time", step=1), css_class="form-group col-md-4 mb-0"),
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
@@ -1317,6 +1305,9 @@ class DeconflictionForm(forms.ModelForm):
             "created_at",
             "project",
         )
+        field_classes = {
+            "description": JinjaRichTextField,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1419,14 +1410,88 @@ class ProjectComponentForm(forms.ModelForm):
     with an individual :model:`rolodex.Client`.
     """
 
+    extra_fields = ExtraFieldsField(Project._meta.label)
+
     class Meta:
         model = Project
-        fields = ("id",)
+        fields = ("id", "extra_fields")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["extra_fields"].label = ""
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
+        tabs = [
+            CustomTab(
+                "Contacts",
+                Formset("contacts", object_context_name="Contact"),
+                Button(
+                    "add-contact",
+                    "Add Contact",
+                    css_class="btn-block btn-secondary formset-add-contact mb-2 offset-4 col-4",
+                ),
+                link_css_class="poc-icon",
+                css_id="contacts",
+            ),
+            CustomTab(
+                "White Cards",
+                Formset("whitecards", object_context_name="White Card"),
+                Button(
+                    "add-whitecard",
+                    "Add White Card",
+                    css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
+                ),
+                link_css_class="tab-icon whitecard-icon",
+                css_id="whitecards",
+            ),
+            CustomTab(
+                "Scope Lists",
+                Formset("scopes", object_context_name="Scope"),
+                Button(
+                    "add-scope",
+                    "Add Scope List",
+                    css_class="btn-block btn-secondary formset-add-scope mb-2 offset-4 col-4",
+                ),
+                link_css_class="tab-icon list-icon",
+                css_id="scopes",
+            ),
+            CustomTab(
+                "Objectives",
+                Formset("objectives", object_context_name="Objective"),
+                Button(
+                    "add-objective",
+                    "Add Objective",
+                    css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
+                ),
+                link_css_class="objective-icon",
+                css_id="objectives",
+            ),
+            CustomTab(
+                "Targets",
+                Formset("targets", object_context_name="Target"),
+                Button(
+                    "add-target",
+                    "Add Target",
+                    css_class="btn-block btn-secondary formset-add-target mb-2 offset-4 col-4",
+                ),
+                link_css_class="tab-icon list-icon",
+                css_id="targets",
+            ),
+        ]
+
+        if has_extra_fields:
+            tabs.append(
+                CustomTab(
+                    "Extra Fields",
+                    "extra_fields",
+                    link_css_class="tab-icon custom-field-icon",
+                    css_id="extra-fields",
+                )
+            )
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -1434,61 +1499,7 @@ class ProjectComponentForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.layout = Layout(
             TabHolder(
-                CustomTab(
-                    "Contacts",
-                    Formset("contacts", object_context_name="Contact"),
-                    Button(
-                        "add-contact",
-                        "Add Contact",
-                        css_class="btn-block btn-secondary formset-add-contact mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="poc-icon",
-                    css_id="contacts",
-                ),
-                CustomTab(
-                    "White Cards",
-                    Formset("whitecards", object_context_name="White Card"),
-                    Button(
-                        "add-whitecard",
-                        "Add White Card",
-                        css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon whitecard-icon",
-                    css_id="whitecards",
-                ),
-                CustomTab(
-                    "Scope Lists",
-                    Formset("scopes", object_context_name="Scope"),
-                    Button(
-                        "add-scope",
-                        "Add Scope List",
-                        css_class="btn-block btn-secondary formset-add-scope mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon list-icon",
-                    css_id="scopes",
-                ),
-                CustomTab(
-                    "Objectives",
-                    Formset("objectives", object_context_name="Objective"),
-                    Button(
-                        "add-objective",
-                        "Add Objective",
-                        css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="objective-icon",
-                    css_id="objectives",
-                ),
-                CustomTab(
-                    "Targets",
-                    Formset("targets", object_context_name="Target"),
-                    Button(
-                        "add-target",
-                        "Add Target",
-                        css_class="btn-block btn-secondary formset-add-target mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon list-icon",
-                    css_id="targets",
-                ),
+                *tabs,
                 template="tab.html",
                 css_class="nav-justified",
             ),

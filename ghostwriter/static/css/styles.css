@@ -68,14 +68,30 @@ hr {
   margin-top: 10px;
 }
 
+/* Images and code blocks will be 6.5" wide in a Word document, so width is 6.5" in these next two classes. */
 .text-evidence {
-  margin-left: 15%;
   text-align: left;
-  max-width: 70%;
+  max-width: 80%;
   word-wrap: break-word;
   line-height: 20px;
   font-family: 'Roboto Mono';
   font-weight: 300;
+  margin: auto;
+  overflow: auto;
+  border: 1pt solid var(--secondary-color);
+}
+
+.img-evidence {
+  height: auto;
+  width: 6.5in;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.evidence-caption {
+  color: var(--secondary-color);
+  text-align: center;
 }
 
 .hidden-element:before {
@@ -100,7 +116,7 @@ hr {
 ----------------------------------------------------- */
 
 .custom-file-label::after {
-  min-width:20%;
+  min-width: 20%;
   content: 'Browse';
   width: 10%;
 }
@@ -181,21 +197,28 @@ hr {
 }
 
 .tooltip-inner {
-    color: #fff;
-    background: var(--primary-color);
+  color: #fff;
+  background: var(--primary-color);
 }
 
-.bs-tooltip-auto[x-placement^=bottom] .arrow::before, .bs-tooltip-bottom .arrow::before {
-    border-bottom-color: var(--primary-color);
+.bs-tooltip-auto[x-placement^=bottom] .arrow::before,
+.bs-tooltip-bottom .arrow::before {
+  border-bottom-color: var(--primary-color);
 }
-.bs-tooltip-auto[x-placement^=top] .arrow::before, .bs-tooltip-top .arrow::before {
-    border-top-color: var(--primary-color);
+
+.bs-tooltip-auto[x-placement^=top] .arrow::before,
+.bs-tooltip-top .arrow::before {
+  border-top-color: var(--primary-color);
 }
-.bs-tooltip-auto[x-placement^=left] .arrow::before, .bs-tooltip-left .arrow::before {
-    border-left-color: var(--primary-color);
+
+.bs-tooltip-auto[x-placement^=left] .arrow::before,
+.bs-tooltip-left .arrow::before {
+  border-left-color: var(--primary-color);
 }
-.bs-tooltip-auto[x-placement^=right] .arrow::before, .bs-tooltip-right .arrow::before {
-    border-right-color: var(--primary-color);
+
+.bs-tooltip-auto[x-placement^=right] .arrow::before,
+.bs-tooltip-right .arrow::before {
+  border-right-color: var(--primary-color);
 }
 
 /* ---------------------------------------------------
@@ -240,7 +263,6 @@ hr {
 
 .center {
   text-align: center;
-  display: block;
   margin-left: auto;
   margin-right: auto;
   width: 50%;
@@ -263,6 +285,10 @@ hr {
   padding: 0.5em;
   margin: 0.5em;
   font-size: var(--main-font-size);
+}
+
+.tox-toolbar__group:last-child {
+  margin-left: auto !important;
 }
 
 /* ---------------------------------------------------
@@ -450,8 +476,8 @@ h6 {
 }
 
 .invalid-feedback {
-    display: block;
-  }
+  display: block;
+}
 
 /* ---------------------------------------------------
     FILE UPLOAD STYLES
@@ -927,6 +953,19 @@ p.severity-box.info {
   margin-bottom: 0;
 }
 
+.error {
+  color: var(--burned-color);
+}
+
+.error-div {
+  border: 1px solid black;
+  width: 50%;
+  margin: 0 auto;
+  border-radius: 5px;
+  background-color: #f1f1f1;
+  padding: .5em;
+}
+
 /* ---------------------------------------------------
     GENERAL BUTTON STYLES
 ----------------------------------------------------- */
@@ -947,7 +986,9 @@ p.severity-box.info {
   transition-duration: 0.4s;
 }
 
-.btn:focus{ box-shadow: 0 0 0 0.1rem var(--primary-color) }
+.btn:focus {
+  box-shadow: 0 0 0 0.1rem var(--primary-color)
+}
 
 .button:hover {
   background-color: var(--button-hover-color);
@@ -1224,7 +1265,7 @@ table.scroll tr {
 
 table.scroll tbody {
   display: block;
-  height: 80.5vh;
+  max-height: 80.5vh;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -1305,11 +1346,13 @@ a.fc-event {
   background: var(--secondary-color);
 }
 
-a.fc-event:active {
+a.fc-event:active {}
 
-}
-
-a.fc-event:hover, a.fc-event:active, a.fc-event:hover, a.fc-event:focus, a.fc-event:focus:after {
+a.fc-event:hover,
+a.fc-event:active,
+a.fc-event:hover,
+a.fc-event:focus,
+a.fc-event:focus:after {
   font-size: .85em;
   background: var(--primary-color);
 }
@@ -1344,6 +1387,17 @@ fc-hover {
   vertical-align: middle;
   font-weight: 600;
   content: '\f70c';
+}
+
+.calendar-report-icon .fc-event-title:before,
+.calendar-report-icon .fc-list-event-title:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 5px;
+  padding-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f5ad';
 }
 
 .calendar-exec-complete .fc-event-title,
@@ -1728,6 +1782,14 @@ th.icon {
   padding: 0;
 }
 
+.custom-field-icon:before {
+  content: '\f0d0';
+}
+
+.clean-icon:before {
+  content: '\e06e';
+}
+
 .2fa-icon:before {
   content: '\f577';
 }
@@ -1741,7 +1803,7 @@ th.icon {
 }
 
 .report-icon:before {
-  content:'\f570';
+  content: '\f570';
 }
 
 .tag-icon:before {
@@ -1982,6 +2044,10 @@ th.icon {
 }
 
 .edit-icon:before {
+  content: '\f044';
+}
+
+.edit-icon-right:after {
   content: '\f044';
 }
 
@@ -3424,7 +3490,7 @@ input:checked+.slider:before {
   padding-right: .2em;
 }
 
-.ui-menu-item > a.ui-corner-all {
+.ui-menu-item>a.ui-corner-all {
   display: block;
   padding: 3px 15px;
   clear: both;
@@ -3435,7 +3501,8 @@ input:checked+.slider:before {
   text-decoration: none;
 }
 
-.ui-state-hover, .ui-state-active {
+.ui-state-hover,
+.ui-state-active {
   color: #ffffff;
   text-decoration: none;
   background-color: var(--primary-color);
@@ -3464,4 +3531,3 @@ input[type="color"]:focus,
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(126, 239, 104, 0.6);
   outline: 0 none;
 }
-

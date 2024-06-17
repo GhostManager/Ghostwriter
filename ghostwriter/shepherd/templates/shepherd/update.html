@@ -37,9 +37,9 @@
             {% if dns_last_update_completed == 'Failed' %}
                 <p>Request Status: <span class="badge badge-pill badge-danger">{{ dns_last_update_completed }}</span></p>
                 {% if dns_last_result %}
-                    <div style="border: 1px solid black; width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
+                    <div class="mb-3 error-div">
                         <strong>Error: </strong>
-                        <em style="color: red">
+                        <em class="error">
                             {{ dns_last_result }}
                         </em>
                     </div>
@@ -72,11 +72,11 @@
             {% if namecheap_last_update_completed %}
                 {% if namecheap_last_update_completed == 'Failed' %}
                     <p>Request Status: <span class="badge badge-pill badge-danger">{{ namecheap_last_update_completed }}</span></p>
-                    {% if cat_last_result %}
-                        <div style="border: 1px solid black;width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
+                    {% if namecheap_last_result %}
+                        <div class="mb-3 error-div">
                             <strong>Error: </strong>
-                            <em style="color: red">
-                                {{ namecheap_last_result }}
+                            <em class="error">
+                                {{ namecheap_last_result.errors }}
                             </em>
                         </div>
                     {% endif %}
@@ -110,9 +110,9 @@
                 {% if cat_last_update_completed == 'Failed' %}
                     <p>Request Status: <span class="badge badge-pill badge-danger">{{ cat_last_update_completed }}</span></p>
                     {% if cat_last_result %}
-                        <div style="border: 1px solid black;width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
+                        <div class="mb-3 error-div">
                             <strong>Error: </strong>
-                            <em style="color: red">
+                            <em class="error">
                                 {{ cat_last_result }}
                             </em>
                         </div>
@@ -150,9 +150,9 @@
                 {% if cloud_last_update_completed == 'Failed' %}
                     <p>Request Status: <span class="badge badge-pill badge-danger">{{ dns_last_update_completed }}</span></p>
                     {% if cloud_last_result %}
-                        <div style="border: 1px solid black; width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
+                        <div class="mb-3 error-div">
                             <strong>Error: </strong>
-                            <em style="color: red">
+                            <em class="error">
                                 {{ cloud_last_result }}
                             </em>
                         </div>

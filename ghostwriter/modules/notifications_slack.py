@@ -3,15 +3,16 @@ import json
 import logging
 from typing import Union
 
-# 3rd Party Libraries
-import requests
-
 # Django Imports
 from django.urls import reverse
+
+# 3rd Party Libraries
+import requests
 from django_q.models import Task
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import SlackConfiguration
+from ghostwriter.commandcenter.models import GeneralConfiguration, SlackConfiguration
+from ghostwriter.oplog.models import Oplog
 
 # Using __name__ resolves to ghostwriter.shepherd.tasks
 logger = logging.getLogger(__name__)
@@ -28,6 +29,9 @@ class SlackNotification:
         self.slack_emoji = slack_config.slack_emoji
         self.slack_channel = slack_config.slack_channel
         self.slack_alert_target = slack_config.slack_alert_target
+
+        general_config = GeneralConfiguration.get_solo()
+        self.hostname = general_config.hostname
 
     def send_msg(self, message: str, channel: str = None, blocks: list = None) -> dict:
         """
@@ -138,6 +142,7 @@ class SlackNotification:
         vps_name: str,
         ip_address: Union[str, list],
         tags: str,
+        state: str,
     ) -> list:
         """
         Create the blocks for a nicely formatted Slack message for cloud asset notifications.
@@ -158,6 +163,8 @@ class SlackNotification:
             IP address of the cloud asset
         ``tags``
             Any tags associated with the cloud asset
+        ``state``
+            State of the cloud asset (e.g., "running", "stopped")
         """
         if ip_address:
             if isinstance(ip_address, list):
@@ -189,6 +196,10 @@ class SlackNotification:
                     },
                     {
                         "type": "mrkdwn",
+                        "text": f"*Instance State:*\n{state.title()}",
+                    },
+                    {
+                        "type": "mrkdwn",
                         "text": f"*Ext IP Address:*\n{ip_address}",
                     },
                     {
@@ -212,6 +223,7 @@ class SlackNotification:
         vps_name: str,
         ip_address: Union[str, list],
         tags: str,
+        state: str,
     ) -> list:
         """
         Create the blocks for a nicely formatted Slack message for unknown cloud asset notifications.
@@ -229,6 +241,8 @@ class SlackNotification:
             IP address of the cloud asset
         ``tags``
             Any tags associated with the cloud asset
+        ``state``
+            State of the cloud asset (e.g., "running", "stopped")
         """
         if ip_address:
             if isinstance(ip_address, list):
@@ -264,6 +278,10 @@ class SlackNotification:
                     {
                         "type": "mrkdwn",
                         "text": f"*Instance Name:*\n{vps_name}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Instance State:*\n{state.title()}",
                     },
                     {
                         "type": "mrkdwn",
@@ -382,20 +400,18 @@ class SlackNotification:
         ]
         return blocks
 
-    def craft_inactive_log_msg(
-        self, oplog: str, project: str, hours_inactive: int, last_entry_date: str = None
-    ) -> list:
+    def craft_inactive_log_msg(self, oplog: Oplog, hours_inactive: int, last_entry_date: str = None) -> list:
         """
         Create the blocks for a nicely formatted Slack message for inactive oplog notifications.
 
         **Parameters**
 
         ``oplog``
-            Name of the oplog
-        ``project``
-            Name of the project associated with the oplog
+            Instance of :model:`ghostwriter.oplog.models.Oplog`
+        ``hours_inactive``
+            Number of hours the log has been inactive
         ``last_entry_date``
-            Date of the last entry in the oplog
+            Date of the last entry in the log
         """
         if last_entry_date:
             last_entry_date = f"Last entry was submitted on {last_entry_date} UTC."
@@ -414,11 +430,11 @@ class SlackNotification:
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Oplog:*\n{oplog}",
+                        "text": f"*Oplog:*\n{oplog.name} (ID {oplog.id})",
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Project:*\n{project}",
+                        "text": f"*Project:*\n{oplog.project}",
                     },
                 ],
             },
@@ -434,6 +450,17 @@ class SlackNotification:
                 "text": {
                     "type": "mrkdwn",
                     "text": f"{last_entry_date}",
+                },
+            },
+            {
+                "type": "section",
+                "text": {"type": "plain_text", "text": " "},
+                "accessory": {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "View Log", "emoji": True},
+                    "value": "view_inactive_log",
+                    "url": f"https://{self.hostname}{oplog.get_absolute_url()}",
+                    "action_id": "button-action",
                 },
             },
         ]
@@ -453,11 +480,13 @@ def send_slack_complete_msg(task: Task) -> None:
     logger.info("Sending Slack message for completed task %s", task.id)
 
     slack = SlackNotification()
+    general_config = GeneralConfiguration.get_solo()
+    hostname = general_config.hostname
 
     if task.success:
-        task_url = reverse("admin:django_q_success_change", args=(task.id,))
+        task_url = f"https://{hostname}{reverse('admin:django_q_success_change', args=(task.id,))}"
     else:
-        task_url = reverse("admin:django_q_failure_change", args=(task.id,))
+        task_url = f"https://{hostname}{reverse('admin:django_q_failure_change', args=(task.id,))}"
 
     # Blocks for Slack messages – combine lists to assemble the message
     base_blocks = [
@@ -477,7 +506,7 @@ def send_slack_complete_msg(task: Task) -> None:
     failure_blocks = [
         {
             "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*{task.group}* task failed :frowning:"},
+            "text": {"type": "mrkdwn", "text": f"*{task.group}* task failed or logged errors :frowning:"},
         },
     ]
 
@@ -486,14 +515,18 @@ def send_slack_complete_msg(task: Task) -> None:
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Details and task output can be viewed in the admin panel under:\n _{task_url}_",
+                "text": f"Details and task output can be viewed in the admin panel under:\n {task_url}",
             },
         },
     ]
 
     try:
         # Assemble blocks based on task results and send the message
-        if task.success:
+        errors = False
+        if "errors" in task.result:
+            if task.result["errors"]:
+                errors = True
+        if task.success and not errors:
             err = slack.send_msg(
                 "Task successful",
                 blocks=base_blocks + success_blocks + result_blocks,

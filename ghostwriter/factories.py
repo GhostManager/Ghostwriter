@@ -17,6 +17,13 @@ fake = PyFaker()
 # ``TimezoneFields`` use the "common" timezones, which excludes a few timezones like "Asia\Saigon"
 # Factories select a choice from this list instead of using ``random.choice(TIMEZONES)``
 TIMEZONES = pytz.common_timezones
+EXTRA_FIELD_TYPES = [
+    "checkbox",
+    "single_line_text",
+    "rich_text",
+    "integer",
+    "float",
+]
 
 # Manually remove timezones not present in PostgreSQL 11.12's `pg_timezone_names` table
 TIMEZONES.remove("Pacific/Kanton")
@@ -44,6 +51,9 @@ class UserFactory(factory.django.DjangoModelFactory):
     enable_finding_create = False
     enable_finding_edit = False
     enable_finding_delete = False
+    enable_observation_create = False
+    enable_observation_edit = False
+    enable_observation_delete = False
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):
@@ -53,6 +63,18 @@ class UserFactory(factory.django.DjangoModelFactory):
         if extracted:
             for group in extracted:
                 self.groups.add(group)
+
+
+class MgrFactory(UserFactory):
+    role = "manager"
+    is_staff = True
+    is_superuser = False
+
+
+class AdminFactory(UserFactory):
+    role = "admin"
+    is_staff = True
+    is_superuser = True
 
 
 class GroupFactory(factory.django.DjangoModelFactory):
@@ -281,10 +303,27 @@ class FindingFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+class ObservationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "reporting.Observation"
+
+    title = factory.Sequence(lambda n: "Observation %s" % n)
+    description = Faker("paragraph")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
+
 class DocTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.DocType"
-        django_get_or_create = ("doc_type",)
+        django_get_or_create = ("doc_type", "extension", "name")
 
 
 class ReportTemplateFactory(factory.django.DjangoModelFactory):
@@ -298,8 +337,18 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
-    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx")
+    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
+
+    class Params:
+        docx = factory.Trait(
+            document=factory.django.FileField(from_path="DOCS/sample_reports/template.docx"),
+            doc_type=factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx"),
+        )
+        pptx = factory.Trait(
+            document=factory.django.FileField(from_path="DOCS/sample_reports/template.pptx"),
+            doc_type=factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx"),
+        )
 
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
@@ -322,7 +371,7 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
-    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx")
+    doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 
 
@@ -337,7 +386,7 @@ class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
-    doc_type = factory.SubFactory(DocTypeFactory, doc_type="pptx")
+    doc_type = factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx")
     uploaded_by = factory.SubFactory(UserFactory)
 
 
@@ -397,6 +446,25 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+class ReportObservationLinkFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "reporting.ReportObservationLink"
+
+    title = factory.Sequence(lambda n: "Local Observation %s" % n)
+    position = 1
+    description = Faker("paragraph")
+    added_as_blank = Faker("boolean")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
+
 class BlankReportFindingLinkFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportFindingLink"
@@ -410,7 +478,7 @@ class BlankReportFindingLinkFactory(factory.django.DjangoModelFactory):
     report = factory.SubFactory(ReportFactory)
 
 
-class EvidenceFactory(factory.django.DjangoModelFactory):
+class BaseEvidenceFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.Evidence"
 
@@ -418,7 +486,6 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
     friendly_name = factory.Sequence(lambda n: "Evidence %s" % n)
     caption = Faker("sentence")
     description = Faker("sentence")
-    finding = factory.SubFactory(ReportFindingLinkFactory)
     uploaded_by = factory.SubFactory(UserFactory)
 
     class Params:
@@ -434,6 +501,14 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
         if extracted:
             for tag in extracted:
                 self.tags.add(tag)
+
+
+class EvidenceOnFindingFactory(BaseEvidenceFactory):
+    finding = factory.SubFactory(ReportFindingLinkFactory)
+
+
+class EvidenceOnReportFactory(BaseEvidenceFactory):
+    report = factory.SubFactory(ReportFactory)
 
 
 class ArchiveFactory(factory.django.DjangoModelFactory):
@@ -731,7 +806,9 @@ class NamecheapConfigurationFactory(factory.django.DjangoModelFactory):
 class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.ReportConfiguration"
+        django_get_or_create = ["pk"]
 
+    pk = 1
     enable_borders = Faker("boolean")
     border_weight = 2700
     border_color = "2D2B6B"
@@ -739,7 +816,11 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     label_figure = Faker("word")
     prefix_table = Faker("word")
     label_table = Faker("word")
-    report_filename = "{Y-m-d}_{His} {company} - {client} {assessment_type} Report"
+    report_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
+    project_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
+    title_case_captions = Faker("boolean")
+    title_case_exceptions = str(Faker("csv"))[:255]
+    target_delivery_date = Faker("pyint")
     default_docx_template = factory.SubFactory(ReportDocxTemplateFactory)
     default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
 
@@ -822,6 +903,33 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
     title = Faker("user_name")
     description = Faker("paragraph")
     project = factory.SubFactory(ProjectFactory)
+
+
+class ExtraFieldModelFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.ExtraFieldModel"
+
+    @factory.lazy_attribute
+    def model_internal_name(self):
+        raise ValueError("Value for `model_internal_name` is required")
+
+    @factory.lazy_attribute
+    def model_display_name(self):
+        raise ValueError("Value for `model_display_name` is required")
+
+
+class ExtraFieldSpecFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.ExtraFieldSpec"
+
+    internal_name = Faker("username")
+    display_name = Faker("word")
+    type = random.choice(EXTRA_FIELD_TYPES)
+    user_default_value = Faker("sentence")
+
+    @factory.lazy_attribute
+    def target_model(self):
+        raise ValueError("Value for `target_model` (instance of `ExtraFieldModelFactory`) is required")
 
 
 def GenerateMockProject(

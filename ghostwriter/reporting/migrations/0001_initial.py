@@ -369,7 +369,7 @@ class Migration(migrations.Migration):
                 (
                     "document",
                     models.FileField(
-                        blank=True, upload_to=ghostwriter.reporting.models.Evidence.set_upload_destination
+                        blank=True, upload_to=ghostwriter.reporting.models.set_evidence_upload_destination
                     ),
                 ),
                 (

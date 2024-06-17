@@ -7,6 +7,8 @@ configuration:
       custom_name: autoRenew
     domain_status_id:
       custom_name: domainStatusId
+    extra_fields:
+      custom_name: extraFields
     health_status_id:
       custom_name: healthStatusId
     last_health_check:
@@ -22,6 +24,7 @@ configuration:
   custom_column_names:
     auto_renew: autoRenew
     domain_status_id: domainStatusId
+    extra_fields: extraFields
     health_status_id: healthStatusId
     last_health_check: lastHealthCheck
     last_used_by_id: lastUsedById
@@ -70,6 +73,7 @@ insert_permissions:
         - domain_status_id
         - expiration
         - expired
+        - extra_fields
         - health_status_id
         - name
         - note
@@ -89,6 +93,7 @@ insert_permissions:
         - domain_status_id
         - expiration
         - expired
+        - extra_fields
         - health_status_id
         - last_health_check
         - name
@@ -101,24 +106,25 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - auto_renew
+        - burned_explanation
+        - categorization
+        - creation
+        - dns
         - domain_status_id
+        - expiration
+        - expired
+        - extra_fields
         - health_status_id
         - id
-        - last_used_by_id
-        - whois_status_id
-        - auto_renew
-        - expired
-        - reset_dns
-        - name
-        - registrar
-        - vt_permalink
-        - creation
-        - expiration
         - last_health_check
-        - categorization
-        - dns
-        - burned_explanation
+        - last_used_by_id
+        - name
         - note
+        - registrar
+        - reset_dns
+        - vt_permalink
+        - whois_status_id
       filter: {}
   - role: user
     permission:
@@ -136,6 +142,7 @@ update_permissions:
         - domain_status_id
         - expiration
         - expired
+        - extra_fields
         - health_status_id
         - name
         - note
@@ -156,6 +163,7 @@ update_permissions:
         - domain_status_id
         - expiration
         - expired
+        - extra_fields
         - health_status_id
         - name
         - note

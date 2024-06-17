@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags custom_tags %}
+{% load bleach_tags custom_tags extra_fields %}
 
 {% block pagetitle %}{{ primary_address }}{% endblock %}
 
@@ -202,6 +202,16 @@
         {% endif %}
       </div>
 
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if server_extra_fields_spec %}
+        <div id="extra_fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          {% include "user_extra_fields/field_preview_display.html" with object=staticserver object_extra_fields_spec=server_extra_fields_spec %}
+        </div>
+      {% endif %}
+
       <!-- Notes Tab -->
       <div id="notes" class="tab-pane">
         <h4>Server Notes</h4>
@@ -228,7 +238,7 @@
               </div>
             </div>
 
-            {% if request.user == note.operator or request.user.is_staff %}
+            {% if request.user == note.operator or request.user|is_privileged %}
               <div class="pb-3">
                 <a class="note-link" href="{% url 'shepherd:server_note_edit' note.id %}">Edit</a> |
                 <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
@@ -284,4 +294,11 @@
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+
+  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% if server_extra_fields_spec %}
+    {% for field_spec in server_extra_fields_spec %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=staticserver.extra_fields field_spec=field_spec %}
+    {% endfor %}
+  {% endif %}
 {% endblock %}

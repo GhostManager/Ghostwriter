@@ -15,3 +15,27 @@ Various enhancements and bug fixes:
 
 Support for alternate default paragraph styles:
     @federicodotta
+
+Support for custom fields, refactored report writer, and more:
+    Alex Parrill (@ColonelThirtyTwo)
+
+Support for HTML tables:
+    @domwhewell
+
+Valuable feedback and testing:
+    Tilman Bender (@er4z0r)
+
+Valuable feedback and testing:
+    Ellen Shaaltiel (@KomodoGal)
+
+Initial support for the CVSS v3 calculator:
+    @therealtoastycat
+
+Contributed adjusted to Docker Compose:
+    @mattreduce
+
+Support for pasting evidence from the clipboard:
+    @brandonscholet
+
+Reported issues and feedback:
+    @dbuentello

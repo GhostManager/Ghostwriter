@@ -35,12 +35,6 @@ type Mutation {
 }
 
 type Mutation {
-  deleteEvidence(
-    evidenceId: Int!
-  ): deleteResponse
-}
-
-type Mutation {
   deleteServerCheckout(
     checkoutId: Int!
   ): checkoutResponse
@@ -60,6 +54,12 @@ type Mutation {
   generateReport(
     id: Int!
   ): ReportResponse
+}
+
+type Query {
+  getExtraFieldSpec(
+    model: String!
+  ): ExtraFieldSpecOutput
 }
 
 type Mutation {
@@ -105,5 +105,9 @@ type attachFindingResponse {
 
 type codenameResponse {
   codename: String!
+}
+
+type ExtraFieldSpecOutput {
+  extraFieldSpec: String!
 }
 

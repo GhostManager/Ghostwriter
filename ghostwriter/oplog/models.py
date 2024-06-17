@@ -5,9 +5,10 @@ import logging
 from datetime import datetime
 
 # Django Imports
+from django import forms
 from django.core.exceptions import ValidationError
 from django.db import models
-from django import forms
+from django.urls import reverse
 
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
@@ -46,14 +47,16 @@ class Oplog(models.Model):
     def __str__(self):
         return f"{self.name} : {self.project}"
 
+    def get_absolute_url(self):
+        return reverse("oplog:oplog_entries", args=[str(self.id)])
 
-# Create your models here.
+
 class OplogEntry(models.Model):
     """Stores an individual log entry, related to :model:`oplog.Oplog`."""
 
     entry_identifier = models.CharField(
         "Identifier",
-        null=True,
+        default="",
         blank=True,
         help_text="Integrations may use this to track log entries.",
         max_length=65535,
@@ -96,25 +99,25 @@ class OplogEntry(models.Model):
     )
     command = models.TextField(
         "Command",
-        null=True,
+        default="",
         blank=True,
         help_text="Provide the command you executed.",
     )
     description = models.TextField(
         "Description",
-        null=True,
+        default="",
         blank=True,
         help_text="A description of why you executed the command.",
     )
     output = models.TextField(
         "Output",
-        null=True,
+        default="",
         blank=True,
         help_text="The output of the executed command.",
     )
     comments = models.TextField(
         "Comments",
-        null=True,
+        default="",
         blank=True,
         help_text="Any additional comments or useful information.",
     )
@@ -125,6 +128,8 @@ class OplogEntry(models.Model):
         help_text="The operator that performed the action.",
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
+
     # Foreign Keys
     oplog_id = models.ForeignKey(
         "Oplog",

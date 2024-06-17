@@ -1,0 +1,10 @@
+
+{% for entry in widget.subwidgets %}
+    <label>{{entry.label}}</label>
+    {% with widget=entry.widget %}
+        {% include widget.template_name %}
+    {% endwith %}
+    {% if entry.description %}
+        <small class="form-text text-muted">{{entry.description}}</small>
+    {% endif %}
+{% endfor %}

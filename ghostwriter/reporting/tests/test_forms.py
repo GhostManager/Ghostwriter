@@ -6,14 +6,17 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
+    EvidenceOnReportFactory,
     FindingFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
+    ObservationFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
     ReportFindingLinkFactory,
+    ReportObservationLinkFactory,
     ReportTemplateFactory,
     SeverityFactory,
     UserFactory,
@@ -24,8 +27,10 @@ from ghostwriter.reporting.forms import (
     FindingForm,
     FindingNoteForm,
     LocalFindingNoteForm,
+    ObservationForm,
     ReportFindingLinkUpdateForm,
     ReportForm,
+    ReportObservationLinkUpdateForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
     SeverityForm,
@@ -89,6 +94,25 @@ class FindingFormTests(TestCase):
 
     def test_duplicate_title(self):
         form = self.form_data(**self.finding.__dict__)
+        errors = form["title"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "unique")
+
+
+class ObservationFormTest(TestCase):
+    """Collection of tests for :form:`reporting.ObservationForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.observation = ObservationFactory()
+
+    def test_valid_data(self):
+        self.observation.title = "New Title"
+        form = ObservationForm(data=self.observation.__dict__)
+        self.assertTrue(form.is_valid())
+
+    def test_duplicate_title(self):
+        form = ObservationForm(data=self.observation.__dict__)
         errors = form["title"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "unique")
@@ -196,6 +220,7 @@ class ReportFindingLinkUpdateFormTests(TestCase):
         network_detection_techniques=None,
         references=None,
         finding_guidance=None,
+        complete=None,
         **kwargs,
     ):
         return ReportFindingLinkUpdateForm(
@@ -215,6 +240,7 @@ class ReportFindingLinkUpdateFormTests(TestCase):
                 "network_detection_techniques": network_detection_techniques,
                 "references": references,
                 "finding_guidance": finding_guidance,
+                "complete": complete,
             },
             instance=instance,
         )
@@ -241,15 +267,69 @@ class ReportFindingLinkUpdateFormTests(TestCase):
         self.assertTrue(self.complete_finding.complete)
 
 
-class EvidenceFormTests(TestCase):
-    """Collection of tests for :form:`reporting.EvidenceForm`."""
+class ReportObservationLinkUpdateFormTests(TestCase):
+    """Collection of tests for :form:`reporting.ReportObservationLinkForm`."""
 
     @classmethod
     def setUpTestData(cls):
-        cls.Evidence = EvidenceFactory._meta.model
-        cls.evidence = EvidenceFactory()
+        cls.observation = ReportObservationLinkFactory()
+        cls.blank_observation = ReportObservationLinkFactory(added_as_blank=True)
+
+    def test_valid_data(self):
+        data = self.observation.__dict__.copy()
+        data["instance"] = self.observation
+        form = ReportObservationLinkUpdateForm(data=data)
+        self.assertTrue(form.is_valid())
+
+    def test_blank_assigned_to(self):
+        self.observation.assigned_to = None
+
+        data = self.observation.__dict__.copy()
+        data["instance"] = self.observation
+        form = ReportObservationLinkUpdateForm(data)
+        self.assertTrue(form.is_valid())
+
+    def test_added_as_blank_field(self):
+        data = self.observation.__dict__.copy()
+        data["instance"] = self.blank_observation
+        form = ReportObservationLinkUpdateForm(data=data)
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.assertTrue(self.blank_observation.added_as_blank)
+
+
+class BaseEvidenceFormTests:
+    """Collection of tests for :form:`reporting.EvidenceForm`."""
+
+    @classmethod
+    def factory(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    def querySet(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.Factory = cls.factory()
+        cls.Evidence = cls.Factory._meta.model
+        cls.evidence = cls.Factory()
         cls.evidence_dict = cls.evidence.__dict__
-        cls.evidence_queryset = cls.Evidence.objects.filter(finding=cls.evidence.finding)
+        cls.evidence_queryset = cls.querySet(cls.evidence)
+
+        cls.other_finding = ReportFindingLinkFactory()
+        cls.other_finding.report = cls.evidence.associated_report
+        cls.other_finding.save()
+
+        cls.other_finding_evidence = EvidenceOnFindingFactory()
+        cls.other_finding_evidence.friendly_name = "EvidenceOnFinding"
+        cls.other_finding_evidence.finding = cls.other_finding
+        cls.other_finding_evidence.save()
+
+        cls.other_report_finding = EvidenceOnReportFactory()
+        cls.other_report_finding.friendly_name = "EvidenceOnReport"
+        cls.other_report_finding.report = cls.evidence.associated_report
+        cls.other_report_finding.save()
 
     def setUp(self):
         pass
@@ -260,8 +340,6 @@ class EvidenceFormTests(TestCase):
         friendly_name=None,
         caption=None,
         description=None,
-        finding_id=None,
-        uploaded_by_id=None,
         evidence_queryset=None,
         modal=False,
         **kwargs,
@@ -274,8 +352,6 @@ class EvidenceFormTests(TestCase):
                 "friendly_name": friendly_name,
                 "caption": caption,
                 "description": description,
-                "finding": finding_id,
-                "uploaded_by": uploaded_by_id,
             },
             files={
                 "document": document,
@@ -303,8 +379,25 @@ class EvidenceFormTests(TestCase):
 
     def test_duplicate_friendly_name(self):
         new_evidence = self.evidence_dict.copy()
-        new_evidence["finding"] = self.evidence.finding
         new_evidence["friendly_name"] = self.evidence.friendly_name
+
+        form = self.form_data(**new_evidence)
+        errors = form["friendly_name"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
+
+    def test_duplicate_friendly_name_on_diff_finding(self):
+        new_evidence = self.evidence_dict.copy()
+        new_evidence["friendly_name"] = "EvidenceOnFinding"
+
+        form = self.form_data(**new_evidence)
+        errors = form["friendly_name"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
+
+    def test_duplicate_friendly_name_on_report(self):
+        new_evidence = self.evidence_dict.copy()
+        new_evidence["friendly_name"] = "EvidenceOnReport"
 
         form = self.form_data(**new_evidence)
         errors = form["friendly_name"].errors.as_data()
@@ -324,6 +417,26 @@ class EvidenceFormTests(TestCase):
 
         form = self.form_data(**evidence, evidence_queryset=None)
         self.assertTrue(form.is_valid())
+
+
+class EvidenceFormForFindingTests(BaseEvidenceFormTests, TestCase):
+    @classmethod
+    def factory(cls):
+        return EvidenceOnFindingFactory
+
+    @classmethod
+    def querySet(cls, evidence):
+        return evidence.finding.report.all_evidences()
+
+
+class EvidenceFormForReportTests(BaseEvidenceFormTests, TestCase):
+    @classmethod
+    def factory(cls):
+        return EvidenceOnReportFactory
+
+    @classmethod
+    def querySet(cls, evidence):
+        return evidence.report.all_evidences()
 
 
 class FindingNoteFormTests(TestCase):

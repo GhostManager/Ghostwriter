@@ -6,7 +6,7 @@
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_planning" class="nav-link poc-icon planning-icon" data-toggle="tab" href="#people">
+    <a id="id_people" class="nav-link poc-icon" data-toggle="tab" href="#people">
         People
     </a>
 </li>
@@ -36,11 +36,6 @@
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_documents" class="nav-link tab-icon folder-icon" data-toggle="tab" href="#documents">
-        Reports
-    </a>
-</li>
-<li class="nav-item">
     <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
         Infrastructure
     </a>
@@ -50,6 +45,18 @@
         Deconflictions <span class="badge badge-pill badge-light">{{ project.deconfliction_set.all.count }}</span>
     </a>
 </li>
+<li class="nav-item">
+    <a id="id_documents" class="nav-link tab-icon folder-icon" data-toggle="tab" href="#documents">
+        Reporting
+    </a>
+</li>
+{% if project_extra_fields_spec %}
+    <li class="nav-item">
+        <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-toggle="tab" href="#extra_fields">
+            Extra Fields
+        </a>
+    </li>
+{% endif %}
 <li class="nav-item">
     <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
         Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>

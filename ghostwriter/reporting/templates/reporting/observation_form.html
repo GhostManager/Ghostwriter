@@ -1,0 +1,34 @@
+{% extends "base_generic.html" %}
+
+{% load crispy_forms_tags custom_tags %}
+
+{% block pagetitle %}Observation Form{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:observations' %}">Observations</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Observation Form</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
+
+    <!-- Form Section -->
+    {% crispy form form.helper %}
+{% endblock %}

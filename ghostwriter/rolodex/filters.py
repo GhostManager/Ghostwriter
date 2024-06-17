@@ -26,12 +26,24 @@ class ClientFilter(django_filters.FilterSet):
         Case insensitive search of the model's ``name`` field
     ``codename``
         Case insensitive search of the model's ``codename`` field
+    ``tags``
+        Search of the `tags` field
     """
 
     name = django_filters.CharFilter(
         method="search_all_names",
         label="Client Name Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Name, Short Name, or Code Name", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "Partial Name, Short Name, or Codename", "autocomplete": "off"}),
+    )
+    tags = django_filters.CharFilter(
+        method="search_tags",
+        label="Client Tags Contain",
+        widget=TextInput(
+            attrs={
+                "placeholder": "Client Tag",
+                "autocomplete": "off",
+            }
+        ),
     )
 
     class Meta:
@@ -48,7 +60,11 @@ class ClientFilter(django_filters.FilterSet):
                 Row(
                     Column(
                         PrependedText("name", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-12 mb-0",
+                        css_class="form-group col-md-6 mb-0",
+                    ),
+                    Column(
+                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                        css_class="form-group col-md-6 mb-0",
                     ),
                     css_class="form-row",
                 ),
@@ -76,6 +92,10 @@ class ClientFilter(django_filters.FilterSet):
         """
         return queryset.filter(Q(name__icontains=value) | Q(short_name__icontains=value) | Q(codename__icontains=value))
 
+    def search_tags(self, queryset, name, value):
+        """Filter clients by tags."""
+        return queryset.filter(tags__name__in=[value]).distinct()
+
 
 class ProjectFilter(django_filters.FilterSet):
     """
@@ -95,6 +115,8 @@ class ProjectFilter(django_filters.FilterSet):
         Case insensitive search of the model's ``codename`` field
     ``client``
         Case insensitive search of the model's ``client`` field
+    ``tags``
+        Search of the `tags` field
     """
 
     client = django_filters.CharFilter(
@@ -113,6 +135,16 @@ class ProjectFilter(django_filters.FilterSet):
         widget=TextInput(
             attrs={
                 "placeholder": "Partial Project Codename",
+                "autocomplete": "off",
+            }
+        ),
+    )
+    tags = django_filters.CharFilter(
+        method="search_tags",
+        label="Project Tags Contain",
+        widget=TextInput(
+            attrs={
+                "placeholder": "Project Tag",
                 "autocomplete": "off",
             }
         ),
@@ -179,12 +211,34 @@ class ProjectFilter(django_filters.FilterSet):
                     ),
                 ),
                 Row(
-                    Column("project_type", css_class="form-group col-md-6 mb-0"),
-                    Column("complete", css_class="form-group col-md-6 mb-0"),
+                    Column(
+                        PrependedText(
+                            "project_type",
+                            '<i class="fas fa-filter"></i>',
+                        ),
+                        css_class="form-group col-md-4 mb-0",
+                    ),
+                    Column(
+                        PrependedText(
+                            "complete",
+                            '<i class="fas fa-toggle-on"></i>',
+                        ),
+                        css_class="form-group col-md-4 mb-0",
+                    ),
+                    Column(
+                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                        css_class="form-group col-md-4 mb-0",
+                    ),
                     css_class="form-row",
                 ),
                 Row(
-                    Column("start_date_range", css_class="form-group col-md-4 mb-0"),
+                    Column(
+                        PrependedText(
+                            "start_date_range",
+                            '<i class="far fa-calendar"></i>',
+                        ),
+                        css_class="form-group col-md-4 mb-0",
+                    ),
                     Column(
                         PrependedText("start_date", '<i class="fas fa-hourglass-start"></i>'),
                         css_class="form-group col-md-4 mb-0",
@@ -227,3 +281,7 @@ class ProjectFilter(django_filters.FilterSet):
             | Q(client__short_name__icontains=value)
             | Q(client__codename__icontains=value)
         )
+
+    def search_tags(self, queryset, name, value):
+        """Filter projects by tags."""
+        return queryset.filter(tags__name__in=[value]).distinct()
