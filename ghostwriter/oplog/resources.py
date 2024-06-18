@@ -5,6 +5,7 @@ from datetime import datetime
 
 # Django Imports
 from django.conf import settings
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 # 3rd Party Libraries
@@ -15,6 +16,15 @@ from taggit.models import Tag
 # Ghostwriter Libraries
 from ghostwriter.modules.shared import TagFieldImport, TagWidget, taggit_before_import_row
 from ghostwriter.oplog.models import OplogEntry
+
+
+def check_timestamps(datetime_val: str):
+    """Check the timestamps in the imported data. If they are not timezone-aware, make them so."""
+    tz = timezone.get_current_timezone()
+    datetime_val = parse_datetime(datetime_val)
+    if datetime_val.tzinfo is None or datetime_val.tzinfo.utcoffset(datetime_val) is None:
+        datetime_val = timezone.make_aware(datetime_val, tz)
+    return datetime_val
 
 
 class TzDateTimeWidget(widgets.DateTimeWidget):
@@ -50,6 +60,8 @@ class OplogEntryResource(resources.ModelResource):
         # Track the `entry_identifier` for use in `get_import_id_fields()`
         self.entry_identifier = row.get("entry_identifier")
         taggit_before_import_row(row)
+        row["start_date"] = check_timestamps(row["start_date"])
+        row["end_date"] = check_timestamps(row["end_date"])
 
     def get_import_id_fields(self):
         # The `entry_identifier` is not unique in the table
