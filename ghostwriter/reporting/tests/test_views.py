@@ -15,11 +15,14 @@ from django.utils.encoding import force_str
 from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.factories import (
     ClientFactory,
     DocTypeFactory,
     EvidenceOnFindingFactory,
     EvidenceOnReportFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
@@ -44,12 +47,12 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     add_days,
     compromised,
     filter_severity,
+    filter_tags,
     filter_type,
     format_datetime,
     get_item,
     regex_search,
     strip_html,
-    filter_tags,
 )
 from ghostwriter.reporting.templatetags import report_tags
 
@@ -121,6 +124,27 @@ class TemplateTagTests(TestCase):
 
         self.assertEqual(report_tags.get_file_content(txt_evidence), "lorem ipsum")
         self.assertEqual(report_tags.get_file_content(deleted_evidence), "FILE NOT FOUND")
+
+    def test_field_spec_filters(self):
+        report_extra_field = ExtraFieldModelFactory(
+            model_internal_name="reporting.Report", model_display_name="Reports"
+        )
+        ExtraFieldSpecFactory(
+            internal_name="test_rt_field",
+            display_name="Test RT Field",
+            type="rich_text",
+            target_model=report_extra_field,
+        )
+        field_spec = ExtraFieldSpec.objects.filter(target_model="reporting.Report")
+        self.assertFalse(report_tags.has_non_rt_fields(field_spec))
+        ExtraFieldSpecFactory(
+            internal_name="test_field",
+            display_name="Test Field",
+            type="single_line_text",
+            target_model=report_extra_field,
+        )
+        field_spec = ExtraFieldSpec.objects.filter(target_model="reporting.Report")
+        self.assertTrue(report_tags.has_non_rt_fields(field_spec))
 
 
 # Tests related to report modification actions
@@ -2260,11 +2284,7 @@ class GenerateReportTests(TestCase):
     def test_view_all_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.all_uri)
         self.assertEqual(response.status_code, 200, str(response))
-        self.assertEqual(
-            response.get("Content-Type"),
-            "application/x-zip-compressed",
-            str(response)
-        )
+        self.assertEqual(response.get("Content-Type"), "application/x-zip-compressed", str(response))
 
     def test_view_json_requires_login_and_permissions(self):
         response = self.client.get(self.json_uri)
