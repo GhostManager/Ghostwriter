@@ -143,7 +143,8 @@ def has_non_rt_fields(fields_spec):
 @register.filter
 def truncate_filename(filename, length):
     """
-    Truncate a filename to the specified length.
+    Truncate a filename to the specified length. The length is divided by 2 and the middle of the filename is replaced
+    with ellipsis.
 
     **Parameters**
 
@@ -153,8 +154,6 @@ def truncate_filename(filename, length):
         Maximum length of the filename
     """
     if len(filename) > length:
-        print(length)
         length = round((length - 3) / 2)
-        print(length)
         return f"{filename[:length]}...{filename[-length:]}"
     return filename

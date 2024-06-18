@@ -146,6 +146,10 @@ class TemplateTagTests(TestCase):
         field_spec = ExtraFieldSpec.objects.filter(target_model="reporting.Report")
         self.assertTrue(report_tags.has_non_rt_fields(field_spec))
 
+    def test_truncate_filename_filter(self):
+        filename = "This is a long filename that should be truncated.txt"
+        self.assertEqual(report_tags.truncate_filename(filename, 15), "This i...ed.txt")
+
 
 # Tests related to report modification actions
 
