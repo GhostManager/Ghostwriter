@@ -100,7 +100,18 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def _tag_h(self, el, **kwargs):
         heading_num = int(el.name[1:])
         self.text_tracking.new_block()
-        self.doc.add_heading(el.text, heading_num)
+        heading_paragraph = self.doc.add_heading(el.text, heading_num)
+        if "id" in el.attrs:
+            run = heading_paragraph.runs[0]
+            tag = run._r
+            start = docx.oxml.shared.OxmlElement('w:bookmarkStart')
+            start.set(docx.oxml.ns.qn('w:id'), '0')
+            start.set(docx.oxml.ns.qn('w:name'), el.attrs["id"])
+            tag.append(start)
+            end = docx.oxml.shared.OxmlElement('w:bookmarkEnd')
+            end.set(docx.oxml.ns.qn('w:id'), '0')
+            end.set(docx.oxml.ns.qn('w:name'), el.attrs["id"])
+            tag.append(end)
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
