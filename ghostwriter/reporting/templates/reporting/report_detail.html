@@ -537,6 +537,7 @@
             <thead>
             <tr>
               <th class="align-middle">Name</th>
+              <th class="align-middle">Filename</th>
               <th class="align-middle sorter-false">Options</th>
             </tr>
             </thead>
@@ -544,11 +545,14 @@
             {% for evidence_file in report.evidence_set.all %}
               <tr data-id="{{ evidence_file.id }}">
                 <td
-                  class="align-middle icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
+                  class="pl-3 text-left align-middle icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
                   <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{ evidence_file.friendly_name|bleach }} ({{ evidence_file.filename|bleach }})
+                    {{ evidence_file.friendly_name|bleach }}
                   </a>
                 </td>
+              <td class="align-middle">
+                <em>{{ evidence_file.filename|truncate_filename:50 }}</em>
+              </td>
                 <td class="align-middle">
                   <div class="dropdown dropleft">
                     <button
@@ -563,6 +567,8 @@
                       class="dropdown-menu"
                       aria-labelledby="evidence-dropdown-btn_{{ evidence_file.id }}"
                     >
+                      <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"
+                         class="dropdown-item icon view-icon">View</a>
                       <a href="{% url 'reporting:evidence_update' evidence_file.id %}"
                          class="dropdown-item icon edit-icon">Edit</a>
                       <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"
