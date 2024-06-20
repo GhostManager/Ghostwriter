@@ -81,8 +81,7 @@ class UserUpdateView(RoleBasedAccessControlMixin, UpdateView):
     def handle_no_permission(self):
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that.")
-            return redirect("users:redirect")
-        return redirect("home:dashboard")
+        return redirect("users:redirect")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -131,8 +130,7 @@ class UserProfileUpdateView(RoleBasedAccessControlMixin, UpdateView):
     def handle_no_permission(self):
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that.")
-            return redirect("users:redirect")
-        return redirect("home:dashboard")
+        return redirect("users:redirect")
 
     def get_object(self, queryset=None):
         id_ = get_object_or_404(User, username=self.kwargs.get("username")).id
