@@ -1728,9 +1728,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     @staticmethod
     def _create_crispy_field(spec):
         if spec.type == "rich_text":
-            # TODO: Return to using the commented line below once evidence uploads support report findings vs. finding-specific uploads
-            # return Field(spec.internal_name, css_class="enable-evidence-upload")
-            return Field(spec.internal_name)
+            return Field(spec.internal_name, css_class="enable-evidence-upload")
         return Field(spec.internal_name)
 
 

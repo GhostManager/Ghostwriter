@@ -7,7 +7,7 @@
             {% if domain.is_expired %}
                 "badge badge-pill badge-danger">EXPIRED
             {% else %}
-                "badge badge-pill badge-light">{{ domain.get_domain_age|intcomma }}
+                "badge badge-pill badge-light">{{ domain.get_domain_age|intcomma }} Days Old
             {% endif %}
         </span>
     </a>

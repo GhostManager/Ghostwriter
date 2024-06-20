@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v4.2.1] - 18 June 2024
+
+### Changed
+
+* Increased the filename character limit to 255 characters for evidence filenames
+  * This aligns with the maximum filename length for most filesystems
+  * Filenames displayed in the interface are now truncated if they are longer than 50 characters
+  * The full filenames can be viewed by hovering over the filename when viewing the evidence file's details
+* Changed report export errors to help further narrow down the cause of Jinja2 syntax errors
+* Activity log imports now make naive timestamps timezone-aware (Closes #433 & #434)
+  * If the import does not specify a timezone (e.g., _+00:00_ for UTC), the server's timezone will be used
+* When coming from an activity log to import entries, the log you came from will now be selected by default
+* A domain's current availability status is no longer only visible under the _Health_ tab
+
+### Fixed
+
+* Fixed whitespace before hyperlinks being removed in generated Word documents (Closes #461)
+* Fixed an issue with how evidence displayed inside XLSX reports (Closes #462)
+* Fixed extra fields on projects not being processed for project document generation
+
 ## [v4.2.0] - 10 June 2024
 
 ### Added
