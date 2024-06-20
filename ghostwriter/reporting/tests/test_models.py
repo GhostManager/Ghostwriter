@@ -519,7 +519,7 @@ class EvidenceModelTests(TestCase):
         evidence = EvidenceOnFindingFactory(
             document=factory.django.FileField(filename="ext_test.PnG", data=b"lorem ipsum")
         )
-        self.assertEqual(evidence.filename.split(".")[-1], "PnG")
+        self.assertEqual(evidence.filename, "ext_test.PnG")
         evidence.delete()
 
     def test_prop_filename(self):
@@ -535,7 +535,7 @@ class EvidenceModelTests(TestCase):
             + "fringilla-sodales-sed.txt"
         )
         evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename=name, data=b"lorem ipsum"))
-        self.assertEqual(evidence.filename.split("_")[0] + "." + evidence.filename.split(".")[-1], name)
+        self.assertEqual(evidence.filename, name)
         try:
             evidence.get_absolute_url()
         except:
