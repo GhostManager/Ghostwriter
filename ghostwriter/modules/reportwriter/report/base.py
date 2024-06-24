@@ -101,6 +101,8 @@ class ExportReportBase(ExportBase):
             finding["network_detection_techniques_rt"] = finding_render("the network detection techniques section", finding["network_detection_techniques"])
             finding["references_rt"] = finding_render("the references section", finding["references"])
 
+            self.process_extra_fields(f"finding {finding['title']}", finding["extra_fields"], Finding, finding_rich_text_context)
+
         # Observations
         for observation in base_context["observations"]:
             if observation["description"]:
