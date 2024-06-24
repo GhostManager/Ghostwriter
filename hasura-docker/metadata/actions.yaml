@@ -129,6 +129,17 @@ actions:
     permissions:
       - role: user
       - role: manager
+  - name: uploadReportTemplate
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/uploadReportTemplate'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
   - name: whoami
     definition:
       kind: ""
@@ -154,4 +165,5 @@ custom_types:
     - name: codenameResponse
     - name: ExtraFieldSpecOutput
     - name: UploadEvidenceResult
+    - name: UploadReportTemplateResult
   scalars: []

@@ -82,6 +82,23 @@ type Mutation {
   ): UploadEvidenceResult!
 }
 
+type Mutation {
+  uploadReportTemplate(
+    file_base64: String!
+    filename: String!
+    name: String!
+    description: String!
+    protected: Boolean
+    changelog: String
+    landscape: Boolean
+    filename_override: String
+    tags: String
+    client: Int
+    doc_type: Int!
+    p_style: String
+  ): UploadReportTemplateResult!
+}
+
 type Query {
   whoami: WhoamiOutput
 }
@@ -128,3 +145,6 @@ type UploadEvidenceResult {
   id: Int!
 }
 
+type UploadReportTemplateResult {
+  id: Int!
+}

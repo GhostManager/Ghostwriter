@@ -17,7 +17,7 @@ from django.core.files.base import ContentFile
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
-from ghostwriter.reporting.models import Evidence, ReportFindingLink
+from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
 
 
 class ApiKeyForm(forms.Form):
@@ -139,6 +139,24 @@ class ApiEvidenceForm(forms.ModelForm):
                 ))
 
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(False)
+        blob = ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"])
+        instance.document = blob
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class ApiReportTemplateForm(forms.ModelForm):
+    file_base64 = Base64BytesField(required=True)
+    filename = forms.CharField(required=True)
+
+    class Meta:
+        model = ReportTemplate
+        exclude = ("document", "upload_date", "last_update", "lint_result", "uploaded_by")
 
     def save(self, commit=True):
         instance = super().save(False)

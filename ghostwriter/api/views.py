@@ -30,7 +30,7 @@ from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
-from ghostwriter.api.forms import ApiEvidenceForm, ApiKeyForm
+from ghostwriter.api.forms import ApiEvidenceForm, ApiKeyForm, ApiReportTemplateForm
 from ghostwriter.api.models import APIKey
 from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
@@ -789,6 +789,20 @@ class GraphqlUploadEvidenceView(HasuraActionView):
             self.input,
             report_queryset=utils.get_reports_list(self.user_obj),
         )
+        if form.is_valid():
+            instance = form.save()
+            return JsonResponse({"id": instance.pk}, status=201)
+        else:
+            message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
+            return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
+
+
+class GraphqlUploadReportTemplateView(HasuraActionView):
+    def post(self, request):
+        if self.user_obj is None or not self.user_obj.is_active:
+            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        form = ApiReportTemplateForm(self.input)
         if form.is_valid():
             instance = form.save()
             return JsonResponse({"id": instance.pk}, status=201)
