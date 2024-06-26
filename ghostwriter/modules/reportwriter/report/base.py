@@ -109,10 +109,6 @@ class ExportReportBase(ExportBase):
                 observation["description_rt"] = self.create_lazy_template(f"the description of observation {observation['title']}", observation["description"], rich_text_context)
             self.process_extra_fields(f"observation {observation['title']}", observation["extra_fields"], Observation, rich_text_context)
 
-        # Project
-        base_context["project"]["note_rt"] = self.create_lazy_template("the project note", base_context["project"]["note"], rich_text_context)
-        self.process_extra_fields("the project", base_context["project"]["extra_fields"], Project, rich_text_context)
-
         # Report extra fields
         self.process_extra_fields("the report", base_context["extra_fields"], Report, rich_text_context)
 
