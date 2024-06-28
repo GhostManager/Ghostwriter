@@ -267,7 +267,11 @@ class ExportDocxBase(ExportBase):
             )
             logger.info("Template loaded for linting")
 
-            for variable in exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env):
+            undeclared_variables = ReportExportError.map_jinja2_render_errors(
+                lambda: exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env),
+                "the DOCX template"
+            )
+            for variable in undeclared_variables:
                 if variable not in lint_data:
                     warnings.append("Potential undefined variable: {!r}".format(variable))
 
