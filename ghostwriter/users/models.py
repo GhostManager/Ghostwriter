@@ -88,18 +88,18 @@ class User(AbstractUser):
     )
     enable_client_create = BooleanField(
         default=False,
-        help_text="Allow the user to create new clients in the library (only applies to account with the User role)",
-        verbose_name="Allow Client Creation",
+        help_text="Allow the user to create new clients in the library and create projects for any client (only applies to account with the User role)",
+        verbose_name="Allow Client and Project Creation",
     )
     enable_client_edit = BooleanField(
         default=False,
-        help_text="Allow the user to edit clients in the library (only applies to accounts with the User role)",
-        verbose_name="Allow Client Editing",
+        help_text="Allow the user to edit clients in the library and edit projects for any client (only applies to accounts with the User role)",
+        verbose_name="Allow Client and Project Editing",
     )
     enable_client_delete = BooleanField(
         default=False,
-        help_text="Allow the user to delete clients in the library (only applies to accounts with the User role)",
-        verbose_name="Allow Client Deletion",
+        help_text="Allow the user to delete clients in the library and delete projects for any client (only applies to accounts with the User role)",
+        verbose_name="Allow Client and Project Deletion",
     )
     require_2fa = BooleanField(
         default=False,

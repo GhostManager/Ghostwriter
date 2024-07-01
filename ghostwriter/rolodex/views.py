@@ -28,6 +28,7 @@ from ghostwriter.api.utils import (
     get_project_list,
     verify_access,
     verify_client_access,
+    verify_project_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
@@ -1628,7 +1629,7 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "rolodex/project_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_project_access(self.request.user, "create")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1747,7 +1748,7 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "rolodex/project_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_project_access(self.request.user, "edit")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1832,7 +1833,7 @@ class ProjectDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_project_access(self.request.user, "delete")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
