@@ -280,24 +280,35 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
             else:
                 template = (
                     ReportTemplate.objects.filter(
-                        Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+                        Q(doc_type__doc_type__iexact="project_docx")
+                        | Q(doc_type__doc_type__iexact="pptx")
                     )
                     .filter(Q(client=project.client) | Q(client__isnull=True))
                     .select_related("doc_type")
                     .get(pk=type_or_template_id)
                 )
                 exporter = template.exporter(project)
-                filename = exporter.render_filename(template.filename_override or report_config.project_filename)
+                filename = exporter.render_filename(
+                    template.filename_override or report_config.project_filename
+                )
                 out = exporter.run()
                 mime = exporter.mime_type()
         except ReportExportError as error:
-            logger.error("Project report failed for project %s and user %s: %s", project.id, self.request.user, error)
+            logger.error(
+                "Project report failed for project %s and user %s: %s",
+                project.id,
+                self.request.user,
+                error,
+            )
             messages.error(
                 self.request,
                 f"Error: {error}",
                 extra_tags="alert-danger",
             )
-            return HttpResponseRedirect(reverse("rolodex:project_detail", kwargs={"pk": project.id}) + "#documents")
+            return HttpResponseRedirect(
+                reverse("rolodex:project_detail", kwargs={"pk": project.id})
+                + "#documents"
+            )
         response = HttpResponse(out.getvalue(), content_type=mime)
         add_content_disposition_header(response, filename)
         return response
@@ -1587,7 +1598,8 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             target_model=Project._meta.label
         )
         ctx["export_templates"] = ReportTemplate.objects.filter(
-            Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+            Q(doc_type__doc_type__iexact="project_docx")
+            | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))
         return ctx
 
