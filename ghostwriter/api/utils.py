@@ -348,6 +348,22 @@ def verify_client_access(user, mode):
     return False
 
 
+def verify_project_access(user, mode):
+    """
+    Verify that the user is flagged as being able to create and/or edit projects,
+    based on the user's client permissions (e.g., a user that can create clients
+    can create projects on any client).
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``mode``
+        The mode to check for (``create``, ``edit``, or ``delete``)
+    """
+    return verify_client_access(user, mode)
+
+
 def verify_client_list_access(user):
     """
     Verify that the user is flagged as being able to list all clients in the global rolodex.
