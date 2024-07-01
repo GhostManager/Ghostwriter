@@ -18,7 +18,7 @@
 {% endblock %}
 
 {% block content %}
-  {% if request.user|is_privileged %}
+  {% if request.user|can_edit_or_delete_projects %}
     <div class="dropdown">
       <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
            onclick="hamburger(this)">
@@ -27,8 +27,12 @@
         <div class="bar3"></div>
       </div>
       <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
+      {% if request.user|can_edit_projects %}
         <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
+      {% endif %}
+      {% if request.user|can_delete_projects %}
         <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
+      {% endif %}
       </div>
     </div>
   {% endif %}
