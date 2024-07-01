@@ -21,6 +21,7 @@ from ghostwriter.api.utils import (
     verify_client_access,
     verify_finding_access,
     verify_observation_access,
+    verify_project_access,
     verify_user_is_privileged,
 )
 from ghostwriter.reporting.models import Report, ReportFindingLink
@@ -170,6 +171,24 @@ def can_edit_clients(user):
 def can_delete_clients(user):
     """Check if the user has the permission to delete clients."""
     return verify_user_is_privileged(user) or verify_client_access(user, "delete")
+
+
+@register.filter
+def can_edit_or_delete_projects(user):
+    """Check if the user has the permission to edit or delete all projects."""
+    return can_edit_projects(user) or can_delete_projects(user)
+
+
+@register.filter
+def can_edit_projects(user):
+    """Check if the user has the permission to edit any project."""
+    return verify_user_is_privileged(user) or verify_project_access(user, "edit")
+
+
+@register.filter
+def can_delete_projects(user):
+    """Check if the user has the permission to delete any project."""
+    return verify_user_is_privileged(user) or verify_project_access(user, "delete")
 
 
 @register.filter
