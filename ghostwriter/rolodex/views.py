@@ -10,6 +10,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -18,7 +19,6 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
-from django.db.models import Q
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -277,13 +277,19 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
                 out = exporter.run()
                 mime = exporter.mime_type()
             else:
-                template = ReportTemplate.objects.filter(
-                    Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
-                ).filter(
-                    Q(client=project.client) | Q(client__isnull=True)
-                ).select_related("doc_type").get(pk=type_or_template_id)
+                template = (
+                    ReportTemplate.objects.filter(
+                        Q(doc_type__doc_type__iexact="project_docx")
+                        | Q(doc_type__doc_type__iexact="pptx")
+                    )
+                    .filter(Q(client=project.client) | Q(client__isnull=True))
+                    .select_related("doc_type")
+                    .get(pk=type_or_template_id)
+                )
                 exporter = template.exporter(project)
-                filename = exporter.render_filename(template.filename_override or report_config.project_filename)
+                filename = exporter.render_filename(
+                    template.filename_override or report_config.project_filename
+                )
                 out = exporter.run()
                 mime = exporter.mime_type()
         except ReportExportError as error:
@@ -291,14 +297,17 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
                 "Project report failed for project %s and user %s: %s",
                 project.id,
                 self.request.user,
-                error
+                error,
             )
             messages.error(
                 self.request,
                 f"Error: {error}",
                 extra_tags="alert-danger",
             )
-            return HttpResponseRedirect(reverse("rolodex:project_detail", kwargs={"pk": project.id}) + "#documents")
+            return HttpResponseRedirect(
+                reverse("rolodex:project_detail", kwargs={"pk": project.id})
+                + "#documents"
+            )
         response = HttpResponse(out.getvalue(), content_type=mime)
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
@@ -1588,10 +1597,9 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             target_model=Project._meta.label
         )
         ctx["export_templates"] = ReportTemplate.objects.filter(
-            Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
-        ).filter(
-            Q(client=object.client) | Q(client__isnull=True)
-        )
+            Q(doc_type__doc_type__iexact="project_docx")
+            | Q(doc_type__doc_type__iexact="pptx")
+        ).filter(Q(client=object.client) | Q(client__isnull=True))
         return ctx
 
 
