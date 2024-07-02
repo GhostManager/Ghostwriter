@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2023 FIRST.ORG, Inc., Red Hat, and contributors
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+        <title>Common Vulnerability Scoring System Version 4.0 Calculator</title>
+        <script src="https://unpkg.com/vue@3.2.45/dist/vue.global.prod.js"></script>
+        <script src="cvss_config.js?v=2"></script>
+        <script src="cvss_details.js?v=1"></script>
+        <script src="cvss_lookup.js?v=5"></script>
+        <script src="max_composed.js?v=1"></script>
+        <script src="max_severity.js?v=1"></script>
+        <script src="metrics.js?v=1"></script>
+        <link rel="stylesheet" href="https://unpkg.com/spectre.css@0.5.9/dist/spectre.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/spectre.css@0.5.9/dist/spectre-exp.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/spectre.css@0.5.9/dist/spectre-icons.min.css">
+        <link rel="stylesheet" href="styles.css?v=6">
+        <link rel="icon" href="data:,">
+    </head>
+    <body>
+        <div id="app" class="container">
+            <div id="header">
+            <img alt="CVSS logo" src="https://first.org/cvss/identity/cvssv4_web.png" width="125">
+                <h3 class="page-title">Common Vulnerability Scoring System Version 4.0 Calculator</h3>
+                <mark class="tooltip c-hand" data-tooltip="Click vector to copy to clipboard" @click="copyVector">
+                    {{ vector }}
+                </mark>
+                <button class="btn btn-sm ml-2" @click="onReset()">Reset</button>
+                <h5 class="score-line">
+                    <span class="tooltip tooltip-bottom c-hand"
+                          :data-tooltip="showDetails ? 'Hide details' : 'Show details'"
+                          @click="showDetails = !showDetails">
+                        CVSS v4.0 Score:
+                        <span :class="scoreClass(qualScore)">{{ score }} / {{ qualScore }}</span>
+                        <span v-if="!showDetails"> ⊕</span>
+                        <span v-else> ⊖</span>
+                    </span>
+                </h5>
+                <blockquote v-if="showDetails">
+                    <sup class="mb-2"><i>Macro vector: {{ macroVector }}</i></sup>
+                    <div v-for="(index, description) in cvssMacroVectorDetailsData">
+                        {{ description }}: {{ cvssMacroVectorValuesData[macroVector[index]] }}
+                    </div>
+                </blockquote>
+            </div>
+
+            <div class="columns" :style="{'margin-top': header_height + 10 + 'px'}">
+				<h6 id="cvssReference" style="width: 100%; max-width: 1065px; margin: 10px;"> Hover over metric names and metric values for a summary of the information in the official CVSS v4.0 Specification Document. The Specification is available in the list of links on the left, along with a User Guide providing additional scoring guidance, an Examples document of scored vulnerabilities, a set of Frequently Asked Questions (FAQ), and both JSON and XML Data Representations for all versions of CVSS.</h6>
+                <div class="column col-10 col-xl-12">
+                    <div class="metric-type" v-for="(metricTypeData, metricType) in cvssConfigData">
+                        <h4 class="text-center">
+                            {{ metricType }}
+                            <span class="tooltip tooltip-left c-hand text-small" :data-tooltip="'This category is usually filled \n by the ' + metricTypeData.fill">
+                                <sup>?</sup>
+                            </span>
+                        </h4>
+
+                        <div class="metric-group" v-for="(metricGroupData, metricGroup) in metricTypeData.metric_groups">
+                            <h5 class="text-center">{{ metricGroup }}</h5>
+                            <div>
+
+                                <div class="" v-for="(metricData, metric) in metricGroupData">
+
+                                    <!-- Multiple ways of rendering metrics based on screen size -->
+                                    <div class="columns hide-xl mb-2">
+                                        <div class="col-3 text-right pr-2" v-if="metricData.tooltip"><abbr :title="metricData.tooltip">{{ metric }}</abbr>:</div>
+                                        <div class="col-3 text-right pr-2" v-else>{{metric}}:</div>
+
+                                        <div class="col-9 columns">
+                                            <div class="col-2 pl-2" v-for="(optionData, option) in metricData.options">
+                                                <button :class="buttonClass(cvssSelected[metricData.short] == optionData.value)" v-if="option"
+                                                        @click="onButton(metricData.short, optionData.value)">
+                                                    <abbr v-if="optionData.tooltip" :title="optionData.tooltip">{{ option }}</abbr>
+                                                    <span v-else>{{ option }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="show-xl hide-lg">
+                                        <div class="mb-1" v-if="metricData.tooltip"><abbr :title="metricData.tooltip">{{ metric }}</abbr>:</div>
+                                        <div class="mb-1" v-else>{{metric}}:</div>
+
+                                        <div class="columns">
+                                            <div class="col-2 pl-2" v-for="(optionData, option) in metricData.options">
+                                                <button :class="buttonClass(cvssSelected[metricData.short] == optionData.value)" v-if="option"
+                                                        @click="onButton(metricData.short, optionData.value)">
+                                                    <abbr v-if="optionData.tooltip" :title="optionData.tooltip">{{ option }}</abbr>
+                                                    <span v-else>{{ option }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="show-lg hide-md">
+                                        <div class="mb-1" v-if="metricData.tooltip"><abbr :title="metricData.tooltip">{{ metric }}</abbr>:</div>
+                                        <div class="mb-1" v-else>{{metric}}:</div>
+
+                                        <div class="columns pl-2">
+                                            <div class="col-4 pb-2 pr-2" v-for="(optionData, option) in metricData.options">
+                                                <button :class="buttonClass(cvssSelected[metricData.short] == optionData.value)" v-if="option"
+                                                        @click="onButton(metricData.short, optionData.value)">
+                                                    <abbr v-if="optionData.tooltip" :title="optionData.tooltip">{{ option }}</abbr>
+                                                    <span v-else>{{ option }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="show-md hide-sm">
+                                        <div class="mb-1" v-if="metricData.tooltip"><abbr :title="metricData.tooltip">{{ metric }}</abbr>:</div>
+                                        <div class="mb-1" v-else>{{metric}}:</div>
+
+                                        <div class="columns pl-2">
+                                            <div class="col-6 pb-2 pr-2" v-for="(optionData, option) in metricData.options">
+                                                <button :class="buttonClass(cvssSelected[metricData.short] == optionData.value)" v-if="option"
+                                                        @click="onButton(metricData.short, optionData.value)">
+                                                    <abbr v-if="optionData.tooltip" :title="optionData.tooltip">{{ option }}</abbr>
+                                                    <span v-else>{{ option }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="show-sm">
+                                        <div class="mb-1" v-if="metricData.tooltip"><abbr :title="metricData.tooltip">{{ metric }}</abbr>:</div>
+                                        <div class="mb-1" v-else>{{metric}}:</div>
+
+                                        <div class="columns pl-2">
+                                            <div class="col-12 pb-2 pr-2" v-for="(optionData, option) in metricData.options">
+                                                <button :class="buttonClass(cvssSelected[metricData.short] == optionData.value, true)" v-if="option"
+                                                        @click="onButton(metricData.short, optionData.value)">
+                                                    <abbr v-if="optionData.tooltip" :title="optionData.tooltip">{{ option }}</abbr>
+                                                    <span v-else>{{ option }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+
+<script src="app.js?v=7"></script>
