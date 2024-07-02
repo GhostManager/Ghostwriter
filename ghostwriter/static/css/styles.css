@@ -245,6 +245,15 @@ hr {
   right: 25px;
 }
 
+.comment-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  border-style: solid !important;
+  border-width: 1px !important;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19) !important;
+}
+
 /* ---------------------------------------------------
     WYSIWYG-APPLIED STYLES
 ----------------------------------------------------- */
@@ -2693,6 +2702,19 @@ ol {
 .note-link {
   color: var(--primary-color);
   font-size: .8em;
+}
+
+/*----------------------------------------------------
+    COMMENT STYLES
+------------------------------------------------------ */
+#comment-thread {
+  clear: both;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* ---------------------------------------------------

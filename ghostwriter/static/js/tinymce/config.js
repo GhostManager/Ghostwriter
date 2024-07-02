@@ -47,9 +47,9 @@
         max_height: window_height - 250,
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
-        plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
+        plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak ghostwriter-comments',
         toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
-        contextmenu: 'table formats bold italic underline link removeformat',
+        contextmenu: 'table comment formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
         browser_spellcheck: true,
@@ -72,6 +72,7 @@
             .underline { text-decoration: underline; }
             .tablerow1 { background-color: #D3D3D3; }
             blockquote { border-left: 5px solid #ccc; padding: 0.5em; margin: 0.5em; }
+            .comment { background-color: #FF7E79 }
         `,
         formats: {
             alignleft: {
@@ -161,6 +162,7 @@
         table_default_styles: {'border-collapse': 'collapse', 'width': '100%', 'border-style': 'solid', 'border-width': '1px'},
         table_default_attributes: {class: 'table table-sm table-striped table-bordered'},
         table_header_type: 'sectionCells',
+        extended_valid_elements: 'span[class|comment-data]'
     };
 
     // TinyMCE config for most fields
