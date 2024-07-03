@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v4.2.2] - 3 July 2024
+
+### Added
+
+* Added a check to the template linter to ensure the `CodeInline` and `CodeBlock` styles have the correct style type (PR #474)
+
+### Changed
+
+* Gave every optional field in the database a default value (a blank string) to help prevent errors when creating new entries via the GraphQL API (PR #469)
+
+### Fixed
+
+* Fixed extra fields on findings not being processed for report generation (PR #467)
+* Fixed project fields being processed twice when generating a report (PR #468)
+* Fixed syntax errors that weren't being caught properly and returning generic failure messages (PR #470)
+* Fixed observation tags missing from the linting data (PR #471)
+* Fixed uploading evidence and autocomplete on observations (PR #472)
+* Fixed a server error that could occur when using the `checkoutServer` and `checkoutDomain` mutations in the GraphQL API and providing a null value for the `note` field (PR #475)
+
 ## [v4.2.1] - 18 June 2024
 
 ### Changed
