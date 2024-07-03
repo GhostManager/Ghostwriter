@@ -15,9 +15,14 @@
         role="alert">
             <h4 style="margin-top: 0;" class="alert-heading">{{ lint_result.result|capfirst }}</h4>
             {% if lint_result.result == "success" %}
-                Template passed all linter checks, but try using it for a report to test it
+              <p>Template passed all linter checks, but try using it for a report to test it with findings and custom fields.</p>
             {% else %}
-                To correct these issues, make changes and re-upload this template
+              <p>To correct these issues, make changes and re-upload this template.
+                See the documentation for more information on how to fix these issues:<br/>
+                <a class="italic" href="https://www.ghostwriter.wiki/features/reporting/report-templates" target="_blank">
+                  https://www.ghostwriter.wiki/features/reporting/report-templates
+                </a>
+              </p>
             {% endif %}
         </div>
 
