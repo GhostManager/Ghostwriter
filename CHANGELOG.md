@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed observation tags missing from the linting data (PR #471)
 * Fixed uploading evidence and autocomplete on observations (PR #472)
 * Fixed a server error that could occur when using the `checkoutServer` and `checkoutDomain` mutations in the GraphQL API and providing a null value for the `note` field (PR #475)
+* Fixed the "My Active Projects" sidebar dropdown not showing the correct message if all projects are marked as complete (PR #475)
 
 ## [v4.2.1] - 18 June 2024
 
