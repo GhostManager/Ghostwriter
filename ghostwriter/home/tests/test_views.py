@@ -109,7 +109,7 @@ class TemplateTagTests(TestCase):
         result = custom_tags.count_assignments(request)
         self.assertEqual(result, self.num_of_findings)
 
-        projects, reports = custom_tags.get_assignments(request)
+        projects, reports = custom_tags.get_assignment_data(request)
         self.assertEqual(len(projects), 1)
         self.assertEqual(projects[0], self.project)
         self.assertEqual(len(reports), 1)
