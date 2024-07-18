@@ -1,10 +1,15 @@
+# Standard Libraries
 from io import BytesIO
 from zipfile import ZipFile
-from lxml import etree
-import docx
 
+# Django Imports
 from django.test import TestCase
 
+# 3rd Party Libraries
+import docx
+from lxml import etree
+
+# Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx
 
 WORD_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
@@ -585,5 +590,5 @@ class RichTextToDocxTests(TestCase):
             <w:pPr><w:jc w:val="left"/></w:pPr>
             <w:r><w:t>Paragraph with a class</w:t></w:r>
         </w:p>
-        """
+        """,
     )
