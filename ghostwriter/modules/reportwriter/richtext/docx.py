@@ -570,6 +570,7 @@ class ListTracking:
             cache[level_list_is_ordered] = numbering_id
 
         for par, level in self.paragraphs:
+            par.style = "ListParagraph"
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = (
                 numbering_id
             )

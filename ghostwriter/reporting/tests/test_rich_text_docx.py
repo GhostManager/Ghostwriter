@@ -195,32 +195,53 @@ class RichTextToDocxTests(TestCase):
         """
             <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
             <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
         """,
@@ -247,32 +268,53 @@ class RichTextToDocxTests(TestCase):
         """
             <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
             <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
         """,
@@ -303,44 +345,74 @@ class RichTextToDocxTests(TestCase):
         """
             <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
             <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
         """,
