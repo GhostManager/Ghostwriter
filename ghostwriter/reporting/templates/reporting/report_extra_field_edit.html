@@ -47,8 +47,12 @@
             {text: '\{\{.project_type\}\}', value: '\{\{.project_type\}\}'},
             {% for evidence in report.evidence_set.all %}
                 {
-                text: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}',
-                value: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}'
+                  text: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}',
+                  value: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}'
+                },
+                {
+                  text: '\{\{.ref {{ evidence.friendly_name|escapejs }}\}\}',
+                  value: '\{\{.ref {{ evidence.friendly_name|escapejs }}\}\}'
                 },
             {% endfor %}
         ];
