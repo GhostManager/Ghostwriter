@@ -60,7 +60,7 @@ def group_by_severity(queryset):
 @register.filter
 def get_file_type(file):
     """
-    Determine the file type of a given evidence file.
+    Determine the file type of the given evidence file.
 
     **Parameters**
 
@@ -120,3 +120,40 @@ def get_file_content(file):
             file_content = "FILE NOT FOUND"
 
     return file_content
+
+
+@register.filter
+def has_non_rt_fields(fields_spec):
+    """
+    Determine if the provided extra fields spec includes any non-RichText fields and return a boolean result.
+
+    **Parameters**
+
+    ``fields_spec``
+        Extra fields spec list
+    """
+    non_rt_fields = False
+    for spec in fields_spec:
+        if spec.type != "rich_text":
+            non_rt_fields = True
+
+    return non_rt_fields
+
+
+@register.filter
+def truncate_filename(filename, length):
+    """
+    Truncate a filename to the specified length. The length is divided by 2 and the middle of the filename is replaced
+    with ellipsis.
+
+    **Parameters**
+
+    ``filename``
+        Filename to truncate
+    ``length``
+        Maximum length of the filename
+    """
+    if len(filename) > length:
+        length = round((length - 3) / 2)
+        return f"{filename[:length]}...{filename[-length:]}"
+    return filename

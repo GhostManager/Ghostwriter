@@ -16,14 +16,16 @@
   <!-- File Upload -->
   <h2>Upload Operation Log Entries CSV</h2>
   <p>Select a target log and upload a csv file containing log entries to be imported:</p>
+  {% if initial_log %}<p>You came from <em>{{ initial_log.name }} (ID #{{ initial_log.id }})</em></p>{% endif %}
   <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
     {% csrf_token %}
     <div class="input-group mb-3 offset-2 col-8">
       <label for="oplog_id"></label>
       <select class="form-control" id="oplog_log" name="oplog_id" required {% if not logs %}disabled{% endif %}>
         {%  if logs %}
+          <option value="0">-- Select a Target Log --</option>
           {% for log in logs %}
-            <option value="{{ log.id }}">{{ log.name }} (ID {{ log.id }})</option>
+            <option value="{{ log.id }}" {% if initial_log.id == log.id %}selected="selected"{% endif %}>{{ log.name }} (ID {{ log.id }})</option>
           {% endfor %}
         {% else %}
           <option value="0">-- No Logs Available --</option>
@@ -60,9 +62,9 @@
 
     <div class="row">
       <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
-        <h4 class="alert-heading">Note on Timestamps</h4>
-        <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format.</p>
-        <p>The timestamps should match what you get when exporting a log.</p>
+        <h4 class="alert-heading">Notes on Timestamps</h4>
+        <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format. The timestamps should match what you get when exporting a log.</p>
+        <p>Include a timezone offset at the end (e.g., <em>+00:00</em> for UTC). If you do not include an offset, the timestamps will use the server's timezone ({{ TIME_ZONE }}).</p>
       </div>
     </div>
   </div>

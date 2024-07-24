@@ -267,7 +267,10 @@ class ExportDocxBase(ExportBase):
             )
             logger.info("Template loaded for linting")
 
-            for variable in exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env):
+            undeclared_variables = ReportExportError.map_jinja2_render_errors(
+                lambda: exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env), "the DOCX template"
+            )
+            for variable in undeclared_variables:
                 if variable not in lint_data:
                     warnings.append("Potential undefined variable: {!r}".format(variable))
 
@@ -275,6 +278,12 @@ class ExportDocxBase(ExportBase):
             for style in EXPECTED_STYLES:
                 if style not in document_styles:
                     warnings.append("Template is missing a recommended style (see documentation): " + style)
+                if style == "CodeInline":
+                    if document_styles[style].type != WD_STYLE_TYPE.CHARACTER:
+                        warnings.append("CodeInline style is not a character style (see documentation)")
+                if style == "CodeBlock":
+                    if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                        warnings.append("CodeBlock style is not a paragraph style (see documentation)")
             if "Table Grid" not in document_styles:
                 errors.append("Template is missing a required style (see documentation): Table Grid")
             if p_style and p_style not in document_styles:

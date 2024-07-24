@@ -62,7 +62,7 @@ class HealthCheckCustomView(MainView):
     template_name = "health_check.html"
 
     @method_decorator(never_cache)
-    def get(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):  # pragma: no cover
         status_code = 500 if self.errors else 200
 
         format_override = request.GET.get("format")

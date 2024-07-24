@@ -52,7 +52,7 @@
   <table class="table table-borderless table-centered">
     <tr>
       <td class="text-left bold">Original Filename</td>
-      <td>{{ evidence.filename }}</td>
+      <td data-toggle="tooltip" data-placement="bottom" title="{{ evidence.filename|bleach }}">{{ evidence.filename|bleach|truncate_filename:50 }}</td>
     </tr>
     <tr>
       <td class="text-left bold">Uploaded by</td>

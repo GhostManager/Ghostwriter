@@ -337,7 +337,13 @@ def oplog_entries_import(request):
         messages.success(request, "Successfully imported log data.", extra_tags="alert-success")
         return HttpResponseRedirect(reverse("oplog:oplog_entries", kwargs={"pk": oplog_id}))
 
-    return render(request, "oplog/oplog_import.html", context={"logs": logs})
+    log_id = request.GET.get("log", None)
+    initial_log = None
+    if log_id:
+        for log in logs:
+            if log_id == str(log.id):
+                initial_log = log
+    return render(request, "oplog/oplog_import.html", context={"logs": logs, "initial_log": initial_log})
 
 
 ################

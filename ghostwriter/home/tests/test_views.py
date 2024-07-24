@@ -109,8 +109,11 @@ class TemplateTagTests(TestCase):
         result = custom_tags.count_assignments(request)
         self.assertEqual(result, self.num_of_findings)
 
-        result = custom_tags.get_reports(request)
-        self.assertEqual(len(result), 1)
+        projects, reports = custom_tags.get_assignment_data(request)
+        self.assertEqual(len(projects), 1)
+        self.assertEqual(projects[0], self.project)
+        self.assertEqual(len(reports), 1)
+        self.assertEqual(reports[0], self.report)
 
         result = custom_tags.settings_value("DATE_FORMAT")
         self.assertEqual(result, settings.DATE_FORMAT)
