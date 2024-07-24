@@ -1,4 +1,3 @@
-
 from collections import ChainMap
 import copy
 
@@ -26,10 +25,7 @@ class ExportProjectBase(ExportBase):
 
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)
-        rich_text_context = ChainMap(
-            ExportProjectBase.rich_text_jinja_overlay(self.data),
-            base_context
-        )
+        rich_text_context = ChainMap(ExportProjectBase.rich_text_jinja_overlay(self.data), base_context)
 
         # Fields on Project
         ExportProjectBase.process_projects_richtext(self, base_context, rich_text_context)
@@ -80,54 +76,74 @@ class ExportProjectBase(ExportBase):
             f"client {base_context['client']['name']}",
             base_context["client"]["extra_fields"],
             Client,
-            rich_text_context
+            rich_text_context,
         )
 
         # Project
-        base_context["project"]["note_rt"] = ex.create_lazy_template("the project note", base_context["project"]["note"], rich_text_context)
+        base_context["project"]["note_rt"] = ex.create_lazy_template(
+            "the project note", base_context["project"]["note"], rich_text_context
+        )
         ex.process_extra_fields("the project", base_context["project"]["extra_fields"], Project, rich_text_context)
 
         # Assignments
         for assignment in base_context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = ex.create_lazy_template(f"the note of person {assignment['name']}", assignment["note"], rich_text_context)
+                    assignment["note_rt"] = ex.create_lazy_template(
+                        f"the note of person {assignment['name']}", assignment["note"], rich_text_context
+                    )
 
         # Contacts
         for contact in base_context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = ex.create_lazy_template(f"the note of contact {contact['name']}", contact["note"], rich_text_context)
+                    contact["note_rt"] = ex.create_lazy_template(
+                        f"the note of contact {contact['name']}", contact["note"], rich_text_context
+                    )
 
         # Objectives
         for objective in base_context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = ex.create_lazy_template(f"the description of objective {objective['objective']}", objective["description"], rich_text_context)
+                    objective["description_rt"] = ex.create_lazy_template(
+                        f"the description of objective {objective['objective']}",
+                        objective["description"],
+                        rich_text_context,
+                    )
 
         # Scope Lists
         for scope_list in base_context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = ex.create_lazy_template(f"the description of scope {scope_list['name']}", scope_list["description"], rich_text_context)
+                    scope_list["description_rt"] = ex.create_lazy_template(
+                        f"the description of scope {scope_list['name']}", scope_list["description"], rich_text_context
+                    )
 
         # Targets
         for target in base_context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = ex.create_lazy_template(f"the note of target {target['ip_address']}", target["note"], rich_text_context)
+                    target["note_rt"] = ex.create_lazy_template(
+                        f"the note of target {target['ip_address']}", target["note"], rich_text_context
+                    )
 
         # Deconfliction Events
         for event in base_context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = ex.create_lazy_template(f"the description of deconfliction event {event['title']}", event["description"], rich_text_context)
+                    event["description_rt"] = ex.create_lazy_template(
+                        f"the description of deconfliction event {event['title']}",
+                        event["description"],
+                        rich_text_context,
+                    )
 
         # White Cards
         for card in base_context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = ex.create_lazy_template(f"the descriptio of whitecard {card['title']}", card["description"], rich_text_context)
+                    card["description_rt"] = ex.create_lazy_template(
+                        f"the descriptio of whitecard {card['title']}", card["description"], rich_text_context
+                    )
 
         # Infrastructure
         for asset_type in base_context["infrastructure"]:
@@ -135,9 +151,9 @@ class ExportProjectBase(ExportBase):
                 if isinstance(asset, dict):
                     if asset["note"]:
                         asset["note_rt"] = ex.create_lazy_template(
-                            f"the note of {asset_type} {asset.get('name') or asset['domain']}",
+                            f"the note of {asset_type} {asset.get('name') or asset.get('domain') or asset['ip_address']}",
                             asset["note"],
-                            rich_text_context
+                            rich_text_context,
                         )
 
         for asset in base_context["infrastructure"]["domains"]:
@@ -148,25 +164,33 @@ class ExportProjectBase(ExportBase):
         # Logs
         for log in base_context["logs"]:
             for entry in log["entries"]:
-                ex.process_extra_fields(f"log entry {entry['description']} of log {log['name']}", entry["extra_fields"], OplogEntry, rich_text_context)
+                ex.process_extra_fields(
+                    f"log entry {entry['description']} of log {log['name']}",
+                    entry["extra_fields"],
+                    OplogEntry,
+                    rich_text_context,
+                )
 
     @classmethod
     def generate_lint_data(cls):
-        context = {name: copy.deepcopy(LINTER_CONTEXT[name]) for name in [
-            "project",
-            "client",
-            "team",
-            "objectives",
-            "targets",
-            "scope",
-            "deconflictions",
-            "whitecards",
-            "infrastructure",
-            "logs",
-            "company",
-            "report_date",
-            "extra_fields",
-        ]}
+        context = {
+            name: copy.deepcopy(LINTER_CONTEXT[name])
+            for name in [
+                "project",
+                "client",
+                "team",
+                "objectives",
+                "targets",
+                "scope",
+                "deconflictions",
+                "whitecards",
+                "infrastructure",
+                "logs",
+                "company",
+                "report_date",
+                "extra_fields",
+            ]
+        }
         for field in ExtraFieldSpec.objects.filter(target_model=Report._meta.label):
             context["extra_fields"][field.internal_name] = field.empty_value()
         for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):
