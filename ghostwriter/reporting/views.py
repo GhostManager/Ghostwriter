@@ -3224,6 +3224,11 @@ class ReportObservationLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#observations"
+        ctx["evidence_upload_url"] = reverse(
+            "reporting:upload_evidence_modal",
+            kwargs={"parent_type": "report", "pk": self.object.report.pk, "modal": "modal"},
+        )
+        ctx["evidences"] = self.object.report.evidence_set.all()
         return ctx
 
     def get_success_url(self):

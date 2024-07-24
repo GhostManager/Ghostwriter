@@ -592,6 +592,8 @@ class GraphqlCheckoutDomain(HasuraCheckoutView):
             return JsonResponse(utils.generate_hasura_error_payload("Domain is expired", "DomainExpired"), status=400)
 
         try:
+            if not self.note:
+                self.note = ""
             History.objects.create(
                 domain=self.object,
                 activity_type=self.activity_type,
@@ -647,6 +649,8 @@ class GraphqlCheckoutServer(HasuraCheckoutView):
             )
 
         try:
+            if not self.note:
+                self.note = ""
             ServerHistory.objects.create(
                 server=self.object,
                 activity_type=self.activity_type,
