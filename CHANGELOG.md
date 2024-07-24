@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.3] - 24 July 2024
+
+### Added
+
+* Added support for internal hyperlinks in the WYSIWYG editor (Closes #465; thanks to @domwhewell-sage)
+  * You can now create internal links to headings when you insert a hyperlink, enter `#` to start your hyperlink URL, and select a heading
+  * Internal links will be converted to cross-references in the report template
+
+### Changed
+
+* Applied `ListParagraph` to the lists in Word reports to ensure proper paragraph styling (PR #482; thanks to @smcgu)
+* The autocomplete list for keywords in reports now includes entries for `{{.ref <Evidence File Name>}}` for evidence references alongside the evidence file (e.g., `{{.<Evidence File name>}}`) (Closes #479)
+* Custom fields for observations and findings now support autocomplete and have the "Upload Evidence" button (Closes #485) 
+
+### Fixed
+
+* Fixed an issue that could prevent reports from being generated if a related cloud server was missing a hostname (PR #481)
+
 ## [v4.2.2] - 3 July 2024
 
 ### Added
