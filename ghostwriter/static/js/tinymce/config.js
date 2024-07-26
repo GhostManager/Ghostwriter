@@ -48,7 +48,7 @@
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
-        toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
+        toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | richcode codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
         contextmenu: 'table formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
@@ -170,7 +170,6 @@
             editor.ui.registry.addButton('codeInline', {
                 context: 'format',
                 icon: 'sourcecode',
-                text: '',
                 tooltip: 'Format selected text as inline code',
                 onAction: function (_) {
                     tinymce.activeEditor.formatter.toggle('code')
@@ -180,22 +179,30 @@
             editor.ui.registry.addButton('highlight', {
                 context: 'format',
                 icon: 'highlight-bg-color',
-                text: '',
                 tooltip: 'Highlight selected text',
                 onAction: function (_) {
                     tinymce.activeEditor.formatter.toggle('highlight')
                 },
             });
 
+            editor.ui.registry.addButton('richcode', {
+                context: 'format',
+                icon: 'code-sample',
+                tooltip: 'Code snippet with formatting support',
+                onAction: function(_) {
+                    tinymce.activeEditor.formatter.toggle('richcode');
+                }
+            });
+
             editor.ui.registry.addMenuItem('richcode', {
                 context: 'format',
-                icon: 'sourcecode',
+                icon: 'code-sample',
                 text: 'Rich Code',
                 tooltip: 'Code snippet with formatting support',
                 onAction: function(_) {
                     tinymce.activeEditor.formatter.toggle('richcode');
                 }
-            })
+            });
         },
         paste_preprocess: function(_, event) {
             if(tinymce.activeEditor.formatter.match("richcode")) {
