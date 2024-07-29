@@ -1728,9 +1728,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     @staticmethod
     def _create_crispy_field(spec):
         if spec.type == "rich_text":
-            # TODO: Return to using the commented line below once evidence uploads support report findings vs. finding-specific uploads
-            # return Field(spec.internal_name, css_class="enable-evidence-upload")
-            return Field(spec.internal_name)
+            return Field(spec.internal_name, css_class="enable-evidence-upload")
         return Field(spec.internal_name)
 
 
@@ -3226,6 +3224,11 @@ class ReportObservationLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#observations"
+        ctx["evidence_upload_url"] = reverse(
+            "reporting:upload_evidence_modal",
+            kwargs={"parent_type": "report", "pk": self.object.report.pk, "modal": "modal"},
+        )
+        ctx["evidences"] = self.object.report.evidence_set.all()
         return ctx
 
     def get_success_url(self):

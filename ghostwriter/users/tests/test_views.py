@@ -83,7 +83,7 @@ class UserUpdateViewTests(TestCase):
         response = self.other_client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_successfull_redirect(self):
+    def test_successful_redirect(self):
         response = self.client_auth.post(
             self.uri,
             {
