@@ -136,6 +136,10 @@
           text: '\{\{.{{ file.friendly_name|escapejs }}\}\}',
           value: '\{\{.{{ file.friendly_name|escapejs }}\}\}'
         },
+        {
+          text: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}',
+          value: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}'
+        },
       {% endfor %}
     ];
   </script>
