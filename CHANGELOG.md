@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [4.2.4] -  29 July 2024
+
+### Changed
+
+* Changed the "Inline Code" formatting to work for blocks of text in the WYSIWYG editor (Closes #337)
+  * You can now use the "Inline Code" formatting to apply a monospace font to a block of text in the WYSIWYG editor
+  * This change allows you to apply the monospace font to multiple lines of text without needing to use the TinyMCE "Code Sample" blocks
+  * When Ghostwriter detects an entire line or multiple lines of text are formatted as "Inline Code," it will format them as a code block in the report template
+  * This change allows for additional formatting options, like highlighting or bolding text within the code block
+  * The "Code Sample" button is still present in the WYSIWYG editor if you prefer to use that for code blocks
+
+### Fixed
+
+* Fixed an error with template linting when the template did not have a `CodeInline` or `CodeBlock` style (Fixes #486)
+
 ## [4.2.3] - 24 July 2024
 
 ### Added
