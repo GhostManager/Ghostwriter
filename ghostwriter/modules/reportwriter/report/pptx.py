@@ -98,7 +98,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
                     shape=observation_body_shape,
                 )
             else:
-                par = observation_body_shape.add_paragraph()
+                par = observation_body_shape.text_frame.add_paragraph()
                 run = par.add_run()
                 run.text = "No description provided"
 

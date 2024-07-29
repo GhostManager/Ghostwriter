@@ -33,12 +33,14 @@ class TextTracking:
     """
     is_block_start: bool
     segment_break_run: typing.Any | None
+    in_pre: bool
 
     RE_PART = re.compile(r"^\s+|^[^\s]+")
 
     def __init__(self) -> None:
         self.is_block_start = True
         self.segment_break_run = None
+        self.in_pre = False
 
     def new_block(self):
         """
@@ -55,6 +57,10 @@ class TextTracking:
         If the passed in source text ends in whitespace, the tracker will store the run, as it
         may need to append a space if later text contains non-space characters.
         """
+        if self.in_pre:
+            run.text = run.text + text
+            return
+
         while text:
             match = self.RE_PART.search(text)
             if match[0].isspace():

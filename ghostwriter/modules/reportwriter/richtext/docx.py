@@ -158,12 +158,25 @@ class HtmlToDocx(BaseHtmlToOOXML):
             par = self.doc.add_paragraph()
 
         par.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        run = par.add_run(el.get_text())
+
+        if len(el.contents) == 1 and el.contents[0].name == "code":
+            content_el = el.contents[0]
+        else:
+            content_el = el
+
+        self.text_tracking.new_block()
+        self.text_tracking.in_pre = True
+        try:
+            self.process_children(content_el, par=par, **kwargs)
+        finally:
+            self.text_tracking.in_pre = False
+
         try:
             par.style = "CodeBlock"
         except KeyError:
-            font = run.font
-            font.name = "Courier New"
+            for run in par.runs:
+                run.font.name = "Courier New"
+                run.font.no_proof = True
 
     def tag_ul(self, el, *, par=None, list_level=None, list_tracking=None, **kwargs):
         if list_tracking is None:
