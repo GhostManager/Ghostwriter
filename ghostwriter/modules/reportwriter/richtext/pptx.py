@@ -106,10 +106,21 @@ class HtmlToPptx(BaseHtmlToOOXML):
         self.text_tracking.new_block()
         par = textbox.text_frame.add_paragraph()
         par.alignment = PP_ALIGN.LEFT
-        run = par.add_run()
-        run.text = el.get_text()
-        run.font.size = Pt(11)
-        run.font.name = "Courier New"
+
+        if len(el.contents) == 1 and el.contents[0].name == "code":
+            content_el = el.contents[0]
+        else:
+            content_el = el
+
+        self.text_tracking.in_pre = True
+        try:
+            self.process_children(content_el, par=par, **kwargs)
+        finally:
+            self.text_tracking.in_pre = False
+
+        for run in par.runs:
+            run.font.size = Pt(11)
+            run.font.name = "Courier New"
 
     def tag_blockquote(self, el, **kwargs):
         par = self.shape.text_frame.add_paragraph()
