@@ -2693,14 +2693,26 @@ ol {
 /*----------------------------------------------------
     COMMENT STYLES
 ------------------------------------------------------ */
-#comment-thread {
-  clear: both;
-}
 
 .comment-header {
   display: flex;
-  justify-content: center;
-  align-items: center;
+}
+
+#entire-comment-thread {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#entire-comment-thread .comment {
+  margin-left: 0;
+  margin-right: 20px;
+}
+
+#entire-comment-thread .comment.from-self {
+  align-self: flex-end;
+  margin-left: 20px;
+  margin-right: 0;
 }
 
 /* ---------------------------------------------------
