@@ -784,7 +784,7 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
         return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
-class GraphqlUploadEvidenceView(HasuraActionView):
+class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
     def post(self, request):
         if self.user_obj is None or not utils.verify_user_is_privileged(self.user_obj):
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
@@ -796,12 +796,11 @@ class GraphqlUploadEvidenceView(HasuraActionView):
         if form.is_valid():
             instance = form.save()
             return JsonResponse({"id": instance.pk}, status=201)
-        else:
-            message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
-            return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
+        message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
+        return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
 
 
-class GraphqlUploadReportTemplateView(HasuraActionView):
+class GraphqlUploadReportTemplateView(JwtRequiredMixin, HasuraActionView):
     def post(self, request):
         if self.user_obj is None or not self.user_obj.is_active:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
@@ -810,9 +809,8 @@ class GraphqlUploadReportTemplateView(HasuraActionView):
         if form.is_valid():
             instance = form.save()
             return JsonResponse({"id": instance.pk}, status=201)
-        else:
-            message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
-            return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
+        message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
+        return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
 
 
 class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):

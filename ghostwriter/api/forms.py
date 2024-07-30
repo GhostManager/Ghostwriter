@@ -85,10 +85,10 @@ class Base64BytesField(forms.Field):
         if value is None:
             return None
         try:
-            bytes = base64.b64decode(value, validate=True)
+            blob = base64.b64decode(value, validate=True)
         except BinAsciiError as err:
             raise ValidationError("Invalid base64 data", code="invalid") from err
-        return bytes
+        return blob
 
 
 class ApiEvidenceForm(forms.ModelForm):
