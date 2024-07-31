@@ -246,6 +246,9 @@ hr {
   border-style: solid;
   border-width: 1px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  position: absolute;
+  top: -20px;
+  left: -20px;
 }
 
 /* ---------------------------------------------------
@@ -2701,16 +2704,22 @@ ol {
 #entire-comment-thread {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
+  padding: 10px;
 }
 
 #entire-comment-thread .comment {
   margin-left: 0;
   margin-right: 20px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 #entire-comment-thread .comment.from-self {
-  align-self: flex-end;
+  align-self: flex-start;
   margin-left: 20px;
   margin-right: 0;
 }
