@@ -70,3 +70,9 @@ INSTALLED_APPS += ["django_extensions"]  # noqa F405
 # LOGGING.setdefault("loggers", {})["django.db.backends"] = {
 #     "level": "DEBUG"
 # }
+
+
+# Include files in `local.d`. These are added in alphabetical order - using a numeric prefix
+# like `10-subconfig.py` can be used to order inclusions
+
+include_settings("./local.d/*.py")
