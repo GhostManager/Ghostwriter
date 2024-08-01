@@ -110,13 +110,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if "id" in el.attrs:
             run = heading_paragraph.runs[0]
             tag = run._r
-            start = docx.oxml.shared.OxmlElement('w:bookmarkStart')
-            start.set(docx.oxml.ns.qn('w:id'), '0')
-            start.set(docx.oxml.ns.qn('w:name'), el.attrs["id"])
+            start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
+            start.set(docx.oxml.ns.qn("w:id"), "0")
+            start.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
             tag.append(start)
-            end = docx.oxml.shared.OxmlElement('w:bookmarkEnd')
-            end.set(docx.oxml.ns.qn('w:id'), '0')
-            end.set(docx.oxml.ns.qn('w:name'), el.attrs["id"])
+            end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
+            end.set(docx.oxml.ns.qn("w:id"), "0")
+            end.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
             tag.append(end)
 
     tag_h1 = _tag_h
@@ -251,15 +251,9 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
             ] = "auto"
             for row_idx, _ in enumerate(self.doc.tables[t_idx].rows):
-                for cell_idx, _ in enumerate(
-                    self.doc.tables[t_idx].rows[row_idx].cells
-                ):
-                    self.doc.tables[t_idx].rows[row_idx].cells[
-                        cell_idx
-                    ]._tc.tcPr.tcW.type = "auto"
-                    self.doc.tables[t_idx].rows[row_idx].cells[
-                        cell_idx
-                    ]._tc.tcPr.tcW.w = 0
+                for cell_idx, _ in enumerate(self.doc.tables[t_idx].rows[row_idx].cells):
+                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
+                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.w = 0
         return self.doc
 
 
@@ -312,9 +306,16 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         else:
             super().tag_span(el, par=par, **kwargs)
 
+    def is_plural_acronym(self, word):
+        """
+        Check if a word is an all caps acronym that ends with "s" or "'s".
+        """
+        pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
+        return re.match(pattern, word)
+
     def title_except(self, s):
         """
-        Title case the given string except for articles and words in the provided exceptions list.
+        Title case the given string except for articles and words in the provided exceptions list and words in all caps.
 
         Ref: https://stackoverflow.com/a/3729957
         """
@@ -323,7 +324,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             final = [word_list[0].capitalize()]
             for word in word_list[1:]:
                 final.append(
-                    word if word in self.title_case_exceptions else word.capitalize()
+                    word
+                    if word in self.title_case_exceptions or word.isupper() or self.is_plural_acronym(word)
+                    else word.capitalize()
                 )
             s = " ".join(final)
         return s
@@ -466,9 +469,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = ' REF "_Ref{}" \\h '.format(
-            ref.replace("\\", "\\\\").replace('"', '\\"')
-        )
+        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"'))
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -502,9 +503,7 @@ class ListTracking:
 
     @staticmethod
     def q_w(tag):
-        return etree.QName(
-            "http://schemas.openxmlformats.org/wordprocessingml/2006/main", tag
-        )
+        return etree.QName("http://schemas.openxmlformats.org/wordprocessingml/2006/main", tag)
 
     def add_paragraph(self, pg, level: int, is_ordered: bool):
         """
@@ -512,9 +511,7 @@ class ListTracking:
         """
         if level > len(self.level_list_is_ordered):
             raise Exception(
-                "Tried to add level {} to a list with {} existing levels".format(
-                    level, len(self.level_list_is_ordered)
-                )
+                "Tried to add level {} to a list with {} existing levels".format(level, len(self.level_list_is_ordered))
             )
         if level == len(self.level_list_is_ordered):
             self.level_list_is_ordered.append(is_ordered)
@@ -540,13 +537,9 @@ class ListTracking:
             abstract_numbering_id = last_used_id + 1
 
             abstract_numbering = numbering.makeelement(self.q_w("abstractNum"))
-            abstract_numbering.set(
-                self.q_w("abstractNumId"), str(abstract_numbering_id)
-            )
+            abstract_numbering.set(self.q_w("abstractNumId"), str(abstract_numbering_id))
 
-            multi_level_type = abstract_numbering.makeelement(
-                self.q_w("multiLevelType")
-            )
+            multi_level_type = abstract_numbering.makeelement(self.q_w("multiLevelType"))
             multi_level_type.set(self.q_w("val"), "hybridMultilevel")
             abstract_numbering.append(multi_level_type)
 
@@ -595,7 +588,5 @@ class ListTracking:
 
         for par, level in self.paragraphs:
             par.style = "ListParagraph"
-            par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = (
-                numbering_id
-            )
+            par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
