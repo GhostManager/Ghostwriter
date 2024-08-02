@@ -286,10 +286,11 @@ class ReportForm(forms.ModelForm):
 
     def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # If this is an update, mark the project field as read-only
+        # Don't allow non-staff users to move a report's project
         instance = getattr(self, "instance", None)
         if instance and instance.pk:
-            self.fields["project"].disabled = True
+            if user is None or not user.is_staff:
+                self.fields["project"].disabled = True
 
         # Limit the list to the pre-selected project and disable the field
         if project:
