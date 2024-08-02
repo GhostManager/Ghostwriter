@@ -281,6 +281,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.title_case_captions = title_case_captions
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
+        self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -310,8 +311,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         """
         Check if a word is an all caps acronym that ends with "s" or "'s".
         """
-        pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
-        return re.match(pattern, word)
+        return re.match(self.plural_acronym_pattern, word)
 
     def title_except(self, s):
         """
