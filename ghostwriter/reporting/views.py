@@ -1612,7 +1612,9 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({"project": self.get_object().project, "user": self.request.user})
+        kwargs.update({
+            "user": self.request.user,
+        })
         return kwargs
 
     def get_context_data(self, **kwargs):
