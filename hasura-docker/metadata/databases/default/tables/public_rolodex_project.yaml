@@ -167,6 +167,31 @@ insert_permissions:
         - start_date
         - start_time
         - timezone
+  - role: user
+    permission:
+      columns:
+        - client_id
+        - codename
+        - end_date
+        - end_time
+        - extra_fields
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_client_create:
+                  _eq: true
 select_permissions:
   - role: manager
     permission:
@@ -219,7 +244,47 @@ update_permissions:
         - timezone
       filter: {}
       check: {}
+  - role: user
+    permission:
+      columns:
+        - client_id
+        - codename
+        - complete
+        - end_date
+        - end_time
+        - extra_fields
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                _eq: X-Hasura-User-Id
+              - enable_client_edit:
+                _eq: true
 delete_permissions:
   - role: manager
     permission:
       filter: {}
+  - role: user
+    permission:
+      filter: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                _eq: X-Hasura-User-Id
+              - enable_client_delete:
+                _eq: true
