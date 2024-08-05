@@ -39,7 +39,7 @@
             insert: {title: 'Insert', items: 'table evidenceUpload codesample link pagebreak'},
             format: {
                 title: 'Format',
-                items: 'bold italic underline strikethrough superscript subscript codeformat case | formats fontformats fontsizes align | forecolor | removeformat'
+                items: 'bold italic underline strikethrough superscript subscript codeformat richcode case | formats fontformats fontsizes align | forecolor | removeformat'
             },
             table: {title: 'Table', items: 'inserttable | cell row column | tableprops deletetable'},
             tools: {title: 'Tools', items: 'code wordcount'},
@@ -48,7 +48,7 @@
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
-        toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
+        toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | richcode codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
         contextmenu: 'table formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
@@ -72,6 +72,7 @@
             .underline { text-decoration: underline; }
             .tablerow1 { background-color: #D3D3D3; }
             blockquote { border-left: 5px solid #ccc; padding: 0.5em; margin: 0.5em; }
+            pre.rich-code { background: #f5f2f0; padding: 1em; margin: 0.5em 0; overflow: auto; }
         `,
         formats: {
             alignleft: {
@@ -122,7 +123,11 @@
             blockquote: {
                 block: 'blockquote',
                 classes: 'blockquote'
-            }
+            },
+            richcode: {
+                block: 'pre',
+                classes: 'rich-code',
+            },
         },
         style_formats: [
             {
@@ -161,33 +166,10 @@
         table_default_styles: {'border-collapse': 'collapse', 'width': '100%', 'border-style': 'solid', 'border-width': '1px'},
         table_default_attributes: {class: 'table table-sm table-striped table-bordered'},
         table_header_type: 'sectionCells',
-    };
-
-    // TinyMCE config for most fields
-    GW_TINYMCE_BASIC_CONFIG = {
-        ...GW_TINYMCE_DEFAULT_CONFIG,
-        setup: function (editor) {
+        setup: function(editor) {
             editor.ui.registry.addButton('codeInline', {
                 context: 'format',
                 icon: 'sourcecode',
-                text: '',
-                tooltip: 'Format selected text as inline code',
-                onAction: function (_) {
-                    tinymce.activeEditor.formatter.toggle('code')
-                },
-            });
-        },
-    };
-
-    // TinyMCE config for finding fields, with additional functionality for evidence uploads
-    GW_TINYMCE_FINDING_CONFIG = {
-        ...GW_TINYMCE_BASIC_CONFIG,
-        selector: "textarea.enable-evidence-upload",
-        setup: function (editor) {
-            editor.ui.registry.addButton('codeInline', {
-                context: 'format',
-                icon: 'sourcecode',
-                text: 'Inline Code',
                 tooltip: 'Format selected text as inline code',
                 onAction: function (_) {
                     tinymce.activeEditor.formatter.toggle('code')
@@ -197,12 +179,58 @@
             editor.ui.registry.addButton('highlight', {
                 context: 'format',
                 icon: 'highlight-bg-color',
-                text: '',
                 tooltip: 'Highlight selected text',
                 onAction: function (_) {
                     tinymce.activeEditor.formatter.toggle('highlight')
                 },
             });
+
+            editor.ui.registry.addButton('richcode', {
+                context: 'format',
+                icon: 'code-sample',
+                tooltip: 'Code snippet with formatting support',
+                onAction: function(_) {
+                    tinymce.activeEditor.formatter.toggle('richcode');
+                }
+            });
+
+            editor.ui.registry.addMenuItem('richcode', {
+                context: 'format',
+                icon: 'code-sample',
+                text: 'Rich Code',
+                tooltip: 'Code snippet with formatting support',
+                onAction: function(_) {
+                    tinymce.activeEditor.formatter.toggle('richcode');
+                }
+            });
+        },
+        paste_preprocess: function(_, event) {
+            if(tinymce.activeEditor.formatter.match("richcode")) {
+                // When pasting into rich code, strip <p>, which will cause the text to be inserted after the rich code block,
+                // which is not what we want.
+                const parser = tinymce.html.DomParser({}, tinymce.activeEditor.schema);
+                parser.addNodeFilter("p", nodes => {
+                    tinymce.util.Tools.each(nodes, node => {
+                        node.unwrap();
+                    });
+                });
+                const fragment = parser.parse(event.content, { force_root_block: false, isRootContent: true });
+                event.content = tinymce.html.Serializer({}, tinymce.activeEditor.schema).serialize(fragment);
+            }
+        },
+    };
+
+    // TinyMCE config for most fields
+    GW_TINYMCE_BASIC_CONFIG = {
+        ...GW_TINYMCE_DEFAULT_CONFIG,
+    };
+
+    // TinyMCE config for finding fields, with additional functionality for evidence uploads
+    GW_TINYMCE_FINDING_CONFIG = {
+        ...GW_TINYMCE_BASIC_CONFIG,
+        selector: "textarea.enable-evidence-upload",
+        setup: function (editor) {
+            GW_TINYMCE_BASIC_CONFIG.setup.call(this, editor);
 
             // https://www.martyfriedel.com/blog/tinymce-5-url-dialog-component-and-window-messaging
             editor.ui.registry.addButton('evidenceUpload', {

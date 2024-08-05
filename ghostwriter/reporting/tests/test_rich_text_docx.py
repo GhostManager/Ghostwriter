@@ -447,7 +447,10 @@ class RichTextToDocxTests(TestCase):
             <w:p>
                 <w:pPr><w:jc w:val="left"/></w:pPr>
                 <w:r>
-                    <w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>
+                    <w:rPr>
+                        <w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>
+                        <w:noProof/>
+                    </w:rPr>
                     <w:t>int main() {</w:t>
                     <w:br/>
                     <w:t xml:space="preserve">    printf("hello world!\\n");</w:t>

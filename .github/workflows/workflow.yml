@@ -22,8 +22,8 @@ jobs:
 
       - name: Generate Coverage report
         run: |
-          docker-compose -f local.yml run django coverage run manage.py test --exclude-tag=GitHub
-          docker-compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
+          docker compose -f local.yml run django coverage run manage.py test --exclude-tag=GitHub
+          docker compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
 
       - name: Upload Coverage report artifact
         uses: actions/upload-artifact@v4
