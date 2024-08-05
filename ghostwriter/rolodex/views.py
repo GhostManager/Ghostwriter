@@ -1625,6 +1625,7 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.exception(message)
+            form.add_error(None, "Internal error. Ask your administrator to view the server logs.")
             return super().form_invalid(form)
 
     def get_initial(self):

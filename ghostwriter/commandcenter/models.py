@@ -404,24 +404,33 @@ class ExtraFieldSpec(models.Model):
     def __str__(self):
         return "Extra Field"
 
+    def field_type_spec(self):
+        try:
+            return EXTRA_FIELD_TYPES[self.type]
+        except KeyError as e:
+            raise RuntimeError(
+                f"Extra field {self.internal_name!r} on {self.target_model.model_display_name} has unrecognized type {self.type!r}. " +
+                "This may happen if you've downgraded - change the extra field to a supported type."
+            ) from e
+
     def value_of(self, extra_fields_json):
         if extra_fields_json is not None and self.internal_name in extra_fields_json:
             return extra_fields_json[self.internal_name]
-        return EXTRA_FIELD_TYPES[self.type].empty_value()
+        return self.field_type_spec().empty_value()
 
     def form_field(self, *args, **kwargs):
-        return EXTRA_FIELD_TYPES[self.type].form_field(
+        return self.field_type_spec().form_field(
             label=self.display_name, help_text=self.description, *args, **kwargs
         )
 
     def form_widget(self, *args, **kwargs):
-        return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)
+        return self.field_type_spec().form_widget(*args, **kwargs)
 
     def initial_value(self):
-        return EXTRA_FIELD_TYPES[self.type].from_str(self.user_default_value)
+        return self.field_type_spec().from_str(self.user_default_value)
 
     def empty_value(self):
-        return EXTRA_FIELD_TYPES[self.type].empty_value()
+        return self.field_type_spec().empty_value()
 
     @classmethod
     def initial_json(cls, model):
