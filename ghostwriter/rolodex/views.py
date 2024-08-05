@@ -1484,7 +1484,7 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = get_project_list(user)
+        queryset = get_project_list(user).defer("extra_fields")
         return queryset
 
     def get_context_data(self, **kwargs):

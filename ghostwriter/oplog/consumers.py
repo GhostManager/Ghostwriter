@@ -160,6 +160,9 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
             # JSON operations to fetch extra fields
             for spec in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
+                if spec.type == "json":
+                    continue
+
                 field = Cast(CombinedExpression(
                     F("extra_fields"),
                     "->>",

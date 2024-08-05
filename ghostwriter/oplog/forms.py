@@ -41,7 +41,7 @@ class OplogForm(forms.ModelForm):
         # Limit the list to active projects if this is a new log made from the sidebar
         if not project:
             projects = get_project_list(user)
-            active_projects = projects.filter(complete=False).order_by("-start_date")
+            active_projects = projects.filter(complete=False).order_by("-start_date").defer("extra_fields")
             if active_projects:
                 self.fields["project"].empty_label = "-- Select an Active Project --"
             else:
