@@ -1138,25 +1138,16 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
+        client_instance = self.get_object()
         domain_history = History.objects.select_related("domain").filter(client=client_instance)
         server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
-        projects = Project.objects.filter(client=client_instance)
-        client_domains = []
-        for domain in domain_history:
-            client_domains.append(domain)
-        client_servers = []
-        for server in server_history:
-            client_servers.append(server)
-        client_vps = []
-        for project in projects:
-            vps_queryset = TransientServer.objects.filter(project=project)
-            for vps in vps_queryset:
-                client_vps.append(vps)
-        ctx["domains"] = client_domains
-        ctx["servers"] = client_servers
-        ctx["vps"] = client_vps
+        projects = get_project_list(self.request.user).filter(client=client_instance)
 
+        client_vps = TransientServer.objects.filter(project__in=projects)
+        ctx["domains"] = domain_history
+        ctx["servers"] = server_history
+        ctx["vps"] = client_vps
+        ctx["projects"] = projects
         ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
 
         return ctx
