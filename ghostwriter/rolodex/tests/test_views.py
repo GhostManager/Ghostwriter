@@ -692,6 +692,43 @@ class ClientListViewTests(TestCase):
         self.assertEqual(len(response.context["filter"].qs), 2)
 
 
+class ClientDetailViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.client = ClientFactory(name="SpecterOps", short_name="SO", codename="BloodHound")
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.invited_user = UserFactory(password=PASSWORD)
+        cls.project_assigned = ProjectFactory(client=cls.client)
+        cls.project_unassigned = ProjectFactory(client=cls.client)
+        ProjectAssignmentFactory(project=cls.project_assigned, operator=cls.user)
+        ClientInviteFactory(client=cls.client, user=cls.invited_user)
+        cls.uri = reverse("rolodex:client_detail", kwargs={"pk": cls.client.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_mgr = Client()
+        self.client_invited = Client()
+        self.assertTrue(self.client.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertTrue(self.client_invited.login(username=self.invited_user.username, password=PASSWORD))
+
+    def test_projects_assigned_only(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.context["projects"]), {self.project_assigned})
+
+    def test_projects_staff_all(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.context["projects"]), {self.project_assigned, self.project_unassigned})
+
+    def test_projects_invited_all(self):
+        response = self.client_invited.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.context["projects"]), {self.project_assigned, self.project_unassigned})
+
+
 class ProjectListViewTests(TestCase):
     """Collection of tests for :view:`rolodex.ProjectListView`."""
 
