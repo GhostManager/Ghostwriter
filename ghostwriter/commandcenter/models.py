@@ -1,5 +1,6 @@
 """This contains all the database models for the CommandCenter application."""
 
+import json
 from typing import Any, Callable, NamedTuple
 from django import forms
 
@@ -324,6 +325,12 @@ class GeneralConfiguration(SingletonModel):
         verbose_name = "General Settings"
 
 
+class IndentingJsonEncoder(json.JSONEncoder):
+    def __init__(self, *args, **kwargs):
+        kwargs["indent"] = "\t"
+        super().__init__(*args, **kwargs)
+
+
 class ExtraFieldType(NamedTuple):
     # Name displayed to the user
     display_name: str
@@ -372,6 +379,13 @@ EXTRA_FIELD_TYPES = {
         form_widget=forms.widgets.NumberInput,
         from_str=float,
         empty_value=lambda: 0.0,
+    ),
+    "json": ExtraFieldType(
+        display_name="JSON",
+        form_field=lambda *args, **kwargs: forms.JSONField(required=False, encoder=IndentingJsonEncoder, *args, **kwargs),
+        form_widget=lambda: forms.widgets.Textarea(attrs={"class": "no-auto-tinymce"}),
+        from_str=json.loads,
+        empty_value=lambda: None,
     ),
 }
 

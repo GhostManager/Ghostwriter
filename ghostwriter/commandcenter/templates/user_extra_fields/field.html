@@ -9,6 +9,8 @@
     {% endif %}
   {% elif field_spec.type == "rich_text" %}
     {{ field_value|bleach }}
+  {% elif field_spec.type == "json" %}
+    <pre>{{ field_value|json_pretty }}</pre>
   {% else %}
     {% if field_value %}{{ field_value }}{% else %}No Value Set{% endif %}
   {% endif %}

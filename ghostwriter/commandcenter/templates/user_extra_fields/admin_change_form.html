@@ -17,7 +17,9 @@
             let id = existing_input.attr("id");
             let value = existing_input.val();
 
+            let error_list = container.children(".errorlist").detach();
             container.empty();
+
             let new_control = document.createElement(tag);
             new_control.setAttribute("name", name);
             new_control.setAttribute("id", id);
@@ -28,6 +30,9 @@
                 set_value(new_control, value);
             } else {
                 new_control.setAttribute("value", value);
+            }
+            if(error_list) {
+                container.append(error_list);
             }
             container.append(new_control);
             return new_control;
@@ -47,6 +52,7 @@
             },
             "integer": row => swap_control(row, "input", {"type": "number", "step": "1"}),
             "float": row => swap_control(row, "input", {"type": "number"}),
+            "json": row => swap_control(row, "textarea", {"class": "no-auto-tinymce"}, (el, value) => el.innerText = value || "null"),
         };
 
         function extra_fields_set_default_value_widget(row) {

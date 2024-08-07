@@ -298,7 +298,7 @@ class ReportForm(forms.ModelForm):
 
         if not project:
             projects = get_project_list(user)
-            active_projects = projects.filter(complete=False).order_by("-start_date", "client", "project_type")
+            active_projects = projects.filter(complete=False).order_by("-start_date", "client", "project_type").defer("extra_fields")
             if active_projects:
                 self.fields["project"].empty_label = "-- Select an Active Project --"
             else:

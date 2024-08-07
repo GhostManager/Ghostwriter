@@ -113,9 +113,12 @@ def get_file_content(file):
                 or file.document.name.lower().endswith(".log")
                 or file.document.name.lower().endswith(".md")
             ):
-                with open(file.document.path, "r", encoding="utf-8") as f:
-                    file_content = f.read()
-                    file_content.strip()
+                try:
+                    with open(file.document.path, "r", encoding="utf-8") as f:
+                        file_content = f.read()
+                        file_content.strip()
+                except UnicodeError:
+                    file_content = "UNABLE TO DECODE FILE"
         else:
             file_content = "FILE NOT FOUND"
 

@@ -1,11 +1,11 @@
 # Standard Libraries
+import base64
 import logging
 import os
 from datetime import date, datetime, timedelta
 
 # Django Imports
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -46,6 +46,7 @@ from ghostwriter.factories import (
     StaticServerFactory,
     UserFactory,
 )
+from ghostwriter.reporting.models import Evidence
 
 logging.disable(logging.CRITICAL)
 
@@ -1145,6 +1146,69 @@ class GraphqlAttachFindingAction(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 401)
+
+
+class GraphqlUploadEvidenceViewTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlUploadEvidenceView`."""
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_upload_evidence")
+        cls.project = ProjectFactory()
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.report = ReportFactory(project=cls.project)
+        cls.finding = ReportFindingLinkFactory(report=cls.report)
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_upload_report(self):
+        _, token = utils.generate_jwt(self.user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "report": str(self.report.pk),
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        id = response.json()["id"]
+        evidence = Evidence.objects.get(pk=id)
+        self.assertEqual(evidence.caption, data["caption"])
+        self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
+        self.assertEqual(evidence.pk, self.report.evidence_set.all().get().pk)
+
+    def test_upload_finding(self):
+        _, token = utils.generate_jwt(self.user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "finding": str(self.finding.pk),
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        id = response.json()["id"]
+        evidence = Evidence.objects.get(pk=id)
+        self.assertEqual(evidence.caption, data["caption"])
+        self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
+        self.assertEqual(evidence.pk, self.finding.evidence_set.all().get().pk)
 
 
 class GraphqlGenerateCodenameActionTests(TestCase):

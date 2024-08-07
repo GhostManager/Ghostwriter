@@ -1,4 +1,4 @@
-(function () {
+(function ($) {
     // TinyMCE OpenURL dialog config only accepts height/width in pixels
     // Get browser windows width and height and calculate pixels from a percentage to avoid overflow
     var dialog_percentage = .7
@@ -347,4 +347,4 @@
     }
     $(tinyInit);
 
-})();
+})($ || django.jQuery);

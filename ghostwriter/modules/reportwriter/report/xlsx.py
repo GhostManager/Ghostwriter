@@ -1,5 +1,6 @@
 
 import io
+import json
 import logging
 
 from ghostwriter.modules.reportwriter.base.xlsx import ExportXlsxBase
@@ -223,6 +224,8 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
                 field_value = field_spec.value_of(finding["extra_fields"])
                 if field_spec.type == "rich_text":
                     field_value = self.render_rich_text_xlsx(field_value)
+                elif field_spec.type == "json":
+                    field_value = json.dumps(field_value)
                 else:
                     field_value = str(field_value)
                 worksheet.write_string(row, col, field_value, wrap_format)
