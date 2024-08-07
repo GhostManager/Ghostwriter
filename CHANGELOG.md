@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [4.2.4] -  29 July 2024
+### [4.2.5] - 7 August 2024
+
+### Changed
+
+* Changed filtered activity logs to sort by the start date instead of relevancy rank 
+
+### Fixed
+
+* Fixed activity logs not loading additional entries when scrolling to the bottom of the page
+* Fixed an issue that could cause an error when importing an activity log csv file with one or more individual cells with content exceeding 128KB
+
+### [4.2.4] - 29 July 2024
 
 ### Changed
 
