@@ -263,7 +263,7 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
     oplog_entry_resource = OplogEntryResource()
     try:
         imported_data = dataset.load(new_entries, format="csv")
-    except Exception as exception:  # pragma: no cover
+    except csv.Error as exception:  # pragma: no cover
         logger.error("An error occurred while loading the CSV file for log import: %s", exception)
         messages.error(
             request,
