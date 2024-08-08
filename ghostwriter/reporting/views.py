@@ -59,6 +59,7 @@ from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
+from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.filters import (
     ArchiveFilter,
     FindingFilter,
@@ -1065,7 +1066,7 @@ def export_findings_to_csv(request):
     finding_resource = FindingResource()
     dataset = finding_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="{timestamp}_findings.csv"'
+    add_content_disposition_header(response, f"{timestamp}_findings.csv")
 
     return response
 
@@ -1077,7 +1078,7 @@ def export_observations_to_csv(request):
     observation_resource = ObservationResource()
     dataset = observation_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="{timestamp}_observations.csv"'
+    add_content_disposition_header(response, f"{timestamp}_observations.csv")
 
     return response
 
@@ -1426,7 +1427,7 @@ class ArchiveDownloadView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         if os.path.exists(file_path):
             with open(file_path, "rb") as archive_file:
                 response = HttpResponse(archive_file.read(), content_type="application/x-zip-compressed")
-                response["Content-Disposition"] = "attachment; filename=" + os.path.basename(file_path)
+                add_content_disposition_header(response, os.path.basename(file_path))
                 return response
         raise Http404
 
@@ -2093,7 +2094,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         response = HttpResponse(
             docx.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-        response["Content-Disposition"] = f'attachment; filename="{report_name}"'
+        add_content_disposition_header(response, report_name)
 
         # Send WebSocket message to update user's webpage
         try:
@@ -2142,7 +2143,7 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 output.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-            response["Content-Disposition"] = f'attachment; filename="{report_name}"'
+            add_content_disposition_header(response, report_name)
             output.close()
 
             return response
@@ -2213,7 +2214,7 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 pptx.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             )
-            response["Content-Disposition"] = f'attachment; filename="{report_name}"'
+            add_content_disposition_header(response, report_name)
 
             return response
         except ReportExportError as error:
@@ -2313,7 +2314,7 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
             # Return the buffer in the HTTP response
             response = HttpResponse(content_type="application/x-zip-compressed")
-            response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
+            add_content_disposition_header(response, os.path.basename(zip_filename))
             response.write(zip_buffer.read())
 
             return response

@@ -29,6 +29,7 @@ from ghostwriter.api.utils import (
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
+from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -628,10 +629,8 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         queryset = obj.entries.all()
         opts = queryset.model._meta
 
-        response = HttpResponse(
-            content_type="text/csv",
-            headers={"Content-Disposition": 'attachment; filename="export.csv"'},
-        )
+        response = HttpResponse(content_type="text/csv")
+        add_content_disposition_header(response, f"{obj.name}.csv")
 
         writer = csv.writer(response)
         field_names = [field.name for field in opts.fields]
