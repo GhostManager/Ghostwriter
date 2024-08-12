@@ -26,6 +26,7 @@ insert_permissions:
     permission:
       check: {}
       columns:
+        - mute_notifications
         - name
         - project_id
   - role: user
@@ -50,8 +51,9 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - name
         - id
+        - mute_notifications
+        - name
         - project_id
       filter: {}
   - role: user
@@ -74,6 +76,7 @@ update_permissions:
   - role: manager
     permission:
       columns:
+        - mute_notifications
         - name
         - project_id
       filter: {}
