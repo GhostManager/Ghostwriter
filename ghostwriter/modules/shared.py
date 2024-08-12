@@ -1,5 +1,8 @@
 """This contains shared model resources used by multiple applications."""
 
+# Standard Libraries
+from urllib.parse import quote
+
 # 3rd Party Libraries
 from import_export import widgets
 from import_export.fields import Field
@@ -43,3 +46,17 @@ def taggit_before_import_row(row):
         # A blank field may be blank ("") or ``None`` depending on the import file format.
         if row["tags"] == "" or row["tags"] is None:
             row["tags"] = ","
+
+
+def add_content_disposition_header(response, filename):
+    """
+    Add an RFC5987 / RFC6266 compliant `Content-Disposition` header to an
+    `HttpResponse` to tell the browser to save the HTTP response to a file.
+    """
+    try:
+        filename.encode("ascii")
+        file_expr = 'filename="{}"'.format(filename)
+    except UnicodeEncodeError:
+        file_expr = "filename*=utf-8''{}".format(quote(filename))
+    response["Content-Disposition"] = "attachment; {}".format(file_expr)
+    return response

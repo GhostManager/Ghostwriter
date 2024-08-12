@@ -356,7 +356,7 @@ class ProjectScopeExportViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(response.get("Content-Disposition"), f"attachment; filename={self.scope.name}_scope.txt")
+        self.assertEqual(response.get("Content-Disposition"), f'attachment; filename="{self.scope.name}_scope.txt"')
 
 
 class ClientNoteUpdateTests(TestCase):

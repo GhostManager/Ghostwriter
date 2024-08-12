@@ -23,7 +23,7 @@
       <label for="oplog_id"></label>
       <select class="form-control" id="oplog_log" name="oplog_id" required {% if not logs %}disabled{% endif %}>
         {%  if logs %}
-          <option value="0">-- Select a Target Log --</option>
+          <option value="">-- Select a Target Log --</option>
           {% for log in logs %}
             <option value="{{ log.id }}" {% if initial_log.id == log.id %}selected="selected"{% endif %}>{{ log.name }} (ID {{ log.id }})</option>
           {% endfor %}

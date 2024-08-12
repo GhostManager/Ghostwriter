@@ -39,6 +39,7 @@ from ghostwriter.commandcenter.models import (
     NamecheapConfiguration,
     VirusTotalConfiguration,
 )
+from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.filters import DomainFilter, ServerFilter
 from ghostwriter.shepherd.forms import (
@@ -845,7 +846,7 @@ def export_domains_to_csv(request):
     domain_resource = DomainResource()
     dataset = domain_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_domains.csv"
+    add_content_disposition_header(response, f"{timestamp}_domains.csv")
 
     return response
 
@@ -859,7 +860,7 @@ def export_servers_to_csv(request):
     server_resource = StaticServerResource()
     dataset = server_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_servers.csv"
+    add_content_disposition_header(response, f"{timestamp}_servers.csv")
 
     return response
 
