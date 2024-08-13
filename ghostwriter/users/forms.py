@@ -26,7 +26,6 @@ class UserChangeForm(UserChangeForm):
     class Meta:
         model = get_user_model()
         fields = (
-            "email",
             "name",
             "timezone",
             "phone",
@@ -35,19 +34,19 @@ class UserChangeForm(UserChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["phone"].widget.attrs["autocomplete"] = "off"
-        self.fields["phone"].widget.attrs["placeholder"] = "Your Work Number"
+        self.fields["name"].widget.attrs["autocomplete"] = "off"
+        self.fields["phone"].widget.attrs["placeholder"] = "(212) 555-2368"
         self.fields["phone"].help_text = "Work phone number for work contacts"
         self.fields["timezone"].help_text = "Timezone in which you work"
+        self.fields["name"].help_text = "Your full name as it should appear in reports"
         self.fields["name"].label = "Your Full Name"
-        self.fields["email"].label = "Your Primary Email Address"
         self.fields["timezone"].label = "Your Timezone"
         self.fields["phone"].label = "Your Contact Number"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.layout = Layout(
             Row(
-                Column("name", css_class="form-group col-md-6 mb-0"),
-                Column("email", css_class="form-group col-md-6 mb-0"),
+                Column("name", css_class="form-group col-md-12 mb-0"),
                 css_class="form-row mt-4",
             ),
             Row(

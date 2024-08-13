@@ -1084,6 +1084,12 @@ p.severity-box.info {
   color: #fff;
 }
 
+.btn-extra {
+  background-color: var(--secondary-color-med);
+  border-color: var(--secondary-color-med);
+  color: #fff;
+}
+
 button.open {
   transform: rotate(90deg);
 }
