@@ -1,9 +1,8 @@
 {% extends "account/base.html" %}
-{% extends "socialaccount/base_entrance.html" %}
 
 {% load i18n %}
 
-{% block pagetitle %}{% trans "Sign In" %}{% endblock head_title %}
+{% block pagetitle %}{% trans "Sign In" %}{% endblock pagetitle %}
 
 {% block content %}
     {% if process == "connect" %}
