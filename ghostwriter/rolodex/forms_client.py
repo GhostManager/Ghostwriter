@@ -26,7 +26,7 @@ from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
-from ghostwriter.rolodex.models import Client, ClientContact, ClientNote
+from ghostwriter.rolodex.models import Client, ClientContact, ClientInvite, ClientNote
 
 # Number of "extra" formsets created by default
 # Higher numbers can increase page load times with WYSIWYG editors
@@ -168,6 +168,111 @@ ClientContactFormSet = inlineformset_factory(
 )
 
 
+class ClientInviteForm(forms.ModelForm):
+    class Meta:
+        model = ClientInvite
+        exclude = ("client",)
+        field_classes = {
+            "comment": JinjaRichTextField,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].label = "Operator"
+        self.fields["user"].queryset = self.fields["user"].queryset.order_by("-is_active", "username", "name")
+        self.fields["user"].label_from_instance = lambda obj: obj.get_display_name
+
+        self.helper = FormHelper()
+        # Disable the <form> tags because this will be part of an instance of `ClientForm()`
+        self.helper.form_tag = False
+        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
+        self.helper.disable_csrf = True
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            Div(
+                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
+                Alert(
+                    content=(
+                        """
+                        <strong>Invite Deleted!</strong>
+                        Deletion will be permanent once the form is submitted. Click this alert to undo.
+                        """
+                    ),
+                    css_class="alert alert-danger show formset-undo-button",
+                    style="display:none; cursor:pointer;",
+                    template="alert.html",
+                    block=False,
+                    dismiss=False,
+                ),
+                Div(
+                    Row(
+                        Column("user", css_class="form-group col-md-12"),
+                        css_class="form-row",
+                    ),
+                    "comment",
+                    Row(
+                        Column(
+                            Button(
+                                "formset-del-button",
+                                "Delete Contact",
+                                css_class="btn-outline-danger formset-del-button col-4",
+                            ),
+                            css_class="form-group col-6 offset-3",
+                        ),
+                        Column(
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
+                        ),
+                    ),
+                    css_class="formset",
+                ),
+                css_class="formset-container"
+            )
+        )
+
+
+class BaseClientInviteInlineFormSet(BaseInlineFormSet):
+    """
+    BaseInlineFormset template for :model:`rolodex.ClientInvite` that adds validation
+    for this model.
+    """
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+
+        invites = set()
+        for form in self.forms:
+            if not form.cleaned_data or form.cleaned_data["DELETE"]:
+                continue
+            user = form.cleaned_data["user"]
+
+            # Check that the same person has not been added more than once
+            if user:
+                if user in invites:
+                    form.add_error(
+                        "user",
+                        ValidationError(
+                            _("This person is already invited."),
+                            code="duplicate",
+                        ),
+                    )
+                invites.add(user)
+
+
+ClientInviteFormSet = inlineformset_factory(
+    Client,
+    ClientInvite,
+    form=ClientInviteForm,
+    formset=BaseClientInviteInlineFormSet,
+    extra=EXTRAS,
+    can_delete=True,
+)
+
+
 class ClientForm(forms.ModelForm):
     """
     Save an individual :model:`rolodex.Client` with instances of :model:`rolodex.ClientContact`.
@@ -272,6 +377,27 @@ class ClientForm(forms.ModelForm):
                     ),
                     link_css_class="poc-icon",
                     css_id="contacts",
+                ),
+                CustomTab(
+                    "Invites",
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    Formset("invites", object_context_name="Invite"),
+                    Button(
+                        "add-invite",
+                        "Add Invite",
+                        css_class="btn-block btn-secondary formset-add-invite",
+                    ),
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    link_css_class="tab-icon users-icon",
+                    css_id="invites",
                 ),
                 template="tab.html",
                 css_class="nav-justified",

@@ -1,3 +1,4 @@
+{% load custom_tags %}
 <li class="nav-item">
     <a id="id_general" class="nav-link active tab-icon company-icon" data-toggle="tab" href="#general">
         General Info
@@ -18,6 +19,13 @@
         Infrastructure History <span class="badge badge-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
     </a>
 </li>
+{% if request.user|is_privileged %}
+<li class="nav-item">
+    <a id="id_invitations" class="nav-link tab-icon users-icon" data-toggle="tab" href="#invitations">
+        Invitations <span class="badge badge-pill badge-light">{{ client.clientinvite_set.all.count }}</span>
+    </a>
+</li>
+{% endif %}
 {% if client_extra_fields_spec %}
     <li class="nav-item">
         <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-toggle="tab" href="#extra_fields">
