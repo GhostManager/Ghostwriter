@@ -498,3 +498,42 @@ REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
 # Tagging
 # ------------------------------------------------------------------------------
 TAGGIT_CASE_INSENSITIVE = True
+
+
+def include_settings(py_glob):
+    """
+    Includes a glob of Python settings files.
+    The files will be sorted alphabetically.
+    """
+    import sys
+    import os
+    import glob
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    # Get caller's global scope
+    scope = sys._getframe(1).f_globals
+
+    including_path = scope["__file__"].rstrip("c")
+    including_dir = os.path.dirname(including_path)
+    py_glob_rel = os.path.join(including_dir, py_glob)
+
+    for relpath in sorted(glob.glob(py_glob_rel)):
+        # Read and execute files
+        with open(relpath, "rb") as f:
+            contents = f.read()
+        compiled = compile(contents, relpath, "exec")
+        # Use of `exec` is typically dangerous, but we're only executing our own settings files
+        # The settings files are user controlled, but any danger represented by executing them also applies to executing the main settings files
+        # The primary concern is an admin could unwittingly execute a malicious settings file they did not realize was present
+        # However, an admin could also unwittingly run a malicious command in the main settings file
+        exec(compiled, scope)
+
+        # Adds dummy module to sys.modules so runserver will reload if they change
+        rel_path = os.path.relpath(including_path)
+        module_name = "_settings_include.{0}".format(
+            rel_path[: rel_path.rfind(".")].replace("/", "."),
+        )
+
+        spec = spec_from_file_location(module_name, including_path)
+        module = module_from_spec(spec)
+        sys.modules[module_name] = module
