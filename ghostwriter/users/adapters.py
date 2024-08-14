@@ -29,8 +29,26 @@ class AccountAdapter(DefaultAccountAdapter):  # pragma: no cover
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
+    """
+    Custom adapter for social accounts. This adapter implements an allowlist for domain registration. It also populates
+    some user fields not populated by default (e.g., the user's full name).
+    """
+
     def is_open_for_signup(self, request: HttpRequest, sociallogin: Any):
-        return getattr(settings, "SOCIAL_ACCOUNT_ALLOW_REGISTRATION", True)
+        u = sociallogin.user
+        allow_reg = getattr(settings, "SOCIAL_ACCOUNT_ALLOW_REGISTRATION", True)
+        allowlist = getattr(settings, "SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST", "")
+        # If the allowlist isn't empty, split it into a list
+        if allowlist:
+            allowlist = allowlist.split(" ")
+        # If registration is allowed, check the email domain
+        if allow_reg:
+            if allowlist and u.email.split("@")[1] in allowlist:
+                return True
+            if not allowlist:
+                return True
+        # Registration is not allowed
+        return False
 
     def authentication_error(self, request, provider_id, error, exception, extra_context):
         logger.error("Error authenticating with social account: %s %s %s", error, exception, extra_context)
@@ -62,33 +80,28 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
         return user
 
     def pre_social_login(self, request, sociallogin):
-        # Check if registration is enabled
-        # Otherwise, only allow social logins for existing users
-        allow_reg = self.is_open_for_signup(request, sociallogin)
+        # The following pre-login checks look at the user's primary email address
+        # If en existing account has the same email address, the social login is allowed and the accounts are connected
+        # If multiple accounts share the same email address, the user is redirected with an error message
+        # If no account is found, the social login results in a new account being created (if registration is enabled)
+        # We could potentially loop over all email addresses for a user or require the email address be verified
+        # TODO: Loop over all email addresses for a user?
+        # TODO: Check if the email address is verified?
+        # Reference: https://github.com/pennersr/django-allauth/issues/418
 
         # Allow social logins only for users who have an account
         try:
             User.objects.get(email=sociallogin.user.email)
         except User.DoesNotExist:
-            if allow_reg:
-                # TODO: Allow registration of new account from social login
-                return
-            messages.add_message(request, messages.ERROR, "Social logon from this account is not allowed.")
-            return ImmediateHttpResponse(redirect("account_login"))
+            return
         except User.MultipleObjectsReturned:
             messages.add_message(
                 request,
                 messages.ERROR,
-                "There are multiple accounts with this email. Please contact your administrator.",
+                "There are multiple pre-existing accounts with this email. Please contact your administrator.",
             )
             return ImmediateHttpResponse(redirect("account_login"))
         else:
             user = User.objects.get(email=sociallogin.user.email)
             if not sociallogin.is_existing:
                 sociallogin.connect(request, user)
-
-        # TODO: Loop over all email addresses for a user?
-        # TODO: Check if the email address is verified?
-        # TODO: Implement allowlist for email domains for registration?
-
-        # https://github.com/pennersr/django-allauth/issues/418
