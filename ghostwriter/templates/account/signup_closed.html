@@ -2,10 +2,13 @@
 
 {% load i18n %}
 
-{% block title %}{% trans "Sign Up Closed" %}{% endblock %}
+{% block title %}{% trans "Sign Up Unavailable" %}{% endblock %}
 
 {% block inner %}
-    <h2>{% trans "Sign Up Closed" %}</h2>
+    <h2>{% trans "Sign Up Unavailable" %}</h2>
 
-    <p>{% trans "We are sorry, but the sign up is currently closed. Contact your administrator for an account." %}</p>
+    <div class="alert alert-warning col-12 mt-1" role="alert">
+      <p>{% trans "We are sorry, but registration is currently unavailable. Contact your administrator for an account." %}</p>
+      <p>{% trans "Registration may be closed or your account's email domain may not be allowed." %}</p>
+    </div>
 {% endblock %}
