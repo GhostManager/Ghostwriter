@@ -321,6 +321,7 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
 SOCIAL_ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION", False)
+SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST = env("DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST", default="")
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
