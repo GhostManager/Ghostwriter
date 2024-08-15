@@ -38,12 +38,16 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
         u = sociallogin.user
         allow_reg = getattr(settings, "SOCIAL_ACCOUNT_ALLOW_REGISTRATION", True)
         allowlist = getattr(settings, "SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST", "")
+
         # If the allowlist isn't empty, split it into a list
         if allowlist:
-            allowlist = allowlist.split(" ")
+            # If the allowlist is a string, split it into a list
+            # This supports ``SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST`` being set in a Python config file as a list
+            if isinstance(allowlist, str):
+                allowlist = allowlist.split()
         # If registration is allowed, check the email domain
         if allow_reg:
-            if allowlist and u.email.split("@")[1] in allowlist:
+            if allowlist and u.email.rpartition("@")[-1] in allowlist:
                 return True
             if not allowlist:
                 return True
@@ -90,18 +94,27 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
         # Reference: https://github.com/pennersr/django-allauth/issues/418
 
         # Allow social logins only for users who have an account
+        email = sociallogin.user.email
         try:
-            User.objects.get(email=sociallogin.user.email)
+            user = User.objects.get(email=email)
+            if not sociallogin.is_existing:
+                sociallogin.connect(request, user)
         except User.DoesNotExist:
+            logger.info("Social login attempted with an email not associated with an existing account: %s", email)
             return
         except User.MultipleObjectsReturned:
+            logger.error("Multiple accounts found with email %s", email)
             messages.add_message(
                 request,
                 messages.ERROR,
                 "There are multiple pre-existing accounts with this email. Please contact your administrator.",
             )
             return ImmediateHttpResponse(redirect("account_login"))
-        else:
-            user = User.objects.get(email=sociallogin.user.email)
-            if not sociallogin.is_existing:
-                sociallogin.connect(request, user)
+        except Exception as e:
+            logger.error("Error during social login: %s", e)
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "There was an error processing the login from this provider. Please contact your administrator.",
+            )
+            return ImmediateHttpResponse(redirect("account_login"))
