@@ -10,7 +10,7 @@ from django.forms import ModelForm, ModelMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from allauth.account.forms import LoginForm
+from allauth.account.forms import LoginForm, SignupForm
 from allauth_2fa.forms import TOTPAuthenticateForm, TOTPDeviceForm, TOTPDeviceRemoveForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
@@ -152,6 +152,36 @@ class UserLoginForm(LoginForm):
             ),
             Row(
                 Column("remember", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+        )
+
+
+class UserSignupForm(SignupForm):
+    """
+    Register an individual :model:`users.User` with a username, email, and full name. The resulting user is attached
+    to a social login.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.form_tag = False
+        self.helper.form_show_errors = False
+        self.helper.layout = Layout(
+            Row(
+                Column("email", css_class="form-group col-12 mb-0"),
+                css_class="form-row mt-4",
+            ),
+            Row(
+                Column("username", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("name", css_class="form-group col-12 mb-0"),
                 css_class="form-row",
             ),
         )
