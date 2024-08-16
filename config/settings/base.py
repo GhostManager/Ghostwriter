@@ -195,6 +195,7 @@ MIDDLEWARE = [
     "django_otp.middleware.OTPMiddleware",
     "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
     "ghostwriter.middleware.Require2FAMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 # STATIC
@@ -336,6 +337,7 @@ SOCIALACCOUNT_ADAPTER = "ghostwriter.users.adapters.SocialAccountAdapter"
 ACCOUNT_SIGNUP_FORM_CLASS = "ghostwriter.home.forms.SignupForm"
 ACCOUNT_FORMS = {
     "login": "ghostwriter.users.forms.UserLoginForm",
+    "signup": "ghostwriter.users.forms.UserSignupForm",
 }
 ALLAUTH_2FA_FORMS = {
     "authenticate": "ghostwriter.users.forms.User2FAAuthenticateForm",
