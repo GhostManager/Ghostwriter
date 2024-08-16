@@ -14,7 +14,7 @@ from django.shortcuts import redirect
 # 3rd Party Libraries
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.utils import user_email, user_field, user_username
-from allauth.exceptions import ImmediateHttpResponse
+from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.utils import valid_email_or_none
 
@@ -85,31 +85,25 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
 
     def pre_social_login(self, request, sociallogin):
         # The following pre-login checks look at the user's primary email address
-        # If en existing account has the same email address, the social login is allowed and the accounts are connected
-        # If multiple accounts share the same email address, the user is redirected with an error message
-        # If no account is found, the social login results in a new account being created (if registration is enabled)
-        # We could potentially loop over all email addresses for a user or require the email address be verified
-        # TODO: Loop over all email addresses for a user?
-        # TODO: Check if the email address is verified?
-        # Reference: https://github.com/pennersr/django-allauth/issues/418
+        # If multiple accounts share the same email address, the SSO login is aborted with an error message
 
         # Allow social logins only for users who have an account
         email = sociallogin.user.email
         try:
-            user = User.objects.get(email=email)
-            if not sociallogin.is_existing:
-                sociallogin.connect(request, user)
+            User.objects.get(email=email)
         except User.DoesNotExist:
-            logger.info("Social login attempted with an email not associated with an existing account: %s", email)
-            return
+            # If the user doesn't exist, do nothing right now
+            pass
         except User.MultipleObjectsReturned:
+            # ``django-allauth`` will default to connecting the oldest account when multiple accounts share an address
+            # This is not the desired behavior for Ghostwriter, so we'll abort the login process
             logger.error("Multiple accounts found with email %s", email)
             messages.add_message(
                 request,
                 messages.ERROR,
                 "There are multiple pre-existing accounts with this email. Please contact your administrator.",
             )
-            return ImmediateHttpResponse(redirect("account_login"))
+            raise ImmediateHttpResponse(redirect("account_login"))
         except Exception as e:
             logger.error("Error during social login: %s", e)
             messages.add_message(
@@ -117,4 +111,4 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
                 messages.ERROR,
                 "There was an error processing the login from this provider. Please contact your administrator.",
             )
-            return ImmediateHttpResponse(redirect("account_login"))
+            raise ImmediateHttpResponse(redirect("account_login"))
