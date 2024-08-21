@@ -11,6 +11,7 @@ from django.core.files.storage import FileSystemStorage
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 from django.urls import reverse
 
 # 3rd Party Libraries
@@ -193,17 +194,30 @@ class Finding(models.Model):
         help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
     cvss_score = models.FloatField(
-        "CVSS Score v3.0",
+        "CVSS v3.0 Score",
         blank=True,
         null=True,
         help_text="Set the CVSS score for this finding",
     )
     cvss_vector = models.CharField(
-        "CVSS Vector v3.0",
+        "CVSS v3.0 Vector",
         blank=True,
         default="",
         max_length=54,
         help_text="Set the CVSS vector for this finding",
+    )
+    cvss_v4_score = models.FloatField(
+        "CVSS v4.0 Score",
+        blank=True,
+        null=True,
+        help_text="Set the CVSS v4.0 score for this finding",
+    )
+    cvss_v4_vector = models.CharField(
+        "CVSS v4.0 Vector",
+        blank=True,
+        default="",
+        max_length=255,
+        help_text="Set the CVSS v4.0 vector for this finding",
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
@@ -223,7 +237,7 @@ class Finding(models.Model):
     extra_fields = models.JSONField(default=dict)
 
     class Meta:
-        ordering = ["severity", "-cvss_score", "finding_type", "title"]
+        ordering = ["severity", Coalesce("cvss_v4_score", "cvss_score").desc(nulls_last=True), "finding_type", "title"]
         verbose_name = "Finding"
         verbose_name_plural = "Findings"
 
@@ -232,6 +246,18 @@ class Finding(models.Model):
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
+
+    @property
+    def any_cvss_score(self):
+        if self.cvss_v4_score is not None:
+            return self.cvss_v4_score
+        return self.cvss_score
+
+    @property
+    def any_cvss_vector(self):
+        if self.cvss_v4_vector:
+            return self.cvss_v4_vector
+        return self.cvss_vector
 
 
 class DocType(models.Model):
@@ -641,17 +667,30 @@ class ReportFindingLink(models.Model):
         help_text="Assign the task of editing this finding to a specific operator - defaults to the operator that added it to the report",
     )
     cvss_score = models.FloatField(
-        "CVSS Score v3.0",
+        "CVSS v3.0 Score",
         blank=True,
         null=True,
-        help_text="Set the CVSS score for this finding",
+        help_text="Set the CVSS v3.0 score for this finding",
     )
     cvss_vector = models.CharField(
-        "CVSS Vector v3.0",
+        "CVSS v3.0 Vector",
         blank=True,
         default="",
         max_length=54,
-        help_text="Set the CVSS vector for this finding",
+        help_text="Set the CVSS v3.0 vector for this finding",
+    )
+    cvss_v4_score = models.FloatField(
+        "CVSS v4.0 Score",
+        blank=True,
+        null=True,
+        help_text="Set the CVSS v4.0 score for this finding",
+    )
+    cvss_v4_vector = models.CharField(
+        "CVSS v4.0 Vector",
+        blank=True,
+        default="",
+        max_length=255,
+        help_text="Set the CVSS v4.0 vector for this finding",
     )
     extra_fields = models.JSONField(default=dict)
 

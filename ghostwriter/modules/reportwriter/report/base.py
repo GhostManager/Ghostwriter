@@ -85,6 +85,8 @@ class ExportReportBase(ExportBase):
             finding["severity_rt"] = self._severity_rich_text(finding["severity"], finding["severity_color"])
             finding["cvss_score_rt"] = self._severity_rich_text(finding["cvss_score"], finding["severity_color"])
             finding["cvss_vector_rt"] = self._severity_rich_text(finding["cvss_vector"], finding["severity_color"])
+            finding["cvss_v4_score_rt"] = self._severity_rich_text(finding["cvss_v4_score"], finding["severity_color"])
+            finding["cvss_v4_vector_rt"] = self._severity_rich_text(finding["cvss_v4_vector"], finding["severity_color"])
 
             # Create subdocuments for each finding section
             finding["affected_entities_rt"] = finding_render("the affected entities section", finding["affected_entities"])

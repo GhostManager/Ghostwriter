@@ -7,6 +7,10 @@ configuration:
       custom_name: cvssScore
     cvss_vector:
       custom_name: cvssVector
+    cvss_v4_score:
+      custom_name: cvssV4Score
+    cvss_v4_vector:
+      custom_name: cvssV4Vector
     extra_fields:
       custom_name: extraFields
     finding_guidance:
@@ -22,6 +26,8 @@ configuration:
   custom_column_names:
     cvss_score: cvssScore
     cvss_vector: cvssVector
+    cvss_v4_score: cvssV4Score
+    cvss_v4_vector: cvssV4Vector
     extra_fields: extraFields
     finding_guidance: findingGuidance
     finding_type_id: findingTypeId
@@ -52,6 +58,8 @@ insert_permissions:
       columns:
         - cvss_score
         - cvss_vector
+        - cvss_v4_score
+        - cvss_v4_vector
         - description
         - extra_fields
         - finding_guidance
@@ -80,6 +88,8 @@ insert_permissions:
       columns:
         - cvss_score
         - cvss_vector
+        - cvss_v4_score
+        - cvss_v4_vector
         - description
         - extra_fields
         - finding_guidance
@@ -98,6 +108,8 @@ select_permissions:
       columns:
         - cvss_score
         - cvss_vector
+        - cvss_v4_score
+        - cvss_v4_vector
         - description
         - extra_fields
         - finding_guidance
@@ -122,6 +134,8 @@ update_permissions:
       columns:
         - cvss_score
         - cvss_vector
+        - cvss_v4_score
+        - cvss_v4_vector
         - description
         - extra_fields
         - finding_guidance
@@ -141,6 +155,8 @@ update_permissions:
       columns:
         - cvss_score
         - cvss_vector
+        - cvss_v4_score
+        - cvss_v4_vector
         - description
         - extra_fields
         - finding_guidance

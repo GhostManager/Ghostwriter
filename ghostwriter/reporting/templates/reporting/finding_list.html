@@ -76,8 +76,8 @@
                                 {% endif %}
                             ">
               <span
-                style="display: none">{{ finding.severity.weight }}{{ cvss_score }}</span>{{ finding.severity.severity }}
-              {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
+                style="display: none">{{ finding.severity.weight }}</span>{{ finding.severity.severity }}
+              {% if finding.any_cvss_score %}({{ finding.any_cvss_score }}){% endif %}
             </td>
             <!-- Finding Type (e.g. Network) -->
             <td class="align-middle icon

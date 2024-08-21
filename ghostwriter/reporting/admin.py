@@ -96,6 +96,8 @@ class FindingAdmin(ImportExportModelAdmin):
                     "severity",
                     "cvss_score",
                     "cvss_vector",
+                    "cvss_v4_score",
+                    "cvss_v4_vector",
                     "tags",
                 )
             },

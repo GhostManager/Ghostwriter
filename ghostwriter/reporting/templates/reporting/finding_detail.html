@@ -66,14 +66,14 @@
             {% else %}
                 bug-icon
             {% endif %}"
-          {% if finding.cvss_score %}
+          {% if finding.any_cvss_vector %}
               style="cursor: help"
               data-toggle="tooltip"
               data-placement="bottom"
-              title="{{ finding.cvss_vector }}"
+              title="{{ finding.any_cvss_vector }}"
           {% endif %}
         >
-            {{ finding.severity.severity }} {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
+            {{ finding.severity.severity }} {% if finding.any_cvss_score is not None %}({{ finding.any_cvss_score }}){% endif %}
         </span>
     {% for tag in finding.tags.names %}
       <span class="badge badge-secondary">{{ tag|bleach }}</span>

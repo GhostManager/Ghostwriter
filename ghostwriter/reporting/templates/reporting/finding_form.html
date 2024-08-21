@@ -1,8 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load crispy_forms_tags %}
-
-{% load custom_tags %}
+{% load crispy_forms_tags custom_tags static %}
 
 {% block pagetitle %}Finding Form{% endblock %}
 
@@ -56,11 +54,14 @@
 {% endblock %}
 
 {%  block morescripts %}
+    <script src="{% static 'js/cvssv4/score.js' %}"></script>
+    <script src="{% static 'js/cvssv4/vector.js' %}"></script>
+    <script src="{% static 'js/cvssv4/ui.js' %}"></script>
     <script>
-      {%  comment %} Prepare CVSS calculator {% endcomment %}
-      $(document).ready(function () {
-        prepareCVSSCalc()
-      });
+        {%  comment %} Prepare CVSS calculator {% endcomment %}
+        $(document).ready(function () {
+            prepareCVSSCalc()
+        });
     </script>
 {% endblock %}
 

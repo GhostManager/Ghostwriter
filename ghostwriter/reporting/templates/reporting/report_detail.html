@@ -297,13 +297,13 @@
                             cvss-info
                         {% endif %}
                     ">
-                      {% if finding.cvss_score %}
+                      {% if finding.any_cvss_score %}
                         <span
                           style="cursor: help"
                           data-toggle="tooltip"
                           data-placement="top"
-                          title="{{ finding.cvss_vector }}"
-                        >{{ finding.cvss_score }}</span>
+                          title="{{ finding.any_cvss_vector }}"
+                        >{{ finding.any_cvss_score }}</span>
                       {% else %}--{% endif %}
                     </td>
                     {% if finding.evidence_set.all %}

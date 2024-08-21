@@ -18,6 +18,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.db.models import Q, Max
+from django.db.models.functions import Coalesce
 from django.http import (
     FileResponse,
     Http404,
@@ -935,6 +936,8 @@ class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                     "finding_type": finding_instance.finding_type,
                     "cvss_score": finding_instance.cvss_score,
                     "cvss_vector": finding_instance.cvss_vector,
+                    "cvss_v4_score": finding_instance.cvss_v4_score,
+                    "cvss_v4_vector": finding_instance.cvss_v4_vector,
                     "tags": finding_instance.tags.all(),
                 }
             )
@@ -1116,7 +1119,7 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         findings = (
             Finding.objects.select_related("severity", "finding_type")
             .all()
-            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
+            .order_by("severity__weight", Coalesce("cvss_v4_score", "cvss_score").desc(nulls_last=True), "finding_type", "title")
         )
 
         # Build autocomplete list
@@ -1134,7 +1137,7 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
                 extra_tags="alert-success",
             )
             return findings.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
-                "severity__weight", "-cvss_score", "finding_type", "title"
+                "severity__weight", Coalesce("cvss_v4_score", "cvss_score").desc(nulls_last=True), "finding_type", "title"
             )
         return findings
 
