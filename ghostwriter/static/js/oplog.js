@@ -459,7 +459,7 @@ $(document).ready(function() {
 
     // Pull additional entries if user scrolls to bottom of ``tbody``
     $('#oplogTableBody').scroll(function() {
-        if (pendingOperation !== null) {
+        if (pendingOperation === null) {
             // Check if current scroll position + height of div is >= height of the content
             // True if scroll has reached the bottom
 

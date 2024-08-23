@@ -10,6 +10,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -18,7 +19,6 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
-from django.db.models import Q
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -34,6 +34,7 @@ from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
+from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
@@ -274,31 +275,28 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
                 out = exporter.run()
                 mime = exporter.mime_type()
             else:
-                template = ReportTemplate.objects.filter(
-                    Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
-                ).filter(
-                    Q(client=project.client) | Q(client__isnull=True)
-                ).select_related("doc_type").get(pk=type_or_template_id)
+                template = (
+                    ReportTemplate.objects.filter(
+                        Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+                    )
+                    .filter(Q(client=project.client) | Q(client__isnull=True))
+                    .select_related("doc_type")
+                    .get(pk=type_or_template_id)
+                )
                 exporter = template.exporter(project)
                 filename = exporter.render_filename(template.filename_override or report_config.project_filename)
                 out = exporter.run()
                 mime = exporter.mime_type()
         except ReportExportError as error:
-            logger.error(
-                "Project report failed for project %s and user %s%s: %s",
-                project.id,
-                self.request.user,
-                error.at_error(),
-                error
-            )
+            logger.error("Project report failed for project %s and user %s: %s", project.id, self.request.user, error)
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
             return HttpResponseRedirect(reverse("rolodex:project_detail", kwargs={"pk": project.id}) + "#documents")
         response = HttpResponse(out.getvalue(), content_type=mime)
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        add_content_disposition_header(response, filename)
         return response
 
 
@@ -949,7 +947,7 @@ class ProjectScopeExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         for row in obj.scope.split("\n"):
             lines.append(row)
         response = HttpResponse(lines, content_type="text/plain")
-        response["Content-Disposition"] = f"attachment; filename={obj.name}_scope.txt"
+        add_content_disposition_header(response, f"{obj.name}_scope.txt")
         return response
 
 
@@ -1522,9 +1520,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
         ctx["export_templates"] = ReportTemplate.objects.filter(
             Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
-        ).filter(
-            Q(client=object.client) | Q(client__isnull=True)
-        )
+        ).filter(Q(client=object.client) | Q(client__isnull=True))
         return ctx
 
 
@@ -1626,6 +1622,7 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.exception(message)
+            form.add_error(None, "Internal error. Ask your administrator to view the server logs.")
             return super().form_invalid(form)
 
     def get_initial(self):

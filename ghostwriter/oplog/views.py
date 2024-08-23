@@ -29,6 +29,7 @@ from ghostwriter.api.utils import (
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
+from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -258,9 +259,19 @@ def validate_log_selection(user, oplog_id):
 
 def import_data(request, oplog_id, new_entries, dry_run=False):
     """Import the data into a dataset for validation and import."""
+    logger.info("Importing log data for log ID %s", oplog_id)
     dataset = Dataset()
     oplog_entry_resource = OplogEntryResource()
-    imported_data = dataset.load(new_entries, format="csv")
+    try:
+        imported_data = dataset.load(new_entries, format="csv")
+    except csv.Error as exception:  # pragma: no cover
+        logger.error("An error occurred while loading the CSV file for log import: %s", exception)
+        messages.error(
+            request,
+            "Your log file could not be loaded. There may be cells that exceed the 128KB text size limit for CSVs.",
+            extra_tags="alert-error",
+        )
+        return None
 
     if "oplog_id" in imported_data.headers:
         del imported_data["oplog_id"]
@@ -337,7 +348,13 @@ def oplog_entries_import(request):
         messages.success(request, "Successfully imported log data.", extra_tags="alert-success")
         return HttpResponseRedirect(reverse("oplog:oplog_entries", kwargs={"pk": oplog_id}))
 
-    return render(request, "oplog/oplog_import.html", context={"logs": logs})
+    log_id = request.GET.get("log", None)
+    initial_log = None
+    if log_id:
+        for log in logs:
+            if log_id == str(log.id):
+                initial_log = log
+    return render(request, "oplog/oplog_import.html", context={"logs": logs, "initial_log": initial_log})
 
 
 ################
@@ -612,10 +629,8 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         queryset = obj.entries.all()
         opts = queryset.model._meta
 
-        response = HttpResponse(
-            content_type="text/csv",
-            headers={"Content-Disposition": 'attachment; filename="export.csv"'},
-        )
+        response = HttpResponse(content_type="text/csv")
+        add_content_disposition_header(response, f"{obj.name}.csv")
 
         writer = csv.writer(response)
         field_names = [field.name for field in opts.fields]

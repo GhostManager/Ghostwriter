@@ -1,10 +1,15 @@
+# Standard Libraries
 from io import BytesIO
 from zipfile import ZipFile
-from lxml import etree
-import docx
 
+# Django Imports
 from django.test import TestCase
 
+# 3rd Party Libraries
+import docx
+from lxml import etree
+
+# Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx
 
 WORD_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
@@ -190,32 +195,53 @@ class RichTextToDocxTests(TestCase):
         """
             <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
             <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
         """,
@@ -242,32 +268,53 @@ class RichTextToDocxTests(TestCase):
         """
             <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
             <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
         """,
@@ -298,44 +345,74 @@ class RichTextToDocxTests(TestCase):
         """
             <w:p><w:pPr/><w:r><w:t>List test one:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="10"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
             <w:p><w:pPr/><w:r><w:t>List test two:</w:t></w:r></w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item two</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Item three:</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem one</w:t></w:r>
             </w:p>
             <w:p>
-                <w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr></w:pPr>
+                <w:pPr>
+                    <w:pStyle w:val="ListParagraph"/>
+                    <w:numPr><w:ilvl w:val="1"/><w:numId w:val="11"/></w:numPr>
+                </w:pPr>
                 <w:r><w:t>Subitem two</w:t></w:r>
             </w:p>
         """,
@@ -370,7 +447,10 @@ class RichTextToDocxTests(TestCase):
             <w:p>
                 <w:pPr><w:jc w:val="left"/></w:pPr>
                 <w:r>
-                    <w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>
+                    <w:rPr>
+                        <w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>
+                        <w:noProof/>
+                    </w:rPr>
                     <w:t>int main() {</w:t>
                     <w:br/>
                     <w:t xml:space="preserve">    printf("hello world!\\n");</w:t>
@@ -585,5 +665,5 @@ class RichTextToDocxTests(TestCase):
             <w:pPr><w:jc w:val="left"/></w:pPr>
             <w:r><w:t>Paragraph with a class</w:t></w:r>
         </w:p>
-        """
+        """,
     )

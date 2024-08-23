@@ -124,4 +124,23 @@
 {% block morescripts %}
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+  <script>
+    {% comment %} Set URL for TinyMCE "upload evidence" button (see tinymce/config.js) {% endcomment %}
+    window.upload_url = "{{ evidence_upload_url|escapejs }}";
+
+    {% comment %} Script for the WYSIWYG editor's AutoComplete {% endcomment %}
+    let evidenceFiles = [
+      {text: '\{\{.caption\}\}', value: '\{\{.caption\}\}'},
+      {% for file in evidences %}
+        {
+          text: '\{\{.{{ file.friendly_name|escapejs }}\}\}',
+          value: '\{\{.{{ file.friendly_name|escapejs }}\}\}'
+        },
+        {
+          text: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}',
+          value: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}'
+        },
+      {% endfor %}
+    ];
+  </script>
 {% endblock %}

@@ -146,8 +146,8 @@ class ExportBasePptx(ExportBase):
                     "Template can be used, but it has slides when it should be empty (see documentation)"
                 )
         except ReportExportError as error:
-            logger.exception("Template failed linting%s: %s", error.at_error(), error)
-            errors.append(f"Linting failed{error.at_error()}: {error}")
+            logger.exception("Template failed linting: %s", error)
+            errors.append(f"Linting failed: {error}")
         except Exception:
             logger.exception("Template failed linting")
             errors.append("Template rendering failed unexpectedly")

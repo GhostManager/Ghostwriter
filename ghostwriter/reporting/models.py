@@ -679,6 +679,7 @@ class Evidence(models.Model):
         upload_to=set_evidence_upload_destination,
         validators=[validate_evidence_extension],
         blank=True,
+        max_length=255,
     )
     friendly_name = models.CharField(
         "Friendly Name",

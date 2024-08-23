@@ -215,6 +215,10 @@
             text: '\{\{.{{ file.friendly_name|escapejs }}\}\}',
             value: '\{\{.{{ file.friendly_name|escapejs }}\}\}'
           },
+          {
+            text: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}',
+            value: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}'
+          },
         {% endfor %}
       {% endif %}
       {% if reportfindinglink.report.evidence_set.all  %}
@@ -222,6 +226,10 @@
           {
             text: '\{\{.{{ file.friendly_name|escapejs }}\}\}',
             value: '\{\{.{{ file.friendly_name|escapejs }}\}\}'
+          },
+          {
+            text: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}',
+            value: '\{\{.ref {{ file.friendly_name|escapejs }}\}\}'
           },
         {% endfor %}
       {% endif %}

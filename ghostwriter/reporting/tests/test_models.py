@@ -529,6 +529,19 @@ class EvidenceModelTests(TestCase):
         except Exception:
             self.fail("Evidence model `filename` property failed unexpectedly!")
 
+    def test_long_filename(self):
+        name = (
+            "In-mi-nisi-dignissim-nec-eleifend-sed-porta-eu-lacus-Sed-nunc-nisl-tristique-at-enim-bibendum-rutrum-sodales-ligula-Aliquam-quis-pharetra-sem-Morbi-nec-vestibulum-nunc-Nullam-urna-tortor-venenatis-et-nisi-ac-"
+            + "fringilla-sodales-sed.txt"
+        )
+        evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename=name, data=b"lorem ipsum"))
+        self.assertEqual(evidence.filename, name)
+        try:
+            evidence.get_absolute_url()
+        except:
+            self.fail("Evidence.get_absolute_url() raised an exception")
+        evidence.delete()
+
 
 class FindingNoteModelTests(TestCase):
     """Collection of tests for :model:`reporting.FindingNote`."""

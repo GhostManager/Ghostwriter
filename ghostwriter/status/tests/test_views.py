@@ -10,7 +10,7 @@ from django.urls import reverse
 
 # Health checks for RAM and disk cannot be completed successfully in the GitHub CI/CD pipeline
 @tag("GitHub")
-class HealthCheckCustomViewTests(TestCase):
+class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
     """Collection of tests for :view:`status.HealthCheckCustomView`."""
 
     @classmethod

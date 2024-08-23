@@ -59,6 +59,7 @@ from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
+from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.filters import (
     ArchiveFilter,
     FindingFilter,
@@ -1065,7 +1066,7 @@ def export_findings_to_csv(request):
     finding_resource = FindingResource()
     dataset = finding_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="{timestamp}_findings.csv"'
+    add_content_disposition_header(response, f"{timestamp}_findings.csv")
 
     return response
 
@@ -1077,7 +1078,7 @@ def export_observations_to_csv(request):
     observation_resource = ObservationResource()
     dataset = observation_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="{timestamp}_observations.csv"'
+    add_content_disposition_header(response, f"{timestamp}_observations.csv")
 
     return response
 
@@ -1351,11 +1352,10 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 json_doc = ExportReportJson(report_instance).run()
             except ReportExportError as error:
                 logger.error(
-                    "Generation failed for %s %s and user %s%s: %s",
+                    "Generation failed for %s %s and user %s: %s",
                     report_instance.__class__.__name__,
                     report_instance.id,
                     self.request.user,
-                    error.at_error(),
                     error,
                 )
                 messages.error(
@@ -1427,7 +1427,7 @@ class ArchiveDownloadView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         if os.path.exists(file_path):
             with open(file_path, "rb") as archive_file:
                 response = HttpResponse(archive_file.read(), content_type="application/x-zip-compressed")
-                response["Content-Disposition"] = "attachment; filename=" + os.path.basename(file_path)
+                add_content_disposition_header(response, os.path.basename(file_path))
                 return response
         raise Http404
 
@@ -1729,9 +1729,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     @staticmethod
     def _create_crispy_field(spec):
         if spec.type == "rich_text":
-            # TODO: Return to using the commented line below once evidence uploads support report findings vs. finding-specific uploads
-            # return Field(spec.internal_name, css_class="enable-evidence-upload")
-            return Field(spec.internal_name)
+            return Field(spec.internal_name, css_class="enable-evidence-upload")
         return Field(spec.internal_name)
 
 
@@ -2080,16 +2078,15 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             docx = exporter.run()
         except ReportExportError as error:
             logger.error(
-                "DOCX generation failed for %s %s and user %s%s: %s",
+                "DOCX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
                 obj.id,
                 self.request.user,
-                error.at_error(),
                 error,
             )
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
             return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
@@ -2097,7 +2094,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         response = HttpResponse(
             docx.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-        response["Content-Disposition"] = f'attachment; filename="{report_name}"'
+        add_content_disposition_header(response, report_name)
 
         # Send WebSocket message to update user's webpage
         try:
@@ -2146,7 +2143,7 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 output.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-            response["Content-Disposition"] = f'attachment; filename="{report_name}"'
+            add_content_disposition_header(response, report_name)
             output.close()
 
             return response
@@ -2217,21 +2214,20 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 pptx.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             )
-            response["Content-Disposition"] = f'attachment; filename="{report_name}"'
+            add_content_disposition_header(response, report_name)
 
             return response
         except ReportExportError as error:
             logger.error(
-                "PPTX generation failed for %s %s and user %s%s: %s",
+                "PPTX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
                 obj.id,
                 self.request.user,
-                error.at_error(),
                 error,
             )
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
         except Exception as error:
@@ -2318,7 +2314,7 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
             # Return the buffer in the HTTP response
             response = HttpResponse(content_type="application/x-zip-compressed")
-            response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
+            add_content_disposition_header(response, os.path.basename(zip_filename))
             response.write(zip_buffer.read())
 
             return response
@@ -2331,7 +2327,7 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                f"Error{error.at_error()}: {error}",
+                f"Error: {error}",
                 extra_tags="alert-danger",
             )
         except Exception as error:
@@ -3229,6 +3225,11 @@ class ReportObservationLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#observations"
+        ctx["evidence_upload_url"] = reverse(
+            "reporting:upload_evidence_modal",
+            kwargs={"parent_type": "report", "pk": self.object.report.pk, "modal": "modal"},
+        )
+        ctx["evidences"] = self.object.report.evidence_set.all()
         return ctx
 
     def get_success_url(self):

@@ -4,6 +4,90 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [4.2.5] - 7 August 2024
+
+### Changed
+
+* Changed filtered activity logs to sort by the start date instead of relevancy rank 
+
+### Fixed
+
+* Fixed activity logs not loading additional entries when scrolling to the bottom of the page
+* Fixed an issue that could cause an error when importing an activity log csv file with one or more individual cells with content exceeding 128KB
+
+### [4.2.4] - 29 July 2024
+
+### Changed
+
+* Changed the "Inline Code" formatting to work for blocks of text in the WYSIWYG editor (Closes #337)
+  * You can now use the "Inline Code" formatting to apply a monospace font to a block of text in the WYSIWYG editor
+  * This change allows you to apply the monospace font to multiple lines of text without needing to use the TinyMCE "Code Sample" blocks
+  * When Ghostwriter detects an entire line or multiple lines of text are formatted as "Inline Code," it will format them as a code block in the report template
+  * This change allows for additional formatting options, like highlighting or bolding text within the code block
+  * The "Code Sample" button is still present in the WYSIWYG editor if you prefer to use that for code blocks
+
+### Fixed
+
+* Fixed an error with template linting when the template did not have a `CodeInline` or `CodeBlock` style (Fixes #486)
+
+## [4.2.3] - 24 July 2024
+
+### Added
+
+* Added support for internal hyperlinks in the WYSIWYG editor (Closes #465; thanks to @domwhewell-sage)
+  * You can now create internal links to headings when you insert a hyperlink, enter `#` to start your hyperlink URL, and select a heading
+  * Internal links will be converted to cross-references in the report template
+
+### Changed
+
+* Applied `ListParagraph` to the lists in Word reports to ensure proper paragraph styling (PR #482; thanks to @smcgu)
+* The autocomplete list for keywords in reports now includes entries for `{{.ref <Evidence File Name>}}` for evidence references alongside the evidence file (e.g., `{{.<Evidence File name>}}`) (Closes #479)
+* Custom fields for observations and findings now support autocomplete and have the "Upload Evidence" button (Closes #485) 
+
+### Fixed
+
+* Fixed an issue that could prevent reports from being generated if a related cloud server was missing a hostname (PR #481)
+
+## [v4.2.2] - 3 July 2024
+
+### Added
+
+* Added a check to the template linter to ensure the `CodeInline` and `CodeBlock` styles have the correct style type (PR #474)
+
+### Changed
+
+* Gave every optional field in the database a default value (a blank string) to help prevent errors when creating new entries via the GraphQL API (PR #469)
+
+### Fixed
+
+* Fixed extra fields on findings not being processed for report generation (PR #467)
+* Fixed project fields being processed twice when generating a report (PR #468)
+* Fixed syntax errors that weren't being caught properly and returning generic failure messages (PR #470)
+* Fixed observation tags missing from the linting data (PR #471)
+* Fixed uploading evidence and autocomplete on observations (PR #472)
+* Fixed a server error that could occur when using the `checkoutServer` and `checkoutDomain` mutations in the GraphQL API and providing a null value for the `note` field (PR #475)
+* Fixed the "My Active Projects" sidebar dropdown not showing the correct message if all projects are marked as complete (PR #475)
+
+## [v4.2.1] - 18 June 2024
+
+### Changed
+
+* Increased the filename character limit to 255 characters for evidence filenames
+  * This aligns with the maximum filename length for most filesystems
+  * Filenames displayed in the interface are now truncated if they are longer than 50 characters
+  * The full filenames can be viewed by hovering over the filename when viewing the evidence file's details
+* Changed report export errors to help further narrow down the cause of Jinja2 syntax errors
+* Activity log imports now make naive timestamps timezone-aware (Closes #433 & #434)
+  * If the import does not specify a timezone (e.g., _+00:00_ for UTC), the server's timezone will be used
+* When coming from an activity log to import entries, the log you came from will now be selected by default
+* A domain's current availability status is no longer only visible under the _Health_ tab
+
+### Fixed
+
+* Fixed whitespace before hyperlinks being removed in generated Word documents (Closes #461)
+* Fixed an issue with how evidence displayed inside XLSX reports (Closes #462)
+* Fixed extra fields on projects not being processed for project document generation
+
 ## [v4.2.0] - 10 June 2024
 
 ### Added

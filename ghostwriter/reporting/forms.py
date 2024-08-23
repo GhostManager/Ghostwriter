@@ -639,7 +639,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             )
             if has_extra_fields
             else None,
-            Field("extra_fields") if has_extra_fields else None,
+            Field("extra_fields", css_class="enable-evidence-upload") if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -889,8 +889,12 @@ class ReportTemplateForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
 
         if kwargs.get("instance"):
-            self.fields["client"].help_text += ". Changing this will unset this template as the global default template and the default templates on reports for other clients."
-            self.fields["doc_type"].help_text += ". Changing this will unset this template as the global default template and the default templates on reports."
+            self.fields[
+                "client"
+            ].help_text += ". Changing this will unset this template as the global default template and the default templates on reports for other clients."
+            self.fields[
+                "doc_type"
+            ].help_text += ". Changing this will unset this template as the global default template and the default templates on reports."
 
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
@@ -1209,7 +1213,7 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Field("description", css_class="enable-evidence-upload"),
-            Field("extra_fields"),
+            Field("extra_fields", css_class="enable-evidence-upload"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

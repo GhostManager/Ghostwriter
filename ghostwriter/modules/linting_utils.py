@@ -369,6 +369,7 @@ LINTER_CONTEXT = {
             "title": "test observation",
             "description": "",
             "description_rt": "",
+            "tags": ["tag1", "tag2", "tag3"],
             "extra_fields": {},
         }
     ],

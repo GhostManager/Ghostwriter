@@ -34,12 +34,19 @@ ol:not(.list-unstyled):not(.nav):not(.breadcrumb) {
 }
 
 pre {
+  font-family: 'Roboto Mono', Courier, monospace;
+  text-align: justify;
   font-size: var(--main-font-size);
   font-weight: 300;
-  line-height: 1.7em;
+  line-height: 1.5em;
   color: var(--main-txt-color);
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin: auto;
+  max-width: 70vw;
+  word-wrap: break-word;
+  overflow-x: auto;
+  border: 1pt solid var(--secondary-color);
+  white-space: pre-wrap;
+  padding: 5px;
 }
 
 code {
@@ -68,22 +75,9 @@ hr {
   margin-top: 10px;
 }
 
-/* Images and code blocks will be 6.5" wide in a Word document, so width is 6.5" in these next two classes. */
-.text-evidence {
-  text-align: left;
-  max-width: 80%;
-  word-wrap: break-word;
-  line-height: 20px;
-  font-family: 'Roboto Mono';
-  font-weight: 300;
-  margin: auto;
-  overflow: auto;
-  border: 1pt solid var(--secondary-color);
-}
-
 .img-evidence {
   height: auto;
-  width: 6.5in;
+  width: 60vw;
   display: block;
   margin-left: auto;
   margin-right: auto;
@@ -2613,14 +2607,6 @@ ol {
   text-align: left;
 }
 
-.finding-content pre {
-  text-align: justify;
-  font-family: 'Courier New', Courier, monospace;
-  padding-left: 10px;
-  white-space: pre-wrap;
-  border: 2px solid #dedede;
-}
-
 .finding-content code {
   font-size: var(--main-font-size);
   font-family: 'Courier New', Courier, monospace;
@@ -2725,6 +2711,16 @@ ol {
 .badge-pptx {
   color: #fff;
   background-color: var(--pptx-color);
+}
+
+.badge-healthy {
+  color: #fff;
+  background-color: var(--healthy-color);
+}
+
+.badge-unhealthy {
+  color: #fff;
+  background-color: var(--blocked-color);
 }
 
 /* ---------------------------------------------------

@@ -638,7 +638,8 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_domain(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_domain_data(self.project.pk, self.domain.pk, self.activity.pk, note="Test note")
+        data = self.generate_domain_data(self.project.pk, self.domain.pk, self.activity.pk)
+        del data["input"]["note"]
         response = self.client.post(
             self.domain_uri,
             data=data,
@@ -657,9 +658,8 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_server(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(
-            self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk, note="Test note"
-        )
+        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk)
+        del data["input"]["note"]
         response = self.client.post(
             self.server_uri,
             data=data,
