@@ -202,7 +202,7 @@ class Finding(models.Model):
         "CVSS Vector",
         blank=True,
         default="",
-        max_length=54,
+        max_length=255,
         help_text="Set the CVSS vector for this finding",
     )
     tags = TaggableManager(blank=True)
@@ -650,7 +650,7 @@ class ReportFindingLink(models.Model):
         "CVSS Vector",
         blank=True,
         default="",
-        max_length=54,
+        max_length=255,
         help_text="Set the CVSS vector for this finding",
     )
     extra_fields = models.JSONField(default=dict)
