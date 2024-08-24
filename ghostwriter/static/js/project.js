@@ -163,8 +163,12 @@ function hamburger(x) {
 function prepareCVSSCalc() {
     let cvss = document.getElementById('id_cvss_vector')
     if (cvss != null) {
-        ParseVector(cvss.value);
-        CVSSAutoCalc();
+        if (cvss.value.startsWith('CVSS:3.0')) {
+            ParseVector(cvss.value);
+            CVSSAutoCalc();
+        } else if (cvss.value.startsWith('CVSS:4.0')) {
+            ParseVectorCVSS4(cvss.value);
+        }
         console.log('CVSS calculator is ready')
     }
 }
