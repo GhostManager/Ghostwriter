@@ -35,5 +35,5 @@ function cvsscalc40_ui() {
 function ParseVectorCVSS4(vectorString){
     var iframe = document.getElementById('cvsscalc40');
     var currentSrc = iframe.src;
-    iframe.src = currentSrc.split('#')[0] + '#' + vectorString;
+    iframe.src = encodeURI(currentSrc.split('#')[0] + '#' + vectorString);
 }
