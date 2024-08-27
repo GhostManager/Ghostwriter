@@ -387,7 +387,23 @@ CVSS.calculateCVSSFromMetrics = function (
  *                                  more than once.
  */
 CVSS.calculateCVSSFromVector = function ( vectorString ) {
+  const metricValues = CVSS.parseVector(vectorString);
+  if(metricValues === null)
+    return { success: false, errorType: "MalformedVectorString" };
+  return CVSS.calculateCVSSFromObject(metricValues);
+};
 
+CVSS.calculateCVSSFromObject = function(metricValues) {
+  return CVSS.calculateCVSSFromMetrics (
+    metricValues.AV,  metricValues.AC,  metricValues.PR,  metricValues.UI,  metricValues.S,
+    metricValues.C,   metricValues.I,   metricValues.A,
+    metricValues.E,   metricValues.RL,  metricValues.RC,
+    metricValues.CR,  metricValues.IR,  metricValues.AR,
+    metricValues.MAV, metricValues.MAC, metricValues.MPR, metricValues.MUI, metricValues.MS,
+    metricValues.MC,  metricValues.MI,  metricValues.MA);
+}
+
+CVSS.parseVector = function(vectorString) {
   var metricValues = {
     AV:  undefined, AC:  undefined, PR:  undefined, UI:  undefined, S:  undefined,
     C:   undefined, I:   undefined, A:   undefined,
@@ -397,11 +413,8 @@ CVSS.calculateCVSSFromVector = function ( vectorString ) {
     MC:  undefined, MI:  undefined, MA:  undefined
   };
 
-  // If input validation fails, this array is populated with strings indicating which metrics failed validation.
-  var badMetrics = [];
-
   if (!CVSS.vectorStringRegex_30.test(vectorString)) {
-    return { success: false, errorType: "MalformedVectorString" };
+    return null;
   }
 
   var metricNameValue = vectorString.substring(CVSS.CVSSVersionIdentifier.length).split("/");
@@ -414,25 +427,13 @@ CVSS.calculateCVSSFromVector = function ( vectorString ) {
       if (typeof metricValues[singleMetric[0]] === "undefined") {
         metricValues[singleMetric[0]] = singleMetric[1];
       } else {
-        badMetrics.push(singleMetric[0]);
+        return null;
       }
     }
   }
 
-  if (badMetrics.length > 0) {
-    return { success: false, errorType: "MultipleDefinitionsOfMetric", errorMetrics: badMetrics };
-  }
-
-  return CVSS.calculateCVSSFromMetrics (
-    metricValues.AV,  metricValues.AC,  metricValues.PR,  metricValues.UI,  metricValues.S,
-    metricValues.C,   metricValues.I,   metricValues.A,
-    metricValues.E,   metricValues.RL,  metricValues.RC,
-    metricValues.CR,  metricValues.IR,  metricValues.AR,
-    metricValues.MAV, metricValues.MAC, metricValues.MPR, metricValues.MUI, metricValues.MS,
-    metricValues.MC,  metricValues.MI,  metricValues.MA);
-};
-
-
+  return metricValues;
+}
 
 
 /* ** CVSS.roundUp1 **
@@ -474,216 +475,4 @@ CVSS.severityRating = function (score) {
   }
 
   return undefined;
-};
-
-
-
-///////////////////////////////////////////////////////////////////////////
-// DATA AND FUNCTIONS FOR CREATING AN XML REPRESENTATION OF A CVSS SCORE //
-///////////////////////////////////////////////////////////////////////////
-
-// A mapping between abbreviated metric values and the string used in the XML representation.
-// For example, a Remediation Level (RL) abbreviated metric value of "W" maps to "WORKAROUND".
-// For brevity, Base metric values their modified equivalents in the Environmental metric group. We can do this
-// because the latter is the same as the former, except it also includes a "NOT_DEFINED" value.
-
-CVSS.XML_MetricNames = {
-  E:    { X: "NOT_DEFINED", U: "UNPROVEN",     P: "PROOF_OF_CONCEPT",  F: "FUNCTIONAL",  H: "HIGH"},
-  RL:   { X: "NOT_DEFINED", O: "OFFICIAL_FIX", T: "TEMPORARY_FIX",     W: "WORKAROUND",  U: "UNAVAILABLE"},
-  RC:   { X: "NOT_DEFINED", U: "UNKNOWN",      R: "REASONABLE",        C: "CONFIRMED"},
-
-  CIAR: { X: "NOT_DEFINED", L: "LOW",              M: "MEDIUM", H: "HIGH"},         // CR, IR and AR use the same metric names
-  MAV:  { N: "NETWORK",     A: "ADJACENT_NETWORK", L: "LOCAL",  P: "PHYSICAL", X: "NOT_DEFINED" },
-  MAC:  { H: "HIGH",        L: "LOW",              X: "NOT_DEFINED" },
-  MPR:  { N: "NONE",        L: "LOW",              H: "HIGH",   X: "NOT_DEFINED" },
-  MUI:  { N: "NONE",        R: "REQUIRED",         X: "NOT_DEFINED" },
-  MS:   { U: "UNCHANGED",   C: "CHANGED",          X: "NOT_DEFINED" },
-  MCIA: { N: "NONE",        L: "LOW",              H: "HIGH",   X: "NOT_DEFINED" }  // C, I and A use the same metric names
-};
-
-
-
-/* ** CVSS.generateXMLFromMetrics **
- *
- * Takes Base, Temporal and Environmental metric values as individual parameters. Their values are in the short format
- * defined in the CVSS v3.0 standard definition of the Vector String. For example, the AttackComplexity parameter
- * should be either "H" or "L".
- *
- * Returns a single string containing the metric values in XML form. All Base metrics are required to generate this
- * output. All Temporal and Environmental metric values are optional. Any that are not passed will be represented in
- * the XML as NOT_DEFINED. The function returns a string for simplicity. It is arguably better to return the XML as
- * a DOM object, but at the time of writing this leads to complexity due to older browsers using different JavaScript
- * interfaces to do this. Also for simplicity, all Temporal and Environmental metrics are include in the string,
- * even though those with a value of "Not Defined" do not need to be included.
- *
- * The output of this function is an object which always has a property named "success".
- *
- * If no errors are encountered, success is Boolean "true", and the "xmlString" property contains the XML string
- * representation.
- *
- * If errors are encountered, success is Boolean "false", and other properties are defined as per the
- * CVSS.calculateCVSSFromMetrics function. Refer to the comment for that function for more details.
- */
-CVSS.generateXMLFromMetrics = function (
-  AttackVector, AttackComplexity, PrivilegesRequired, UserInteraction, Scope, Confidentiality, Integrity, Availability,
-  ExploitCodeMaturity, RemediationLevel, ReportConfidence,
-  ConfidentialityRequirement, IntegrityRequirement, AvailabilityRequirement,
-  ModifiedAttackVector, ModifiedAttackComplexity, ModifiedPrivilegesRequired, ModifiedUserInteraction, ModifiedScope,
-  ModifiedConfidentiality, ModifiedIntegrity, ModifiedAvailability) {
-
-  // A string containing the XML we wish to output, with placeholders for the CVSS metrics we will substitute for
-  // their values, based on the inputs passed to this function.
-  var xmlTemplate =
-    '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    '<cvssv3.0 xmlns="https://www.first.org/cvss/cvss-v3.0.xsd"\n' +
-    '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n' +
-    '  xsi:schemaLocation="https://www.first.org/cvss/cvss-v3.0.xsd https://www.first.org/cvss/cvss-v3.0.xsd"\n' +
-    '  >\n' +
-    '\n' +
-    '  <base_metrics>\n' +
-    '    <attack-vector>__AttackVector__</attack-vector>\n' +
-    '    <attack-complexity>__AttackComplexity__</attack-complexity>\n' +
-    '    <privileges-required>__PrivilegesRequired__</privileges-required>\n' +
-    '    <user-interaction>__UserInteraction__</user-interaction>\n' +
-    '    <scope>__Scope__</scope>\n' +
-    '    <confidentiality-impact>__Confidentiality__</confidentiality-impact>\n' +
-    '    <integrity-impact>__Integrity__</integrity-impact>\n' +
-    '    <availability-impact>__Availability__</availability-impact>\n' +
-    '    <base-score>__BaseScore__</base-score>\n' +
-    '    <base-severity>__BaseSeverityRating__</base-severity>\n' +
-    '  </base_metrics>\n' +
-    '\n' +
-    '  <temporal_metrics>\n' +
-    '    <exploit-code-maturity>__ExploitCodeMaturity__</exploit-code-maturity>\n' +
-    '    <remediation-level>__RemediationLevel__</remediation-level>\n' +
-    '    <report-confidence>__ReportConfidence__</report-confidence>\n' +
-    '    <temporal-score>__TemporalScore__</temporal-score>\n' +
-    '    <temporal-severity>__TemporalSeverityRating__</temporal-severity>\n' +
-    '  </temporal_metrics>\n' +
-    '\n' +
-    '  <environmental_metrics>\n' +
-    '    <confidentiality-requirement>__ConfidentialityRequirement__</confidentiality-requirement>\n' +
-    '    <integrity-requirement>__IntegrityRequirement__</integrity-requirement>\n' +
-    '    <availability-requirement>__AvailabilityRequirement__</availability-requirement>\n' +
-    '    <modified-attack-vector>__ModifiedAttackVector__</modified-attack-vector>\n' +
-    '    <modified-attack-complexity>__ModifiedAttackComplexity__</modified-attack-complexity>\n' +
-    '    <modified-privileges-required>__ModifiedPrivilegesRequired__</modified-privileges-required>\n' +
-    '    <modified-user-interaction>__ModifiedUserInteraction__</modified-user-interaction>\n' +
-    '    <modified-scope>__ModifiedScope__</modified-scope>\n' +
-    '    <modified-confidentiality-impact>__ModifiedConfidentiality__</modified-confidentiality-impact>\n' +
-    '    <modified-integrity-impact>__ModifiedIntegrity__</modified-integrity-impact>\n' +
-    '    <modified-availability-impact>__ModifiedAvailability__</modified-availability-impact>\n' +
-    '    <environmental-score>__EnvironmentalScore__</environmental-score>\n' +
-    '    <environmental-severity>__EnvironmentalSeverityRating__</environmental-severity>\n' +
-    '  </environmental_metrics>\n' +
-    '\n' +
-    '</cvssv3.0>\n';
-
-
-  // Call CVSS.calculateCVSSFromMetrics to validate all the parameters and generate scores and severity ratings.
-  // If that function returns an error, immediately return it to the caller of this function.
-  var result = CVSS.calculateCVSSFromMetrics (
-    AttackVector, AttackComplexity, PrivilegesRequired, UserInteraction, Scope, Confidentiality, Integrity, Availability,
-    ExploitCodeMaturity, RemediationLevel, ReportConfidence,
-    ConfidentialityRequirement, IntegrityRequirement, AvailabilityRequirement,
-    ModifiedAttackVector, ModifiedAttackComplexity, ModifiedPrivilegesRequired, ModifiedUserInteraction, ModifiedScope,
-    ModifiedConfidentiality, ModifiedIntegrity, ModifiedAvailability);
-
-  if (result.success !== true) {
-    return result;
-  }
-
-  var xmlOutput = xmlTemplate;
-  xmlOutput = xmlOutput.replace ("__AttackVector__",        CVSS.XML_MetricNames["MAV"][AttackVector]);
-  xmlOutput = xmlOutput.replace ("__AttackComplexity__",    CVSS.XML_MetricNames["MAC"][AttackComplexity]);
-  xmlOutput = xmlOutput.replace ("__PrivilegesRequired__",  CVSS.XML_MetricNames["MPR"][PrivilegesRequired]);
-  xmlOutput = xmlOutput.replace ("__UserInteraction__",     CVSS.XML_MetricNames["MUI"][UserInteraction]);
-  xmlOutput = xmlOutput.replace ("__Scope__",               CVSS.XML_MetricNames["MS"][Scope]);
-  xmlOutput = xmlOutput.replace ("__Confidentiality__",     CVSS.XML_MetricNames["MCIA"][Confidentiality]);
-  xmlOutput = xmlOutput.replace ("__Integrity__",           CVSS.XML_MetricNames["MCIA"][Integrity]);
-  xmlOutput = xmlOutput.replace ("__Availability__",        CVSS.XML_MetricNames["MCIA"][Availability]);
-  xmlOutput = xmlOutput.replace ("__BaseScore__",           result.baseMetricScore);
-  xmlOutput = xmlOutput.replace ("__BaseSeverityRating__",  result.baseSeverity);
-
-  xmlOutput = xmlOutput.replace ("__ExploitCodeMaturity__",     CVSS.XML_MetricNames["E"][ExploitCodeMaturity || "X"]);
-  xmlOutput = xmlOutput.replace ("__RemediationLevel__",        CVSS.XML_MetricNames["RL"][RemediationLevel || "X"]);
-  xmlOutput = xmlOutput.replace ("__ReportConfidence__",        CVSS.XML_MetricNames["RC"][ReportConfidence || "X"]);
-  xmlOutput = xmlOutput.replace ("__TemporalScore__",           result.temporalMetricScore);
-  xmlOutput = xmlOutput.replace ("__TemporalSeverityRating__",  result.temporalSeverity);
-
-  xmlOutput = xmlOutput.replace ("__ConfidentialityRequirement__",  CVSS.XML_MetricNames["CIAR"][ConfidentialityRequirement || "X"]);
-  xmlOutput = xmlOutput.replace ("__IntegrityRequirement__",        CVSS.XML_MetricNames["CIAR"][IntegrityRequirement || "X"]);
-  xmlOutput = xmlOutput.replace ("__AvailabilityRequirement__",     CVSS.XML_MetricNames["CIAR"][AvailabilityRequirement || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedAttackVector__",        CVSS.XML_MetricNames["MAV"][ModifiedAttackVector || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedAttackComplexity__",    CVSS.XML_MetricNames["MAC"][ModifiedAttackComplexity || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedPrivilegesRequired__",  CVSS.XML_MetricNames["MPR"][ModifiedPrivilegesRequired || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedUserInteraction__",     CVSS.XML_MetricNames["MUI"][ModifiedUserInteraction || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedScope__",               CVSS.XML_MetricNames["MS"][ModifiedScope || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedConfidentiality__",     CVSS.XML_MetricNames["MCIA"][ModifiedConfidentiality || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedIntegrity__",           CVSS.XML_MetricNames["MCIA"][ModifiedIntegrity || "X"]);
-  xmlOutput = xmlOutput.replace ("__ModifiedAvailability__",        CVSS.XML_MetricNames["MCIA"][ModifiedAvailability || "X"]);
-  xmlOutput = xmlOutput.replace ("__EnvironmentalScore__",          result.environmentalMetricScore);
-  xmlOutput = xmlOutput.replace ("__EnvironmentalSeverityRating__", result.environmentalSeverity);
-
-  return { success: true, xmlString: xmlOutput };
-};
-
-
-
-/* ** CVSS.generateXMLFromVector **
- *
- * Takes Base, Temporal and Environmental metric values as a single string in the Vector String format defined
- * in the CVSS v3.0 standard definition of the Vector String.
- *
- * Returns an XML string representation of this input. See the comment for CVSS.generateXMLFromMetrics for more
- * detail on inputs, return values and errors. In addition to the error conditions listed for that function, this
- * function can also return:
- *   "MalformedVectorString", if the Vector String passed is does not conform to the format in the standard; or
- *   "MultipleDefinitionsOfMetric", if the Vector String is well formed but defines the same metric (or metrics),
- *                                  more than once.
- */
-CVSS.generateXMLFromVector = function ( vectorString ) {
-
-  var metricValues = {
-    AV:  undefined, AC:  undefined, PR:  undefined, UI:  undefined, S:  undefined,
-    C:   undefined, I:   undefined, A:   undefined,
-    E:   undefined, RL:  undefined, RC:  undefined,
-    CR:  undefined, IR:  undefined, AR:  undefined,
-    MAV: undefined, MAC: undefined, MPR: undefined, MUI: undefined, MS: undefined,
-    MC:  undefined, MI:  undefined, MA:  undefined
-  };
-
-  // If input validation fails, this array is populated with strings indicating which metrics failed validation.
-  var badMetrics = [];
-
-  if (!CVSS.vectorStringRegex_30.test(vectorString)) {
-    return { success: false, errorType: "MalformedVectorString" };
-  }
-
-  var metricNameValue = vectorString.substring(CVSS.CVSSVersionIdentifier.length).split("/");
-
-  for (var i in metricNameValue) {
-    if (metricNameValue.hasOwnProperty(i)) {
-
-      var singleMetric = metricNameValue[i].split(":");
-
-      if (typeof metricValues[singleMetric[0]] === "undefined") {
-        metricValues[singleMetric[0]] = singleMetric[1];
-      } else {
-        badMetrics.push(singleMetric[0]);
-      }
-    }
-  }
-
-  if (badMetrics.length > 0) {
-    return { success: false, errorType: "MultipleDefinitionsOfMetric", errorMetrics: badMetrics };
-  }
-
-  return CVSS.generateXMLFromMetrics (
-    metricValues.AV,  metricValues.AC,  metricValues.PR,  metricValues.UI,  metricValues.S,
-    metricValues.C,   metricValues.I,   metricValues.A,
-    metricValues.E,   metricValues.RL,  metricValues.RC,
-    metricValues.CR,  metricValues.IR,  metricValues.AR,
-    metricValues.MAV, metricValues.MAC, metricValues.MPR, metricValues.MUI, metricValues.MS,
-    metricValues.MC,  metricValues.MI,  metricValues.MA);
 };
