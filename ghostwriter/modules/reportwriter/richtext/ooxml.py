@@ -80,6 +80,7 @@ class TextTracking:
 
         Use this before adding inline content to a paragraph, so that a space between it and the previous text is properly inserted.
         """
+        self.is_block_start = False
         if self.segment_break_run is not None:
             self.segment_break_run.text = self.segment_break_run.text + " "
             self.segment_break_run = None
