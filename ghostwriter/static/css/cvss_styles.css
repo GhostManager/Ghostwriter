@@ -2,57 +2,40 @@
     font-size: 100%;
 }
 
-fieldset {
+.cvss-calculator {
     position: relative;
-    background-color: #f2f2f2;
-    margin-top: 5px;
-    border: 0;
-    padding: 1em 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-fieldset legend {
-    background-color: #666666;
-    color: #ffffff;
-    margin: 0;
-    width: 100%;
-    padding: 0.5em 0px;
-    text-indent: 1em;
+.cvss-calculator .cvss-calculator-buttons {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 1rem;
 }
 
-fieldset div.metric {
+.cvss-calculator div.metric {
+    display: flex;
+    flex-direction: row;
+
     padding: 0;
     margin: 0.5em 0;
 }
 
-@media only screen and (min-width:768px) {
-    fieldset div.column {
-        width: 45%;
-        margin: 0 0 0 1em;
-    }
-
-    fieldset div.column-left {
-        float: left;
-        height: auto;
-    }
-
-    fieldset div.column-right {
-        float: right;
-        height: auto;
-    }
-}
-
-fieldset h3 {
+.cvss-calculator h3 {
     font-size: 1em;
     margin: 0;
-    padding-left: 0.1em;
+    padding: 0;
 }
 
-fieldset input {
+.cvss-calculator input {
     display: none;
-    width: auto;
 }
 
-fieldset label {
+.cvss-calculator label {
+    flex-grow: 1;
     background: #cccccc;
     display: inline-block;
     margin: 3px;
@@ -68,13 +51,13 @@ fieldset label {
     -ms-user-select: none;
 }
 
-fieldset label:hover {
+.cvss-calculator label:hover {
     background: #666666;
     color: #ffffff;
     border: 1px solid #666666
 }
 
-fieldset input:checked+label {
+.cvss-calculator input:checked+label {
     background: green;
     border: 1px solid green;
     color: #ffffff;
