@@ -39,7 +39,6 @@ class HtmlToDocx(BaseHtmlToOOXML):
         super().__init__()
         self.doc = doc
         self.p_style = p_style
-        self.list_styles_cache = {}
 
     def text(self, el, *, par=None, style={}, **kwargs):
         # Process hyperlinks on top of the usual text rules
@@ -206,7 +205,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             )
 
         if this_list_level == 0:
-            list_tracking.create(self.doc, self.list_styles_cache)
+            list_tracking.create(self.doc)
 
     tag_ol = tag_ul
 
@@ -517,74 +516,68 @@ class ListTracking:
             self.level_list_is_ordered.append(is_ordered)
         self.paragraphs.append((pg, level))
 
-    def create(self, doc, cache):
+    def create(self, doc):
         """
         Creates the numbering, if needed, and assigns it to each of the paragraphs registered by `add_paragraph`.
         """
-        # Finalize the list into a tuple, which is hashable.
-        # Technically an abuse of a tuple, but Python has no built-in immutable sequence types
-        level_list_is_ordered = tuple(self.level_list_is_ordered)
-        if level_list_is_ordered in cache:
-            # Re-use the numbering
-            numbering_id = cache[level_list_is_ordered]
-        else:
-            # Create a new numbering
-            numbering = doc.part.numbering_part.numbering_definitions._numbering
-            last_used_id = max(
-                (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
-                default=-1,
-            )
-            abstract_numbering_id = last_used_id + 1
+        level_list_is_ordered = self.level_list_is_ordered
 
-            abstract_numbering = numbering.makeelement(self.q_w("abstractNum"))
-            abstract_numbering.set(self.q_w("abstractNumId"), str(abstract_numbering_id))
+        # Create a new numbering
+        numbering = doc.part.numbering_part.numbering_definitions._numbering
+        last_used_id = max(
+            (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
+            default=-1,
+        )
+        abstract_numbering_id = last_used_id + 1
 
-            multi_level_type = abstract_numbering.makeelement(self.q_w("multiLevelType"))
-            multi_level_type.set(self.q_w("val"), "hybridMultilevel")
-            abstract_numbering.append(multi_level_type)
+        abstract_numbering = numbering.makeelement(self.q_w("abstractNum"))
+        abstract_numbering.set(self.q_w("abstractNumId"), str(abstract_numbering_id))
 
-            for level_num, is_ordered in enumerate(level_list_is_ordered):
-                # TODO: vary bullets or numbers based on level
-                level = abstract_numbering.makeelement(self.q_w("lvl"))
-                level.set(self.q_w("ilvl"), str(level_num))
+        multi_level_type = abstract_numbering.makeelement(self.q_w("multiLevelType"))
+        multi_level_type.set(self.q_w("val"), "hybridMultilevel")
+        abstract_numbering.append(multi_level_type)
 
-                start = level.makeelement(self.q_w("start"))
-                start.set(self.q_w("val"), "1")
-                level.append(start)
+        for level_num, is_ordered in enumerate(level_list_is_ordered):
+            # TODO: vary bullets or numbers based on level
+            level = abstract_numbering.makeelement(self.q_w("lvl"))
+            level.set(self.q_w("ilvl"), str(level_num))
 
-                num_fmt = level.makeelement(self.q_w("numFmt"))
-                lvl_text = level.makeelement(self.q_w("lvlText"))
-                if is_ordered:
-                    num_fmt.set(self.q_w("val"), "decimal")
-                    lvl_text.set(self.q_w("val"), "%{}.".format(level_num + 1))
-                else:
-                    num_fmt.set(self.q_w("val"), "bullet")
-                    lvl_text.set(self.q_w("val"), "")
-                    # lvl_text.set(self.q_w("val"), "X")
-                level.append(num_fmt)
-                level.append(lvl_text)
+            start = level.makeelement(self.q_w("start"))
+            start.set(self.q_w("val"), "1")
+            level.append(start)
 
-                prp = level.makeelement(self.q_w("pPr"))
-                ind = prp.makeelement(self.q_w("ind"))
-                ind.set(self.q_w("left"), str((level_num + 1) * 720))
-                ind.set(self.q_w("hanging"), "360")
-                prp.append(ind)
-                level.append(prp)
+            num_fmt = level.makeelement(self.q_w("numFmt"))
+            lvl_text = level.makeelement(self.q_w("lvlText"))
+            if is_ordered:
+                num_fmt.set(self.q_w("val"), "decimal")
+                lvl_text.set(self.q_w("val"), "%{}.".format(level_num + 1))
+            else:
+                num_fmt.set(self.q_w("val"), "bullet")
+                lvl_text.set(self.q_w("val"), "")
+                # lvl_text.set(self.q_w("val"), "X")
+            level.append(num_fmt)
+            level.append(lvl_text)
 
-                if not is_ordered:
-                    rpr = level.makeelement(self.q_w("rPr"))
-                    fonts = rpr.makeelement(self.q_w("rFonts"))
-                    fonts.set(self.q_w("ascii"), "Symbol")
-                    fonts.set(self.q_w("hAnsi"), "Symbol")
-                    fonts.set(self.q_w("hint"), "default")
-                    rpr.append(fonts)
-                    level.append(rpr)
+            prp = level.makeelement(self.q_w("pPr"))
+            ind = prp.makeelement(self.q_w("ind"))
+            ind.set(self.q_w("left"), str((level_num + 1) * 720))
+            ind.set(self.q_w("hanging"), "360")
+            prp.append(ind)
+            level.append(prp)
 
-                abstract_numbering.append(level)
+            if not is_ordered:
+                rpr = level.makeelement(self.q_w("rPr"))
+                fonts = rpr.makeelement(self.q_w("rFonts"))
+                fonts.set(self.q_w("ascii"), "Symbol")
+                fonts.set(self.q_w("hAnsi"), "Symbol")
+                fonts.set(self.q_w("hint"), "default")
+                rpr.append(fonts)
+                level.append(rpr)
 
-            numbering.insert(0, abstract_numbering)
-            numbering_id = numbering.add_num(abstract_numbering_id).numId
-            cache[level_list_is_ordered] = numbering_id
+            abstract_numbering.append(level)
+
+        numbering.insert(0, abstract_numbering)
+        numbering_id = numbering.add_num(abstract_numbering_id).numId
 
         for par, level in self.paragraphs:
             par.style = "ListParagraph"
