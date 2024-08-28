@@ -591,7 +591,7 @@
           <hr/>
 
           {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type != "rich_text" %}
+            {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
               <div class="row justify-content-md-center mb-1">
                 <h6 class="col-3 text-left">
                   <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
@@ -617,6 +617,20 @@
                         data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
                 </button>
               {% if not forloop.last %}<hr>{% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+
+          {% for field_spec in report_extra_fields_spec %}
+            {% if field_spec.type == "json" %}
+              <div class="row justify-content-md-center mb-1">
+                <h6 class="col-3 text-left">
+                  <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
+                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
+                </h6>
+                <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
+                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
+                </button>
               </div>
             {% endif %}
           {% endfor %}

@@ -54,10 +54,10 @@
     <hr>
 
     {% for field_spec in observation_extra_fields_spec %}
-      {% if field_spec.type != "rich_text" %}
+      {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
         <div class="row justify-content-md-center">
           <h6 class="col-3 text-left">
-            {{ field_spec.display_name|bleach }}
+            {{ field_spec.display_name }}
           </h6>
           <div class="mt-2 col-3 text-md-center align-middle offset-2">
             {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
@@ -65,11 +65,25 @@
         </div>
       {% endif %}
     {% endfor %}
+
     {% for field_spec in observation_extra_fields_spec %}
       {% if field_spec.type == "rich_text" %}
-        <div id="extraFieldCard_{{ field_spec.internal_name|bleach }}" class="card mb-3">
+        <div id="extraFieldCard_{{ field_spec.internal_name }}" class="card mb-3">
           <div class="card-header finding-header icon custom-field-icon">
-            {{ field_spec.display_name|bleach }}
+            {{ field_spec.display_name }}
+          </div>
+          <div class="card-body finding-content">
+            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    {% for field_spec in observation_extra_fields_spec %}
+      {% if field_spec.type == "json" %}
+        <div id="extraFieldCard_{{ field_spec.internal_name }}" class="card mb-3">
+          <div class="card-header finding-header icon custom-field-icon">
+            {{ field_spec.display_name }}
           </div>
           <div class="card-body finding-content">
             {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}

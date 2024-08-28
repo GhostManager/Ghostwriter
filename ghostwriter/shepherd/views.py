@@ -103,7 +103,7 @@ class AjaxLoadProjects(RoleBasedAccessControlMixin, View):
                 client = Client.objects.get(id=client_id)
                 if verify_access(request.user, client):
                     projects = get_project_list(request.user)
-                    projects = projects.filter(Q(client_id=client_id) & Q(complete=False)).order_by("codename")
+                    projects = projects.filter(Q(client_id=client_id) & Q(complete=False)).order_by("codename").defer("extra_fields")
                     return render(request, "shepherd/project_dropdown_list.html", {"projects": projects})
                 return HttpResponse(status=403)
             except ValueError:
