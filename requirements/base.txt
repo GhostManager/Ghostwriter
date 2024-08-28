@@ -12,7 +12,7 @@ Twisted==20.3.0  # Temporary constraint for channels: https://github.com/django/
 django==3.2.19  # pyup: < 4.1  # https://www.djangoproject.com/
 django-environ==0.10.0  # https://github.com/joke2k/django-environ
 django-model-utils==4.3.1  # https://github.com/jazzband/django-model-utils
-django-allauth==0.54.0  # https://github.com/pennersr/django-allauth
+django-allauth==0.63.6  # https://github.com/pennersr/django-allauth
 django-crispy-forms==1.14.0  # https://github.com/django-crispy-forms/django-crispy-forms
 django-compressor==4.3.1  # https://github.com/django-compressor/django-compressor
 django-redis==5.2.0  # https://github.com/niwinz/django-redis

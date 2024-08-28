@@ -11,10 +11,7 @@ SECRET_KEY = env(
     default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-hosts = env(
-    "DJANGO_ALLOWED_HOSTS",
-    default="localhost 0.0.0.0 127.0.0.1 172.20.0.5 django host.docker.internal"
-)
+hosts = env("DJANGO_ALLOWED_HOSTS", default="localhost 0.0.0.0 127.0.0.1 172.20.0.5 django host.docker.internal")
 ALLOWED_HOSTS = hosts.split(" ")
 
 # CACHES
@@ -30,9 +27,7 @@ CACHES = {
 # EMAIL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
-EMAIL_BACKEND = env(
-    "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
-)
+EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-host
 EMAIL_HOST = "localhost"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
@@ -70,3 +65,8 @@ INSTALLED_APPS += ["django_extensions"]  # noqa F405
 # LOGGING.setdefault("loggers", {})["django.db.backends"] = {
 #     "level": "DEBUG"
 # }
+
+# Include files in `local.d`. These are added in alphabetical order - using a numeric prefix
+# like `10-subconfig.py` can be used to order inclusions
+
+include_settings("./local.d/*.py")
