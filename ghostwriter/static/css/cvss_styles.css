@@ -24,7 +24,19 @@
     margin: 0.5em 0;
 }
 
+.cvss-calculator h2 {
+    font-size: 2em;
+    margin: 0;
+    padding: 0;
+}
+
 .cvss-calculator h3 {
+    font-size: 1.5em;
+    margin: 0;
+    padding: 0;
+}
+
+.cvss-calculator h4 {
     font-size: 1em;
     margin: 0;
     padding: 0;
@@ -61,24 +73,6 @@
     background: green;
     border: 1px solid green;
     color: #ffffff;
-}
-
-#vector {
-    margin: 0 1em;
-    padding: 0;
-}
-
-#vectorString {
-    display: none;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    background-color: #090;
-    color: #ffffff;
-    font-weight: bold;
-    font-size: 0.8em;
-    width: 80em;
-    max-width: 100%;
 }
 
 .scoreRating {
@@ -163,9 +157,7 @@
     color: var(--info-rating-color);
 }
 
-#baseMetricScore,
-#temporalMetricScore,
-#environmentalMetricScore {
+.baseMetricScore {
     display: block;
     font-size: 32px;
     line-height: 32px;
@@ -173,18 +165,9 @@
     margin-top: 4px;
 }
 
-#baseSeverity,
-#temporalSeverity,
-#environmentalSeverity {
+.baseSeverity {
     font-size: 16px;
     font-weight: normal;
     margin-bottom: 5px;
     display: block;
-}
-
-div#scriptWarning {
-    border: solid red 2px;
-    background: #f5dddd;
-    padding: 1em 1em 1em 1em;
-    margin: 0.4em 0;
 }
