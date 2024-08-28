@@ -2,7 +2,7 @@
 
 {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
   <div id="field_spec_{{ field_spec.internal_name }}" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-super-sized" role="document">
+    <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">{{ field_spec.display_name }}</h5>
