@@ -628,8 +628,8 @@
                   <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
                      class="icon edit-icon-right">{{ field_spec.display_name }}</a>
                 </h6>
-                <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
+                <button type="button" class="btn btn-primary col-3 offset-2 icon code-icon" data-toggle="modal"
+                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">View JSON
                 </button>
               </div>
             {% endif %}
