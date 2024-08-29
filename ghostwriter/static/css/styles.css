@@ -41,7 +41,7 @@ pre {
   line-height: 1.5em;
   color: var(--main-txt-color);
   margin: auto;
-  max-width: 70vw;
+  max-width: 90vw;
   word-wrap: break-word;
   overflow-x: auto;
   border: 1pt solid var(--secondary-color);
