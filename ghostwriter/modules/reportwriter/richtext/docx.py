@@ -18,6 +18,7 @@ from docx.shared import RGBColor as DocxRgbColor
 from lxml import etree
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.modules.reportwriter.extensions import (
     IMAGE_EXTENSIONS,
     TEXT_EXTENSIONS,
@@ -392,8 +393,21 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         extension = file_path.split(".")[-1].lower()
         if extension in TEXT_EXTENSIONS:
-            with open(file_path, "r", encoding="utf-8") as evidence_file:
-                evidence_text = evidence_file.read()
+            try:
+                with open(file_path, "r", encoding="utf-8") as evidence_file:
+                    evidence_text = evidence_file.read()
+            except UnicodeDecodeError as err:
+                logger.exception(
+                    "Evidence file known as %s (%s) was not recognized as a %s file.",
+                    evidence["friendly_name"],
+                    file_path,
+                    extension,
+                )
+                error_msg = (
+                    f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a UTF-8 encoded {extension} file. '
+                    "Try opening it, exporting as desired type, and re-uploading it."
+                )
+                raise ReportExportError(error_msg) from err
             par.text = evidence_text
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
             try:
