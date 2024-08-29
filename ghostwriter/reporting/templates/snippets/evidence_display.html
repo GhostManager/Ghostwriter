@@ -12,11 +12,14 @@
       {% endif %}
     {% endwith %}
   {% else %}
-    {% if file_type == "missing" %}
-      <p>FILE NOT FOUND</p>
-    {% else %}
-      <p>Evidence file type cannot be displayed.</p>
-    {% endif %}
+    <div class="alert alert-warning offset-md-3 col-md-6" role="alert">
+      <h4 class="alert-heading">File Preview Unavailable</h4>
+      {% if file_type == "missing" %}
+        <p>FILE NOT FOUND</p>
+      {% else %}
+        <p>Evidence file type cannot be displayed.</p>
+      {% endif %}
+    </div>
   {% endif %}
   <p class="evidence-caption">{{ report_config.label_figure }} # {{ report_config.prefix_figure }} {{ evidence.caption }}</p>
 {% endwith %}
