@@ -110,10 +110,10 @@ class ApiEvidenceForm(forms.ModelForm):
         self.fields["finding"].queryset = finding_queryset
 
     def clean_filename(self):
-        if self.cleaned_data.get("filename"):
-            _, ext = splitext(self.cleaned_data["filename"])
-            if not ext.startswith(".") or ext[1:].lower() not in EVIDENCE_ALLOWED_EXTENSIONS:
-                raise ValidationError(f"File extension \"{ext}\" is not allowed")
+        _, ext = splitext(self.cleaned_data["filename"])
+        if not ext.startswith(".") or ext[1:].lower() not in EVIDENCE_ALLOWED_EXTENSIONS:
+            raise ValidationError(f"File extension \"{ext}\" is not allowed")
+        return self.cleaned_data["filename"]
 
     def clean(self):
         cleaned_data = super().clean()
