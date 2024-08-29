@@ -31,6 +31,7 @@ class TextTracking:
 
     Ref: https://www.w3.org/TR/css-text-3/#white-space-processing
     """
+
     is_block_start: bool
     segment_break_run: typing.Any | None
     in_pre: bool
@@ -72,7 +73,7 @@ class TextTracking:
                 self.is_block_start = False
                 self.force_emit_pending_segment_break()
                 run.text = run.text + match[0]
-            text = text[match.end():]
+            text = text[match.end() :]
 
     def force_emit_pending_segment_break(self):
         """
@@ -80,6 +81,7 @@ class TextTracking:
 
         Use this before adding inline content to a paragraph, so that a space between it and the previous text is properly inserted.
         """
+        self.is_block_start = False
         if self.segment_break_run is not None:
             self.segment_break_run.text = self.segment_break_run.text + " "
             self.segment_break_run = None
@@ -92,6 +94,7 @@ class BaseHtmlToOOXML:
 
     Use a subclass that matches the desired document type.
     """
+
     text_tracking: TextTracking
 
     def __init__(self):
