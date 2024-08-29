@@ -4,6 +4,7 @@
 from datetime import timedelta
 import base64
 from binascii import Error as BinAsciiError
+from os.path import splitext
 
 # Django Imports
 from django import forms
@@ -18,6 +19,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
+from ghostwriter.reporting.validators import EVIDENCE_ALLOWED_EXTENSIONS
 
 
 class ApiKeyForm(forms.Form):
@@ -106,6 +108,12 @@ class ApiEvidenceForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["report"].queryset = report_queryset
         self.fields["finding"].queryset = finding_queryset
+
+    def clean_filename(self):
+        if self.cleaned_data.get("filename"):
+            _, ext = splitext(self.cleaned_data["filename"])
+            if not ext.startswith(".") or ext[1:] not in EVIDENCE_ALLOWED_EXTENSIONS:
+                raise ValidationError(f"File extension \"{ext}\" is not allowed")
 
     def clean(self):
         cleaned_data = super().clean()
