@@ -97,16 +97,10 @@ class ApiEvidenceForm(forms.ModelForm):
 
     class Meta:
         model = Evidence
-        fields = (
-            "friendly_name",
-            "description",
-            "caption",
-            "tags",
-            "finding",
-            "report",
-        )
+        fields = ("friendly_name", "description", "caption", "tags", "finding", "report")
 
     def __init__(self, *args, **kwargs):
+        self.user_obj = kwargs.pop("user_obj")
         report_queryset = kwargs.pop("report_queryset")
         finding_queryset = ReportFindingLink.objects.filter(report__in=report_queryset)
         super().__init__(*args, **kwargs)
@@ -133,10 +127,13 @@ class ApiEvidenceForm(forms.ModelForm):
             # Validate that evidence name is unique
             name = cleaned_data["friendly_name"]
             if report.all_evidences().filter(friendly_name=name).exists():
-                self.add_error("friendly_name", ValidationError(
-                    _("This friendly name has already been used for a file attached to this report."),
-                    "duplicate",
-                ))
+                self.add_error(
+                    "friendly_name",
+                    ValidationError(
+                        _("This friendly name has already been used for a file attached to this report."),
+                        "duplicate",
+                    ),
+                )
 
         return cleaned_data
 
@@ -144,6 +141,7 @@ class ApiEvidenceForm(forms.ModelForm):
         instance = super().save(False)
         blob = ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"])
         instance.document = blob
+        instance.uploaded_by = self.user_obj
         if commit:
             instance.save()
             self.save_m2m()
@@ -158,10 +156,15 @@ class ApiReportTemplateForm(forms.ModelForm):
         model = ReportTemplate
         exclude = ("document", "upload_date", "last_update", "lint_result", "uploaded_by")
 
+    def __init__(self, *args, **kwargs):
+        self.user_obj = kwargs.pop("user_obj")
+        super().__init__(*args, **kwargs)
+
     def save(self, commit=True):
         instance = super().save(False)
         blob = ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"])
         instance.document = blob
+        instance.uploaded_by = self.user_obj
         if commit:
             instance.save()
             self.save_m2m()

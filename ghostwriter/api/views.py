@@ -791,6 +791,7 @@ class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
 
         form = ApiEvidenceForm(
             self.input,
+            user_obj=self.user_obj,
             report_queryset=utils.get_reports_list(self.user_obj),
         )
         if form.is_valid():
@@ -805,7 +806,7 @@ class GraphqlUploadReportTemplateView(JwtRequiredMixin, HasuraActionView):
         if self.user_obj is None or not self.user_obj.is_active:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
-        form = ApiReportTemplateForm(self.input)
+        form = ApiReportTemplateForm(self.input, user_obj=self.user_obj)
         if form.is_valid():
             instance = form.save()
             return JsonResponse({"id": instance.pk}, status=201)
