@@ -259,6 +259,7 @@ update_permissions:
         - start_date
         - start_time
         - timezone
+      filter: {}
       check:
         _exists:
           _table:
