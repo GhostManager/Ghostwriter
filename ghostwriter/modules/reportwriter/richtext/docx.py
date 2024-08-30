@@ -433,7 +433,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise UnrecognizedImageError(error_msg) from e
+                raise ReportExportError(error_msg) from e
 
             if self.border_color_width is not None:
                 border_color, border_width = self.border_color_width
