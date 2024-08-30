@@ -165,7 +165,8 @@ delete_permissions:
       filter: {}
   - role: user
     permission:
-      filter:
+      filter: {}
+      check:
         _exists:
           _table:
             name: users_user
