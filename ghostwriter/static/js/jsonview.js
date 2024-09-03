@@ -1,7 +1,7 @@
 // Edited and separately maintained version of `jquery-jsonview` by yesmeck
 // https://github.com/yesmeck/jquery-jsonview
 
-;(function ($) {
+(function ($) {
     'use strict';
 
     let collapser = function(collapsed) {
@@ -57,6 +57,7 @@
             let cnt;
             let output;
             let items;
+            let text;
             switch($.type(val)) {
                 case 'object':
                     if (!level) {
@@ -181,7 +182,7 @@
                         }
                     }
 
-                    let text = $('<span />', { 'class': 'str' })
+                    text = $('<span />', { 'class': 'str' })
                         .html(val);
 
                     return $('<span />')
