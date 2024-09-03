@@ -167,11 +167,20 @@ class UserSignupForm(SignupForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["email"].widget.attrs["placeholder"] = "Email Address"
+        self.fields["email"].label = "Email Address"
+        self.fields["name"].widget.attrs["placeholder"] = "Full Name"
+        self.fields["password2"].widget.attrs["placeholder"] = "Repeat Password"
+        self.fields["password2"].label = "Password (Again)"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_tag = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
+            Row(
+                Column("name", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
             Row(
                 Column("email", css_class="form-group col-12 mb-0"),
                 css_class="form-row mt-4",
@@ -181,7 +190,11 @@ class UserSignupForm(SignupForm):
                 css_class="form-row",
             ),
             Row(
-                Column("name", css_class="form-group col-12 mb-0"),
+                Column("password1", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("password2", css_class="form-group col-12 mb-0"),
                 css_class="form-row",
             ),
         )
