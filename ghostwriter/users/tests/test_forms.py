@@ -15,9 +15,13 @@ from ghostwriter.users.forms import (
     User2FAAuthenticateForm,
     User2FADeviceRemoveForm,
     UserChangeForm,
+    UserSignupForm,
 )
 
 logging.disable(logging.CRITICAL)
+
+
+PASSWORD = "SuperNaturalReporting!"
 
 
 class GroupAdminFormTests(TestCase):
@@ -172,3 +176,43 @@ class User2FADeviceRemoveFormTests(TestCase):
     def test_invalid_data(self):
         form = self.form_data(self.user, "123456")
         self.assertFalse(form.is_valid())
+
+
+class UserSignUpFormTests(TestCase):
+    """Collection of tests for :form:`users.UserSignUpForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        email=None,
+        username=None,
+        name=None,
+        password1=None,
+        password2=None,
+        **kwargs,
+    ):
+        return UserSignupForm(
+            data={
+                "name": name,
+                "email": email,
+                "username": username,
+                "password1": password1,
+                "password2": password2,
+            },
+        )
+
+    def test_valid_data(self):
+        form = self.form_data(
+            "benny@gmail.com",
+            "benny",
+            "Benny Ghostwriter",
+            PASSWORD,
+            PASSWORD,
+        )
+        self.assertTrue(form.is_valid())
