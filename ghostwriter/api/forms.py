@@ -112,7 +112,7 @@ class ApiEvidenceForm(forms.ModelForm):
     def clean_filename(self):
         _, ext = splitext(self.cleaned_data["filename"])
         if not ext.startswith(".") or ext[1:].lower() not in EVIDENCE_ALLOWED_EXTENSIONS:
-            raise ValidationError(f"File extension \"{ext}\" is not allowed")
+            raise ValidationError(f'File extension "{ext}" is not allowed', code="invalid")
         return self.cleaned_data["filename"]
 
     def clean(self):
