@@ -1,25 +1,34 @@
 """This contains all the forms used by the API application."""
 
 # Standard Libraries
-from datetime import timedelta
 import base64
 from binascii import Error as BinAsciiError
+from datetime import timedelta
 from os.path import splitext
 
 # Django Imports
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.core.files.base import ContentFile
 
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
+from pptx import Presentation
+from docx import Document
 
-from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
-from ghostwriter.reporting.validators import EVIDENCE_ALLOWED_EXTENSIONS
+# Ghostwriter Libraries
+from ghostwriter.api.utils import get_client_list
+from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate, DocType
+from ghostwriter.reporting.validators import (
+    DOCX_ALLOWED_EXTENSIONS,
+    EVIDENCE_ALLOWED_EXTENSIONS,
+    PPTX_ALLOWED_EXTENSIONS,
+    TEMPLATE_ALLOWED_EXTENSIONS,
+)
 
 
 class ApiKeyForm(forms.Form):
@@ -167,6 +176,52 @@ class ApiReportTemplateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user_obj = kwargs.pop("user_obj")
         super().__init__(*args, **kwargs)
+        self.fields["client"].queryset = get_client_list(self.user_obj)
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Validate the file extension is allowed for support templates
+        _, ext = splitext(self.cleaned_data["filename"])
+        if not ext.startswith(".") or ext[1:].lower() not in TEMPLATE_ALLOWED_EXTENSIONS:
+            self.add_error(
+                "filename",
+                ValidationError(f'File extension "{ext}" is not allowed for a report template', code="invalid"),
+            )
+
+        # Check if the file extension matches the selected document type
+        if "doc_type" in cleaned_data:
+            doc_type = cleaned_data["doc_type"]
+            if (ext[1:].lower() in DOCX_ALLOWED_EXTENSIONS and doc_type.extension not in DOCX_ALLOWED_EXTENSIONS) or (
+                ext[1:].lower() in PPTX_ALLOWED_EXTENSIONS and doc_type.extension not in PPTX_ALLOWED_EXTENSIONS
+            ):
+                self.add_error(
+                    "filename",
+                    ValidationError(
+                        f"File extension '{ext}' does not match the selected document type '{doc_type.name}'",
+                        code="mismatch",
+                    ),
+                )
+
+        # Check if the file is a valid Microsoft Word or PowerPoint document
+        if ext[1:].lower() in DOCX_ALLOWED_EXTENSIONS:
+            try:
+                Document(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
+            except Exception:
+                self.add_error(
+                    "file_base64",
+                    ValidationError(f"Could not open this template as a Microsoft Word document", code="invalid"),
+                )
+
+        if ext[1:].lower() in PPTX_ALLOWED_EXTENSIONS:
+            try:
+                Presentation(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
+            except Exception:
+                self.add_error(
+                    "file_base64",
+                    ValidationError(f"Could not open this template as a Microsoft PowerPoint document", code="invalid"),
+                )
+        return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(False)
