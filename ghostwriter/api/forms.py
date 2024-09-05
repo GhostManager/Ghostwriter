@@ -4,6 +4,7 @@
 import base64
 from binascii import Error as BinAsciiError
 from datetime import timedelta
+import logging
 from os.path import splitext
 
 # Django Imports
@@ -22,13 +23,16 @@ from docx import Document
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list
-from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate, DocType
+from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
 from ghostwriter.reporting.validators import (
     DOCX_ALLOWED_EXTENSIONS,
     EVIDENCE_ALLOWED_EXTENSIONS,
     PPTX_ALLOWED_EXTENSIONS,
     TEMPLATE_ALLOWED_EXTENSIONS,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApiKeyForm(forms.Form):
@@ -204,23 +208,38 @@ class ApiReportTemplateForm(forms.ModelForm):
                 )
 
         # Check if the file is a valid Microsoft Word or PowerPoint document
-        if ext[1:].lower() in DOCX_ALLOWED_EXTENSIONS:
-            try:
-                Document(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
-            except Exception:
-                self.add_error(
-                    "file_base64",
-                    ValidationError(f"Could not open this template as a Microsoft Word document", code="invalid"),
-                )
+        if "filename" in cleaned_data:
+            if ext[1:].lower() in DOCX_ALLOWED_EXTENSIONS:
+                try:
+                    Document(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
+                except ValueError as e:
+                    logger.error(
+                        "Could not open this template. %s, from %s as a Microsoft Word document: %s",
+                        self.cleaned_data["filename"],
+                        self.user_obj,
+                        e,
+                    )
+                    self.add_error(
+                        "file_base64",
+                        ValidationError("Could not open this template as a Microsoft Word document", code="invalid"),
+                    )
 
-        if ext[1:].lower() in PPTX_ALLOWED_EXTENSIONS:
-            try:
-                Presentation(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
-            except Exception:
-                self.add_error(
-                    "file_base64",
-                    ValidationError(f"Could not open this template as a Microsoft PowerPoint document", code="invalid"),
-                )
+            if ext[1:].lower() in PPTX_ALLOWED_EXTENSIONS:
+                try:
+                    Presentation(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
+                except ValueError as e:
+                    logger.error(
+                        "Could not open this template. %s, from %s as a Microsoft PowerPoint document: %s",
+                        self.cleaned_data["filename"],
+                        self.user_obj,
+                        e,
+                    )
+                    self.add_error(
+                        "file_base64",
+                        ValidationError(
+                            "Could not open this template as a Microsoft PowerPoint document", code="invalid"
+                        ),
+                    )
         return cleaned_data
 
     def save(self, commit=True):
