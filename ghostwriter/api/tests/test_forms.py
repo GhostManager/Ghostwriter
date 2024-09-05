@@ -364,6 +364,46 @@ class ApiReportTemplateFormTests(TestCase):
         )
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())
-        self.assertEqual(len(errors), 2)
-        self.assertEqual(errors["file_base64"][0].code, "invalid")
+        self.assertEqual(len(errors), 1)
         self.assertEqual(errors["filename"][0].code, "mismatch")
+
+    def test_invalid_file(self):
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=None,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_pptx,
+            user_obj=self.user,
+        )
+        errors = form.errors.as_data()
+        self.assertFalse(form.is_valid())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["file_base64"][0].code, "invalid")
+
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.pptx_type,
+            client=None,
+            p_style=None,
+            filename="test.pptx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+        errors = form.errors.as_data()
+        self.assertFalse(form.is_valid())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["file_base64"][0].code, "invalid")
