@@ -210,7 +210,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
     tag_ol = tag_ul
 
-    def tag_blockquote(self, el, **kwargs):
+    def tag_blockquote(self, el, par=None, **kwargs):
         # TODO: if done in a list, this won't preserve the level.
         # Not sure how to do that, since this requires a new paragraph.
         par = self.doc.add_paragraph()
