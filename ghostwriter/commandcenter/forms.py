@@ -195,7 +195,7 @@ class ExtraFieldsField(forms.Field):
     def prepare_value(self, value):
         if not isinstance(value, dict):
             return value
-        new_value = dict()
+        new_value = {}
         for field_spec in self.specs:
             field_obj = field_spec.form_field()
             field_value = value.get(field_spec.internal_name)
