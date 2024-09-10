@@ -193,7 +193,7 @@ class ExtraFieldsField(forms.Field):
         pass
 
     def prepare_value(self, value):
-        if not value:
+        if not isinstance(value, dict):
             return value
         new_value = dict()
         for field_spec in self.specs:
