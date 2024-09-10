@@ -6,11 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
-## [4.3.0] – 5 Sep 2024
+## [4.3.0] – 10 Sep 2024
 
 ### Added
 
-* Added two mutations to the GraphQL API to support uploading new evidence files and report template files
+* Added two mutations to the GraphQL API to support uploading new evidence files and report template files (Closes #230)
 * Added a new adapter for handling authentication for Single Sign-On (SSO) providers
   * The adapter fills-in a nearly full profile for any new accounts (full name, email address, username)
   * Usernames for new accounts will default to the first half of the email address
@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Admins can make changes to the custom config files without worrying about the changes needing to be stashed prior to pulling an update
   * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider)
 * Added support for a JSON field type for custom fields
+* Added a "Tags" column to the domain and server library tables
 
 ### Changed
 
@@ -28,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * **Important:** This change impacts anyone currently using SSO with Azure
   * The `azure` provider is now `microsoft` and SSO configurations will need to be updated
 * Changed the cloud infrastructure monitoring task to also check auxiliary IP addresses when determining if a cloud host is tracked in a project
+* Cloud hosts tracked on a project no longer require a unique IP address
+  * A warning is displayed if a cloud host is tracked on a project with multiple hosts sharing the same IP address
+* Changed filtering on tags to be case-insensitive
 
 ### Fixed
 
