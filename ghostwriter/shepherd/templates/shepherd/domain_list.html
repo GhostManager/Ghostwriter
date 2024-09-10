@@ -35,6 +35,7 @@
           <th class="align-middle pr-4">Age (Days)</th>
           <th class="sorter-sugar align-middle pr-4">Expiry</th>
           <th class="align-middle pr-4">Categories</th>
+          <th class="align-middle pr-4">Tags</th>
           <th class="sorter-false align-middle">Check-out</th>
         </tr>
         </thead>
@@ -75,6 +76,8 @@
             {% else %}
               <td class="align-middle">No Results</td>
             {% endif %}
+
+            <td class="text-justify align-middle">{%  for tag in domain.tags.all %}<span class="badge badge-secondary">{{ tag.name }}</span>{% endfor %}</td>
 
             {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
               <td class="align-middle">
