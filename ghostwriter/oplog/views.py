@@ -264,8 +264,8 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
     oplog_entry_resource = OplogEntryResource()
     try:
         imported_data = dataset.load(new_entries, format="csv")
-    except csv.Error as exception:  # pragma: no cover
-        logger.error("An error occurred while loading the CSV file for log import: %s", exception)
+    except csv.Error:  # pragma: no cover
+        logger.exception("An error occurred while loading the CSV file for log import")
         messages.error(
             request,
             "Your log file could not be loaded. There may be cells that exceed the 128KB text size limit for CSVs.",
@@ -292,9 +292,10 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
 def handle_errors(request, result):
     """Handle errors from a dry run of an activity log import."""
     row_errors = result.row_errors()
-    for exc in row_errors:
-        error_message = escape_message(f"There was an error in row {exc[0]}: {exc[1][0].error}")
-        logger.error(error_message)
+    for (row, errors) in row_errors:
+        error_message = escape_message(f"There was an error in row {row}: {errors[0].error}")
+        for err in errors:
+            logger.error("Could not import row %d", row, exc_info=err.error)
         messages.error(
             request,
             error_message,
@@ -532,7 +533,8 @@ class AjaxTemplateMixin:
             split[-1] = "_inner"
             split.append(".html")
             self.ajax_template_name = "".join(split)
-        if request.is_ajax():
+        # NOTE: this is JQuery specific
+        if request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
             self.template_name = self.ajax_template_name
         return super().dispatch(request, *args, **kwargs)
 

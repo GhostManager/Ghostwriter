@@ -311,6 +311,7 @@ class GeneralConfiguration(SingletonModel):
         "Default Timezone",
         default="America/Los_Angeles",
         help_text="Select a default timezone for clients and projects",
+        use_pytz=False,
     )
     hostname = models.CharField(
         max_length=255,

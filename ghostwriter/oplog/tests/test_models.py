@@ -1,9 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import datetime
-
-# 3rd Party Libraries
-import pytz
+from datetime import datetime, timezone
 
 # Django Imports
 from django.test import TestCase
@@ -71,8 +68,8 @@ class OplogEntryModelTests(TestCase):
         self.assertIsInstance(entry.end_date, datetime)
 
     def test_invalid_dates(self):
-        valid_start_date = datetime.now(pytz.UTC)
-        valid_end_date = datetime.now(pytz.UTC)
+        valid_start_date = datetime.now(timezone.utc)
+        valid_end_date = datetime.now(timezone.utc)
         invalid_start_date = "2021-09-14 14:09"
         invalid_end_date = "Totally a Date"
 

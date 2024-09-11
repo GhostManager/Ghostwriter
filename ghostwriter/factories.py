@@ -1,6 +1,6 @@
 # Standard Libraries
 import random
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone
 
 # Django Imports
 from django.contrib.auth import get_user_model
@@ -8,15 +8,20 @@ from django.utils import timezone
 
 # 3rd Party Libraries
 import factory
-import pytz
+import zoneinfo
 from factory import Faker
 from faker import Faker as PyFaker
 
 fake = PyFaker()
 
-# ``TimezoneFields`` use the "common" timezones, which excludes a few timezones like "Asia\Saigon"
-# Factories select a choice from this list instead of using ``random.choice(TIMEZONES)``
-TIMEZONES = pytz.common_timezones
+# Couple of timezones to test with
+TIMEZONES = [
+    zoneinfo.ZoneInfo("America/Los_Angeles"),
+    zoneinfo.ZoneInfo("Europe/Berlin"),
+    zoneinfo.ZoneInfo("America/New_York"),
+    zoneinfo.ZoneInfo("US/Michigan"),
+    zoneinfo.ZoneInfo("GB-Eire"),
+]
 EXTRA_FIELD_TYPES = [
     "checkbox",
     "single_line_text",
@@ -24,11 +29,6 @@ EXTRA_FIELD_TYPES = [
     "integer",
     "float",
 ]
-
-# Manually remove timezones not present in PostgreSQL 11.12's `pg_timezone_names` table
-TIMEZONES.remove("Pacific/Kanton")
-TIMEZONES.remove("Europe/Kyiv")
-
 
 # Users Factories
 
@@ -885,9 +885,9 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Deconfliction"
 
-    report_timestamp = Faker("date_time", tzinfo=pytz.UTC)
-    alert_timestamp = Faker("date_time", tzinfo=pytz.UTC)
-    response_timestamp = Faker("date_time", tzinfo=pytz.UTC)
+    report_timestamp = Faker("date_time", tzinfo=timezone.utc)
+    alert_timestamp = Faker("date_time", tzinfo=timezone.utc)
+    response_timestamp = Faker("date_time", tzinfo=timezone.utc)
     title = Faker("sentence")
     description = Faker("paragraph")
     alert_source = Faker("word")
@@ -899,7 +899,7 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.WhiteCard"
 
-    issued = Faker("date_time", tzinfo=pytz.UTC)
+    issued = Faker("date_time", tzinfo=timezone.utc)
     title = Faker("user_name")
     description = Faker("paragraph")
     project = factory.SubFactory(ProjectFactory)

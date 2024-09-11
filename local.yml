@@ -11,6 +11,7 @@ services:
     image: ghostwriter_local_django
     depends_on:
       - postgres
+      - redis
     volumes:
       - .:/app
       - local_data:/app/ghostwriter/media
@@ -119,7 +120,6 @@ services:
     depends_on:
       - postgres
       - django
-    restart: unless-stopped
     ports:
       - "${HASURA_GRAPHQL_SERVER_PORT}:8080"
       - "9691:9691"
