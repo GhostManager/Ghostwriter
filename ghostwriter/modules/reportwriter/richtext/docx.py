@@ -18,6 +18,7 @@ from docx.shared import RGBColor as DocxRgbColor
 from lxml import etree
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.modules.reportwriter.extensions import (
     IMAGE_EXTENSIONS,
     TEXT_EXTENSIONS,
@@ -69,7 +70,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
             run._r.append(hyperlink)
             # A workaround for the lack of a hyperlink style
             if "Hyperlink" in self.doc.styles:
-                run.style = "Hyperlink"
+                try:
+                    run.style = "Hyperlink"
+                except KeyError:
+                    pass
             else:
                 run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
                 run.font.underline = True
@@ -79,7 +83,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def style_run(self, run, style):
         super().style_run(run, style)
         if style.get("inline_code"):
-            run.style = "CodeInline"
+            try:
+                run.style = "CodeInline"
+            except KeyError:
+                pass
             run.font.no_proof = True
         if style.get("highlight"):
             run.font.highlight_color = WD_COLOR_INDEX.YELLOW
@@ -296,7 +303,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
-            par.style = "Caption"
+            try:
+                par.style = "Caption"
+            except KeyError:
+                pass
             par._gw_is_caption = True
             self.make_figure(par, ref_name or None)
         elif "data-gw-ref" in el.attrs:
@@ -523,7 +533,10 @@ class ListTracking:
         level_list_is_ordered = self.level_list_is_ordered
 
         # Create a new numbering
-        numbering = doc.part.numbering_part.numbering_definitions._numbering
+        try:
+            numbering = doc.part.numbering_part.numbering_definitions._numbering
+        except NotImplementedError as e:
+            raise ReportExportError("Tried to use a list in a template without list styles") from e
         last_used_id = max(
             (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
             default=-1,
@@ -580,6 +593,9 @@ class ListTracking:
         numbering_id = numbering.add_num(abstract_numbering_id).numId
 
         for par, level in self.paragraphs:
-            par.style = "ListParagraph"
+            try:
+                par.style = "ListParagraph"
+            except KeyError:
+                pass
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
