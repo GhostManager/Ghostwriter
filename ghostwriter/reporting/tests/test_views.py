@@ -2362,7 +2362,7 @@ class GenerateReportTests(TestCase):
 
         response = self.client_mgr.get(self.docx_uri)
         messages = list(get_messages(response.wsgi_request))
-        self.assertEqual(str(messages[0]), "Error: Template document file could not be found - try re-uploading it")
+        self.assertEqual(str(messages[0]), "Error: The word template could not be found on the server – try uploading it again. Occured in the DOCX template")
 
         self.report.docx_template = good_template
         self.report.save()
