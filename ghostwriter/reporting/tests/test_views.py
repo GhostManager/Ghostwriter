@@ -498,6 +498,20 @@ class FindingsListViewTests(TestCase):
             title = f"Finding {finding_id}"
             cls.findings.append(FindingFactory(title=title))
 
+        cls.project = ProjectFactory()
+        cls.accessibleReport = ReportFactory(project=cls.project)
+        _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.accessibleReportFindings = [
+            ReportFindingLinkFactory(title=f"Report Finding {i}", report=cls.accessibleReport)
+            for i in range(cls.num_of_findings)
+        ]
+
+        cls.inaccessibleReport = ReportFactory()
+        cls.inaccessibleReportFindings = [
+            ReportFindingLinkFactory(title=f"Inaccessible Report Finding {i}", report=cls.inaccessibleReport)
+            for i in range(cls.num_of_findings)
+        ]
+
         cls.uri = reverse("reporting:findings")
 
     def setUp(self):
@@ -538,6 +552,11 @@ class FindingsListViewTests(TestCase):
         response = self.client_auth.get(self.uri + "?title=Finding+2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
+
+    def test_search_report_findings(self):
+        response = self.client_auth.get(self.uri + "?on_reports=on")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.accessibleReportFindings))
 
 
 class FindingDetailViewTests(TestCase):
