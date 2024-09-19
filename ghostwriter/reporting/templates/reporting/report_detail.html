@@ -1110,13 +1110,100 @@
 
     {%  comment %} Enable autocomplete for the filter form {% endcomment %}
     $(function () {
-      let availableTitles = [
-        {% for entry in autocomplete %}
-          '{{ entry|escapejs }}',
+      let availableFindingTitles = [
+        {% for entry in finding_autocomplete %}
+          {value:'{{  entry.severity }} : {{ entry.title|escapejs }}', id: '{{ entry.id }}', url: '{% url 'reporting:ajax_assign_finding' entry.id %}', csrftoken: '{{ csrf_token }}'},
         {% endfor %}
       ];
-      $("#id_search").autocomplete({
-        source: availableTitles
+      $("#id_finding_search").autocomplete({
+        source: availableFindingTitles,
+        minLength: 0,
+        open: function() {
+            $("ul.ui-menu").width( $(this).innerWidth() );
+        },
+        select: function( event, ui ) {
+          let url = ui.item.url
+          let findingId = ui.item.id
+          let csrftoken = ui.item.csrftoken
+          // Prep AJAX request with CSRF token
+          $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+              }
+            }
+          });
+          // Send AJAX POST request
+          $.ajax({
+            url: url,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+              'finding': findingId
+            },
+            success: function (data) {
+              if (data['result'] == 'success') {
+                $('#findingsTable').html(data['table_html']);
+                // Clear the input field after successful AJAX call
+                $("#id_finding_search").val('');
+              }
+              if (data['message']) {
+                displayToastTop({type: data['result'], string: data['message'], title: 'Finding Assigned'});
+              }
+            }
+          });
+        }
+      }).focus(function() {
+        $(this).autocomplete('search', $(this).val())
+      });
+    });
+
+    $(function () {
+      let availableObservationTitles = [
+        {% for entry in observation_autocomplete %}
+          {value:'{{ entry.title|escapejs }}', id: '{{ entry.id }}', url: '{% url 'reporting:ajax_assign_observation' entry.id %}', csrftoken: '{{ csrf_token }}'},
+        {% endfor %}
+      ];
+      $("#id_observation_search").autocomplete({
+        source: availableObservationTitles,
+        minLength: 0,
+        open: function() {
+            $("ul.ui-menu").width( $(this).innerWidth() );
+        },
+        select: function( event, ui ) {
+          let url = ui.item.url
+          let observationId = ui.item.id
+          let csrftoken = ui.item.csrftoken
+          // Prep AJAX request with CSRF token
+          $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+              }
+            }
+          });
+          // Send AJAX POST request
+          $.ajax({
+            url: url,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+              'observation': observationId
+            },
+            success: function (data) {
+              if (data['result'] == 'success') {
+                $('#observationsTable').html(data['table_html']);
+                // Clear the input field after successful AJAX call
+                $("#id_observation_search").val('');
+              }
+              if (data['message']) {
+                displayToastTop({type: data['result'], string: data['message'], title: 'Observation Assigned'});
+              }
+            }
+          });
+        }
+      }).focus(function() {
+        $(this).autocomplete('search', $(this).val())
       });
     });
 
