@@ -291,7 +291,15 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             message = "{} successfully added to your active report. Click here to return to your report.".format(
                 finding_instance
             )
-            data = {"result": "success", "message": message, "url": f"{report.get_absolute_url()}#findings"}
+            table_html = render_to_string(
+                "snippets/report_findings_table.html", {"report": report}, request=self.request
+            )
+            data = {
+                "result": "success",
+                "message": message,
+                "url": f"{report.get_absolute_url()}#findings",
+                "table_html": table_html,
+            }
             logger.info(
                 "Copied %s %s to %s %s (%s %s) by request of %s",
                 finding_instance.__class__.__name__,
@@ -1133,9 +1141,9 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
                 "Displaying search results for: {}".format(search_term),
                 extra_tags="alert-success",
             )
-            findings = findings.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
-                "severity__weight", "-cvss_score", "finding_type", "title"
-            )
+            findings = findings.filter(
+                Q(title__icontains=search_term) | Q(description__icontains=search_term)
+            ).order_by("severity__weight", "-cvss_score", "finding_type", "title")
         return findings
 
     def get(self, request, *args, **kwarg):
@@ -1445,7 +1453,8 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
     def __init__(self):
         super().__init__()
-        self.autocomplete = []
+        self.finding_autocomplete = []
+        self.observation_autocomplete = []
 
     def test_func(self):
         return verify_access(self.request.user, self.get_object().project)
@@ -1486,8 +1495,13 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
             .order_by("severity__weight", "-cvss_score", "finding_type", "title")
         )
         for finding in findings:
-            self.autocomplete.append(finding.title)
-        ctx["autocomplete"] = self.autocomplete
+            self.finding_autocomplete.append(finding)
+        ctx["finding_autocomplete"] = self.finding_autocomplete
+
+        observations = Observation.objects.all().order_by("title")
+        for obs in observations:
+            self.observation_autocomplete.append(obs)
+        ctx["observation_autocomplete"] = self.observation_autocomplete
 
         ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
 
@@ -3100,7 +3114,10 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             report_link.tags.add(*observation_instance.tags.all())
 
             message = "{} successfully added to your active report.".format(observation_instance)
-            data = {"result": "success", "message": message}
+            table_html = render_to_string(
+                "snippets/report_observations_table.html", {"report": report}, request=self.request
+            )
+            data = {"result": "success", "message": message, "table_html": table_html}
             logger.info(
                 "Copied %s %s to %s %s (%s %s) by request of %s",
                 observation_instance.__class__.__name__,
