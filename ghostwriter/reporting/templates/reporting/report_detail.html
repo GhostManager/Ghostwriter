@@ -213,11 +213,14 @@
           clicking the <span class="p-1 add-icon"></span> button in the results, or
           by clicking an autocomplete result above.</p>
 
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
-                           href="{% url 'reporting:assign_blank_finding' report.id %}" data-toggle="tooltip"
-                           data-placement="top" title="Add a blank finding template to the bottom of the report">Add a
-          Blank
-          Finding</a></p>
+        <button class="btn btn-primary icon add-icon col-md-4"
+          onclick="attachBlankFinding()"
+          data-toggle="tooltip"
+          data-placement="top"
+          title="Add a blank finding template to the bottom of the report"
+        >
+          Add a Blank Finding
+        </button>
 
         <!-- Finding Table Section -->
         <div id="findingsTable">
@@ -251,11 +254,14 @@
           clicking the <span class="p-1 add-icon"></span> button in the results, or
           by clicking an autocomplete result above.</p>
 
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
-                           href="{% url 'reporting:assign_blank_observation' report.id %}" data-toggle="tooltip"
-                           data-placement="top" title="Add a blank observation template to the bottom of the report">Add
-          a Blank
-          Observation</a></p>
+          <button class="btn btn-primary icon add-icon col-md-4"
+                  onclick="attachBlankObservation()"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  title="Add a blank observation template to the bottom of the report"
+          >
+            Add a Blank Observation
+          </button>
 
         <div id="observationsTable">
           {% include "snippets/report_observations_table.html" with report=report csrf_token=csrf_token %}
@@ -418,11 +424,11 @@
   <script>
     const $spinnerModal = $('#spinner-modal')
 
+    {% comment %} Set variables used in `report_findings_table.html` that is updated on changes {% endcomment %}
     let report_id = '{{ report.id }}';
     let csrftoken = '{{ csrf_token }}';
 
     {% comment %} Connect to channel for report-specific notifications {% endcomment %}
-
     function webSocketInit() {
       ws_report = new WebSocket(
         protocol + window.location.host +
@@ -608,7 +614,7 @@
       });
     });
 
-    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
+    {%  comment %} Enable autocomplete for the findings and observations search {% endcomment %}
     $(function () {
       let availableFindingTitles = [
         {% for entry in finding_autocomplete %}
@@ -644,7 +650,8 @@
             type: 'POST',
             dataType: 'json',
             data: {
-              'finding': findingId
+              'finding': findingId,
+              'report': report_id
             },
             success: function (data) {
               if (data['result'] == 'success') {
@@ -698,7 +705,8 @@
             type: 'POST',
             dataType: 'json',
             data: {
-              'observation': observationId
+              'observation': observationId,
+              'report': report_id
             },
             success: function (data) {
               if (data['result'] == 'success') {
@@ -717,6 +725,7 @@
       });
     });
 
+    {% comment %} Enable table sorting for the evidence table {% endcomment %}
     $(document).ready(function () {
       $(".tablesorter").tablesorter({
         cssAsc: ' down',
@@ -740,6 +749,61 @@
         {% endfor %}
       {% endif %}
     ];
+
+
+    function attachBlankObservation () {
+      let attachBlankObsUrl = '{% url 'reporting:assign_blank_observation' report.id %}'
+      // Prep AJAX request with CSRF token
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      // Send AJAX POST request
+      $.ajax({
+        url: attachBlankObsUrl,
+        type: 'POST',
+        dataType: 'json',
+        data: {},
+        success: function (data) {
+          if (data['result'] == 'success') {
+            $('#observationsTable').html(data['table_html']);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Observation Assigned'});
+          }
+        }
+      });
+    }
+
+    function attachBlankFinding () {
+      let attachBlankObsUrl = '{% url 'reporting:assign_blank_finding' report.id %}'
+      // Prep AJAX request with CSRF token
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      // Send AJAX POST request
+      $.ajax({
+        url: attachBlankObsUrl,
+        type: 'POST',
+        dataType: 'json',
+        data: {},
+        success: function (data) {
+          if (data['result'] == 'success') {
+            $('#findingsTable').html(data['table_html']);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Finding Assigned'});
+          }
+        }
+      });
+    }
   </script>
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
@@ -797,7 +861,7 @@
         }
       });
 
-      // Store the last selected tab to return to it on page reload
+      {% comment %} Store the last selected tab to return to it on page reload {% endcomment %}
       $('.nav-link').click(function () {
         let tab = $(this).attr('href');
         localStorage.setItem("reportDefaultTab", tab);

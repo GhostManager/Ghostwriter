@@ -878,10 +878,9 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         self.finding_type = FindingType.objects.all().first()
         super().__init__()
 
-    def get(self, *args, **kwargs):
+    def post(self, *args, **kwargs):
         obj = self.get_object()
         try:
-
             report_link = ReportFindingLink(
                 title="Blank Template",
                 severity=self.severity,
@@ -901,23 +900,22 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 self.request.user,
             )
 
-            messages.success(
-                self.request,
-                "Successfully added a blank finding to the report",
-                extra_tags="alert-success",
-            )
+            message = "Successfully added a blank finding to the report."
+            table_html = render_to_string("snippets/report_findings_table.html", {"report": obj}, request=self.request)
+            data = {
+                "result": "success",
+                "message": message,
+                "table_html": table_html,
+            }
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
 
-            messages.error(
-                self.request,
-                "Encountered an error while trying to add a blank finding to your report: {}".format(exception.args),
-                extra_tags="alert-error",
-            )
+            message = f"Encountered an error while trying to add a blank finding to your report: {exception.args}."
+            data = {"result": "error", "message": message}
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)) + "#findings")
+        return JsonResponse(data)
 
 
 class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -3174,7 +3172,7 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
 
-    def get(self, *args, **kwargs):
+    def post(self, *args, **kwargs):
         obj = self.get_object()
         try:
             position = (
@@ -3195,25 +3193,24 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
                 self.request.user,
             )
 
-            messages.success(
-                self.request,
-                "Successfully added a blank observation to the report",
-                extra_tags="alert-success",
+            message = "Successfully added a blank observation to the report."
+            table_html = render_to_string(
+                "snippets/report_observations_table.html", {"report": obj}, request=self.request
             )
+            data = {
+                "result": "success",
+                "message": message,
+                "table_html": table_html,
+            }
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
 
-            messages.error(
-                self.request,
-                "Encountered an error while trying to add a blank observation to your report: {}".format(
-                    exception.args
-                ),
-                extra_tags="alert-error",
-            )
+            message = f"Encountered an error while trying to add a blank observation to your report: {exception.args}."
+            data = {"result": "error", "message": message}
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)) + "#observations")
+        return JsonResponse(data)
 
 
 class ReportObservationLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
