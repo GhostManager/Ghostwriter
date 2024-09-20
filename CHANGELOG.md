@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
-## [4.3.0] – 10 Sep 2024
+## [4.3.0] – 23 Sep 2024
 
 ### Added
 
@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Cloud hosts tracked on a project no longer require a unique IP address
   * A warning is displayed if a cloud host is tracked on a project with multiple hosts sharing the same IP address
 * Changed filtering on tags to be case-insensitive
+* On the report dashboard, clicking an autocomplete suggestion for a finding or observation will now add the item to the report
 
 ### Fixed
 
