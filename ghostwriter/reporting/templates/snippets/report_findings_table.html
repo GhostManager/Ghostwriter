@@ -151,11 +151,16 @@
               </td>
             {% endif %}
             {% if finding.assigned_to == request.user %}
-              {% if finding.complete %}
-                <td class="healthy align-middle">You</td>
-              {% else %}
-                <td class="burned align-middle">You</td>
-              {% endif %}
+              <td class="align-middle">
+                <span id="assignee-status-{{ finding.id }}" class="
+                  {% if finding.complete %}
+                    healthy">
+                  {% else %}
+                    burned">
+                  {% endif %}
+                  You</td>
+                </span>
+              </td>
             {% else %}
               {% if finding.assigned_to %}
                 <td class="neutral align-middle">{{ finding.assigned_to }}</td>
@@ -357,7 +362,7 @@
             }
           });
           // An "empty" group will have one row, the placeholder row
-          if (event.from.rows.length == 0) {
+          if (event.from.rows.length === 0) {
             // Just one row, add a placeholder row
             let placeholder_row = event.from.insertRow(0)
             placeholder_row.id = '{{ values.tpl_name }}_placeholder'
@@ -408,7 +413,9 @@
       let findingId = $(this).attr('set-finding-status-id');
       let csrftoken = $(this).attr('set-finding-status-csrftoken');
       let statusColId = '#finding-status-' + findingId;
+      let assigneeStatusColId = '#assignee-status-' + findingId;
       let statusCol = $(statusColId);
+      let assigneeStatusCol = $(assigneeStatusColId);
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
           if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -429,6 +436,8 @@
             statusCol.html(data['status']);
             statusCol.removeClass();
             statusCol.addClass(data['classes']);
+            assigneeStatusCol.removeClass();
+            assigneeStatusCol.addClass(data['classes']);
           }
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Finding Update'});
