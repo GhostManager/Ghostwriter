@@ -66,7 +66,8 @@
 
         {% with report.project.end_date|add_days:report_config.target_delivery_date|date:"DATE_FORMAT" as delivery_date %}
           <h6>Target Due Date:
-            <span class="{% if delivery_date|days_left <= 1 %}task-imminent{% elif delivery_date|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}">
+            <span
+              class="{% if delivery_date|days_left <= 1 %}task-imminent{% elif delivery_date|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}">
               {{ delivery_date }}
             </span>
           </h6>
@@ -162,14 +163,15 @@
           {% if report_config.enable_borders %}
             <tr>
               <td class="text-left icon border-icon">Image Border Weight</td>
-              <td class="text-justify">{{ report_config.border_weight }} EMUs ({{ report_config.border_weight|divide:12700 }}
+              <td class="text-justify">{{ report_config.border_weight }} EMUs
+                ({{ report_config.border_weight|divide:12700 }}
                 pt)
               </td>
             </tr>
             <tr>
               <td class="text-left icon border-icon">Image Border Color</td>
               <td class="text-justify">#{{ report_config.border_color }} <i class="fas fa-tint"
-                                                                           style="color:#{{ report_config.border_color }}"></i>
+                                                                            style="color:#{{ report_config.border_color }}"></i>
               </td>
             </tr>
             <tr>
@@ -178,7 +180,9 @@
             </tr>
             <tr>
               <td class="text-left icon calendar-icon">Delivery Date</td>
-              <td class="text-justify">{% if report_config.target_delivery_date > 0 %}+{% endif %}{{ report_config.target_delivery_date }} business days</td>
+              <td class="text-justify">{% if report_config.target_delivery_date > 0 %}
+                +{% endif %}{{ report_config.target_delivery_date }} business days
+              </td>
             </tr>
           {% endif %}
         </table>
@@ -217,7 +221,7 @@
 
         <!-- Finding Table Section -->
         <div id="findingsTable">
-          {%  include "snippets/report_findings_table.html" with report=report csrf_token=csrf_token %}
+          {% include "snippets/report_findings_table.html" with report=report csrf_token=csrf_token %}
         </div>
       </div>
 
@@ -254,7 +258,7 @@
           Observation</a></p>
 
         <div id="observationsTable">
-          {%  include "snippets/report_observations_table.html" with report=report csrf_token=csrf_token %}
+          {% include "snippets/report_observations_table.html" with report=report csrf_token=csrf_token %}
         </div>
       </div>
 
@@ -287,9 +291,9 @@
                     {{ evidence_file.friendly_name|bleach }}
                   </a>
                 </td>
-              <td class="align-middle">
-                <em>{{ evidence_file.filename|truncate_filename:50 }}</em>
-              </td>
+                <td class="align-middle">
+                  <em>{{ evidence_file.filename|truncate_filename:50 }}</em>
+                </td>
                 <td class="align-middle">
                   <div class="dropdown dropleft">
                     <button
@@ -353,7 +357,8 @@
                 <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
                         data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
                 </button>
-              {% if not forloop.last %}<hr>{% endif %}
+                {% if not forloop.last %}
+                  <hr>{% endif %}
               </div>
             {% endif %}
           {% endfor %}
@@ -417,6 +422,7 @@
     let csrftoken = '{{ csrf_token }}';
 
     {% comment %} Connect to channel for report-specific notifications {% endcomment %}
+
     function webSocketInit() {
       ws_report = new WebSocket(
         protocol + window.location.host +
@@ -447,6 +453,7 @@
         }, 2000);
       };
     }
+
     webSocketInit();
 
     {% comment %} Display the loading spinner while report generates {% endcomment %}
@@ -605,16 +612,21 @@
     $(function () {
       let availableFindingTitles = [
         {% for entry in finding_autocomplete %}
-          {value:'{{  entry.severity }} : {{ entry.title|escapejs }}', id: '{{ entry.id }}', url: '{% url 'reporting:ajax_assign_finding' entry.id %}', csrftoken: '{{ csrf_token }}'},
+          {
+            value: '{{  entry.severity }} : {{ entry.title|escapejs }}',
+            id: '{{ entry.id }}',
+            url: '{% url 'reporting:ajax_assign_finding' entry.id %}',
+            csrftoken: '{{ csrf_token }}'
+          },
         {% endfor %}
       ];
       $("#id_finding_search").autocomplete({
         source: availableFindingTitles,
         minLength: 0,
-        open: function() {
-            $("ul.ui-menu").width( $(this).innerWidth() );
+        open: function () {
+          $("ul.ui-menu").width($(this).innerWidth());
         },
-        select: function( event, ui ) {
+        select: function (event, ui) {
           let url = ui.item.url
           let findingId = ui.item.id
           let csrftoken = ui.item.csrftoken
@@ -646,7 +658,7 @@
             }
           });
         }
-      }).focus(function() {
+      }).focus(function () {
         $(this).autocomplete('search', $(this).val())
       });
     });
@@ -654,16 +666,21 @@
     $(function () {
       let availableObservationTitles = [
         {% for entry in observation_autocomplete %}
-          {value:'{{ entry.title|escapejs }}', id: '{{ entry.id }}', url: '{% url 'reporting:ajax_assign_observation' entry.id %}', csrftoken: '{{ csrf_token }}'},
+          {
+            value: '{{ entry.title|escapejs }}',
+            id: '{{ entry.id }}',
+            url: '{% url 'reporting:ajax_assign_observation' entry.id %}',
+            csrftoken: '{{ csrf_token }}'
+          },
         {% endfor %}
       ];
       $("#id_observation_search").autocomplete({
         source: availableObservationTitles,
         minLength: 0,
-        open: function() {
-            $("ul.ui-menu").width( $(this).innerWidth() );
+        open: function () {
+          $("ul.ui-menu").width($(this).innerWidth());
         },
-        select: function( event, ui ) {
+        select: function (event, ui) {
           let url = ui.item.url
           let observationId = ui.item.id
           let csrftoken = ui.item.csrftoken
@@ -695,7 +712,7 @@
             }
           });
         }
-      }).focus(function() {
+      }).focus(function () {
         $(this).autocomplete('search', $(this).val())
       });
     });
@@ -710,15 +727,18 @@
     });
 
     let evidenceFiles = [
-    {text: '\{\{.caption\}\}', value: '<p class="evidence-caption">{{ report_config.label_figure }} # {{ report_config.prefix_figure }} '},
-    {% if report.evidence_set.all  %}
-      {% for evidence in report.evidence_set.all %}
-        {
-          text: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}',
-          value: '{% url 'reporting:evidence_preview' evidence.id %}'
-        },
-      {% endfor %}
-    {% endif %}
+      {
+        text: '\{\{.caption\}\}',
+        value: '<p class="evidence-caption">{{ report_config.label_figure }} # {{ report_config.prefix_figure }} '
+      },
+      {% if report.evidence_set.all  %}
+        {% for evidence in report.evidence_set.all %}
+          {
+            text: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}',
+            value: '{% url 'reporting:evidence_preview' evidence.id %}'
+          },
+        {% endfor %}
+      {% endif %}
     ];
   </script>
 
