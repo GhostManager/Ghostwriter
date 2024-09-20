@@ -266,17 +266,30 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         del finding_dict["tags"]
         del finding_dict["tagged_items"]
 
-        # The user must have the ``active_report`` session variable
-        active_report = self.request.session.get("active_report", None)
-        if active_report:
-            try:
-                report = Report.objects.get(pk=active_report["id"])
-                if not verify_access(self.request.user, report.project):
-                    return ForbiddenJsonResponse()
-            except Report.DoesNotExist:
-                message = "Please select a report to edit before trying to assign a finding."
-                data = {"result": "error", "message": message}
-                return JsonResponse(data)
+        try:
+            # If the POST includes an `report` value, give that priority over the session variable
+            if "report" in self.request.POST:
+                report_id = self.request.POST["report"]
+                report = Report.objects.get(pk=report_id)
+            # Otherwise, use the session variable for the "active" report
+            else:
+                active_report = self.request.session.get("active_report", None)
+                if active_report:
+                    report = Report.objects.get(pk=active_report["id"])
+                else:
+                    raise Report.DoesNotExist
+        except (Report.DoesNotExist, ValueError):
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
+            data = {"result": "error", "message": message}
+            return JsonResponse(data)
+
+        # If we have a report, we can proceed after verifying access
+        data = {}
+        if report:
+            if not verify_access(self.request.user, report.project):
+                return ForbiddenJsonResponse()
 
             # Clone the selected object to make a new :model:`reporting.ReportFindingLink`
             report_link = ReportFindingLink(
@@ -311,8 +324,11 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 self.request.user,
             )
         else:
-            message = "Please select a report to edit before trying to assign a finding."
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
             data = {"result": "error", "message": message}
+
         return JsonResponse(data)
 
 
@@ -3086,17 +3102,29 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         del observation_dict["tags"]
         del observation_dict["tagged_items"]
 
-        # The user must have the ``active_report`` session variable
-        active_report = self.request.session.get("active_report", None)
-        if active_report:
-            try:
-                report = Report.objects.get(pk=active_report["id"])
-                if not verify_access(self.request.user, report.project):
-                    return ForbiddenJsonResponse()
-            except Report.DoesNotExist:
-                message = "Please select a report to edit before trying to assign an observation."
-                data = {"result": "error", "message": message}
-                return JsonResponse(data)
+        try:
+            # If the POST includes an `report` value, give that priority over the session variable
+            if "report" in self.request.POST:
+                report_id = self.request.POST["report"]
+                report = Report.objects.get(pk=report_id)
+            # Otherwise, use the session variable for the "active" report
+            else:
+                active_report = self.request.session.get("active_report", None)
+                if active_report:
+                    report = Report.objects.get(pk=active_report["id"])
+                else:
+                    raise Report.DoesNotExist
+        except (Report.DoesNotExist, ValueError):
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
+            data = {"result": "error", "message": message}
+            return JsonResponse(data)
+
+        # If we have a report, we can proceed after verifying access
+        if report:
+            if not verify_access(self.request.user, report.project):
+                return ForbiddenJsonResponse()
 
             # Clone the selected object to make a new :model:`reporting.ReportObservationLink`
             position = (
@@ -3129,8 +3157,11 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 self.request.user,
             )
         else:
-            message = "Please select a report to edit before trying to assign a observation."
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
             data = {"result": "error", "message": message}
+
         return JsonResponse(data)
 
 
