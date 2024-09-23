@@ -61,6 +61,10 @@
   <!-- Textarea Autoresize -->
   <script src="{% static 'js/jquery.textarea_autosize.js' %}"></script>
 
+  <!-- JSONView -->
+  <script src="{% static 'js/jsonview.js' %}"></script>
+  <link rel="stylesheet" type="text/css" href="{% static 'css/jsonview.css' %}">
+
   <!-- CVSS JS & CSS -->
   <!--
     Copyright (c) 2019, FIRST.ORG, INC.
@@ -96,7 +100,7 @@
       <!-- Sidebar Top Section -->
       <div class="sidebar-header col d-flex align-items-center justify-content-center">
         <a href="{% url 'home:dashboard' %}">
-          <img src="{% static 'images/all_white_header.png' %}" alt="Ghostwriter">
+          <img src="{% static 'images/inverted_header_alt.png' %}" alt="Ghostwriter">
         </a>
         <div class="sidebar-header-tab">
           <div class="square">

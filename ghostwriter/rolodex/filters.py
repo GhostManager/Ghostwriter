@@ -13,6 +13,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
+from ghostwriter.modules.shared import search_tags
 from ghostwriter.rolodex.models import Client, Project, ProjectType
 
 
@@ -94,7 +95,7 @@ class ClientFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter clients by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)
 
 
 class ProjectFilter(django_filters.FilterSet):
@@ -284,4 +285,4 @@ class ProjectFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter projects by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)

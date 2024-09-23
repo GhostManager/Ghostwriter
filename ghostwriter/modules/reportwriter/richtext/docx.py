@@ -402,8 +402,21 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         extension = file_path.split(".")[-1].lower()
         if extension in TEXT_EXTENSIONS:
-            with open(file_path, "r", encoding="utf-8") as evidence_file:
-                evidence_text = evidence_file.read()
+            try:
+                with open(file_path, "r", encoding="utf-8") as evidence_file:
+                    evidence_text = evidence_file.read()
+            except UnicodeDecodeError as err:
+                logger.exception(
+                    "Evidence file known as %s (%s) was not recognized as a %s file.",
+                    evidence["friendly_name"],
+                    file_path,
+                    extension,
+                )
+                error_msg = (
+                    f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a UTF-8 encoded {extension} file. '
+                    "Try opening it, exporting as desired type, and re-uploading it."
+                )
+                raise ReportExportError(error_msg) from err
             par.text = evidence_text
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
             try:
@@ -429,7 +442,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise UnrecognizedImageError(error_msg) from e
+                raise ReportExportError(error_msg) from e
 
             if self.border_color_width is not None:
                 border_color, border_width = self.border_color_width

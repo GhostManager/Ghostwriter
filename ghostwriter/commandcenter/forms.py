@@ -132,10 +132,12 @@ class ExtraFieldsWidget(forms.Widget):
             else:
                 widget_attrs = final_attrs
 
-            # Adjust classes for fields here
+            widget_attrs.setdefault("class", "")
             # Append `mb3` to the class list to add a margin below the field
-            if "class" in widget_attrs:
-                widget_attrs["class"] = widget_attrs["class"] + " mb-3"
+            widget_attrs["class"] += " mb-3"
+            # Add any classes from the widget
+            if "class" in widget.attrs:
+                widget_attrs["class"] += " " + widget.attrs["class"]
 
             widget_ctx = widget.get_context(widget_name, widget_value, widget_attrs)["widget"]
 
@@ -187,7 +189,18 @@ class ExtraFieldsField(forms.Field):
         return self._field_spec_cache
 
     def validate(self, value):
+        # Done in clean
         pass
+
+    def prepare_value(self, value):
+        if not isinstance(value, dict):
+            return value
+        new_value = {}
+        for field_spec in self.specs:
+            field_obj = field_spec.form_field()
+            field_value = value.get(field_spec.internal_name)
+            new_value[field_spec.internal_name] = field_obj.prepare_value(field_value)
+        return new_value
 
     def clean(self, value):
         if value is None:

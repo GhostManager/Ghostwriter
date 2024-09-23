@@ -31,7 +31,9 @@ from ghostwriter.api.views import (
     GraphqlReportFindingDeleteEvent,
     GraphqlServerCheckoutDelete,
     GraphqlTestView,
+    GraphqlUploadReportTemplateView,
     GraphqlWhoami,
+    GraphqlUploadEvidenceView,
 )
 
 app_name = "api"
@@ -63,6 +65,8 @@ urlpatterns = [
     ),
     path("deleteTemplate", csrf_exempt(GraphqlDeleteReportTemplateAction.as_view()), name="graphql_delete_template"),
     path("attachFinding", csrf_exempt(GraphqlAttachFinding.as_view()), name="graphql_attach_finding"),
+    path("uploadEvidence", csrf_exempt(GraphqlUploadEvidenceView.as_view()), name="graphql_upload_evidence"),
+    path("uploadReportTemplate", csrf_exempt(GraphqlUploadReportTemplateView.as_view()), name="graphql_upload_report_template"),
     # Events
     path("event/domain/update", csrf_exempt(GraphqlDomainUpdateEvent.as_view()), name="graphql_domain_update_event"),
     path(

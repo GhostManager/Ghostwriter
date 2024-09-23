@@ -1032,7 +1032,9 @@ def review_cloud_infrastructure(aws_only_running=False, do_only_running=False):
         else:
             instance_name = instance["id"]
         # Check if any IP address is associated with a project
-        queryset = TransientServer.objects.select_related("project").filter(ip_address__in=all_ip_addresses)
+        queryset = TransientServer.objects.select_related("project").filter(
+            Q(ip_address__in=all_ip_addresses) | Q(aux_address__overlap=all_ip_addresses)
+        )
         if queryset:
             for result in queryset:
                 # Consider the asset in use if the project's end date is in the past

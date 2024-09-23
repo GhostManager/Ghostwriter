@@ -583,7 +583,7 @@ class TransientServer(models.Model):
     ip_address = models.GenericIPAddressField(
         "IP Address",
         max_length=255,
-        unique=True,
+        unique=False,
         help_text="Enter the server IP address",
     )
     aux_address = ArrayField(
