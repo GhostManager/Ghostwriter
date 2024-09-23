@@ -1703,11 +1703,17 @@ class TransientServerCreate(RoleBasedAccessControlMixin, CreateView):
         obj.project = self.project
         obj.operator = self.request.user
         obj.save()
-        servers = TransientServer.objects.filter(project=self.project, ip_address=obj.ip_address)
-        if len(servers) > 1:
+        cloud_servers = TransientServer.objects.filter(project=self.project, ip_address=obj.ip_address)
+        if len(cloud_servers) > 1:
             messages.warning(
                 self.request,
-                f'You have {len(servers)} servers sharing the IP address "{obj.ip_address}" for this project',
+                f'You have {len(cloud_servers)} cloud servers sharing the IP address "{obj.ip_address}" for this project.',
+            )
+        static_servers = StaticServer.objects.filter(project=self.project, ip_address=obj.ip_address)
+        if len(static_servers) > 1:
+            messages.warning(
+                self.request,
+                f'You have checked out server that shares the provided IP address "{obj.ip_address}" on this project.',
             )
         return super().form_valid(form)
 
@@ -1760,11 +1766,19 @@ class TransientServerUpdate(RoleBasedAccessControlMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        servers = TransientServer.objects.filter(project=self.object.project, ip_address=self.object.ip_address)
-        if len(servers) > 1:
+        cloud_servers = TransientServer.objects.filter(project=self.object.project, ip_address=self.object.ip_address)
+        if len(cloud_servers) > 1:
             messages.warning(
                 self.request,
-                f'You have {len(servers)} servers sharing the IP address "{self.object.ip_address}" for this project',
+                f'You have {len(cloud_servers)} cloud servers sharing the IP address "{self.object.ip_address}" for this project',
+            )
+        static_servers = ServerHistory.objects.filter(
+            project=self.object.project, server__ip_address=self.object.ip_address
+        )
+        if len(static_servers) > 1:
+            messages.warning(
+                self.request,
+                f'You have checked out server that shares the provided IP address "{self.object.ip_address}" on this project.',
             )
         return super().form_valid(form)
 
