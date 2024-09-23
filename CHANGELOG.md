@@ -15,11 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The adapter fills-in a nearly full profile for any new accounts (full name, email address, username)
   * Usernames for new accounts will default to the first half of the email address
   * If an existing account has the same email address, the accounts will be linked
-  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/single-sign-on](https://www.ghostwriter.wiki/features/single-sign-on)
+  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on)
 * Added support for loading customized config files
   * These are files you can use to modify settings normally found in _/config/settings/base.py_ and _production.py_
   * Admins can make changes to the custom config files without worrying about the changes needing to be stashed prior to pulling an update
-  * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider)
+  * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider)
 * Added support for a JSON field type for custom fields
 * Added a "Tags" column to the domain and server library tables
 
