@@ -191,11 +191,11 @@ class AssignBlankFindingTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
         response = self.client_mgr.post(self.uri)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
         ProjectAssignmentFactory(operator=self.user, project=self.report.project)
         response = self.client_auth.post(self.uri)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
 
 class ConvertFindingTests(TestCase):
