@@ -1133,9 +1133,9 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
                 "Displaying search results for: {}".format(search_term),
                 extra_tags="alert-success",
             )
-            findings = findings.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
-                "severity__weight", "-cvss_score", "finding_type", "title"
-            )
+            findings = findings.filter(
+                Q(title__icontains=search_term) | Q(description__icontains=search_term)
+            ).order_by("severity__weight", "-cvss_score", "finding_type", "title")
         return findings
 
     def get(self, request, *args, **kwarg):
@@ -1612,9 +1612,12 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({
-            "user": self.request.user,
-        })
+        kwargs.update(
+            {
+                "project": self.get_object().project,
+                "user": self.request.user,
+            }
+        )
         return kwargs
 
     def get_context_data(self, **kwargs):
