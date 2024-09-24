@@ -760,7 +760,6 @@ def fetch_namecheap_domains():
         domain_queryset = Domain.objects.filter(registrar="Namecheap")
         expired_status = DomainStatus.objects.get(domain_status="Expired")
         burned_status = DomainStatus.objects.get(domain_status="Burned")
-        unavailable_status = DomainStatus.objects.get(domain_status="Unavailable")
         available_status = DomainStatus.objects.get(domain_status="Available")
         health_burned_status = HealthStatus.objects.get(health_status="Burned")
         for domain in domain_queryset:
@@ -809,7 +808,8 @@ def fetch_namecheap_domains():
                     domain_changes["updates"][domain.id]["domain"] = domain.name
                     domain_changes["updates"][domain.id]["change"] = "renewed"
                     domain.expired = False
-                    domain.domain_status = available_status
+                    if domain.domain_status == expired_status:
+                        domain.domain_status = available_status
                     domain.save()
 
         # Now, loop over every domain returned by Namecheap
