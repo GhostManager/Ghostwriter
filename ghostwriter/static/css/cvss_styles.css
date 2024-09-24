@@ -77,8 +77,8 @@
 
 .scoreRating {
     position: absolute;
-    top: -36px;
-    right: 0;
+    top: 5px;
+    right: -10px;
     padding: 0 0.4em;
     margin: 0 15px;
     border: 2px solid #666666;
@@ -159,15 +159,11 @@
 
 .baseMetricScore {
     display: block;
-    font-size: 32px;
     line-height: 32px;
-    font-weight: normal;
     margin-top: 4px;
 }
 
 .baseSeverity {
-    font-size: 16px;
-    font-weight: normal;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     display: block;
 }
