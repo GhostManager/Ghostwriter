@@ -25,7 +25,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import get_client_list, get_project_list
+from ghostwriter.api.utils import get_client_list, get_project_list, verify_user_is_privileged
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
@@ -286,20 +286,26 @@ class ReportForm(forms.ModelForm):
 
     def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Don't allow non-staff users to move a report's project
+        # Don't allow non-manager users to move a report's project
         instance = getattr(self, "instance", None)
+        user_is_privileged = verify_user_is_privileged(user)
         if instance and instance.pk:
-            if user is None or not user.is_staff:
+            if user is None or not user_is_privileged:
                 self.fields["project"].disabled = True
 
-        # Limit the list to the pre-selected project and disable the field
-        if project:
+        # If there is a project and user is not privileged,
+        # limit the list to the pre-selected project and disable the field
+        if project and not user_is_privileged:
             self.fields["project"].queryset = Project.objects.filter(pk=project.pk)
             self.fields["project"].disabled = True
 
-        if not project:
+        # If no project is selected, limit the list to what the user can access
+        # Checks for privilege so that privileged users get a list with only active projects
+        if not project or user_is_privileged:
             projects = get_project_list(user)
-            active_projects = projects.filter(complete=False).order_by("-start_date", "client", "project_type").defer("extra_fields")
+            active_projects = (
+                projects.filter(complete=False).order_by("-start_date", "client", "project_type").defer("extra_fields")
+            )
             if active_projects:
                 self.fields["project"].empty_label = "-- Select an Active Project --"
             else:
