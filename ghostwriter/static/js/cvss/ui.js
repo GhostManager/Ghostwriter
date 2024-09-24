@@ -7,6 +7,11 @@
     document.querySelector(`#cvss-${version}-calculator .baseSeverity`).textContent = "(" + severity + ")";
   }
 
+  function setSeveritySelect(score) {
+    const severity_select = document.getElementById('id_severity');
+    severity_select.selectedIndex = [...severity_select.options].findIndex (option => option.text === CVSS.severityRating(score));
+  }
+
   function showCalculatorVersion(version) {
     if(version === "v3") {
       document.getElementById("cvss-v3-calculator").style.removeProperty("display");
@@ -77,6 +82,7 @@
     document.getElementById('id_cvss_score').value = output.baseMetricScore;
     setCvssBadge("v3", output.baseMetricScore);
     document.getElementById('id_cvss_vector').value = output.vectorString;
+    setSeveritySelect(output.baseMetricScore);
   }
 
   function onV4ButtonChanged() {
@@ -98,6 +104,7 @@
     document.getElementById('id_cvss_score').value = score;
     setCvssBadge("v4", score);
     document.getElementById('id_cvss_vector').value = vector;
+    setSeveritySelect(score);
   }
 
   $(document).ready(function() {
