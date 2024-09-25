@@ -9,6 +9,13 @@
     {% endif %}
   {% elif field_spec.type == "rich_text" %}
     {{ field_value|bleach }}
+  {% elif field_spec.type == "json" %}
+    <pre><code id="jsonPreview"></code></pre>
+    <script>
+        $('#jsonPreview').jsonView({
+          '{{ field_spec.display_name }}': {{ field_value|json_pretty|safe }}
+        })
+    </script>
   {% else %}
     {% if field_value %}{{ field_value }}{% else %}No Value Set{% endif %}
   {% endif %}

@@ -41,6 +41,7 @@ def prepare_jinja2_env(debug=False):
             def __bool__(self):
                 self._record()
                 return super().__bool__()
+
         undefined = RecordUndefined
     else:
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
@@ -55,6 +56,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["get_item"] = jinja_funcs.get_item
     env.filters["regex_search"] = jinja_funcs.regex_search
     env.filters["filter_tags"] = jinja_funcs.filter_tags
+    env.filters["replace_blanks"] = jinja_funcs.replace_blanks
 
     if debug:
         return env, undefined_vars

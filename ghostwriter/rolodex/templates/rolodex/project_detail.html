@@ -1946,7 +1946,7 @@
   {% for list in project.projectscope_set.all %}
     <div class="modal" id="id_scope_{{ list.id }}" tabindex="-1" role="dialog"
          aria-labelledby="scope_modal_{{ list.id }}" aria-hidden="true">
-      <div class="modal-dialog scope-modal-dialog" role="document">
+      <div class="modal-dialog scope-modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="scopeModal_{{ list.id }}">{{ list.name }} – {{ list.count_lines_str }}</h5>
@@ -1972,7 +1972,7 @@
   {% for event in project.deconfliction_set.all %}
     <div class="modal" id="id_deconfliction_{{ event.id }}" tabindex="-1" role="dialog"
          aria-labelledby="deconfliction_modal_{{ event.id }}" aria-hidden="true">
-      <div class="modal-dialog modal-super-sized oplog-modal-dialog" role="document">
+      <div class="modal-dialog modal-super-sized oplog-modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related Log Entries</h5>

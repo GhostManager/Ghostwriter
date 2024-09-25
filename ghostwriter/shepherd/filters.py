@@ -21,6 +21,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.shared import search_tags
 from ghostwriter.shepherd.models import Domain, DomainStatus, HealthStatus, ServerStatus
 
 
@@ -117,8 +118,8 @@ class DomainFilter(django_filters.FilterSet):
         )
 
     def search_tags(self, queryset, name, value):
-        """Filter reports by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        """Filter domains by tags."""
+        return search_tags(queryset, value)
 
     def filter_expired(self, queryset, name, value):
         """
@@ -213,8 +214,8 @@ class ServerFilter(django_filters.FilterSet):
         )
 
     def search_tags(self, queryset, name, value):
-        """Filter reports by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        """Filter servers by tags."""
+        return search_tags(queryset, value)
 
     def search_name_and_address(self, queryset, name, value):
         """

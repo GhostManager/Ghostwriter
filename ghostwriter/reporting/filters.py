@@ -11,6 +11,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
+from ghostwriter.modules.shared import search_tags
 from ghostwriter.reporting.models import (
     Archive,
     Finding,
@@ -136,7 +137,7 @@ class FindingFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter findings by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)
 
 
 class ObservationFilter(django_filters.FilterSet):
@@ -205,7 +206,7 @@ class ObservationFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter observation by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)
 
 
 class ReportFilter(django_filters.FilterSet):
@@ -293,7 +294,7 @@ class ReportFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter reports by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)
 
 
 class ArchiveFilter(django_filters.FilterSet):
@@ -451,5 +452,5 @@ class ReportTemplateFilter(django_filters.FilterSet):
         )
 
     def search_tags(self, queryset, name, value):
-        """Filter reports by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        """Filter report templates by tags."""
+        return search_tags(queryset, value)

@@ -14,9 +14,13 @@
 
 {% block content %}
   <!-- User's Avatar -->
-  <a href="{% url 'users:userprofile_update' request.user.username %}">
-    <img class="avatar" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="Avatar">
-  </a>
+  {% if request.user == user %}
+    <a href="{% url 'users:userprofile_update' request.user.username %}">
+      <img class="avatar" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="Avatar">
+    </a>
+  {% else %}
+    <img class="avatar" src="{%  url 'users:avatar_download' slug=user.username %}" alt="Avatar">
+  {% endif %}
 
   <!-- Users Profile Section -->
   <div class="container profile-container mt-4">
@@ -112,7 +116,8 @@
       <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
       <a class="btn btn-secondary" href="{% url 'users:user_update' request.user.username %}">Update Personal
         Information</a>
-      <a class="btn btn-info" href="{% url 'users:userprofile_update' request.user.username %}">Update Avatar</a>
+      <a class="btn btn-info" href="{% url 'account_email' %}">Manage Email(s)</a>
+      <a class="btn btn-info btn-extra" href="{% url 'users:userprofile_update' request.user.username %}">Update Avatar</a>
     </div>
 
     <h4 class="icon 2fa-icon pt-4">Manage Multi-Factor Authentication</h4>
@@ -229,7 +234,7 @@
     {% if "api-token" in message.tags %}
       <div class="modal" id="confirm-token-modal" data-backdrop="static" data-keyboard="false" tabindex="-1"
            caller-id="" role="dialog" aria-labelledby="confirm-token-modal-label" aria-hidden="false">
-        <div class="modal-dialog token-modal" role="document">
+        <div class="modal-dialog token-modal modal-dialog-centered" role="document">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Your New Token</h5>

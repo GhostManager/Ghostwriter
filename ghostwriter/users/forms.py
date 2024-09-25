@@ -10,7 +10,7 @@ from django.forms import ModelForm, ModelMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from allauth.account.forms import LoginForm
+from allauth.account.forms import LoginForm, SignupForm
 from allauth_2fa.forms import TOTPAuthenticateForm, TOTPDeviceForm, TOTPDeviceRemoveForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
@@ -26,7 +26,6 @@ class UserChangeForm(UserChangeForm):
     class Meta:
         model = get_user_model()
         fields = (
-            "email",
             "name",
             "timezone",
             "phone",
@@ -35,19 +34,19 @@ class UserChangeForm(UserChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["phone"].widget.attrs["autocomplete"] = "off"
-        self.fields["phone"].widget.attrs["placeholder"] = "Your Work Number"
+        self.fields["name"].widget.attrs["autocomplete"] = "off"
+        self.fields["phone"].widget.attrs["placeholder"] = "(212) 555-2368"
         self.fields["phone"].help_text = "Work phone number for work contacts"
         self.fields["timezone"].help_text = "Timezone in which you work"
+        self.fields["name"].help_text = "Your full name as it should appear in reports"
         self.fields["name"].label = "Your Full Name"
-        self.fields["email"].label = "Your Primary Email Address"
         self.fields["timezone"].label = "Your Timezone"
         self.fields["phone"].label = "Your Contact Number"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.layout = Layout(
             Row(
-                Column("name", css_class="form-group col-md-6 mb-0"),
-                Column("email", css_class="form-group col-md-6 mb-0"),
+                Column("name", css_class="form-group col-md-12 mb-0"),
                 css_class="form-row mt-4",
             ),
             Row(
@@ -153,6 +152,49 @@ class UserLoginForm(LoginForm):
             ),
             Row(
                 Column("remember", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+        )
+
+
+class UserSignupForm(SignupForm):
+    """
+    Register an individual :model:`users.User` with a username, email, and full name. The resulting user is attached
+    to a social login.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["email"].widget.attrs["placeholder"] = "Email Address"
+        self.fields["email"].label = "Email Address"
+        self.fields["name"].widget.attrs["placeholder"] = "Full Name"
+        self.fields["password2"].widget.attrs["placeholder"] = "Repeat Password"
+        self.fields["password2"].label = "Password (Again)"
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.form_tag = False
+        self.helper.form_show_errors = False
+        self.helper.layout = Layout(
+            Row(
+                Column("name", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("email", css_class="form-group col-12 mb-0"),
+                css_class="form-row mt-4",
+            ),
+            Row(
+                Column("username", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("password1", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("password2", css_class="form-group col-12 mb-0"),
                 css_class="form-row",
             ),
         )

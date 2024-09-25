@@ -583,7 +583,7 @@ class TransientServer(models.Model):
     ip_address = models.GenericIPAddressField(
         "IP Address",
         max_length=255,
-        unique=True,
+        unique=False,
         help_text="Enter the server IP address",
     )
     aux_address = ArrayField(
@@ -638,14 +638,12 @@ class TransientServer(models.Model):
         "ServerRole",
         on_delete=models.PROTECT,
         null=False,
-        blank=True,
         help_text="Select the role this VPS will play",
     )
     activity_type = models.ForeignKey(
         "ActivityType",
         on_delete=models.PROTECT,
         null=False,
-        blank=True,
         help_text="Select how this VPS will be used",
     )
 

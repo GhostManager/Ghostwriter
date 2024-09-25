@@ -1,11 +1,11 @@
-{% load bleach_tags extra_fields %}
+{% load extra_fields %}
 
-{% if field_spec.type == "rich_text" %}
-  <div id="field_spec_{{ field_spec.internal_name|bleach }}" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-super-sized" role="document">
+{% if field_spec.type == "rich_text" or field_spec.type == "json" %}
+  <div id="field_spec_{{ field_spec.internal_name }}" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">{{ field_spec.display_name|bleach }}</h5>
+          <h5 class="modal-title">{{ field_spec.display_name }}</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>

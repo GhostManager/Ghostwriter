@@ -15,7 +15,7 @@
   {% if socialaccount_providers %}
     <p>
       {% blocktrans with site.name as site_name %}
-        Please sign in with one of your existing third party accounts. Or, <a href="{{ signup_url }}">sign up</a> for a
+        Please sign in with one of your existing third-party accounts. Or, <a href="{{ signup_url }}">sign up</a> for a
         {{ site_name }} account and sign in below:
       {% endblocktrans %}
     </p>
@@ -38,7 +38,7 @@
     </p>
   {% endif %}
 
-    <!-- Form Error Section -->
+  <!-- Form Error Section -->
   {% if form.errors %}
     <script>
       {% for field in form %}
@@ -60,8 +60,4 @@
     {% endif %}
     <button class="btn btn-primary col-md-4" type="submit">{% trans "Sign In" %}</button>
   </form>
-
-  <div class="forgot-password">
-    <a href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
-  </div>
 {% endblock %}

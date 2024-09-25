@@ -1,0 +1,97 @@
+{% if report.reportobservationlink_set.all %}
+  <table id="observations-table" class="table table-sm table-hover"
+         data-update-url="{% url 'reporting:update_report_observations' %}">
+    <thead>
+    <tr>
+      <th class="icon ol-list-icon text-center"></th>
+      <th class="align-middle">Observation</th>
+      <th class="align-middle">Options</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for observation in report.reportobservationlink_set.all %}
+      <tr id="observation_{{ observation.id }}" data-id="{{ observation.id }}">
+        <td
+          class="holdme align-middle"
+          data-toggle="tooltip"
+          data-placement="top"
+          title="Click-n-drag to reposition or categorize"
+        ></td>
+        <td class="align-middle">
+          <a id="delete-target-content-observation-{{ observation.id }}"
+            {% if observation.added_as_blank %}
+             class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
+             title="Observation started as a blank template, not from the observation library"
+            {% else %}
+             class="clickable"
+            {% endif %}
+             href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}
+          </a>
+        </td>
+        <td class="align-middle">
+          <div class="dropdown dropleft">
+            <button id="observation-dropdown-btn-{{ observation.id }}" class="dropdown-menu-btn-table"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
+                 aria-labelledby="dns-dropdown-btn_{{ observation.id }}">
+              <a class="dropdown-item icon clone-icon"
+                 href="{% url 'reporting:convert_observation' observation.id %}">Clone
+                to Library</a>
+              <a id="observation-delete-button-{{ observation.id }}"
+                 class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
+                 data-target="#confirm-delete-modal" href="javascript:void(0);"
+                 delete-target-csrftoken="{{ csrf_token }}"
+                 delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
+                 delete-target-id="{{ observation.id }}" delete-target-type="observation">Delete</a>
+            </div>
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No observations have been added to this report yet.</p>
+{% endif %}
+
+<script>
+  $('#observations-table [data-target="#confirm-delete-modal"]').each(function () {
+    $(this).click(function () {
+      $('#confirm-delete-modal').attr('caller-id', $(this).attr('id'));
+    });
+  });
+
+  {% comment %} Observation sorting {% endcomment %}
+  if ($("#observations-table").length) {
+    let observations_update_url = $("#observations-table").attr("data-update-url");
+    let observations_sortable = Sortable.create(document.querySelector("#observations-table tbody"), {
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      handle: '.holdme',
+
+      setData: (dataTransfer, dragEl) => {
+        dataTransfer.setData('text/plain', dragEl.textContent);
+      },
+      onUpdate: event => {
+        let positions = observations_sortable.toArray();
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
+        });
+        $.ajax(observations_update_url, {
+          type: 'POST',
+          data: {
+            'report': report_id,
+            'positions': JSON.stringify(positions),
+          },
+          success: function (data) {
+            console.log(data);
+          }
+        });
+      },
+    });
+  }
+</script>
