@@ -12,7 +12,7 @@ from django.utils import dateformat
 from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
-from ghostwriter.factories import GenerateMockProject
+from ghostwriter.factories import GenerateMockProject, OplogEntryFactory, OplogFactory
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 
 logging.disable(logging.CRITICAL)
@@ -46,6 +46,10 @@ class ReportDataSerializerTests(TestCase):
             cls.num_of_servers,
             cls.num_of_deconflictions,
         )
+
+        # Create an object with a null value for later testing
+        oplog = OplogFactory.create(project=cls.project)
+        OplogEntryFactory.create(tool=None, oplog_id=oplog)
 
         cls.serializer = ReportDataSerializer(
             cls.report,
@@ -122,5 +126,7 @@ class ReportDataSerializerTests(TestCase):
         for key in report_json:
             self.assertTrue(report_json[key] is not None)
 
-        for key, value in report_json.items():
-            self.assertTrue(value is not None)
+        for log in report_json["logs"]:
+            for entry in log["entries"]:
+                print(entry["tool"])
+                self.assertTrue(entry["tool"] is not None)
