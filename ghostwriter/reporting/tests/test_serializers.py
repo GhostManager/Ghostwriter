@@ -60,7 +60,7 @@ class ReportDataSerializerTests(TestCase):
     def test_json_rendering(self):
         try:
             report_json = JSONRenderer().render(self.serializer.data)
-            report_json = json.loads(report_json)
+            _ = json.loads(report_json)
         except Exception:
             self.fail("Failed to render report data as JSON")
 
@@ -121,3 +121,6 @@ class ReportDataSerializerTests(TestCase):
 
         for key in report_json:
             self.assertTrue(report_json[key] is not None)
+
+        for key, value in report_json.items():
+            self.assertTrue(value is not None)
