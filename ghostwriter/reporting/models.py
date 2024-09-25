@@ -230,6 +230,9 @@ class Finding(models.Model):
     def get_absolute_url(self):
         return reverse("reporting:finding_detail", args=[str(self.id)])
 
+    def get_edit_url(self):
+        return reverse("reporting:finding_update", kwargs={"pk": self.pk})
+
     def __str__(self):
         return f"[{self.severity}] {self.title}"
 
@@ -661,7 +664,13 @@ class ReportFindingLink(models.Model):
         verbose_name_plural = "Report findings"
 
     def __str__(self):
-        return f"{self.title}"
+        return f"{self.title} on {self.report}"
+
+    def get_absolute_url(self):
+        return reverse("reporting:report_detail", kwargs={"pk": self.report.pk}) + "#findings"
+
+    def get_edit_url(self):
+        return reverse("reporting:local_edit", kwargs={"pk": self.pk})
 
 
 def set_evidence_upload_destination(this, filename):
