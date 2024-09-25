@@ -53,6 +53,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     get_item,
     regex_search,
     strip_html,
+    replace_blanks,
 )
 from ghostwriter.reporting.templatetags import report_tags
 
@@ -2507,6 +2508,19 @@ class ReportTemplateFilterTests(TestCase):
         findings = "Not a Dict"
         with self.assertRaises(InvalidFilterValue):
             filter_tags(findings, ["xss", "T1659"])
+
+    def test_replace_blanks(self):
+        example = [
+            {"example": "This is a test"},
+            {"example": None},
+            {"example": "This is another test"},
+        ]
+        res = replace_blanks(example, "BLANK")
+        self.assertEqual(
+            res, [{"example": "This is a test"}, {"example": "BLANK"}, {"example": "This is another test"}]
+        )
+        with self.assertRaises(InvalidFilterValue):
+            replace_blanks("Not a list", "BLANK")
 
 
 class LocalFindingNoteUpdateTests(TestCase):
