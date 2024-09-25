@@ -72,6 +72,7 @@ class FindingFilter(django_filters.FilterSet):
         label="Search findings on reports",
         widget=forms.CheckboxInput,
     )
+
     def filter_on_reports(self, queryset, *args, **kwargs):
         return queryset
 
@@ -115,6 +116,9 @@ class FindingFilter(django_filters.FilterSet):
                     Column(
                         "on_reports",
                         css_class="col-md-12 m-1",
+                        data_toggle="tooltip",
+                        data_placement="top",
+                        title="Return results from reports instead of the library",
                     ),
                     css_class="form-row",
                 ),
