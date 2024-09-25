@@ -24,8 +24,8 @@
     }
   }
 
-  const V3_FIELDS = ["AV", "AC", "PR", "UI", "S", "C", "I", "A"];
-  const V4_FIELDS = ["AV", "AC", "AT", "PR", "UI", "VC", "VI", "VA", "SC", "SI", "SA"];
+  const V3_FIELDS = ["AV","AC","PR","UI","S","C","I","A","E","RL","RC","CR","IR","AR","MAV","MAC","MPR","MUI","MS","MC","MI","MA"];
+  const V4_FIELDS = ["AV","AC","AT","PR","UI","VC","VI","VA","SC","SI","SA","S","AU","R","V","RE","U","MAV","MAC","MAT","MPR","MUI","MVC","MVI","MVA","MSC","MSI","MSA","CR","IR","AR","E"];
 
   function onVectorChanged(setScore) {
     const vectorStr = document.getElementById("id_cvss_vector").value
@@ -41,7 +41,8 @@
 
       // Populate buttons
       for (const name of V3_FIELDS) {
-        document.querySelector(`input[name="cvssv3_${name}"][value="${cvssv3Selected[name]}"]`).checked = true;
+        const value = cvssv3Selected[name] ?? "X";
+        document.querySelector(`input[name="cvssv3_${name}"][value="${value}"]`).checked = true;
       }
       showCalculatorVersion("v3");
       return;
@@ -58,7 +59,8 @@
 
       // Populate buttons
       for (const name of V4_FIELDS) {
-        document.querySelector(`input[name="cvssv4_${name}"][value="${cvssv4Selected[name]}"]`).checked = true;
+        const value = cvssv4Selected[name] ?? "X";
+        document.querySelector(`input[name="cvssv4_${name}"][value="${value}"]`).checked = true;
       }
       showCalculatorVersion("v4");
       return;
@@ -92,10 +94,6 @@
         if (!selected)
             return;
         cvssSelected[name] = selected.value;
-    }
-    // Fill in optional metrics that we don't show
-    for (const [name, _] of cvssv4_expectedMetricOrder.slice(11)) {
-      cvssSelected[name] = "X";
     }
 
     const score = cvssv4Score(cvssSelected);
