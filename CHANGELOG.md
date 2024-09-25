@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Changed the serializer for report context to replace null values with a blank string (`""`) to help prevent errors when generating reports
   * **Note:** This change may affect templates that rely on null values to trigger conditional logic, but most conditional statements should not be affected
-  * **Example:** The condition `{% if not X %}` will still evaluate to `True` if `X` is `None` or `""`
+  * **Example:** The condition `{% if not X %}` will evaluate to `True` if `X` is `None` or `""`
 * Changed the report form to allow users with the `admin` or `manager` roles to change the report's project (Closes #368)
   * This change allows a report to be moved from one project to another (e.g., you make a copy for a follow-up assessment)
   * This feature is only available to users with the `admin` or `manager` roles to prevent accidental data leaks
