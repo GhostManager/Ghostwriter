@@ -27,6 +27,8 @@
     {% if not searching_report_findings %}
       <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>current report</em>
         displayed at the top of the page.</p>
+    {%  else %}
+      <p class="mt-3">The following results include findings attached to reports, not findings in your library.</p>
     {% endif %}
 
     <!-- Findings Table Section -->
@@ -34,23 +36,29 @@
       <table id="findingsTable" class="tablesorter table table-striped table-sm">
         <thead>
         <tr>
-          <th class="sortable pr-4">Severity</th>
-          <th class="sortable pr-4">Type</span></th>
-          <th class="sortable pr-4">Title</th>
+          <th class="sortable pr-4 align-middle">Severity</th>
+          <th class="sortable pr-4 align-middle">Type</th>
+          <th class="sortable pr-4 align-middle">Title</th>
           {% if searching_report_findings %}
-            <th class="sortable pr-4">Report</th>
+            <th class="sortable pr-4 align-middle">Report</th>
           {% endif %}
           <th class="sorter-false align-middle">Tags</th>
 
           {% if searching_report_findings %}
             <th class="sorter-false align-middle">
-              Edit Finding on Report
+              <div class="dropdown dropleft">
+                <span id="edit-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                      aria-expanded="false">Edit Finding on Report</span>
+                <div id="edit-info" class="dropdown-menu dropdown-info-content" aria-labelledby="edit-info-btn">
+                  <p>Editing a finding here edits the <em>version on the report</em>.</p>
+                </div>
+              </div>
             </th>
           {% else %}
             <th class="sorter-false align-middle">
               <div class="dropdown dropleft">
                 <span id="finding-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
-                      aria-expanded="false">Add Report</span>
+                      aria-expanded="false">Add to Report</span>
                 <div id="finding-info" class="dropdown-menu dropdown-info-content" aria-labelledby="finding-info-btn">
                   <p>Clicking <span class="add-icon"></span> will add the finding to your active report displayed at the
                     top of the screen.</p>
