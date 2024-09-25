@@ -1028,6 +1028,7 @@ class ReportUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.report = ReportFactory()
+        ReportFactory.create_batch(5)
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:report_update", kwargs={"pk": cls.report.pk})
@@ -1056,6 +1057,14 @@ class ReportUpdateViewTests(TestCase):
         ProjectAssignmentFactory(project=self.report.project, operator=self.user)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 1)
+        self.assertEqual(response.context["form"].fields["project"].queryset[0], self.report.project)
+        self.assertTrue(response.context["form"].fields["project"].disabled)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 6)
+        self.assertFalse(response.context["form"].fields["project"].disabled)
 
     def test_view_uses_correct_template(self):
         response = self.client_mgr.get(self.uri)
