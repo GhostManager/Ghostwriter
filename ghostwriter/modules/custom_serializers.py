@@ -77,6 +77,20 @@ class CustomModelSerializer(serializers.ModelSerializer):
                 self.fields.pop(field)
         super().__init__(*args, **kwargs)
 
+    def to_representation(self, instance):
+        """
+        Override the default method to ensure empty strings are returned for null values. The null values will
+        cause Jinja2 rendering errors with filters and expressions like `sort()`.
+        """
+        data = super().to_representation(instance)
+        for key, value in data.items():
+            try:
+                if not value:
+                    data[key] = ""
+            except KeyError:
+                pass
+        return data
+
 
 class OperatorNameField(RelatedField):
     """Customize the string representation of a :model:`users.User` entry."""
@@ -113,7 +127,7 @@ class ExtraFieldsSerField(serializers.Field):
     def __init__(self, model_name, **kwargs):
         self.model_name = model_name
         self.root_ser = None
-        kwargs['read_only'] = True
+        kwargs["read_only"] = True
         super().__init__(**kwargs)
 
     def bind(self, field_name, parent):
@@ -130,7 +144,9 @@ class ExtraFieldsSerField(serializers.Field):
         if not hasattr(self.root_ser, "_extra_fields_specs") or self.root_ser._extra_fields_specs is None:
             self.root_ser._extra_fields_specs = {}
         if self.model_name not in self.root_ser._extra_fields_specs:
-            self.root_ser._extra_fields_specs[self.model_name] = ExtraFieldSpec.objects.filter(target_model=self.model_name)
+            self.root_ser._extra_fields_specs[self.model_name] = ExtraFieldSpec.objects.filter(
+                target_model=self.model_name
+            )
 
         # Populate output
         for field in self.root_ser._extra_fields_specs[self.model_name]:
@@ -514,10 +530,7 @@ class DomainHistorySerializer(CustomModelSerializer):
         exclude=["id", "project", "domain"],
     )
 
-    extra_fields = ExtraFieldsSerField(
-        Domain._meta.label,
-        source="domain.extra_fields"
-    )
+    extra_fields = ExtraFieldsSerField(Domain._meta.label, source="domain.extra_fields")
 
     class Meta:
         model = History
@@ -567,10 +580,7 @@ class ServerHistorySerializer(CustomModelSerializer):
         exclude=["id", "project", "static_server", "transient_server"],
     )
 
-    extra_fields = ExtraFieldsSerField(
-        StaticServer._meta.label,
-        source="server.extra_fields"
-    )
+    extra_fields = ExtraFieldsSerField(StaticServer._meta.label, source="server.extra_fields")
 
     class Meta:
         model = ServerHistory
@@ -756,6 +766,7 @@ class OplogSerializer(TaggitSerializer, CustomModelSerializer):
 
 class FullProjectSerializer(serializers.Serializer):
     """Serialize :model:`rolodex:Project` and related entries."""
+
     project = ProjectSerializer(source="*")
     client = ClientSerializer()
     contacts = ProjectContactSerializer(source="projectcontact_set", many=True, exclude=["id", "project"])

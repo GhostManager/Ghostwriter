@@ -53,6 +53,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     get_item,
     regex_search,
     strip_html,
+    replace_blanks,
 )
 from ghostwriter.reporting.templatetags import report_tags
 
@@ -498,6 +499,20 @@ class FindingsListViewTests(TestCase):
             title = f"Finding {finding_id}"
             cls.findings.append(FindingFactory(title=title))
 
+        cls.project = ProjectFactory()
+        cls.accessibleReport = ReportFactory(project=cls.project)
+        _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.accessibleReportFindings = [
+            ReportFindingLinkFactory(title=f"Report Finding {i}", report=cls.accessibleReport)
+            for i in range(cls.num_of_findings)
+        ]
+
+        cls.inaccessibleReport = ReportFactory()
+        cls.inaccessibleReportFindings = [
+            ReportFindingLinkFactory(title=f"Inaccessible Report Finding {i}", report=cls.inaccessibleReport)
+            for i in range(cls.num_of_findings)
+        ]
+
         cls.uri = reverse("reporting:findings")
 
     def setUp(self):
@@ -538,6 +553,11 @@ class FindingsListViewTests(TestCase):
         response = self.client_auth.get(self.uri + "?title=Finding+2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
+
+    def test_search_report_findings(self):
+        response = self.client_auth.get(self.uri + "?on_reports=on")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.accessibleReportFindings))
 
 
 class FindingDetailViewTests(TestCase):
@@ -1008,6 +1028,7 @@ class ReportUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.report = ReportFactory()
+        ReportFactory.create_batch(5)
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:report_update", kwargs={"pk": cls.report.pk})
@@ -1036,6 +1057,14 @@ class ReportUpdateViewTests(TestCase):
         ProjectAssignmentFactory(project=self.report.project, operator=self.user)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 1)
+        self.assertEqual(response.context["form"].fields["project"].queryset[0], self.report.project)
+        self.assertTrue(response.context["form"].fields["project"].disabled)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 6)
+        self.assertFalse(response.context["form"].fields["project"].disabled)
 
     def test_view_uses_correct_template(self):
         response = self.client_mgr.get(self.uri)
@@ -2507,6 +2536,19 @@ class ReportTemplateFilterTests(TestCase):
         findings = "Not a Dict"
         with self.assertRaises(InvalidFilterValue):
             filter_tags(findings, ["xss", "T1659"])
+
+    def test_replace_blanks(self):
+        example = [
+            {"example": "This is a test"},
+            {"example": None},
+            {"example": "This is another test"},
+        ]
+        res = replace_blanks(example, "BLANK")
+        self.assertEqual(
+            res, [{"example": "This is a test"}, {"example": "BLANK"}, {"example": "This is another test"}]
+        )
+        with self.assertRaises(InvalidFilterValue):
+            replace_blanks("Not a list", "BLANK")
 
 
 class LocalFindingNoteUpdateTests(TestCase):

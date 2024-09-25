@@ -42,6 +42,7 @@ from crispy_forms.layout import Field
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
     get_archives_list,
+    get_project_list,
     get_reports_list,
     get_templates_list,
     verify_finding_access,
@@ -910,7 +911,7 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
+            logger.exception(log_message)
 
             message = f"Encountered an error while trying to add a blank finding to your report: {exception.args}."
             data = {"result": "error", "message": message}
@@ -1126,29 +1127,25 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
     :template:`reporting/finding_list.html`
     """
 
-    model = Finding
+    model = Finding # May also use ReportFindingLink
     template_name = "reporting/finding_list.html"
 
     def __init__(self):
         super().__init__()
         self.autocomplete = []
+        self.searching_report_findings = False
 
     def get_queryset(self):
-        search_term = ""
-        findings = (
-            Finding.objects.select_related("severity", "finding_type")
-            .all()
-            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
-        )
+        if self.request.GET.get("on_reports", "").strip():
+            findings = ReportFindingLink.objects.filter(report__project__in=get_project_list(self.request.user))
+            self.searching_report_findings = True
+        else:
+            findings = Finding.objects.all()
 
-        # Build autocomplete list
-        for finding in findings:
-            self.autocomplete.append(finding.title)
+        self.autocomplete = findings
+        findings = findings.select_related("severity", "finding_type").order_by("severity__weight", "-cvss_score", "finding_type", "title")
 
-        if "finding" in self.request.GET:
-            search_term = self.request.GET.get("finding").strip()
-            if search_term is None or search_term == "":
-                search_term = ""
+        search_term = self.request.GET.get("finding", "").strip()
         if search_term:
             messages.success(
                 self.request,
@@ -1163,7 +1160,11 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
     def get(self, request, *args, **kwarg):
         findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())
         return render(
-            request, "reporting/finding_list.html", {"filter": findings_filter, "autocomplete": self.autocomplete}
+            request, "reporting/finding_list.html", {
+                "filter": findings_filter,
+                "autocomplete": self.autocomplete,
+                "searching_report_findings": self.searching_report_findings,
+            }
         )
 
 
@@ -1640,7 +1641,12 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({"project": self.get_object().project, "user": self.request.user})
+        kwargs.update(
+            {
+                "project": self.get_object().project,
+                "user": self.request.user,
+            }
+        )
         return kwargs
 
     def get_context_data(self, **kwargs):
