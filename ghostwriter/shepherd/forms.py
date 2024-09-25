@@ -183,7 +183,7 @@ class DomainForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "ghostwriter.wiki"
-        self.fields["registrar"].widget.attrs["placeholder"] = "NameCheap"
+        self.fields["registrar"].widget.attrs["placeholder"] = "Namecheap"
         self.fields["domain_status"].empty_label = "-- Select Status --"
         self.fields["whois_status"].empty_label = "-- Select Status --"
         self.fields["health_status"].empty_label = "-- Select Status --"
