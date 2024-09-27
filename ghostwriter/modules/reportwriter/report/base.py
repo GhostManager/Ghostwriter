@@ -1,4 +1,3 @@
-
 from collections import ChainMap
 import copy
 import html
@@ -43,10 +42,12 @@ class ExportReportBase(ExportBase):
         if not text:
             return ""
         text = str(text)
-        rich_html = Markup('''<span style="color: #{};">{}</span>'''.format(
-            severity_color,
-            html.escape(text),
-        ))
+        rich_html = Markup(
+            """<span style="color: #{};">{}</span>""".format(
+                severity_color,
+                html.escape(text),
+            )
+        )
         exporter_rich = self.severity_rich_text(text, severity_color)
         return HtmlAndRich(rich_html, exporter_rich)
 
@@ -55,7 +56,9 @@ class ExportReportBase(ExportBase):
         rich_text_overlay = ExportProjectBase.rich_text_jinja_overlay(self.data)
         rich_text_overlay["mk_evidence"] = jinja_funcs.mk_evidence
         rich_text_overlay["_evidences"] = self.create_evidences_lookup(self.data["evidence"])
-        rich_text_overlay["_old_dot_vars"].update({name: jinja_funcs.raw_mk_evidence(id) for name, id in rich_text_overlay["_evidences"].items()})
+        rich_text_overlay["_old_dot_vars"].update(
+            {name: jinja_funcs.raw_mk_evidence(id) for name, id in rich_text_overlay["_evidences"].items()}
+        )
         rich_text_context = ChainMap(
             rich_text_overlay,
             base_context,
@@ -71,7 +74,9 @@ class ExportReportBase(ExportBase):
                 "_old_dot_vars": rich_text_overlay["_old_dot_vars"].copy(),
                 "_evidences": self.create_evidences_lookup(finding["evidence"], rich_text_overlay["_evidences"]),
             }
-            finding_overlay["_old_dot_vars"].update({name: jinja_funcs.raw_mk_evidence(id) for name, id in finding_overlay["_evidences"].items()})
+            finding_overlay["_old_dot_vars"].update(
+                {name: jinja_funcs.raw_mk_evidence(id) for name, id in finding_overlay["_evidences"].items()}
+            )
 
             finding_rich_text_context = ChainMap(
                 finding_overlay,
@@ -80,14 +85,18 @@ class ExportReportBase(ExportBase):
             )
 
             def finding_render(name, text):
-                return self.create_lazy_template(f"{name} of finding {finding['title']}", text, finding_rich_text_context)
+                return self.create_lazy_template(
+                    f"{name} of finding {finding['title']}", text, finding_rich_text_context
+                )
 
             finding["severity_rt"] = self._severity_rich_text(finding["severity"], finding["severity_color"])
             finding["cvss_score_rt"] = self._severity_rich_text(finding["cvss_score"], finding["severity_color"])
             finding["cvss_vector_rt"] = self._severity_rich_text(finding["cvss_vector"], finding["severity_color"])
 
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = finding_render("the affected entities section", finding["affected_entities"])
+            finding["affected_entities_rt"] = finding_render(
+                "the affected entities section", finding["affected_entities"]
+            )
             finding["description_rt"] = finding_render("the description", finding["description"])
             finding["impact_rt"] = finding_render("the impact section", finding["impact"])
 
@@ -96,18 +105,36 @@ class ExportReportBase(ExportBase):
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = finding_render("the replication steps section", finding["replication_steps"])
-            finding["host_detection_techniques_rt"] = finding_render("the host detection techniques section", finding["host_detection_techniques"])
-            finding["network_detection_techniques_rt"] = finding_render("the network detection techniques section", finding["network_detection_techniques"])
+            finding["replication_steps_rt"] = finding_render(
+                "the replication steps section", finding["replication_steps"]
+            )
+            finding["host_detection_techniques_rt"] = finding_render(
+                "the host detection techniques section", finding["host_detection_techniques"]
+            )
+            finding["network_detection_techniques_rt"] = finding_render(
+                "the network detection techniques section", finding["network_detection_techniques"]
+            )
             finding["references_rt"] = finding_render("the references section", finding["references"])
 
-            self.process_extra_fields(f"finding {finding['title']}", finding["extra_fields"], Finding, finding_rich_text_context)
+            self.process_extra_fields(
+                f"finding {finding['title']}", finding["extra_fields"], Finding, finding_rich_text_context
+            )
+
+        # Severity values
+        for severity in base_context["severities"]:
+            severity["severity_rt"] = self._severity_rich_text(severity["severity"], severity["severity_color"])
 
         # Observations
         for observation in base_context["observations"]:
             if observation["description"]:
-                observation["description_rt"] = self.create_lazy_template(f"the description of observation {observation['title']}", observation["description"], rich_text_context)
-            self.process_extra_fields(f"observation {observation['title']}", observation["extra_fields"], Observation, rich_text_context)
+                observation["description_rt"] = self.create_lazy_template(
+                    f"the description of observation {observation['title']}",
+                    observation["description"],
+                    rich_text_context,
+                )
+            self.process_extra_fields(
+                f"observation {observation['title']}", observation["extra_fields"], Observation, rich_text_context
+            )
 
         # Report extra fields
         self.process_extra_fields("the report", base_context["extra_fields"], Report, rich_text_context)
