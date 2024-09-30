@@ -3,14 +3,13 @@
 # Standard Libraries
 from datetime import datetime
 
-from attr.filters import exclude
-
 # Django Imports
 from django.conf import settings
 from django.utils import dateformat
 
 # 3rd Party Libraries
 import pytz
+from attr.filters import exclude
 from bs4 import BeautifulSoup
 from rest_framework import serializers
 from rest_framework.serializers import (
