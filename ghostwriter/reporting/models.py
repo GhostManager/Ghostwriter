@@ -193,16 +193,16 @@ class Finding(models.Model):
         help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
     cvss_score = models.FloatField(
-        "CVSS Score v3.0",
+        "CVSS Score",
         blank=True,
         null=True,
         help_text="Set the CVSS score for this finding",
     )
     cvss_vector = models.CharField(
-        "CVSS Vector v3.0",
+        "CVSS Vector",
         blank=True,
         default="",
-        max_length=54,
+        max_length=255,
         help_text="Set the CVSS vector for this finding",
     )
     tags = TaggableManager(blank=True)
@@ -644,16 +644,16 @@ class ReportFindingLink(models.Model):
         help_text="Assign the task of editing this finding to a specific operator - defaults to the operator that added it to the report",
     )
     cvss_score = models.FloatField(
-        "CVSS Score v3.0",
+        "CVSS Score",
         blank=True,
         null=True,
         help_text="Set the CVSS score for this finding",
     )
     cvss_vector = models.CharField(
-        "CVSS Vector v3.0",
+        "CVSS Vector",
         blank=True,
         default="",
-        max_length=54,
+        max_length=255,
         help_text="Set the CVSS vector for this finding",
     )
     extra_fields = models.JSONField(default=dict)
