@@ -297,7 +297,8 @@
                 columns: 1,
                 fetch: function (pattern) {
                     var matchedChars = evidenceFiles.filter(function (quote) {
-                        return quote.text.indexOf(pattern) !== -1;
+                        return quote.text.toLowerCase().includes(pattern.toLowerCase());
+
                     });
                     return new tinymce.util.Promise(function (resolve) {
                         var results = matchedChars.map(function (quote) {

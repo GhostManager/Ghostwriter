@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Reworked the CVSS calculators on findings to allow switching between CVSS v3/3.1 and v4 (Closes #232, #356, #387, and #509)
   * Changes include the addition of the "modified" metrics like temporal, environmental, threat, and supplemental sections
+* Changed autocomplete suggestions in the WYSIWYG editor to no longer be case-sensitive (Fixes #440)
 
 ### Fixed
 
