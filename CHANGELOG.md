@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
+## [4.3.2] - 30 Sep 2024
+
+### Added
+
+* Add a `severities` key to the report context that includes a list of all severity categories in the database (Closes #427)
+  * Each severity category includes the category's name, color as a hex value, color as an RGB value, color as a hex tuple, and the category's weight
+  * Each entry also has a `severity_rt` RichText object  for Word that places the severity in a font color that matches the severity's color
+    * This object is identical to the `severity_rt` object on findings
+
+### Changed
+
+* Reworked the CVSS calculators on findings to allow switching between CVSS v3/3.1 and v4 (Closes #232, #356, #387, and #509)
+  * Changes include the addition of the "modified" metrics like temporal, environmental, threat, and supplemental sections
+
+### Fixed
+
+* Fixed archive report generation failing due to the Word template used for the PowerPoint report (PR #528)
+
 ## [4.3.1] – 25 Sep 2024
 
 ### Added

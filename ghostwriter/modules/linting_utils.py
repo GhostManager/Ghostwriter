@@ -311,6 +311,53 @@ LINTER_CONTEXT = {
             }
         ],
     },
+    "severities": [
+        {
+            "severity": "Critical",
+            "severity_color": "966FD6",
+            "severity_color_rgb": [150, 111, 214],
+            "severity_color_hex": ["0x96", "0x6f", "0xd6"],
+            "weight": 1,
+            "color": "966FD6",
+            "severity_rt": "Critical",
+        },
+        {
+            "severity": "High",
+            "severity_color": "FF7E79",
+            "severity_color_rgb": [255, 126, 121],
+            "severity_color_hex": ["0xff", "0x7e", "0x79"],
+            "weight": 2,
+            "color": "FF7E79",
+            "severity_rt": "High",
+        },
+        {
+            "severity": "Medium",
+            "severity_color": "F4B083",
+            "severity_color_rgb": [244, 176, 131],
+            "severity_color_hex": ["0xf4", "0xb0", "0x83"],
+            "weight": 3,
+            "color": "F4B083",
+            "severity_rt": "Medium",
+        },
+        {
+            "severity": "Low",
+            "severity_color": "A8D08D",
+            "severity_color_rgb": [168, 208, 141],
+            "severity_color_hex": ["0xa8", "0xd0", "0x8d"],
+            "weight": 4,
+            "color": "A8D08D",
+            "severity_rt": "Low",
+        },
+        {
+            "severity": "Informational",
+            "severity_color": "8EAADB",
+            "severity_color_rgb": [142, 170, 219],
+            "severity_color_hex": ["0x8e", "0xaa", "0xdb"],
+            "weight": 5,
+            "color": "8EAADB",
+            "severity_rt": "Informational",
+        },
+    ],
     "findings": [
         {
             "id": 1,

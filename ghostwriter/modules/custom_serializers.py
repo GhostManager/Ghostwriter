@@ -30,6 +30,7 @@ from ghostwriter.reporting.models import (
     ReportFindingLink,
     ReportObservationLink,
     ReportTemplate,
+    Severity,
 )
 from ghostwriter.rolodex.models import (
     Client,
@@ -155,7 +156,7 @@ class ExtraFieldsSerField(serializers.Field):
 
 
 class UserSerializer(CustomModelSerializer):
-    """Serialize :model:`users:User` entries."""
+    """Serialize :model:`users.User` entries."""
 
     name = SerializerMethodField("get_name")
 
@@ -807,6 +808,27 @@ class FullProjectSerializer(serializers.Serializer):
         return ProjectContactSerializer(primary, exclude=["id", "project"]).data
 
 
+class SeveritySerializer(CustomModelSerializer):
+    """Serialize :model:`reporting.Severity` entries."""
+
+    severity_color = SerializerMethodField("get_severity_color")
+    severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
+    severity_color_hex = SerializerMethodField("get_severity_color_hex")
+
+    class Meta:
+        model = Severity
+        fields = ["id", "severity", "severity_color", "severity_color_rgb", "severity_color_hex", "weight", "color"]
+
+    def get_severity_color(self, obj):
+        return obj.color
+
+    def get_severity_color_rgb(self, obj):
+        return obj.color_rgb
+
+    def get_severity_color_hex(self, obj):
+        return obj.color_hex
+
+
 class ReportDataSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Project` and all related entries."""
 
@@ -829,6 +851,7 @@ class ReportDataSerializer(CustomModelSerializer):
     whitecards = WhiteCardSerializer(source="project.whitecard_set", many=True, exclude=["id", "project"])
     infrastructure = ProjectInfrastructureSerializer(source="project")
     evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["report", "finding"])
+    severities = SerializerMethodField("get_severities")
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",
         many=True,
@@ -899,6 +922,11 @@ class ReportDataSerializer(CustomModelSerializer):
                 primary = contact
                 break
         return ProjectContactSerializer(primary, exclude=["id", "project"]).data
+
+    def get_severities(self, obj):
+        severities = Severity.objects.all()
+        serializer = SeveritySerializer(severities, many=True, exclude=["id"])
+        return serializer.data
 
     def to_representation(self, instance):
         # Get the standard JSON from ``super()``
