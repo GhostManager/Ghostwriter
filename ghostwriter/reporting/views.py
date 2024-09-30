@@ -1362,7 +1362,7 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             if report_instance.pptx_template:
                 pptx_template = report_instance.pptx_template.document.path
             else:
-                pptx_template = report_config.default_docx_template
+                pptx_template = report_config.default_pptx_template
                 if not pptx_template:
                     raise MissingTemplate
 
