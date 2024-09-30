@@ -6,7 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
-## [4.3.0] – 10 Sep 2024
+## [4.3.1] – 25 Sep 2024
+
+### Added
+
+* Added a `replace_blanks` filter to the report template engine to replace blank values in a dictionary with a specified string
+  * This filter is useful when sorting a list of dictionaries with an attribute that may have a blank value
+* Added an option in the change search in the findings library to search findings attached to reports (Closes #400)
+  * Instead of matches from the library, the search will return results for findings attached to reports to which the user has access
+
+### Changed
+
+* Changed the serializer for report context to replace null values with a blank string (`""`) to help prevent errors when generating reports
+  * **Note:** This change may affect templates that rely on null values to trigger conditional logic, but most conditional statements should not be affected
+  * **Example:** The condition `{% if not X %}` will evaluate to `True` if `X` is `None` or `""`
+* Changed the report form to allow users with the `admin` or `manager` roles to change the report's project (Closes #368)
+  * This change allows a report to be moved from one project to another (e.g., you make a copy for a follow-up assessment)
+  * This feature is only available to users with the `admin` or `manager` roles to prevent accidental data leaks
+
+### Fixed
+
+* Fixed an edge case with the Namecheap sync task that could lead to a domain remaining marked as expired after re-purchasing it or renewing it during the grace period
+
+## [4.3.0] – 23 Sep 2024
 
 ### Added
 
@@ -15,11 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The adapter fills-in a nearly full profile for any new accounts (full name, email address, username)
   * Usernames for new accounts will default to the first half of the email address
   * If an existing account has the same email address, the accounts will be linked
-  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/single-sign-on](https://www.ghostwriter.wiki/features/single-sign-on)
+  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on)
 * Added support for loading customized config files
   * These are files you can use to modify settings normally found in _/config/settings/base.py_ and _production.py_
   * Admins can make changes to the custom config files without worrying about the changes needing to be stashed prior to pulling an update
-  * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider)
+  * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider)
 * Added support for a JSON field type for custom fields
 * Added a "Tags" column to the domain and server library tables
 
@@ -32,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Cloud hosts tracked on a project no longer require a unique IP address
   * A warning is displayed if a cloud host is tracked on a project with multiple hosts sharing the same IP address
 * Changed filtering on tags to be case-insensitive
+* On the report dashboard, clicking an autocomplete suggestion for a finding or observation will now add the item to the report
 
 ### Fixed
 

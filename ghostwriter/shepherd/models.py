@@ -638,14 +638,12 @@ class TransientServer(models.Model):
         "ServerRole",
         on_delete=models.PROTECT,
         null=False,
-        blank=True,
         help_text="Select the role this VPS will play",
     )
     activity_type = models.ForeignKey(
         "ActivityType",
         on_delete=models.PROTECT,
         null=False,
-        blank=True,
         help_text="Select how this VPS will be used",
     )
 

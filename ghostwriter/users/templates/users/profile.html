@@ -14,9 +14,13 @@
 
 {% block content %}
   <!-- User's Avatar -->
-  <a href="{% url 'users:userprofile_update' request.user.username %}">
-    <img class="avatar" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="Avatar">
-  </a>
+  {% if request.user == user %}
+    <a href="{% url 'users:userprofile_update' request.user.username %}">
+      <img class="avatar" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="Avatar">
+    </a>
+  {% else %}
+    <img class="avatar" src="{%  url 'users:avatar_download' slug=user.username %}" alt="Avatar">
+  {% endif %}
 
   <!-- Users Profile Section -->
   <div class="container profile-container mt-4">
