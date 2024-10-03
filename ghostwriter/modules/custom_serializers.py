@@ -1,5 +1,7 @@
 """This contains customizations for `rest_framework.serializers` classes used by Ghostwriter."""
 
+# IF YOU EDIT THIS FILE: also update `linting_utils.py`
+
 # Standard Libraries
 from datetime import datetime
 
@@ -767,6 +769,9 @@ class OplogSerializer(TaggitSerializer, CustomModelSerializer):
 
 class FullProjectSerializer(serializers.Serializer):
     """Serialize :model:`rolodex:Project` and related entries."""
+
+    # IF YOU EDIT THIS CLASS:
+    # Also edit `linting_utils.py` and the `generate_lint_data` method in `reportwriter/project/base.py`.
 
     project = ProjectSerializer(source="*")
     client = ClientSerializer()

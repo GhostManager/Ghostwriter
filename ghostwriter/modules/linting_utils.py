@@ -544,5 +544,34 @@ LINTER_CONTEXT = {
             "tags": ["tag1", "tag2", "tag3"],
         }
     ],
+    "contacts": [
+        {
+            "timezone": "America/Los_Angeles",
+            "name": "Test Primary Contact",
+            "job_title": "Test Project Contact",
+            "email": "test@example.com",
+            "phone": "",
+            "note": "<p>note!</p>",
+            "primary": True,
+        },
+        {
+            "timezone": "America/Los_Angeles",
+            "name": "Test Secondary Contact",
+            "job_title": "Test Project Contact",
+            "email": "test@example.com",
+            "phone": "",
+            "note": "other note!",
+            "primary": "",
+        },
+    ],
+    "recipient": {
+        "timezone": "America/Los_Angeles",
+        "name": "Test Primary Contact",
+        "job_title": "Test Project Contact",
+        "email": "test@example.com",
+        "phone": "",
+        "note": "<p>note!</p>",
+        "primary": True,
+    },
     "extra_fields": {},
 }
