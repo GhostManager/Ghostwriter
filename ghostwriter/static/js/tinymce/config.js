@@ -49,7 +49,7 @@
         toolbar_mode: 'floating',
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak ghostwriter-comments',
         toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
-        contextmenu: 'table comment formats bold italic underline link removeformat',
+        contextmenu: 'table comments formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
         browser_spellcheck: true,
@@ -72,7 +72,9 @@
             .underline { text-decoration: underline; }
             .tablerow1 { background-color: #D3D3D3; }
             blockquote { border-left: 5px solid #ccc; padding: 0.5em; margin: 0.5em; }
-            .comment { background-color: #FF7E79 }
+            .comment { background-color: #FFD6D5; }
+            .comment .comment { background-color: #FFB6B3; }
+            .comment .comment .comment { background-color: #FF7E79; }
         `,
         formats: {
             alignleft: {
