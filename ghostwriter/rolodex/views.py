@@ -27,6 +27,8 @@ from ghostwriter.api.utils import (
     get_client_list,
     get_project_list,
     verify_access,
+    verify_client_access,
+    verify_project_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
@@ -240,7 +242,9 @@ def ajax_update_project_objectives(request):
                 else:
                     logger.info("Ignored data-id value %s", objective_id)
         else:
-            data = {"result": "specified priority, {}, is invalid".format(priority_class)}
+            data = {
+                "result": "specified priority, {}, is invalid".format(priority_class)
+            }
     else:
         data = {"result": "error"}
     return JsonResponse(data)
@@ -277,30 +281,43 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
             else:
                 template = (
                     ReportTemplate.objects.filter(
-                        Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+                        Q(doc_type__doc_type__iexact="project_docx")
+                        | Q(doc_type__doc_type__iexact="pptx")
                     )
                     .filter(Q(client=project.client) | Q(client__isnull=True))
                     .select_related("doc_type")
                     .get(pk=type_or_template_id)
                 )
                 exporter = template.exporter(project)
-                filename = exporter.render_filename(template.filename_override or report_config.project_filename)
+                filename = exporter.render_filename(
+                    template.filename_override or report_config.project_filename
+                )
                 out = exporter.run()
                 mime = exporter.mime_type()
         except ReportExportError as error:
-            logger.error("Project report failed for project %s and user %s: %s", project.id, self.request.user, error)
+            logger.error(
+                "Project report failed for project %s and user %s: %s",
+                project.id,
+                self.request.user,
+                error,
+            )
             messages.error(
                 self.request,
                 f"Error: {error}",
                 extra_tags="alert-danger",
             )
-            return HttpResponseRedirect(reverse("rolodex:project_detail", kwargs={"pk": project.id}) + "#documents")
+            return HttpResponseRedirect(
+                reverse("rolodex:project_detail", kwargs={"pk": project.id})
+                + "#documents"
+            )
         response = HttpResponse(out.getvalue(), content_type=mime)
         add_content_disposition_header(response, filename)
         return response
 
 
-class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class ProjectObjectiveStatusUpdate(
+    RoleBasedAccessControlMixin, SingleObjectMixin, View
+):
     """Update the ``status`` field of an individual :model:`rolodex.ProjectObjective`."""
 
     model = ProjectObjective
@@ -337,7 +354,9 @@ class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixi
                     success = True
 
             if not success:
-                logger.warning("Failed to match old status, %s, with any existing status, so set status to ``0``")
+                logger.warning(
+                    "Failed to match old status, %s, with any existing status, so set status to ``0``"
+                )
                 objective.status = new_status
                 objective.save()
 
@@ -466,11 +485,18 @@ class ProjectNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(
+            self.request.user
+        )
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
+        return redirect(
+            reverse(
+                "rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}
+            )
+            + "#notes"
+        )
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -493,11 +519,16 @@ class ClientNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(
+            self.request.user
+        )
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
+        return redirect(
+            reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk})
+            + "#notes"
+        )
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -969,7 +1000,10 @@ class DeconflictionDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         obj = self.get_object()
         obj_id = obj.id
         obj.delete()
-        data = {"result": "success", "message": "Deconfliction event successfully deleted!"}
+        data = {
+            "result": "success",
+            "message": "Deconfliction event successfully deleted!",
+        }
         logger.info(
             "Deleted %s %s by request of %s",
             obj.__class__.__name__,
@@ -998,7 +1032,9 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
             contact_id = int(contact_id)
             if contact_id:
                 if contact_id < 0:
-                    return JsonResponse({"result": "error", "message": "You must choose a contact."})
+                    return JsonResponse(
+                        {"result": "error", "message": "You must choose a contact."}
+                    )
                 contact_instance = get_object_or_404(ClientContact, id=contact_id)
                 if not verify_access(self.request.user, contact_instance.client):
                     return ForbiddenJsonResponse()
@@ -1007,16 +1043,27 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 del contact_dict["note"]
 
                 # Check if this contact already exists in the project
-                if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
-                    message = "{} already exists in your project.".format(contact_instance.name)
+                if (
+                    ProjectContact.objects.filter(
+                        **contact_dict, project=self.get_object()
+                    ).count()
+                    > 0
+                ):
+                    message = "{} already exists in your project.".format(
+                        contact_instance.name
+                    )
                     data = {"result": "error", "message": message}
                 else:
                     project_contact = ProjectContact(
-                        project=self.get_object(), **contact_dict, note=contact_instance.note
+                        project=self.get_object(),
+                        **contact_dict,
+                        note=contact_instance.note,
                     )
                     project_contact.save()
 
-                    message = "{} successfully added to your project.".format(contact_instance.name)
+                    message = "{} successfully added to your project.".format(
+                        contact_instance.name
+                    )
                     data = {"result": "success", "message": message}
                     logger.info(
                         "Assigned %s %s to %s %s by request of %s",
@@ -1139,8 +1186,12 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        domain_history = History.objects.select_related("domain").filter(client=client_instance)
-        server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
+        domain_history = History.objects.select_related("domain").filter(
+            client=client_instance
+        )
+        server_history = ServerHistory.objects.select_related("server").filter(
+            client=client_instance
+        )
         projects = Project.objects.filter(client=client_instance)
         client_domains = []
         for domain in domain_history:
@@ -1157,7 +1208,9 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["servers"] = client_servers
         ctx["vps"] = client_vps
 
-        ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
+        ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(
+            target_model=Client._meta.label
+        )
 
         return ctx
 
@@ -1183,7 +1236,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "rolodex/client_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_client_access(self.request.user, "create")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1227,7 +1280,9 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
                     try:
                         contacts.save()
                     except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts for a client.")
+                        form.add_error(
+                            None, "You cannot have duplicate contacts for a client."
+                        )
 
                 if form.is_valid() and contacts_valid:
                     obj.save()
@@ -1276,7 +1331,7 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "rolodex/client_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_client_access(self.request.user, "edit")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1292,9 +1347,13 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
+        ctx["cancel_link"] = reverse(
+            "rolodex:client_detail", kwargs={"pk": self.object.id}
+        )
         if self.request.POST:
-            ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc", instance=self.object)
+            ctx["contacts"] = ClientContactFormSet(
+                self.request.POST, prefix="poc", instance=self.object
+            )
         else:
             ctx["contacts"] = ClientContactFormSet(prefix="poc", instance=self.object)
         return ctx
@@ -1316,7 +1375,9 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
                     try:
                         contacts.save()
                     except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts for a client.")
+                        form.add_error(
+                            None, "You cannot have duplicate contacts for a client."
+                        )
 
                 if form.is_valid() and contacts_valid:
                     obj.save()
@@ -1354,7 +1415,7 @@ class ClientDelete(RoleBasedAccessControlMixin, DeleteView):
     success_url = reverse_lazy("rolodex:clients")
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_client_access(self.request.user, "delete")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1365,7 +1426,9 @@ class ClientDelete(RoleBasedAccessControlMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "client and all associated data"
         ctx["object_to_be_deleted"] = queryset.name
-        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
+        ctx["cancel_link"] = reverse(
+            "rolodex:client_detail", kwargs={"pk": self.object.id}
+        )
         return ctx
 
 
@@ -1403,7 +1466,9 @@ class ClientNoteCreate(RoleBasedAccessControlMixin, CreateView):
             "Note successfully added to this client.",
             extra_tags="alert-success",
         )
-        return "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
+        return "{}#notes".format(
+            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
+        )
 
     def get_initial(self):
         return {"client": self.client_instance, "operator": self.request.user}
@@ -1411,7 +1476,9 @@ class ClientNoteCreate(RoleBasedAccessControlMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.client_instance
-        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.client_instance.id}))
+        ctx["cancel_link"] = "{}#notes".format(
+            reverse("rolodex:client_detail", kwargs={"pk": self.client_instance.id})
+        )
         return ctx
 
     def form_valid(self, form, **kwargs):
@@ -1444,20 +1511,31 @@ class ClientNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(
+            self.request.user
+        )
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
+        return redirect(
+            reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk})
+            + "#notes"
+        )
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
-        return "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
+        messages.success(
+            self.request, "Note successfully updated.", extra_tags="alert-success"
+        )
+        return "{}#notes".format(
+            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.client
-        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
+        ctx["cancel_link"] = "{}#notes".format(
+            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
+        )
         return ctx
 
 
@@ -1517,9 +1595,12 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, object, **kwargs):
         ctx = super().get_context_data(object=object, **kwargs)
-        ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
+        ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(
+            target_model=Project._meta.label
+        )
         ctx["export_templates"] = ReportTemplate.objects.filter(
-            Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
+            Q(doc_type__doc_type__iexact="project_docx")
+            | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))
         return ctx
 
@@ -1548,7 +1629,7 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "rolodex/project_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_project_access(self.request.user, "create")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1577,11 +1658,15 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["client"] = self.client
         if self.client:
-            ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.client.pk})
+            ctx["cancel_link"] = reverse(
+                "rolodex:client_detail", kwargs={"pk": self.client.pk}
+            )
         else:
             ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
-            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign")
+            ctx["assignments"] = ProjectAssignmentFormSet(
+                self.request.POST, prefix="assign"
+            )
         else:
             # Add extra forms to aid in configuration of a new project
             assignments = ProjectAssignmentFormSet(prefix="assign")
@@ -1663,7 +1748,7 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "rolodex/project_form.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_project_access(self.request.user, "edit")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1672,17 +1757,29 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["object"] = self.get_object()
-        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
+        ctx["cancel_link"] = reverse(
+            "rolodex:project_detail", kwargs={"pk": self.object.pk}
+        )
         if self.request.POST:
-            ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj", instance=self.object)
-            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign", instance=self.object)
+            ctx["objectives"] = ProjectObjectiveFormSet(
+                self.request.POST, prefix="obj", instance=self.object
+            )
+            ctx["assignments"] = ProjectAssignmentFormSet(
+                self.request.POST, prefix="assign", instance=self.object
+            )
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
-            ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
+            ctx["objectives"] = ProjectObjectiveFormSet(
+                prefix="obj", instance=self.object
+            )
+            ctx["assignments"] = ProjectAssignmentFormSet(
+                prefix="assign", instance=self.object
+            )
         return ctx
 
     def get_success_url(self):
-        messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
+        messages.success(
+            self.request, "Project successfully saved.", extra_tags="alert-success"
+        )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
@@ -1736,7 +1833,7 @@ class ProjectDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_user_is_privileged(self.request.user)
+        return verify_project_access(self.request.user, "delete")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1747,11 +1844,15 @@ class ProjectDelete(RoleBasedAccessControlMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "project and all associated data (reports, evidence, etc.)"
         ctx["object_to_be_deleted"] = queryset
-        ctx["cancel_link"] = "{}".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.id}))
+        ctx["cancel_link"] = "{}".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.id})
+        )
         return ctx
 
     def get_success_url(self):
-        return "{}#history".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
+        return "{}#history".format(
+            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
+        )
 
 
 class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
@@ -1793,23 +1894,43 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["object"] = self.get_object()
-        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
+        ctx["cancel_link"] = reverse(
+            "rolodex:project_detail", kwargs={"pk": self.object.pk}
+        )
         if self.request.POST:
-            ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj", instance=self.object)
-            ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope", instance=self.object)
-            ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target", instance=self.object)
-            ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card", instance=self.object)
-            ctx["contacts"] = ProjectContactFormSet(self.request.POST, prefix="contact", instance=self.object)
+            ctx["objectives"] = ProjectObjectiveFormSet(
+                self.request.POST, prefix="obj", instance=self.object
+            )
+            ctx["scopes"] = ProjectScopeFormSet(
+                self.request.POST, prefix="scope", instance=self.object
+            )
+            ctx["targets"] = ProjectTargetFormSet(
+                self.request.POST, prefix="target", instance=self.object
+            )
+            ctx["whitecards"] = WhiteCardFormSet(
+                self.request.POST, prefix="card", instance=self.object
+            )
+            ctx["contacts"] = ProjectContactFormSet(
+                self.request.POST, prefix="contact", instance=self.object
+            )
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
+            ctx["objectives"] = ProjectObjectiveFormSet(
+                prefix="obj", instance=self.object
+            )
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
             ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
             ctx["whitecards"] = WhiteCardFormSet(prefix="card", instance=self.object)
-            ctx["contacts"] = ProjectContactFormSet(prefix="contact", instance=self.object)
+            ctx["contacts"] = ProjectContactFormSet(
+                prefix="contact", instance=self.object
+            )
         return ctx
 
     def get_success_url(self):
-        messages.success(self.request, "Project components successfully saved.", extra_tags="alert-success")
+        messages.success(
+            self.request,
+            "Project components successfully saved.",
+            extra_tags="alert-success",
+        )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
@@ -1854,7 +1975,9 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
                     try:
                         contacts.save()
                     except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts for a project.")
+                        form.add_error(
+                            None, "You cannot have duplicate contacts for a project."
+                        )
 
                 # Proceed with form submission
                 if (
@@ -1909,7 +2032,9 @@ class ProjectNoteCreate(RoleBasedAccessControlMixin, CreateView):
             "Note successfully added to this project.",
             extra_tags="alert-success",
         )
-        return "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
+        return "{}#notes".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
+        )
 
     def get_initial(self):
         return {"project": self.project_instance, "operator": self.request.user}
@@ -1952,20 +2077,33 @@ class ProjectNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(
+            self.request.user
+        )
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
+        return redirect(
+            reverse(
+                "rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}
+            )
+            + "#notes"
+        )
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
-        return "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
+        messages.success(
+            self.request, "Note successfully updated.", extra_tags="alert-success"
+        )
+        return "{}#notes".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.project
-        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
+        ctx["cancel_link"] = "{}#notes".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
+        )
         return ctx
 
 
@@ -2001,7 +2139,9 @@ class DeconflictionCreate(RoleBasedAccessControlMixin, CreateView):
             "Deconfliction successfully saved.",
             extra_tags="alert-success",
         )
-        return "{}#deconflictions".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
+        return "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        )
 
     def get_initial(self):
         return {
@@ -2054,7 +2194,9 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
             "Deconfliction successfully saved.",
             extra_tags="alert-success",
         )
-        return "{}#deconflictions".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
+        return "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
