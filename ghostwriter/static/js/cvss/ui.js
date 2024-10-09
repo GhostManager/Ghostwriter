@@ -32,7 +32,8 @@
 
     const cvssv3Selected = CVSS.parseVector(vectorStr);
     if(cvssv3Selected) {
-      const score = CVSS.calculateCVSSFromObject(cvssv3Selected).baseMetricScore;
+      const output = CVSS.calculateCVSSFromObject(cvssv3Selected);
+      var score = output.environmentalMetricScore != undefined ? output.environmentalMetricScore : output.temporalMetricScore != undefined ? output.temporalMetricScore : output.baseMetricScore;
       setCvssBadge("v3", score);
       if(setScore) {
         // Set score when editing the vector but not when loading
@@ -81,10 +82,11 @@
       return;
     }
 
-    document.getElementById('id_cvss_score').value = output.baseMetricScore;
-    setCvssBadge("v3", output.baseMetricScore);
+    const score = output.environmentalMetricScore != undefined ? output.environmentalMetricScore : output.temporalMetricScore != undefined ? output.temporalMetricScore : output.baseMetricScore;
+    document.getElementById('id_cvss_score').value = score;
+    setCvssBadge("v3", score);
     document.getElementById('id_cvss_vector').value = output.vectorString;
-    setSeveritySelect(output.baseMetricScore);
+    setSeveritySelect(score);
   }
 
   function onV4ButtonChanged() {
