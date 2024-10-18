@@ -105,6 +105,14 @@
     text-align: center;
 }
 
+.scoreRating.temporalRating {
+    top: 105px;
+}
+
+.scoreRating.envRating {
+    top: 205px;
+}
+
 .scoreRating.none,
 .scoreRating.low,
 .scoreRating.medium,
@@ -173,11 +181,31 @@
 
 .baseMetricScore {
     display: block;
-    line-height: 32px;
-    margin-top: 4px;
+    /*line-height: 32px;*/
+    /*margin-top: 4px;*/
+}
+
+.envMetricScore {
+    display: block;
+    /*line-height: 32px;*/
+}
+
+.temporalMetricScore {
+    display: block;
+    /*line-height: 32px;*/
 }
 
 .baseSeverity {
+    margin-bottom: 10px;
+    display: block;
+}
+
+.envSeverity {
+    margin-bottom: 10px;
+    display: block;
+}
+
+.temporalSeverity {
     margin-bottom: 10px;
     display: block;
 }
