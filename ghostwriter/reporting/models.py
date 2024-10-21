@@ -14,6 +14,7 @@ from django.db.models import Q
 from django.urls import reverse
 
 # 3rd Party Libraries
+from cvss import CVSS3, CVSS4
 from taggit.managers import TaggableManager
 
 # Ghostwriter Libraries
@@ -384,23 +385,34 @@ class ReportTemplate(models.Model):
         Call the `run` method to generate the corresponding report.
         """
         # Import in function to avoid circular references
+        # Ghostwriter Libraries
         from ghostwriter.rolodex.models import Project
 
         if self.doc_type.doc_type == "docx":
             assert isinstance(object, Report)
+            # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+
             return ExportReportDocx(object, template_loc=self.document.path, p_style=self.p_style)
         if self.doc_type.doc_type == "project_docx":
             assert isinstance(object, Project)
+            # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
+
             return ExportProjectDocx(object, template_loc=self.document.path, p_style=self.p_style)
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
+            # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+
             return ExportReportPptx(object, template_loc=self.document.path)
         if self.doc_type.doc_type == "pptx" and isinstance(object, Project):
+            # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.pptx import ExportProjectPptx
+
             return ExportProjectPptx(object, template_loc=self.document.path)
-        raise RuntimeError(f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database.")
+        raise RuntimeError(
+            f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database."
+        )
 
     def lint(self):
         """
@@ -439,16 +451,24 @@ class ReportTemplate(models.Model):
         """
         # Import in function to avoid circular references
         if self.doc_type.doc_type == "docx":
+            # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+
             return ExportReportDocx.lint(template_loc=self.document.path, p_style=self.p_style)
         if self.doc_type.doc_type == "project_docx":
+            # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
+
             return ExportProjectDocx.lint(template_loc=self.document.path, p_style=self.p_style)
         if self.doc_type.doc_type == "pptx":
             # Report PPTX exporter exports more content, so use it to lint
+            # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+
             return ExportReportPptx.lint(template_loc=self.document.path)
-        raise RuntimeError(f"Lint for doc_type {self.doc_type.doc_type} not implemented. Either this is a bug or an admin messed with the database.")
+        raise RuntimeError(
+            f"Lint for doc_type {self.doc_type.doc_type} not implemented. Either this is a bug or an admin messed with the database."
+        )
 
 
 class Report(models.Model):
@@ -532,10 +552,7 @@ class Report(models.Model):
         """
         Returns a queryset of all evidences attached to the report - both directly attached and through the findings.
         """
-        return Evidence.objects.filter(
-            Q(report__id=self.pk)
-            | Q(finding__report__id=self.pk)
-        )
+        return Evidence.objects.filter(Q(report__id=self.pk) | Q(finding__report__id=self.pk))
 
     def __str__(self):
         return f"{self.title}"
@@ -672,6 +689,44 @@ class ReportFindingLink(models.Model):
     def get_edit_url(self):
         return reverse("reporting:local_edit", kwargs={"pk": self.pk})
 
+    @property
+    def cvss_data(self):
+        if "3.1" in self.cvss_vector:
+            cvss_version = "3.1"
+            cvss_obj = CVSS3(self.cvss_vector)
+            cvss_scores = cvss_obj.scores()
+            cvss_severities = cvss_obj.severities()
+        elif "4.0" in self.cvss_vector:
+            cvss_version = "4.0"
+            cvss_obj = CVSS4(self.cvss_vector)
+            cvss_scores = cvss_obj.base_score
+            cvss_severities = cvss_obj.severity
+        else:
+            cvss_version = "Unknown"
+            cvss_scores = ""
+            cvss_severities = ""
+
+        cvss_severity_colors = ""
+        if cvss_severities:
+            if cvss_version == "3.1":
+                cvss_severity_colors = []
+                for sev in cvss_severities:
+                    obj = Severity.objects.filter(severity__iexact=sev)
+                    if obj.exists():
+                        obj = obj.first()
+                        cvss_severity_colors.append(obj.color)
+                    else:
+                        cvss_severity_colors.append("7A7A7A")
+            elif cvss_version == "4.0":
+                obj = Severity.objects.filter(severity__iexact=cvss_severities)
+                if obj.exists():
+                    obj = obj.first()
+                    cvss_severity_colors = obj.color
+                else:
+                    cvss_severity_colors = "7A7A7A"
+
+        return cvss_version, cvss_scores, cvss_severities, cvss_severity_colors
+
 
 def set_evidence_upload_destination(this, filename):
     """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
@@ -728,7 +783,7 @@ class Evidence(models.Model):
                 check=(
                     models.Q(finding__isnull=True, report__isnull=False)
                     | models.Q(finding__isnull=False, report__isnull=True)
-                )
+                ),
             )
         ]
 
