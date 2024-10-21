@@ -181,18 +181,14 @@
 
 .baseMetricScore {
     display: block;
-    /*line-height: 32px;*/
-    /*margin-top: 4px;*/
 }
 
 .envMetricScore {
     display: block;
-    /*line-height: 32px;*/
 }
 
 .temporalMetricScore {
     display: block;
-    /*line-height: 32px;*/
 }
 
 .baseSeverity {
