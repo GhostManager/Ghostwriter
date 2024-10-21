@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
+# [4.3.3] - 21 October 2024
+
+### Added
+
+* Added display for the temporal and environmental scores on the CVSS v3.1 calculator (Closes #536)
+* Added a `cvss_data` key to the report context that includes the CVSS data for each finding
+  * The key is a list that includes four items: the CVSS version, score(s), severity, and your configured color for the severity
+  * The score and severity data includes the temporal and environmental scores for CVSS v3.1, so those scores, severities, and colors are lists (base, temporal, environmental)
+  * The data is available for use in the report template
+
+### Fixed
+
+* Fixed values of zero (e.g., `0` or `0.0`) displaying as "No Value Set" for extra fields (Closes #541)
+* Fixed a minor style issue with the sidebar
+
 ## [4.3.2] - 30 Sep 2024
 
 ### Added

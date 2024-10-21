@@ -29,9 +29,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         {% include "snippets/cvss_ui_v3.html" %}
     </div>
 
-    <div class="scoreRating">
+    <div class="scoreRating baseRating">
+        <h4>Base</h4>
         <span class="baseMetricScore"></span>
-        <span class="baseSeverity">Select values for all base metrics</span>
+        <span class="baseSeverity">Select values to see score</span>
+    </div>
+    <div class="scoreRating temporalRating">
+        <h4>Temporal</h4>
+        <span class="temporalMetricScore"></span>
+        <span class="temporalSeverity">Select values to see score</span>
+    </div>
+    <div class="scoreRating envRating">
+        <h4>Env</h4>
+        <span class="envMetricScore"></span>
+        <span class="envSeverity">Select values to see score</span>
     </div>
 </div>
 
@@ -43,8 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         {% include "snippets/cvss_ui_v4.html" %}
     </div>
 
-    <div class="scoreRating">
+    <div class="scoreRating baseRating">
+      <h4>Base</h4>
         <span class="baseMetricScore"></span>
-        <span class="baseSeverity">Select values for all base metrics</span>
+        <span class="baseSeverity">Select values to see score</span>
     </div>
 </div>
