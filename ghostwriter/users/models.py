@@ -81,6 +81,26 @@ class User(AbstractUser):
         help_text="Allow the user to delete observations in the library (only applies to accounts with the User role)",
         verbose_name="Allow Observation Deleting",
     )
+    enable_client_list_all = BooleanField(
+        default=False,
+        help_text="Allow the user to view all clients (only applies to accounts with the User role)",
+        verbose_name="Allow Listing All Clients",
+    )
+    enable_client_create = BooleanField(
+        default=False,
+        help_text="Allow the user to create new clients in the library and create projects for any client (only applies to account with the User role)",
+        verbose_name="Allow Client and Project Creation",
+    )
+    enable_client_edit = BooleanField(
+        default=False,
+        help_text="Allow the user to edit clients in the library and edit projects for any client (only applies to accounts with the User role)",
+        verbose_name="Allow Client and Project Editing",
+    )
+    enable_client_delete = BooleanField(
+        default=False,
+        help_text="Allow the user to delete clients in the library and delete projects for any client (only applies to accounts with the User role)",
+        verbose_name="Allow Client and Project Deletion",
+    )
     require_2fa = BooleanField(
         default=False,
         help_text="Require the user to set up two-factor authentication",
@@ -93,7 +113,9 @@ class User(AbstractUser):
     def get_display_name(self):
         """Return a display name appropriate for dropdown menus."""
         if self.name:
-            display_name = "{full_name} ({username})".format(full_name=self.name, username=self.username)
+            display_name = "{full_name} ({username})".format(
+                full_name=self.name, username=self.username
+            )
         else:
             display_name = self.username.capitalize()
 
