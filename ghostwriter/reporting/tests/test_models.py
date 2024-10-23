@@ -451,8 +451,9 @@ class ReportFindingLinkModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
-        cls.critical_severity = SeverityFactory(severity="Critical", weight=0)
-        cls.high_severity = SeverityFactory(severity="High", weight=1)
+        cls.critical_severity = SeverityFactory(severity="Critical", weight=0, color="966FD6")
+        cls.high_severity = SeverityFactory(severity="High", weight=1, color="FF7E79")
+        cls.medium_severity = SeverityFactory(severity="Medium", weight=2, color="F4B083")
 
     def tearDown(self):
         # Need to use atomic because ``TestCase`` and a ``post_delete`` Signal`
@@ -477,6 +478,26 @@ class ReportFindingLinkModelTests(TestCase):
         # Delete
         finding.delete()
         assert not self.ReportFindingLink.objects.all().exists()
+
+    def test_cvss_scores_property(self):
+        # CVSS v3.1 – 8.0 High, 7.6 High, 5.4 Medium
+        three_vector = (
+            "CVSS:3.1/AV:N/AC:H/PR:H/UI:N/S:C/C:H/I:H/A:H/E:P/RL:U/RC:C/CR:L/IR:L/AR:L/MAV:P/MAC:L/MPR:L/MUI:N/MS:C"
+        )
+        # CVSS v4.1 – 9.1 Critical
+        four_vector = "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:L/SI:H/SA:L/E:A/CR:H/IR:H/AR:L/MAV:N/MAC:H/MAT:N/MPR:N/MUI:N/MVI:L/MVA:H/MSC:H/MSI:H/MSA:N/R:I/V:C/RE:M/U:Red"
+
+        critical_finding = ReportFindingLinkFactory(severity=self.critical_severity, cvss_vector=four_vector)
+        medium_finding = ReportFindingLinkFactory(severity=self.medium_severity, cvss_vector=three_vector)
+        unknown_finding = ReportFindingLinkFactory(severity=self.high_severity, cvss_vector="Not a Vector")
+
+        critical_data = ("4.0", 9.1, "Critical", "966FD6")
+        medium_data = ("3.1", (8.0, 7.6, 5.4), ("High", "High", "Medium"), ["FF7E79", "FF7E79", "F4B083"])
+        unknown_data = ("Unknown", "", "", "")
+
+        self.assertEqual(critical_finding.cvss_data, critical_data)
+        self.assertEqual(medium_finding.cvss_data, medium_data)
+        self.assertEqual(unknown_finding.cvss_data, unknown_data)
 
 
 class EvidenceModelTests(TestCase):

@@ -17,6 +17,6 @@
         })
     </script>
   {% else %}
-    {% if field_value %}{{ field_value }}{% else %}No Value Set{% endif %}
+    {%  if field_value is None %}No Value Set{% else %}{{ field_value }}{% endif %}
   {% endif %}
 {% endwith %}

@@ -1,10 +1,32 @@
 (function() {
 
   function setCvssBadge(version, score) {
-    const severity = CVSS.severityRating(score);
-    document.querySelector(`#cvss-${version}-calculator .scoreRating`).className = "scoreRating " + severity.toLowerCase();
-    document.querySelector(`#cvss-${version}-calculator .baseMetricScore`).textContent = score;
-    document.querySelector(`#cvss-${version}-calculator .baseSeverity`).textContent = "(" + severity + ")";
+      if (version === "v4") {
+          const severity = CVSS.severityRating(score);
+          document.querySelector(`#cvss-${version}-calculator .baseRating`).className = "scoreRating baseRating " + severity.toLowerCase();
+          document.querySelector(`#cvss-${version}-calculator .baseMetricScore`).textContent = score;
+          document.querySelector(`#cvss-${version}-calculator .baseSeverity`).textContent = "(" + severity + ")";
+    }
+
+    if (version === "v3") {
+        const base = score.baseMetricScore;
+        const severity = CVSS.severityRating(base);
+        document.querySelector(`#cvss-${version}-calculator .baseRating`).className = "scoreRating baseRating " + severity.toLowerCase();
+        document.querySelector(`#cvss-${version}-calculator .baseMetricScore`).textContent = base;
+        document.querySelector(`#cvss-${version}-calculator .baseSeverity`).textContent = "(" + severity + ")";
+
+        const temporalScore = score.temporalMetricScore;
+        const temporalSeverity = CVSS.severityRating(temporalScore);
+        document.querySelector(`#cvss-${version}-calculator .temporalRating`).className = "scoreRating temporalRating " + temporalSeverity.toLowerCase();
+        document.querySelector(`#cvss-${version}-calculator .temporalMetricScore`).textContent = temporalScore;
+        document.querySelector(`#cvss-${version}-calculator .temporalSeverity`).textContent = "(" + temporalSeverity + ")";
+
+        const envScore = score.environmentalMetricScore;
+        const envSeverity = CVSS.severityRating(envScore);
+        document.querySelector(`#cvss-${version}-calculator .envRating`).className = "scoreRating envRating " + envSeverity.toLowerCase();
+        document.querySelector(`#cvss-${version}-calculator .envMetricScore`).textContent = envScore;
+        document.querySelector(`#cvss-${version}-calculator .envSeverity`).textContent = "(" + envSeverity + ")";
+    }
   }
 
   function setSeveritySelect(score) {
@@ -32,7 +54,8 @@
 
     const cvssv3Selected = CVSS.parseVector(vectorStr);
     if(cvssv3Selected) {
-      const score = CVSS.calculateCVSSFromObject(cvssv3Selected).baseMetricScore;
+      const score = CVSS.calculateCVSSFromObject(cvssv3Selected);
+
       setCvssBadge("v3", score);
       if(setScore) {
         // Set score when editing the vector but not when loading
@@ -81,10 +104,12 @@
       return;
     }
 
-    document.getElementById('id_cvss_score').value = output.baseMetricScore;
-    setCvssBadge("v3", output.baseMetricScore);
+    // Use modified environmental score if available
+    var score = output.environmentalMetricScore !== undefined ? output.environmentalMetricScore : output.baseMetricScore;
+    document.getElementById('id_cvss_score').value = score;
+    setCvssBadge("v3", output);
     document.getElementById('id_cvss_vector').value = output.vectorString;
-    setSeveritySelect(output.baseMetricScore);
+    setSeveritySelect(score);
   }
 
   function onV4ButtonChanged() {
