@@ -6,7 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
-# [4.3.3] - 21 October 2024
+## [4.3.4] - 24 October 2024
+
+### Changed
+
+* Adjusted the duplicate IP address checks for cloud servers on a project to make them more robust to catch more edge cases
+
+### Fixed
+
+* Fixed an issue with creating a new cloud server on a project
+
+## [4.3.3] - 21 October 2024
 
 ### Added
 
