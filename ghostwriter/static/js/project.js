@@ -175,25 +175,6 @@ function showHideRow(btn, row) {
     $('#' + row).slideToggle(500);
 }
 
-// Update badges on navigation tabs
-function update_badges() {
-    // Get the update URL from the ``nav-tabs`` element
-    let $navTabs = $('.nav-tabs');
-    let update_url = $navTabs.attr('js-update-tabs-url');
-    if (update_url != null) {
-        console.log("Updating badges...");
-        // Save the ``id`` of the current tab with the ``active`` class
-        let $activeTabId = $('ul#tab-bar a.active').attr('id');
-        $activeTabId = '#' + $activeTabId;
-        // Refresh the HTML from the update URL
-        $navTabs.html('').load(update_url, function () {
-            // Set the previously active tab back to ``active``
-            let $targetTab = $($activeTabId);
-            $targetTab.tab('show');
-        });
-    }
-}
-
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {

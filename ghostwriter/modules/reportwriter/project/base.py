@@ -176,8 +176,10 @@ class ExportProjectBase(ExportBase):
         context = {
             name: copy.deepcopy(LINTER_CONTEXT[name])
             for name in [
+                # This should match the list of fields in `custom_serializers.py` `FullProjectSerializer`
                 "project",
                 "client",
+                "contacts",
                 "team",
                 "objectives",
                 "targets",
@@ -188,9 +190,13 @@ class ExportProjectBase(ExportBase):
                 "logs",
                 "company",
                 "report_date",
+                "company",
+                "tools",
+                "recipient",
                 "extra_fields",
             ]
         }
+
         for field in ExtraFieldSpec.objects.filter(target_model=Report._meta.label):
             context["extra_fields"][field.internal_name] = field.empty_value()
         for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):

@@ -184,6 +184,7 @@
 {% endblock %}
 
 {% block morescripts %}
+  {% include "snippets/cvss_scripts.html" %}
   <script>
     {% comment %} Connect to channel for finding-specific notifications {% endcomment %}
     const ws_finding = new WebSocket(
@@ -200,11 +201,6 @@
     ws_finding.onclose = function () {
       console.error('Finding notification WebSocket closed unexpectedly');
     };
-
-    {%  comment %} Prepare CVSS calculator {% endcomment %}
-    $(document).ready(function () {
-      prepareCVSSCalc()
-    });
 
     {% comment %} Script for the WYSIWYG editor's AutoComplete {% endcomment %}
     let evidenceFiles = [

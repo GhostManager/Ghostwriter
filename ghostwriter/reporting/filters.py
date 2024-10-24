@@ -65,6 +65,17 @@ class FindingFilter(django_filters.FilterSet):
         ),
     )
 
+    # Dummy filter to add a checkbox onto the form, which the view uses to select Findings vs
+    # ReportFindingLinks
+    on_reports = django_filters.BooleanFilter(
+        method="filter_on_reports",
+        label="Search findings on reports",
+        widget=forms.CheckboxInput,
+    )
+
+    def filter_on_reports(self, queryset, *args, **kwargs):
+        return queryset
+
     class Meta:
         model = Finding
         fields = ["title", "severity", "finding_type"]
@@ -98,6 +109,16 @@ class FindingFilter(django_filters.FilterSet):
                     Column(
                         InlineCheckboxes("finding_type"),
                         css_class="col-md-12 m-1",
+                    ),
+                    css_class="form-row",
+                ),
+                Row(
+                    Column(
+                        "on_reports",
+                        css_class="col-md-12 m-1",
+                        data_toggle="tooltip",
+                        data_placement="top",
+                        title="Return results from reports instead of the library",
                     ),
                     css_class="form-row",
                 ),

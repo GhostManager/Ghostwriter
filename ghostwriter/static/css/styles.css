@@ -1601,6 +1601,7 @@ td p {
   font-family: 'Font Awesome 5 Free';
   display: inline-block;
   padding-left: 10px;
+  margin-right: -24px;
 }
 
 .dropdown-info-dashboard {
@@ -3485,11 +3486,15 @@ input:checked+.slider:before {
   background-clip: padding-box;
   *border-right-width: 2px;
   *border-bottom-width: 2px;
+  max-height:50vh;
+  overflow-y:auto;
+  scrollbar-color: var(--primary-color) var(--main-bg-color);
 }
 
 .ui-menu-item {
   padding-left: .2em;
   padding-right: .2em;
+  cursor: pointer;
 }
 
 .ui-menu-item>a.ui-corner-all {
@@ -3509,8 +3514,8 @@ input:checked+.slider:before {
   text-decoration: none;
   background-color: var(--primary-color);
   border-radius: .2em;
-  -webkit-border-radius: .2em;
-  -moz-border-radius: .2em;
+  -webkit-border-radius: .15em;
+  -moz-border-radius: .15em;
 }
 
 textarea:focus,

@@ -53,6 +53,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     get_item,
     regex_search,
     strip_html,
+    replace_blanks,
 )
 from ghostwriter.reporting.templatetags import report_tags
 
@@ -171,7 +172,6 @@ class AssignBlankFindingTests(TestCase):
         cls.finding_type = FindingTypeFactory(finding_type="Network")
 
         cls.uri = reverse("reporting:assign_blank_finding", kwargs={"pk": cls.report.pk})
-        cls.redirect_uri = f"{reverse('reporting:report_detail', kwargs={'pk': cls.report.pk})}#findings"
 
     def setUp(self):
         self.client = Client()
@@ -181,24 +181,22 @@ class AssignBlankFindingTests(TestCase):
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertRedirects(response, self.redirect_uri)
+        response = self.client_mgr.post(self.uri)
+        self.assertTrue(response.status_code, 200)
 
     def test_view_requires_login_and_permissions(self):
-        response = self.client.get(self.uri)
+        response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)
 
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 403)
 
-        response = self.client_mgr.get(self.uri)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, self.redirect_uri)
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
 
         ProjectAssignmentFactory(operator=self.user, project=self.report.project)
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, self.redirect_uri)
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
 
 
 class ConvertFindingTests(TestCase):
@@ -296,16 +294,15 @@ class AssignFindingTests(TestCase):
         ProjectAssignmentFactory(operator=self.user, project=self.report.project)
 
         response = self.client_auth.post(self.uri)
-        message = "{} successfully added to your active report. Click here to return to your report.".format(
-            self.finding
-        )
-        data = {
-            "result": "success",
-            "message": message,
-            "url": f'{reverse("reporting:report_detail", kwargs={"pk": self.report.id})}#findings',
-        }
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_response_with_report_id(self):
+        self.session = self.client_mgr.session
+        self.session["active_report"] = {}
+        self.session.save()
+
+        response = self.client_mgr.post(self.uri, data={"report": self.report.id})
+        self.assertEqual(response.status_code, 200)
 
     def test_view_response_with_bad_session_vars(self):
         self.session = self.client_mgr.session
@@ -320,7 +317,9 @@ class AssignFindingTests(TestCase):
         )
 
         response = self.client_mgr.post(self.uri)
-        message = "Please select a report to edit before trying to assign a finding."
+        message = (
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        )
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
@@ -333,7 +332,9 @@ class AssignFindingTests(TestCase):
         self.assertEqual(self.session["active_report"], None)
 
         response = self.client_mgr.post(self.uri)
-        message = "Please select a report to edit before trying to assign a finding."
+        message = (
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        )
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
@@ -498,6 +499,20 @@ class FindingsListViewTests(TestCase):
             title = f"Finding {finding_id}"
             cls.findings.append(FindingFactory(title=title))
 
+        cls.project = ProjectFactory()
+        cls.accessibleReport = ReportFactory(project=cls.project)
+        _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.accessibleReportFindings = [
+            ReportFindingLinkFactory(title=f"Report Finding {i}", report=cls.accessibleReport)
+            for i in range(cls.num_of_findings)
+        ]
+
+        cls.inaccessibleReport = ReportFactory()
+        cls.inaccessibleReportFindings = [
+            ReportFindingLinkFactory(title=f"Inaccessible Report Finding {i}", report=cls.inaccessibleReport)
+            for i in range(cls.num_of_findings)
+        ]
+
         cls.uri = reverse("reporting:findings")
 
     def setUp(self):
@@ -538,6 +553,11 @@ class FindingsListViewTests(TestCase):
         response = self.client_auth.get(self.uri + "?title=Finding+2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
+
+    def test_search_report_findings(self):
+        response = self.client_auth.get(self.uri + "?on_reports=on")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.accessibleReportFindings))
 
 
 class FindingDetailViewTests(TestCase):
@@ -1008,6 +1028,7 @@ class ReportUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.report = ReportFactory()
+        ReportFactory.create_batch(5)
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:report_update", kwargs={"pk": cls.report.pk})
@@ -1036,6 +1057,14 @@ class ReportUpdateViewTests(TestCase):
         ProjectAssignmentFactory(project=self.report.project, operator=self.user)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 1)
+        self.assertEqual(response.context["form"].fields["project"].queryset[0], self.report.project)
+        self.assertTrue(response.context["form"].fields["project"].disabled)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 6)
+        self.assertFalse(response.context["form"].fields["project"].disabled)
 
     def test_view_uses_correct_template(self):
         response = self.client_mgr.get(self.uri)
@@ -2507,6 +2536,19 @@ class ReportTemplateFilterTests(TestCase):
         findings = "Not a Dict"
         with self.assertRaises(InvalidFilterValue):
             filter_tags(findings, ["xss", "T1659"])
+
+    def test_replace_blanks(self):
+        example = [
+            {"example": "This is a test"},
+            {"example": None},
+            {"example": "This is another test"},
+        ]
+        res = replace_blanks(example, "BLANK")
+        self.assertEqual(
+            res, [{"example": "This is a test"}, {"example": "BLANK"}, {"example": "This is another test"}]
+        )
+        with self.assertRaises(InvalidFilterValue):
+            replace_blanks("Not a list", "BLANK")
 
 
 class LocalFindingNoteUpdateTests(TestCase):

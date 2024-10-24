@@ -44,3 +44,4 @@ pyjwt==2.9.0
 psutil==6.0.0
 django-taggit==6.0.0
 croniter==3.0.3
+cvss==3.2

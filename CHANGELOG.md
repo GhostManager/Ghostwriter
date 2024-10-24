@@ -6,7 +6,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
-## [4.3.0] – 10 Sep 2024
+## [4.3.4] - 24 October 2024
+
+### Changed
+
+* Adjusted the duplicate IP address checks for cloud servers on a project to make them more robust to catch more edge cases
+
+### Fixed
+
+* Fixed an issue with creating a new cloud server on a project
+
+## [4.3.3] - 21 October 2024
+
+### Added
+
+* Added display for the temporal and environmental scores on the CVSS v3.1 calculator (Closes #536)
+* Added a `cvss_data` key to the report context that includes the CVSS data for each finding
+  * The key is a list that includes four items: the CVSS version, score(s), severity, and your configured color for the severity
+  * The score and severity data includes the temporal and environmental scores for CVSS v3.1, so those scores, severities, and colors are lists (base, temporal, environmental)
+  * The data is available for use in the report template
+
+### Fixed
+
+* Fixed values of zero (e.g., `0` or `0.0`) displaying as "No Value Set" for extra fields (Closes #541)
+* Fixed a minor style issue with the sidebar
+
+## [4.3.2] - 30 Sep 2024
+
+### Added
+
+* Add a `severities` key to the report context that includes a list of all severity categories in the database (Closes #427)
+  * Each severity category includes the category's name, color as a hex value, color as an RGB value, color as a hex tuple, and the category's weight
+  * Each entry also has a `severity_rt` RichText object  for Word that places the severity in a font color that matches the severity's color
+    * This object is identical to the `severity_rt` object on findings
+
+### Changed
+
+* Reworked the CVSS calculators on findings to allow switching between CVSS v3/3.1 and v4 (Closes #232, #356, #387, and #509)
+  * Changes include the addition of the "modified" metrics like temporal, environmental, threat, and supplemental sections
+* Changed autocomplete suggestions in the WYSIWYG editor to no longer be case-sensitive (Fixes #440)
+
+### Fixed
+
+* Fixed archive report generation failing due to the Word template used for the PowerPoint report (PR #528)
+
+## [4.3.1] – 25 Sep 2024
+
+### Added
+
+* Added a `replace_blanks` filter to the report template engine to replace blank values in a dictionary with a specified string
+  * This filter is useful when sorting a list of dictionaries with an attribute that may have a blank value
+* Added an option in the change search in the findings library to search findings attached to reports (Closes #400)
+  * Instead of matches from the library, the search will return results for findings attached to reports to which the user has access
+
+### Changed
+
+* Changed the serializer for report context to replace null values with a blank string (`""`) to help prevent errors when generating reports
+  * **Note:** This change may affect templates that rely on null values to trigger conditional logic, but most conditional statements should not be affected
+  * **Example:** The condition `{% if not X %}` will evaluate to `True` if `X` is `None` or `""`
+* Changed the report form to allow users with the `admin` or `manager` roles to change the report's project (Closes #368)
+  * This change allows a report to be moved from one project to another (e.g., you make a copy for a follow-up assessment)
+  * This feature is only available to users with the `admin` or `manager` roles to prevent accidental data leaks
+
+### Fixed
+
+* Fixed an edge case with the Namecheap sync task that could lead to a domain remaining marked as expired after re-purchasing it or renewing it during the grace period
+
+## [4.3.0] – 23 Sep 2024
 
 ### Added
 
@@ -15,11 +81,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The adapter fills-in a nearly full profile for any new accounts (full name, email address, username)
   * Usernames for new accounts will default to the first half of the email address
   * If an existing account has the same email address, the accounts will be linked
-  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/single-sign-on](https://www.ghostwriter.wiki/features/single-sign-on)
+  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on)
 * Added support for loading customized config files
   * These are files you can use to modify settings normally found in _/config/settings/base.py_ and _production.py_
   * Admins can make changes to the custom config files without worrying about the changes needing to be stashed prior to pulling an update
-  * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/single-sign-on#configuring-an-sso-provider)
+  * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider)
 * Added support for a JSON field type for custom fields
 * Added a "Tags" column to the domain and server library tables
 
@@ -32,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Cloud hosts tracked on a project no longer require a unique IP address
   * A warning is displayed if a cloud host is tracked on a project with multiple hosts sharing the same IP address
 * Changed filtering on tags to be case-insensitive
+* On the report dashboard, clicking an autocomplete suggestion for a finding or observation will now add the item to the report
 
 ### Fixed
 

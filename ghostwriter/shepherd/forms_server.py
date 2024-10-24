@@ -84,6 +84,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                                 code="duplicate",
                             ),
                         )
+                        duplicates = False
 
                     # Check that only one address is marked as the primary
                     if primary and ip_address:
@@ -253,7 +254,9 @@ class ServerForm(forms.ModelForm):
                         <h4 class="icon custom-field-icon">Extra Fields</h4>
                         <hr />
                         """
-                    ) if has_extra_fields else None,
+                    )
+                    if has_extra_fields
+                    else None,
                     "extra_fields" if has_extra_fields else None,
                     link_css_class="icon server-icon",
                     css_id="server",

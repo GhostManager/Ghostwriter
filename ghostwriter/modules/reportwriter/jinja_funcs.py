@@ -282,3 +282,26 @@ def mk_evidence(context: jinja2.runtime.Context, evidence_name: str) -> Markup:
 
 def raw_mk_evidence(evidence_id) -> Markup:
     return Markup('<span data-gw-evidence="' + html.escape(str(evidence_id)) + '"></span>')
+
+
+def replace_blanks(list_of_dicts, placeholder=""):
+    """
+    Replace blank strings in a dictionary with a placeholder string.
+
+    **Parameters**
+
+    ``dict``
+        Dictionary to replace blanks in
+    """
+
+    try:
+        for d in list_of_dicts:
+            for key, value in d.items():
+                if value is None:
+                    d[key] = placeholder
+    except (AttributeError, TypeError) as e:
+        logger.exception("Error parsing ``list_of_dicts`` as a list of dictionaries: %s", list_of_dicts)
+        raise InvalidFilterValue(
+            "Invalid list of dictionaries passed into `replace_blanks()` filter; must be a list of dictionaries"
+        ) from e
+    return list_of_dicts

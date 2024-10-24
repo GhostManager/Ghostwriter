@@ -42,6 +42,7 @@ from crispy_forms.layout import Field
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
     get_archives_list,
+    get_project_list,
     get_reports_list,
     get_templates_list,
     verify_finding_access,
@@ -266,17 +267,30 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         del finding_dict["tags"]
         del finding_dict["tagged_items"]
 
-        # The user must have the ``active_report`` session variable
-        active_report = self.request.session.get("active_report", None)
-        if active_report:
-            try:
-                report = Report.objects.get(pk=active_report["id"])
-                if not verify_access(self.request.user, report.project):
-                    return ForbiddenJsonResponse()
-            except Report.DoesNotExist:
-                message = "Please select a report to edit before trying to assign a finding."
-                data = {"result": "error", "message": message}
-                return JsonResponse(data)
+        try:
+            # If the POST includes an `report` value, give that priority over the session variable
+            if "report" in self.request.POST:
+                report_id = self.request.POST["report"]
+                report = Report.objects.get(pk=report_id)
+            # Otherwise, use the session variable for the "active" report
+            else:
+                active_report = self.request.session.get("active_report", None)
+                if active_report:
+                    report = Report.objects.get(pk=active_report["id"])
+                else:
+                    raise Report.DoesNotExist
+        except (Report.DoesNotExist, ValueError):
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
+            data = {"result": "error", "message": message}
+            return JsonResponse(data)
+
+        # If we have a report, we can proceed after verifying access
+        data = {}
+        if report:
+            if not verify_access(self.request.user, report.project):
+                return ForbiddenJsonResponse()
 
             # Clone the selected object to make a new :model:`reporting.ReportFindingLink`
             report_link = ReportFindingLink(
@@ -291,7 +305,15 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             message = "{} successfully added to your active report. Click here to return to your report.".format(
                 finding_instance
             )
-            data = {"result": "success", "message": message, "url": f"{report.get_absolute_url()}#findings"}
+            table_html = render_to_string(
+                "snippets/report_findings_table.html", {"report": report}, request=self.request
+            )
+            data = {
+                "result": "success",
+                "message": message,
+                "url": f"{report.get_absolute_url()}#findings",
+                "table_html": table_html,
+            }
             logger.info(
                 "Copied %s %s to %s %s (%s %s) by request of %s",
                 finding_instance.__class__.__name__,
@@ -303,8 +325,11 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 self.request.user,
             )
         else:
-            message = "Please select a report to edit before trying to assign a finding."
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
             data = {"result": "error", "message": message}
+
         return JsonResponse(data)
 
 
@@ -854,10 +879,9 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         self.finding_type = FindingType.objects.all().first()
         super().__init__()
 
-    def get(self, *args, **kwargs):
+    def post(self, *args, **kwargs):
         obj = self.get_object()
         try:
-
             report_link = ReportFindingLink(
                 title="Blank Template",
                 severity=self.severity,
@@ -877,23 +901,22 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 self.request.user,
             )
 
-            messages.success(
-                self.request,
-                "Successfully added a blank finding to the report",
-                extra_tags="alert-success",
-            )
+            message = "Successfully added a blank finding to the report."
+            table_html = render_to_string("snippets/report_findings_table.html", {"report": obj}, request=self.request)
+            data = {
+                "result": "success",
+                "message": message,
+                "table_html": table_html,
+            }
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
+            logger.exception(log_message)
 
-            messages.error(
-                self.request,
-                "Encountered an error while trying to add a blank finding to your report: {}".format(exception.args),
-                extra_tags="alert-error",
-            )
+            message = f"Encountered an error while trying to add a blank finding to your report: {exception.args}."
+            data = {"result": "error", "message": message}
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)) + "#findings")
+        return JsonResponse(data)
 
 
 class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -1104,44 +1127,44 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
     :template:`reporting/finding_list.html`
     """
 
-    model = Finding
+    model = Finding # May also use ReportFindingLink
     template_name = "reporting/finding_list.html"
 
     def __init__(self):
         super().__init__()
         self.autocomplete = []
+        self.searching_report_findings = False
 
     def get_queryset(self):
-        search_term = ""
-        findings = (
-            Finding.objects.select_related("severity", "finding_type")
-            .all()
-            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
-        )
+        if self.request.GET.get("on_reports", "").strip():
+            findings = ReportFindingLink.objects.filter(report__project__in=get_project_list(self.request.user))
+            self.searching_report_findings = True
+        else:
+            findings = Finding.objects.all()
 
-        # Build autocomplete list
-        for finding in findings:
-            self.autocomplete.append(finding.title)
+        self.autocomplete = findings
+        findings = findings.select_related("severity", "finding_type").order_by("severity__weight", "-cvss_score", "finding_type", "title")
 
-        if "finding" in self.request.GET:
-            search_term = self.request.GET.get("finding").strip()
-            if search_term is None or search_term == "":
-                search_term = ""
+        search_term = self.request.GET.get("finding", "").strip()
         if search_term:
             messages.success(
                 self.request,
                 "Displaying search results for: {}".format(search_term),
                 extra_tags="alert-success",
             )
-            findings = findings.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
-                "severity__weight", "-cvss_score", "finding_type", "title"
-            )
+            findings = findings.filter(
+                Q(title__icontains=search_term) | Q(description__icontains=search_term)
+            ).order_by("severity__weight", "-cvss_score", "finding_type", "title")
         return findings
 
     def get(self, request, *args, **kwarg):
         findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())
         return render(
-            request, "reporting/finding_list.html", {"filter": findings_filter, "autocomplete": self.autocomplete}
+            request, "reporting/finding_list.html", {
+                "filter": findings_filter,
+                "autocomplete": self.autocomplete,
+                "searching_report_findings": self.searching_report_findings,
+            }
         )
 
 
@@ -1339,7 +1362,7 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             if report_instance.pptx_template:
                 pptx_template = report_instance.pptx_template.document.path
             else:
-                pptx_template = report_config.default_docx_template
+                pptx_template = report_config.default_pptx_template
                 if not pptx_template:
                     raise MissingTemplate
 
@@ -1445,7 +1468,8 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
     def __init__(self):
         super().__init__()
-        self.autocomplete = []
+        self.finding_autocomplete = []
+        self.observation_autocomplete = []
 
     def test_func(self):
         return verify_access(self.request.user, self.get_object().project)
@@ -1486,8 +1510,13 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
             .order_by("severity__weight", "-cvss_score", "finding_type", "title")
         )
         for finding in findings:
-            self.autocomplete.append(finding.title)
-        ctx["autocomplete"] = self.autocomplete
+            self.finding_autocomplete.append(finding)
+        ctx["finding_autocomplete"] = self.finding_autocomplete
+
+        observations = Observation.objects.all().order_by("title")
+        for obs in observations:
+            self.observation_autocomplete.append(obs)
+        ctx["observation_autocomplete"] = self.observation_autocomplete
 
         ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
 
@@ -1612,7 +1641,12 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({"project": self.get_object().project, "user": self.request.user})
+        kwargs.update(
+            {
+                "project": self.get_object().project,
+                "user": self.request.user,
+            }
+        )
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -3072,17 +3106,29 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         del observation_dict["tags"]
         del observation_dict["tagged_items"]
 
-        # The user must have the ``active_report`` session variable
-        active_report = self.request.session.get("active_report", None)
-        if active_report:
-            try:
-                report = Report.objects.get(pk=active_report["id"])
-                if not verify_access(self.request.user, report.project):
-                    return ForbiddenJsonResponse()
-            except Report.DoesNotExist:
-                message = "Please select a report to edit before trying to assign an observation."
-                data = {"result": "error", "message": message}
-                return JsonResponse(data)
+        try:
+            # If the POST includes an `report` value, give that priority over the session variable
+            if "report" in self.request.POST:
+                report_id = self.request.POST["report"]
+                report = Report.objects.get(pk=report_id)
+            # Otherwise, use the session variable for the "active" report
+            else:
+                active_report = self.request.session.get("active_report", None)
+                if active_report:
+                    report = Report.objects.get(pk=active_report["id"])
+                else:
+                    raise Report.DoesNotExist
+        except (Report.DoesNotExist, ValueError):
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
+            data = {"result": "error", "message": message}
+            return JsonResponse(data)
+
+        # If we have a report, we can proceed after verifying access
+        if report:
+            if not verify_access(self.request.user, report.project):
+                return ForbiddenJsonResponse()
 
             # Clone the selected object to make a new :model:`reporting.ReportObservationLink`
             position = (
@@ -3100,7 +3146,10 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             report_link.tags.add(*observation_instance.tags.all())
 
             message = "{} successfully added to your active report.".format(observation_instance)
-            data = {"result": "success", "message": message}
+            table_html = render_to_string(
+                "snippets/report_observations_table.html", {"report": report}, request=self.request
+            )
+            data = {"result": "success", "message": message, "table_html": table_html}
             logger.info(
                 "Copied %s %s to %s %s (%s %s) by request of %s",
                 observation_instance.__class__.__name__,
@@ -3112,8 +3161,11 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 self.request.user,
             )
         else:
-            message = "Please select a report to edit before trying to assign a observation."
+            message = (
+                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            )
             data = {"result": "error", "message": message}
+
         return JsonResponse(data)
 
 
@@ -3126,7 +3178,7 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
 
-    def get(self, *args, **kwargs):
+    def post(self, *args, **kwargs):
         obj = self.get_object()
         try:
             position = (
@@ -3147,25 +3199,24 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
                 self.request.user,
             )
 
-            messages.success(
-                self.request,
-                "Successfully added a blank observation to the report",
-                extra_tags="alert-success",
+            message = "Successfully added a blank observation to the report."
+            table_html = render_to_string(
+                "snippets/report_observations_table.html", {"report": obj}, request=self.request
             )
+            data = {
+                "result": "success",
+                "message": message,
+                "table_html": table_html,
+            }
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
 
-            messages.error(
-                self.request,
-                "Encountered an error while trying to add a blank observation to your report: {}".format(
-                    exception.args
-                ),
-                extra_tags="alert-error",
-            )
+            message = f"Encountered an error while trying to add a blank observation to your report: {exception.args}."
+            data = {"result": "error", "message": message}
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)) + "#observations")
+        return JsonResponse(data)
 
 
 class ReportObservationLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):

@@ -1,0 +1,62 @@
+<!-- CVSS -->
+<!--
+Copyright (c) 2015, FIRST.ORG, INC.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+following conditions are met:
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+following disclaimer in the documentation and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<div id="cvss-v3-calculator" class="form-row cvss-calculator">
+    <h2>CVSS v3.1</h2>
+    <button class="mt-2 mb-2 btn btn-outline-secondary cvss-switch">Switch to v4</button>
+
+    <div class="cvss-buttons">
+        {% include "snippets/cvss_ui_v3.html" %}
+    </div>
+
+    <div class="scoreRating baseRating">
+        <h4>Base</h4>
+        <span class="baseMetricScore"></span>
+        <span class="baseSeverity">Select values to see score</span>
+    </div>
+    <div class="scoreRating temporalRating">
+        <h4>Temporal</h4>
+        <span class="temporalMetricScore"></span>
+        <span class="temporalSeverity">Select values to see score</span>
+    </div>
+    <div class="scoreRating envRating">
+        <h4>Env</h4>
+        <span class="envMetricScore"></span>
+        <span class="envSeverity">Select values to see score</span>
+    </div>
+</div>
+
+<div id="cvss-v4-calculator" class="form-row cvss-calculator" style="display: none">
+    <h2>CVSS v4</h2>
+    <button class="mt-2 mb-2 btn btn-outline-secondary cvss-switch">Switch to v3</button>
+
+    <div class="cvss-buttons">
+        {% include "snippets/cvss_ui_v4.html" %}
+    </div>
+
+    <div class="scoreRating baseRating">
+      <h4>Base</h4>
+        <span class="baseMetricScore"></span>
+        <span class="baseSeverity">Select values to see score</span>
+    </div>
+</div>

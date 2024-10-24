@@ -84,6 +84,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                                 code="duplicate",
                             ),
                         )
+                        duplicates = False
                     # Check that all objective have a deadline and status
                     if deadline and not objective:
                         form.add_error(
@@ -182,6 +183,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                                     code="duplicate",
                                 ),
                             )
+                            duplicates = False
 
                     # Raise an error if an operator is selected provided without any required details
                     if operator and any(x is None for x in [start_date, end_date, role]):
@@ -280,6 +282,7 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
                                 code="duplicate",
                             ),
                         )
+                        duplicates = False
                     if name or description:
                         if not scope:
                             form.add_error(

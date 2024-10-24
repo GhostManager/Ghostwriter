@@ -1,0 +1,449 @@
+{% load report_tags %}
+
+{% if report.reportfindinglink_set.all %}
+  <table id="findings-table" class="table table-sm table-hover"
+         findings-update-url="{% url 'reporting:update_report_findings' %}">
+    <tr>
+      <th class="icon ol-list-icon text-center"></th>
+      <th class="align-middle">Finding</th>
+      <th>CVSS Score</th>
+      <th class="align-middle">
+        <div class="dropdown dropleft">
+          <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">Evidence</span>
+          <div id="evidence-info" class="dropdown-menu dropdown-info-content"
+               aria-labelledby="evidence-info-btn">
+            <p>Attach evidence to findings - such as text files, log files, script snippets, and screenshots -
+              to
+              have them included with the finding in the generated reports.</p>
+          </div>
+        </div>
+      </th>
+      <th class="align-middle">
+        <div class="dropdown dropleft">
+          <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">Owner</span>
+          <div id="owner-info" class="dropdown-menu dropdown-info-content" aria-labelledby="owner-info-btn">
+            <p>The assigned user is the person responsible for writing this finding. The assigned individual
+              will
+              have a link to the finding on their dashboard.</p>
+          </div>
+        </div>
+      </th>
+      <th class="align-middle">
+        <div class="dropdown dropleft">
+          <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">Status</span>
+          <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
+            <p>Mark a finding as ready or in need of editing. Findings marked as in need of editing will appear
+              on
+              the assigned user's dashboard.</p>
+          </div>
+        </div>
+      </th>
+      <th class="align-middle">Options</th>
+    </tr>
+
+    {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
+    {% for group, values in severity_groups.items %}
+      <tbody>
+      <th id="{{ values.tpl_name }}_header" class="severity-header {{ values.tpl_name }}" colspan="7"
+          scope="colgroup">{{ group }}</th>
+      </tbody>
+      <tbody id="{{ values.tpl_name }}_severity" class="sortable_list connected_sortable"
+             severity-weight="{{ values.weight }}">
+      {% if values.findings %}
+        {% for finding in values.findings %}
+          <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
+            <td
+              class="holdme align-middle"
+              data-toggle="tooltip"
+              data-placement="top"
+              title="Click-n-drag to reposition or categorize"
+            ></td>
+            <td class="align-middle">
+              <a id="delete-target-content-finding-{{ finding.id }}"
+                {% if finding.added_as_blank %}
+                 class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
+                 title="Finding started as a blank template, not from the finding library"
+                {% else %}
+                 class="clickable"
+                {% endif %}
+                 href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
+              </a>
+            </td>
+            <td class="neutral align-middle
+                {% if finding.severity.weight == 1 %}
+                    cvss-critical
+                {% elif finding.severity.weight == 2 %}
+                    cvss-high
+                {% elif finding.severity.weight == 3 %}
+                    cvss-medium
+                {% elif finding.severity.weight == 4 %}
+                    cvss-low
+                {% elif finding.severity.weight == 5 %}
+                    cvss-info
+                {% endif %}
+            ">
+              {% if finding.cvss_score %}
+                <span
+                  style="cursor: help"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  title="{{ finding.cvss_vector }}"
+                >{{ finding.cvss_score }}</span>
+              {% else %}--{% endif %}
+            </td>
+            {% if finding.evidence_set.all %}
+              <td class="align-middle">
+                <div class="card mb-0" id="accordion-{{ finding.id }}" role="tablist">
+                  <div class="card-header collapsed" data-toggle="collapse"
+                       data-target="#accordion-evidences-{{ finding.id }}" role="tab" aria-expanded="false">
+                    <h5 class="mb-0">
+                      <a data-toggle="collapse" href="#accordion-evidences-{{ finding.id }}"
+                         aria-expanded="false" aria-controls="accordion-evidences-{{ finding.id }}"
+                         class="collapsed">
+                        Evidence Files
+                      </a>
+                    </h5>
+                  </div>
+                  <div id="accordion-evidences-{{ finding.id }}" class="collapse" role="tabpanel"
+                       aria-labelledby="accordion-evidences-{{ finding.id }}"
+                       data-parent="#accordion-{{ finding.id }}" style="">
+                    <div class="card-body">
+                      {% for evidence_file in finding.evidence_set.all %}
+                        <div class="dropdown">
+                          <button id="evidence-dropdown-btn-{{ evidence.id }}"
+                                  class="dropdown-menu-btn-evidence"
+                                  data-toggle="dropdown" aria-haspopup="true"
+                                  aria-expanded="false">{{ evidence_file.friendly_name }}</button>
+                          <div id="evidence-dropdown-menu-{{ evidence.id }}" class="dropdown-menu"
+                               aria-labelledby="evidence-dropdown-btn-{{ evidence.id }}">
+                            <a class="dropdown-item icon view-icon"
+                               href="{% url 'reporting:evidence_detail' evidence_file.id %}">View</a>
+                            <a class="dropdown-item icon edit-icon"
+                               href="{% url 'reporting:evidence_update' evidence_file.id %}">Edit</a>
+                            <a class="dropdown-item icon trash-icon"
+                               href="{% url 'reporting:evidence_delete' evidence_file.id %}">Delete</a>
+                          </div>
+                        </div>
+                        <hr>
+                      {% endfor %}
+                      <a
+                        class="icon lg-attach-icon"
+                        href="{% url 'reporting:upload_evidence' 'finding' finding.id %}"
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="Attach a file as evidence"></a>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            {% else %}
+              <td class="align-middle">
+                <a
+                  class="icon lg-attach-icon"
+                  href="{% url 'reporting:upload_evidence' 'finding' finding.id %}"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  title="Attach a file as evidence"
+                ></a>
+              </td>
+            {% endif %}
+            {% if finding.assigned_to == request.user %}
+              <td class="align-middle">
+                <span id="assignee-status-{{ finding.id }}" class="
+                  {% if finding.complete %}
+                    healthy">
+                  {% else %}
+                    burned">
+                  {% endif %}
+                  You</td>
+                </span>
+              </td>
+            {% else %}
+              {% if finding.assigned_to %}
+                <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+              {% else %}
+                <td class="medium align-middle">TBD</td>
+              {% endif %}
+            {% endif %}
+            <td class="align-middle">
+              <span id="finding-status-{{ finding.id }}" class="
+                {% if finding.complete %}
+                  healthy">Ready
+              {% else %}
+                burned"> Needs Editing
+              {% endif %}
+              </span>
+            </td>
+            <td class="align-middle">
+              <div class="dropdown dropleft">
+                <button id="finding-dropdown-btn-{{ finding.id }}" class="dropdown-menu-btn-table"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                <div id="finding-dropdown-menu-{{ finding.id }}" class="dropdown-menu"
+                     aria-labelledby="dns-dropdown-btn_{{ finding.id }}">
+                  <a class="dropdown-item icon attach-icon"
+                     href="{% url 'reporting:upload_evidence' 'finding' finding.id %}">Attach
+                    Evidence</a>
+                  <a class="dropdown-item icon edit-icon"
+                     href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
+                  <a class="dropdown-item icon toggle-off-icon js-set-finding-status" href="javascript:void(0);"
+                     set-finding-status-csrftoken="{{ csrf_token }}"
+                     set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"
+                     set-finding-status="edit" set-finding-status-id="{{ finding.id }}">Flag for Editing</a>
+                  <a class="dropdown-item icon toggle-on-icon js-set-finding-status" href="javascript:void(0);"
+                     set-finding-status-csrftoken="{{ csrf_token }}"
+                     set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
+                     set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
+                  <a class="dropdown-item icon clone-icon"
+                     href="{% url 'reporting:convert_finding' finding.id %}">Clone
+                    to Library</a>
+                  <a id="finding-delete-button-{{ finding.id }}"
+                     class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
+                     data-target="#confirm-delete-modal" href="javascript:void(0);"
+                     delete-target-csrftoken="{{ csrf_token }}"
+                     delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id %}"
+                     delete-target-id="{{ finding.id }}" delete-target-type="finding">Delete</a>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder"
+            class="severity-row-placeholder">
+          <td colspan="7" scope="colgroup">Add {{ group }} findings or drag-and-drop a finding here to update
+            its
+            severity.
+          </td>
+        </tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No findings have been added to this report yet.</p>
+{% endif %}
+
+<script>
+  $('#findings-table [data-target="#confirm-delete-modal"]').each(function () {
+    $(this).click(function () {
+      $('#confirm-delete-modal').attr('caller-id', $(this).attr('id'));
+    });
+  });
+
+  {% comment %} Configure table sorting by severity groups {% endcomment %}
+  {% if report.reportfindinglink_set.all %}
+    var update_url = $('#findings-table').attr('findings-update-url');
+    {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
+    {% for group, values in severity_groups.items %}
+      var {{ values.tpl_name }}_sortable = Sortable.create({{ values.tpl_name }}_severity, {
+        items: 'tbody > tr',
+        group: 'severity',
+        animation: 150,
+        filter: '.severity-row-placeholder',
+        ghostClass: 'sortable-ghost',
+        handle: '.holdme',
+
+        // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
+        setData: function (dataTransfer, dragEl) {
+          dataTransfer.setData('text/plain', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+        },
+
+        // Element is chosen
+        onChoose: function (event) {
+          event.oldIndex;
+        },
+
+        // Element is unchosen
+        onUnchoose: function (event) {
+        },
+
+        // Element dragging started
+        onStart: function (event) {
+          event.oldIndex;
+        },
+
+        // Element is dropped into the list from another list
+        onAdd: function (event) {
+          // Get the placeholder `tr` if it exists
+          let weight = event.to.getAttribute('severity-weight')
+          let placeholder = event.to.getElementsByClassName('severity-row-placeholder')[0];
+          let positions = {{ values.tpl_name }}_sortable.toArray();
+          // Prep AJAX request with CSRF token
+          $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+              }
+            }
+          });
+          // Send AJAX POST request
+          $.ajax(update_url, {
+            type: 'POST',
+            data: {
+              'report': report_id,
+              'severity': event.to.id,
+              'positions': JSON.stringify(positions),
+              'weight': weight
+            },
+            success: function (data) {
+              console.log(data)
+            }
+          });
+          // An "empty" group will have one row, the placeholder row
+          if (event.to.rows.length > 0) {
+            if (placeholder !== undefined) {
+              // Group contains at least one finding, delete the placeholder
+              placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+            }
+          }
+        },
+
+        // Called by any change to the list (add / update / remove)
+        onSort: function (event) {
+          // Code here triggers twice for the element if dragged to another group (two sorts)
+          [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, _) {
+            let cell = el.getElementsByClassName('holdme')[0];
+          });
+        },
+
+        // Changed sorting within list
+        onUpdate: function (event) {
+          let weight = event.item.parentNode.getAttribute('severity-weight')
+          let positions = {{ values.tpl_name }}_sortable.toArray();
+          // Prep AJAX request with CSRF token
+          $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+              }
+            }
+          });
+          // Send AJAX POST request
+          $.ajax(update_url, {
+            type: 'POST',
+            data: {
+              'report': report_id,
+              'severity': event.item.parentNode.id,
+              'positions': JSON.stringify(positions),
+              'weight': weight
+            },
+            success: function (data) {
+              console.log(data);
+            }
+          });
+        },
+
+        // Element is removed from the list into another list
+        onRemove: function (event) {
+          // Get the placeholder `tr` if it exists
+          let placeholder = event.from.getElementsByClassName('severity-row-placeholder')[0];
+          let positions = {{ values.tpl_name }}_sortable.toArray();
+          let weight = event.from.getAttribute('severity-weight')
+          $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+              }
+            }
+          });
+          $.ajax(update_url, {
+            type: 'POST',
+            data: {
+              'report': report_id,
+              'severity': event.from.id,
+              'positions': JSON.stringify(positions),
+              'weight': weight
+            },
+            success: function (data) {
+              console.log(data);
+            }
+          });
+          // An "empty" group will have one row, the placeholder row
+          if (event.from.rows.length === 0) {
+            // Just one row, add a placeholder row
+            let placeholder_row = event.from.insertRow(0)
+            placeholder_row.id = '{{ values.tpl_name }}_placeholder'
+            placeholder_row.className = 'severity-row-placeholder'
+            placeholder_row.setAttribute('data-id', '{{ values.tpl_name }}_placeholder')
+            let cell = placeholder_row.insertCell(0);
+            cell.colSpan = 7
+            cell.innerHTML = 'Add {{ group }} findings or drag-and-drop a finding here to update its severity.'
+          } else {
+            if (placeholder !== undefined) {
+              // Otherwise, delete the placeholder
+              placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+            }
+          }
+        },
+
+        // Event when you move an item in the list or between lists
+        onMove: function (event, originalEvent) {
+          // Code here triggers with every drag to a new position
+        },
+
+        // Attempt to drag a filtered element
+        onFilter: function (event) {
+        },
+
+        // Called when creating a clone of element
+        onClone: function (event) {
+        },
+
+        // Called when dragging element changes position
+        onChange: function (event) {
+          // Code here triggers with every move while drag is in progress
+        },
+
+        // Element dragging ended
+        onEnd: function (event) {
+          // Code here triggers when element is dropped
+        },
+      });
+    {% endfor %}
+  {% endif %}
+
+  {% comment %} Set finding status with AJAX {% endcomment %}
+  $('.js-set-finding-status').each(function () {
+    $(this).click(function () {
+      let url = $(this).attr('set-finding-status-url');
+      let newStatus = $(this).attr('set-finding-status');
+      let findingId = $(this).attr('set-finding-status-id');
+      let csrftoken = $(this).attr('set-finding-status-csrftoken');
+      let statusColId = '#finding-status-' + findingId;
+      let assigneeStatusColId = '#assignee-status-' + findingId;
+      let statusCol = $(statusColId);
+      let assigneeStatusCol = $(assigneeStatusColId);
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'finding': findingId,
+          'status': newStatus
+        },
+        success: function (data) {
+          if (data['result'] == 'success') {
+            statusCol.html(data['status']);
+            statusCol.removeClass();
+            statusCol.addClass(data['classes']);
+            assigneeStatusCol.removeClass();
+            assigneeStatusCol.addClass(data['classes']);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Finding Update'});
+          }
+        }
+      });
+    });
+  });
+</script>

@@ -7,6 +7,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
+from django.contrib.messages import get_messages
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -30,6 +31,8 @@ from ghostwriter.factories import (
     UserFactory,
     VirusTotalConfigurationFactory,
 )
+from ghostwriter.shepherd.forms_server import TransientServerForm
+from ghostwriter.shepherd.views import ServerHistoryCreate
 
 logging.disable(logging.CRITICAL)
 
@@ -1177,6 +1180,7 @@ class TransientServerCreateViewTests(TestCase):
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.project = ProjectFactory()
         cls.uri = reverse("shepherd:vps_create", kwargs={"pk": cls.project.id})
+        cls.redirect_uri = "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": cls.project.id}))
 
     def setUp(self):
         self.client = Client()
@@ -1213,6 +1217,75 @@ class TransientServerCreateViewTests(TestCase):
             "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.project.id})),
         )
 
+    def form_data(
+        self,
+        ip_address=None,
+        aux_address=None,
+        name=None,
+        activity_type_id=None,
+        server_role_id=None,
+        server_provider_id=None,
+        note=None,
+        **kwargs,
+    ):
+        return TransientServerForm(
+            data={
+                "ip_address": ip_address,
+                "aux_address": aux_address,
+                "aux_address_0": aux_address[0],
+                "aux_address_1": aux_address[1],
+                "aux_address_2": aux_address[2],
+                "name": name,
+                "activity_type": activity_type_id,
+                "server_role": server_role_id,
+                "server_provider": server_provider_id,
+                "note": note,
+            },
+        )
+
+    def test_duplicate_server_submission(self):
+        dupe_ip = "1.2.3.4"
+        dupe_aux_ip = ["1.2.3.5", "1.2.3.4.6", "1.2.3.4.7"]
+
+        # Create a base cloud server
+        vps_server = TransientServerFactory(project=self.project)
+
+        # Create a static server with the same IP address and check it out to the project
+        static_server = StaticServerFactory()
+        _ = AuxServerAddressFactory(static_server=static_server, ip_address=dupe_ip)
+        ServerHistoryFactory(server=static_server, project=self.project)
+
+        vps_server_dict = vps_server.__dict__.copy()
+        vps_server_dict["ip_address"] = dupe_ip
+        vps_server_dict["aux_address"] = dupe_aux_ip
+        data = self.form_data(**vps_server_dict)
+
+        response = self.client_mgr.post(self.uri, data.data)
+        messages = list(get_messages(response.wsgi_request))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.redirect_uri)
+        self.assertEqual(len(messages), 2)
+        self.assertTrue(any(
+            "Server successfully added to the project." in str(message) for message in
+            messages))
+        self.assertTrue(any("You have 2 server(s) that share one or more of the provided IP addresses." in str(message) for message in messages))
+
+        # Try to add a cloud server with shared IP addresses
+        vps_server_dict = vps_server.__dict__.copy()
+        vps_server_dict["ip_address"] = dupe_ip
+        data = self.form_data(**vps_server_dict)
+
+        response = self.client_mgr.post(self.uri, data.data)
+        messages = list(get_messages(response.wsgi_request))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.redirect_uri)
+        self.assertEqual(len(messages), 2)
+        # The total is now 4 because the cloud server shares an IP with the static server, the original VPS, and the previous test VPS
+        self.assertTrue(any(
+            "You have 4 server(s) that share one or more of the provided IP addresses." in str(message) for message in
+            messages))
 
 class TransientServerUpdateViewTests(TestCase):
     """Collection of tests for :view:`shepherd.TransientServerUpdate`."""
