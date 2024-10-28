@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "scripts": {
+    "watch": "NODE_ENV=development vite build --mode development",
+    "build": "vite build --mode production"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

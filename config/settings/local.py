@@ -14,6 +14,11 @@ SECRET_KEY = env(
 hosts = env("DJANGO_ALLOWED_HOSTS", default="localhost 0.0.0.0 127.0.0.1 172.20.0.5 django host.docker.internal")
 ALLOWED_HOSTS = hosts.split(" ")
 
+STATICFILES_DIRS += [
+    # Populated by frontend docker container
+    "/app/frontend/dist/"
+]
+
 # CACHES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#caches

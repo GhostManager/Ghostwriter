@@ -1,3 +1,8 @@
+FROM node:21-alpine AS frontendbuild
+
+COPY ./frontend /app
+RUN cd /app && npm install && npm run build
+
 FROM python:3.10.9-alpine3.17
 
 ENV PYTHONUNBUFFERED=1
@@ -53,6 +58,8 @@ RUN sed -i 's/\r$//g' /seed_data \
     && mkdir -p /app/staticfiles \
     && mkdir -p /app/ghostwriter/media \
     && chown -R django /app
+
+COPY --from=frontendbuild /app/frontend/dist/ /frontend
 
 USER django
 

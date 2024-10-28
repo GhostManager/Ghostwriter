@@ -9,6 +9,11 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 hosts = env("DJANGO_ALLOWED_HOSTS", default="ghostwriter.local localhost host.docker.internal")
 ALLOWED_HOSTS = hosts.split(" ")
 
+STATICFILES_DIRS += [
+    # Populated by production/django/Dockerfile
+    "/frontend/"
+]
+
 # DATABASES
 # ------------------------------------------------------------------------------
 DATABASES["default"] = env.db("DATABASE_URL")  # noqa F405

@@ -12,6 +12,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - frontend
     volumes:
       - .:/app
       - local_data:/app/ghostwriter/media
@@ -112,6 +113,12 @@ services:
       name: ghostwriter_queue
     ports: []
     command: /start-queue
+
+  frontend:
+    image: node:21-alpine
+    volumes:
+      - .:/app
+    command: sh -c 'cd /app/frontend && npm install && npm run watch'
 
   graphql_engine:
     build:

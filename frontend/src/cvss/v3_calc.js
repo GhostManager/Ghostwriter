@@ -80,8 +80,9 @@
 
 // Constants used in the formula. They are not declared as "const" to avoid problems in older browsers.
 
-CVSS31 = {};
-CVSS = CVSS31;
+const CVSS31 = {};
+const CVSS = CVSS31;
+export default CVSS;
 
 CVSS31.CVSSVersionIdentifier = "CVSS:3.1";
 CVSS31.exploitabilityCoefficient = 8.22;
