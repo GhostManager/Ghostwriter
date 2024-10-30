@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # CHANGELOG
 
+## [4.3.5] - 30 October 2024
+
+### Changed
+
+* The `added_as_blank` attribute for findings is now included in the template linter
+
+### Fixed
+
+* Fixed `false` values appearing as `""` in the report template context after release v4.3.4
+
 ## [4.3.4] - 24 October 2024
 
 ### Changed
