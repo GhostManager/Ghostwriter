@@ -93,6 +93,10 @@ class ExportDocxBase(ExportBase):
         self.prefix_figure = f"{prefix_figure}"
         label_figure = global_report_config.label_figure
         self.label_figure = f"{label_figure}"
+        prefix_table = global_report_config.prefix_table
+        self.prefix_table = f"{prefix_table}"
+        label_table = global_report_config.label_table
+        self.label_table = f"{label_table}"
         self.title_case_captions = global_report_config.title_case_captions
         self.title_case_exceptions = global_report_config.title_case_exceptions.split(",")
 
@@ -231,6 +235,8 @@ class ExportDocxBase(ExportBase):
                 evidences=self.evidences_by_id,
                 figure_label=self.label_figure,
                 figure_prefix=self.prefix_figure,
+                table_label=self.label_table,
+                table_prefix=self.prefix_table,
                 title_case_captions=self.title_case_captions,
                 title_case_exceptions=self.title_case_exceptions,
                 border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,

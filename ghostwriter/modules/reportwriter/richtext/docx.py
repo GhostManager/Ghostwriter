@@ -230,7 +230,6 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         self.set_autofit()
-
         return table
 
     def paragraph_for_table_cell(self, cell, td_el):
@@ -272,10 +271,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     def __init__(
         self,
         doc,
+        *,
         p_style,
         evidences,
         figure_label: str,
         figure_prefix: str,
+        table_label: str,
+        table_prefix: str,
         title_case_captions: bool,
         title_case_exceptions: list[str],
         border_color_width: tuple[str, float] | None,
@@ -284,6 +286,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.evidences = evidences
         self.figure_label = figure_label
         self.figure_prefix = figure_prefix
+        self.table_label = table_label
+        self.table_prefix = table_prefix
         self.title_case_captions = title_case_captions
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
@@ -303,18 +307,24 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
-            try:
-                par.style = "Caption"
-            except KeyError:
-                pass
-            par._gw_is_caption = True
-            self.make_figure(par, ref_name or None)
+            self.make_caption(par, self.figure_label, ref_name or None)
+            par.add_run(self.figure_prefix)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
         else:
             super().tag_span(el, par=par, **kwargs)
+
+    def tag_table(self, el, **kwargs):
+        super().tag_table(el, **kwargs)
+        par_caption = self.doc.add_paragraph()
+        self.make_caption(par_caption, self.table_label, None)
+
+        caption = next((child for child in el.children if child.name == "caption"), None)
+        if caption is not None:
+            par_caption.add_run(self.table_prefix)
+            par_caption.add_run(self.title_except(caption.get_text()))
 
     def is_plural_acronym(self, word):
         """
@@ -340,7 +350,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             s = " ".join(final)
         return s
 
-    def make_figure(self, par, ref: str | None = None):
+    def make_caption(self, par, label: str, ref: str | None = None):
+        par._gw_is_caption = True
+        try:
+            par.style = "Caption"
+        except KeyError:
+            pass
+
         if ref:
             ref = f"_Ref{ref}"
         else:
@@ -354,7 +370,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         p.append(bookmark_start)
 
         # Add the figure label
-        run = par.add_run(self.figure_label)
+        par.add_run(label)
 
         # Append XML for a new field character run
         run = par.add_run()
@@ -368,7 +384,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         r = run._r
         instrText = OxmlElement("w:instrText")
         # Sequential figure with arabic numbers
-        instrText.text = " SEQ Figure \\* ARABIC"
+        instrText.text = f" SEQ {label} \\* ARABIC"
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -391,9 +407,6 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         bookmark_end = OxmlElement("w:bookmarkEnd")
         bookmark_end.set(qn("w:id"), "0")
         p.append(bookmark_end)
-
-        # Add prefix
-        par.add_run(self.figure_prefix)
 
     def make_evidence(self, par, evidence):
         file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
@@ -424,7 +437,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             except KeyError:
                 pass
             par_caption = self.doc.add_paragraph(style="Caption")
-            self.make_figure(par_caption, evidence["friendly_name"])
+            self.make_caption(par_caption, self.figure_label, evidence["friendly_name"])
+            par_caption.add_run(self.figure_prefix)
             par_caption.add_run(self.title_except(evidence["caption"]))
         elif extension in IMAGE_EXTENSIONS:
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -475,9 +489,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 pic_data.append(ln_xml)
 
             # Create the caption for the image
-            p = self.doc.add_paragraph(style="Caption")
-            self.make_figure(p, evidence["friendly_name"])
-            run = p.add_run(self.title_except(evidence["caption"]))
+            par_caption = self.doc.add_paragraph(style="Caption")
+            self.make_caption(par_caption, self.figure_label, evidence["friendly_name"])
+            par_caption.add_run(self.figure_prefix)
+            run = par_caption.add_run(self.title_except(evidence["caption"]))
 
     def make_cross_ref(self, par, ref: str):
         # Start the field character run for the label and number
