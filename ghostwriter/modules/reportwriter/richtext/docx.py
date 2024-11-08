@@ -278,6 +278,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         figure_prefix: str,
         table_label: str,
         table_prefix: str,
+        table_caption_location: str,
         title_case_captions: bool,
         title_case_exceptions: list[str],
         border_color_width: tuple[str, float] | None,
@@ -288,6 +289,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.figure_prefix = figure_prefix
         self.table_label = table_label
         self.table_prefix = table_prefix
+        self.table_caption_location = table_caption_location
         self.title_case_captions = title_case_captions
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
@@ -317,14 +319,19 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             super().tag_span(el, par=par, **kwargs)
 
     def tag_table(self, el, **kwargs):
-        super().tag_table(el, **kwargs)
+        caption = next((child for child in el.children if child.name == "caption"), None)
+
+        if self.table_caption_location != "top":
+            super().tag_table(el, **kwargs)
+
         par_caption = self.doc.add_paragraph()
         self.make_caption(par_caption, self.table_label, None)
-
-        caption = next((child for child in el.children if child.name == "caption"), None)
         if caption is not None:
             par_caption.add_run(self.table_prefix)
             par_caption.add_run(self.title_except(caption.get_text()))
+
+        if self.table_caption_location == "top":
+            super().tag_table(el, **kwargs)
 
     def is_plural_acronym(self, word):
         """

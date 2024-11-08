@@ -65,6 +65,7 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                 "fields": (
                     "prefix_table",
                     "label_table",
+                    "table_caption_location",
                 )
             },
         ),
