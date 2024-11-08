@@ -107,6 +107,13 @@ class ReportConfiguration(SingletonModel):
         default="Table",
         help_text="The label that comes before the table number and caption in Word reports",
     )
+    table_caption_location = models.CharField(
+        "Table Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="top",
+        help_text="Where to place table captions relative to the table",
+    )
     report_filename = models.CharField(
         "Default Name for Report Downloads",
         max_length=255,
