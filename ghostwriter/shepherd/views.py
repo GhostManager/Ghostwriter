@@ -743,7 +743,7 @@ def update(request):
             update_time = total_domains
         try:
             # Get the latest completed task from `Domain Updates`
-            queryset = Task.objects.filter(group="Domain Updates")[0]
+            queryset = Task.objects.filter(group="Domain Updates").order_by("-stopped")[0]
             # Get the task's start date and time
             cat_last_update_requested = queryset.started
             # Get the task's completed time
@@ -762,7 +762,7 @@ def update(request):
         dns_last_update_time = ""
         dns_last_result = ""
         try:
-            queryset = Task.objects.filter(group="DNS Updates")[0]
+            queryset = Task.objects.filter(group="DNS Updates").order_by("-stopped")[0]
             dns_last_update_requested = queryset.started
             dns_last_result = queryset.result
             if queryset.success:
@@ -779,7 +779,7 @@ def update(request):
         namecheap_last_result = ""
         if enable_namecheap:
             try:
-                queryset = Task.objects.filter(group="Namecheap Update")[0]
+                queryset = Task.objects.filter(group="Namecheap Update").order_by("-stopped")[0]
                 namecheap_last_update_requested = queryset.started
                 namecheap_last_result = queryset.result
                 if queryset.success:
@@ -800,7 +800,7 @@ def update(request):
         cloud_last_result = ""
         if enable_cloud_monitor:
             try:
-                queryset = Task.objects.filter(group="Cloud Infrastructure Review")[0]
+                queryset = Task.objects.filter(group="Cloud Infrastructure Review").order_by("-stopped")[0]
                 cloud_last_update_requested = queryset.started
                 cloud_last_result = queryset.result
                 if queryset.success:
