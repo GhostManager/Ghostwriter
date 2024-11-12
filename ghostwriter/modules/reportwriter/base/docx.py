@@ -95,6 +95,7 @@ class ExportDocxBase(ExportBase):
         self.label_figure = f"{label_figure}"
         prefix_table = global_report_config.prefix_table
         self.prefix_table = f"{prefix_table}"
+        self.figure_caption_location = global_report_config.figure_caption_location
         label_table = global_report_config.label_table
         self.label_table = f"{label_table}"
         self.table_caption_location = global_report_config.table_caption_location
@@ -236,6 +237,7 @@ class ExportDocxBase(ExportBase):
                 evidences=self.evidences_by_id,
                 figure_label=self.label_figure,
                 figure_prefix=self.prefix_figure,
+                figure_caption_location=self.figure_caption_location,
                 table_label=self.label_table,
                 table_prefix=self.prefix_table,
                 table_caption_location=self.table_caption_location,
