@@ -17,6 +17,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
+from django.db import transaction
 from django.db.models import Q, Max
 from django.http import (
     FileResponse,
@@ -778,28 +779,56 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return ForbiddenJsonResponse()
 
     def get(self, *args, **kwargs):
-        report_to_clone = self.get_object()
-        old_pk = report_to_clone.pk
         new_pk = None
         try:
-            findings = ReportFindingLink.objects.select_related("report").filter(report=report_to_clone.pk)
-            report_to_clone.title = report_to_clone.title + " Copy"
-            report_to_clone.complete = False
-            report_to_clone.pk = None
-            report_to_clone.save()
-            new_pk = report_to_clone.pk
-            for finding in findings:
-                # Get any evidence files attached to the original finding
-                evidences = Evidence.objects.filter(finding=finding.pk)
-                # Create a clone of this finding attached to the new report
-                finding.report = report_to_clone
-                finding.pk = None
-                finding.save()
-                # Clone evidence files and attach them to the new finding
-                for evidence in evidences:
+            with transaction.atomic():
+                report_to_clone = self.get_object()
+                old_pk = report_to_clone.pk
+
+                findings = ReportFindingLink.objects.select_related("report").filter(report=report_to_clone.pk)
+                observations = ReportObservationLink.objects.select_related("report").filter(report=report_to_clone.pk)
+
+                report_to_clone.title = report_to_clone.title + " Copy"
+                report_to_clone.complete = False
+                report_to_clone.pk = None
+                report_to_clone.save()
+                new_pk = report_to_clone.pk
+                for finding in findings:
+                    # Get any evidence files attached to the original finding
+                    evidences = Evidence.objects.filter(finding=finding.pk)
+                    # Create a clone of this finding attached to the new report
+                    finding.report = report_to_clone
+                    finding.pk = None
+                    finding.save()
+                    # Clone evidence files and attach them to the new finding
+                    for evidence in evidences:
+                        if exists(evidence.document.path):
+                            evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
+                            evidence.finding = finding
+                            evidence._current_evidence = None
+                            evidence.document = evidence_file
+                            evidence.pk = None
+                            evidence.save()
+                        else:
+                            logger.warning(
+                                "Evidence file not found: %s",
+                                evidence.document.path,
+                            )
+                            messages.warning(
+                                self.request,
+                                f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
+                                extra_tags="alert-warning",
+                            )
+
+                for observation in observations:
+                    observation.report = report_to_clone
+                    observation.pk = None
+                    observation.save()
+
+                for evidence in Evidence.objects.filter(report_id=old_pk):
                     if exists(evidence.document.path):
                         evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
-                        evidence.finding = finding
+                        evidence.report = report_to_clone
                         evidence._current_evidence = None
                         evidence.document = evidence_file
                         evidence.pk = None
@@ -815,42 +844,20 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                             extra_tags="alert-warning",
                         )
 
-            for evidence in Evidence.objects.filter(report_id=old_pk):
-                if exists(evidence.document.path):
-                    evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
-                    evidence.report = report_to_clone
-                    evidence._current_evidence = None
-                    evidence.document = evidence_file
-                    evidence.pk = None
-                    evidence.save()
-                else:
-                    logger.warning(
-                        "Evidence file not found: %s",
-                        evidence.document.path,
-                    )
-                    messages.warning(
-                        self.request,
-                        f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
-                        extra_tags="alert-warning",
-                    )
+                logger.info(
+                    "Cloned %s %s by request of %s",
+                    report_to_clone.__class__.__name__,
+                    report_to_clone.id,
+                    self.request.user,
+                )
 
-            logger.info(
-                "Cloned %s %s by request of %s",
-                report_to_clone.__class__.__name__,
-                report_to_clone.id,
-                self.request.user,
-            )
-
-            messages.success(
-                self.request,
-                "Successfully cloned your report: {}".format(report_to_clone.title),
-                extra_tags="alert-error",
-            )
+                messages.success(
+                    self.request,
+                    "Successfully cloned your report: {}".format(report_to_clone.title),
+                    extra_tags="alert-error",
+                )
         except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
-
+            logger.exception("Exception while cloning")
             messages.error(
                 self.request,
                 "Encountered an error while trying to clone your report: {}".format(exception.args),
