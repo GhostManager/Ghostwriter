@@ -276,6 +276,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         evidences,
         figure_label: str,
         figure_prefix: str,
+        figure_caption_location: str,
         table_label: str,
         table_prefix: str,
         table_caption_location: str,
@@ -287,6 +288,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.evidences = evidences
         self.figure_label = figure_label
         self.figure_prefix = figure_prefix
+        self.figure_caption_location = figure_caption_location
         self.table_label = table_label
         self.table_prefix = table_prefix
         self.table_caption_location = table_caption_location
@@ -319,13 +321,16 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             super().tag_span(el, par=par, **kwargs)
 
     def tag_table(self, el, **kwargs):
-        caption = next((child for child in el.children if child.name == "caption"), None)
+        if self.table_caption_location == "top":
+            self._mk_table_caption(el)
+        super().tag_table(el, **kwargs)
+        if self.table_caption_location == "bottom":
+            self._mk_table_caption(el)
 
-        if self.table_caption_location != "top":
-            super().tag_table(el, **kwargs)
-
+    def _mk_table_caption(self, el):
         par_caption = self.doc.add_paragraph()
         self.make_caption(par_caption, self.table_label, None)
+        caption = next((child for child in el.children if child.name == "caption"), None)
         if caption is not None:
             par_caption.add_run(self.table_prefix)
             par_caption.add_run(self.title_except(caption.get_text()))
@@ -437,17 +442,27 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
                 raise ReportExportError(error_msg) from err
+
+            if self.figure_caption_location == "top":
+                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
+                par = self.doc.add_paragraph()
+
             par.text = evidence_text
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
             try:
                 par.style = "CodeBlock"
             except KeyError:
                 pass
-            par_caption = self.doc.add_paragraph(style="Caption")
-            self.make_caption(par_caption, self.figure_label, evidence["friendly_name"])
-            par_caption.add_run(self.figure_prefix)
-            par_caption.add_run(self.title_except(evidence["caption"]))
+
+            if self.figure_caption_location == "bottom":
+                par_caption = self.doc.add_paragraph()
+                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+
         elif extension in IMAGE_EXTENSIONS:
+            if self.figure_caption_location == "top":
+                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
+                par = self.doc.add_paragraph()
+
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = par.add_run()
             try:
@@ -495,11 +510,14 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 ln_xml.append(solidfill_xml)
                 pic_data.append(ln_xml)
 
-            # Create the caption for the image
-            par_caption = self.doc.add_paragraph(style="Caption")
-            self.make_caption(par_caption, self.figure_label, evidence["friendly_name"])
-            par_caption.add_run(self.figure_prefix)
-            run = par_caption.add_run(self.title_except(evidence["caption"]))
+            if self.figure_caption_location == "bottom":
+                par_caption = self.doc.add_paragraph()
+                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+
+    def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
+        self.make_caption(par_caption, self.figure_label, ref)
+        par_caption.add_run(self.figure_prefix)
+        par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
         # Start the field character run for the label and number

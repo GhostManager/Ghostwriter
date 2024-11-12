@@ -56,6 +56,7 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                 "fields": (
                     "prefix_figure",
                     "label_figure",
+                    "figure_caption_location",
                 )
             },
         ),

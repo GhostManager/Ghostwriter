@@ -95,6 +95,13 @@ class ReportConfiguration(SingletonModel):
         default="Figure",
         help_text="The label that comes before the figure number and caption in Word reports",
     )
+    figure_caption_location = models.CharField(
+        "Figure Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="bottom",
+        help_text="Where to place figure captions relative to the figure",
+    )
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
