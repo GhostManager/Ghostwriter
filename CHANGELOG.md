@@ -1,10 +1,28 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# CHANGELOG
+## [4.3.6] - 14 November 2024
+
+### Added
+
+* Added support for table captions in the WYSIWYG editor (PR #547)
+  * Caption text can be customized by right-clicking on the table > Table Properties > General > Show caption
+* Added report configuration options for figure and table caption placement (above or below) for Word
+
+### Changed
+
+* Production deployments now default to only exposing PostgreSQL and Hasura ports to internal services (PR #551)
+  * This change is to improve security by limiting the number of exposed ports on the server
+  * If you need direct access to PostgreSQL or Hasura, you can adjust the Docker Compose file to expose the ports on the host system or run a utility like `psql` inside the container
+
+### Fixed
+
+* Fixed observations not being cloned when cloning a report (PR #548)
+* Fixed lists being styled as _List Paragraph_ in Word instead of with user-defined _Bullet List_ or _Number List_ styles (PR #550)
 
 ## [4.3.5] - 30 October 2024
 
