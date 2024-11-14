@@ -201,6 +201,7 @@ class BaseHtmlToOOXML:
         self.process_children(el.children, style=style, **kwargs)
 
     def tag_table(self, el, **kwargs):
+        self.text_tracking.new_block()
         table_width, table_height = self._table_size(el)
         ooxml_table = self.create_table(rows=table_height, cols=table_width, **kwargs)
 
@@ -243,8 +244,7 @@ class BaseHtmlToOOXML:
         for item in table_el.children:
             if item.name == "tr":
                 yield item
-            elif item.name is not None:
-                # thead, tbody, tfoot
+            elif item.name in ("thead", "tbody", "tfoot"):
                 for subitem in item:
                     if subitem.name == "tr":
                         yield subitem
