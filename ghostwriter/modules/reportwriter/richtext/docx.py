@@ -537,7 +537,7 @@ class ListTracking:
             )
         if level == len(self.level_list_is_ordered):
             self.level_list_is_ordered.append(is_ordered)
-        self.paragraphs.append((pg, level))
+        self.paragraphs.append((pg, level, is_ordered))
 
     def create(self, doc):
         """
@@ -605,10 +605,13 @@ class ListTracking:
         numbering.insert(0, abstract_numbering)
         numbering_id = numbering.add_num(abstract_numbering_id).numId
 
-        for par, level in self.paragraphs:
+        for par, level, is_ordered in self.paragraphs:
             try:
-                par.style = "ListParagraph"
+                par.style = "Number List" if is_ordered else "Bullet List"
             except KeyError:
-                pass
+                try:
+                    par.style = "ListParagraph"
+                except KeyError:
+                    pass
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
