@@ -95,6 +95,13 @@ class ReportConfiguration(SingletonModel):
         default="Figure",
         help_text="The label that comes before the figure number and caption in Word reports",
     )
+    figure_caption_location = models.CharField(
+        "Figure Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="bottom",
+        help_text="Where to place figure captions relative to the figure",
+    )
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
@@ -106,6 +113,13 @@ class ReportConfiguration(SingletonModel):
         max_length=255,
         default="Table",
         help_text="The label that comes before the table number and caption in Word reports",
+    )
+    table_caption_location = models.CharField(
+        "Table Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="top",
+        help_text="Where to place table captions relative to the table",
     )
     report_filename = models.CharField(
         "Default Name for Report Downloads",
