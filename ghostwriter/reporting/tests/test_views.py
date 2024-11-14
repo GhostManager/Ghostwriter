@@ -348,6 +348,7 @@ class ReportCloneTests(TestCase):
         cls.report = ReportFactory()
         cls.Report = ReportFactory._meta.model
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        cls.ReportObservationLink = ReportObservationLinkFactory._meta.model
         cls.Evidence = EvidenceOnFindingFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
@@ -357,6 +358,10 @@ class ReportCloneTests(TestCase):
         for finding_id in range(cls.num_of_findings):
             title = f"Finding {finding_id}"
             cls.findings.append(ReportFindingLinkFactory(title=title, report=cls.report))
+        cls.observations = []
+        for observation_id in range(cls.num_of_findings):
+            title = f"Observation {observation_id}"
+            cls.observations.append(ReportObservationLinkFactory(title=title, report=cls.report))
 
         cls.uri = reverse("reporting:report_clone", kwargs={"pk": cls.report.pk})
 
@@ -380,8 +385,9 @@ class ReportCloneTests(TestCase):
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 404)
 
-    def test_clone_with_zero_findings(self):
+    def test_clone_with_zero_findings_and_observations(self):
         self.ReportFindingLink.objects.all().delete()
+        self.ReportObservationLink.objects.all().delete()
         response = self.client_mgr.get(self.uri)
         self.assertIn("reporting/reports/", response.url)
 
@@ -391,7 +397,7 @@ class ReportCloneTests(TestCase):
         copied_findings = self.ReportFindingLink.objects.filter(report=report_copy)
         self.assertEqual(len(copied_findings), 0)
 
-    def test_clone_with_findings(self):
+    def test_clone_with_findings_and_observations(self):
         response = self.client_mgr.get(self.uri)
         self.assertIn("reporting/reports/", response.url)
 
@@ -400,6 +406,9 @@ class ReportCloneTests(TestCase):
 
         copied_findings = self.ReportFindingLink.objects.filter(report=report_copy)
         self.assertEqual(len(copied_findings), self.num_of_findings)
+
+        copied_observations = self.ReportObservationLink.objects.filter(report=report_copy)
+        self.assertEqual(len(copied_observations), self.num_of_findings)
 
     def test_clone_with_finding_evidence_files(self):
         self.Evidence.objects.all().delete()
