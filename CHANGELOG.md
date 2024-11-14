@@ -1,10 +1,9 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-# CHANGELOG
 
 ## [4.3.6] - 14 November 2024
 
@@ -16,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Production deployments now default to only exposing PostgreSQL and Hasura ports to internal services
+* Production deployments now default to only exposing PostgreSQL and Hasura ports to internal services (PR #551)
   * This change is to improve security by limiting the number of exposed ports on the server
   * If you need direct access to PostgreSQL or Hasura, you can adjust the Docker Compose file to expose the ports on the host system or run a utility like `psql` inside the container
 
