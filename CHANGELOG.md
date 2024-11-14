@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Production deployments now default to 
+* Production deployments now default to only exposing PostgreSQL and Hasura ports to internal services
+  * This change is to improve security by limiting the number of exposed ports on the server
+  * If you need direct access to PostgreSQL or Hasura, you can adjust the Docker Compose file to expose the ports on the host system or run a utility like `psql` inside the container
 
 ### Fixed
 
