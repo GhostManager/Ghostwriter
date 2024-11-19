@@ -357,6 +357,10 @@ class ExtraFieldType(NamedTuple):
     # Returns an "empty" value
     empty_value: Callable[[], Any]
 
+def float_widget(*args, **kwargs):
+    widget = forms.widgets.NumberInput(*args, **kwargs)
+    widget.attrs.setdefault("step", "any")
+    return widget
 
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
@@ -390,7 +394,7 @@ EXTRA_FIELD_TYPES = {
     "float": ExtraFieldType(
         display_name="Number",
         form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
-        form_widget=forms.widgets.NumberInput,
+        form_widget=float_widget,
         from_str=float,
         empty_value=lambda: 0.0,
     ),
