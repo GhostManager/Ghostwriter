@@ -335,9 +335,6 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             par_caption.add_run(self.table_prefix)
             par_caption.add_run(self.title_except(caption.get_text()))
 
-        if self.table_caption_location == "top":
-            super().tag_table(el, **kwargs)
-
     def is_plural_acronym(self, word):
         """
         Check if a word is an all caps acronym that ends with "s" or "'s".
