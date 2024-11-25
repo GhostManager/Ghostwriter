@@ -117,13 +117,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
             run = heading_paragraph.runs[0]
             tag = run._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
-            start.set(docx.oxml.ns.qn("w:id"), "0")
+            start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
             start.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
             tag.append(start)
             end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
-            end.set(docx.oxml.ns.qn("w:id"), "0")
+            end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
             end.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
             tag.append(end)
+            self.current_bookmark_id += 1
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
@@ -296,6 +297,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
+        self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -374,8 +376,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         # Start a bookmark run with the figure label
         p = par._p
         bookmark_start = OxmlElement("w:bookmarkStart")
-        bookmark_start.set(qn("w:name"), ref)
-        bookmark_start.set(qn("w:id"), "0")
+        bookmark_start.set(qn("w:name"), ref.replace(" ", "_"))
+        bookmark_start.set(qn("w:id"), str(self.current_bookmark_id))
         p.append(bookmark_start)
 
         # Add the figure label
@@ -414,8 +416,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         # End the bookmark after the number
         p = par._p
         bookmark_end = OxmlElement("w:bookmarkEnd")
-        bookmark_end.set(qn("w:id"), "0")
+        bookmark_end.set(qn("w:id"), str(self.current_bookmark_id))
         p.append(bookmark_end)
+
+        self.current_bookmark_id += 1
 
     def make_evidence(self, par, evidence):
         file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
@@ -528,7 +532,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"'))
+        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"').replace(" ", "_"))
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
