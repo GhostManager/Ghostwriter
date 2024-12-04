@@ -87,7 +87,7 @@ class ReportConfiguration(SingletonModel):
         "Character Before Figure Captions",
         max_length=255,
         default=" \u2013 ",
-        help_text="Unicode character to place between the label and your figure caption in Word reports",
+        help_text="Unicode characters to place between the label and your figure caption in Word reports (include any desired spaces before and after)",
     )
     label_figure = models.CharField(
         "Label Used for Figures",
@@ -106,7 +106,7 @@ class ReportConfiguration(SingletonModel):
         "Character Before Table Titles",
         max_length=255,
         default=" \u2013 ",
-        help_text="Unicode character to place between the label and your table caption in Word reports",
+        help_text="Unicode characters to place between the label and your table caption in Word reports (include any desired spaces before and after)",
     )
     label_table = models.CharField(
         "Label Used for Tables",
