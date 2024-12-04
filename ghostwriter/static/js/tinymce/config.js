@@ -302,6 +302,7 @@
                 ch: '@',
                 minChars: 1,
                 columns: 1,
+                maxResults: 20,
                 fetch: function (pattern) {
                     var matchedChars = evidenceFiles.filter(function (quote) {
                         return quote.text.toLowerCase().includes(pattern.toLowerCase());
