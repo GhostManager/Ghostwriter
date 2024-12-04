@@ -276,6 +276,7 @@
                         // submission is kicked back for name reuse
                     } else {
                         var evidence_placeholder = `\{\{.${value.friendly_name}\}\}`;
+                        var ref_placeholder = `\{\{.ref ${value.friendly_name}\}\}`;
                         editor.insertContent(`\n<p>\{\{.${value.friendly_name}\}\}</p>`);
                         // A brief block to prevent users from jamming the close button immediately
                         _dialog.block('Uploading...');
@@ -283,10 +284,16 @@
                             _dialog.unblock();
                         }, 1000);
                         // Push the new evidence into the AutoComplete dict
-                        evidenceFiles.push({
-                            text: evidence_placeholder,
-                            value: evidence_placeholder
-                        })
+                        evidenceFiles.push(
+                            {
+                                text: evidence_placeholder,
+                                value: evidence_placeholder
+                            },
+                            {
+                                text: ref_placeholder,
+                                value: ref_placeholder
+                            }
+                        )
                     }
                 }
             });
