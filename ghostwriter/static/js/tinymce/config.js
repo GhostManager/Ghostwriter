@@ -50,7 +50,7 @@
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
         toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | richcode codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
         contextmenu: 'table formats bold italic underline link removeformat',
-        paste_as_text: true,
+        // paste_as_text: true,
         paste_data_images: false,
         browser_spellcheck: true,
         resize: true,
