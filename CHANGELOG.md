@@ -5,9 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [4.3.7] - 25 November 2024
+## [4.3.8] - 5 December 2024
 
-#### Fixed
+### Changed
+
+* Enabled pasting with formatting in the WYSIWYG editor
+  * This change allows you to paste formatted text from other sources (e.g., Word documents) into the editor
+  * This caused issues in the past when pasting from Word, some terminals, and some websites, but the reporting engine seems to handle the formatting well now
+  * **Note:** Pasting with formatting may not work as expected in all cases, so please check your pasted content in the editor before generating a report
+* Increased the auto-complete list's maximum items from 10 to 20 to show more evidence files
+* Using the "Upload Evidence" button in the editor now pushes a `ref` version of the auto-complete entry to the auto-complete list upon successful upload
+
+### Fixed
+
+* Fixed activity log filtering not working correctly when very large log entries were present (PR #558)
+
+## [4.3.7] - 25 November 2024
+
+### Fixed
 
 * Fixed forms not accepting decimal values for extra fields (PR #554)
 * Fixed cross-references not working when the reference name contained spaces (PR #556)
