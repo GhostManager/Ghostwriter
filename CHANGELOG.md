@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.3.8] - 6 December 2024
 
+### Added
+
+* Added buttons to jump to a selected template from the report dashboard
+
 ### Changed
 
 * Enabled pasting with formatting in the WYSIWYG editor
