@@ -9,7 +9,7 @@ from functools import reduce
 
 # Django Imports
 from django.db.models import TextField, Func, Subquery, OuterRef, Value, F
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Left
 from django.db.models.expressions import CombinedExpression
 from django.utils.timezone import make_aware
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, SearchVectorField
@@ -164,20 +164,20 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
                 if spec.type == "json":
                     continue
 
-                field = Cast(CombinedExpression(
+                field = CombinedExpression(
                     F("extra_fields"),
                     "->>",
                     Value(spec.internal_name),
-                ), TextField())
+                )
                 simple_vector_args.append(field)
                 if spec.type == "rich_text":
                     english_vector_args.append(field)
 
-            # Combine search vector
-            vector = TsVectorConcat(
-                SearchVector(*english_vector_args, config="english"),
-                SearchVector(*simple_vector_args, config="simple"),
-            )
+            # Create and combine search vectors.
+            # Limit inputs since PostgreSQL will abort the query if attempting to make a tsvector out of a huge string
+            vectors = [SearchVector(Left(Cast(va, TextField()), 100000), config="english") for va in english_vector_args] + \
+                [SearchVector(Left(Cast(va, TextField()), 100000), config="simple") for va in simple_vector_args]
+            vector = TsVectorConcat(*vectors)
 
             # Build filter.
             # Search using both english and simple configs, to help match both types of vectors. Also use prefix
