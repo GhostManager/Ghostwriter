@@ -13,7 +13,7 @@ import environ
 
 __version__ = "4.3.8"
 VERSION = __version__
-RELEASE_DATE = "5 December 2024"
+RELEASE_DATE = "6 December 2024"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
