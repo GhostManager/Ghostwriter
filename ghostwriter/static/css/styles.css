@@ -2472,6 +2472,22 @@ th.icon {
   color: gray;
 }
 
+.jump-btn {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  vertical-align: middle;
+  font-weight: 600;
+  background-color: gray;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.jump-btn:before {
+  content: '\f064';
+  color: white;
+  font-size: 1.5em;
+}
+
 .report-spinner:before {
   content: '\f1ce';
   -webkit-animation: fa-spin 2s infinite linear;

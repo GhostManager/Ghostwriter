@@ -564,6 +564,16 @@
         localStorage.setItem('reportDefaultTab', hash);
       }
 
+      // Manage the URLs for the template link buttons
+      let templateBaseUrl = '/reporting/templates/';
+      let selectedWordTemplate = document.getElementById('id_docx_template').value
+      let selectedPowerPointTemplate = document.getElementById('id_pptx_template').value
+      let $jumpWordBtn = $('.js-jump-to-word-template')
+      let $jumpPptxBtn = $('.js-jump-to-pptx-template')
+
+      $jumpWordBtn.attr('href', templateBaseUrl + selectedWordTemplate);
+      $jumpPptxBtn.attr('href', templateBaseUrl + selectedPowerPointTemplate);
+
       // Display whatever tab was last selected or default – if null, default to the Findings tab
       let defaultTab = (localStorage.getItem('reportDefaultTab') !== null ? localStorage.getItem('reportDefaultTab') : 'findings');
       $('[href="' + defaultTab + '"]').tab('show');
@@ -617,6 +627,8 @@
                 delay: 10
               });
             }
+            $jumpWordBtn.attr('href', templateBaseUrl + docxTemplateId);
+            $jumpPptxBtn.attr('href', templateBaseUrl + pptxTemplateId);
           }
         });
       });
