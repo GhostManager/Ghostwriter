@@ -117,11 +117,24 @@ def get_jwt_payload(token):
     """
     try:
         payload = jwt_decode(token)
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
+    except (
+        jwt.ExpiredSignatureError,
+        jwt.InvalidTokenError,
+        jwt.DecodeError,
+    ) as exception:
         try:
             bad_token = jwt_decode_no_verification(token)
-            logger.warning("%s error (%s) with this payload: %s", type(exception).__name__, exception, bad_token)
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as verify_exception:
+            logger.warning(
+                "%s error (%s) with this payload: %s",
+                type(exception).__name__,
+                exception,
+                bad_token,
+            )
+        except (
+            jwt.ExpiredSignatureError,
+            jwt.InvalidTokenError,
+            jwt.DecodeError,
+        ) as verify_exception:
             logger.error("%s error with this payload: %s", verify_exception, token)
         payload = None
     return payload
@@ -309,6 +322,66 @@ def verify_observation_access(user, mode):
     return False
 
 
+def verify_client_access(user, mode):
+    """
+    Verify that the user is flagged as being able to create and/or edit clients.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``mode``
+        The mode to check for (``create``, ``edit``, or ``delete``)
+    """
+    if verify_user_is_privileged(user):
+        return True
+
+    if mode == "create" and user.enable_client_create:
+        return True
+
+    if mode == "edit" and user.enable_client_edit:
+        return True
+
+    if mode == "delete" and user.enable_client_delete:
+        return True
+
+    return False
+
+
+def verify_project_access(user, mode):
+    """
+    Verify that the user is flagged as being able to create and/or edit projects,
+    based on the user's client permissions (e.g., a user that can create clients
+    can create projects on any client).
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``mode``
+        The mode to check for (``create``, ``edit``, or ``delete``)
+    """
+    return verify_client_access(user, mode)
+
+
+def verify_client_list_access(user):
+    """
+    Verify that the user is flagged as being able to list all clients in the global rolodex.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        return True
+
+    if user.enable_client_list_all:
+        return True
+
+    return False
+
+
 def get_client_list(user):
     """
     Retrieve a filtered list of :model:`rolodex.Client` entries based on the user's role.
@@ -321,7 +394,7 @@ def get_client_list(user):
     ``user``
         The :model:`users.User` object
     """
-    if verify_user_is_privileged(user):
+    if verify_client_list_access(user):
         clients = Client.objects.all().order_by("name")
     else:
         clients = (
@@ -349,13 +422,11 @@ def get_project_list(user):
         The :model:`users.User` object
     """
     if verify_user_is_privileged(user):
-        projects = Project.objects.select_related("client").all().order_by("complete", "client")
+        projects = Project.objects.all().order_by("complete", "client")
     else:
-        clients = get_client_list(user)
         projects = (
-            Project.objects.select_related("client")
-            .filter(
-                client__in=clients,
+            Project.objects.filter(
+                Q(projectinvite__user=user) | Q(projectassignment__operator=user)
             )
             .order_by("complete", "client")
             .distinct()
@@ -397,7 +468,11 @@ def get_reports_list(user):
         The :model:`users.User` object
     """
     if verify_user_is_privileged(user):
-        reports = Report.objects.select_related("created_by").all().order_by("complete", "title")
+        reports = (
+            Report.objects.select_related("created_by")
+            .all()
+            .order_by("complete", "title")
+        )
     else:
         projects = get_project_list(user)
         reports = (
@@ -424,7 +499,11 @@ def get_archives_list(user):
         The :model:`users.User` object
     """
     if verify_user_is_privileged(user):
-        archives = Archive.objects.select_related("project__client").all().order_by("project__client")
+        archives = (
+            Archive.objects.select_related("project__client")
+            .all()
+            .order_by("project__client")
+        )
     else:
         projects = get_project_list(user)
         archives = (
@@ -471,9 +550,19 @@ class ForbiddenJsonResponse(JsonResponse):
 
     status_code = 403
 
-    def __init__(self, data=None, encoder=DjangoJSONEncoder, safe=True, json_dumps_params=None, **kwargs):
+    def __init__(
+        self,
+        data=None,
+        encoder=DjangoJSONEncoder,
+        safe=True,
+        json_dumps_params=None,
+        **kwargs
+    ):
         if data is None:
-            data = {"result": "error", "message": "Ah ah ah! You didn't say the magic word!"}
+            data = {
+                "result": "error",
+                "message": "Ah ah ah! You didn't say the magic word!",
+            }
         super().__init__(data, encoder, safe, json_dumps_params, **kwargs)
 
 
