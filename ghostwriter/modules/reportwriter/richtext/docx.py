@@ -351,8 +351,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         """
         if self.title_case_captions:
             word_list = re.split(" ", s)  # re.split behaves as expected
-            final = [word_list[0].capitalize()]
-            for word in word_list[1:]:
+            final = []
+            for word in word_list:
                 final.append(
                     word
                     if word in self.title_case_exceptions or word.isupper() or self.is_plural_acronym(word)
