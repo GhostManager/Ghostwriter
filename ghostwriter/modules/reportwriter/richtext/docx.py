@@ -105,7 +105,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.text_tracking.new_block()
         if "data-gw-pagebreak" in el.attrs:
             self.doc.add_page_break()
-        else:
+        elif par is not None:
             run = par.add_run()
             run.add_break()
 
