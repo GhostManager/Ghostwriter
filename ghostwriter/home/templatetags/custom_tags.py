@@ -18,8 +18,10 @@ from dateutil.parser._parser import ParserError
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     verify_access,
+    verify_client_access,
     verify_finding_access,
     verify_observation_access,
+    verify_project_access,
     verify_user_is_privileged,
 )
 from ghostwriter.reporting.models import Report, ReportFindingLink
@@ -61,7 +63,9 @@ def count_assignments(request):
     """
     user_tasks = (
         ReportFindingLink.objects.select_related("report", "report__project")
-        .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
+        .filter(
+            Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False)
+        )
         .order_by("report__project__end_date")
     )
     return user_tasks.count()
@@ -87,7 +91,9 @@ def get_assignment_data(request):
             active_projects.append(assignment.project)
 
     for active_project in active_projects:
-        reports = Report.objects.filter(Q(project=active_project) & Q(complete=False))
+        reports = Report.objects.filter(
+            Q(project=active_project) & Q(complete=False)
+        )
         for report in reports:
             if report not in active_reports:
                 active_reports.append(report)
@@ -147,6 +153,42 @@ def can_create_observation(user):
 def is_privileged(user):
     """Check if the user has the permission to create a finding."""
     return verify_user_is_privileged(user)
+
+
+@register.filter
+def can_edit_or_delete_clients(user):
+    """Check if the user has the permission to edit or delete clients."""
+    return can_edit_clients(user) or can_delete_clients(user)
+
+
+@register.filter
+def can_edit_clients(user):
+    """Check if the user has the permission to edit clients."""
+    return verify_user_is_privileged(user) or verify_client_access(user, "edit")
+
+
+@register.filter
+def can_delete_clients(user):
+    """Check if the user has the permission to delete clients."""
+    return verify_user_is_privileged(user) or verify_client_access(user, "delete")
+
+
+@register.filter
+def can_edit_or_delete_projects(user):
+    """Check if the user has the permission to edit or delete all projects."""
+    return can_edit_projects(user) or can_delete_projects(user)
+
+
+@register.filter
+def can_edit_projects(user):
+    """Check if the user has the permission to edit any project."""
+    return verify_user_is_privileged(user) or verify_project_access(user, "edit")
+
+
+@register.filter
+def can_delete_projects(user):
+    """Check if the user has the permission to delete any project."""
+    return verify_user_is_privileged(user) or verify_project_access(user, "delete")
 
 
 @register.filter
