@@ -295,6 +295,15 @@ class ExportDocxBase(ExportBase):
                     if style == "CodeBlock":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
                             warnings.append("CodeBlock style is not a paragraph style (see documentation)")
+                    if style == "Bullet List":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("Bullet List style is not a paragraph style (see documentation)")
+                    if style == "Number List":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("Number List style is not a paragraph style (see documentation)")
+                    if style == "List Paragraph":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("List Paragraph style is not a paragraph style (see documentation)")
             if "Table Grid" not in document_styles:
                 errors.append("Template is missing a required style (see documentation): Table Grid")
             if p_style and p_style not in document_styles:

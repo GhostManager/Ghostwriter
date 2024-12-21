@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.10] - 20 December 2024
+
+### Changed
+
+* The linter now checks if the list styles are of type `PARAGRAPH` in the Word template
+* The archived reports page now displays the project name for each report to help with identification
+
 ## [4.3.9] - 10 December 2024
 
 ### Changed
