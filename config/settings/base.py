@@ -490,6 +490,8 @@ HASURA_ACTION_SECRET = env(
     default="changeme",
 )
 
+GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
+
 # Health Checks
 # ------------------------------------------------------------------------------
 HEALTH_CHECK = {
