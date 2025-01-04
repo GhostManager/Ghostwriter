@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "4.3.9"
+__version__ = "4.3.10"
 VERSION = __version__
-RELEASE_DATE = "10 December 2024"
+RELEASE_DATE = "3 January 2025"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -489,6 +489,8 @@ HASURA_ACTION_SECRET = env(
     "HASURA_ACTION_SECRET",
     default="changeme",
 )
+
+GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
 
 # Health Checks
 # ------------------------------------------------------------------------------
