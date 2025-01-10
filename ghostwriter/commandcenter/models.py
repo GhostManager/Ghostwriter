@@ -87,7 +87,7 @@ class ReportConfiguration(SingletonModel):
         "Character Before Figure Captions",
         max_length=255,
         default=" \u2013 ",
-        help_text="Unicode character to place between the label and your figure caption in Word reports",
+        help_text="Unicode characters to place between the label and your figure caption in Word reports (include any desired spaces before and after)",
     )
     label_figure = models.CharField(
         "Label Used for Figures",
@@ -95,17 +95,31 @@ class ReportConfiguration(SingletonModel):
         default="Figure",
         help_text="The label that comes before the figure number and caption in Word reports",
     )
+    figure_caption_location = models.CharField(
+        "Figure Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="bottom",
+        help_text="Where to place figure captions relative to the figure",
+    )
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
         default=" \u2013 ",
-        help_text="Unicode character to place between the label and your table caption in Word reports",
+        help_text="Unicode characters to place between the label and your table caption in Word reports (include any desired spaces before and after)",
     )
     label_table = models.CharField(
         "Label Used for Tables",
         max_length=255,
         default="Table",
         help_text="The label that comes before the table number and caption in Word reports",
+    )
+    table_caption_location = models.CharField(
+        "Table Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="top",
+        help_text="Where to place table captions relative to the table",
     )
     report_filename = models.CharField(
         "Default Name for Report Downloads",
@@ -344,6 +358,10 @@ class ExtraFieldType(NamedTuple):
     # Returns an "empty" value
     empty_value: Callable[[], Any]
 
+def float_widget(*args, **kwargs):
+    widget = forms.widgets.NumberInput(*args, **kwargs)
+    widget.attrs.setdefault("step", "any")
+    return widget
 
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
@@ -377,7 +395,7 @@ EXTRA_FIELD_TYPES = {
     "float": ExtraFieldType(
         display_name="Number",
         form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
-        form_widget=forms.widgets.NumberInput,
+        form_widget=float_widget,
         from_str=float,
         empty_value=lambda: 0.0,
     ),

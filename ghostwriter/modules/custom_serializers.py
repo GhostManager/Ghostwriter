@@ -88,7 +88,7 @@ class CustomModelSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         for key, value in data.items():
             try:
-                if not value:
+                if value is None:
                     data[key] = ""
             except KeyError:
                 pass

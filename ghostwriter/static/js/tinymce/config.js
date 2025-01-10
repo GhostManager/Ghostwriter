@@ -50,7 +50,7 @@
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
         toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | richcode codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
         contextmenu: 'table formats bold italic underline link removeformat',
-        paste_as_text: true,
+        // paste_as_text: true,
         paste_data_images: false,
         browser_spellcheck: true,
         resize: true,
@@ -276,6 +276,7 @@
                         // submission is kicked back for name reuse
                     } else {
                         var evidence_placeholder = `\{\{.${value.friendly_name}\}\}`;
+                        var ref_placeholder = `\{\{.ref ${value.friendly_name}\}\}`;
                         editor.insertContent(`\n<p>\{\{.${value.friendly_name}\}\}</p>`);
                         // A brief block to prevent users from jamming the close button immediately
                         _dialog.block('Uploading...');
@@ -283,10 +284,16 @@
                             _dialog.unblock();
                         }, 1000);
                         // Push the new evidence into the AutoComplete dict
-                        evidenceFiles.push({
-                            text: evidence_placeholder,
-                            value: evidence_placeholder
-                        })
+                        evidenceFiles.push(
+                            {
+                                text: evidence_placeholder,
+                                value: evidence_placeholder
+                            },
+                            {
+                                text: ref_placeholder,
+                                value: ref_placeholder
+                            }
+                        )
                     }
                 }
             });
@@ -295,6 +302,7 @@
                 ch: '@',
                 minChars: 1,
                 columns: 1,
+                maxResults: 20,
                 fetch: function (pattern) {
                     var matchedChars = evidenceFiles.filter(function (quote) {
                         return quote.text.toLowerCase().includes(pattern.toLowerCase());

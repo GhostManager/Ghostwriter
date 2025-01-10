@@ -365,6 +365,7 @@ LINTER_CONTEXT = {
             "finding_type": "Network",
             "severity": "Critical",
             "severity_rt": "Critical",
+            "added_as_blank": True,
             "cvss_score": "",
             "cvss_score_rt": "",
             "cvss_vector": "",

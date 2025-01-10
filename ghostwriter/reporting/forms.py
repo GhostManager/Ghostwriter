@@ -816,6 +816,20 @@ class SelectReportTemplateForm(forms.ModelForm):
                             </a>
                             """
                         ),
+                        HTML(
+                            """
+                            <a
+                                class="btn btn-default jump-btn js-jump-to-word-template"
+                                type="button"
+                                href="#"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Jump to Word template details"
+                                target="_blank"
+                            >
+                            </a>
+                            """
+                        ),
                     ),
                     css_class="col-md-4",
                 ),
@@ -842,6 +856,20 @@ class SelectReportTemplateForm(forms.ModelForm):
                                 data-toggle="tooltip"
                                 data-placement="top"
                                 title="Generate a PPTX report"
+                            >
+                            </a>
+                            """
+                        ),
+                        HTML(
+                            """
+                            <a
+                                class="btn btn-default jump-btn js-jump-to-pptx-template"
+                                type="button"
+                                href="#"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Jump to PowerPoint template details"
+                                target="_blank"
                             >
                             </a>
                             """
