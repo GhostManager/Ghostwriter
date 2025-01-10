@@ -1,0 +1,451 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "SpecterOps",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg",
+    "href": "https://specterops.io/"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#2c2677",
+    "light": "#5465ff",
+    "dark": "#2c2677",
+    "anchors": {
+      "from": "#5465ff",
+      "to": "#2c2677"
+    }
+  },
+  "modeToggle": {
+    "default": "dark",
+    "isHidden": true
+  },
+  "font":{
+    "headings": {
+      "family": "Nunito Sans",
+      "url": "https://fonts.gstatic.com/s/nunitosans/v15/pe0TMImSLYBIv1o4X1M8ce2xCx3yop4tQpF_MeTm0lfGWVpNn64CL7U8upHZIbMV51Q42ptCp7t1R-s.woff2",
+      "format": "woff2",
+      "weight": 900
+    }
+  },
+  "background": {
+    "style": "gradient"
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "https://support.bloodhoundenterprise.io/hc/en-us?utm_campaign=&utm_medium=&utm_source=&utm_term=&utm_content=&Latest_Campaign="
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Contact Us",
+    "url": "https://specterops.io/contact/?_gl=1*1lu38w6*_up*MQ..*_ga*NTYxMzY4OTkxLjE3MzMzMDkyNTk.*_ga_53SGLN9EBJ*MTczMzMwOTI1Ny4xLjAuMTczMzMwOTI1Ny4wLjAuMA..",
+    "arrow": false,
+    "style": "roundedRectangle"
+  },
+  "tabs": [
+    {
+      "name": " API & Integrations",
+      "url": "api"
+    },
+    {
+      "name": "BloodHound",
+      "url": "hc"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Webinars",
+      "icon": "play",
+      "url": "https://specterops.io/events/?_sft_event_type=webinar&_gl=1*1xuv31d*_up*MQ..*_ga*NTYxMzY4OTkxLjE3MzMzMDkyNTk.*_ga_53SGLN9EBJ*MTczMzMwOTI1Ny4xLjAuMTczMzMwOTI1Ny4wLjAuMA.."
+    },
+    {
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://join.slack.com/t/bloodhoundhq/shared_invite/zt-1tgq6ojd2-ixpx5nz9Wjtbhc3i8AVAWw"
+    },
+    {
+      "name": "Blog",
+      "icon": "newspaper",
+      "url": "https://specterops.io/blog/?_gl=1*1qw21rw*_up*MQ..*_ga*NTYxMzY4OTkxLjE3MzMzMDkyNTk.*_ga_53SGLN9EBJ*MTczMzMwOTI1Ny4xLjAuMTczMzMwOTI1Ny4wLjAuMA.."
+    }
+  ],
+  "navigation": [
+        {
+      "group": "Home",
+      "pages": [
+        "home"
+      ]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/quickstart",
+        "getting-started/updating-ghostwriter",
+        {
+          "group": "Managing the Server with Ghostwriter CLI",
+          "pages": [
+            "getting-started/managing-the-server-with-ghostwriter-cli",
+            "getting-started/managing-the-server-with-ghostwriter-cli/managing-logon-sessions",
+            "getting-started/managing-the-server-with-ghostwriter-cli/creating-and-managing-backups"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Configuring Global Settings",
+      "pages": [
+        "configuring-global-settings/introduction-to-command-center",
+        "configuring-global-settings/personalizing-company-information",
+        "configuring-global-settings/configuring-global-report-options",
+        {
+          "group": "Configuring APIs",
+          "pages": [
+            "configuring-global-settings/configuring-apis",
+            "configuring-global-settings/configuring-apis/configuring-slack",
+            "configuring-global-settings/configuring-apis/configuring-virustotal",
+            "configuring-global-settings/configuring-apis/configuring-namecheap",
+            "configuring-global-settings/configuring-apis/configuring-cloud-services"
+          ]
+        },
+        "configuring-global-settings/configuring-extra-fields"
+      ]
+    },
+    {
+      "group": "Features",
+      "pages": [
+        "features/access-authentication-and-session-controls",
+        {
+          "group": "Access, Authentication, & Session Controls",
+          "pages": [
+            "features/access-authentication-and-session-controls",
+            "features/access-authentication-and-session-controls/single-sign-on",
+            "features/access-authentication-and-session-controls/two-factor-authentication",
+            "features/access-authentication-and-session-controls/role-based-access-controls",
+            "features/access-authentication-and-session-controls/session-management"
+          ]
+        },
+        {
+          "group": "Client & Project Management",
+          "pages": [
+            "features/client-and-project-management",
+            "features/client-and-project-management/client-dashboard",
+            {
+              "group": "Project Dashboard",
+              "pages": [
+                "features/client-and-project-management/project-dashboard",
+                "features/client-and-project-management/project-dashboard/project-points-of-contact-and-assignments",
+                "features/client-and-project-management/project-dashboard/scope-tracking",
+                "features/client-and-project-management/project-dashboard/objective-tracking",
+                "features/client-and-project-management/project-dashboard/deconfliction-tracking",
+                "features/client-and-project-management/project-dashboard/white-card-tracking"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "Findings Library",
+          "pages": [
+            "features/findings-library",
+            "features/findings-library/populating-the-findings-library",
+            "features/findings-library/finding-keywords"
+          ]
+        },
+        "features/observations-library",
+        {
+          "group": "Infrastructure Management",
+          "pages": [
+            "features/infrastructure-management",
+            {
+              "group": "Server Management",
+              "pages": [
+                "features/infrastructure-management/server-management",
+                "features/infrastructure-management/server-management/populating-the-server-library",
+                "features/infrastructure-management/server-management/server-management",
+                "features/infrastructure-management/server-management/monitoring-servers"
+              ]
+            },
+            {
+              "group": "Domains Management",
+              "pages": [
+                "features/infrastructure-management/domains-management",
+                "features/infrastructure-management/domains-management/populating-the-domain-library",
+                "features/infrastructure-management/domains-management/domain-checkout-1",
+                "features/infrastructure-management/domains-management/monitoring-domains"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "Operation Logs",
+          "pages": [
+            "features/operation-logs",
+            "features/operation-logs/creating-a-new-oplog",
+            "features/operation-logs/create-a-new-entry",
+            "features/operation-logs/setting-up-automated-logging",
+            "features/operation-logs/exporting-importing-oplogs"
+          ]
+        },
+        {
+          "group": "Reporting",
+          "pages": [
+            "features/reporting",
+            {
+              "group": "Report Types",
+              "pages": [
+                "features/reporting/report-types",
+                "features/reporting/report-types/word-document-customization",
+                "features/reporting/report-types/powerpoint-deck-customization",
+                "features/reporting/report-types/excel-spreadsheet-customization"
+              ]
+            },
+            {
+              "group": "Report Templates",
+              "pages": [
+                "features/reporting/report-templates",
+                "features/reporting/report-templates/report-template-linting",
+                "features/reporting/report-templates/word-template-variables",
+                "features/reporting/report-templates/word-template-styles",
+                "features/reporting/report-templates/troubleshooting-word-templates"
+              ]
+            },
+            "features/reporting/templating-and-rich-text-fields",
+            "features/reporting/jinja2-tips-and-tricks"
+          ]
+        },
+        {
+          "group": "Background Tasks",
+          "pages": [
+            "features/background-tasks",
+            "features/background-tasks/scheduled-tasks",
+            "features/background-tasks/prebuilt-tasks"
+          ]
+        },
+        {
+          "group": "GraphQL API",
+          "pages": [
+            "features/graphql-api",
+            "features/graphql-api/authentication",
+            "features/graphql-api/common-api-actions",
+            "features/graphql-api/using-the-hasura-console",
+            {
+              "group": "GraphQL Usage Examples",
+              "pages": [
+                "features/graphql-api/graphql-usage-examples",
+                "features/graphql-api/graphql-usage-examples/recording-cloud-server-deployments",
+                "features/graphql-api/graphql-usage-examples/integrating-with-bloodhound-for-reporting"
+              ]
+            }
+          ]
+        },
+        "features/health-monitoring"
+      ]
+    },
+    {
+      "group": "Getting Help",
+      "pages": [
+        "getting-help/faq",
+        "getting-help/getting-help-with-a-problem",
+        "getting-help/reporting-a-security-issue"
+      ]
+    },
+    {
+      "group": "Workflow & Usage",
+      "pages": [
+        "workflow/basic-usage",
+        {
+          "group": "The Workflow",
+          "pages": [
+            "workflow/basic-usage",
+            "workflow/basic-usage/finding-review-workflow"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Coding Style Guide",
+      "pages": [
+        "coding-style-guide/style-guide",
+        {
+          "group": "Form Layouts & Design",
+          "pages": [
+            "coding-style-guide/form-layouts-and-design",
+            "coding-style-guide/form-layouts-and-design/formset-layout-and-design",
+            "coding-style-guide/form-layouts-and-design/custom-layout-objects"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Development",
+      "pages": [
+        "development/stack-overview",
+        {
+          "group": "Stack Overview",
+          "pages": [
+            "development/stack-overview",
+            "development/stack-overview/behind-the-scenes"
+          ]
+        },
+        {
+          "group": "Modifying Code",
+          "pages": [
+            "development/modifying-code",
+            "development/modifying-code/modifying-environment-variables"
+          ]
+        },
+        "development/testing-code",
+        {
+          "group": "Contributing to the Project",
+          "pages": [
+            "development/contributing-to-the-project",
+            "development/contributing-to-the-project/pre-release-checklist"
+          ]
+        },
+        {
+          "group": "Database Models",
+          "pages": [
+            "development/database-models",
+            "development/database-models/api-models",
+            "development/database-models/rolodex-models",
+            "development/database-models/configuration-models",
+            "development/database-models/home-models",
+            "development/database-models/infrastructure-models",
+            "development/database-models/oplog-models",
+            "development/database-models/reporting-models"
+          ]
+        },
+        "development/expected-services-and-processes"
+      ]
+    },
+    {
+      "group": "General",
+      "pages": [
+        "hc/en-us/categories/1260801932169-General",
+        {
+          "group": "BloodHound Introduction",
+          "pages": [
+            "hc/en-us/sections/1260802180849-BloodHound-Introduction",
+            "hc/en-us/articles/9227229126555-Welcome-to-BloodHound",
+            "hc/en-us/articles/17715215791899-Getting-started-with-BloodHound-Community-Edition",
+            "hc/en-us/articles/16512241425435-Getting-started-with-BloodHound-Enterprise",
+            "hc/en-us/articles/17310870998811-BloodHound-Enterprise-vs-BloodHound-CE",
+            "hc/en-us/articles/17544113116187-Glossary-of-BloodHound-terminology"
+          ]
+        },
+        {
+          "group": "BloodHound and Security Boundaries",
+          "pages": [
+            "hc/en-us/sections/16729295614363-BloodHound-and-Security-Boundaries",
+            "hc/en-us/articles/17579579325083-Modifying-Tier-Zero",
+            "hc/en-us/articles/9259826072091-Tier-Zero-Members-and-Modification"
+          ]
+        },
+        {
+          "group": "Community and Support",
+          "pages": [
+            "hc/en-us/articles/26412607592219-Additional-Training-and-Resources",
+            "hc/en-us/articles/16730536907547-Getting-Help-and-the-BloodHound-community"
+          ]
+        },
+        {
+          "group": "BloodHound Release Notes",
+          "pages": [
+            "hc/en-us/sections/9355247230491-BloodHound-Release-Notes",
+            "hc/en-us/articles/17253919967259-Release-Notes-Summary-Overview",
+            "hc/en-us/articles/31468460728859-2024-12-09-Release-Notes-v6-3-0",
+            "hc/en-us/articles/30711315407515-2024-11-14-Release-Notes-v6-2-0",
+            "hc/en-us/articles/30186658102427-2024-10-22-Release-Notes-v6-1-0",
+            "hc/en-us/articles/29537689872795-2024-09-30-Release-Notes-v6-0-0",
+            "hc/en-us/articles/28976788180379-2024-09-10-Release-Notes-v5-15-0",
+            "hc/en-us/articles/28217985113371-2024-08-20-Release-Notes-v5-14-0",
+            "hc/en-us/articles/28049189521819-2024-08-06-Release-Notes-v5-13-1",
+            "hc/en-us/articles/27551211021851-2024-08-01-Release-Notes-v5-13-0",
+            "hc/en-us/articles/27415955107739-2024-07-17-Release-Notes-v5-12-0",
+            "hc/en-us/articles/26563579457563-2024-06-17-Release-Notes-v5-11-0",
+            "hc/en-us/articles/25905037514779-2024-05-28-Release-Notes-v5-10-0",
+            "hc/en-us/articles/25412804209691-2024-05-09-Release-Notes-v5-9-0",
+            "hc/en-us/articles/24666291001499-2024-04-15-Release-Notes-v5-8-1",
+            "hc/en-us/articles/24026713941275-2024-03-27-Release-Notes-v5-8-0",
+            "hc/en-us/articles/23367533635483-2024-03-04-Release-Notes-v5-7-0",
+            "hc/en-us/articles/22771936601627-2024-02-14-Release-Notes-v5-6-0",
+            "hc/en-us/articles/22280802686747-2024-01-23-Release-Notes-v5-5-0",
+            "hc/en-us/articles/21699533716635-2024-01-04-Release-Notes-v5-4-0",
+            "hc/en-us/articles/20935488520091-2023-12-05-Release-Notes-v5-3-0",
+            "hc/en-us/articles/20116810407195-2023-11-06-Release-v5-2-0-BHE-Only",
+            "hc/en-us/articles/19530202248859-2023-10-16-Release-notes-v5-1-0",
+            "hc/en-us/articles/18898260944411-2023-09-19-Release-Notes-v5-0-9",
+            "hc/en-us/articles/18422034763803-2023-08-31-Release-Notes-v5-0-8",
+            "hc/en-us/articles/18380624983963-2023-08-30-Release-Notes-v5-0-7",
+            "hc/en-us/articles/16572356113307-2023-08-08-Release-Notes",
+            "hc/en-us/articles/16555611587611-2023-06-20-Release-Notes",
+            "hc/en-us/articles/15475151099675-2023-05-16-Release-Notes",
+            "hc/en-us/articles/14878422059163-2023-04-25-Release-Notes",
+            "hc/en-us/articles/14516513508123-2023-04-13-Release-Notes",
+            "hc/en-us/articles/14025712996891-2023-03-27-Release-Notes",
+            "hc/en-us/articles/13331039856283-2023-03-06-Release-Notes",
+            "hc/en-us/articles/12807566663963-2023-02-21-Release-Notes",
+            "hc/en-us/articles/12700972937371-2023-02-07-Release-Notes",
+            "hc/en-us/articles/12510217817371-2023-01-31-Release-Notes",
+            "hc/en-us/articles/12155167033243-2023-01-18-Release-Notes",
+            "hc/en-us/articles/11285713637403-2022-12-19-Release-Notes",
+            "hc/en-us/articles/11236555517211-2022-12-13-Release-Notes",
+            "hc/en-us/articles/10573227299739-2022-11-21-Release-Notes",
+            "hc/en-us/articles/10124602097563-2022-11-03-Release-Notes",
+            "hc/en-us/articles/9874427096347-2022-10-24-Release-Notes",
+            "hc/en-us/articles/9355279148187-2022-10-11-Release-Notes"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Deployment",
+      "pages": [
+        "hc/en-us/categories/16455064610715-Deployment",
+        {
+          "group": "Deploying BloodHound Enterprise",
+          "pages": [
+            "hc/en-us/sections/16729302988315-Deploying-BloodHound-Enterprise",
+            "hc/en-us/articles/17305067467035-BloodHound-Enterprise-Tenant",
+            "hc/en-us/articles/9797351233307-BloodHound-Enterprise-Security-Overview"
+          ]
+        },
+        {
+          "group": "Deploying SharpHound Enterprise",
+          "pages": [
+            "hc/en-us/sections/9226953133339-Deploying-SharpHound-Enterprise",
+            "hc/en-us/articles/9294790783259-SharpHound-Enterprise-System-Requirements-and-Deployment-Process",
+            "hc/en-us/articles/9295247077915-Install-and-Upgrade-SharpHound-Enterprise",
+            "hc/en-us/articles/18304941900955-Deploying-a-tiered-SharpHound-Enterprise-collector-strategy",
+            "hc/en-us/articles/9295298941723-Create-a-gMSA-for-use-with-SharpHound-Enterprise",
+            "hc/en-us/articles/9268639353115-SharpHound-Enterprise-Local-Configuration",
+            "hc/en-us/articles/10119237569819-Modify-the-service-account-used-by-SharpHound-Enterprise",
+            "hc/en-us/articles/9295645381147-SharpHound-Enterprise-Tenant-Configuration",
+            "hc/en-us/articles/9268366610459-Troubleshooting-Local-Collection-Coverage"
+          ]
+        }
+      ]
+    },
+    {
+      "group": " API & Integrations",
+      "pages": [
+        "api/hc/en-us/categories/17274829460251-API-and-Integrations",
+        {
+          "group": "BloodHound API",
+          "pages": [
+              "api/hc/en-us/sections/17274845112347-BloodHound-API",
+              "api/hc/en-us/articles/17303881735963-BloodHound-JSON-Formats"
+          ]
+        }
+      ]
+    }
+  ],
+  "footerSocials": {
+    "x": "https://twitter.com/specterops",
+    "github": "https://github.com/SpecterOps/BloodHound",
+    "linkedin": "https://www.linkedin.com/company/specterops",
+    "slack": "https://join.slack.com/t/bloodhoundhq/shared_invite/zt-1tgq6ojd2-ixpx5nz9Wjtbhc3i8AVAWw",
+    "instagram": "https://www.instagram.com/specterops.io/",
+    "youtube": "https://www.youtube.com/channel/UCWMKKqCCQkUjU8dIyiL1yhQ"
+  }
+}

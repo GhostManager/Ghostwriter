@@ -1,0 +1,15 @@
+---
+title: "Creating and Managing Backups"
+---
+
+Using Ghostwriter CLI to create and manage backups
+
+## Creating and Managing Backups
+
+Ghostwriter CLI (>=v0.2.12) includes `backup` and `restore` commands to help you create and manage backups of your PostgreSQL database.
+
+The `backup` command uses PostgreSQL's `pg_dump` to dump the contents of the database. The resulting SQL file is gunzipped and stored in the `production_postgres_data_backups` Docker volume. Each file is named with the current timestamp (e.g., *backup\_2023\_05\_23T15\_54\_19.sql.gz*).
+
+Use the `--list` flag to list all available backup files stored in the volume.
+
+The `restore` command recreates the database using the specified backup file.
