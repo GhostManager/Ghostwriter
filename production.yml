@@ -93,7 +93,9 @@ services:
       - "${POSTGRES_PORT}:5432"
 
   nginx:
-    build: ./compose/production/nginx
+    build:
+      context: .
+      dockerfile: ./compose/production/nginx/Dockerfile
     image: ghostwriter_production_nginx
     restart: unless-stopped
     depends_on:
@@ -102,6 +104,7 @@ services:
       - production_data:/app/media
       - production_staticfiles:/app/staticfiles
       - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
       - ./ssl:/ssl
     labels:
       name: ghostwriter_nginx

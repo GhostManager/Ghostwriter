@@ -59,8 +59,6 @@ services:
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
-    ports:
-      - "8000:8000"
     command: /start
 
   postgres:
@@ -88,6 +86,23 @@ services:
       start_period: ${HEALTHCHECK_START}
     ports:
       - "${POSTGRES_PORT}:5432"
+
+  nginx:
+    build:
+      context: .
+      dockerfile: ./compose/production/nginx/Dockerfile
+    image: ghostwriter_local_nginx
+    depends_on:
+      - django
+    volumes:
+      - ./compose/local/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
+    labels:
+      name: ghostwriter_nginx
+    ports:
+      - "8000:80"
+    environment:
+      - NO_PROXY=django,graphql_engine
 
   redis:
     build:

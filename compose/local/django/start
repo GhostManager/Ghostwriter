@@ -22,5 +22,5 @@ cp -u -p "$TEMPLATE_PATH_PPTX" "$TEMPLATE_DIR"
 
 python manage.py makemigrations
 python manage.py migrate
-# python manage.py runserver 0.0.0.0:8000
-uvicorn config.asgi:application --host 0.0.0.0 --reload
+# python manage.py runserver 0.0.0.0:5000
+uvicorn config.asgi:application --host 0.0.0.0 --port 5000 --reload
