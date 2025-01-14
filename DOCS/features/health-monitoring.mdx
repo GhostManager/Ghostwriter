@@ -15,7 +15,7 @@ Docker automatically monitors the containers via `HEALTHCHECK` commands (see [Do
 
 The results of these commands can be checked with this command:
 
-```
+```log
 ./ghostwriter-cli running
 ```
 
@@ -54,6 +54,7 @@ These tests are more thorough than the Docker health checks. For example, Docker
 <Check>
 This endpoint can also return a JSON version of the test results if you set the `Accept: application/json` header.
 </Check>
+
 Running these tests constantly could be a strain on the server, so the tests run on-demand when you visit this page.
 
 You can visit the simplified endpoint, */status/simple/*, to run lightweight checks. This endpoint checks the web server, database status, and cache status and returns one of the following responses:
@@ -79,7 +80,7 @@ You can automate monitoring with something like Uptime Kuma or a similar tool. T
 
 If the tool is capable of triggering a secondary action, you could have the tool pull the JSON data from */status/*:
 
-```
+```log
 $ curl -k https://ghostwriter.local/status/ -H "Accept: application/json"
 {"Cache backend: default": "working", "DatabaseBackend": "working", "DefaultFileStorageHealthCheck": "working", "DiskUsage": "working", "MemoryUsage": "working", "MigrationsHealthCheck": "working", "RedisHealthCheck": "working"}
 ```

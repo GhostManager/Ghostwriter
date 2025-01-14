@@ -26,7 +26,7 @@ Unlike a REST API, a GraphQL API does not have specific endpoints you must query
 
 A standard query is submitted with `Content-Type: application/json` in the headers and a body like this:
 
-```
+```json SampleQuery.json
 {
     "query": "...",
     "operationName": "...",
@@ -38,7 +38,7 @@ The `query` and `operationName` keys are required. The `operationName` tells Gra
 
 The response will always come back in this form:
 
-```
+```json SampleResponse.json
 {
   "data": { ... },
   "errors": [ ... ]
@@ -56,7 +56,7 @@ Some basic GraphQL knowledge, such as the difference between a query and a mutat
 
 A basic query looks like this:
 
-```
+```json SampleClientQuery.json
 query MyQuery {
   client {
     id
@@ -68,7 +68,7 @@ It identifies itself as a query with an arbitrary name, states which table it wa
 
 The query can be modified to return additional data, like the `codename` and `note` fields:
 
-```
+```json SampleClientQuery.json
 query MyQuery {
   client {
     id
@@ -82,7 +82,7 @@ Field names are often placed on separate lines in GraphQL examples and the Hasur
 </Check>
 Queries can also request related data. For a client, you might request the contact information for all related points of contact:
 
-```
+```json SampleClientQuery.json
 query MyQuery {
   clients {
     id
@@ -97,7 +97,7 @@ query MyQuery {
 
 You can include multiple queries in a single request. Here we add a query to fetch the `id` and `title` of every finding in the database to get all our data back in a single request:
 
-```
+```json SampleClientQuery.json
 query MyQuery {
   clients {
     id
@@ -120,7 +120,7 @@ In most cases, you can accomplish your goal with a single query. Always remember
 
 For this final example, assume you want to get the title and severity of every finding ever associated with a particular client's projects where the `title` contains `SMB`. This can be accomplished with nested database relationships and the addition of a condition:
 
-```
+```json SampleClientQueryWithFilter.json
 query MyQuery {
   clients {
     projects {
@@ -153,7 +153,7 @@ Here is an example query request in Python using the `gql` library. For more exa
   </Card>
 </CardGroup>
 
-```
+```python SampleAPI.py
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from gql.transport.exceptions import TransportQueryError
@@ -209,5 +209,3 @@ except GraphQLError as e:
 	# Do something...
 	pass
 ```
-
-[PreviousPrebuilt Tasks](/features/background-tasks/prebuilt-tasks)[NextAuthentication](/features/graphql-api/authentication)

@@ -11,21 +11,21 @@ You may encounter an issue with PostgreSQL while upgrading an existing installat
 
 By default, Ghostwriter CLI generates a random password for a default `postgres` user. Update the configuration with your Postgres credentials by running these commands:
 
-```
+```log
 ./ghostwriter-cli config set POSTGRES_USER <YOUR USER>
 ./ghostwriter-cli config set POSTGRES_PASSWORD <YOUR PASSWORD>
 ```
 
 If that does not work or you need to change the credentials, you may do so with the `psql` tool. First, start the containers even if initialization fails due to the bad password.
 
-```
+```log
 docker exec -it ghostwriter_postgres_1 bash
 psql -U postgres
 ```
 
 Use the `\password` command to set a new password for the `postgres` user:
 
-```
+```log
 postgres=# \password postgres
 Enter new password:
 Enter it again:
@@ -35,7 +35,7 @@ postgres=# \q
 <Check>
 If `postgres` is not your username, change the command to use your chosen username. If you are not sure what the username is, run the `\du` command:
 
-```
+```log
 postgres=# \du
                                    List of roles
  Role name |                         Attributes                         | Member of
@@ -45,7 +45,7 @@ postgres=# \du
 </Check>
 That sets the new password and `\q` quits the `psql` console. Set your new password in Ghostwriter's config, and then bring the containers down and back up.
 
-```
+```log
 ./ghostwriter-cli containers down
 ./ghostwriter-cli config set POSTGRES_PASSWORD <NEW PASSWORD>
 ./ghostwriter-cli containers up
@@ -61,14 +61,14 @@ If you are stuck waiting for Django to start, run this command and check file pe
 
 If you see file permission errors, check the user and group permissions for some of the affected files like so:
 
-```
+```log
 docker-compose -f production.yml run django ls -la /app
 docker-compose -f production.yml run django ls -la /app/staticfiles
 ```
 
 A properly configured listing will look like this:
 
-```
+```log
 $ docker-compose -f production.yml run django ls -la /app
 Creating ghostwriter_django_run ... done
 PostgreSQL is available
@@ -95,13 +95,13 @@ drwxr-xr-x    4 django   django        4096 Feb 18 00:34 css
 
 If you see anything else, you may need to re-run the `chown` command that Docker is supposed to run during the build. It must be run as `root`. Use Docker Compose's `run` command like the above examples but add `-u root`:
 
-```
+```log
 $ docker-compose -f production.yml run -u root django chown -R django:django /app
 ```
 
 Once that runs, verify the `ls -la` command shows the proper permissions, and then try restarting the Ghostwriter services:
 
-```
+```log
 ./ghostwriter-cli containers down
 ./ghostwriter-cli containers up
 ```

@@ -23,19 +23,19 @@ For example, you might make _1-sso-provider.py_ to hold your SSO configuration a
 Your new config file must contain these settings at a minimum. We'll use Microsoft as an example for these steps.
 
 
-```json
-    # Provider(s) configuration
-    SOCIALACCOUNT_PROVIDERS = {
-        "microsoft": {
-            "APP": {
-                "client_id": "CLIENT ID",
-                "secret": "SECRET",
-            }
-        },
-    }
-    # Extend the installed apps with the SSO app for your provider(s)
-    SSO_PROVIDERS = ["allauth.socialaccount.providers.microsoft"]
-    INSTALLED_APPS = INSTALLED_APPS + SSO_PROVIDERS
+```python SSO Provider Config
+# Provider(s) configuration
+SOCIALACCOUNT_PROVIDERS = {
+    "microsoft": {
+        "APP": {
+            "client_id": "CLIENT ID",
+            "secret": "SECRET",
+        }
+    },
+}
+# Extend the installed apps with the SSO app for your provider(s)
+SSO_PROVIDERS = ["allauth.socialaccount.providers.microsoft"]
+INSTALLED_APPS = INSTALLED_APPS + SSO_PROVIDERS
 ```
 
 The above lines add our provider (Microsoft for this example) to Ghostwriter's installed apps and provide the information necessary for the SSO handshake. You can find the values you need for your provider(s) at the above link.
@@ -63,12 +63,13 @@ Set `DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST` with Ghostwriter CLI or `SOCIAL_ACC
 
 Here is what this might look like in your config file:
 
-```json
-    # Enable or disable registration
-    SOCIAL_ACCOUNT_ALLOW_REGISTRATION = True
-    # Allow only these email domains
-    SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST = ["specterops.io"]
+```python SSO Domain Allowlist
+# Enable or disable registration
+SOCIAL_ACCOUNT_ALLOW_REGISTRATION = True
+# Allow only these email domains
+SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST = ["specterops.io"]
 ```
+
 These settings allow registration via an SSO provider, but only if the account's email address has the _specterops.io_ domain.
 
 If a local account with a matching email address already exists, the user will be prompted to enter a different address for their new account. This will most likely arise when transitioning from local accounts to a new SSO provider. You will probably want to link the accounts in these cases.
@@ -76,21 +77,22 @@ If a local account with a matching email address already exists, the user will b
 <Note>
 An error is raised if multiple existing accounts share the same email address. Rather than trying to connect one of them, the user will see a message encouraging them to contact an administrator.
 </Note>
+
 You can link accounts by enabling your provider to authenticate via the account's email address. By default, email authentication is disabled, and the provider must have pre-verified the email address. Use the following settings if you trust the provider and want to consider email addresses as verified.
 
-
-```json
-    SOCIALACCOUNT_PROVIDERS = {
-        "microsoft": {
-            "APP": {
-                "client_id": "",
-                "secret": "",
-            },
-            "EMAIL_AUTHENTICATION": True,
-            "VERIFIED_EMAIL": True,
+```python SSO Email Authentication
+SOCIALACCOUNT_PROVIDERS = {
+    "microsoft": {
+        "APP": {
+            "client_id": "",
+            "secret": "",
         },
-    }
+        "EMAIL_AUTHENTICATION": True,
+        "VERIFIED_EMAIL": True,
+    },
+}
 ```
+
 These settings enable Microsoft email authentication and consider all email addresses verified for automatic connection.
 
 If someone were to authenticate with a Microsoft account, they would only be allowed to create or link an account if registration is enabled and the domain allowlist checks passed. If either check fails, the user will be redirected to a page like this.
@@ -105,4 +107,4 @@ Depending on your SSO provider, you may need to consider other configuration opt
 
 If you wish to have users log in immediately when they click the provider button, set `DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET` to `true` with Ghostwriter CLI. For information is available here:
 
-[Configuration - django-allauth](https://docs.allauth.org/en/latest/socialaccount/configuration.html)
+<CardGroup cols={1}> <Card title="Provider Configuration" icon="chevron-right" iconType="solid" href="https://docs.allauth.org/en/latest/socialaccount/configuration.html" horizontal > <span className="text-xs text-dark/7 dark:text-light/6">docs.allauth.org</span> </Card> </CardGroup>

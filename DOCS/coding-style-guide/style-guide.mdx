@@ -29,13 +29,12 @@ Black is "opinionated" and automatically changes things to keep code consistent 
 
 
 ```json
-
-    "editor.formatOnSave": true,
-    "python.formatting.provider": "black",
-    "python.formatting.blackArgs": [
-        "--line-length",
-        "90"
-    ],
+"editor.formatOnSave": true,
+"python.formatting.provider": "black",
+"python.formatting.blackArgs": [
+    "--line-length",
+    "90"
+],
 ```
 VSCode will now use Black to format all Python files on save actions.
 
@@ -44,8 +43,7 @@ VSCode will now use Black to format all Python files on save actions.
 Black will not automatically delete trailing whitespace or whitespace on otherwise empty lines. Trailing whitespace will be identified by the linter (below). Add this line to VSCode's _settings.json_ file to automatically delete trailing whitespace on save:
 
 ```json
-
-    "files.trimTrailingWhitespace": true
+"files.trimTrailingWhitespace": true
 ```
 ## Managing Imports
 
@@ -56,18 +54,18 @@ The Ghostwriter project also uses `Isort` which is part of the Python extensions
 This tool sorts imports by library types (FUTURE, STDLIB, THIRDPARTY, FIRSTPARTY, LOCALFOLDER) and then alphabetically. It is customizable to generate comments and sort by line length. Ghostwriter code repository includes an _.isort.cfg_ file. Ghostwriter's current configuration contains:
 
 ```json
-
-    [settings]
-    profile=ghostwriter
-    src_paths=isort,test
-    atomic=True
-    line_length=90
-    use_parentheses=True
-    ensure_newline_before_comments=True
-    import_heading_stdlib=Standard Libraries
-    import_heading_firstparty=Ghostwriter Libraries
-    import_heading_thirdparty=Django & Other 3rd Party Libraries
+[settings]
+profile=ghostwriter
+src_paths=isort,test
+atomic=True
+line_length=90
+use_parentheses=True
+ensure_newline_before_comments=True
+import_heading_stdlib=Standard Libraries
+import_heading_firstparty=Ghostwriter Libraries
+import_heading_thirdparty=Django & Other 3rd Party Libraries
 ```
+
 This configuration enforces the use of parentheses, adds newlines between sections, and keeps the line length /\<= 90 characters. It also adds custom comments before standard libraries, third-party libraries, and Ghostwriter's local first-party libraries.
 
 Here is an example:
@@ -101,6 +99,7 @@ Here is an example:
         ProjectObjective
     )
 ```
+
 Once the Python extension is installed, run `isort` by pressing SHIFT+CMD+P and selecting `Python Refactor: Sort Imports`.
 
 ## Line Length
@@ -150,6 +149,7 @@ A good view docstring looks like this:
         :template:`rolodex/client_detail.html`
         """
 ```
+
 Note the newline after the opening `"""` which deviates from standard practice (per PEP-8). Further, the use of grave accents, asterisks ( * ), and colons ( : ). are all purposeful and important. Django and `docutils` convert these symbols into formatting for the auto-generated documentation in the admin panel.
 
 The above example is rendered like this:
@@ -168,22 +168,22 @@ Finally, docstrings should have newlines between sections and section headers. T
 Setup VSCode snippets to create templates for repeated code snippets, like docstrings.
 
 ```json
-
-    "UpdateView Docstring": {
-        "prefix": "update",
-        "body": [
-            "\"\"\"",
-            "Update an individual :model:`${1:model}`.",
-            "",
-            "**Template**",
-            "",
-            ":template:`${2:template}`",
-            "\"\"\"",
-        ],
-        "description": "A docstring template for an UpdateView"
-    },
+"UpdateView Docstring": {
+    "prefix": "update",
+    "body": [
+        "\"\"\"",
+        "Update an individual :model:`${1:model}`.",
+        "",
+        "**Template**",
+        "",
+        ":template:`${2:template}`",
+        "\"\"\"",
+    ],
+    "description": "A docstring template for an UpdateView"
+},
 ```
 </Check>
+
 ## Linting
 
 
@@ -219,25 +219,24 @@ Once the file is in place, run `pre-commit install` to hook future git commits.
 
 
 ```json
-    exclude: 'docs|node_modules|migrations|.git|.tox'
-    default_stages: [commit]
-    fail_fast: true
-    repos:
-      - repo: https://github.com/pre-commit/pre-commit-hooks
-        rev: master
-        hooks:
-          - id: trailing-whitespace
-          - id: end-of-file-fixer
-          - id: check-yaml
-      - repo: https://github.com/psf/black
-        rev: 19.10b0
-        hooks:
-          - id: black
-      - repo: https://gitlab.com/pycqa/flake8
-        rev: 3.8.3
-        hooks:
-          - id: flake8
-            args: ['--config=setup.cfg']
-            additional_dependencies: [flake8-isort]
-
+exclude: 'docs|node_modules|migrations|.git|.tox'
+default_stages: [commit]
+fail_fast: true
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: master
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+  - repo: https://github.com/psf/black
+    rev: 19.10b0
+    hooks:
+      - id: black
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.3
+    hooks:
+      - id: flake8
+        args: ['--config=setup.cfg']
+        additional_dependencies: [flake8-isort]
 ```

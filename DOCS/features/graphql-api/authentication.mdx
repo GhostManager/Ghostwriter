@@ -24,6 +24,7 @@ The JWT secret key is defined in the environment variables, `GRAPHQL_JWT_SECRET_
     "typ": "JWT"
   }
   ```
+
 </CodeGroup>
 
 <CodeGroup>
@@ -52,7 +53,7 @@ The tokens follow the JWT open standard ([RFC7519](https://datatracker.ietf.org/
 
 User JWTs are generated with a `Login` action. The resulting JWT holds the same privileges as the authenticated user. The user JWTs are valid for 15 minutes.
 
-```
+```json
 mutation Login {
   login(password: "password", username: "username") {
     token
@@ -60,9 +61,11 @@ mutation Login {
   }
 }
 ```
+
 <Note>
 The `Login` action is disabled for accounts with 2FA configured. An account with 2FA should use a generated API token (see below).
 </Note>
+
 ### API Tokens
 
 You can also generate tokens by visiting their profile page and scrolling down to the "API Tokens" section. In this section, you can create new tokens, see all existing tokens, and revoke tokens you no longer need.
@@ -91,7 +94,7 @@ If the token passes the above checks and your user's role is authorized (see [Au
 
 If the token is not accepted, the authorization webhook will return a `401 Unauthorized` response with an error like this:
 
-```
+```json
 {
   "errors": [
     {

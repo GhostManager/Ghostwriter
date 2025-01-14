@@ -13,6 +13,7 @@ The following sections explain some of the core functionality.
 <Info>
 By default, all commands target a production environment. Provide the `--dev` if you're interacting with a development environment. Every command can accept the `--dev` flag.
 </Info>
+
 ### Managing the Server Configuration
 
 The `config` command is your Swiss Army knife when managing your server configuration. If you don't provide any subcommands or arguments, the command prints your current configuration values (the contents of your server's DotEnv file).
@@ -50,17 +51,17 @@ Ghostwriter CLI's `containers` command contains the following subcommands:
 
 If you need to check which containers are running, issue the `running` command. This command lists all running containers related to Ghostwriter. The output will look something like this (edited for easier display):
 
-```json
-    $ ./ghostwriter-cli running
-    [+] Collecting list of running Ghostwriter containers...
-    [+] Found 4 running Ghostwriter containers
+```log Running Containers
+$ ./ghostwriter-cli running
+[+] Collecting list of running Ghostwriter containers...
+[+] Found 4 running Ghostwriter containers
 
-     Name                   Container ID    Image                           Status                  Ports
-     ––––––––––––           ––––––––––––    ––––––––––––                    ––––––––––––            ––––––––––––
-     ghostwriter_graphql    d90e....        ghostwriter_local_graphql       Up 43 hours (healthy)   0.0.0.0:9691:9691 » 9691/tcp, 0.0.0.0:8080:8080 » 8080/tcp
-     ghostwriter_queue      0559....        ghostwriter_local_queue         Up 43 hours (healthy)
-     ghostwriter_django     bf9b....        ghostwriter_local_django        Up 43 hours (healthy)   0.0.0.0:8000:8000 » 8000/tcp
-     ghostwriter_postgres   9992....        ghostwriter_production_postgres Up 43 hours (healthy)   0.0.0.0:5432:5432 » 5432/tcp
+ Name                   Container ID    Image                           Status                  Ports
+ ––––––––––––           ––––––––––––    ––––––––––––                    ––––––––––––            ––––––––––––
+ ghostwriter_graphql    d90e....        ghostwriter_local_graphql       Up 43 hours (healthy)   0.0.0.0:9691:9691 » 9691/tcp, 0.0.0.0:8080:8080 » 8080/tcp
+ ghostwriter_queue      0559....        ghostwriter_local_queue         Up 43 hours (healthy)
+ ghostwriter_django     bf9b....        ghostwriter_local_django        Up 43 hours (healthy)   0.0.0.0:8000:8000 » 8000/tcp
+ ghostwriter_postgres   9992....        ghostwriter_production_postgres Up 43 hours (healthy)   0.0.0.0:5432:5432 » 5432/tcp
 ```
 
 <Check>
@@ -69,39 +70,32 @@ The `Status` column shows the uptime and health of the service. If you see an `u
 You can use the `logs` command to view a particular container's recent log events. The command requires the name of a running container. Valid container names are:
 
 * all
-
 * django
-
 * graphql
-
 * nginx
-
 * postgres
-
 * redis
-
 
 With `all`, logs from all running containers will be returned. By default, `logs` will return up to 500 lines. You can use the `--lines` flag to adjust how many lines you want to retrieve.
 
+```log Viewing Django Logs
+$ ./ghostwriter-cli logs django
 
-```json
-    $ ./ghostwriter-cli logs django
-
-    PostgreSQL is available
-    No changes detected
-    Operations to perform:
-      Apply all migrations: account, admin, api, auth, commandcenter, contenttypes, django_q, home, oplog, reporting, rest_framework_api_key, rolodex, sessions, shepherd, sites, socialaccount, users
-    Running migrations:
-      No migrations to apply.
-    INFO:     Will watch for changes in these directories: ['/app']
-    INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-    INFO:     Started reloader process [18] using watchgod
-    INFO:     Started server process [20]
-    INFO 2022-06-06 21:47:37,673 server 20 140231754545992 Started server process [20]
-    INFO:     Waiting for application startup.
-    INFO 2022-06-06 21:47:37,673 on 20 140231754545992 Waiting for application startup.
-    INFO:     ASGI 'lifespan' protocol appears unsupported.
-    INFO 2022-06-06 21:47:37,674 on 20 140231754545992 ASGI 'lifespan' protocol appears unsupported.
-    INFO:     Application startup complete.
-    INFO 2022-06-06 21:47:37,674 on 20 140231754545992 Application startup complete.
+PostgreSQL is available
+No changes detected
+Operations to perform:
+  Apply all migrations: account, admin, api, auth, commandcenter, contenttypes, django_q, home, oplog, reporting, rest_framework_api_key, rolodex, sessions, shepherd, sites, socialaccount, users
+Running migrations:
+  No migrations to apply.
+INFO:     Will watch for changes in these directories: ['/app']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [18] using watchgod
+INFO:     Started server process [20]
+INFO 2022-06-06 21:47:37,673 server 20 140231754545992 Started server process [20]
+INFO:     Waiting for application startup.
+INFO 2022-06-06 21:47:37,673 on 20 140231754545992 Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO 2022-06-06 21:47:37,674 on 20 140231754545992 ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO 2022-06-06 21:47:37,674 on 20 140231754545992 Application startup complete.
 ```

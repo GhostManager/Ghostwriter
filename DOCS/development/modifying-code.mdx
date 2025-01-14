@@ -30,7 +30,7 @@ Most errors will be displayed in your web browser thanks to the verbose error ou
 
 Of course, there will be no visible output in your browser if an error prevents Django from starting the server. To view logging output from Redis, PostgreSQL, and Django, use the Docker `logs` command:
 
-```
+```log
 docker-compose -f local.yml logs
 docker-compose -f local.yml logs django
 docker-compose -f local.yml logs queue
@@ -41,6 +41,7 @@ docker-compose -f local.yml logs postgres
 <Check>
 Logs are handy for performing dry runs of scheduled tasks. Anything you \`print\` will be output to the logs.
 </Check>
+
 Add the name of the container after \`logs\` to get logs just from that service.
 
 ### Cleaning Up Containers
@@ -51,7 +52,7 @@ If you break something or want to start from scratch, stop all of your container
 The following assumes only Ghostwriter container and volumes are present on your system. Proceed with caution if you use Docker for other things on your development system.
 </Warning>
 
-```
+```log
 docker system prune -a
 docker volume rm -f $(docker volume ls)
 ```

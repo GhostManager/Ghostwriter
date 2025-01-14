@@ -8,7 +8,7 @@ How to check for updates and what to do when one is available
 
 You can check for updates with Ghostwriter CLI and the `update` command. The output will look something like this:
 
-```
+```bash Checking for Updates
 $ ./ghostwriter-cli update
 
 Local Ghostwriter Version	Ghostwriter v3.0.5 ( 23 September 2022 )
@@ -29,7 +29,7 @@ Updates are generally straightforward, but you should **strongly** consider taki
 
 To perform an update:
 
-```bash
+```log Updating Ghostwriter
 git pull
 ./ghostwriter-cli containers down
 ./ghostwriter-cli containers build
@@ -37,5 +37,3 @@ git pull
 ```
 
 These commands pull the latest code, stop any running production containers, build the new containers, and then bring Ghostwriter back online.
-
-[PreviousQuickstart](/getting-started/quickstart)[NextManaging the Server with Ghostwriter CLI](/getting-started/managing-the-server-with-ghostwriter-cli)

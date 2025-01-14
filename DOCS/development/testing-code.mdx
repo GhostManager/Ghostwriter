@@ -28,14 +28,14 @@ Tests are run through Django's _manage.py_ and the `test` command. You can run a
 ```
 A successful run of all unit tests may still display errors. Many of the unit tests intentionally trigger errors by passing invalid data to the server. The logger output can be disabled but this is generally unnecessary. A successful run will output something like this at the end:
 
-```json
+```log
+----------------------------------------------------------------------
+Ran 488 tests in 45.331s
 
-    ----------------------------------------------------------------------
-    Ran 488 tests in 45.331s
-
-    OK
-    Destroying test database for alias 'default'...
+OK
+Destroying test database for alias 'default'...
 ```
+
 A test run with failures or errors will report the number of each at the end. Review the test output to see which test(s) failed to determine what needs to be fixed.
 
 ### Test Coverage

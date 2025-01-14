@@ -20,6 +20,9 @@
     "default": "light",
     "isHidden": false
   },
+  "codeBlock": {
+    "mode": "auto"
+  },
   "font":{
     "headings": {
       "family": "Nunito Sans",
@@ -33,8 +36,12 @@
   },
   "topbarLinks": [
     {
-      "name": "GitHub",
-      "url": "https://github.com/GhostManager/Ghostwriter"
+      "name": "Learn More",
+      "url": "https://blog.getghostwriter.io/"
+    },
+    {
+      "name": "Get the Code",
+      "url": "https://code.getghostwriter.io/"
     }
   ],
   "topbarCtaButton": {
@@ -108,7 +115,6 @@
     {
       "group": "Features",
       "pages": [
-        "features/access-authentication-and-session-controls",
         {
           "group": "Access, Authentication, & Session Controls",
           "pages": [

@@ -11,7 +11,7 @@ Some of the variables influence the Docker builds. The majority of the variables
 
 For example, the `DJANGO_SUPERUSER_PASSWORD` variable has the `DJANGO_` prefix to signify it is tied to the Django service and container. It is declared in the YAML files like this:
 
-```
+```yaml
 - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
 ```
 
@@ -35,14 +35,16 @@ You may need to do one additional thing if adding a new variable to the Django c
 
 Add your new variable in the same manner as the other variables already in these files. Looking at `DJANGO_DATE_FORMAT` again, add the variable like this with `env()`:
 
-```
+```python
 DATE_FORMAT = env(
     "DJANGO_DATE_FORMAT",
     default="d M Y"
 )
 ```
+
 <Check>
 It's a good idea to provide a default value if your custom variable is missing from your DotEnv file.
 </Check>
+
 Finally, you can also modify Ghostwriter CLI to include your new variable. After building a new binary, you can set the value via Ghostwriter CLI's commands.
 
