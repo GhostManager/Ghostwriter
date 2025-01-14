@@ -1,0 +1,180 @@
+---
+title: "Form Layouts & Design"
+sidebarTitle: "Overview"
+description: "Creation and layout of forms"
+---
+
+## Introduction
+
+The Ghostwriter project uses the _django-crispy-forms_ library (Crispy) to layout forms. At a basic level, this library provides template tags for rendering form fields that are more visually appealing than the regular Django form fields.
+
+[GitHub - django-crispy-forms/django-crispy-forms](https://github.com/django-crispy-forms/django-crispy-forms)
+
+Ghostwriter leverages the library's more advanced features to create `FormHelper()` and `Layout()` objects to design reusable forms in code. This requires some additional work upfront, but the end result should be a form that can be modified in one location (the _forms.py_ file) and reused in multiple views and templates.
+
+If created correctly, the form can be added to a template with two lines:
+
+
+```json
+{% load crispy_forms_tags %}
+{% crispy form form.helper %}
+```
+Read about Crispy's `FormHelper()` and `Layout()` objects:
+
+<CardGroup cols={2}>
+<Card title="GitHub - django-crispy-forms/django-crispy-forms:" icon="github" iconType="solid" href="https://github.com/django-crispy-forms/django-crispy-forms" />
+<Card title="Layouts — django-crispy-forms 1.11.1 documentation" icon="book" iconType="solid" href="https://django-crispy-forms.readthedocs.io/en/latest/layouts.html" />
+</CardGroup>
+## Creating a Form
+
+Most forms should be instances of Django's `models.ModelForm` class. This makes it simpler to create a form for most, if not all, of Ghostwriter's use cases for a form.
+
+The name of the form should identify the related model and include an appropriate docstring.
+
+```json
+
+    class ClientContactForm(forms.ModelForm):
+        """
+        Create an individual :model:`rolodex.ClientContact` for a :model:`rolodex.Client`.
+        """
+
+        class Meta:
+            model = ClientContact
+            exclude = ("client",)
+```
+Avoid naming forms with adjectives like "create" (ex: `ClientContactCreate`) because the forms should be reusable. A form used to create a new model entry should be reusable to update that same entry.
+
+The `Meta` class of every instance of `ModelForm` must declare the model as the variable`model` and then provide values for either `fields` or `exclude`. Use `exclude` to declare which fields should not be included in the form.
+
+If the form applies to a specific scenario where `exclude` would be a bigger list than `fields`, then use `fields` to declare which fields to include.
+
+Finally, if the form will include all fields, explicitly state this by setting `fields = "__all__"`.
+
+### Forms.py
+
+Forms should be added to the application's _forms.py_ file and then imported using a line like `from .forms import FORM_NAME`.
+
+When form files become large (like when dealing with multiple parent forms and child formsets), the files become difficult to navigate., so there is one exception to this rule:
+
+If the _forms.py_ file grows into an excessively large file, split the file into two or more files organized by model.
+
+The Rolodex application's form files are a good example of this situation. All of the forms related to the `Client` and `Project` models and their associated child models pushed the single _forms.py_ file beyond 1,000 lines. To make it easier to maintain each set of forms, the project moved them into files named _forms._client.py_ and _forms_project.py_.
+
+Name the new files with the _forms__ prefix followed by the model's name.
+
+## Basic Form Design
+
+
+The Django form attributes control field attributes. The Crispy `FormHelper()` and `Layout()` objects control the `<form></form>` tags and the layout of the fields, respectively.
+
+### Setting Field Attributes
+
+Django allows for field attributed to be configured in the form class. For `ModelForm` instances, this is done in the form's `__init__` method. Attributes should be set at the top of the `__init__` method, like so:
+
+```json
+
+    def __init__(self, *args, **kwargs):
+        super(ClientContactForm, self).__init__(*args, **kwargs)
+        self.fields["name"].widget.attrs["placeholder"] = "David McQuire"
+        self.fields["name"].widget.attrs["autocomplete"] = "off"
+        self.fields["email"].widget.attrs["placeholder"] = "info@specterops.io"
+        self.fields["email"].widget.attrs["autocomplete"] = "off"
+        self.fields["job_title"].widget.attrs["placeholder"] = "CEO"
+        self.fields["job_title"].widget.attrs["autocomplete"] = "off"
+        self.fields["phone"].widget.attrs["placeholder"] = "(800) 444-4444"
+        self.fields["phone"].widget.attrs["autocomplete"] = "off"
+        self.fields["note"].widget.attrs[
+            "placeholder"
+        ] = "Additional notes for the contact"
+```
+A `placeholder` attribute should be set for all fields. The placeholder text should provide an example of the intended content or an example of the proper input format. In more freeform fields, the placeholder should identify the field and guide the user towards its intended purpose (e.g., the `note` field in the above example).
+
+All fields should set `autocomplete` to `off` unless it is explicitly needed. Otherwise, autocomplete behavior can negatively impact user experience (e.g., autocomplete lists appearing and covering datepickers) or display non-public information when clicking on the field. The latter is mostly an issue for demonstrations of Ghostwriter.
+
+### FormHelper Object
+
+Every form should have a `FormHelper()` object named `self.helper`. Create a `FormHelper()` object named in the form's `__init__` method. At a minimum, Ghostwriter form helpers set several values. These values ensure the form appears correctly in the content of the rendered webpage.
+
+```json
+
+    # Design form layout with Crispy FormHelper
+    self.helper = FormHelper()
+    # Explicitly turn on/off <form> tags for the form
+    self.helper.form_tag = True
+    # Explicitly state if labels should be displayed
+    self.helper.form_show_labels = False
+    # Set a class for the form from the stylesheet
+    self.helper.form_class = "newitem"
+```
+The form labels should be hidden if the form is easy to understand from placeholders or context. Formsets require some additional modifications to the `FormHelper()` configuration. See the next section for more information.
+
+### Layout Object
+
+Every form should have a `Layout()` object assigned to the `FormHelper()` object's `layout` attribute, `self.helper.layout`. This object controls the form's HTML. Crispy uses a collection of HTML templates assigned to different `crispy_forms.layout` and `crispy_forms.bootstrap` classes to generate elements when the form is rendered.
+
+Many of these classes take all kwargs and pass them to the HTML templates as attributes. This means adding something like `id="my-div-id"` to an instance of `Div()` will result in Crispy using this to the render the div and set the div's `id` attribute to _my-div-id_.
+
+Some HTML attributes are keywords in Python, like `class`, so they require using a different argument. To set the class attribute, use `css_class`.
+
+This is powerful and makes it easy to maintain and modify the form, but it does mean style changes require more than saving a template and refreshing the webpage. While in `DEBUG` mode for development, every save action will restart the server. Plan form changes carefully to avoid excessive wait times for restarting the server.
+
+The layout for a basic `ClientNote` form might look like this example. This form display a single `TextArea` for a note. The only other fields are hidden fields used for associating the entry with an individual `Client` and individual `Users`.
+
+```json
+
+    def __init__(self, *args, **kwargs):
+        super(ClientNoteForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.form_class = "newitem"
+        self.helper.form_show_labels = False
+        self.helper.layout = Layout(
+            Div("note", "operator", "client"),
+            ButtonHolder(
+                Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
+```
+All of the fields are inside of an instance of the `Div()` class so they appear wrapped in `<div></div>` tags. While not used in this example, this allows for specifying a CSS class and other attributes for the div.
+
+The form concludes with a button to save the note and a button to cancel and leave the form.
+
+#### Button Controls
+
+Every form must end with at least two buttons, a submit button to save the entry and a cancel button to abandon the form.
+
+Assign the Submit button these CSS classes: `css_class="btn btn-primary col-md-4"`
+
+Assign the Cancel button these CSS classes: `css_class="btn btn-outline-secondary col-md-4`
+
+The submit button should be an instance of Crispy's `Submit()` class. This class accepts a name and a value. In most examples online the `name` parameter is set to _submit_. The name can be anything, but using _submit-button_ is generally preferred. The value should always be _Submit_.
+
+In many examples, including Crispy's own documentation, the `value` parameter is set to `submit`. This works in most cases, but can cause unintended issues if the form is ever used with JavaScript. Setting the name of any field or button to _submit_ masks the form's `submit()` method.
+
+Do not name submit buttons _submit_.
+
+Ghostwriter passes a `cancel_link` context variable to templates with forms. This variable contains a pre-defined URL that will return the user to a sensible location if they choose to abandon the form.
+
+Use Crispy's `HTML()` class to create a button with an `onclick` attribute that uses the `cancel_link` context variable and sets the other necessary values for the button.
+
+```json
+
+    HTML(
+        """
+        <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+        """
+    ),
+```
+The cancel button could be an instance of `Button()` with an `onclick` kwarg, but Django will not render context variables passed to the template in this way.
+
+#### Organizing Large Forms
+
+Large forms can be unwieldy, especially if the form contains one or more inline formsets that users can add to the form to make it longer. Large forms should be organized into Bootstrap tabs using Crispy's  `Tabholder()` class. This class must contain tabs that hold different sections of the form.
+
+Ghostwriter does not use Crispy's `Tab()` class. Instead, there is a `CustomTab()` class available in the project that allows for additional customization of the tabs.
+

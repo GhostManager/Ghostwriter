@@ -1,0 +1,69 @@
+---
+title: "Expected Services & Processes"
+---
+
+1. [Development](/development)
+
+If you would like to monitor or check the various processes and services running inside the containers, look for these processes.
+
+## Processes
+
+Manually list processes with `docker-compose` and these commands:
+
+```log
+docker-compose -f local.yml top django
+docker-compose -f local.yml top postgres
+docker-compose -f local.yml top queue
+docker-compose -f local.yml top redis
+```
+
+### Django
+
+```
+/bin/sh /start
+/usr/local/bin/python /usr/local/bin/uvicorn config.asgi:application --host 0.0.0.0 --reload
+/usr/local/bin/python -B -c from multiprocessing.resource_tracker import main;main(4)
+/usr/local/bin/python -B -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork
+```
+
+### Postgres
+
+```
+postgres
+postgres: checkpointer
+postgres: background writer
+postgres: walwriter
+postgres: autovacuum launcher
+postgres: stats collector
+postgres: logical replication launcher
+postgres: postgres ghostwriter 172.20.0.2(55562) idle
+postgres: postgres ghostwriter 172.20.0.2(50952) idle
+postgres: postgres ghostwriter 172.20.0.6(45862) idle
+postgres: postgres ghostwriter 172.20.0.2(41776) idle
+postgres: postgres ghostwriter 172.20.0.2(41794) idle
+postgres: postgres ghostwriter 172.20.0.5(38720) idle
+```
+
+### Queue
+
+```
+/bin/sh /start-queue
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+python manage.py qcluster
+```
+
+### Redis
+
+```
+redis-server
+```

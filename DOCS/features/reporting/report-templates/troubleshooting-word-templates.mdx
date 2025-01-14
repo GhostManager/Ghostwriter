@@ -1,0 +1,79 @@
+---
+title: "Troubleshooting Word Templates"
+description: "Tips for troubleshooting templates reporting issues inside Word"
+---
+
+## Potential Troubles
+
+You may see an error like this when opening your report in Word:
+
+<Frame>
+  <img src="/images/features/image-56.png" alt=""/>
+</Frame>
+
+Generally, clicking "Yes" here is fine, and Word will fix whatever error(s) it finds in the document. The trouble here is this could lead to Word removing or changing the content you want in the document. These changes may not be noticeable and cause you problems later.
+
+In some cases, the issue may be severe enough that Word displays this error after you click "Yes" or before ever displaying the above message:
+
+<Frame>
+  <img src="/images/features/image-57.png" alt=""/>
+</Frame>
+
+Read on to learn about the cause of these errors. If you'd rather try to fix the problem, jump down to [Fixing Errors](/features/reporting/report-templates/troubleshooting-word-templates#fixing-errors) below.
+
+### Background Information
+
+Your Office documents are archive files with XML files. You can open them with a utility like 7-zip to see the contents. An average Word document looks like this:
+
+<Frame>
+  <img src="/images/features/image-58.avif" alt=""/>
+</Frame>
+
+These XML files are OpenXML files. The _document.xml_ file is where your report content lives, and the _styles.xml_ file holds the styles saved in your document (these carry over from your template).
+
+As mentioned in the [Word Template Styles](/features/reporting/report-templates/word-template-styles) page, Word does not automatically include every style in a document. To minimize file size, only "built-in styles" and styles your document uses will travel with the document inside _styles.xml_.
+
+You can trigger one or both of the warnings shown above by following these steps:
+
+1.  Extract the contents of your Word document
+
+2.  Open _document.xml_ and make an edit to invalidate the XML (e.g., delete an opening or closing element tag)
+
+3.  Save _document.xml_ and re-compress the directory
+
+4.  Change the extension of your new _zip_ file to _docx_ and try opening it with Word
+
+
+As you change a document inside Word, the application is editing the XML. If Word detects a problem, it tries to fix it. This does not always go as planned. At times like these, you run into problems like whole sentences becoming part of a bookmark, paragraphs appearing as headers in your table of contents, or content disappearing.
+
+Ghostwriter opens your template file and uses that XML as a starting point to build your report. Next, Ghostwriter inserts the OpenXML for your report into _document.xml_. Sometimes, this may create invalid OpenXML. Usually, the root cause of the invalid XML is a problem in the template.
+
+For example, your template may have an issue in a list. Your template builds the list of items with a Jinja2 `for` loop, so the list in the template is a single item. If you add more bullets inside Word, the application will catch the issue and resolve it. The Jinja2 rendering happens outside of Word, so the issue is not caught and fixed before it creates a big enough issue that Word can't fix.
+
+### Fixing Errors
+
+There is no easy solution for locating and fixing these errors. Thankfully, these errors are rare.
+
+Begin by narrowing down where the problem exists in your template.
+
+1.  Download and open your template
+
+2.  Delete half the document
+
+3.  Save the document
+
+4.  Upload the modified document to Ghostwriter
+
+5.  Generate your report with this modified template
+
+6.  Try opening the resulting report
+
+
+If the document opens, you now know the problem is located in the deleted section(s) of your template. If you see the same error, repeat the above steps.
+
+Once you know which deleted section contains your issue, you can repeat the process with that deleted section to zero in on the error's location. In general, sections containing lists and loops are sections to pay attention to.
+
+Once you know where the issue is, it is typically simple to fix the problem. You can delete the sentence, bullet, or other element and re-type it. That's it.
+
+Once done, save your template and upload the fixed version to Ghostwriter.
+

@@ -1,0 +1,94 @@
+---
+title: "GraphQL Usage Examples"
+sidebarTitle: "Overview"
+description: "Examples of automating tasks and integrating external tools with Ghostwriter via the GraphQL API"
+---
+
+The following pages offer some ideas and examples for automating tasks or integrating tools with Ghostwriter for reporting or tracking infrastructure. Most examples will default to using Python's `gql` library, build upon the template you may have seen in the introduction to the GraphQL API, and assume you have an API token.
+
+This template is a good starting point for building automation or experimenting with the API. It includes logging and pulling information like your API token and Ghostwriter URL from a config file.
+
+<CodeGroup>
+  ```bash ghostwriter_graphql.py
+  import configparser
+  import logging
+
+  from gql import Client, gql
+  from gql.transport.aiohttp import AIOHTTPTransport
+  from gql.transport.exceptions import TransportQueryError
+  from graphql.error.graphql_error import GraphQLError
+  from asyncio.exceptions import TimeoutError
+
+  # Configure logging
+  log_handler = logging.StreamHandler(sys.stdout)
+  log_handler.setLevel(logging.DEBUG)
+  log_format = logging.Formatter("%(levelname)s %(asctime)s %(message)s")
+  log_handler.setFormatter(log_format)
+
+  logger = logging.getLogger(__name__)
+  logger.addHandler(log_handler)
+  logger.setLevel(logging.INFO)
+
+  # Load the config file values
+  config = configparser.ConfigParser()
+  config.read("config.ini")
+
+  # Ghostwriter API URL and variables
+  GHOSTWRITER_API_URL = f"{config['ghostwriter']['gw_url'].strip('/')}/v1/graphql"
+  GHOSTWRITER_TOKEN = config['ghostwriter']['api_token']
+
+  try:
+  	# Define some queries or mutations as `gql()` objects here
+  	whoami_query = gql(
+  	    """
+  	    query Whoami {
+  	        whoami {
+  	            username role expires
+  	        }
+  	    }
+  	    """
+  	)
+
+  	# Configure the GQL transport
+  	headers = {"Authorization": f"Bearer {GHOSTWRITER_TOKEN}"}
+  	transport = AIOHTTPTransport(url=GHOSTWRITER_API_URL, headers=headers)
+  	authenticated_client = Client(transport=transport, fetch_schema_from_transport=True)
+
+  	# Test the token with a `whois` query
+  	result = authenticated_client.execute(whoami_query)
+  	logger.info(f"Authenticated as {result['whoami']['username']}")
+
+  	# Execute queries and mutation with `authenticated_client.execute()` here
+
+  except TimeoutError:
+  	# Do something...
+  	pass
+  except TransportQueryError as e:
+  	# Do something...
+  	pass
+  except GraphQLError as e:
+  	# Do something...
+  	pass
+  ```
+</CodeGroup>
+
+Here is an example template for a config file you might use to store secrets and other variables:
+
+<CodeGroup>
+  ```bash config.ini
+  [ghostwriter]
+  gw_url=http://localhost:8080
+  project_id=11
+  api_token=eyJhbGciOiJIUzI1NiI...
+  ```
+</CodeGroup>
+
+You need three libraries to run the script:
+
+<CodeGroup>
+  ```bash requirements.txt
+  requests==2.32.3
+  gql==3.5.0
+  aiohttp==3.10.5
+  ```
+</CodeGroup>

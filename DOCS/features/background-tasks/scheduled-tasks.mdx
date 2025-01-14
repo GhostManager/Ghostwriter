@@ -1,0 +1,20 @@
+---
+title: "Scheduling Tasks"
+description: "Configuring tasks to run repeatedly on a schedule"
+---
+
+
+## Scheduling a Task
+
+Tasks are scheduled in the Django admin panel under _Django Q_ and _Scheduled Tasks_. Add a new task, give the task a name, and tell it which function to run. Functions must be prefixed with `tasks.` to tell Django Q to pull the functions from `tasks.py`. The final requirement is a schedule. Tasks can be run once or repeatedly (e.g. minutes, hourly, daily, weekly).
+
+<Info>
+To schedule the `release_servers()` function inside `tasks.py`, you would enter the function name as: `tasks.release_servers`
+</Info>
+You can provide arguments for the functions as needed. Ghostwriter's scheduled tasks do not require arguments, but some have optional arguments. For example, the `scan_servers()` function accepts an `active_only` argument to restrict scanning only to servers that have been checked out for a project.
+
+### Example Scheduled Task
+
+Visit the Django Q database from the admin panel to access the _Scheduled Tasks_. You may wish to create a scheduled task to automatically release domains at the end of a project. There is a task for this already in `tasks.py`, `ghostwriter.shepherd.tasks.release_domains`.
+
+This example executes `ghostwriter.shepherd.tasks.release_domains` under the name `Domain Release` every day at 15:39 UTC with no additional args or kwargs.

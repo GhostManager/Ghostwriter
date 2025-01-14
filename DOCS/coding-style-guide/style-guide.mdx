@@ -1,0 +1,242 @@
+---
+title: "Overview"
+description: "Coding style guide for the Ghostwriter code base"
+---
+
+## Introduction
+
+
+To maintain consistency as the project develops, all contributors to the project should keep the following requirements in mind before committing code or submitting a pull request. Using Visual Studio Code (VSCode) makes it easier to follow this style guide. If a developer uses a different editor, pre-commit hooks are provided at the bottom of the page.
+
+## Code Formatting
+
+
+The Ghostwriter project uses Python Black to enforce code style.
+
+<CardGroup cols={1}> <Card title="GitHub - psf/black: The uncompromising Python code formatter" icon="github" iconType="solid" href="https://github.com/psf/black" > <img src="https://github.com/fluidicon.png" alt="Logo" /> </Card> </CardGroup>
+
+Microsoft's official Python extension for VSCode supports formatters like Black. Microsoft's documentation covers this topic:
+
+[https://code.visualstudio.com/docs/python/editingcode.visualstudio.com](https://code.visualstudio.com/docs/python/editing)
+
+Black is "opinionated" and automatically changes things to keep code consistent – like intelligently changing single quotes to double quotes.
+
+1.  Install the Python extension in VSCode (SHIFT+CMD+X and search for `python`)
+
+2.  Install Black for the Python interpreter or virtual environment selected for VSCode
+
+3.  Add the following settings to VSCode's _settings.json_:
+
+
+```json
+"editor.formatOnSave": true,
+"python.formatting.provider": "black",
+"python.formatting.blackArgs": [
+    "--line-length",
+    "90"
+],
+```
+VSCode will now use Black to format all Python files on save actions.
+
+### Managing Whitespace
+
+Black will not automatically delete trailing whitespace or whitespace on otherwise empty lines. Trailing whitespace will be identified by the linter (below). Add this line to VSCode's _settings.json_ file to automatically delete trailing whitespace on save:
+
+```json
+"files.trimTrailingWhitespace": true
+```
+## Managing Imports
+
+The Ghostwriter project also uses `Isort` which is part of the Python extensions `Python Refactor` toolkit (`Python Refactor: Sort Imports`).
+
+[![Logo](https://pypi.org/static/images/favicon.6a76275d.ico)isortPyPI](https://pypi.org/project/isort/)
+
+This tool sorts imports by library types (FUTURE, STDLIB, THIRDPARTY, FIRSTPARTY, LOCALFOLDER) and then alphabetically. It is customizable to generate comments and sort by line length. Ghostwriter code repository includes an _.isort.cfg_ file. Ghostwriter's current configuration contains:
+
+```json
+[settings]
+profile=ghostwriter
+src_paths=isort,test
+atomic=True
+line_length=90
+use_parentheses=True
+ensure_newline_before_comments=True
+import_heading_stdlib=Standard Libraries
+import_heading_firstparty=Ghostwriter Libraries
+import_heading_thirdparty=Django & Other 3rd Party Libraries
+```
+
+This configuration enforces the use of parentheses, adds newlines between sections, and keeps the line length /\<= 90 characters. It also adds custom comments before standard libraries, third-party libraries, and Ghostwriter's local first-party libraries.
+
+Here is an example:
+
+```json
+
+    # Ghostwriter Libraries
+    from ghostwriter.modules import codenames
+
+    from .filters import ClientFilter, ProjectFilter
+    from .forms import (
+        AssignmentCreateForm,
+        ClientContactCreateForm,
+        ClientCreateForm,
+        ClientNoteCreateForm,
+        ProjectAssignmentFormSet,
+        ProjectCreateForm,
+        ProjectForm,
+        ProjectNoteCreateForm,
+        ProjectObjectiveCreateForm,
+        ProjectObjectiveFormSet
+    )
+    from .models import (
+        Client,
+        ClientContact,
+        ClientNote,
+        ObjectiveStatus,
+        Project,
+        ProjectAssignment,
+        ProjectNote,
+        ProjectObjective
+    )
+```
+
+Once the Python extension is installed, run `isort` by pressing SHIFT+CMD+P and selecting `Python Refactor: Sort Imports`.
+
+## Line Length
+
+The Ghostwriter project enforces a 90 to 119-character line length limit.
+
+The PEP-8 style guide says to limit lines to 79-characters, but that leads to longer files that use half the horizontal space. The Django Project enforces 119-character lines because that's the maximum characters displayed (without scrolling) by GitHub's code viewer.
+
+Black defaults to 88, but says "90-ish is a wise choice." See here:
+
+[https://black.readthedocs.io/en/stable/the\_black\_code_style.html#line-lengthblack.readthedocs.io](https://black.readthedocs.io/en/stable/the_black_code_style.html#line-length)
+
+> You probably noticed the peculiar default line length. _Black_ defaults to 88 characters per line, which happens to be 10% over 80. This number was found to produce significantly shorter files than sticking with 80 (the most popular), or even 79 (used by the standard library). In general, [90-ish seems like the wise choice](https://youtu.be/wf-BqAjZb8M?t=260).
+
+The Ghostwriter project does not use 88 because it is registered as a numerical hate symbol by the Anti-Defamation League. `Isort` defaults to 79 to match PEP-8, so a line length must be configured to avoid style conflicts.
+
+For these reasons, the Ghostwriter project requires maximum line length be between 90 and 119-characters to keep everything comfortable to read in code editors and on GitHub. Any lines shorter than 90 should not be split, and longer lines should not exceed 119-characters without reason.
+
+## Docstrings
+
+
+The Ghostwriter project requires consistent docstrings for all views, functions, forms, models, and other classes and objects. Ghostwriter's docstrings deviate from PEP-8 in favor of Django's style. Django can read docstrings and generate documentation. That only works for database models and views, but the style should be applied to other parts of the project for consistency.
+
+See Django's documentation:
+
+[![Logo](https://static.djangoproject.com/img/icon-touch.e4872c4da341.png)The Django admin documentation generator | Django documentation | Django](https://docs.djangoproject.com/en/3.0/ref/contrib/admin/admindocs/)
+
+A good view docstring looks like this:
+
+
+```json
+    class ClientDetailView(LoginRequiredMixin, generic.DetailView):
+        """
+        Display an individual :model:`rolodex.Client`.
+
+        **Context**
+
+        ``domains``
+            List of :model:`shepherd.Domain` associated with :model:`rolodex.Client`.
+        ``servers``
+            List of :model:`shepherd.StaticServer` associated with :model:`rolodex.Client`.
+        ``vps``
+            List of :model:`shepherd.TransientServer` associated with :model:`rolodex.Client`.
+
+        **Template**
+
+        :template:`rolodex/client_detail.html`
+        """
+```
+
+Note the newline after the opening `"""` which deviates from standard practice (per PEP-8). Further, the use of grave accents, asterisks ( * ), and colons ( : ). are all purposeful and important. Django and `docutils` convert these symbols into formatting for the auto-generated documentation in the admin panel.
+
+The above example is rendered like this:
+
+![](https://www.ghostwriter.wiki/~gitbook/image?url=https%3A%2F%2F1408755273-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-legacy-files%2Fo%2Fassets%252F-LlOJdrSdgKfLf_tEm3S%252F-MCTv60mzzLBgvfNOSj6%252F-MCU1XqjHK6x0DR10h2W%252Fimage.png%3Falt%3Dmedia%26token%3D528a4a2d-fef2-43dd-b61a-b986bfa2649c&width=768&dpr=4&quality=100&sign=71a427b&sv=2)
+
+Anything wrapped in grave accent marks will be transformed into a link leading to the related object (e.g., a model).
+
+When seeking to emphasize a variable, function name, or something else that should not become a link, wrap the string in double grave accent marks, as seen around the context variables in the above example.
+
+Likewise, asterisks will cause a string to be rendered as a header. Do not wrap anything in asterisks that should not become a header for a section. Follow the documentation for the Django admin documentation generator to see how headers are used.
+
+Finally, docstrings should have newlines between sections and section headers. These newlines should be completely empty – i.e., they should have no whitespace.
+
+<Check>
+Setup VSCode snippets to create templates for repeated code snippets, like docstrings.
+
+```json
+"UpdateView Docstring": {
+    "prefix": "update",
+    "body": [
+        "\"\"\"",
+        "Update an individual :model:`${1:model}`.",
+        "",
+        "**Template**",
+        "",
+        ":template:`${2:template}`",
+        "\"\"\"",
+    ],
+    "description": "A docstring template for an UpdateView"
+},
+```
+</Check>
+
+## Linting
+
+
+
+The Ghostwriter project recommends using `flake8` to lint Ghostwriter's code. The VSCode Python extension natively supports linting and a variety of linters.
+
+[https://code.visualstudio.com/docs/python/lintingcode.visualstudio.com](https://code.visualstudio.com/docs/python/linting)
+
+The project recommends changing VSCode's default `PyLint` to `flake8` because this linter is much faster and snappier – especially with some of Ghostwriter's longer Python files (e.g., a _views.py_). The `flake8` linter is logical and stylistic, like `PyLint`. Black should handle most of the linting, but it won't flag unused imports.
+
+When the linter returns errors or warnings, VSCode changes the filename to yellow or red. The editor also displays squiggles under the affected lines.
+
+Address all linting issues before committing any code. At a minimum, eliminate trailing whitespace and remove unused imports.
+
+## Pre-commit Hooks
+
+
+In lieu of the VS Code extensions and configurations, developers can use pre-commit hooks to catch style guide violations.
+
+Find the project documentation here:
+
+<CardGroup cols={1}> <Card title="pre-commit" icon="check-circle" iconType="solid" href="https://pre-commit.com/" > <img src="https://pre-commit.com/favicon.ico" alt="Logo" /> </Card> </CardGroup>
+
+From the documentation's introduction:
+
+> Git hook scripts are useful for identifying simple issues before submission to code review. We run our hooks on every commit to automatically point out issues in code such as missing semicolons, trailing whitespace, and debug statements. By pointing these issues out before code review, this allows a code reviewer to focus on the architecture of a change while not wasting time with trivial style nitpicks.
+
+First, install the library by running `pip install pre-commit` for your local development environment.
+
+Add a `.pre-commit-config.yaml` file to the project's root directory. Use the example below as a model for this file.
+
+Once the file is in place, run `pre-commit install` to hook future git commits.
+
+
+```json
+exclude: 'docs|node_modules|migrations|.git|.tox'
+default_stages: [commit]
+fail_fast: true
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: master
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+  - repo: https://github.com/psf/black
+    rev: 19.10b0
+    hooks:
+      - id: black
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.3
+    hooks:
+      - id: flake8
+        args: ['--config=setup.cfg']
+        additional_dependencies: [flake8-isort]
+```
