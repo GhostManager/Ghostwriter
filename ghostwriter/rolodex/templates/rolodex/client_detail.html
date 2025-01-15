@@ -103,6 +103,45 @@
                 </div>
             </div>
 
+            {% comment %} Invitations {% endcomment %}
+            {% if request.user|is_privileged %}
+                <div id="invitations" class="tab-pane">
+                    <h4>Invitations</h4>
+                    <hr />
+                    <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#invites">Add Invitation</a>
+                    <p class="text-center offset-2 col-8">Users listed here have view access to this client and all of their projects, infrastructure, etc.</p>
+                    {% if client.clientinvite_set.all %}
+                        <table id="clientTable" class="tablesorter table table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="align-middle pr-4">Name</th>
+                                    <th class="align-middle pr-4">Comment</th>
+                                </tr>
+                            </thead>
+                            {% for invite in client.clientinvite_set.all %}
+                                <tr>
+                                    <td class="align-middle">
+                                        <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
+                                            {% if invite.user.name %}
+                                                {{ invite.user.name }}
+                                            {% else %}
+                                                Missing Full Name ({{ invite.user.username|capfirst }})
+                                            {% endif %}
+                                        </a>
+                                    </td>
+
+                                    <td class="align-middle">
+                                        {{ invite.comment|bleach }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% else %}
+                        <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.</div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
             <!-- POC Tab -->
             <div id="contacts" class="tab-pane">
                 <h4>Client Contacts</h4>
@@ -169,6 +208,7 @@
                             </tr>
                         </thead>
                         {% for project in projects %}
+                          {% if project|has_access:request.user %}
                             <tr>
                                 <td class="align-middle"><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                                 <td class="align-middle">{{ project.project_type }}</td>
@@ -184,6 +224,15 @@
                                     </div>
                                 </td>
                             </tr>
+                          {% else %}
+                            <tr>
+                              <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                              <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                              <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                              <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                              <td class="align-middle"></td>
+                            </tr>
+                          {% endif %}
                         {% endfor %}
                     </table>
                 {% else %}
@@ -254,45 +303,6 @@
                   <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No infrastructure history for this client yet.</div>
                 {% endif %}
             </div>
-
-            {% comment %} Invitations {% endcomment %}
-            {% if request.user|is_privileged %}
-                <div id="invitations" class="tab-pane">
-                    <h4>Invitations</h4>
-                    <hr />
-                    <p class="text-justify offset-2 col-8">Users listed here have view access to this client and all of their projects, infrastructure, etc.</p>
-                    <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#invites">Add Invitation</a>
-                    {% if client.clientinvite_set.all %}
-                        <table id="clientTable" class="tablesorter table table-striped">
-                            <thead>
-                                <tr>
-                                    <th class="align-middle pr-4">Name</th>
-                                    <th class="align-middle pr-4">Comment</th>
-                                </tr>
-                            </thead>
-                            {% for invite in client.clientinvite_set.all %}
-                                <tr>
-                                    <td class="align-middle">
-                                        <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
-                                            {% if invite.user.name %}
-                                                {{ invite.user.name }}
-                                            {% else %}
-                                                Missing Full Name ({{ invite.user.username|capfirst }})
-                                            {% endif %}
-                                        </a>
-                                    </td>
-
-                                    <td class="align-middle">
-                                        {{ invite.comment|bleach }}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    {% else %}
-                        <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.</div>
-                    {% endif %}
-                </div>
-            {% endif %}
 
             {% comment %} Extra Fields Tab {% endcomment %}
             {% if client_extra_fields_spec %}
