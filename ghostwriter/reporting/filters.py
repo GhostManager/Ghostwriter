@@ -11,6 +11,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
+from ghostwriter.modules.shared import search_tags
 from ghostwriter.reporting.models import (
     Archive,
     Finding,
@@ -64,6 +65,17 @@ class FindingFilter(django_filters.FilterSet):
         ),
     )
 
+    # Dummy filter to add a checkbox onto the form, which the view uses to select Findings vs
+    # ReportFindingLinks
+    on_reports = django_filters.BooleanFilter(
+        method="filter_on_reports",
+        label="Search findings on reports",
+        widget=forms.CheckboxInput,
+    )
+
+    def filter_on_reports(self, queryset, *args, **kwargs):
+        return queryset
+
     class Meta:
         model = Finding
         fields = ["title", "severity", "finding_type"]
@@ -100,6 +112,16 @@ class FindingFilter(django_filters.FilterSet):
                     ),
                     css_class="form-row",
                 ),
+                Row(
+                    Column(
+                        "on_reports",
+                        css_class="col-md-12 m-1",
+                        data_toggle="tooltip",
+                        data_placement="top",
+                        title="Return results from reports instead of the library",
+                    ),
+                    css_class="form-row",
+                ),
                 ButtonHolder(
                     HTML(
                         """
@@ -119,7 +141,7 @@ class FindingFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter findings by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)
 
 
 class ObservationFilter(django_filters.FilterSet):
@@ -188,7 +210,7 @@ class ObservationFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter observation by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)
 
 
 class ReportFilter(django_filters.FilterSet):
@@ -276,7 +298,7 @@ class ReportFilter(django_filters.FilterSet):
 
     def search_tags(self, queryset, name, value):
         """Filter reports by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        return search_tags(queryset, value)
 
 
 class ArchiveFilter(django_filters.FilterSet):
@@ -434,5 +456,5 @@ class ReportTemplateFilter(django_filters.FilterSet):
         )
 
     def search_tags(self, queryset, name, value):
-        """Filter reports by tags."""
-        return queryset.filter(tags__name__in=[value]).distinct()
+        """Filter report templates by tags."""
+        return search_tags(queryset, value)

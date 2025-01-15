@@ -1,0 +1,67 @@
+---
+title: "Prebuilt Tasks"
+---
+
+
+The following information is for Ghostwriter's provided tasks
+
+## Release Domains
+
+The `ghostwriter.shepherd.tasks.release_domains` function checks if the currently checked-out domain names are due to be released. If Slack is enabled, it sends a Slack message when the domain's release date is tomorrow or today. If the release date is today, the domain is also released back into the pool.
+
+The task accepts an optional `reset_dns` argument that defaults to `False`. If this argument is set to `True`, the task will use the Namecheap API to reset the domain's DNS records upon release. This feature requires:
+
+* Namecheap API enabled and configured
+
+* The domain is registered with Namecheap
+
+* The domain's registrar in the domain library is set to "Namecheap"
+
+## Release Servers
+
+The `ghostwriter.shepherd.tasks.release_servers` function checks if the currently checked-out servers are due to be released. It sends a Slack message if Slack is enabled and the server's release date is tomorrow or today. If the release date is today, the server is also released back into the pool.
+
+## Check Domains
+
+The `ghostwriter.shepherd.tasks.check_domains` function checks each domain name to update categorization. The function uses the VirusTotal API to pull domain categorization data and related malware alerts.
+
+## Update DNS
+
+The `ghostwriter.shepherd.tasks.update_dns` function updates Ghostwriter's records of each domain's current DNS records using `dnspython` and constructed DNS queries.
+
+## Archive Projects
+
+The `ghostwriter.reporting.tasks.archive_projects` function collects a list of projects marked as complete and checks if the project's end date is 90 days (default) in the past. Completed projects older than the specified number of days are archived. This process mostly affects reports attached to the project. Each report is marked as complete (if not already marked as such) and marked as archived. All report types are generated and rolled into a zip file with copies of all of the evidence files. Finally, the evidence files are deleted. The archive files can be browsed and downloaded as needed.
+
+## Scan Servers
+
+The `ghostwriter.shepherd.tasks.scan_servers` function collects a list of static servers cataloged in Ghostwriter, scans them for open ports using `python-nmap`, and records the results (the open port number and protocol). Then, the results are compared to previous results. Ghostwriter will send a Slack notification if a new port is open if Slack is enabled.
+
+This function focuses on the static servers because these servers are assumed to be owned by you and used for command and control (C2). These servers should not have open services exposed to the whole internet, so this is meant to alert you of open ports accessible outside of your management ranges. Transient servers (i.e., virtual private servers, cloud servers) will likely have open ports for phishing webpages and C2 redirection.
+
+If you will be using this task, the Q cluster needs to be started using an administrator / root permissions. Administrative privileges are required for the TCP SYN scan.
+
+## Namecheap Synchronization
+
+The `tasks.fetch_namecheap_domains` uses the Namecheap API to fetch all domains from the registrar for the configured account and synchronizes that information with the domain library. If a domain name is found in the library already, the task will update that record.
+
+If a Namecheap-registered domain in the Ghostwriter library is not found in the fresh list of domains, the task will mark that domain as expired.
+
+## Cloud Monitoring
+
+The `review_cloud_infrastructure` task uses the Amazon Web Services and Digital Ocean APIs to check all running server instances and compare those to cloud servers attached to projects. If a project is marked as complete, the task will flag any running cloud servers attached to that project for review.
+
+The task will send a Slack message with all relevant server data to the project's channel if Slack is enabled.
+
+## Update Expiration
+
+The `check_expiration` task checks the expiration dates of all domains in the domain library and compares them to the current date. If the domain is set to auto-renew, the task will increment the expiration date by one year. Otherwise, the task will mark the domain as expired.
+
+## Operation Log Monitor
+
+The `ghostwriter.modules.oplog_monitors.review_activity_logs` task checks operation logs for activity. It reviews all logs for all active projects. By default, the task looks for an entry created in the past 24 hours. You can change the hours by setting the `hours` argument when scheduling the task.
+
+The task outputs JSON detailing all activity logs that appear to be idle. This is useful for catching automated activity logging that may have started failing.
+
+If a Slack webhook is enabled and configured, the task will also send a Slack message to the project's Slack channel (if configured) or the global Slack channel.
+

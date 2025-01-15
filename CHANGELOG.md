@@ -1,8 +1,192 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [4.3.11] - 8 January 2025
+
+### Changed
+
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.22
+
+## [4.3.10] - 3 January 2025
+
+### Added
+
+* Added a `HASURA_GRAPHQL_SERVER_HOSTNAME` for the DotEnv file to allow for setting the Hasura server hostname (Fixes #566)
+  * This is available for Kubernetes deployments (see issue #566)
+  * For all other deployments, the Hasura server hostname should be left set to `graphql_engine` by default
+
+### Changed
+
+* The linter now checks if the list styles are of type `PARAGRAPH` in the Word template
+* The archived reports page now displays the project name for each report to help with identification
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.21
+
+## [4.3.9] - 10 December 2024
+
+### Changed
+
+* Evidence previews for custom fields and evidence detail pages now display evidence at 6.5" wide to mimic the standard full-width seen in a Word document
+
+### Fixed
+
+* Fixed an issue that could cause improper casing for the first word in a caption
+
+## [4.3.8] - 6 December 2024
+
+### Added
+
+* Added buttons to jump to a selected template from the report dashboard
+
+### Changed
+
+* Enabled pasting with formatting in the WYSIWYG editor
+  * This change allows you to paste formatted text from other sources (e.g., Word documents) into the editor
+  * This caused issues in the past when pasting from Word, some terminals, and some websites, but the reporting engine seems to handle the formatting well now
+  * **Note:** Pasting with formatting may not work as expected in all cases, so please check your pasted content in the editor before generating a report
+* Increased the auto-complete list's maximum items from 10 to 20 to show more evidence files
+* Using the "Upload Evidence" button in the editor now pushes a `ref` version of the auto-complete entry to the auto-complete list upon successful upload
+
+### Fixed
+
+* Fixed activity log filtering not working correctly when very large log entries were present (PR #558)
+
+## [4.3.7] - 25 November 2024
+
+### Fixed
+
+* Fixed forms not accepting decimal values for extra fields (PR #554)
+* Fixed cross-references not working when the reference name contained spaces (PR #556)
+
+## [4.3.6] - 14 November 2024
+
+### Added
+
+* Added support for table captions in the WYSIWYG editor (PR #547)
+  * Caption text can be customized by right-clicking on the table > Table Properties > General > Show caption
+* Added report configuration options for figure and table caption placement (above or below) for Word
+
+### Changed
+
+* Production deployments now default to only exposing PostgreSQL and Hasura ports to internal services (PR #551)
+  * This change is to improve security by limiting the number of exposed ports on the server
+  * If you need direct access to PostgreSQL or Hasura, you can adjust the Docker Compose file to expose the ports on the host system or run a utility like `psql` inside the container
+
+### Fixed
+
+* Fixed observations not being cloned when cloning a report (PR #548)
+* Fixed lists being styled as _List Paragraph_ in Word instead of with user-defined _Bullet List_ or _Number List_ styles (PR #550)
+
+## [4.3.5] - 30 October 2024
+
+### Changed
+
+* The `added_as_blank` attribute for findings is now included in the template linter
+
+### Fixed
+
+* Fixed `false` values appearing as `""` in the report template context after release v4.3.4
+
+## [4.3.4] - 24 October 2024
+
+### Changed
+
+* Adjusted the duplicate IP address checks for cloud servers on a project to make them more robust to catch more edge cases
+
+### Fixed
+
+* Fixed an issue with creating a new cloud server on a project
+
+## [4.3.3] - 21 October 2024
+
+### Added
+
+* Added display for the temporal and environmental scores on the CVSS v3.1 calculator (Closes #536)
+* Added a `cvss_data` key to the report context that includes the CVSS data for each finding
+  * The key is a list that includes four items: the CVSS version, score(s), severity, and your configured color for the severity
+  * The score and severity data includes the temporal and environmental scores for CVSS v3.1, so those scores, severities, and colors are lists (base, temporal, environmental)
+  * The data is available for use in the report template
+
+### Fixed
+
+* Fixed values of zero (e.g., `0` or `0.0`) displaying as "No Value Set" for extra fields (Closes #541)
+* Fixed a minor style issue with the sidebar
+
+## [4.3.2] - 30 Sep 2024
+
+### Added
+
+* Add a `severities` key to the report context that includes a list of all severity categories in the database (Closes #427)
+  * Each severity category includes the category's name, color as a hex value, color as an RGB value, color as a hex tuple, and the category's weight
+  * Each entry also has a `severity_rt` RichText object  for Word that places the severity in a font color that matches the severity's color
+    * This object is identical to the `severity_rt` object on findings
+
+### Changed
+
+* Reworked the CVSS calculators on findings to allow switching between CVSS v3/3.1 and v4 (Closes #232, #356, #387, and #509)
+  * Changes include the addition of the "modified" metrics like temporal, environmental, threat, and supplemental sections
+* Changed autocomplete suggestions in the WYSIWYG editor to no longer be case-sensitive (Fixes #440)
+
+### Fixed
+
+* Fixed archive report generation failing due to the Word template used for the PowerPoint report (PR #528)
+
+## [4.3.1] – 25 Sep 2024
+
+### Added
+
+* Added a `replace_blanks` filter to the report template engine to replace blank values in a dictionary with a specified string
+  * This filter is useful when sorting a list of dictionaries with an attribute that may have a blank value
+* Added an option in the change search in the findings library to search findings attached to reports (Closes #400)
+  * Instead of matches from the library, the search will return results for findings attached to reports to which the user has access
+
+### Changed
+
+* Changed the serializer for report context to replace null values with a blank string (`""`) to help prevent errors when generating reports
+  * **Note:** This change may affect templates that rely on null values to trigger conditional logic, but most conditional statements should not be affected
+  * **Example:** The condition `{% if not X %}` will evaluate to `True` if `X` is `None` or `""`
+* Changed the report form to allow users with the `admin` or `manager` roles to change the report's project (Closes #368)
+  * This change allows a report to be moved from one project to another (e.g., you make a copy for a follow-up assessment)
+  * This feature is only available to users with the `admin` or `manager` roles to prevent accidental data leaks
+
+### Fixed
+
+* Fixed an edge case with the Namecheap sync task that could lead to a domain remaining marked as expired after re-purchasing it or renewing it during the grace period
+
+## [4.3.0] – 23 Sep 2024
+
+### Added
+
+* Added two mutations to the GraphQL API to support uploading new evidence files and report template files (Closes #230)
+* Added a new adapter for handling authentication for Single Sign-On (SSO) providers
+  * The adapter fills-in a nearly full profile for any new accounts (full name, email address, username)
+  * Usernames for new accounts will default to the first half of the email address
+  * If an existing account has the same email address, the accounts will be linked
+  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on)
+* Added support for loading customized config files
+  * These are files you can use to modify settings normally found in _/config/settings/base.py_ and _production.py_
+  * Admins can make changes to the custom config files without worrying about the changes needing to be stashed prior to pulling an update
+  * Review this section of the wiki for information: [https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider](https://www.ghostwriter.wiki/features/access-authentication-and-session-controls/single-sign-on#configuring-an-sso-provider)
+* Added support for a JSON field type for custom fields
+* Added a "Tags" column to the domain and server library tables
+
+### Changed
+
+* Updated the `django-allauth` module used for authentication and SSO
+  * **Important:** This change impacts anyone currently using SSO with Azure
+  * The `azure` provider is now `microsoft` and SSO configurations will need to be updated
+* Changed the cloud infrastructure monitoring task to also check auxiliary IP addresses when determining if a cloud host is tracked in a project
+* Cloud hosts tracked on a project no longer require a unique IP address
+  * A warning is displayed if a cloud host is tracked on a project with multiple hosts sharing the same IP address
+* Changed filtering on tags to be case-insensitive
+* On the report dashboard, clicking an autocomplete suggestion for a finding or observation will now add the item to the report
+
+### Fixed
+
+* Fixed spaces disappearing after Microsoft Word cross-references placed at the beginning of a new line or paragraph
 
 ### [4.2.5] - 7 August 2024
 

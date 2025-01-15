@@ -1,0 +1,27 @@
+---
+title: "Managing Logon Sessions"
+description: "Managing cookie age and logon session expirations"
+---
+
+You can adjust session management with three configuration values:
+
+* *DJANGO\_SESSION\_COOKIE\_AGE*
+
+  * Sets the number of seconds a session cookie will last before expiring (default: *32400* seconds or nine hours)
+
+* *DJANGO\_SESSION\_SAVE\_EVERY\_REQUEST*
+
+  * Sets whether the session cookie will refresh on every request (default: *true*)
+
+* *DJANGO\_SESSION\_EXPIRE\_AT\_BROWSER\_CLOSE*
+
+  * Sets whether the session cookie will expire when the browser is closed (default: *true*)
+
+These defaults are a good starting point. Still, you should consider how your team uses Ghostwriter and adjust accordingly. We chose nine hours for the expiration, so a session can last an entire workday — just in case someone is in the middle of something and has to walk away for an extended period. You may want to reduce this value to one or two hours.
+
+With *DJANGO\_SESSION\_SAVE\_EVERY\_REQUEST* set to *true*, the server will update the session with each request. Updates reset the expiration, so a short expiry period won’t log out anyone actively using Ghostwriter but will allow inactive sessions to expire.
+
+If set to *true*, the last option will expire sessions after the browser quits. However, whether the session ends when you close the browser window depends on the browser. Some browsers, like Chrome, will keep sessions active, so you may need to quit or exit the browser to end the session versus just closing the browser window.
+
+You can manage these values via the Ghostwriter command-line interface (CLI) tool.
+

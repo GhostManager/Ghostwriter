@@ -18,6 +18,7 @@ from docx.shared import RGBColor as DocxRgbColor
 from lxml import etree
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.modules.reportwriter.extensions import (
     IMAGE_EXTENSIONS,
     TEXT_EXTENSIONS,
@@ -39,7 +40,6 @@ class HtmlToDocx(BaseHtmlToOOXML):
         super().__init__()
         self.doc = doc
         self.p_style = p_style
-        self.list_styles_cache = {}
 
     def text(self, el, *, par=None, style={}, **kwargs):
         # Process hyperlinks on top of the usual text rules
@@ -70,7 +70,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
             run._r.append(hyperlink)
             # A workaround for the lack of a hyperlink style
             if "Hyperlink" in self.doc.styles:
-                run.style = "Hyperlink"
+                try:
+                    run.style = "Hyperlink"
+                except KeyError:
+                    pass
             else:
                 run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
                 run.font.underline = True
@@ -80,7 +83,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def style_run(self, run, style):
         super().style_run(run, style)
         if style.get("inline_code"):
-            run.style = "CodeInline"
+            try:
+                run.style = "CodeInline"
+            except KeyError:
+                pass
             run.font.no_proof = True
         if style.get("highlight"):
             run.font.highlight_color = WD_COLOR_INDEX.YELLOW
@@ -99,7 +105,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.text_tracking.new_block()
         if "data-gw-pagebreak" in el.attrs:
             self.doc.add_page_break()
-        else:
+        elif par is not None:
             run = par.add_run()
             run.add_break()
 
@@ -111,13 +117,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
             run = heading_paragraph.runs[0]
             tag = run._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
-            start.set(docx.oxml.ns.qn("w:id"), "0")
+            start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
             start.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
             tag.append(start)
             end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
-            end.set(docx.oxml.ns.qn("w:id"), "0")
+            end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
             end.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
             tag.append(end)
+            self.current_bookmark_id += 1
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
@@ -206,11 +213,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
             )
 
         if this_list_level == 0:
-            list_tracking.create(self.doc, self.list_styles_cache)
+            list_tracking.create(self.doc)
 
     tag_ol = tag_ul
 
-    def tag_blockquote(self, el, **kwargs):
+    def tag_blockquote(self, el, par=None, **kwargs):
         # TODO: if done in a list, this won't preserve the level.
         # Not sure how to do that, since this requires a new paragraph.
         par = self.doc.add_paragraph()
@@ -224,7 +231,6 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         self.set_autofit()
-
         return table
 
     def paragraph_for_table_cell(self, cell, td_el):
@@ -266,10 +272,15 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     def __init__(
         self,
         doc,
+        *,
         p_style,
         evidences,
         figure_label: str,
         figure_prefix: str,
+        figure_caption_location: str,
+        table_label: str,
+        table_prefix: str,
+        table_caption_location: str,
         title_case_captions: bool,
         title_case_exceptions: list[str],
         border_color_width: tuple[str, float] | None,
@@ -278,10 +289,15 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.evidences = evidences
         self.figure_label = figure_label
         self.figure_prefix = figure_prefix
+        self.figure_caption_location = figure_caption_location
+        self.table_label = table_label
+        self.table_prefix = table_prefix
+        self.table_caption_location = table_caption_location
         self.title_case_captions = title_case_captions
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
+        self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -297,15 +313,29 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
-            par.style = "Caption"
-            par._gw_is_caption = True
-            self.make_figure(par, ref_name or None)
+            self.make_caption(par, self.figure_label, ref_name or None)
+            par.add_run(self.figure_prefix)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
         else:
             super().tag_span(el, par=par, **kwargs)
+
+    def tag_table(self, el, **kwargs):
+        if self.table_caption_location == "top":
+            self._mk_table_caption(el)
+        super().tag_table(el, **kwargs)
+        if self.table_caption_location == "bottom":
+            self._mk_table_caption(el)
+
+    def _mk_table_caption(self, el):
+        par_caption = self.doc.add_paragraph()
+        self.make_caption(par_caption, self.table_label, None)
+        caption = next((child for child in el.children if child.name == "caption"), None)
+        if caption is not None:
+            par_caption.add_run(self.table_prefix)
+            par_caption.add_run(self.title_except(caption.get_text()))
 
     def is_plural_acronym(self, word):
         """
@@ -321,8 +351,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         """
         if self.title_case_captions:
             word_list = re.split(" ", s)  # re.split behaves as expected
-            final = [word_list[0].capitalize()]
-            for word in word_list[1:]:
+            final = []
+            for word in word_list:
                 final.append(
                     word
                     if word in self.title_case_exceptions or word.isupper() or self.is_plural_acronym(word)
@@ -331,7 +361,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             s = " ".join(final)
         return s
 
-    def make_figure(self, par, ref: str | None = None):
+    def make_caption(self, par, label: str, ref: str | None = None):
+        par._gw_is_caption = True
+        try:
+            par.style = "Caption"
+        except KeyError:
+            pass
+
         if ref:
             ref = f"_Ref{ref}"
         else:
@@ -340,12 +376,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         # Start a bookmark run with the figure label
         p = par._p
         bookmark_start = OxmlElement("w:bookmarkStart")
-        bookmark_start.set(qn("w:name"), ref)
-        bookmark_start.set(qn("w:id"), "0")
+        bookmark_start.set(qn("w:name"), ref.replace(" ", "_"))
+        bookmark_start.set(qn("w:id"), str(self.current_bookmark_id))
         p.append(bookmark_start)
 
         # Add the figure label
-        run = par.add_run(self.figure_label)
+        par.add_run(label)
 
         # Append XML for a new field character run
         run = par.add_run()
@@ -359,7 +395,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         r = run._r
         instrText = OxmlElement("w:instrText")
         # Sequential figure with arabic numbers
-        instrText.text = " SEQ Figure \\* ARABIC"
+        instrText.text = f" SEQ {label} \\* ARABIC"
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -380,11 +416,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         # End the bookmark after the number
         p = par._p
         bookmark_end = OxmlElement("w:bookmarkEnd")
-        bookmark_end.set(qn("w:id"), "0")
+        bookmark_end.set(qn("w:id"), str(self.current_bookmark_id))
         p.append(bookmark_end)
 
-        # Add prefix
-        par.add_run(self.figure_prefix)
+        self.current_bookmark_id += 1
 
     def make_evidence(self, par, evidence):
         file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
@@ -393,18 +428,42 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         extension = file_path.split(".")[-1].lower()
         if extension in TEXT_EXTENSIONS:
-            with open(file_path, "r", encoding="utf-8") as evidence_file:
-                evidence_text = evidence_file.read()
+            try:
+                with open(file_path, "r", encoding="utf-8") as evidence_file:
+                    evidence_text = evidence_file.read()
+            except UnicodeDecodeError as err:
+                logger.exception(
+                    "Evidence file known as %s (%s) was not recognized as a %s file.",
+                    evidence["friendly_name"],
+                    file_path,
+                    extension,
+                )
+                error_msg = (
+                    f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a UTF-8 encoded {extension} file. '
+                    "Try opening it, exporting as desired type, and re-uploading it."
+                )
+                raise ReportExportError(error_msg) from err
+
+            if self.figure_caption_location == "top":
+                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
+                par = self.doc.add_paragraph()
+
             par.text = evidence_text
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
             try:
                 par.style = "CodeBlock"
             except KeyError:
                 pass
-            par_caption = self.doc.add_paragraph(style="Caption")
-            self.make_figure(par_caption, evidence["friendly_name"])
-            par_caption.add_run(self.title_except(evidence["caption"]))
+
+            if self.figure_caption_location == "bottom":
+                par_caption = self.doc.add_paragraph()
+                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+
         elif extension in IMAGE_EXTENSIONS:
+            if self.figure_caption_location == "top":
+                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
+                par = self.doc.add_paragraph()
+
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = par.add_run()
             try:
@@ -420,7 +479,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise UnrecognizedImageError(error_msg) from e
+                raise ReportExportError(error_msg) from e
 
             if self.border_color_width is not None:
                 border_color, border_width = self.border_color_width
@@ -452,10 +511,14 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 ln_xml.append(solidfill_xml)
                 pic_data.append(ln_xml)
 
-            # Create the caption for the image
-            p = self.doc.add_paragraph(style="Caption")
-            self.make_figure(p, evidence["friendly_name"])
-            run = p.add_run(self.title_except(evidence["caption"]))
+            if self.figure_caption_location == "bottom":
+                par_caption = self.doc.add_paragraph()
+                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+
+    def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
+        self.make_caption(par_caption, self.figure_label, ref)
+        par_caption.add_run(self.figure_prefix)
+        par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
         # Start the field character run for the label and number
@@ -469,7 +532,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"'))
+        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"').replace(" ", "_"))
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -515,78 +578,81 @@ class ListTracking:
             )
         if level == len(self.level_list_is_ordered):
             self.level_list_is_ordered.append(is_ordered)
-        self.paragraphs.append((pg, level))
+        self.paragraphs.append((pg, level, is_ordered))
 
-    def create(self, doc, cache):
+    def create(self, doc):
         """
         Creates the numbering, if needed, and assigns it to each of the paragraphs registered by `add_paragraph`.
         """
-        # Finalize the list into a tuple, which is hashable.
-        # Technically an abuse of a tuple, but Python has no built-in immutable sequence types
-        level_list_is_ordered = tuple(self.level_list_is_ordered)
-        if level_list_is_ordered in cache:
-            # Re-use the numbering
-            numbering_id = cache[level_list_is_ordered]
-        else:
-            # Create a new numbering
+        level_list_is_ordered = self.level_list_is_ordered
+
+        # Create a new numbering
+        try:
             numbering = doc.part.numbering_part.numbering_definitions._numbering
-            last_used_id = max(
-                (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
-                default=-1,
-            )
-            abstract_numbering_id = last_used_id + 1
+        except NotImplementedError as e:
+            raise ReportExportError("Tried to use a list in a template without list styles") from e
+        last_used_id = max(
+            (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
+            default=-1,
+        )
+        abstract_numbering_id = last_used_id + 1
 
-            abstract_numbering = numbering.makeelement(self.q_w("abstractNum"))
-            abstract_numbering.set(self.q_w("abstractNumId"), str(abstract_numbering_id))
+        abstract_numbering = numbering.makeelement(self.q_w("abstractNum"))
+        abstract_numbering.set(self.q_w("abstractNumId"), str(abstract_numbering_id))
 
-            multi_level_type = abstract_numbering.makeelement(self.q_w("multiLevelType"))
-            multi_level_type.set(self.q_w("val"), "hybridMultilevel")
-            abstract_numbering.append(multi_level_type)
+        multi_level_type = abstract_numbering.makeelement(self.q_w("multiLevelType"))
+        multi_level_type.set(self.q_w("val"), "hybridMultilevel")
+        abstract_numbering.append(multi_level_type)
 
-            for level_num, is_ordered in enumerate(level_list_is_ordered):
-                # TODO: vary bullets or numbers based on level
-                level = abstract_numbering.makeelement(self.q_w("lvl"))
-                level.set(self.q_w("ilvl"), str(level_num))
+        for level_num, is_ordered in enumerate(level_list_is_ordered):
+            # TODO: vary bullets or numbers based on level
+            level = abstract_numbering.makeelement(self.q_w("lvl"))
+            level.set(self.q_w("ilvl"), str(level_num))
 
-                start = level.makeelement(self.q_w("start"))
-                start.set(self.q_w("val"), "1")
-                level.append(start)
+            start = level.makeelement(self.q_w("start"))
+            start.set(self.q_w("val"), "1")
+            level.append(start)
 
-                num_fmt = level.makeelement(self.q_w("numFmt"))
-                lvl_text = level.makeelement(self.q_w("lvlText"))
-                if is_ordered:
-                    num_fmt.set(self.q_w("val"), "decimal")
-                    lvl_text.set(self.q_w("val"), "%{}.".format(level_num + 1))
-                else:
-                    num_fmt.set(self.q_w("val"), "bullet")
-                    lvl_text.set(self.q_w("val"), "")
-                    # lvl_text.set(self.q_w("val"), "X")
-                level.append(num_fmt)
-                level.append(lvl_text)
+            num_fmt = level.makeelement(self.q_w("numFmt"))
+            lvl_text = level.makeelement(self.q_w("lvlText"))
+            if is_ordered:
+                num_fmt.set(self.q_w("val"), "decimal")
+                lvl_text.set(self.q_w("val"), "%{}.".format(level_num + 1))
+            else:
+                num_fmt.set(self.q_w("val"), "bullet")
+                lvl_text.set(self.q_w("val"), "")
+                # lvl_text.set(self.q_w("val"), "X")
+            level.append(num_fmt)
+            level.append(lvl_text)
 
-                prp = level.makeelement(self.q_w("pPr"))
-                ind = prp.makeelement(self.q_w("ind"))
-                ind.set(self.q_w("left"), str((level_num + 1) * 720))
-                ind.set(self.q_w("hanging"), "360")
-                prp.append(ind)
-                level.append(prp)
+            prp = level.makeelement(self.q_w("pPr"))
+            ind = prp.makeelement(self.q_w("ind"))
+            ind.set(self.q_w("left"), str((level_num + 1) * 720))
+            ind.set(self.q_w("hanging"), "360")
+            prp.append(ind)
+            level.append(prp)
 
-                if not is_ordered:
-                    rpr = level.makeelement(self.q_w("rPr"))
-                    fonts = rpr.makeelement(self.q_w("rFonts"))
-                    fonts.set(self.q_w("ascii"), "Symbol")
-                    fonts.set(self.q_w("hAnsi"), "Symbol")
-                    fonts.set(self.q_w("hint"), "default")
-                    rpr.append(fonts)
-                    level.append(rpr)
+            if not is_ordered:
+                rpr = level.makeelement(self.q_w("rPr"))
+                fonts = rpr.makeelement(self.q_w("rFonts"))
+                fonts.set(self.q_w("ascii"), "Symbol")
+                fonts.set(self.q_w("hAnsi"), "Symbol")
+                fonts.set(self.q_w("hint"), "default")
+                rpr.append(fonts)
+                level.append(rpr)
 
-                abstract_numbering.append(level)
+            abstract_numbering.append(level)
 
-            numbering.insert(0, abstract_numbering)
-            numbering_id = numbering.add_num(abstract_numbering_id).numId
-            cache[level_list_is_ordered] = numbering_id
+        numbering.insert(0, abstract_numbering)
+        numbering_id = numbering.add_num(abstract_numbering_id).numId
 
-        for par, level in self.paragraphs:
-            par.style = "ListParagraph"
+        for par, level, is_ordered in self.paragraphs:
+            try:
+                par.style = "Number List" if is_ordered else "Bullet List"
+            except KeyError:
+                try:
+                    par.style = "ListParagraph"
+                except KeyError:
+                    pass
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level

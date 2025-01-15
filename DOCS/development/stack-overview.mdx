@@ -1,0 +1,36 @@
+---
+title: "Overview"
+---
+
+A review of Ghostwriter's technology stack
+
+## The Ghostwriter Stack
+
+Ghostwriter is a web application written in Python 3.7 with the Django web framework. It is a collection of Python 3.7, HTML, JavaScript, CSS, Jinja, and Django code compartmentalized into multiple Django applications. This compartmentalization helps keep the code organized and easy to peruse during customization or development efforts.
+
+### The Container — Docker
+
+Everything runs inside of a Docker container, with Docker Compose, for simple deployment and code updates.
+
+<CardGroup cols={1}> <Card title="Overview of Docker Compose" icon="docker" iconType="solid" href="https://docs.docker.com/compose/" > <img src="/images/development/favicons/docs-2x.ico" alt="Logo" /> Docker Documentation </Card> </CardGroup>
+
+Ghostwriter uses the Docker **Python3.8-Alpine** image, a barebones image with Python 3.8 only the most necessary Python libraries.
+
+Docker Compose handles all of the dependencies, so nothing needs to be installed on the host except Docker.
+
+<Frame>
+  <img src="/images/development/image-1.png" alt=""/>
+</Frame>
+
+### The Database — PostgreSQL
+
+The application uses a PostgreSQL backend that Django natively supports. However, should users desire to switch to a different type of backend, the Django `settings.py` can be updated to use SQLite, Oracle, or MySQL without any additional libraries.
+
+Django makes it easy to modify the Ghostwriter database models as well. Migrations are usually smooth and trouble-free, especially if you are customizing the models prior to using Ghostwriter in production.
+
+<Info>
+Trying to move code updates to a production server can be messy when migrations fail unexpectedly. This is a key reason Ghostwriter ships as a Docker container application. Docker makes it simpler to deploy a fresh server with existing data when code updates are ready to be deployed.
+</Info>
+### Background Tasking — AQMP
+
+Finally, Django Q and Redis handle automated queue management processing (AQMP). Ghostwriter automates a number of things like updating domain categorization data and DNS records. These tasks are handed off to Redis for background processing.

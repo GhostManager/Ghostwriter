@@ -760,6 +760,7 @@ def fetch_namecheap_domains():
         domain_queryset = Domain.objects.filter(registrar="Namecheap")
         expired_status = DomainStatus.objects.get(domain_status="Expired")
         burned_status = DomainStatus.objects.get(domain_status="Burned")
+        available_status = DomainStatus.objects.get(domain_status="Available")
         health_burned_status = HealthStatus.objects.get(health_status="Burned")
         for domain in domain_queryset:
             # Check if a domain in the library is _not_ in the Namecheap response
@@ -799,6 +800,18 @@ def fetch_namecheap_domains():
                         domain=domain,
                         note="Automatically set to Expired because the domain did not appear in Namecheap during a sync.",
                     )
+            # Catch domains that were marked as expired but are now back in the Namecheap data
+            else:
+                if domain.expired:
+                    logger.info("Domain %s is marked as expired but is now back in the Namecheap data", domain.name)
+                    domain_changes["updates"][domain.id] = {}
+                    domain_changes["updates"][domain.id]["domain"] = domain.name
+                    domain_changes["updates"][domain.id]["change"] = "renewed"
+                    domain.expired = False
+                    if domain.domain_status == expired_status:
+                        domain.domain_status = available_status
+                    domain.save()
+
         # Now, loop over every domain returned by Namecheap
         for domain in domains_list:
             logger.info("Domain %s is now being processed", domain["Name"])
@@ -840,8 +853,12 @@ def fetch_namecheap_domains():
                 ] = "<p>Namecheap has locked the domain. This is usually the result of a legal complaint related to phishing/malicious activities.</p>"
 
             # Set AutoRenew status
+            # Ignore Namecheap's `AutoRenew` value if the domain is expired (both can be true)
             if domain["AutoRenew"] == "false" or domain["IsExpired"] == "true":
                 entry["auto_renew"] = False
+            # Ensure the domain's auto-renew status in the database matches Namecheap
+            elif domain["AutoRenew"] == "true":
+                entry["auto_renew"] = True
 
             # Convert Namecheap dates to Django
             entry["creation"] = datetime.strptime(domain["Created"], "%m/%d/%Y").strftime("%Y-%m-%d")
@@ -1032,7 +1049,9 @@ def review_cloud_infrastructure(aws_only_running=False, do_only_running=False):
         else:
             instance_name = instance["id"]
         # Check if any IP address is associated with a project
-        queryset = TransientServer.objects.select_related("project").filter(ip_address__in=all_ip_addresses)
+        queryset = TransientServer.objects.select_related("project").filter(
+            Q(ip_address__in=all_ip_addresses) | Q(aux_address__overlap=all_ip_addresses)
+        )
         if queryset:
             for result in queryset:
                 # Consider the asset in use if the project's end date is in the past

@@ -220,7 +220,7 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
 def validate_headers(imported_data):
     """Validate the headers of the CSV file for an activity log import."""
-    headers = [
+    expected_header_count = collections.Counter([
         "entry_identifier",
         "start_date",
         "end_date",
@@ -234,9 +234,10 @@ def validate_headers(imported_data):
         "comments",
         "operator_name",
         "tags",
-        "extra_fields",
-    ]
-    return collections.Counter(imported_data.headers) == collections.Counter(headers)
+    ])
+    actual_header_count = collections.Counter(imported_data.headers)
+    num_extra_fields = actual_header_count.pop("extra_fields", 0)
+    return expected_header_count == actual_header_count and num_extra_fields in (0,1)
 
 
 def validate_log_selection(user, oplog_id):

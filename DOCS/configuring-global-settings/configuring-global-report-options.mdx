@@ -1,0 +1,66 @@
+---
+title: "Configuring Global Report Options"
+description: "Configuring report styles"
+---
+
+Ghostwriter's report engine pulls several default style settings from Command Center. The settings apply to all projects and reports.
+
+## Report Configuration
+
+The Global Report Configuration section contains options for customizing the contents of your Word documents.
+<Info>
+Due to limitations in the PowerPoint API (and the nature of PowerPoint compared to Word), options for borders, tables, and figures only apply to Word documents right now.
+</Info>
+
+### Borders
+
+If you enable borders for pictures, you can set a border line weight (in EMUs; default is `12700` EMUs, or 1pt) and a border color code (e.g., `2D2B6B`).
+<Frame>
+  <img src="/images/configuring-global-settings/image-2.png" alt=""/>
+</Frame>
+
+### Tables and Figures
+
+Ghostwriter will add cross-references (e.g., bookmarks) for figures and tables. Configure a label and a separator character that will appear between your label and your captions. The default separator is an en dash (–).
+
+You can also enable automatic title casing of captions. There is an exception list for words you do not want to be capitalized, such as articles.
+
+<Frame>
+  <img src="/images/configuring-global-settings/image-3.avif" alt=""/>
+</Frame>
+
+### Report Generation Options
+
+Finally, you can select default report templates, configure a target delivery date (in business days), and configure a default filename for new report downloads.
+
+The filenames can be generic or include placeholders to create dynamic filenames.
+
+<Frame>
+  <img src="/images/configuring-global-settings/image-4.avif" alt=""/>
+</Frame>
+
+Filenames can use the following placeholder strings or [date formatting characters](https://docs.djangoproject.com/en/4.1/ref/templates/builtins/#date):
+
+| **Placeholder**      | **Description**                                                                                                                                         |
+|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `{date}`             | The current date formatted with your [configured date format](https://www.ghostwriter.wiki/getting-started/quickstart#customizing-the-date-format).     |
+| `{client}`           | The name of the client associated with the project.                                                                                                    |
+| `{company}`          | Your configured company name ([Company Information](/configuring-global-settings/personalizing-company-information)).                                  |
+| `{assessment_type}`  | The assessment type set for the project.
+
+<Check>
+The default filename value is a good example of using these dynamic elements. The default value is:
+
+`{Y-m-d`}`_{His} {company} - {client} {assessment_type} Report`
+
+That translates into a string like this:
+
+`2022-11-02_185117 SpecterOps - Ghostwriter Red Team Report`
+</Check>
+### Severity Categories and Color
+
+Severity categories are managed under the _Reporting_ application and the _Severity_ model. Set a color code for each severity category (e.g., `966FD6`).
+
+<Warning>
+Do not change the name or weights without updating the HTML templates. Some templates modify styles based on specific severity names. Categories cannot be sorted alphabetically, so weights maintain the ordering in reports.
+</Warning>

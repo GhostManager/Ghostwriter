@@ -103,7 +103,11 @@ class AjaxLoadProjects(RoleBasedAccessControlMixin, View):
                 client = Client.objects.get(id=client_id)
                 if verify_access(request.user, client):
                     projects = get_project_list(request.user)
-                    projects = projects.filter(Q(client_id=client_id) & Q(complete=False)).order_by("codename")
+                    projects = (
+                        projects.filter(Q(client_id=client_id) & Q(complete=False))
+                        .order_by("codename")
+                        .defer("extra_fields")
+                    )
                     return render(request, "shepherd/project_dropdown_list.html", {"projects": projects})
                 return HttpResponse(status=403)
             except ValueError:
@@ -1657,6 +1661,28 @@ class ServerHistoryDelete(RoleBasedAccessControlMixin, DeleteView):
         return ctx
 
 
+def check_duplicate_ip(request, project, ip_address, aux_address):
+    """Check for duplicate IP addresses in other servers and cloud servers."""
+    # Put all IP addresses into a list to cover checking any appearances (as the IP or an aux address)
+    all_ips = [ip_address]
+    for address in aux_address:
+        all_ips.append(address)
+
+    # Query servers that share one or more of the IPs in the list
+    cloud_servers = TransientServer.objects.filter(Q(project=project) & Q(ip_address__in=all_ips) | Q(aux_address__overlap=all_ips))
+    static_servers = ServerHistory.objects.filter(
+        Q(project=project) & (Q(server__ip_address__in=all_ips) | Q(server__auxserveraddress__ip_address__in=all_ips))
+    )
+
+    # Add a warning to the request if any servers share the IP addresses
+    sharing_servers = len(cloud_servers) + len(static_servers)
+    if sharing_servers >= 1:
+        messages.warning(
+            request,
+            f'You have {sharing_servers} server(s) that share one or more of the provided IP addresses.',
+        )
+
+
 class TransientServerCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.TransientServer`.
@@ -1699,6 +1725,7 @@ class TransientServerCreate(RoleBasedAccessControlMixin, CreateView):
         obj.project = self.project
         obj.operator = self.request.user
         obj.save()
+        check_duplicate_ip(self.request, self.project, obj.ip_address, obj.aux_address)
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -1748,6 +1775,10 @@ class TransientServerUpdate(RoleBasedAccessControlMixin, UpdateView):
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
+
+    def form_valid(self, form):
+        check_duplicate_ip(self.request, self.object.project, self.object.ip_address, self.object.aux_address)
+        return super().form_valid(form)
 
 
 class DomainServerConnectionCreate(RoleBasedAccessControlMixin, CreateView):

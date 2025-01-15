@@ -1,0 +1,189 @@
+---
+title: "Quickstart"
+---
+
+
+Get started with Ghostwriter quickly and easily with Docker and Ghostwriter CLI
+
+## Before You Begin: System Requirements
+
+Ghostwriter uses [Docker Compose](https://docs.docker.com/compose/). Install Docker and Docker Compose before proceeding.
+
+You will need Docker version >=20 for the Alpine Linux images for Ghostwriter. Run `docker version` to check your installation. Look at the `Version` value for the client and server.
+
+You will need Docker Compose version >=1.26 to support the compose files. Run `docker compose version` to check your installation.
+
+<Note>
+Older versions of Docker Compose will try to build the containers and run into issues while parsing the configuration file with Docker's older DotEnv file parser—specifically, issues with quotations. Compose versions below v1.26 will parse configurations like port numbers literally and cause errors when Docker tries to bind a port like `"8000"`(with the quotes).
+
+As of v1.26, Compose uses aPython's DotEnv parser, which understands quotations.
+</Note>
+
+<Info>
+Older installations of Docker Compose use `docker-compose` as the command. If you have `docker-compose` in your PATH instead of `docker compose`, consider upgrading to the latest version.
+</Info>
+
+```log Checking Docker Version
+$ docker compose version
+Docker Compose version v2.23.3    # Good; >=1.26.x
+
+$ docker version
+Client:
+ Version:           25.0.3        # Good; >=20
+
+« snip »
+```
+
+Docker requires sufficient resources to build the containers successfully. Most systems capable of running a modern OS should have the necessary resources. If building Ghostwriter inside of a VM, ensure the VM meets the following recommended specs:
+
+* Two (2) vCPUs
+
+* 3GB RAM
+
+* 10GB Storage
+
+The above specs are recommendations for the bare minimum necessary to get started. Ideally, provide at least one vCPU per container, more RAM for multiple users and scheduled tasks to run smoothly, and more storage for file uploads.
+
+* Five (5) vCPUs
+
+* 4GB RAM
+
+* 60GB
+
+## Getting Started
+
+Ghostwriter comes with the [Ghostwriter CLI](https://github.com/GhostManager/Ghostwriter_CLI) tool. This tool makes it simple to manage the application. You will use it to install, reconfigure, and upgrade Ghostwriter.
+
+Ghostwriter can run on Windows, macOS, and Linux, so there are multiple builds of Ghostwriter CLI. Pick the appropriate Ghostwriter CLI binary for your operating system.
+
+* `ghostwriter-cli-macos` : macOS (Intel)
+
+* `ghostwriter-cli-linux` : Linux amd64
+
+* `ghostwriter-cli.exe` : Windows 64-bit
+
+<Check>
+You can rename these binaries without causing any issues. This wiki will always refer to it simply as `ghostwriter-cli` for commands.
+</Check>
+
+### Installing Ghostwriter
+
+You can install Ghostwriter with three basic commands:
+
+```log Installing Ghostwriter
+$ git clone https://github.com/GhostManager/Ghostwriter.git
+$ cd Ghostwriter
+$ ./ghostwriter-cli install
+```
+
+<Info>
+Ghostwriter will create self-signed TLS/SSL certificates. If you'd like to use your signed certificates, do that now to make things easier. If you don't have them ready, you can install them later.
+</Info>
+
+There is more information below in [Customizing Your Installation](/getting-started/quickstart#customizing-your-installation).
+
+The `install` command will take care of everything necessary to create a production environment for you. That command performs the following actions:
+
+* Sets up the default server configuration
+
+* Generates TLS certificates for the server
+
+* Builds the Docker containers
+
+* Creates a default *admin* user with a randomly generated password
+
+<Check>
+If you'd prefer to install a development (`dev`) environment, you can run:
+
+`./ghostwriter-cli install --dev`
+
+A development environment is best if you want to change Ghostwriter's codebase or test functionality. Debug logging is enabled, which makes it easier to troubleshoot. The `dev` installation does not use TLS, so it skips creating certificates.
+</Check>
+
+### Accessing Ghostwriter
+
+The Ghostwriter server will now be accessible! Just visit *https\://127.0.0.1* and authenticate with the *admin* user. The password is displayed in the Ghostwriter CLI output at the end of the installation.
+
+You can also get the password by running this command:
+
+`./ghostwriter-cli config get admin_password`
+
+<Check>
+This password is only used for creating the account. You can change it in the admin panel after logging into Ghostwriter. You can also change any other part of the user profile.
+
+Changing the password in the config DOES NOT affect the installation. It's only stored in the config to make it easy for you to view the original password.
+</Check>
+### Adding More Users
+
+You may create users using the admin panel or ask users to sign-up using `/accounts/signup`. Filling out a complete profile is recommended. Ghostwriter can use full names for displaying user actions and filling in report templates.
+
+<Note>
+Django usernames are *case-sensitive*, so all lowercase is recommended to avoid confusion later.
+</Note>
+
+### Customizing Your Installation
+
+You may wish to change some of the configuration options. The following sections outline common customizations.
+
+If you make changes to the configuration, restart Ghostwriter for the changes to take effect:
+
+```log Bouncing Containers
+./ghostwriter-cli containers down
+./ghostwriter-cli containers up
+```
+
+#### Customizing the Date Format
+
+The default format is `d M Y` which formats dates like so: *3 Jun 2022*
+
+This format is the default used in parts of the user interface and reports. You can change the date format with this command:
+
+`./ghostwriter-cli config set date_format "d M Y"`
+
+<Info>
+When you set `DATE_FORMAT` use Django's format string values:
+
+[https://docs.djangoproject.com/en/4.0/ref/templates/builtins/#std:templatefilter-date](https://docs.djangoproject.com/en/4.0/ref/templates/builtins/#std:templatefilter-date)
+</Info>
+
+#### Using Your Certificates
+
+You can use your own TLS/SSL certificates for Ghostwriter. To swap in your certificate package:
+
+1. Name the keypair files *ghostwriter.key* and *ghostwriter.crt*
+
+2. Name the Diffie-Helman Parameters file *dhparam.pem*
+
+3. Place all three files inside the *ssl* directory
+
+Your certificate will likely have a new hostname, so continue to the next section to complete the customization of your domain name.
+
+#### Customizing the Domain Name or IP Address
+
+Ghostwriter explicitly checks the hostname against a list of allowed hosts to avoid potential exposure to [HTTP Host header attacks](https://portswigger.net/web-security/host-header). To access Ghostwriter with your custom domain name or server IP address, you must tell the server to allow new IP addresses or hostnames.
+
+To allow a new IP address or hostname, run this command:
+
+`./ghostwriter-cli config allowhost <YOUR DOMAIN NAME OR IP>`
+
+If you are setting up a new domain accompanied by a TLS certificate, update the Nginx hostname to match your new certificate and domain name:
+
+`./ghostwriter-cli config set NGINX_HOST <YOUR DOMAIN NAME>`
+
+You can use `config disallowhost` to remove a host you have added to the list.
+<Note>
+While **not** recommended, a wildcard (`*`) will work, but only `*`.
+
+A `*` will allow any hostname or IP address.
+
+Anything like `*.myserver.local` or `192.168.10.*` will not work to allow a host.
+</Note>
+
+#### Configuring Access Through a Web Proxy
+
+Similar to the HTTP `Host` header protections, Ghostwriter also checks the `Origin` and `Referer` headers. If you are accessing Ghostwriter through a proxy, configure Ghostwriter to trust the proxy with this command:
+
+`./ghostwriter-cli config trustorigin <YOUR PROXY>`
+
+You can use `config distrustorigin` to remove a proxy you have added to the list.
+

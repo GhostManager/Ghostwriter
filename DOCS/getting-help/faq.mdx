@@ -1,0 +1,108 @@
+---
+title: "Overview"
+---
+
+
+Common problems and questions
+
+### Ghostwriter CLI Reports an Issue with PostgreSQL
+
+You may encounter an issue with PostgreSQL while upgrading an existing installation. Ghostwriter v2.x.x and lower used environment variables stored in files under *.envs/.production/.postgres*. Beginning with v3.0.0, Ghostwriter no longer uses the *.envs/* files and you must transfer your PostgreSQL username and password to the new configuration file.
+
+By default, Ghostwriter CLI generates a random password for a default `postgres` user. Update the configuration with your Postgres credentials by running these commands:
+
+```log
+./ghostwriter-cli config set POSTGRES_USER <YOUR USER>
+./ghostwriter-cli config set POSTGRES_PASSWORD <YOUR PASSWORD>
+```
+
+If that does not work or you need to change the credentials, you may do so with the `psql` tool. First, start the containers even if initialization fails due to the bad password.
+
+```log
+docker exec -it ghostwriter_postgres_1 bash
+psql -U postgres
+```
+
+Use the `\password` command to set a new password for the `postgres` user:
+
+```log
+postgres=# \password postgres
+Enter new password:
+Enter it again:
+postgres=# \q
+```
+
+<Check>
+If `postgres` is not your username, change the command to use your chosen username. If you are not sure what the username is, run the `\du` command:
+
+```log
+postgres=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+```
+</Check>
+That sets the new password and `\q` quits the `psql` console. Set your new password in Ghostwriter's config, and then bring the containers down and back up.
+
+```log
+./ghostwriter-cli containers down
+./ghostwriter-cli config set POSTGRES_PASSWORD <NEW PASSWORD>
+./ghostwriter-cli containers up
+```
+
+If the passwords still do not match, you may need to try again. Copy/pasting the password may not work. If you try to paste the new password, you might not be setting the password you expect. It is best to type the password manually.
+
+## Stuck Waiting for Django to Start / 502 Bad gateway
+
+There will be times something goes wrong during the Docker build. One of the most common issues is filesystem permissions are not being set correctly. Ghostwriter runs under the `django` user, not `root`. The `django` user should own all files under the */app* directory.
+
+If you are stuck waiting for Django to start, run this command and check file permission errors: `./ghostwriter-cli logs django`
+
+If you see file permission errors, check the user and group permissions for some of the affected files like so:
+
+```log
+docker-compose -f production.yml run django ls -la /app
+docker-compose -f production.yml run django ls -la /app/staticfiles
+```
+
+A properly configured listing will look like this:
+
+```log
+$ docker-compose -f production.yml run django ls -la /app
+Creating ghostwriter_django_run ... done
+PostgreSQL is available
+total 64
+drwxr-xr-x    1 django   root          4096 Feb 18 00:17 .
+drwxr-xr-x    1 root     root          4096 Feb 18 00:42 ..
+-rw-r--r--    1 django   root           598 Oct 29  2021 .coveragerc
+-rw-r--r--    1 django   root           242 Dec  1  2020 .pylintrc
+-rw-r--r--    1 django   root            24 Feb 18 00:15 VERSION
+
+« snip »
+
+$ docker-compose -f production.yml run django ls -la /app/staticfiles
+Creating ghostwriter_django_run ... done
+PostgreSQL is available
+total 76
+drwxr-xr-x   15 django   django        4096 Feb 23  2022 .
+drwxr-xr-x    1 django   root          4096 Feb 18 00:17 ..
+drwxr-xr-x    6 django   django        4096 Oct  1  2019 admin
+drwxr-xr-x    4 django   django        4096 Feb 18 00:34 css
+
+« snip »
+```
+
+If you see anything else, you may need to re-run the `chown` command that Docker is supposed to run during the build. It must be run as `root`. Use Docker Compose's `run` command like the above examples but add `-u root`:
+
+```log
+$ docker-compose -f production.yml run -u root django chown -R django:django /app
+```
+
+Once that runs, verify the `ls -la` command shows the proper permissions, and then try restarting the Ghostwriter services:
+
+```log
+./ghostwriter-cli containers down
+./ghostwriter-cli containers up
+```
+

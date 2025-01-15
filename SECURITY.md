@@ -6,9 +6,8 @@ The following versions are supported with security updates. In general, you shou
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 3.x.x   | :white_check_mark: |
-| 2.3.x   | :x:                |
-| < 2.3   | :x:                |
+| 4.3.x   | :white_check_mark: |
+| < 4.x.x | :x:                |
 
 ## Reporting a Vulnerability
 

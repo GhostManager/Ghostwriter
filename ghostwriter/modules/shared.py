@@ -60,3 +60,9 @@ def add_content_disposition_header(response, filename):
         file_expr = "filename*=utf-8''{}".format(quote(filename))
     response["Content-Disposition"] = "attachment; {}".format(file_expr)
     return response
+
+
+def search_tags(queryset, value):
+    """Filter a queryset by tags."""
+    # There is no case-insensitive version of `in` for Django ORM, so we use `iregex` instead.
+    return queryset.filter(tags__name__iregex=r"(" + value + ")").distinct()

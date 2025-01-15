@@ -2,57 +2,66 @@
     font-size: 100%;
 }
 
-fieldset {
+.cvss-calculator {
     position: relative;
-    background-color: #f2f2f2;
-    margin-top: 5px;
-    border: 0;
-    padding: 1em 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-fieldset legend {
-    background-color: #666666;
-    color: #ffffff;
-    margin: 0;
-    width: 100%;
-    padding: 0.5em 0px;
-    text-indent: 1em;
+.cvss-calculator div.cvss-groups {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 1rem;
 }
 
-fieldset div.metric {
+.cvss-calculator div.cvss-group {}
+
+.cvss-calculator div.cvss-metric {
     padding: 0;
     margin: 0.5em 0;
 }
 
-@media only screen and (min-width:768px) {
-    fieldset div.column {
-        width: 45%;
-        margin: 0 0 0 1em;
-    }
-
-    fieldset div.column-left {
-        float: left;
-        height: auto;
-    }
-
-    fieldset div.column-right {
-        float: right;
-        height: auto;
-    }
+.cvss-calculator div.cvss-values {
+    display: flex;
+    flex-direction: row;
 }
 
-fieldset h3 {
+.cvss-calculator h2 {
+    font-size: 2.3em;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0;
+}
+
+.cvss-calculator h3 {
+    font-size: 2em;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    padding: 0;
+}
+
+.cvss-calculator h4 {
+    font-size: 1.5em;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    padding: 0;
+}
+
+.cvss-calculator h5 {
     font-size: 1em;
-    margin: 0;
-    padding-left: 0.1em;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    padding: 0;
 }
 
-fieldset input {
+.cvss-calculator input {
     display: none;
-    width: auto;
 }
 
-fieldset label {
+.cvss-calculator label {
+    flex-grow: 1;
     background: #cccccc;
     display: inline-block;
     margin: 3px;
@@ -68,40 +77,22 @@ fieldset label {
     -ms-user-select: none;
 }
 
-fieldset label:hover {
+.cvss-calculator label:hover {
     background: #666666;
     color: #ffffff;
     border: 1px solid #666666
 }
 
-fieldset input:checked+label {
+.cvss-calculator input:checked+label {
     background: green;
     border: 1px solid green;
     color: #ffffff;
 }
 
-#vector {
-    margin: 0 1em;
-    padding: 0;
-}
-
-#vectorString {
-    display: none;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    background-color: #090;
-    color: #ffffff;
-    font-weight: bold;
-    font-size: 0.8em;
-    width: 80em;
-    max-width: 100%;
-}
-
 .scoreRating {
     position: absolute;
-    top: -36px;
-    right: 0;
+    top: 5px;
+    right: -10px;
     padding: 0 0.4em;
     margin: 0 15px;
     border: 2px solid #666666;
@@ -112,6 +103,14 @@ fieldset input:checked+label {
     height: auto;
     line-height: 150%;
     text-align: center;
+}
+
+.scoreRating.temporalRating {
+    top: 105px;
+}
+
+.scoreRating.envRating {
+    top: 205px;
 }
 
 .scoreRating.none,
@@ -180,28 +179,29 @@ fieldset input:checked+label {
     color: var(--info-rating-color);
 }
 
-#baseMetricScore,
-#temporalMetricScore,
-#environmentalMetricScore {
-    display: block;
-    font-size: 32px;
-    line-height: 32px;
-    font-weight: normal;
-    margin-top: 4px;
-}
-
-#baseSeverity,
-#temporalSeverity,
-#environmentalSeverity {
-    font-size: 16px;
-    font-weight: normal;
-    margin-bottom: 5px;
+.baseMetricScore {
     display: block;
 }
 
-div#scriptWarning {
-    border: solid red 2px;
-    background: #f5dddd;
-    padding: 1em 1em 1em 1em;
-    margin: 0.4em 0;
+.envMetricScore {
+    display: block;
+}
+
+.temporalMetricScore {
+    display: block;
+}
+
+.baseSeverity {
+    margin-bottom: 10px;
+    display: block;
+}
+
+.envSeverity {
+    margin-bottom: 10px;
+    display: block;
+}
+
+.temporalSeverity {
+    margin-bottom: 10px;
+    display: block;
 }
