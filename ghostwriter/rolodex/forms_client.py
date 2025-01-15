@@ -214,7 +214,7 @@ class ClientInviteForm(forms.ModelForm):
                         Column(
                             Button(
                                 "formset-del-button",
-                                "Delete Contact",
+                                "Delete Invite",
                                 css_class="btn-outline-danger formset-del-button col-4",
                             ),
                             css_class="form-group col-6 offset-3",
