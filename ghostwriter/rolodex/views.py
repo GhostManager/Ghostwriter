@@ -1142,7 +1142,7 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         client_instance = self.get_object()
         domain_history = History.objects.select_related("domain").filter(client=client_instance)
         server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
-        projects = get_project_list(self.request.user).filter(client=client_instance)
+        projects = Project.objects.filter(client=client_instance)
 
         client_vps = TransientServer.objects.filter(project__in=projects)
         ctx["domains"] = domain_history
