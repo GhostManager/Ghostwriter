@@ -116,7 +116,7 @@
           <h4>Invitations</h4>
           <hr/>
           <a class="icon add-icon btn btn-primary mb-3 col-3"
-             href="{% url 'rolodex:client_update' client.id %}#invites">Add Invitation</a>
+             href="{% url 'rolodex:client_update' client.id %}#invites">Add & Edit Invitations</a>
           <p class="text-center offset-2 col-8">Users listed here have view access to this client and all of their
             projects, infrastructure, etc.</p>
           {% if client.clientinvite_set.all %}
@@ -125,6 +125,7 @@
               <tr>
                 <th class="align-middle pr-4">Name</th>
                 <th class="align-middle pr-4">Comment</th>
+                <th class="align-middle sorter-false">Options</th>
               </tr>
               </thead>
               {% for invite in client.clientinvite_set.all %}
@@ -138,9 +139,23 @@
                       {% endif %}
                     </a>
                   </td>
-
                   <td class="align-middle">
                     {{ invite.comment|bleach }}
+                  </td>
+                  <td class="align-middle">
+                    <div class="dropdown dropleft">
+                      <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
+                              aria-expanded="false"></button>
+                      <div class="dropdown-menu" aria-labelledby="invite-dropdown-btn_{{ invite.id }}">
+                        <a class="dropdown-item icon edit-icon"
+                           href="{% url 'rolodex:client_update' client.id %}#invites">Edit</a>
+                        <a class="dropdown-item icon trash-icon" id="invite-delete-button-{{ invite.id }}"
+                           class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                           href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
+                           delete-target-url="{% url 'rolodex:ajax_delete_client_invite' invite.id %}"
+                           delete-target-id="{{ invite.id }}" delete-target-type="invitation">Delete</a>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               {% endfor %}
@@ -157,8 +172,8 @@
         <h4>Client Contacts</h4>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add
-          a Point of Contact</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add & Edit
+          Points of Contact</a>
         {% if client.clientcontact_set.all %}
           <table id="clientTable" class="tablesorter table table-striped">
             <thead>
