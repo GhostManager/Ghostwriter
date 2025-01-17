@@ -314,11 +314,6 @@ class ClientForm(forms.ModelForm):
             TabHolder(
                 CustomTab(
                     "Client Information",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Row(
                         Column("name", css_class="form-group col-md-6 mb-0"),
                         Column("short_name", css_class="form-group col-md-6 mb-0"),
@@ -359,42 +354,22 @@ class ClientForm(forms.ModelForm):
                 ),
                 CustomTab(
                     "Points of Contact",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Formset("contacts", object_context_name="Contact"),
                     Button(
                         "add-contact",
                         "Add Contact",
-                        css_class="btn-block btn-secondary formset-add-poc",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        css_class="btn-block btn-secondary formset-add-poc mb-2 offset-4 col-4",
                     ),
                     link_css_class="poc-icon",
                     css_id="contacts",
                 ),
                 CustomTab(
                     "Invites",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Formset("invites", object_context_name="Invite"),
                     Button(
                         "add-invite",
                         "Add Invite",
-                        css_class="btn-block btn-secondary formset-add-invite",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        css_class="btn-block btn-secondary formset-add-invite mb-2 offset-4 col-4",
                     ),
                     link_css_class="tab-icon users-icon",
                     css_id="invites",
