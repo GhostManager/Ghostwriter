@@ -902,3 +902,70 @@ class ProjectDetailViewTests(TestCase):
         ProjectAssignmentFactory(project=self.project, operator=self.user)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+class ProjectInviteDeleteTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectInviteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ProjectInvite = ProjectInviteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+
+        cls.invite = ProjectInviteFactory()
+        cls.uri = reverse("rolodex:ajax_delete_project_invite", kwargs={"pk": cls.invite.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_permissions(self):
+        self.assertEqual(len(self.ProjectInvite.objects.all()), 1)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Invite successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.ProjectInvite.objects.all()), 0)
+
+
+class ClientInviteDeleteTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientInviteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ClientInvite = ClientInviteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+
+        cls.invite = ClientInviteFactory()
+        cls.uri = reverse("rolodex:ajax_delete_client_invite", kwargs={"pk": cls.invite.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_permissions(self):
+        self.assertEqual(len(self.ClientInvite.objects.all()), 1)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Invite successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.ClientInvite.objects.all()), 0)
