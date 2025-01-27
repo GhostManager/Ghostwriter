@@ -74,6 +74,16 @@ urlpatterns += [
         name="ajax_delete_client_poc",
     ),
     path(
+        "ajax/client/invite/delete/<int:pk>",
+        views.ClientInviteDelete.as_view(),
+        name="ajax_delete_client_invite",
+    ),
+    path(
+        "ajax/project/invite/delete/<int:pk>",
+        views.ProjectInviteDelete.as_view(),
+        name="ajax_delete_project_invite",
+    ),
+    path(
         "ajax/client/note/delete/<int:pk>",
         views.ClientNoteDelete.as_view(),
         name="ajax_delete_client_note",
