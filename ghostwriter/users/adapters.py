@@ -54,9 +54,18 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
         # Registration is not allowed
         return False
 
-    def authentication_error(self, request, provider_id, error, exception, extra_context):
-        logger.error("Error authenticating with social account: %s %s %s", error, exception, extra_context)
-        super().authentication_error(request, provider_id, error, exception, extra_context)
+    def authentication_error(
+        self, request, provider_id, error, exception, extra_context
+    ):
+        logger.error(
+            "Error authenticating with social account: %s %s %s",
+            error,
+            exception,
+            extra_context,
+        )
+        super().authentication_error(
+            request, provider_id, error, exception, extra_context
+        )
 
     def populate_user(self, request, sociallogin, data):
         username = data.get("username")
