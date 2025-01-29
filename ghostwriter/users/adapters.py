@@ -68,7 +68,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
         )
 
     def populate_user(self, request, sociallogin, data):
-        username = data.get("username")
+        username = data.get("username") or sociallogin.account.extra_data.get(
+            "username"
+        )
         first_name = data.get("first_name")
         last_name = data.get("last_name")
         email = data.get("email")
