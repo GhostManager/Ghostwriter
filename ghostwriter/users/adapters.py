@@ -54,23 +54,36 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
         # Registration is not allowed
         return False
 
-    def authentication_error(self, request, provider_id, error, exception, extra_context):
-        logger.error("Error authenticating with social account: %s %s %s", error, exception, extra_context)
-        super().authentication_error(request, provider_id, error, exception, extra_context)
+    def authentication_error(
+        self, request, provider_id, error, exception, extra_context
+    ):
+        logger.error(
+            "Error authenticating with social account: %s %s %s",
+            error,
+            exception,
+            extra_context,
+        )
+        super().authentication_error(
+            request, provider_id, error, exception, extra_context
+        )
 
     def populate_user(self, request, sociallogin, data):
-        username = data.get("username")
+        username = data.get("username") or sociallogin.account.extra_data.get(
+            "username"
+        )
         first_name = data.get("first_name")
         last_name = data.get("last_name")
         email = data.get("email")
         name = data.get("name")
+
+        # If no username or the username is the email address
+        # Use the email address but strip the domain
+        if username is None or (username == email):
+            username = email.split("@")[0]
+
         user = sociallogin.user
         user_username(user, username or "")
         user_email(user, valid_email_or_none(email) or "")
-
-        # If the username is the email address, strip the domain
-        if username == email:
-            user_username(user, username.split("@")[0])
 
         name_parts = (name or "").partition(" ")
         user_field(user, "first_name", first_name or name_parts[0])
