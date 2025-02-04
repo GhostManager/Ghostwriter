@@ -357,3 +357,11 @@
     $(tinyInit);
 
 })($ || django.jQuery);
+
+function tinymceInit() {
+    tinymce.init(GW_TINYMCE_BASIC_CONFIG);
+}
+
+function tinymceRemove() {
+    tinymce.remove();
+}
