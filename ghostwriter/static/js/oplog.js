@@ -477,6 +477,7 @@ $(document).ready(function() {
         let url = window.location.origin + '/oplog/entry/update/' + $(this).attr('id');
         $('.oplog-form-div').load(url, function() {
             $('#edit-modal').modal('toggle');
+            tinymceInit();
             formAjaxSubmit('#oplog-entry-form', '#edit-modal');
         });
         return false;
@@ -498,6 +499,7 @@ $(document).ready(function() {
                     } else {
                         $(modal).modal('toggle');
                     }
+                    tinymceRemove();
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
                     // Handle response errors here
@@ -505,6 +507,10 @@ $(document).ready(function() {
             });
         });
     }
+
+    $("#edit-modal").on("hide.bs.modal", function() {
+	    tinymceRemove();
+    })
 
     // Download the log as a CSV file when the user clicks the "Export Entries" menu item
     $('#exportEntries').click(function () {
