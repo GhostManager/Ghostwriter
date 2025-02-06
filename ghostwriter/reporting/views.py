@@ -65,7 +65,6 @@ from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.filters import (
     ArchiveFilter,
     FindingFilter,
-    ObservationFilter,
     ReportFilter,
     ReportTemplateFilter,
 )
@@ -74,7 +73,6 @@ from ghostwriter.reporting.forms import (
     FindingForm,
     FindingNoteForm,
     LocalFindingNoteForm,
-    ObservationForm,
     ReportFindingLinkUpdateForm,
     ReportForm,
     ReportObservationLinkUpdateForm,
@@ -2912,188 +2910,6 @@ class LocalFindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_success_url(self):
         messages.success(self.request, "Successfully updated the note.", extra_tags="alert-success")
         return reverse("reporting:local_edit", kwargs={"pk": self.get_object().finding.pk})
-
-
-# CBVs related to :model:`reporting.Observation`
-
-
-class ObservationListView(RoleBasedAccessControlMixin, ListView):
-    """
-    Display a list of all :model:`reporting.Observation`.
-    """
-
-    model = Observation
-    template_name = "reporting/observation_list.html"
-
-    def __init__(self):
-        super().__init__()
-        self.autocomplete = []
-
-    def get_queryset(self):
-        search_term = ""
-        observations = Observation.objects.all().order_by("title")
-
-        # Build autocomplete list
-        for observation in observations:
-            self.autocomplete.append(observation.title)
-
-        search_term = self.request.GET.get("observation", "").strip()
-        if search_term:
-            messages.success(
-                self.request,
-                "Displaying search results for: {}".format(search_term),
-                extra_tags="alert-success",
-            )
-            return observations.filter(
-                Q(title__icontains=search_term) | Q(description__icontains=search_term)
-            ).order_by("title")
-        return observations
-
-    def get(self, request, *args, **kwarg):
-        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset())
-        return render(
-            request,
-            "reporting/observation_list.html",
-            {"filter": observation_filter, "autocomplete": self.autocomplete},
-        )
-
-
-class ObservationDetailView(RoleBasedAccessControlMixin, DetailView):
-    """
-    Display an individual :model:`reporting.Observation`.
-
-    **Template**
-
-    :template:`reporting/observation_detail.html`
-    """
-
-    model = Observation
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["observation_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=self.model._meta.label)
-        return ctx
-
-
-class ObservationCreate(RoleBasedAccessControlMixin, CreateView):
-    """
-    Create an individual instance of :model:`reporting.Observation`.
-
-    **Context**
-
-    ``cancel_link``
-        Link for the form's Cancel button to return to the observation list page
-
-    **Template**
-
-    :template:`reporting/observation_form.html`
-    """
-
-    model = Observation
-    form_class = ObservationForm
-
-    def test_func(self):
-        return verify_observation_access(self.request.user, "create")
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have the necessary permission to create new observations.")
-        return redirect("reporting:observations")
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:observations")
-        return ctx
-
-    def get_success_url(self):
-        messages.success(
-            self.request,
-            "Successfully added {} to the observations library".format(self.object.title),
-            extra_tags="alert-success",
-        )
-        return self.object.get_absolute_url()
-
-
-class ObservationUpdate(RoleBasedAccessControlMixin, UpdateView):
-    """
-    Update an individual instance of :model:`reporting.Observation`.
-
-    **Context**
-
-    ``cancel_link``
-        Link for the form's Cancel button to return to the observations list page
-
-    **Template**
-
-    :template:`reporting/observation_form.html`
-    """
-
-    model = Observation
-    form_class = ObservationForm
-
-    def test_func(self):
-        return verify_observation_access(self.request.user, "edit")
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have the necessary permission to edit observations.")
-        return self.get_object().get_absolute_url()
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:observation_detail", args=[str(self.object.id)])
-        return ctx
-
-    def get_success_url(self):
-        messages.success(
-            self.request,
-            "Observation {} was successfully updated".format(self.object.title),
-            extra_tags="alert-success",
-        )
-        return self.object.get_absolute_url()
-
-
-class ObservationDelete(RoleBasedAccessControlMixin, DeleteView):
-    """
-    Delete an individual instance of :model:`reporting.Observation`.
-
-    **Context**
-
-    ``object_type``
-        String describing what is to be deleted
-    ``object_to_be_deleted``
-        To-be-deleted instance of :model:`reporting.Observation`
-    ``cancel_link``
-        Link for the form's Cancel button to return to observation list page
-
-    **Template**
-
-    :template:`confirm_delete.html`
-    """
-
-    model = Observation
-    template_name = "confirm_delete.html"
-
-    def test_func(self):
-        return verify_observation_access(self.request.user, "delete")
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have the necessary permission to delete observations.")
-        return self.get_object().get_absolute_url()
-
-    def get_success_url(self):
-        messages.warning(
-            self.request,
-            "Observation {} was successfully deleted".format(self.get_object().title),
-            extra_tags="alert-warning",
-        )
-        return reverse_lazy("reporting:observations")
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        queryset = kwargs["object"]
-        ctx["object_type"] = "observation"
-        ctx["object_to_be_deleted"] = queryset.title
-        ctx["cancel_link"] = reverse("reporting:observations")
-        return ctx
 
 
 class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):

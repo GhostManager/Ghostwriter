@@ -1177,6 +1177,33 @@ class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
         return super().form_valid(form)
 
 
+class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
+    """
+    Checks if the given API token or JWT authorizes accesses to an object.
+
+    Used by the collab editing server for authentication. Not used by Hasura.
+    """
+
+    required_inputs = ["model", "id"]
+    available_models = {
+        "observation": Observation,
+    }
+
+    def post(self, request):
+        cls = self.available_models.get(self.input["model"])
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        try:
+            obj = cls.objects.get(id=self.input["id"])
+        except ObjectDoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+
+        if not obj.user_can_edit(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to edit", "Unauthorized"), status=403)
+        return JsonResponse(self.user_obj.username, status=200, safe=False)
+
+
 class GetTags(HasuraActionView):
     required_inputs = ["model", "id"]
     available_models = {

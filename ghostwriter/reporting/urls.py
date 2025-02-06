@@ -5,6 +5,7 @@ from django.urls import path
 
 # Ghostwriter Libraries
 from ghostwriter.reporting import views
+import ghostwriter.reporting.views2.observations
 
 app_name = "reporting"
 
@@ -20,7 +21,7 @@ urlpatterns = [
         views.ArchiveDownloadView.as_view(),
         name="download_archive",
     ),
-    path("observations/", views.ObservationListView.as_view(), name="observations"),
+    path("observations/", ghostwriter.reporting.views2.observations.ObservationList.as_view(), name="observations"),
 ]
 
 # URLs for AJAX requests – deletion and toggle views
@@ -122,10 +123,10 @@ urlpatterns += [
 
 # URLs for creating, updating, and deleting observations
 urlpatterns += [
-    path("observations/<int:pk>", views.ObservationDetailView.as_view(), name="observation_detail"),
-    path("observations/create/", views.ObservationCreate.as_view(), name="observation_create"),
-    path("observations/update/<int:pk>", views.ObservationUpdate.as_view(), name="observation_update"),
-    path("observations/delete/<int:pk>", views.ObservationDelete.as_view(), name="observation_delete"),
+    path("observations/<int:pk>", ghostwriter.reporting.views2.observations.ObservationDetail.as_view(), name="observation_detail"),
+    path("observations/create/", ghostwriter.reporting.views2.observations.ObservationCreate.as_view(), name="observation_create"),
+    path("observations/update/<int:pk>", ghostwriter.reporting.views2.observations.ObservationUpdate.as_view(), name="observation_update"),
+    path("observations/delete/<int:pk>", ghostwriter.reporting.views2.observations.ObservationDelete.as_view(), name="observation_delete"),
 ]
 
 # URLs for creating, updating, and deleting reports

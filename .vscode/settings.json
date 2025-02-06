@@ -10,11 +10,19 @@
         "reportMissingImports": "none",
         "reportMissingModuleSource": "none",
     },
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "[javascript]": {
-        "editor.formatOnSave": false
+        "editor.formatOnSave": false,
+        "editor.tabSize": 4,
+    },
+    "[typescript]": {
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
     },
     "[html]": {
+        "editor.formatOnSave": false
+    },
+    "[django-html]": {
         "editor.formatOnSave": false
     },
     "files.trimTrailingWhitespace": true,

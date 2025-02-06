@@ -726,19 +726,35 @@ input[type='file'] {
   padding: 10px;
 }
 
-#sidebar ul li a {
+#sidebar ul li a,
+#sidebar ul li button {
   padding-top: 10px;
   padding-bottom: 10px;
   padding-left: 30px;
   font-size: 1.1em;
   display: block;
+  text-align: left;
+  border: none;
+  width: 100%;
+  background: none;
+}
+
+#sidebar ul li button {
+  text-decoration: none;
+  transition: all 0.3s;
+  font-weight: inherit;
+}
+
+#sidebar ul li button:hover {
+  color: inherit;
 }
 
 #sidebar ul li {
   text-align: left;
 }
 
-#sidebar ul li a:hover {
+#sidebar ul li a:hover,
+#sidebar ul li button:hover {
   background: var(--sidebar-hover-background-color);
 }
 
@@ -779,7 +795,8 @@ a[data-toggle='collapse'] {
   box-shadow: inset 1px 1px 3px 1px rgba(0, 0, 0, .3);
 }
 
-ul ul a {
+ul ul a,
+ul ul button {
   font-size: 0.9em !important;
   padding-left: 30px !important;
   color: var(--sidebar-link-text-color);
@@ -3502,8 +3519,8 @@ input:checked+.slider:before {
   background-clip: padding-box;
   *border-right-width: 2px;
   *border-bottom-width: 2px;
-  max-height:50vh;
-  overflow-y:auto;
+  max-height: 50vh;
+  overflow-y: auto;
   scrollbar-color: var(--primary-color) var(--main-bg-color);
 }
 
@@ -3553,4 +3570,4 @@ input[type="color"]:focus,
   border-color: var(--primary-color);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(126, 239, 104, 0.6);
   outline: 0 none;
-}
+}

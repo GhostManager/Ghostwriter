@@ -1,0 +1,6 @@
+-   Subclass `/ghostwriter/commandcenter/views.py` `CollabModelUpdate` and set the appropriate class attributes
+-   Extend the `collab_editing/update.html` template with breadcrumbs, etc. for the model and set the `template_name` class attribute
+-   Ensure your model has a `user_can_edit` method.
+-   Add an entry in `/ghostwriter/api/views.py` `CheckEditPermissions` `available_models`.
+-   Add a form in `/frontend/src/collab_forms/forms/`.
+-   Add a handler in `/collab-server/src/handlers` and set it up in `HANDLERS` in `collab-server/src/index.ts`

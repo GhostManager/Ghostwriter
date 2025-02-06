@@ -15,6 +15,24 @@
 {% block content %}
   <div class="filter-form">
     {% crispy filter.form filter.helper %}
+
+    <div class="justify-content-center">
+      <div class="buttonHolder">
+        <form action="{% url 'reporting:observation_create' %}" method="POST" style="display:contents">
+          {% csrf_token %}
+          <input type="submit" class="btn btn-info col-md-2" role="button" value="Create" />
+        </form>
+
+        <input
+          type="submit"
+          class="btn btn-primary col-md-2"
+          form="observations-filter-form"
+          value="Filter"
+        />
+
+        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:observations' %}">Reset</a>
+      </div>
+    </div>
   </div>
 
   {% if filter.qs|length == 0 %}
@@ -58,7 +76,7 @@
         <tbody class="list">
         {% for observation in filter.qs %}
           <tr>
-            <td class="text-justify align-middle pl-2"><a class="clickable" href="{{ observation.get_absolute_url }}">{{observation.title}}</a></td>
+            <td class="text-justify align-middle pl-2"><a class="clickable" href="{{ observation.get_absolute_url }}">{{observation.title|default:"(Untitled Observation)" }}</a></td>
             <td class="text-justify align-middle">{%  for tag in observation.tags.all %}<span class="badge badge-secondary">{{ tag.name }}</span>{% endfor %}</td>
 
             <td class="align-middle"><a class="js-assign-observation icon add-icon" assign-observation-id="{{ observation.id }}"

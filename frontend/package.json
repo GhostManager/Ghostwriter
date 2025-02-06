@@ -2,12 +2,40 @@
   "type": "module",
   "scripts": {
     "watch": "NODE_ENV=development vite build --mode development",
-    "build": "vite build --mode production"
+    "build": "tsc && vite build --mode production",
+    "format": "prettier src/ vite.config.ts --write"
   },
   "devDependencies": {
     "@types/node": "^22.8.1",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.3",
+    "prettier": "^3.4.2",
+    "sass": "^1.83.4",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@hocuspocus/provider": "^2.15.0",
+    "@szhsin/react-menu": "^4.2.4",
+    "@tiptap/core": "^2.11.2",
+    "@tiptap/extension-code": "^2.11.2",
+    "@tiptap/extension-collaboration": "^2.11.2",
+    "@tiptap/extension-collaboration-cursor": "^2.11.2",
+    "@tiptap/extension-link": "^2.11.2",
+    "@tiptap/extension-table": "^2.11.2",
+    "@tiptap/extension-table-cell": "^2.11.2",
+    "@tiptap/extension-table-header": "^2.11.2",
+    "@tiptap/extension-table-row": "^2.11.2",
+    "@tiptap/extension-text-align": "^2.11.2",
+    "@tiptap/extension-underline": "^2.11.2",
+    "@tiptap/pm": "^2.11.2",
+    "@tiptap/react": "^2.11.2",
+    "@tiptap/starter-kit": "^2.11.2",
+    "@yaireo/tagify": "^4.33.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "rollup-plugin-sourcemaps2": "^0.4.3",
+    "yjs": "^13.6.22"
   }
 }

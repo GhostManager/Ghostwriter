@@ -363,6 +363,7 @@ def float_widget(*args, **kwargs):
     widget.attrs.setdefault("step", "any")
     return widget
 
+# Also edit frontend/src/extra_fields.tsx
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
         display_name="Checkbox",
@@ -433,6 +434,14 @@ class ExtraFieldSpec(models.Model):
         blank=True,
         default="",
     )
+
+    @classmethod
+    def for_model(cls, model):
+        return cls.objects.filter(target_model=model._meta.label)
+
+    @classmethod
+    def for_instance(cls, instance):
+        return cls.objects.filter(target_model=type(instance)._meta.label)
 
     def __str__(self):
         return "Extra Field"

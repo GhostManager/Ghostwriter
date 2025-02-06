@@ -178,6 +178,7 @@ class ObservationFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+        self.helper.form_id = "observations-filter-form"
         self.helper.layout = Layout(
             Div(
                 Row(
@@ -190,19 +191,6 @@ class ObservationFilter(django_filters.FilterSet):
                         css_class="col-md-4 mb-0",
                     ),
                     css_class="form-row",
-                ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:observation_create' %}">Create</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:observations' %}">Reset</a>
-                        """
-                    ),
                 ),
                 css_class="justify-content-center",
             ),

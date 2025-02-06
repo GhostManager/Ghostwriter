@@ -138,8 +138,6 @@ def generate_jwt(user, exp=None):
         The :model:`users.User` object for the token
     ``exp``
         The expiration timestamp for the token
-    ``exclude_hasura``
-        If ``True``, the token will not contain the Hasura claims
     """
     jwt_iat = datetime.utcnow()
     if exp:

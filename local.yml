@@ -93,7 +93,10 @@ services:
       dockerfile: ./compose/production/nginx/Dockerfile
     image: ghostwriter_local_nginx
     depends_on:
+      # Nginx needs the hosts to be resolvable so that the `upstream` directives will work
       - django
+      - graphql_engine
+      - collab-server
     volumes:
       - ./compose/local/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
@@ -133,7 +136,22 @@ services:
     image: node:21-alpine
     volumes:
       - .:/app
-    command: sh -c 'cd /app/frontend && npm install && npm run watch'
+    working_dir: /app/frontend
+    command: sh -c 'npm install && exec npm run watch'
+
+  collab-server:
+    image: node:21-alpine
+    depends_on:
+      - graphql_engine
+    volumes:
+      - .:/app
+    working_dir: /app/collab-server
+    command: sh -c 'npm install && exec npm run run'
+    environment:
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+    ports:
+      - "8001:8000"
 
   graphql_engine:
     build:
