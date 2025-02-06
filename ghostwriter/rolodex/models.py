@@ -449,6 +449,12 @@ class ProjectObjective(models.Model):
         "List Position",
         default=1,
     )
+    result = models.TextField(
+        "Result",
+        default="",
+        blank=True,
+        help_text="Provide a detailed result or outcome for this objective",
+    )
     # Foreign Keys
     project = models.ForeignKey(
         Project,
