@@ -16,11 +16,12 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView, View
+from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
 from allauth_2fa.utils import user_has_valid_totp_device
@@ -39,6 +40,7 @@ from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Finding,
+    Observation,
     Report,
     ReportFindingLink,
     ReportTemplate,
@@ -167,6 +169,7 @@ class HasuraActionView(HasuraView):
         # Load JSON data from request body and look for the Hasura ``input`` key
         try:
             data = json.loads(request.body)
+            self.data = data
             if "input" in data:
                 self.input = data["input"]
         except JSONDecodeError:
@@ -1172,3 +1175,59 @@ class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
                 extra_tags="alert-danger",
             )
         return super().form_valid(form)
+
+
+class GetTags(HasuraActionView):
+    required_inputs = ["model", "id"]
+    available_models = {
+        "observation": Observation,
+    }
+
+    def post(self, request: HttpRequest):
+        is_admin = self.data["session_variables"].get("x-hasura-role", "admin")
+        if not self.encoded_token and not is_admin:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+            )
+
+        cls = self.available_models.get(self.input["model"])
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        try:
+            obj = cls.objects.get(id=self.input["id"])
+        except ObjectDoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+
+        if not is_admin and hasattr(obj, "user_can_view") and not obj.user_can_view(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to view", "Unauthorized"), status=403)
+
+        return JsonResponse({"tags": list(obj.tags.names())})
+
+class SetTags(HasuraActionView):
+    required_inputs = ["model", "id", "tags"]
+    available_models = {
+        "observation": Observation,
+    }
+
+    def post(self, request: HttpRequest):
+        is_admin = self.data["session_variables"].get("x-hasura-role", "admin")
+        if not self.encoded_token and not is_admin:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+            )
+
+        cls = self.available_models.get(self.input["model"])
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        try:
+            obj = cls.objects.get(id=self.input["id"])
+        except ObjectDoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+
+        if not is_admin and not obj.user_can_edit(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to edit", "Unauthorized"), status=403)
+
+        obj.tags.set(self.input["tags"])
+        return JsonResponse({"tags": self.input["tags"]})

@@ -906,6 +906,20 @@ class Observation(models.Model):
     def get_absolute_url(self):
         return reverse("reporting:observation_detail", args=[str(self.id)])
 
+    @classmethod
+    def user_can_create(cls, user) -> bool:
+        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
+        from ghostwriter.api.utils import verify_observation_access
+        return verify_observation_access(user, "create")
+
+    def user_can_edit(self, user) -> bool:
+        from ghostwriter.api.utils import verify_observation_access
+        return verify_observation_access(user, "edit")
+
+    def user_can_delete(self, user) -> bool:
+        from ghostwriter.api.utils import verify_observation_access
+        return verify_observation_access(user, "delete")
+
 
 class ReportObservationLink(models.Model):
 
