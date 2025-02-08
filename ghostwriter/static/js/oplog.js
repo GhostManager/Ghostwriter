@@ -104,7 +104,7 @@ $(document).ready(function() {
 
     const oplog_entry_extra_fields_spec = JSON.parse(document.getElementById('oplog_entry_extra_fields_spec').textContent);
 
-    const $table = $('#oplogTable tbody');
+    const $table = $('#oplogTableBody');
     const oplog_name = $table.attr("data-oplog-name");
     const oplog_id = parseInt($table.attr("data-oplog-id"));
     const $tableHeader = $('#oplogTableHeader');
@@ -510,8 +510,8 @@ $(document).ready(function() {
             if (!errorDisplayed) {
                 displayToastTop({
                     type: 'error',
-                    string: 'Websocket has been disconnected',
-                    title: 'Websocket disconnected'
+                    string: 'Websocket has been disconnected.',
+                    title: 'Websocket Disconnected'
                 });
                 errorDisplayed = true;
             }
@@ -524,8 +524,8 @@ $(document).ready(function() {
             if (!errorDisplayed) {
                 displayToastTop({
                     type: 'error',
-                    string: 'Websocket has been disconnected',
-                    title: 'Websocket disconnected'
+                    string: 'Websocket has been disconnected.',
+                    title: 'Websocket Disconnected'
                 });
                 errorDisplayed = true;
             }
@@ -589,7 +589,7 @@ $(document).ready(function() {
                 data: $(this).serialize(),
                 success: function (xhr) {
                     if ($(xhr).find('.has-error').length > 0) {
-                        console.error("error detected")
+                        console.error('error detected')
                         $(modal).find('.oplog-form-div').html(xhr);
                         formAjaxSubmit(form, modal);
                     } else {
@@ -604,7 +604,7 @@ $(document).ready(function() {
         });
     }
 
-    $("#edit-modal").on("hide.bs.modal", function () {
+    $('#edit-modal').on('hide.bs.modal', function () {
         tinymceRemove();
     })
 
@@ -668,7 +668,7 @@ $(document).ready(function() {
         });
     });
 
-    // Capture CTRL_S and CTRL+N to export the log and create new entries respectively
+    // Capture CTRL+S and CTRL+N to export the log and create new entries respectively
     $(window).keydown(function (event) {
         if (event.ctrlKey && event.keyCode === 78) {
             event.preventDefault();
