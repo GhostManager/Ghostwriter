@@ -99,6 +99,17 @@
       tinymce.execCommand('mceAddEditor', false, target);
     });
 
+    $('.formset-add-{{ invites.prefix }}').click(function () {
+      let form_idx = $('#id_{{ invites.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ invites.prefix }}').append($('#empty-form-{{ invites.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ invites.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ invites.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ invites.prefix }}-' + parseInt(form_idx) + '-comment'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
+
     $('.formset-add-{{ scopes.prefix }}').click(function () {
       let form_idx = $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val();
       $('#formset-{{ scopes.prefix }}').append($('#empty-form-{{ scopes.prefix }}').html().replace(/__prefix__/g, form_idx));

@@ -136,10 +136,10 @@
           <table id="project-table" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th class="align-middle">Project</th>
-              <th class="align-middle">Activity Type</th>
-              <th class="align-middle">Server Role</th>
-              <th class="align-middle sorter-date-range-dMMMyyyy">Execution Window</th>
+              <th class="align-middle pr-4">Project</th>
+              <th class="align-middle pr-4">Activity Type</th>
+              <th class="align-middle pr-4">Server Role</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
               <th class="align-middle sorter-false">Additional Info</th>
               <th class="align-middle sorter-false">Options</th>
             </tr>
@@ -149,7 +149,7 @@
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
                     <a class="clickable"
-                       href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.client }}</a>
+                       href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</a>
                   {% else %}
                     <span class="blurry">REDACTED</span>
                   {% endif %}

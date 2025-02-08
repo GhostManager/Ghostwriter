@@ -1,8 +1,16 @@
+{% load custom_tags %}
 <li class="nav-item">
     <a id="id_general" class="nav-link active tab-icon company-icon" data-toggle="tab" href="#general">
         General Info
     </a>
 </li>
+{% if request.user|is_privileged %}
+<li class="nav-item">
+    <a id="id_invitations" class="nav-link tab-icon users-icon" data-toggle="tab" href="#invitations">
+        Invitations <span class="badge badge-pill badge-light">{{ client.clientinvite_set.all.count }}</span>
+    </a>
+</li>
+{% endif %}
 <li class="nav-item">
     <a id="id_contacts" class="nav-link tab-icon poc-icon" data-toggle="tab" href="#contacts">
         Points of Contact <span class="badge badge-pill badge-light">{{ client.clientcontact_set.all.count }}</span>

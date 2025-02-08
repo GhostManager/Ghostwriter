@@ -2,7 +2,7 @@
 
 {% load crispy_forms_tags custom_tags %}
 
-{% load bleach_tags %}
+{% load bleach_tags custom_tags %}
 
 {% block pagetitle %}Project List{% endblock %}
 
@@ -21,8 +21,12 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  {% if not request.user|is_privileged %}
+    <div class="alert alert-success offset-md-3 col-md-6 mt-3" role="alert">Projects shown here are projects to which you have access. You gain access to a project by being assigned to it or invited to have full access to the related client's history.</div>
+  {% endif %}
+
   {% if filter.qs|length == 0 %}
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no projects to see here yet, or your search returned no results. Create a project above or adjust your filters.</div>
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no projects to see here yet, you lack access to the project(s), or your search returned no results. Create a project above or adjust your filters.</div>
   {% else %}
     <table id="projectTable" class="tablesorter table table-sm table-hover">
       <thead>
