@@ -25,7 +25,8 @@ If applicable, add screenshots to help explain your problem.
 
 **Server Specs:**
  - OS: [e.g., Ubuntu]
- - Docker [e.g., output of `docker --version` and `docker-compose -v`]
+ - Docker [e.g., output of `docker --version`]
+ - Docker compose [e.g., output of `docker compose version`]
  - Ghostwriter [e.g., 2.2.3 or whatever is printed at the bottom of the left-hand sidebar]
 
 **Additional context**
