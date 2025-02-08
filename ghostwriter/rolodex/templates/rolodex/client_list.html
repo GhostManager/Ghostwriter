@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags custom_tags %}
 
 {% load bleach_tags %}
 
@@ -58,6 +58,20 @@
                         );
             $('.tablesorter').trigger('update');
         });
+    </script>
+
+    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
+    <script>
+      $(function () {
+        let availableNames = [
+          {% for entry in autocomplete %}
+            '{{ entry.name|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+          {% endfor %}
+        ];
+        $('#id_name').autocomplete({
+          source: availableNames
+        });
+      });
     </script>
 
     <!-- Submit Filter when Clicking Bootstrap Icon -->

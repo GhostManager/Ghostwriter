@@ -12,9 +12,20 @@
         {% else %}
           <p>No description provided.</p>
         {% endif %}
-
       </div>
     </div>
+    {% if objective.result %}
+    <div class="objective-result">
+      <div class="alert alert-secondary col-md-12" role="alert">
+        <h6 class="alert-heading">Objective Result</h6>
+        {% if objective.result %}
+          {{ objective.result|bleach }}
+        {% else %}
+          <p>No result provided.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
     <!-- New Task Form -->
     <form action="javascript:void(0);" id="new-task-form-{{ objective.id }}" objective-id="{{ objective.id }}"
           new-task-url="{% url 'rolodex:ajax_create_project_task' objective.id %}" new-task-csrftoken="{{ csrf_token }}"

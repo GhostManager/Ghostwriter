@@ -357,3 +357,13 @@
     $(tinyInit);
 
 })($ || django.jQuery);
+
+function tinymceLogInit() {
+    let logConfig = { ...GW_TINYMCE_BASIC_CONFIG };
+    logConfig.selector = '.modal-content textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)';
+    tinymce.init(logConfig);
+}
+
+function tinymceRemove() {
+    tinymce.remove();
+}

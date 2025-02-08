@@ -584,6 +584,7 @@ class ProjectObjectiveForm(forms.ModelForm):
             "status",
             "description",
             "priority",
+            "result",
         )
         widgets = {
             "deadline": forms.DateInput(
@@ -666,6 +667,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                         ),
                     ),
                     "description",
+                    "result",
                     Row(
                         Column(
                             Button(

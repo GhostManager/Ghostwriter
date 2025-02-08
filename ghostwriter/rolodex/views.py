@@ -1138,9 +1138,15 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
     model = Client
     template_name = "rolodex/client_list.html"
 
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
     def get_queryset(self):
         user = self.request.user
         queryset = get_client_list(user)
+
+        self.autocomplete = queryset
 
         # Check if a search parameter is in the request
         try:
@@ -1160,6 +1166,7 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset())
+        ctx["autocomplete"] = self.autocomplete
         return ctx
 
 
@@ -1547,9 +1554,14 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
     model = Project
     template_name = "rolodex/project_list.html"
 
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
     def get_queryset(self):
         user = self.request.user
         queryset = get_project_list(user).defer("extra_fields")
+        self.autocomplete = queryset
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1560,6 +1572,7 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
         if len(data) == 0:
             data["complete"] = 0
         ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset())
+        ctx["autocomplete"] = self.autocomplete
         return ctx
 
 
