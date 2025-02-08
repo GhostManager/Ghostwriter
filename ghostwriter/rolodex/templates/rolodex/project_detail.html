@@ -208,6 +208,63 @@
              js-update-contacts-url="{% url 'rolodex:ajax_update_project_contacts' project.id %}">
           {% include "snippets/project_contacts_table.html" %}
         </div>
+
+        {% comment %} Invitations {% endcomment %}
+        {% if request.user|is_privileged %}
+          <div id="invitations" class="tab-pane">
+            <h4>Invited Collaborators</h4>
+            <hr/>
+            <a class="icon add-icon btn btn-primary mb-3 col-3"
+               href="{% url 'rolodex:project_update' project.id %}#invites">Add & Edit Invitations</a>
+            <p class="text-center offset-2 col-8">Users listed here have view access to this project without appearing as assigned to do work.</p>
+            {% if project.projectinvite_set.all %}
+              <table id="projectInviteTable" class="tablesorter table table-striped">
+                <thead>
+                <tr>
+                  <th class="align-middle pr-4">Name</th>
+                  <th class="align-middle pr-4">Comment</th>
+                  <th class="align-middle sorter-false">Options</th>
+                </tr>
+                </thead>
+                {% for invite in project.projectinvite_set.all %}
+                  <tr>
+                    <td class="align-middle">
+                      <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
+                        {% if invite.user.name %}
+                          {{ invite.user.name }}
+                        {% else %}
+                          Missing Full Name ({{ invite.user.username|capfirst }})
+                        {% endif %}
+                      </a>
+                    </td>
+
+                    <td class="align-middle">
+                      {{ invite.comment|bleach }}
+                    </td>
+                    <td class="align-middle">
+                      <div class="dropdown dropleft">
+                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
+                                aria-expanded="false"></button>
+                        <div class="dropdown-menu" aria-labelledby="invite-dropdown-btn_{{ invite.id }}">
+                          <a class="dropdown-item icon edit-icon"
+                             href="{% url 'rolodex:project_update' project.id %}#invites">Edit</a>
+                          <a class="dropdown-item icon trash-icon" id="invite-delete-button-{{ invite.id }}"
+                             class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                             href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
+                             delete-target-url="{% url 'rolodex:ajax_delete_project_invite' invite.id %}"
+                             delete-target-id="{{ invite.id }}" delete-target-type="invitation">Delete</a>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </table>
+            {% else %}
+              <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
 
       {% comment %} White Cards Tab {% endcomment %}

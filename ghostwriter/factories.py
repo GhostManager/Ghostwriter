@@ -207,7 +207,7 @@ class ProjectObjectiveFactory(factory.django.DjangoModelFactory):
     deadline = Faker("date_between", start_date="-305d", end_date="+60d")
     status = factory.SubFactory(ObjectiveStatusFactory)
     priority = factory.SubFactory(ObjectivePriorityFactory)
-
+    result = Faker("paragraph")
 
 class ProjectSubtaskFactory(factory.django.DjangoModelFactory):
     class Meta:

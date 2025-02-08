@@ -69,7 +69,7 @@
 
     <div>
         <p>The table syncs automatically while you are connected to the server (see the status indicator above the table).</p>
-        <p>Double click a row to edit the details of any log entry.</p>
+        <p>Double-click a row to edit the details of any log entry. Use <em>CTRL+S</em> and <em>CTRL+N</em> to export the log and create new entries.</p>
     </div>
 
     <a id="createNewEntryButton" class="icon add-icon btn btn-primary mb-3 col-3" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
@@ -139,7 +139,6 @@
   </div>
 
   {{ oplog_entry_extra_fields_spec_ser|json_script:"oplog_entry_extra_fields_spec" }}
-
 
 
 {% endblock %}

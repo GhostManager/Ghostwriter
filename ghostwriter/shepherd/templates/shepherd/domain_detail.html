@@ -273,12 +273,11 @@
           <table id="project-table" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th>Client</th>
-              <th>Activity Type</th>
-              <th>Project Type</th>
-              <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
-              <th class="sorter-false">Additional Info</th>
-              <th class="sorter-false">Options</th>
+              <th class="align-middle pr-4">Project</th>
+              <th class="align-middle pr-4">Activity Type</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
+              <th class="align-middle sorter-false pr-4">Additional Info</th>
+              <th class="align-middle sorter-false pr-4">Options</th>
             </tr>
             </thead>
             {% for checkout in domain.history_set.all %}
@@ -286,13 +285,12 @@
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
                     <a class="clickable"
-                       href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.client }}</i></a>
+                       href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</i></a>
                   {% else %}
                     <span class="blurry">REDACTED</span>
                   {% endif %}
                 </td>
                 <td class="align-middle">{{ checkout.activity_type }}</td>
-                <td class="align-middle">{{ checkout.project.project_type }}</td>
                 <td class="align-middle">{{ checkout.start_date|date:"d M Y" }}
                   – {{ checkout.end_date|date:"d M Y" }}</td>
                 <td class="align-middle">

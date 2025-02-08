@@ -2935,7 +2935,7 @@ class ObservationListView(RoleBasedAccessControlMixin, ListView):
 
         # Build autocomplete list
         for observation in observations:
-            self.autocomplete.append(observation.title)
+            self.autocomplete.append(observation)
 
         search_term = self.request.GET.get("observation", "").strip()
         if search_term:

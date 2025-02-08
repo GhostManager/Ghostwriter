@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags bleach_tags %}
+{% load crispy_forms_tags bleach_tags custom_tags %}
 
 {% block pagetitle %}Observations Library{% endblock %}
 
@@ -125,10 +125,10 @@
     $(function () {
       let availableTitles = [
         {% for entry in autocomplete %}
-          '{{ entry|escapejs }}',
+          '{{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
         {% endfor %}
       ];
-      $("#id_title").autocomplete({
+      $('#id_title').autocomplete({
         source: availableTitles
       });
     });

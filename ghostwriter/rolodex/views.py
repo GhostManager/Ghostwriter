@@ -40,6 +40,7 @@ from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
     ClientContactFormSet,
     ClientForm,
+    ClientInviteFormSet,
     ClientNoteForm,
 )
 from ghostwriter.rolodex.forms_project import (
@@ -48,6 +49,7 @@ from ghostwriter.rolodex.forms_project import (
     ProjectComponentForm,
     ProjectContactFormSet,
     ProjectForm,
+    ProjectInviteFormSet,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
     ProjectScopeFormSet,
@@ -57,6 +59,7 @@ from ghostwriter.rolodex.forms_project import (
 from ghostwriter.rolodex.models import (
     Client,
     ClientContact,
+    ClientInvite,
     ClientNote,
     Deconfliction,
     ObjectivePriority,
@@ -64,6 +67,7 @@ from ghostwriter.rolodex.models import (
     Project,
     ProjectAssignment,
     ProjectContact,
+    ProjectInvite,
     ProjectNote,
     ProjectObjective,
     ProjectScope,
@@ -120,7 +124,7 @@ def update_client_badges(request, pk):
 
     html = render_to_string(
         "snippets/client_nav_tabs.html",
-        {"client": client_instance},
+        {"client": client_instance, "request": request},
     )
     return HttpResponse(html)
 
@@ -529,6 +533,56 @@ class ClientContactDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         obj_id = obj.id
         obj.delete()
         data = {"result": "success", "message": "Contact successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            obj.__class__.__name__,
+            obj_id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ClientInviteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`rolodex.ClientInvite`."""
+
+    model = ClientInvite
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
+        data = {"result": "success", "message": "Invite successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            obj.__class__.__name__,
+            obj_id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ProjectInviteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`rolodex.ProjectInvite`."""
+
+    model = ProjectInvite
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
+        data = {"result": "success", "message": "Invite successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             obj.__class__.__name__,
@@ -1084,9 +1138,15 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
     model = Client
     template_name = "rolodex/client_list.html"
 
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
     def get_queryset(self):
         user = self.request.user
         queryset = get_client_list(user)
+
+        self.autocomplete = queryset
 
         # Check if a search parameter is in the request
         try:
@@ -1106,6 +1166,7 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset())
+        ctx["autocomplete"] = self.autocomplete
         return ctx
 
 
@@ -1138,25 +1199,16 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
+        client_instance = self.get_object()
         domain_history = History.objects.select_related("domain").filter(client=client_instance)
         server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
         projects = Project.objects.filter(client=client_instance)
-        client_domains = []
-        for domain in domain_history:
-            client_domains.append(domain)
-        client_servers = []
-        for server in server_history:
-            client_servers.append(server)
-        client_vps = []
-        for project in projects:
-            vps_queryset = TransientServer.objects.filter(project=project)
-            for vps in vps_queryset:
-                client_vps.append(vps)
-        ctx["domains"] = client_domains
-        ctx["servers"] = client_servers
-        ctx["vps"] = client_vps
 
+        client_vps = TransientServer.objects.filter(project__in=projects)
+        ctx["domains"] = domain_history
+        ctx["servers"] = server_history
+        ctx["vps"] = client_vps
+        ctx["projects"] = projects
         ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
 
         return ctx
@@ -1202,36 +1254,45 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         ctx["cancel_link"] = reverse("rolodex:clients")
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc")
+            ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite")
         else:
             # Add extra forms to aid in configuration of a new client
             contacts = ClientContactFormSet(prefix="poc")
             contacts.extra = 1
             # Assign the re-configured formsets to context vars
             ctx["contacts"] = contacts
+            invites = ClientInviteFormSet(prefix="invite")
+            invites.extra = 1
+            ctx["invites"] = invites
         return ctx
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
+        invites = ctx["invites"]
 
         # Now validate inline formsets
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                obj = form.save()
+                obj = form.save(commit=False)
+                self.object = obj
 
-                contacts_valid = contacts.is_valid()
-                if contacts_valid:
+                formsets_valid = contacts.is_valid() and invites.is_valid()
+                if formsets_valid:
                     contacts.instance = obj
+                    invites.instance = obj
                     try:
                         contacts.save()
+                        invites.save()
                     except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts for a client.")
+                        form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
 
-                if form.is_valid() and contacts_valid:
+                if form.is_valid() and formsets_valid:
                     obj.save()
-                    return super().form_valid(form)
+                    form.save_m2m()
+                    return HttpResponseRedirect(self.get_success_url())
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
@@ -1295,32 +1356,44 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
         ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc", instance=self.object)
+            ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite", instance=self.object)
         else:
-            ctx["contacts"] = ClientContactFormSet(prefix="poc", instance=self.object)
+            contacts = ClientContactFormSet(prefix="poc", instance=self.object)
+            if self.object.clientcontact_set.all().count() < 1:
+                contacts.extra = 1
+            ctx["contacts"] = contacts
+            invites = ClientInviteFormSet(prefix="invite", instance=self.object)
+            if self.object.clientinvite_set.all().count() < 1:
+                invites.extra = 1
+            ctx["invites"] = invites
         return ctx
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
+        invites = ctx["invites"]
 
         # Now validate inline formsets
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                obj = form.save()
+                obj = form.save(commit=False)
 
-                contacts_valid = contacts.is_valid()
-                if contacts_valid:
+                formsets_valid = contacts.is_valid() and invites.is_valid()
+                if formsets_valid:
                     contacts.instance = obj
+                    invites.instance = obj
                     try:
                         contacts.save()
+                        invites.save()
                     except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts for a client.")
+                        form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
 
-                if form.is_valid() and contacts_valid:
+                if form.is_valid() and formsets_valid:
                     obj.save()
-                    return super().form_valid(form)
+                    form.save_m2m()
+                    return HttpResponseRedirect(self.get_success_url())
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
@@ -1481,9 +1554,14 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
     model = Project
     template_name = "rolodex/project_list.html"
 
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
     def get_queryset(self):
         user = self.request.user
         queryset = get_project_list(user).defer("extra_fields")
+        self.autocomplete = queryset
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1494,6 +1572,7 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
         if len(data) == 0:
             data["complete"] = 0
         ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset())
+        ctx["autocomplete"] = self.autocomplete
         return ctx
 
 
@@ -1535,6 +1614,8 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         Instance of :model:`rolodex.Client` associated with this project
     ``assignments``
         Instance of the `ProjectAssignmentFormSet()` formset
+    ``invites``
+        Instance of the `ProjectInviteFormSet()` formset
     ``cancel_link``
         Link for the form's Cancel button to return to projects list page
 
@@ -1582,12 +1663,16 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
             ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
             ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign")
+            ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite")
         else:
             # Add extra forms to aid in configuration of a new project
             assignments = ProjectAssignmentFormSet(prefix="assign")
             assignments.extra = 1
+            invites = ProjectInviteFormSet(prefix="invite")
+            invites.extra = 1
             # Assign the re-configured formsets to context vars
             ctx["assignments"] = assignments
+            ctx["invites"] = invites
         return ctx
 
     def form_invalid(self, form):
@@ -1597,6 +1682,7 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         assignments = ctx["assignments"]
+        invites = ctx["invites"]
 
         # Now validate inline formsets
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
@@ -1605,16 +1691,24 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
                 form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
 
                 # Save the parent form – will rollback if a child fails validation
-                obj = form.save()
+                obj = form.save(commit=False)
+                self.object = obj
 
-                assignments_valid = assignments.is_valid()
-                if assignments_valid:
+                formsets_valid = assignments.is_valid() and invites.is_valid()
+                if formsets_valid:
                     assignments.instance = obj
-                    assignments.save()
+                    invites.instance = obj
 
-                if form.is_valid() and assignments_valid:
+                    try:
+                        assignments.save()
+                        invites.save()
+                    except IntegrityError:  # pragma: no cover
+                        form.add_error(None, "You cannot have duplicate assignments or invites for a project.")
+
+                if form.is_valid() and formsets_valid:
                     obj.save()
-                    return super().form_valid(form)
+                    form.save_m2m()
+                    return HttpResponseRedirect(self.get_success_url())
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
@@ -1650,6 +1744,8 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
         Instance of :model:`rolodex.Project` being updated
     ``assignments``
         Instance of the `ProjectAssignmentFormSet()` formset
+    ``invites``
+        Instance of the `ProjectInviteFormSet()` formset
     ``cancel_link``
         Link for the form's Cancel button to return to project's detail page
 
@@ -1674,11 +1770,17 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
         ctx["object"] = self.get_object()
         ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
         if self.request.POST:
-            ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj", instance=self.object)
             ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign", instance=self.object)
+            ctx["invites"] = ProjectInviteFormSet(self.request.POST, prefix="invite", instance=self.object)
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
-            ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
+            assignments = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
+            if self.object.projectassignment_set.all().count() < 1:
+                assignments.extra = 1
+            ctx["assignments"] = assignments
+            invites = ProjectInviteFormSet(prefix="invite", instance=self.object)
+            if self.object.projectinvite_set.all().count() < 1:
+                invites.extra = 1
+            ctx["invites"] = invites
         return ctx
 
     def get_success_url(self):
@@ -1689,23 +1791,31 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         assignments = ctx["assignments"]
+        invites = ctx["invites"]
 
         # Now validate inline formsets
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                obj = form.save()
+                obj = form.save(commit=False)
 
-                assignments_valid = assignments.is_valid()
-                if assignments_valid:
+                formsets_valid = assignments.is_valid() and invites.is_valid()
+                if formsets_valid:
                     assignments.instance = obj
-                    assignments.save()
+                    invites.instance = obj
+
+                    try:
+                        assignments.save()
+                        invites.save()
+                    except IntegrityError:  # pragma: no cover
+                        form.add_error(None, "You cannot have duplicate assignments or invites for a project.")
 
                 # Proceed with form submission
-                if form.is_valid() and assignments_valid:
+                if form.is_valid() and formsets_valid:
                     obj.save()
-                    return super().form_valid(form)
+                    form.save_m2m()
+                    return HttpResponseRedirect(self.get_success_url())
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
@@ -1801,11 +1911,26 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
             ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card", instance=self.object)
             ctx["contacts"] = ProjectContactFormSet(self.request.POST, prefix="contact", instance=self.object)
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
-            ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
-            ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
-            ctx["whitecards"] = WhiteCardFormSet(prefix="card", instance=self.object)
-            ctx["contacts"] = ProjectContactFormSet(prefix="contact", instance=self.object)
+            objectives = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
+            if self.object.projectobjective_set.all().count() < 1:
+                objectives.extra = 1
+            ctx["objectives"] = objectives
+            scopes = ProjectScopeFormSet(prefix="scope", instance=self.object)
+            if self.object.projectscope_set.all().count() < 1:
+                scopes.extra = 1
+            ctx["scopes"] = scopes
+            targets = ProjectTargetFormSet(prefix="target", instance=self.object)
+            if self.object.projecttarget_set.all().count() < 1:
+                targets.extra = 1
+            ctx["targets"] = targets
+            whitecards = WhiteCardFormSet(prefix="card", instance=self.object)
+            if self.object.whitecard_set.all().count() < 1:
+                whitecards.extra = 1
+            ctx["whitecards"] = whitecards
+            contacts = ProjectContactFormSet(prefix="contact", instance=self.object)
+            if self.object.projectcontact_set.all().count() < 1:
+                contacts.extra = 1
+            ctx["contacts"] = contacts
         return ctx
 
     def get_success_url(self):
