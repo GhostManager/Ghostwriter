@@ -68,7 +68,6 @@ export function usePageConnection(settings: {
                         savedInstanceID.current = doc
                             .get("serverInfo", Y.Map)
                             .get("instanceId") as string;
-                        console.log("onSynced: got instance id", savedInstanceID.current);
                     });
                 }
             },

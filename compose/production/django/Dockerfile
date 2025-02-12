@@ -1,7 +1,10 @@
 FROM node:21-alpine AS frontendbuild
 
-COPY ./frontend /app
-RUN cd /app && npm install && npm run build
+COPY ./frontend /app/frontend
+COPY ./tiptap-gw /app/tiptap-gw
+COPY ./compose/production/django/workspace.json /app/package.json
+COPY ./package-lock.json /app/package-lock.json
+RUN cd /app/frontend && npm ci && npm run build
 
 FROM python:3.10.9-alpine3.17
 

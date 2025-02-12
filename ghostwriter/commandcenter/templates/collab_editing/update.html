@@ -23,7 +23,7 @@
     <script type="text/plain" id="yjs-object-id">{{object.id}}</script>
     <script type="text/plain" id="yjs-username">{{user.get_username}}</script>
     <script type="text/plain" id="yjs-jwt">{{jwt}}</script>
-    {% if extra_fields_spec_ser %}
+    {% if extra_fields_spec_ser is not None %}
     {{extra_fields_spec_ser|json_script:"yjs-extra-field-specs"}}
     {% endif %}
     <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">

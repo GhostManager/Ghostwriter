@@ -10,7 +10,7 @@ import * as Y from "yjs";
 
 
 import { Menu, MenuButton, MenuDivider, MenuItem } from "@szhsin/react-menu";
-import EXTENSIONS from "./tiptap_extensions.ts";
+import EXTENSIONS from "tiptap-gw";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 
 

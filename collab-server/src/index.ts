@@ -65,6 +65,13 @@ type Context = {
     username: string;
 };
 
+class AuthError extends Error {
+    constructor(msg: string) {
+        super(msg);
+        this.name = "AuthError";
+    }
+}
+
 const server = new Hocuspocus({
     port: 8000,
     extensions: [
@@ -74,84 +81,100 @@ const server = new Hocuspocus({
     ],
 
     async onAuthenticate(conn) {
-        const roomSplit = conn.documentName.split("/", 2);
-        if (roomSplit.length !== 2) {
-            throw new Error("Client Error: Invalid room name");
-        }
-        const model = roomSplit[0];
-        const id = parseInt(roomSplit[1]);
-        if (id !== id) {
-            throw new Error("Client Error: Invalid room name: Invalid ID");
-        }
-
-        if (!HANDLERS.has(model)) {
-            throw new Error("Client error: unrecognized model: " + model);
-        }
-
-        const tokenParts = conn.token.split(" ");
-        if (tokenParts.length !== 1 && tokenParts.length !== 2) {
-            throw new Error("Client error: invalid auth token");
-        }
-        const token = tokenParts[0];
-        const expectedInstanceId =
-            tokenParts.length >= 2 ? tokenParts[1] : null;
-
-        const res = await fetch("http://django:8000/api/check_permissions", {
-            method: "POST",
-            body: JSON.stringify({
-                input: {
-                    model,
-                    id,
-                },
-            }),
-            headers: {
-                "Hasura-Action-Secret": (env as any)["HASURA_ACTION_SECRET"],
-                Authorization: "Bearer " + token,
-                "Content-Type": "application/json",
-                Accept: "application/json",
-            },
-        });
-
-        if (res.status !== 200) {
-            const body = await res.text();
-            throw new Error("Auth failed: " + body);
-        }
-
-        const username = await res.json();
-        if (typeof username !== "string") {
-            throw new Error("Auth failed: " + JSON.stringify(username));
-        }
-
-        if (expectedInstanceId !== null) {
-            // If a client was working with a previous version of the document, make sure the one
-            // on the server matches, otherwise it'll try to merge two divergent yjs docs, which
-            // causes weird results. Kick them out and make them reload if that happens.
-            const existingDoc = conn.instance.documents.get(conn.documentName);
-            if (!existingDoc) {
-                throw new Error(
-                    "Auth failed: client expecting a loaded document"
+        try {
+            const roomSplit = conn.documentName.split("/", 2);
+            if (roomSplit.length !== 2) {
+                throw new AuthError("Client Error: Invalid room name");
+            }
+            const model = roomSplit[0];
+            const id = parseInt(roomSplit[1]);
+            if (id !== id) {
+                throw new AuthError(
+                    "Client Error: Invalid room name: Invalid ID"
                 );
             }
 
-            let instanceId;
-            existingDoc.transact(() => {
-                instanceId = existingDoc
-                    .get("serverInfo", Y.Map)
-                    .get("instanceId");
-            });
-
-            if (expectedInstanceId !== instanceId) {
-                throw new Error(
-                    "Auth failed: expected document instance ID mismatch"
+            if (!HANDLERS.has(model)) {
+                throw new AuthError(
+                    "Client error: unrecognized model: " + model
                 );
             }
-        }
 
-        return {
-            model,
-            id,
-            username,
-        } as Context; // data.context
+            const tokenParts = conn.token.split(" ");
+            if (tokenParts.length !== 1 && tokenParts.length !== 2) {
+                throw new AuthError("Client error: invalid auth token");
+            }
+            const token = tokenParts[0];
+            const expectedInstanceId =
+                tokenParts.length >= 2 ? tokenParts[1] : null;
+
+            const res = await fetch(
+                "http://django:8000/api/check_permissions",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        input: {
+                            model,
+                            id,
+                        },
+                    }),
+                    headers: {
+                        "Hasura-Action-Secret": (env as any)[
+                            "HASURA_ACTION_SECRET"
+                        ],
+                        Authorization: "Bearer " + token,
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                    },
+                }
+            );
+
+            if (res.status !== 200) {
+                const body = await res.text();
+                throw new AuthError("Auth failed: " + body);
+            }
+
+            const username = await res.json();
+            if (typeof username !== "string") {
+                throw new AuthError("Auth failed: " + JSON.stringify(username));
+            }
+
+            if (expectedInstanceId !== null) {
+                // If a client was working with a previous version of the document, make sure the one
+                // on the server matches, otherwise it'll try to merge two divergent yjs docs, which
+                // causes weird results. Kick them out and make them reload if that happens.
+                const existingDoc = conn.instance.documents.get(
+                    conn.documentName
+                );
+                if (!existingDoc) {
+                    throw new AuthError(
+                        "Auth failed: client expecting a loaded document"
+                    );
+                }
+
+                let instanceId;
+                existingDoc.transact(() => {
+                    instanceId = existingDoc
+                        .get("serverInfo", Y.Map)
+                        .get("instanceId");
+                });
+
+                if (expectedInstanceId !== instanceId) {
+                    throw new AuthError(
+                        "Auth failed: expected document instance ID mismatch"
+                    );
+                }
+            }
+
+            return {
+                model,
+                id,
+                username,
+            } as Context; // data.context
+        } catch (e) {
+            if (!(e instanceof AuthError)) console.error(e);
+            throw e;
+        }
     },
 
     async onLoadDocument(data) {

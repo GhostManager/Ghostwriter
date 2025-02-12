@@ -1,5 +1,3 @@
-// NOTE: This file is ALSO imported in collab-server!
-
 // Collab extensions aren't included here since they require runtime configuration. They don't
 // change the schema.
 

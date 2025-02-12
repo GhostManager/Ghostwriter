@@ -25,7 +25,7 @@ const PageBreak = Node.create<PageBreakOptions>({
             {
                 tag: "div",
                 getAttrs: (node) =>
-                    node.classList.contains("page-break") && null,
+                    (node as any).classList.contains("page-break") && null,
             },
         ];
     },
