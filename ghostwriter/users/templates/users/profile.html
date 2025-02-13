@@ -22,7 +22,7 @@
     <img class="avatar" src="{%  url 'users:avatar_download' slug=user.username %}" alt="Avatar">
   {% endif %}
 
-  <!-- Users Profile Section -->
+  {% comment %} Users Profile Section {% endcomment %}
   <div class="container profile-container mt-4">
     <div class="row align-items-center text-left text-left">
       <div class="col-sm">
@@ -132,7 +132,7 @@
     {% endif %}
   {% endif %}
 
-  <!-- Account Information Update -->
+  {% comment %}  Account Information Update {% endcomment %}
   {% if request.user == user %}
     <h4 class="icon user-edit-icon pt-4">Update Account Details</h4>
     <hr>
