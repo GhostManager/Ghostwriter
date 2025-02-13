@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added a finding type label below the finding's title on the finding details page
+* Added links to profile pages for users from the project library
+* Added a table of active project assignments to the user profile page
+  * This table is viewable by the user and managers
 
 ### Fixed
 
