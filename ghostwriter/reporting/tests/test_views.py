@@ -2811,3 +2811,159 @@ class EvidencePreviewTests(TestCase):
         response = self.client_mgr.get(self.unknown_uri)
         self.assertEqual(response.status_code, 200)
         self.assertInHTML("<p>Evidence file type cannot be displayed.</p>", response.content.decode())
+
+
+# Tests related to :model:`reporting.Observation`
+
+
+class ObservationCreateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.observation = ObservationFactory()
+        cls.Observation = ObservationFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_create")
+        cls.failure_redirect_uri = reverse("reporting:observations")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.failure_redirect_uri)
+
+        self.user.enable_observation_create = True
+        self.user.save()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/observation_form.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertEqual(response.context["cancel_link"], reverse("reporting:observations"))
+
+
+class ObservationUpdateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.observation = ObservationFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_update", kwargs={"pk": cls.observation.pk})
+        cls.failure_redirect_uri = reverse("reporting:observation_detail", kwargs={"pk": cls.observation.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.failure_redirect_uri)
+
+        self.user.enable_observation_edit = True
+        self.user.save()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/observation_form.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertEqual(
+            response.context["cancel_link"],
+            reverse("reporting:observation_detail", kwargs={"pk": self.observation.pk}),
+        )
+
+
+class ObservationDeleteViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.observation = ObservationFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_delete", kwargs={"pk": cls.observation.pk})
+        cls.failure_redirect_uri = reverse("reporting:observation_detail", kwargs={"pk": cls.observation.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.failure_redirect_uri)
+
+        self.user.enable_observation_delete = True
+        self.user.save()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "confirm_delete.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertIn("object_type", response.context)
+        self.assertIn("object_to_be_deleted", response.context)
+        self.assertEqual(
+            response.context["cancel_link"],
+            reverse("reporting:observations"),
+        )
+        self.assertEqual(
+            response.context["object_type"],
+            "observation",
+        )
+        self.assertEqual(response.context["object_to_be_deleted"], self.observation.title)
+
