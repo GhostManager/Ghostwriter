@@ -50,11 +50,13 @@
           <td class="align-middle">
             {% if project.projectassignment_set.all %}
               {% for operator in project.projectassignment_set.all %}
-                {% if operator.operator.name %}
-                  {{ operator.operator.name }}
-                {% else %}
-                  Missing Full Name ({{ operator.operator.username }})
-                {% endif %}
+                <a class="clickable" href="{{ operator.operator.get_absolute_url }}">
+                  {% if operator.operator.name %}
+                    {{ operator.operator.name }}
+                  {% else %}
+                    Missing Full Name ({{ operator.operator.username }})
+                  {% endif %}
+                </a>
                 {% if not forloop.last %}
                   <br/>
                 {% endif %}
