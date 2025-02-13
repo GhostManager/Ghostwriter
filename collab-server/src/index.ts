@@ -1,10 +1,6 @@
 // Collaborative editing server, based on Hocuspocus
 //
 // Dynamically converts the standard models from the GraphQL API to/from YJS.
-//
-// Since documents are made dynamically, its helpful to ensure that the client doesn't
-// receive a newly loaded yjs doc, otherwise it will try to merge two divergent documents.
-// To do this, the server emebeds a random UUID in the document and
 
 // Apollo's lib is commonjs and tsx doesn't see its exports, so work around it.
 import * as apollo from "@apollo/client/core";
@@ -12,10 +8,11 @@ const { ApolloClient, createHttpLink, InMemoryCache } = apollo;
 
 import { randomUUID } from "node:crypto";
 import { Hocuspocus } from "@hocuspocus/server";
-import { Logger } from "@hocuspocus/extension-logger";
 import { setContext } from "@apollo/client/link/context";
 import { env } from "node:process";
 import * as Y from "yjs";
+import pino from "pino";
+import { type Logger } from "pino";
 
 import { type ModelHandler } from "./base_handler";
 import ObservationHandler from "./handlers/observation";
@@ -63,6 +60,7 @@ type Context = {
     model: string;
     id: number;
     username: string;
+    log: Logger;
 };
 
 class AuthError extends Error {
@@ -72,37 +70,46 @@ class AuthError extends Error {
     }
 }
 
+const BASE_LOGGER = pino({});
+
 const server = new Hocuspocus({
     port: 8000,
-    extensions: [
-        new Logger({
-            onUpgrade: false,
-        }),
-    ],
+
+    async onConnect(data) {
+        BASE_LOGGER.info({
+            docName: data.documentName,
+            addr: data.request.socket.remoteAddress,
+            port: data.request.socket.remotePort,
+            socketId: data.socketId,
+            msg: "Connected",
+        });
+    },
 
     async onAuthenticate(conn) {
+        const log = BASE_LOGGER.child({
+            docName: conn.documentName,
+            addr: conn.request.socket.remoteAddress,
+            port: conn.request.socket.remotePort,
+            socketId: conn.socketId,
+        });
         try {
             const roomSplit = conn.documentName.split("/", 2);
             if (roomSplit.length !== 2) {
-                throw new AuthError("Client Error: Invalid room name");
+                throw new AuthError("Invalid room name");
             }
             const model = roomSplit[0];
             const id = parseInt(roomSplit[1]);
             if (id !== id) {
-                throw new AuthError(
-                    "Client Error: Invalid room name: Invalid ID"
-                );
+                throw new AuthError("Invalid room name: Invalid ID");
             }
 
             if (!HANDLERS.has(model)) {
-                throw new AuthError(
-                    "Client error: unrecognized model: " + model
-                );
+                throw new AuthError("Unrecognized model: " + model);
             }
 
             const tokenParts = conn.token.split(" ");
             if (tokenParts.length !== 1 && tokenParts.length !== 2) {
-                throw new AuthError("Client error: invalid auth token");
+                throw new AuthError("Invalid auth token");
             }
             const token = tokenParts[0];
             const expectedInstanceId =
@@ -131,13 +138,19 @@ const server = new Hocuspocus({
 
             if (res.status !== 200) {
                 const body = await res.text();
-                throw new AuthError("Auth failed: " + body);
+                throw new AuthError(
+                    "Error response from auth endpoint " + body
+                );
             }
 
             const username = await res.json();
             if (typeof username !== "string") {
-                throw new AuthError("Auth failed: " + JSON.stringify(username));
+                throw new AuthError(
+                    "Invalid data from auth endpoint " +
+                        JSON.stringify(username)
+                );
             }
+            log.setBindings({ username });
 
             if (expectedInstanceId !== null) {
                 // If a client was working with a previous version of the document, make sure the one
@@ -147,9 +160,7 @@ const server = new Hocuspocus({
                     conn.documentName
                 );
                 if (!existingDoc) {
-                    throw new AuthError(
-                        "Auth failed: client expecting a loaded document"
-                    );
+                    throw new AuthError("client expecting a loaded document");
                 }
 
                 let instanceId;
@@ -161,25 +172,34 @@ const server = new Hocuspocus({
 
                 if (expectedInstanceId !== instanceId) {
                     throw new AuthError(
-                        "Auth failed: expected document instance ID mismatch"
+                        "expected document instance ID mismatch"
                     );
                 }
             }
 
+            log.info("Client authenticated");
             return {
                 model,
                 id,
                 username,
+                log,
             } as Context; // data.context
         } catch (e) {
-            if (!(e instanceof AuthError)) console.error(e);
+            if (e instanceof AuthError) {
+                log.error({
+                    msg: "Could not authenticate client: " + e.message,
+                });
+            } else {
+                log.error({ msg: "Error authenticating", err: e });
+            }
             throw e;
         }
     },
 
     async onLoadDocument(data) {
+        const context = data.context as Context;
         try {
-            const context = data.context as Context;
+            context.log.info("Loading document");
             const handler = HANDLERS.get(context.model)!;
             const doc = await handler.load(gqlClient, context.id);
             doc.transact(() => {
@@ -189,15 +209,25 @@ const server = new Hocuspocus({
             });
             return doc;
         } catch (e) {
-            console.error("onLoadDocument failed ", e);
+            context.log.error({ msg: "Could not load document", err: e });
             throw e;
         }
     },
 
     async onStoreDocument(data) {
         const context = data.context as Context;
-        const handler = HANDLERS.get(context.model)!;
-        await handler.save(gqlClient, context.id, data.document);
+        try {
+            context.log.info("Saving document");
+            const handler = HANDLERS.get(context.model)!;
+            await handler.save(gqlClient, context.id, data.document);
+        } catch (e) {
+            context.log.error({ msg: "Could not save document", err: e });
+            throw e;
+        }
+    },
+
+    async onDisconnect(data) {
+        (data.context as Context).log.info("Disconnected");
     },
 });
 

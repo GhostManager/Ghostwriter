@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "@apollo/client": "^3.12.7",
-    "@hocuspocus/extension-logger": "^2.15.2",
     "@hocuspocus/server": "^2.15.0",
     "@hocuspocus/transformer": "^2.15.0",
     "@tiptap/html": "^2.11.5",
