@@ -135,7 +135,12 @@ services:
   frontend:
     image: node:21-alpine
     volumes:
-      - .:/app
+      # Don't share node_modules - npm on windows and linux handle path dependencies in different, incompatible ways
+      - ./frontend:/app/frontend
+      - ./tiptap-gw:/app/tiptap-gw
+      - ./collab-server:/app/collab-server
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
     working_dir: /app/frontend
     command: sh -c 'npm install && exec npm run watch'
 
@@ -144,7 +149,12 @@ services:
     depends_on:
       - graphql_engine
     volumes:
-      - .:/app
+      # Don't share node_modules - npm on windows and linux handle path dependencies in different, incompatible ways
+      - ./frontend:/app/frontend
+      - ./tiptap-gw:/app/tiptap-gw
+      - ./collab-server:/app/collab-server
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
     working_dir: /app/collab-server
     command: sh -c 'npm install && exec npm run run'
     environment:
