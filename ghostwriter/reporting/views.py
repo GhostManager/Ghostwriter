@@ -3035,7 +3035,7 @@ class ObservationUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have the necessary permission to edit observations.")
-        return self.get_object().get_absolute_url()
+        return redirect(reverse("reporting:observation_detail", kwargs={"pk": self.get_object().pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
