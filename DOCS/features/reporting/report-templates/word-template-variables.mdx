@@ -31,23 +31,10 @@ To prevent cross-site scripting (XSS), Ghostwriter sanitizes formatted text fiel
 
 You can freely use `<` or `>` if you use it inside your report template (not a text field inside Ghostwriter).
 
-The official Jinja2 documentation contains all of the information you need to get started using its more advanced features:
+The official Jinja2 documentation contains all the information you need to get started using its more advanced features.
+There are also various considerations covered in the official Jinja2 documentation, such as whitespace control and escaping.
 
-<Frame caption="Template Designer Documentation — Jinja Documentation (3.0.x)Jinja2 Template API">
-  <img src="/images/features/reporting/report-templates/en/2.11.x/_static/jinja-logo-sidebar.png">
-    [](https://jinja.palletsprojects.com/en/2.11.x/templates/)
-  </img>
-
-</Frame>
-
-There are also various considerations covered in the official Jinja2 documentation, such as whitespace control:
-
-<Frame caption="Template Designer Documentation — Jinja Documentation (3.0.x)Whitespace Control">
-  <img src="/images/features/reporting/report-templates/en/2.11.x/_static/jinja-logo-sidebar.png">
-    [](https://jinja.palletsprojects.com/en/2.11.x/templates/)
-  </img>
-
-</Frame>
+[Template Designer Documentation](https://jinja.palletsprojects.com/en/2.11.x/templates/)
 
 All of Ghostwriter's expressions and statements should be wrapped in curly braces with one space to either side (`{{ client.name }}`or `{% if ... %}` ) – unless otherwise noted.
 
@@ -86,9 +73,11 @@ You can see how this version could become difficult to read. You can often conde
 ```
 {% cellbg "A8D08D" if obj.complete else "FF7E79" %}
 ```
+
 <Check>
 More on `cellbg`, creating tables, and other functionality below!
 </Check>
+
 ### Potentially Useful Jinja2 Expressions
 
 These expressions are built into Jinja2 and might be helpful in your Word documents:
@@ -105,7 +94,6 @@ These expressions are built into Jinja2 and might be helpful in your Word docume
 | `sort(iterable, reverse=False, case_sensitive=False, attribute=None)` | Sort an iterable with Python's `sorted()`. [More info](https://jinja.palletsprojects.com/en/3.0.x/templates/#jinja-filters.sort)                                       |
 | `dictsort(mapping, case_sensitive=False, by="key", reverse=False)`   | Like `sort` but accepts a mapping of key and value pairs to yield a dictionary. [More info](https://jinja.palletsprojects.com/en/3.0.x/templates/#jinja-filters.dictsort) |
 
-
 <Info>
 There are many other expressions and filters available. If you want to do something, there is probably a way to accomplish it with a built-in expression cleanly. You can perform math, logic, string mutations, and more.
 
@@ -116,85 +104,27 @@ Check the Jinja2 documentation: [https://jinja.palletsprojects.com/en/3.1.x/temp
 
 To see what is available for your report, generate the JSON report. Everything in the resulting JSON will be available in a report template. The following table describes the top-level keys:
 
-**Expression**
-
-**Description**
-
-report\_date
-
-\[`String`] Full date the report was generated (localized based on server settings)
-
-project
-
-\[`Dict`] All information about the project
-
-client
-
-\[`Dict`] All information about the project's client
-
-team
-
-\[`Dict`] All team information (individuals assigned to the project)
-
-objectives
-
-\[`Dict`] All objectives information
-
-targets
-
-\[`Dict`] All project targets
-
-scope
-
-\[`Dict`] All project scope lists
-
-infrastructure
-
-\[`Dict`] All project infrastructure information
-
-logs
-
-\[`Dict`] All activity logs and related entries from the project
-
-findings
-
-\[`Dict`] All information about a project's findings
-
-observations
-
-\[`Dict`] All information about a project's observations
-
-docx\_template
-
-\[`Dict`] All information about the selected DOCX template
-
-pptx\_template
-
-\[`Dict`] All information about the selected PPTX template
-
-company
-
-\[`Dict`] All information about your company (configured in the admin panel)
-
-title
-
-\[`String`] The report's title set in Ghostwriter
-
-complete
-
-\[`Bool`] Value indicating if the report has been marked as complete
-
-archived
-
-\[`Bool`] Value indicating if the report has been marked as archived
-
-delivered
-
-\[`Bool`] Value indicating if the report has been marked as delivered
-
-totals
-
-\[`Dict`] Various sums and counts of different project-related values (e.g., total findings, objectives, and targets)
+| **Expression**                                     | **Description**                                                                                                                                                       |
+|----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `report_date` | [`String`] Full date the report was generated (localized based on server settings) |
+| `project` | [`Dict`] All information about the project |
+| `client` | [`Dict`] All information about the project's client |
+| `team` | [`Dict`] All team information (individuals assigned to the project) |
+| `objectives` | [`Dict`] All objectives information |
+| `targets` | [`Dict`] All project targets |
+| `scope` | [`Dict`] All project scope lists |
+| `infrastructure` | [`Dict`] All project infrastructure information |
+| `logs` | [`Dict`] All activity logs and related entries from the project |
+| `findings` | [`Dict`] All information about a project's findings |
+| `observations` | [`Dict`] All information about a project's observations |
+| `docx_template` | [`Dict`] All information about the selected DOCX template |
+| `pptx_template` | [`Dict`] All information about the selected PPTX template |
+| `company` | [`Dict`] All information about your company (configured in the admin panel) |
+| `title` | [`String`] The report's title set in Ghostwriter |
+| `complete` | [`Bool`] Value indicating if the report has been marked as complete |
+| `archived` | [`Bool`] Value indicating if the report has been marked as archived |
+| `delivered` | [`Bool`] Value indicating if the report has been marked as delivered |
+| `totals` | [`Dict`] Various sums and counts of different project-related values (e.g., total findings, objectives, and targets) |
 
 <Info>
 Dates are localized based on your locale configuration in the server settings. The default date format is *M d, Y* (e.g., June 22, 2021).
@@ -205,6 +135,7 @@ The `project` key has separate values for the day, month, and year the project s
 <Check>
 If you do not have a client `short_name` value set, Ghostwriter will replace references to `client.short_name` with the client's full name.
 </Check>
+
 #### Findings Attributes – HTML & Rich Text Attributes
 
 You write your findings in Ghostwriter's WYSIWYG editor, where you can style text as you would directly in Word. The WYSIWYG editor uses HTML, so Ghostwriter stores your content as HTML.
@@ -277,7 +208,6 @@ Good:
 Here is my paragraph
 {%p endif %}
 ```
-
 </Warning>
 
 ### Ghostwriter Statements
