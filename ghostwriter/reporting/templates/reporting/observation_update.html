@@ -9,6 +9,7 @@
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:observations' %}">Observations</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:observation_detail' pk=object.id %}">{{object}}</a></li>
             <li class="breadcrumb-item active" aria-current="page">Observation Form</li>
         </ul>
     </nav>
