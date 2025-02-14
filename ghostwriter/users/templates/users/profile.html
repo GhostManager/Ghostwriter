@@ -22,7 +22,7 @@
     <img class="avatar" src="{%  url 'users:avatar_download' slug=user.username %}" alt="Avatar">
   {% endif %}
 
-  <!-- Users Profile Section -->
+  {% comment %} Users Profile Section {% endcomment %}
   <div class="container profile-container mt-4">
     <div class="row align-items-center text-left text-left">
       <div class="col-sm">
@@ -107,7 +107,32 @@
     {% endif %}
   </div>
 
-  <!-- Account Information Update -->
+  {% comment %} User Assignments {% endcomment %}
+  {%  if user.projectassignment_set.all %}
+    {% if request.user|is_privileged or request.user == user %}
+      <h4 class="icon assignment-icon pt-4">Active Project Assignments</h4>
+      <hr>
+
+      <table id="assignmentTable" class="tablesorter table-sm table-hover">
+        <thead>
+        <th class="align-middle">Project</th>
+        <th class="align-middle">Role</th>
+        <th class="align-middle sorter-date-range-dMMMyyyy">Execution Dates</th>
+        </thead>
+        {% for assignment in user.projectassignment_set.all %}
+          {% if not assignment.project.complete %}
+            <tr id="assignment_{{ assignment.id }}">
+              <td class="align-middle"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a>
+              <td class="align-middle">{{ assignment.role }}</td>
+              <td class="align-middle">{{ assignment.start_date|date:"d M Y" }} – {{ assignment.end_date|date:"d M Y" }}</td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </table>
+    {% endif %}
+  {% endif %}
+
+  {% comment %}  Account Information Update {% endcomment %}
   {% if request.user == user %}
     <h4 class="icon user-edit-icon pt-4">Update Account Details</h4>
     <hr>
@@ -149,7 +174,6 @@
       </form>
     </div>
     <hr>
-
 
     {% if user.apikey_set.get_usable_keys %}
       <table id="tokenTable" class="tablesorter table-sm table-hover">
@@ -206,6 +230,15 @@
             1: {sorter: 'shortDate'},
             2: {sorter: 'shortDate'}
           },
+        }
+      );
+      $('.tablesorter').trigger('update');
+
+      $("#assignmentTable").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
         }
       );
       $('.tablesorter').trigger('update');

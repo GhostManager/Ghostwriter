@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.1] - 13 February 2025
+
+### Added
+
+* Added a finding type label below the finding's title on the finding details page
+* Added links to profile pages for users from the project library
+* Added a table of active project assignments to the user profile page
+  * This table is viewable by the user and managers
+
+### Fixed
+
+* Fixed an error that could occur when trying to edit an observation without permissions
+
 ## [5.0.0] - 7 February 2025
 
 ### Added

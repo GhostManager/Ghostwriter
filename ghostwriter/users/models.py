@@ -88,7 +88,7 @@ class User(AbstractUser):
     )
 
     def get_absolute_url(self):
-        return reverse("users:detail", kwargs={"username": self.username})
+        return reverse("users:user_detail", args=(self.username,))
 
     def get_display_name(self):
         """Return a display name appropriate for dropdown menus."""
