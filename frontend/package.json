@@ -2,7 +2,8 @@
   "type": "module",
   "scripts": {
     "watch": "NODE_ENV=development vite build --mode development",
-    "build": "tsc && vite build --mode production",
+    "build": "tsc --noEmit && vite build --mode production",
+    "check": "tsc --noEmit",
     "format": "prettier src/ vite.config.ts --write"
   },
   "devDependencies": {
@@ -16,6 +17,10 @@
     "vite": "^5.4.10"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-regular-svg-icons": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@hocuspocus/provider": "^2.15.0",
     "@szhsin/react-menu": "^4.2.4",
     "@tiptap/core": "^2.11.5",

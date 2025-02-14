@@ -1,24 +1,34 @@
 import "./editor.scss";
 
 import { ChainedCommands, Editor } from "@tiptap/core";
-
-import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import { EditorProvider, useCurrentEditor } from "@tiptap/react";
+import { faAlignCenter } from "@fortawesome/free-solid-svg-icons/faAlignCenter";
+import { faBold } from "@fortawesome/free-solid-svg-icons/faBold";
+import { faCode } from "@fortawesome/free-solid-svg-icons/faCode";
+import { faHeading } from "@fortawesome/free-solid-svg-icons/faHeading";
+import { faItalic } from "@fortawesome/free-solid-svg-icons/faItalic";
+import { faList } from "@fortawesome/free-solid-svg-icons/faList";
+import { faQuoteLeft } from "@fortawesome/free-solid-svg-icons";
+import { faTable } from "@fortawesome/free-solid-svg-icons/faTable";
+import { faTerminal } from "@fortawesome/free-solid-svg-icons/faTerminal";
+import { faTextSlash } from "@fortawesome/free-solid-svg-icons/faTextSlash";
+import { faUnderline } from "@fortawesome/free-solid-svg-icons/faUnderline";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { HocuspocusProvider } from "@hocuspocus/provider";
+import { Menu, MenuButton, MenuDivider, MenuItem } from "@szhsin/react-menu";
 import { useMemo } from "react";
 import * as Y from "yjs";
-
-
-import { Menu, MenuButton, MenuDivider, MenuItem } from "@szhsin/react-menu";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "tiptap-gw";
-import { HocuspocusProvider } from "@hocuspocus/provider";
-
+import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
 
 function FormatButton(props: {
     chain: (ch: ChainedCommands) => ChainedCommands;
+    tooltip?: string;
     active?: boolean | string | {} | ((e: Editor) => boolean);
     enable?: boolean | null | ((e: Editor) => boolean);
     menuItem?: boolean;
@@ -46,6 +56,7 @@ function FormatButton(props: {
                 }}
                 disabled={!enabled}
                 className={active ? "is-active" : undefined}
+                title={props.tooltip}
             >
                 {props.children}
             </MenuItem>
@@ -59,6 +70,8 @@ function FormatButton(props: {
             }}
             disabled={!enabled}
             className={active ? "is-active" : undefined}
+            tabIndex={-1}
+            title={props.tooltip}
         >
             {props.children}
         </button>
@@ -71,34 +84,52 @@ function Toolbar() {
     return (
         <div className="control-group">
             <div className="button-group">
-                <FormatButton chain={(c) => c.toggleBold()} active="bold">
-                    Bold
+                <FormatButton
+                    chain={(c) => c.toggleBold()}
+                    active="bold"
+                    tooltip="Bold"
+                >
+                    <FontAwesomeIcon icon={faBold} />
                 </FormatButton>
-                <FormatButton chain={(c) => c.toggleItalic()} active="italic">
-                    Italic
+                <FormatButton
+                    chain={(c) => c.toggleItalic()}
+                    active="italic"
+                    tooltip="Italic"
+                >
+                    <FontAwesomeIcon icon={faItalic} />
                 </FormatButton>
                 <FormatButton
                     chain={(c) => c.toggleUnderline()}
                     active="underline"
+                    tooltip="Underline"
                 >
-                    Underline
+                    <FontAwesomeIcon icon={faUnderline} />
                 </FormatButton>
-                <FormatButton chain={(c) => c.toggleCode()} active="code">
-                    Code Segment
+                <FormatButton
+                    chain={(c) => c.toggleCode()}
+                    active="code"
+                    tooltip="Code Segment"
+                >
+                    <FontAwesomeIcon icon={faCode} />
                 </FormatButton>
                 {/* TODO: Link, needs UI to specify URL */}
-                <button
-                    onClick={(ev) => {
-                        ev.preventDefault();
-                        editor.chain().focus().unsetAllMarks().run();
-                    }}
+                <FormatButton
+                    chain={(c) => c.unsetAllMarks()}
+                    tooltip="Clear Formatting"
                 >
-                    Clear Formatting
-                </button>
+                    <FontAwesomeIcon icon={faTextSlash} />
+                </FormatButton>
             </div>
             <div className="separator" />
             <div className="button-group">
-                <Menu menuButton={<MenuButton>Heading...</MenuButton>}>
+                <Menu
+                    menuButton={
+                        <MenuButton tabIndex={-1} title="Heading">
+                            <FontAwesomeIcon icon={faHeading} />
+                            <FontAwesomeIcon icon={faChevronDown} />
+                        </MenuButton>
+                    }
+                >
                     {([1, 2, 3, 4, 5, 6] as const).map((level) => (
                         <FormatButton
                             key={level}
@@ -110,7 +141,14 @@ function Toolbar() {
                         </FormatButton>
                     ))}
                 </Menu>
-                <Menu menuButton={<MenuButton>Justify...</MenuButton>}>
+                <Menu
+                    menuButton={
+                        <MenuButton tabIndex={-1} title="Justification">
+                            <FontAwesomeIcon icon={faAlignCenter} />
+                            <FontAwesomeIcon icon={faChevronDown} />
+                        </MenuButton>
+                    }
+                >
                     <FormatButton
                         menuItem
                         chain={(c) => c.setTextAlign("left")}
@@ -143,19 +181,28 @@ function Toolbar() {
                 <FormatButton
                     chain={(c) => c.toggleCodeBlock()}
                     active="codeBlock"
+                    tooltip="Code Block"
                 >
-                    Code Block
+                    <FontAwesomeIcon icon={faTerminal} />
                 </FormatButton>
                 <FormatButton
                     chain={(c) => c.toggleBlockquote()}
                     active="blockquote"
+                    tooltip="Blockquote"
                 >
-                    Blockquote
+                    <FontAwesomeIcon icon={faQuoteLeft} />
                 </FormatButton>
             </div>
             <div className="separator" />
             <div className="button-group">
-                <Menu menuButton={<MenuButton>List...</MenuButton>}>
+                <Menu
+                    menuButton={
+                        <MenuButton tabIndex={-1} title="List">
+                            <FontAwesomeIcon icon={faList} />
+                            <FontAwesomeIcon icon={faChevronDown} />
+                        </MenuButton>
+                    }
+                >
                     <FormatButton
                         menuItem
                         chain={(c) => c.toggleBulletList()}
@@ -171,7 +218,13 @@ function Toolbar() {
                         Ordered
                     </FormatButton>
                 </Menu>
-                <Menu menuButton={<MenuButton>Table...</MenuButton>}>
+                <Menu
+                    menuButton={
+                        <MenuButton tabIndex={-1} title="Table">
+                            <FontAwesomeIcon icon={faTable} />
+                        </MenuButton>
+                    }
+                >
                     <FormatButton
                         menuItem
                         chain={(c) =>

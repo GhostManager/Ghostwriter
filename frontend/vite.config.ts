@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
                     cvss: resolve(__dirname, "./src/cvss/ui.js"),
                     collab_forms_observation: resolve(
                         __dirname,
-                        "./src/collab_forms/forms/observation.html"
+                        "./src/collab_forms/forms/observation.tsx"
                     ),
                 },
                 output: {
