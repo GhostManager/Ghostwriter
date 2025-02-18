@@ -24,6 +24,8 @@ import EXTENSIONS from "tiptap-gw";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 import Modal from "react-modal";
 import { faLink } from "@fortawesome/free-solid-svg-icons/faLink";
+import { faSubscript } from "@fortawesome/free-solid-svg-icons/faSubscript";
+import { faSuperscript } from "@fortawesome/free-solid-svg-icons/faSuperscript";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -115,6 +117,20 @@ function Toolbar() {
                     <FontAwesomeIcon icon={faCode} />
                 </FormatButton>
                 <LinkButton editor={editor} />
+                <FormatButton
+                    chain={(c) => c.toggleSubscript()}
+                    active="sub"
+                    tooltip="Subscript"
+                >
+                    <FontAwesomeIcon icon={faSubscript} />
+                </FormatButton>
+                <FormatButton
+                    chain={(c) => c.toggleSuperscript()}
+                    active="sup"
+                    tooltip="Superscript"
+                >
+                    <FontAwesomeIcon icon={faSuperscript} />
+                </FormatButton>
                 <FormatButton
                     chain={(c) => c.unsetAllMarks()}
                     tooltip="Clear Formatting"
