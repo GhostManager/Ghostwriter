@@ -16,12 +16,14 @@ import { faUnderline } from "@fortawesome/free-solid-svg-icons/faUnderline";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Menu, MenuButton, MenuDivider, MenuItem } from "@szhsin/react-menu";
-import { useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "tiptap-gw";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
+import Modal from "react-modal";
+import { faLink } from "@fortawesome/free-solid-svg-icons/faLink";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -112,7 +114,7 @@ function Toolbar() {
                 >
                     <FontAwesomeIcon icon={faCode} />
                 </FormatButton>
-                {/* TODO: Link, needs UI to specify URL */}
+                <LinkButton editor={editor} />
                 <FormatButton
                     chain={(c) => c.unsetAllMarks()}
                     tooltip="Clear Formatting"
@@ -308,5 +310,106 @@ export default function RichTextEditor(props: {
                 slotBefore={<Toolbar />}
             ></EditorProvider>
         </div>
+    );
+}
+
+function LinkButton(props: { editor: Editor }) {
+    const { editor } = props;
+    const [modalMode, setModalMode] = useState<null | "new" | "edit">(null);
+    const [formUrl, setFormUrl] = useState("");
+    const urlId = useId();
+
+    const enabled = editor
+        .can()
+        .chain()
+        .focus()
+        .setLink({ href: "https://example.com" })
+        .run();
+    const active = editor.isActive("link");
+
+    return (
+        <>
+            <button
+                tabIndex={-1}
+                title="Link"
+                disabled={!enabled}
+                className={active ? "is-active" : undefined}
+                onClick={(e) => {
+                    e.preventDefault();
+                    const active = editor.isActive("link");
+                    if (active) {
+                        editor.chain().focus().extendMarkRange("link").run();
+                        setFormUrl(editor.getAttributes("link").href);
+                    } else {
+                        setFormUrl("");
+                    }
+                    setModalMode(active ? "edit" : "new");
+                }}
+            >
+                <FontAwesomeIcon icon={faLink} />
+            </button>
+            <Modal
+                isOpen={!!modalMode}
+                onRequestClose={() => setModalMode(null)}
+                contentLabel="Edit Link"
+                className="modal-dialog modal-dialog-centered"
+            >
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h5 className="modal-title">Edit Link</h5>
+                    </div>
+                    <div className="modal-body text-center">
+                        <div className="form-group">
+                            <label htmlFor={urlId}>URL</label>
+                            <input
+                                id={urlId}
+                                type="url"
+                                className="form-control"
+                                value={formUrl}
+                                onChange={(e) => setFormUrl(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="modal-footer">
+                            <button
+                                className="btn btn-primary"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    if (formUrl)
+                                        editor
+                                            .chain()
+                                            .setLink({ href: formUrl })
+                                            .run();
+                                    setModalMode(null);
+                                }}
+                            >
+                                Save
+                            </button>
+                            {modalMode === "edit" && (
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        editor.chain().unsetLink().run();
+                                        setModalMode(null);
+                                    }}
+                                >
+                                    Remove
+                                </button>
+                            )}
+                            <button
+                                className="btn btn-secondary"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setModalMode(null);
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
+        </>
     );
 }

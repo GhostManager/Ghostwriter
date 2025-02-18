@@ -18,7 +18,9 @@ const EXTENSIONS: Extensions = [
         history: false,
     }),
     Underline,
-    Link,
+    Link.configure({
+        openOnClick: false,
+    }),
     TextAlign.configure({
         types: ["heading", "paragraph"],
     }),
