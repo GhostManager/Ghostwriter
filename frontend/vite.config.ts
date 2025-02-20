@@ -4,7 +4,6 @@ import { resolve } from "path";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-    //console.log(mode, process.env);
     return {
         plugins: [react()],
         build: {
@@ -14,6 +13,10 @@ export default defineConfig(({ mode }) => {
                     collab_forms_observation: resolve(
                         __dirname,
                         "./src/collab_forms/forms/observation.tsx"
+                    ),
+                    collab_forms_reportobservationlink: resolve(
+                        __dirname,
+                        "./src/collab_forms/forms/reportobservationlink.tsx"
                     ),
                 },
                 output: {

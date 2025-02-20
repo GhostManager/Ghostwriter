@@ -27,7 +27,6 @@ from ghostwriter.reporting.forms import (
     FindingForm,
     FindingNoteForm,
     LocalFindingNoteForm,
-    ObservationForm,
     ReportFindingLinkUpdateForm,
     ReportForm,
     ReportObservationLinkUpdateForm,
@@ -94,25 +93,6 @@ class FindingFormTests(TestCase):
 
     def test_duplicate_title(self):
         form = self.form_data(**self.finding.__dict__)
-        errors = form["title"].errors.as_data()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "unique")
-
-
-class ObservationFormTest(TestCase):
-    """Collection of tests for :form:`reporting.ObservationForm`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.observation = ObservationFactory()
-
-    def test_valid_data(self):
-        self.observation.title = "New Title"
-        form = ObservationForm(data=self.observation.__dict__)
-        self.assertTrue(form.is_valid())
-
-    def test_duplicate_title(self):
-        form = ObservationForm(data=self.observation.__dict__)
         errors = form["title"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "unique")

@@ -34,9 +34,17 @@
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
             <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
                  aria-labelledby="dns-dropdown-btn_{{ observation.id }}">
-              <a class="dropdown-item icon clone-icon"
+              <form
+                action="{% url 'reporting:convert_observation' observation.id %}"
+                method="post"
+                style="display:contents"
+              >
+                {% csrf_token %}
+                <button class="dropdown-item icon clone-icon">Clone to Library</button>
+              </form>
+              {% comment %} <a class="dropdown-item icon clone-icon"
                  href="{% url 'reporting:convert_observation' observation.id %}">Clone
-                to Library</a>
+                to Library</a> {% endcomment %}
               <a id="observation-delete-button-{{ observation.id }}"
                  class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
                  data-target="#confirm-delete-modal" href="javascript:void(0);"

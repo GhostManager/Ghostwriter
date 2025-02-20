@@ -43,6 +43,7 @@ from ghostwriter.reporting.models import (
     Observation,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
 )
 from ghostwriter.reporting.views import get_position
@@ -1187,6 +1188,7 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
     required_inputs = ["model", "id"]
     available_models = {
         "observation": Observation,
+        "report_observation_link": ReportObservationLink,
     }
 
     def post(self, request):
@@ -1208,6 +1210,7 @@ class GetTags(HasuraActionView):
     required_inputs = ["model", "id"]
     available_models = {
         "observation": Observation,
+        "report_observation_link": ReportObservationLink,
     }
 
     def post(self, request: HttpRequest):
@@ -1235,6 +1238,7 @@ class SetTags(HasuraActionView):
     required_inputs = ["model", "id", "tags"]
     available_models = {
         "observation": Observation,
+        "report_observation_link": ReportObservationLink,
     }
 
     def post(self, request: HttpRequest):

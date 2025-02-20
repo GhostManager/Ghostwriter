@@ -6,6 +6,7 @@ from django.urls import path
 # Ghostwriter Libraries
 from ghostwriter.reporting import views
 import ghostwriter.reporting.views2.observations
+import ghostwriter.reporting.views2.report_observation_link
 
 app_name = "reporting"
 
@@ -33,7 +34,7 @@ urlpatterns += [
     ),
     path(
         "ajax/report/observation/order",
-        views.ajax_update_report_observations,
+        ghostwriter.reporting.views2.report_observation_link.ajax_update_report_observation_order,
         name="update_report_observations",
     ),
     path(
@@ -78,12 +79,12 @@ urlpatterns += [
     ),
     path(
         "ajax/observation/assign/<int:pk>",
-        views.AssignObservation.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.AssignObservation.as_view(),
         name="ajax_assign_observation",
     ),
     path(
         "ajax/obseravation/delete/<int:pk>",
-        views.ReportObservationLinkDelete.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkDelete.as_view(),
         name="ajax_delete_local_observation",
     ),
     path(
@@ -149,7 +150,7 @@ urlpatterns += [
     ),
     path(
         "reports/create/blank-observation/<int:pk>",
-        views.AssignBlankObservation.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.AssignBlankObservation.as_view(),
         name="assign_blank_observation",
     ),
     path(
@@ -203,7 +204,7 @@ urlpatterns += [
     ),
     path(
         "reports/observations/update/<int:pk>",
-        views.ReportObservationLinkUpdate.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkUpdate.as_view(),
         name="local_observation_edit",
     ),
     path(
@@ -253,7 +254,7 @@ urlpatterns += [
     ),
     path(
         "reports/observations/convert/<int:pk>",
-        views.ConvertObservation.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.CloneObservationLinkToObservation.as_view(),
         name="convert_observation",
     ),
 ]

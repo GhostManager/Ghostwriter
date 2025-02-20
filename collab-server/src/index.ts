@@ -16,10 +16,12 @@ import { type Logger } from "pino";
 
 import { type ModelHandler } from "./base_handler";
 import ObservationHandler from "./handlers/observation";
+import ReportObservationLinkHandler from "./handlers/report_observation_link";
 
 // Extend this with your model handlers. See how-to-collab.md.
 const HANDLERS: Map<string, ModelHandler> = new Map([
     ["observation", ObservationHandler],
+    ["report_observation_link", ReportObservationLinkHandler],
 ]);
 
 // Graphql Client
@@ -138,14 +140,14 @@ const server = new Hocuspocus({
 
             if (res.status !== 200) {
                 const body = await res.text();
-                throw new AuthError(
-                    "Error response from auth endpoint " + body
-                );
+                if (res.status === 403)
+                    throw new AuthError("User failed authentication: " + body);
+                throw new Error("Auth endpoint failed:" + body);
             }
 
             const username = await res.json();
             if (typeof username !== "string") {
-                throw new AuthError(
+                throw new Error(
                     "Invalid data from auth endpoint " +
                         JSON.stringify(username)
                 );
