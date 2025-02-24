@@ -1252,55 +1252,53 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("rolodex:clients")
-        if self.request.POST:
-            ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc")
-            ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite")
-        else:
-            # Add extra forms to aid in configuration of a new client
-            contacts = ClientContactFormSet(prefix="poc")
-            contacts.extra = 1
-            # Assign the re-configured formsets to context vars
-            ctx["contacts"] = contacts
-            invites = ClientInviteFormSet(prefix="invite")
-            invites.extra = 1
-            ctx["invites"] = invites
+        ctx["contacts"] = self.contacts
+        ctx["invites"] = self.invites
         return ctx
 
-    def form_valid(self, form):
-        # Get form context data – used for validation of inline forms
-        ctx = self.get_context_data()
-        contacts = ctx["contacts"]
-        invites = ctx["invites"]
+    def get(self, request, *args, **kwargs):
+        self.contacts = ClientContactFormSet(prefix="poc")
+        self.contacts.extra = 1
+        self.invites = ClientInviteFormSet(prefix="invite")
+        self.invites.extra = 1
+        return super().get(request, *args, **kwargs)
 
-        # Now validate inline formsets
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        self.contacts = ClientContactFormSet(request.POST, prefix="poc")
+        self.invites = ClientInviteFormSet(request.POST, prefix="invite")
+        if form.is_valid() and self.contacts.is_valid() and self.invites.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
+
+    def form_valid(self, form):
+        form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save(commit=False)
                 self.object = obj
-
-                formsets_valid = contacts.is_valid() and invites.is_valid()
-                if formsets_valid:
-                    contacts.instance = obj
-                    invites.instance = obj
-                    try:
-                        contacts.save()
-                        invites.save()
-                    except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
-
-                if form.is_valid() and formsets_valid:
-                    obj.save()
+                obj.save()
+                try:
+                    for i in self.contacts.save(commit=False):
+                        i.client = obj
+                        i.save()
+                    for i in self.invites.save(commit=False):
+                        i.client = obj
+                        i.save()
+                    self.contacts.save_m2m()
+                    self.invites.save_m2m()
                     form.save_m2m()
-                    return HttpResponseRedirect(self.get_success_url())
-                # Raise an error to rollback transactions
-                raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return ``form_invalid`` and display errors
+                except IntegrityError:  # pragma: no cover
+                    form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
+                    return self.form_invalid(form)
+                return HttpResponseRedirect(self.get_success_url())
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.exception(message)
             return super().form_invalid(form)
+
 
     def get_initial(self):
         # Generate and assign a unique codename to the project
@@ -1703,8 +1701,10 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
                     form.add_error(None, "You cannot have duplicate assignments or invites for a project.")
                     return self.form_invalid(form)
                 return HttpResponseRedirect(self.get_success_url())
-        except Exception:
-            logger.exception("Failed to update the project.")
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.exception(message)
             return super().form_invalid(form)
 
     def get_initial(self):
