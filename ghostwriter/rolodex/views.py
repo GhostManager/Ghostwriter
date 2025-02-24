@@ -1252,55 +1252,53 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("rolodex:clients")
-        if self.request.POST:
-            ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc")
-            ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite")
-        else:
-            # Add extra forms to aid in configuration of a new client
-            contacts = ClientContactFormSet(prefix="poc")
-            contacts.extra = 1
-            # Assign the re-configured formsets to context vars
-            ctx["contacts"] = contacts
-            invites = ClientInviteFormSet(prefix="invite")
-            invites.extra = 1
-            ctx["invites"] = invites
+        ctx["contacts"] = self.contacts
+        ctx["invites"] = self.invites
         return ctx
 
-    def form_valid(self, form):
-        # Get form context data – used for validation of inline forms
-        ctx = self.get_context_data()
-        contacts = ctx["contacts"]
-        invites = ctx["invites"]
+    def get(self, request, *args, **kwargs):
+        self.contacts = ClientContactFormSet(prefix="poc")
+        self.contacts.extra = 1
+        self.invites = ClientInviteFormSet(prefix="invite")
+        self.invites.extra = 1
+        return super().get(request, *args, **kwargs)
 
-        # Now validate inline formsets
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        self.contacts = ClientContactFormSet(request.POST, prefix="poc")
+        self.invites = ClientInviteFormSet(request.POST, prefix="invite")
+        if form.is_valid() and self.contacts.is_valid() and self.invites.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
+
+    def form_valid(self, form):
+        form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save(commit=False)
                 self.object = obj
-
-                formsets_valid = contacts.is_valid() and invites.is_valid()
-                if formsets_valid:
-                    contacts.instance = obj
-                    invites.instance = obj
-                    try:
-                        contacts.save()
-                        invites.save()
-                    except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
-
-                if form.is_valid() and formsets_valid:
-                    obj.save()
+                obj.save()
+                try:
+                    for i in self.contacts.save(commit=False):
+                        i.client = obj
+                        i.save()
+                    for i in self.invites.save(commit=False):
+                        i.client = obj
+                        i.save()
+                    self.contacts.save_m2m()
+                    self.invites.save_m2m()
                     form.save_m2m()
-                    return HttpResponseRedirect(self.get_success_url())
-                # Raise an error to rollback transactions
-                raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return ``form_invalid`` and display errors
+                except IntegrityError:  # pragma: no cover
+                    form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
+                    return self.form_invalid(form)
+                return HttpResponseRedirect(self.get_success_url())
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.exception(message)
             return super().form_invalid(form)
+
 
     def get_initial(self):
         # Generate and assign a unique codename to the project
@@ -1661,62 +1659,52 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
             ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.client.pk})
         else:
             ctx["cancel_link"] = reverse("rolodex:projects")
-        if self.request.POST:
-            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign")
-            ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite")
-        else:
-            # Add extra forms to aid in configuration of a new project
-            assignments = ProjectAssignmentFormSet(prefix="assign")
-            assignments.extra = 1
-            invites = ProjectInviteFormSet(prefix="invite")
-            invites.extra = 1
-            # Assign the re-configured formsets to context vars
-            ctx["assignments"] = assignments
-            ctx["invites"] = invites
+        ctx["assignments"] = self.assignments
+        ctx["invites"] = self.invites
         return ctx
 
-    def form_invalid(self, form):
-        return super().form_invalid(form)
+    def get(self, request, *args, **kwargs):
+        self.assignments = ProjectAssignmentFormSet(prefix="assign")
+        self.assignments.extra = 1
+        self.invites = ProjectInviteFormSet(prefix="invite")
+        self.invites.extra = 1
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        self.assignments = ProjectAssignmentFormSet(request.POST, prefix="assign")
+        self.invites = ProjectInviteFormSet(request.POST, prefix="invite")
+        if form.is_valid() and self.assignments.is_valid() and self.invites.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
 
     def form_valid(self, form):
-        # Get form context data – used for validation of inline forms
-        ctx = self.get_context_data()
-        assignments = ctx["assignments"]
-        invites = ctx["invites"]
+        form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
 
-        # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
-                form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
-
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save(commit=False)
                 self.object = obj
-
-                formsets_valid = assignments.is_valid() and invites.is_valid()
-                if formsets_valid:
-                    assignments.instance = obj
-                    invites.instance = obj
-
-                    try:
-                        assignments.save()
-                        invites.save()
-                    except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate assignments or invites for a project.")
-
-                if form.is_valid() and formsets_valid:
-                    obj.save()
+                obj.save()
+                try:
+                    for i in self.assignments.save(commit=False):
+                        i.project = obj
+                        i.save()
+                    for i in self.invites.save(commit=False):
+                        i.project = obj
+                        i.save()
+                    self.assignments.save_m2m()
+                    self.invites.save_m2m()
                     form.save_m2m()
-                    return HttpResponseRedirect(self.get_success_url())
-                # Raise an error to rollback transactions
-                raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return ``form_invalid`` and display errors
+                except IntegrityError:  # pragma: no cover
+                    form.add_error(None, "You cannot have duplicate assignments or invites for a project.")
+                    return self.form_invalid(form)
+                return HttpResponseRedirect(self.get_success_url())
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.exception(message)
-            form.add_error(None, "Internal error. Ask your administrator to view the server logs.")
             return super().form_invalid(form)
 
     def get_initial(self):
@@ -1769,56 +1757,47 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["object"] = self.get_object()
         ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
-        if self.request.POST:
-            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign", instance=self.object)
-            ctx["invites"] = ProjectInviteFormSet(self.request.POST, prefix="invite", instance=self.object)
-        else:
-            assignments = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
-            if self.object.projectassignment_set.all().count() < 1:
-                assignments.extra = 1
-            ctx["assignments"] = assignments
-            invites = ProjectInviteFormSet(prefix="invite", instance=self.object)
-            if self.object.projectinvite_set.all().count() < 1:
-                invites.extra = 1
-            ctx["invites"] = invites
+        ctx["assignments"] = self.assignments
+        ctx["invites"] = self.invites
         return ctx
 
     def get_success_url(self):
         messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
-    def form_valid(self, form):
-        # Get form context data – used for validation of inline forms
-        ctx = self.get_context_data()
-        assignments = ctx["assignments"]
-        invites = ctx["invites"]
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.assignments = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
+        if self.object.projectassignment_set.all().count() < 1:
+            self.assignments.extra = 1
+        self.invites = ProjectInviteFormSet(prefix="invite", instance=self.object)
+        if self.object.projectinvite_set.all().count() < 1:
+            self.invites.extra = 1
+        return super().get(request, *args, **kwargs)
 
-        # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        self.assignments = ProjectAssignmentFormSet(request.POST, prefix="assign", instance=self.object)
+        self.invites = ProjectInviteFormSet(request.POST, prefix="invite", instance=self.object)
+        if form.is_valid() and self.assignments.is_valid() and self.invites.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
+
+    def form_valid(self, form):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save(commit=False)
-
-                formsets_valid = assignments.is_valid() and invites.is_valid()
-                if formsets_valid:
-                    assignments.instance = obj
-                    invites.instance = obj
-
-                    try:
-                        assignments.save()
-                        invites.save()
-                    except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate assignments or invites for a project.")
-
-                # Proceed with form submission
-                if form.is_valid() and formsets_valid:
-                    obj.save()
+                obj.save()
+                try:
+                    self.assignments.save()
+                    self.invites.save()
                     form.save_m2m()
-                    return HttpResponseRedirect(self.get_success_url())
-                # Raise an error to rollback transactions
-                raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return ``form_invalid`` and display errors
+                except IntegrityError:  # pragma: no cover
+                    form.add_error(None, "You cannot have duplicate assignments or invites for a project.")
+                    return self.form_invalid(form)
+                return HttpResponseRedirect(self.get_success_url())
         except Exception:
             logger.exception("Failed to update the project.")
             return super().form_invalid(form)

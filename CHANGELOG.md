@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.2] - 24 February 2025
+
+### Fixed
+
+* Fixed an issue with creating clients and projects when providing optional form data (e.g., invites, contacts, assignments)
+
 ## [5.0.1] - 13 February 2025
 
 ### Added
