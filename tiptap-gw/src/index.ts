@@ -11,7 +11,7 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
-import { Extensions } from "@tiptap/core";
+import { type Extensions } from "@tiptap/core";
 
 import PageBreak from "./tiptap_ext/pagebreak";
 

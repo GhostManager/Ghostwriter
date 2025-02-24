@@ -1,5 +1,5 @@
 import { gql } from "../__generated__/";
-import { type ModelHandler } from "../base_handler";
+import { ModelHandler } from "../base_handler";
 import * as Y from "yjs";
 import { htmlToYjs, tagsToYjs, yjsToHtml, yjsToTags } from "../yjs_converters";
 import { extraFieldsFromYdoc, extraFieldsToYdoc } from "../extra_fields";
@@ -39,12 +39,12 @@ const SET_OBSERVATION = gql(`
     }
 `);
 
-const ObservationHandler: ModelHandler = {
-    async load(client, id) {
-        const res = await client.query({
+export default class ObservationHandler extends ModelHandler {
+    async load(): Promise<Y.Doc> {
+        const res = await this.client.query({
             query: GET_OBSERVATION,
             variables: {
-                id,
+                id: this.id,
             },
         });
         if (res.error || res.errors) {
@@ -64,16 +64,17 @@ const ObservationHandler: ModelHandler = {
         });
 
         return doc;
-    },
-    async save(client, id, doc) {
+    }
+
+    async save(doc: Y.Doc): Promise<void> {
         let mutate_promise;
         doc.transact(() => {
             const plainFields = doc.get("plain_fields", Y.Map);
             const extraFields = extraFieldsFromYdoc(doc);
-            mutate_promise = client.mutate({
+            mutate_promise = this.client.mutate({
                 mutation: SET_OBSERVATION,
                 variables: {
-                    id,
+                    id: this.id,
                     title:
                         (plainFields.get("title") as string | undefined) ?? "",
                     description: yjsToHtml(
@@ -88,7 +89,5 @@ const ObservationHandler: ModelHandler = {
         if (res.error || res.errors) {
             throw res.error || res.errors;
         }
-    },
-};
-
-export default ObservationHandler;
+    }
+}

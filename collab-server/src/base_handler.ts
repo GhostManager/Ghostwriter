@@ -1,9 +1,17 @@
 import * as Y from "yjs";
 import { ApolloClient } from "@apollo/client";
 
+export abstract class ModelHandler {
+    protected readonly client: ApolloClient<unknown>;
+    protected readonly id: number;
 
+    constructor(client: ApolloClient<unknown>, id: number) {
+        this.client = client;
+        this.id = id;
+    }
 
-export type ModelHandler = {
-  load: (client: ApolloClient<unknown>, id: number) => Promise<Y.Doc>,
-  save: (client: ApolloClient<unknown>, id: number, doc: Y.Doc) => Promise<void>,
-};
+    abstract load(): Promise<Y.Doc>;
+    abstract save(doc: Y.Doc): Promise<void>;
+
+    close(): void {}
+}
