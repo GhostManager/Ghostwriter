@@ -135,5 +135,5 @@
         "xforce",
         "xlsxwriter"
     ],
-    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "typescript.tsdk": "javascript\\node_modules\\typescript\\lib",
 }

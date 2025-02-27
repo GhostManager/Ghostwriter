@@ -20,7 +20,7 @@ import { useId, useMemo, useState } from "react";
 import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
-import EXTENSIONS from "tiptap-gw";
+import EXTENSIONS from "../../tiptap_gw";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 import Modal from "react-modal";
 import { faLink } from "@fortawesome/free-solid-svg-icons/faLink";

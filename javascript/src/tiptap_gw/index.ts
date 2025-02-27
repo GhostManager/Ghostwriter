@@ -13,7 +13,7 @@ import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import { type Extensions } from "@tiptap/core";
 
-import PageBreak from "./tiptap_ext/pagebreak";
+import PageBreak from "./pagebreak";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({

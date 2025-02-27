@@ -1,12 +1,16 @@
 {
     "compilerOptions": {
-        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-        "target": "ES2022",
+        "target": "ES2020",
+        "useDefineForClassFields": true,
         "lib": [
-            "ES2023"
+            "ES2020",
+            "DOM",
+            "DOM.Iterable"
         ],
         "module": "ESNext",
         "skipLibCheck": true,
+        "allowJs": true,
+        "jsx": "react-jsx",
         /* Bundler mode */
         "moduleResolution": "Bundler",
         "allowImportingTsExtensions": true,
@@ -21,6 +25,6 @@
         "noUncheckedSideEffectImports": true
     },
     "include": [
-        "vite.config.ts"
+        "src"
     ]
 }

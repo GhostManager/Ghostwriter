@@ -9,14 +9,14 @@ export default defineConfig(({ mode }) => {
         build: {
             rollupOptions: {
                 input: {
-                    cvss: resolve(__dirname, "./src/cvss/ui.js"),
+                    cvss: resolve(__dirname, "./src/frontend/cvss/ui.js"),
                     collab_forms_observation: resolve(
                         __dirname,
-                        "./src/collab_forms/forms/observation.tsx"
+                        "./src/frontend/collab_forms/forms/observation.tsx"
                     ),
                     collab_forms_reportobservationlink: resolve(
                         __dirname,
-                        "./src/collab_forms/forms/reportobservationlink.tsx"
+                        "./src/frontend/collab_forms/forms/reportobservationlink.tsx"
                     ),
                 },
                 output: {
@@ -26,13 +26,14 @@ export default defineConfig(({ mode }) => {
                     manualChunks(id) {
                         if (id.includes("node_modules")) return "vendor";
                         if (
-                            id.includes("/collab_forms/") &&
-                            !id.includes("/collab_forms/forms/")
+                            id.includes("/frontend/collab_forms/") &&
+                            !id.includes("/frontend/collab_forms/forms/")
                         )
                             return "collab_common";
                     },
                 },
             },
+            outDir: "dist_frontend",
             sourcemap: mode === "development",
             watch:
                 mode === "development"

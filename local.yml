@@ -2,6 +2,7 @@ volumes:
   local_postgres_data: {}
   local_postgres_data_backups: {}
   local_data: {}
+  local_node_modules: {}
 
 services:
   django: &django
@@ -135,28 +136,19 @@ services:
   frontend:
     image: node:21-alpine
     volumes:
-      # Don't share node_modules - npm on windows and linux handle path dependencies in different, incompatible ways
-      - ./frontend:/app/frontend
-      - ./tiptap-gw:/app/tiptap-gw
-      - ./collab-server:/app/collab-server
-      - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
-    working_dir: /app/frontend
-    command: sh -c 'npm install && exec npm run watch'
+      - ./javascript:/app
+    working_dir: /app
+    command: sh -c 'npm install && exec npm run watch-frontend-dev'
 
   collab-server:
     image: node:21-alpine
     depends_on:
       - graphql_engine
     volumes:
-      # Don't share node_modules - npm on windows and linux handle path dependencies in different, incompatible ways
-      - ./frontend:/app/frontend
-      - ./tiptap-gw:/app/tiptap-gw
-      - ./collab-server:/app/collab-server
-      - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
-    working_dir: /app/collab-server
-    command: sh -c 'npm install && exec npm run run'
+      - ./javascript:/app
+      - local_node_modules:/app/node_modules
+    working_dir: /app
+    command: sh -c 'npm install && npm run build-collab-server-dev && exec npm run run-collab-server'
     environment:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}

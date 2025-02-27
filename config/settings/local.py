@@ -16,7 +16,7 @@ ALLOWED_HOSTS = hosts.split(" ")
 
 STATICFILES_DIRS += [
     # Populated by frontend docker container
-    "/app/frontend/dist/"
+    "/app/javascript/dist_frontend/"
 ]
 
 # CACHES

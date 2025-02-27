@@ -1,10 +1,7 @@
 FROM node:21-alpine AS frontendbuild
 
-COPY ./frontend /app/frontend
-COPY ./tiptap-gw /app/tiptap-gw
-COPY ./compose/production/django/workspace.json /app/package.json
-COPY ./package-lock.json /app/package-lock.json
-RUN cd /app/frontend && npm ci && npm run build
+COPY ./javascript /app
+RUN cd /app && npm ci && npm run build-frontend-prod
 
 FROM python:3.10.9-alpine3.17
 
@@ -62,7 +59,7 @@ RUN sed -i 's/\r$//g' /seed_data \
     && mkdir -p /app/ghostwriter/media \
     && chown -R django /app
 
-COPY --from=frontendbuild /app/frontend/dist/ /frontend
+COPY --from=frontendbuild /app/dist_frontend /frontend
 
 USER django
 
