@@ -25080,9 +25080,7 @@ export type Reporting_Observation_Bool_Exp = {
 /** unique or primary key constraints on table "reporting_observation" */
 export enum Reporting_Observation_Constraint {
   /** unique or primary key constraint on columns "id" */
-  ReportingObservationPkey = 'reporting_observation_pkey',
-  /** unique or primary key constraint on columns "title" */
-  ReportingObservationTitleKey = 'reporting_observation_title_key'
+  ReportingObservationPkey = 'reporting_observation_pkey'
 }
 
 /** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */

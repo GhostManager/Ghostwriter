@@ -139,6 +139,8 @@ services:
       - ./javascript:/app
     working_dir: /app
     command: sh -c 'npm install && exec npm run watch-frontend-dev'
+    environment:
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
 
   collab-server:
     image: node:21-alpine

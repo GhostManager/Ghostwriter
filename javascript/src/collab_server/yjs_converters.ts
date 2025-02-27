@@ -17,7 +17,7 @@ import { SCHEMA } from "./tiptap_extensions";
 export function htmlToYjs(html: string, frag: Y.XmlFragment) {
     // Partially copied from `@tiptap/html` `generateJSON`, but using the constant SCHEMA
     // and not converting to JSON just to read it again.
-    const dom = parseHTML(html) as unknown as Node;
+    const dom = parseHTML(html) as any;
     const node = DOMParser.fromSchema(SCHEMA).parse(dom);
 
     prosemirrorToYXmlFragment(node, frag);

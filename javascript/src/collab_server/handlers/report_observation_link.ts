@@ -1,4 +1,4 @@
-import { gql } from "../__generated__/";
+import { gql } from "../../__generated__/";
 import { ModelHandler } from "../base_handler";
 import * as Y from "yjs";
 import { htmlToYjs, tagsToYjs, yjsToHtml, yjsToTags } from "../yjs_converters";
