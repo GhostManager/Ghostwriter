@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { ConnectionStatus, usePageConnection } from "../connection";
 import { PlainTextInput } from "../plain_editors";
 import { TagEditor } from "../tag_editor";
-import RichTextEditor from "../editor";
+import RichTextEditor from "../rich_text_editor";
 import ExtraFieldsSection from "../extra_fields";
 
 function ObservationForm() {
@@ -50,7 +50,9 @@ function ObservationForm() {
                     <RichTextEditor
                         connected={connected}
                         provider={provider}
-                        fragment={provider.document.getXmlFragment("description")}
+                        fragment={provider.document.getXmlFragment(
+                            "description"
+                        )}
                     />
                 </div>
             </div>

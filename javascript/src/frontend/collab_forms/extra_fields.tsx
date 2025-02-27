@@ -6,7 +6,7 @@ import {
     PlainTextInput,
 } from "./plain_editors";
 import JsonEditor from "./json_editor";
-import RichTextEditor from "./editor";
+import RichTextEditor from "./rich_text_editor";
 import { XmlFragment } from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 
