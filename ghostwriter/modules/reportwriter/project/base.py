@@ -110,6 +110,12 @@ class ExportProjectBase(ExportBase):
                         objective["description"],
                         rich_text_context,
                     )
+                if objective["result"]:
+                    objective["result_rt"] = ex.create_lazy_template(
+                        f"the result of objective {objective['objective']}",
+                        objective["result"],
+                        rich_text_context,
+                    )
 
         # Scope Lists
         for scope_list in base_context["scope"]:
