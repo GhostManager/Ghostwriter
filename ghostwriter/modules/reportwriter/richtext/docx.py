@@ -329,6 +329,20 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         if self.table_caption_location == "bottom":
             self._mk_table_caption(el)
 
+    def tag_div(self, el, **kwargs):
+        if "richtext-evidence" in el.attrs.get("class", []):
+            logger.error("DEBUG: div evidence")
+            try:
+                evidence = self.evidences[int(el.attrs["data-evidence-id"])]
+            except (KeyError, ValueError):
+                logger.exception("Could not get evidence")
+                return
+
+            par = self.doc.add_paragraph()
+            self.make_evidence(par, evidence)
+        else:
+            super().tag_div(el, **kwargs)
+
     def _mk_table_caption(self, el):
         par_caption = self.doc.add_paragraph()
         self.make_caption(par_caption, self.table_label, None)

@@ -14,6 +14,7 @@ import Superscript from "@tiptap/extension-superscript";
 import { type Extensions } from "@tiptap/core";
 
 import PageBreak from "./pagebreak";
+import Evidence from "./evidence";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -33,6 +34,7 @@ const EXTENSIONS: Extensions = [
     PageBreak,
     Subscript,
     Superscript,
+    Evidence,
 ];
 
 export default EXTENSIONS;

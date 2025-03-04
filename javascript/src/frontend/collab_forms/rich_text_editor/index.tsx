@@ -4,11 +4,14 @@ import { ChainedCommands, Editor } from "@tiptap/core";
 import { EditorProvider, useCurrentEditor } from "@tiptap/react";
 import { faAlignCenter } from "@fortawesome/free-solid-svg-icons/faAlignCenter";
 import { faBold } from "@fortawesome/free-solid-svg-icons/faBold";
+import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 import { faCode } from "@fortawesome/free-solid-svg-icons/faCode";
 import { faHeading } from "@fortawesome/free-solid-svg-icons/faHeading";
 import { faItalic } from "@fortawesome/free-solid-svg-icons/faItalic";
 import { faList } from "@fortawesome/free-solid-svg-icons/faList";
 import { faQuoteLeft } from "@fortawesome/free-solid-svg-icons";
+import { faSubscript } from "@fortawesome/free-solid-svg-icons/faSubscript";
+import { faSuperscript } from "@fortawesome/free-solid-svg-icons/faSuperscript";
 import { faTable } from "@fortawesome/free-solid-svg-icons/faTable";
 import { faTerminal } from "@fortawesome/free-solid-svg-icons/faTerminal";
 import { faTextSlash } from "@fortawesome/free-solid-svg-icons/faTextSlash";
@@ -21,9 +24,6 @@ import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "../../../tiptap_gw";
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
-import { faSubscript } from "@fortawesome/free-solid-svg-icons/faSubscript";
-import { faSuperscript } from "@fortawesome/free-solid-svg-icons/faSuperscript";
 import LinkButton from "./link";
 
 // For debugging
@@ -81,7 +81,7 @@ function FormatButton(props: {
     );
 }
 
-function Toolbar() {
+function Toolbar({ extra }: { extra?: (editor: Editor) => React.ReactNode }) {
     const { editor } = useCurrentEditor();
     if (!editor) return null;
     return (
@@ -294,6 +294,8 @@ function Toolbar() {
                     Page Break
                 </FormatButton>
             </div>
+            {extra && <div className="separator" />}
+            {extra && extra(editor)}
         </div>
     );
 }
@@ -302,6 +304,7 @@ export default function RichTextEditor(props: {
     connected: boolean;
     provider: HocuspocusProvider;
     fragment: Y.XmlFragment;
+    toolbarExtra?: (editor: Editor) => React.ReactNode;
 }) {
     const extensions = useMemo(
         () =>
@@ -322,7 +325,7 @@ export default function RichTextEditor(props: {
         <div className="collab-editor">
             <EditorProvider
                 extensions={extensions}
-                slotBefore={<Toolbar />}
+                slotBefore={<Toolbar extra={props.toolbarExtra} />}
             ></EditorProvider>
         </div>
     );

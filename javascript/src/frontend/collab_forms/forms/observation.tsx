@@ -5,6 +5,7 @@ import { PlainTextInput } from "../plain_editors";
 import { TagEditor } from "../tag_editor";
 import RichTextEditor from "../rich_text_editor";
 import ExtraFieldsSection from "../extra_fields";
+import ReactModal from "react-modal";
 
 function ObservationForm() {
     const { provider, status, connected } = usePageConnection({
@@ -65,6 +66,9 @@ function ObservationForm() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    ReactModal.setAppElement(
+        document.querySelector("div.wrapper") as HTMLElement
+    );
     const root = createRoot(document.getElementById("collab-form-container")!);
     root.render(<ObservationForm />);
 });

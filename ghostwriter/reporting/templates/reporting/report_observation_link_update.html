@@ -15,3 +15,8 @@
         </ul>
     </nav>
 {% endblock %}
+
+{%  block morescripts %}
+    {{ block.super }}
+    <script type="text/plain" id="graphql-evidence-report-id">{{object.report.id}}</script>
+{% endblock %}

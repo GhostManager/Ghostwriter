@@ -4,6 +4,7 @@ from typing import Any
 from django.views.generic.detail import DetailView
 from django.contrib import messages
 from django.shortcuts import redirect
+from django.conf import settings
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, generate_jwt
 from ghostwriter.commandcenter.models import ExtraFieldSpec
@@ -36,6 +37,7 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context["model_name"] = self.model._meta.model_name
         context["jwt"] = generate_jwt(self.request.user)[1]
+        context["media_url"] = settings.MEDIA_URL
         if self.has_extra_fields:
             context["extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
                 ExtraFieldSpec.for_model(self.model), many=True

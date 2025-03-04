@@ -207,6 +207,35 @@
         }
     }
 
+    .node-evidence {
+        width: fit-content;
+    }
+    .node-evidence.ProseMirror-selectednode .richtext-evidence {
+        background-color: #88c;
+    }
+    .richtext-evidence {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        padding: 1rem;
+        margin-left: 1rem;
+        margin-right: 1rem;
+        border-radius: 0.9rem;
+        background-color: #ccc;
+
+        img {
+            width: 300px;
+        }
+        .richtext-evidence-no-preview {
+            font-size: larger;
+        }
+        .richtext-evidence-missing {
+            font-size: larger;
+            color: #f77;
+        }
+    }
+
     a {
         color: #33c;
         font-weight: bolder;

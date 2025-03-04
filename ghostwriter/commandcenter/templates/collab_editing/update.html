@@ -30,4 +30,8 @@
     {% with script_name='assets/collab_forms_'|add:model_name|add:'.js' %}
     <script type="module" src="{% static script_name %}"></script>
     {% endwith %}
+
+    <script type="text/plain" id="graphql-path">/v1/graphql</script>
+    <script type="text/plain" id="graphql-auth">{{jwt}}</script>
+    <script type="text/plain" id="graphql-media-url">{{media_url}}</script>
 {% endblock %}
