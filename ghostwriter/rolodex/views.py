@@ -1664,6 +1664,7 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         return ctx
 
     def get(self, request, *args, **kwargs):
+        self.object = None
         self.assignments = ProjectAssignmentFormSet(prefix="assign")
         self.assignments.extra = 1
         self.invites = ProjectInviteFormSet(prefix="invite")
@@ -1671,6 +1672,7 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        self.object = None
         form = self.get_form()
         self.assignments = ProjectAssignmentFormSet(request.POST, prefix="assign")
         self.invites = ProjectInviteFormSet(request.POST, prefix="invite")
