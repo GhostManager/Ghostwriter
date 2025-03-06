@@ -33,7 +33,7 @@ class ObservationList(RoleBasedAccessControlMixin, ListView):
 
         # Build autocomplete list
         for observation in observations:
-            self.autocomplete.append(observation.title)
+            self.autocomplete.append(observation)
 
         search_term = self.request.GET.get("observation", "").strip()
         if search_term:
@@ -123,7 +123,7 @@ class ObservationDelete(RoleBasedAccessControlMixin, DeleteView):
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have the necessary permission to delete observations.")
-        return self.get_object().get_absolute_url()
+        return redirect(reverse("reporting:observation_detail", kwargs={"pk": self.get_object().pk}))
 
     def get_success_url(self):
         messages.warning(

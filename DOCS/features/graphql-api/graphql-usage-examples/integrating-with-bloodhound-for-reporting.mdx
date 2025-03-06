@@ -1,0 +1,14 @@
+---
+title: "Integrating with BloodHound for Reporting"
+description: "Pass BloodHound data to Ghostwriter for inclusion in your reports"
+---
+
+BloodHound Community Edition (BHCE) is a part of many assessments, but using the data in reports can be difficult. The BHCE data is readily available as JSON, but the JSON files are typically large for most Active Directory (AD) environments outside of a lab environment. Also, the data’s full value comes from your analysis, so feeding the raw JSON to Ghostwriter isn’t the way to go. No one wants to copy and paste the contents of a dozen JSON files into fields anyway.
+
+We can leverage BHCE and Ghostwriter’s robust APIs to perform analysis, automatically pass the JSON to Ghostwriter, and store it in a JSON field. This example is covered more in-depth in this article:
+
+<CardGroup cols={1}> <Card title="Ghostwriter v4.3: SSO, JSON Fields, and Reporting with BloodHound" icon="book-open" iconType="solid" href="https://posts.specterops.io/ghostwriter-v4-3-sso-json-fields-and-reporting-with-bloodhound-976835a7edba" > <img src="https://miro.medium.com/v2/resize:fill:304:304/10fd5c419ac61637245384e7099e131627900034828f4f386bdaa47a74eae156" alt="Logo" width="30" height="30" /> Posts By SpecterOps Team Members </Card> </CardGroup>
+
+A proof-of-concept script is available here:
+
+<CardGroup cols={1}> <Card title="GitHub - GhostManager/bloodhound-integration-poc" icon="github" iconType="solid" href="https://github.com/GhostManager/bloodhound-integration-poc?source=post_page-----976835a7edba--------------------------------" > <img src="https://github.com/fluidicon.png" alt="Logo"  width="30" height="30"/> A proof-of-concept script for automating the extraction of data from a BloodHound Community Edition server and sending it to Ghostwriter for use in reports </Card> </CardGroup>

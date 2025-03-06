@@ -1,0 +1,23 @@
+---
+title: "Server Management"
+sidebarTitle: "Overview"
+description : "Managing servers with the Server Library"
+---
+
+## The Server Library
+
+The server library lives at `/shepherd/servers/`. The library is where users can view the current status of each server and checkout a server for a project.
+<Frame>
+  <img src="/images/features/image-21.avif" alt=""/>
+</Frame>
+### Types of Servers
+
+The infrastructure manager tracks static servers and transient servers.
+
+The server library tracks servers in the `StaticServer` model. These _static_ servers are intended to be servers you own, such as your command control team servers.
+
+The `TransientServer` model tracks _transient_ servers, the various cloud servers/virtual private servers that come and go during assessments. The **Add a Transient Server** button adds these servers to specific projects from the project details page.
+
+<Frame>
+  <img src="/images/features/image-22.avif" alt=""/>
+</Frame>

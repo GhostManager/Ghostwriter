@@ -36,45 +36,55 @@
     <h2>{{ finding.title }}</h2>
   </div>
 
-  <!-- Finding Severity Badge -->
+  {% comment %} Finding Severity Badge {% endcomment %}
   <div>
-        <span class="badge badge-dark
-            {% if finding.severity.weight == 1 %}
-                critical-background
-            {% elif finding.severity.weight == 2 %}
-                high-background
-            {% elif finding.severity.weight == 3 %}
-                medium-background
-            {% elif finding.severity.weight == 4 %}
-                low-background
-            {% endif %}
-            icon
-            {% if finding.finding_type.finding_type == "Cloud" %}
-                cloud-icon
-            {% elif finding.finding_type.finding_type == "Host" %}
-                host-icon
-            {% elif finding.finding_type.finding_type == "Mobile" %}
-                mobile-icon
-            {% elif finding.finding_type.finding_type == "Network" %}
-                network-icon
-            {% elif finding.finding_type.finding_type == "Physical" %}
-                physical-icon
-            {% elif finding.finding_type.finding_type == "Web" %}
-                code-icon
-            {% elif finding.finding_type.finding_type == "Wireless" %}
-                wireless-icon
-            {% else %}
-                bug-icon
-            {% endif %}"
-          {% if finding.cvss_score %}
-              style="cursor: help"
-              data-toggle="tooltip"
-              data-placement="bottom"
-              title="{{ finding.cvss_vector }}"
-          {% endif %}
-        >
-            {{ finding.severity.severity }} {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
-        </span>
+    <span class="badge badge-dark
+        {% if finding.severity.weight == 1 %}
+            critical-background
+        {% elif finding.severity.weight == 2 %}
+            high-background
+        {% elif finding.severity.weight == 3 %}
+            medium-background
+        {% elif finding.severity.weight == 4 %}
+            low-background
+        {% endif %}
+        icon bug-icon"
+      {% if finding.cvss_score %}
+          style="cursor: help"
+          data-toggle="tooltip"
+          data-placement="bottom"
+          title="CVSS Vector: {{ finding.cvss_vector }}"
+      {% endif %}
+    >
+      {{ finding.severity.severity }} {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
+    </span>
+    {% comment %} Finding Type and Tags Badges {% endcomment %}
+    <span class="badge badge-primary
+        icon
+        {% if finding.finding_type.finding_type == "Cloud" %}
+            cloud-icon
+        {% elif finding.finding_type.finding_type == "Host" %}
+            host-icon
+        {% elif finding.finding_type.finding_type == "Mobile" %}
+            mobile-icon
+        {% elif finding.finding_type.finding_type == "Network" %}
+            network-icon
+        {% elif finding.finding_type.finding_type == "Physical" %}
+            physical-icon
+        {% elif finding.finding_type.finding_type == "Web" %}
+            code-icon
+        {% elif finding.finding_type.finding_type == "Wireless" %}
+            wireless-icon
+        {% else %}
+            bug-icon
+        {% endif %}"
+        style="cursor: help"
+        data-toggle="tooltip"
+        data-placement="bottom"
+        title="Finding Type"
+    >
+      {{ finding.finding_type.finding_type|bleach }}
+    </span>
     {% for tag in finding.tags.names %}
       <span class="badge badge-secondary">{{ tag|bleach }}</span>
     {% endfor %}
@@ -279,7 +289,12 @@
             // Do Something
           }
           if (data['message']) {
-            displayToastTop({type: data['result'], string: data['message'], title: 'Finding Assigned', url: data['url']});
+            displayToastTop({
+              type: data['result'],
+              string: data['message'],
+              title: 'Finding Assigned',
+              url: data['url']
+            });
           }
         }
       });

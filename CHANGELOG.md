@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.3] - 28 February 2025
+
+### Added
+
+* Added objective result fields to the GraphQL schema and reporting engine
+  * Objectives now have `result` and `result_rt` fields that can be used in report templates
+  * The `result` field can now be updated via the GraphQL API
+
+## [5.0.2] - 24 February 2025
+
+### Fixed
+
+* Fixed an issue with creating clients and projects when providing optional form data (e.g., invites, contacts, assignments)
+
+## [5.0.1] - 13 February 2025
+
+### Added
+
+* Added a finding type label below the finding's title on the finding details page
+* Added links to profile pages for users from the project library
+* Added a table of active project assignments to the user profile page
+  * This table is viewable by the user and managers
+
+### Fixed
+
+* Fixed an error that could occur when trying to edit an observation without permissions
+
+## [5.0.0] - 7 February 2025
+
+### Added
+
+* Managers now have the ability to invite users to view a client or project from the client and project dashboards
+* Added the `DATABASE_URL` variable to the Django container's environment (Fixes #578)
+
+### Changed
+
+* This release changes role-based access controls in the web UI to match the GraphQL API's stricter controls
+  * Users with the standard `user` role will no longer be able to see or access projects to which they are not assigned
+  * These users will be able to see a client has other past or current projects, but will be unable to see the details of those projects
+  * Admins and managers can grant a user access to a client or project by inviting them from the client or project dashboards
+* Fixed the WYSIWYG editor not working for custom Rich Text fields added to the log entry model
+* Added tags to the autocomplete results when searching for findings and observations (Closes #582)
+* Added autocomplete to client and project filters
+
 ## [4.3.11] - 8 January 2025
 
 ### Changed

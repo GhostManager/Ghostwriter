@@ -1,8 +1,8 @@
 {% extends "base_generic.html" %}
 
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags custom_tags %}
 
-{% load bleach_tags %}
+{% load bleach_tags custom_tags %}
 
 {% block pagetitle %}Project List{% endblock %}
 
@@ -21,8 +21,12 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  {% if not request.user|is_privileged %}
+    <div class="alert alert-success offset-md-3 col-md-6 mt-3" role="alert">Projects shown here are projects to which you have access. You gain access to a project by being assigned to it or invited to have full access to the related client's history.</div>
+  {% endif %}
+
   {% if filter.qs|length == 0 %}
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no projects to see here yet, or your search returned no results. Create a project above or adjust your filters.</div>
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no projects to see here yet, you lack access to the project(s), or your search returned no results. Create a project above or adjust your filters.</div>
   {% else %}
     <table id="projectTable" class="tablesorter table table-sm table-hover">
       <thead>
@@ -46,11 +50,13 @@
           <td class="align-middle">
             {% if project.projectassignment_set.all %}
               {% for operator in project.projectassignment_set.all %}
-                {% if operator.operator.name %}
-                  {{ operator.operator.name }}
-                {% else %}
-                  Missing Full Name ({{ operator.operator.username }})
-                {% endif %}
+                <a class="clickable" href="{{ operator.operator.get_absolute_url }}">
+                  {% if operator.operator.name %}
+                    {{ operator.operator.name }}
+                  {% else %}
+                    Missing Full Name ({{ operator.operator.username }})
+                  {% endif %}
+                </a>
                 {% if not forloop.last %}
                   <br/>
                 {% endif %}
@@ -79,4 +85,33 @@
       $('.tablesorter').trigger('update');
     });
   </script>
+
+    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
+    <script>
+      $(function () {
+        let availableClients = [
+          {% for entry in autocomplete %}
+            '{{ entry.client.name|escapejs }}{% if entry.client.tags.names %} ({{ entry.client.tags.names|get_tags_list|escapejs }}){% endif %}',
+          {% endfor %}
+        ];
+        uniqueClients = Array.from(new Set(availableClients));
+        $('#id_client').autocomplete({
+          source: uniqueClients
+        });
+      });
+    </script>
+
+    <script>
+      $(function () {
+        let availableCodenames = [
+          {% for entry in autocomplete %}
+            '{{ entry.codename|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+          {% endfor %}
+        ];
+        $('#id_codename').autocomplete({
+          source: availableCodenames
+        });
+      });
+    </script>
+
 {% endblock %}

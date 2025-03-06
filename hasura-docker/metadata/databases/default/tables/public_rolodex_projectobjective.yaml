@@ -48,6 +48,7 @@ insert_permissions:
         - position
         - priority_id
         - project_id
+        - result
         - status_id
   - role: user
     permission:
@@ -72,21 +73,23 @@ insert_permissions:
         - position
         - priority_id
         - project_id
+        - result
         - status_id
 select_permissions:
   - role: manager
     permission:
       columns:
+        - complete
+        - deadline
+        - description
         - id
+        - marked_complete
+        - objective
+        - position
         - priority_id
         - project_id
+        - result
         - status_id
-        - complete
-        - objective
-        - deadline
-        - marked_complete
-        - position
-        - description
       filter: {}
   - role: user
     permission:
@@ -115,6 +118,7 @@ update_permissions:
         - position
         - priority_id
         - project_id
+        - result
         - status_id
       filter: {}
       check: {}
@@ -128,6 +132,7 @@ update_permissions:
         - position
         - priority_id
         - project_id
+        - result
         - status_id
       filter:
         project:

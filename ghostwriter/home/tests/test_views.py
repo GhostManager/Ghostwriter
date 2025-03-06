@@ -76,7 +76,7 @@ class TemplateTagTests(TestCase):
         cls.group_1 = GroupFactory(name="Group 1")
         cls.group_2 = GroupFactory(name="Group 2")
         cls.user = UserFactory(password=PASSWORD, groups=(cls.group_1,), role="user")
-        cls.project = ProjectFactory()
+        cls.project = ProjectFactory(tags=["tag1", "tag2"])
         cls.report = ReportFactory(project=cls.project)
         cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
 
@@ -172,6 +172,9 @@ class TemplateTagTests(TestCase):
         self.assertEqual(result, datetime(2024, 2, 27))
         result = custom_tags.add_days(test_date, -5)
         self.assertEqual(result, datetime(2024, 2, 13))
+
+        tags = custom_tags.get_tags_list(self.project.tags.names())
+        self.assertEqual(tags, "tag1, tag2")
 
 
 class DashboardTests(TestCase):

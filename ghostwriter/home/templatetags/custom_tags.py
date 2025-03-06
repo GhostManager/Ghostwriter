@@ -191,3 +191,9 @@ def add_days(date, days):
 def split_and_join(value, delimiter):
     """Split a string with the delimiter and return a comma-separated string."""
     return ", ".join(value.split(delimiter))
+
+
+@register.filter
+def get_tags_list(value):
+    """Return a list of tags from an object's `tags.names` value."""
+    return ", ".join(value)

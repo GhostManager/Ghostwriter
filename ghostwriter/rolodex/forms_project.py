@@ -36,6 +36,7 @@ from ghostwriter.rolodex.models import (
     Project,
     ProjectAssignment,
     ProjectContact,
+    ProjectInvite,
     ProjectNote,
     ProjectObjective,
     ProjectScope,
@@ -583,6 +584,7 @@ class ProjectObjectiveForm(forms.ModelForm):
             "status",
             "description",
             "priority",
+            "result",
         )
         widgets = {
             "deadline": forms.DateInput(
@@ -665,6 +667,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                         ),
                     ),
                     "description",
+                    "result",
                     Row(
                         Column(
                             Button(
@@ -1054,6 +1057,101 @@ class ProjectContactForm(forms.ModelForm):
         )
 
 
+class ProjectInviteForm(forms.ModelForm):
+    class Meta:
+        model = ProjectInvite
+        exclude = ("client",)
+        field_classes = {
+            "comment": JinjaRichTextField,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].label = "Operator"
+        self.fields["user"].queryset = self.fields["user"].queryset.order_by("-is_active", "username", "name")
+        self.fields["user"].label_from_instance = lambda obj: obj.get_display_name
+
+        self.helper = FormHelper()
+        # Disable the <form> tags because this will be part of an instance of `ClientForm()`
+        self.helper.form_tag = False
+        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
+        self.helper.disable_csrf = True
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            Div(
+                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
+                Alert(
+                    content=(
+                        """
+                        <strong>Invite Deleted!</strong>
+                        Deletion will be permanent once the form is submitted. Click this alert to undo.
+                        """
+                    ),
+                    css_class="alert alert-danger show formset-undo-button",
+                    style="display:none; cursor:pointer;",
+                    template="alert.html",
+                    block=False,
+                    dismiss=False,
+                ),
+                Div(
+                    Row(
+                        Column("user", css_class="form-group col-md-12"),
+                        css_class="form-row",
+                    ),
+                    "comment",
+                    Row(
+                        Column(
+                            Button(
+                                "formset-del-button",
+                                "Delete Invite",
+                                css_class="btn-outline-danger formset-del-button col-4",
+                            ),
+                            css_class="form-group col-6 offset-3",
+                        ),
+                        Column(
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
+                        ),
+                    ),
+                    css_class="formset",
+                ),
+                css_class="formset-container"
+            )
+        )
+
+
+class BaseProjectInviteInlineFormSet(BaseInlineFormSet):
+    """
+    BaseInlineFormset template for :model:`rolodex.ProjectInvite` that adds validation
+    for this model.
+    """
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+
+        invites = set()
+        for form in self.forms:
+            if not form.cleaned_data or form.cleaned_data["DELETE"]:
+                continue
+            user = form.cleaned_data["user"]
+
+            # Check that the same person has not been added more than once
+            if user:
+                if user in invites:
+                    form.add_error(
+                        "user",
+                        ValidationError(
+                            _("This person is already invited."),
+                            code="duplicate",
+                        ),
+                    )
+                invites.add(user)
+
+
 # Create the `inlineformset_factory()` objects for `ProjectForm()`
 
 ProjectAssignmentFormSet = inlineformset_factory(
@@ -1106,6 +1204,15 @@ ProjectContactFormSet = inlineformset_factory(
     ProjectContact,
     form=ProjectContactForm,
     formset=BaseProjectContactInlineFormSet,
+    extra=EXTRAS,
+    can_delete=True,
+)
+
+ProjectInviteFormSet = inlineformset_factory(
+    Project,
+    ProjectInvite,
+    form=ProjectInviteForm,
+    formset=BaseProjectInviteInlineFormSet,
     extra=EXTRAS,
     can_delete=True,
 )
@@ -1220,6 +1327,17 @@ class ProjectForm(forms.ModelForm):
                     ),
                     link_css_class="assignment-icon",
                     css_id="assignments",
+                ),
+                CustomTab(
+                    "Invites",
+                    Formset("invites", object_context_name="Invite"),
+                    Button(
+                        "add-invite",
+                        "Add Invite",
+                        css_class="btn-block btn-secondary formset-add-invite mb-2 offset-4 col-4",
+                    ),
+                    link_css_class="tab-icon users-icon",
+                    css_id="invites",
                 ),
                 template="tab.html",
                 css_class="nav-justified",

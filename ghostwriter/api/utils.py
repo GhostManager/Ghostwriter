@@ -220,12 +220,7 @@ def verify_user_is_privileged(user):
     ``user``
         The :model:`users.User` object
     """
-    if user.role in (
-        "admin",
-        "manager",
-    ):
-        return True
-    return user.is_staff
+    return user.is_privileged
 
 
 def verify_access(user, obj):
@@ -319,19 +314,7 @@ def get_client_list(user):
     ``user``
         The :model:`users.User` object
     """
-    if verify_user_is_privileged(user):
-        clients = Client.objects.all().order_by("name")
-    else:
-        clients = (
-            Client.objects.filter(
-                Q(clientinvite__user=user)
-                | Q(project__projectinvite__user=user)
-                | Q(project__projectassignment__operator=user)
-            )
-            .order_by("name")
-            .distinct()
-        )
-    return clients
+    return Client.for_user(user)
 
 
 def get_project_list(user):
@@ -346,19 +329,7 @@ def get_project_list(user):
     ``user``
         The :model:`users.User` object
     """
-    if verify_user_is_privileged(user):
-        projects = Project.objects.select_related("client").all().order_by("complete", "client")
-    else:
-        clients = get_client_list(user)
-        projects = (
-            Project.objects.select_related("client")
-            .filter(
-                client__in=clients,
-            )
-            .order_by("complete", "client")
-            .distinct()
-        )
-    return projects
+    return Project.for_user(user)
 
 
 def get_logs_list(user):

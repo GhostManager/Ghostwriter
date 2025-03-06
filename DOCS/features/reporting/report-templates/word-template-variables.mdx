@@ -1,0 +1,258 @@
+---
+title: "Word Template Variables & Filters"
+description: "Introducing the Word template variables"
+---
+
+## Jinja2 Statements, Expressions, & Filters
+
+When you request a Word document, Ghostwriter opens your selected template file and processes any Jinja2 expressions within the document to create a new document. The new document is saved in memory and sent to you for download.
+
+Jinja2 uses *statements*, *expressions*, and *filters*. These equate to lines of code and variables:
+
+* **Statement** – `{% ... %}`
+
+  * Statements are lines of code like `{% if some_variable %}`
+
+* **Expression** – `{{ ... }}`
+
+  * In general, an expression works like a variable in most cases, like `{{ client.name }}`
+
+* **Filter** – `... |filter ...`
+
+  * You can pipe a value into a filter to modify it, like `{{ client.name|title }}`
+
+Templates can contain basic expressions and more complicated statements (e.g., for loops, if/else). In addition to the custom expressions and filters documented on this page, Jinja2 offers built-in statements, expressions, and filters you can use with Ghostwriter templates.
+
+To prevent cross-site scripting (XSS), Ghostwriter sanitizes formatted text fields. This sanitization creates a minor conflict with Jinja2 because it will escape `<` and `>` (e.g., replace the character with `%gt;`). If you want to check if something is greater or less than a value, use Jinja2's `gt()` and `lt()` tests.
+
+[https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.gt](https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.gt)
+
+[https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.lt](https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.lt)
+
+You can freely use `<` or `>` if you use it inside your report template (not a text field inside Ghostwriter).
+
+The official Jinja2 documentation contains all the information you need to get started using its more advanced features.
+There are also various considerations covered in the official Jinja2 documentation, such as whitespace control and escaping.
+
+[Template Designer Documentation](https://jinja.palletsprojects.com/en/2.11.x/templates/)
+
+All of Ghostwriter's expressions and statements should be wrapped in curly braces with one space to either side (`{{ client.name }}`or `{% if ... %}` ) – unless otherwise noted.
+
+If you do not include the spaces, Jinja2 will not recognize the expression as valid and will ignore it.
+
+If you ever need to include double curly braces or Jinja2 code inside a report and you **do not** want it to be rendered, you can escape your text in a couple of ways.
+
+One option is the `{% raw %}{% endraw %}` block. Another is using Jinja2 's "literal variable delimiter" (`{{`) inside a variable expression (e.g., `{{ '{{' }}`).
+
+[https://jinja.palletsprojects.com/en/3.0.x/templates/#escaping](https://jinja.palletsprojects.com/en/3.0.x/templates/#escaping)
+
+### Using Conditionals
+
+One of the easiest and most powerful things you can do in your templates is leverage conditional statements to control content.
+
+For example, you can use an `if` block to check a value to determine the content or formatting. Conditional blocks are powerful when combined with things like [your custom extra fields](/configuring-global-settings/configuring-extra-fields).
+
+Conditional blocks can be written in a couple of different ways. The simplest will be familiar to anyone who has written a script in a language like Python:
+
+```
+{% if SomeCondition %}
+<Your Content>
+{% else %}
+<Alternate Content>
+{% endif %}
+```
+
+This approach is easy to read as is, but can be very messy and difficult to follow. Written on several lines like this will cause erroneous blank lines in the final document. You want to remove the newlines before finalizing your template for the best outcome.
+
+```
+{% if SomeCondition %}<Your Content>{% else %}<Alternate Content>{% endif %}
+```
+
+You can see how this version could become difficult to read. You can often condense your conditional down into a simpler version. For example, let's say you are looping over your project objectives for a table and want a cell colored green if the objective is complete or red if not. This single line handles that formatting:
+
+```
+{% cellbg "A8D08D" if obj.complete else "FF7E79" %}
+```
+
+<Check>
+More on `cellbg`, creating tables, and other functionality below!
+</Check>
+
+### Potentially Useful Jinja2 Expressions
+
+These expressions are built into Jinja2 and might be helpful in your Word documents:
+
+| **Expression**                                     | **Description**                                                                                                                                                       |
+|----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `capitalize(string)`                               | Capitalize the first character and convert the rest to lowercase                                                                                                       |
+| `lower(string)`                                    | Convert a value to all lowercase                                                                                                                                      |
+| `replace(string, old, new)`                       | Replace the old string (a substring of the first argument) with a new string                                                                                          |
+| `title(string)`                                    | Return a titlecased string                                                                                                                                            |
+| `trim(value, chars=None)`                         | Strip leading and trailing characters (default is whitespace)                                                                                                         |
+| `unique(value, case_sensitive=False)`             | Return a list of unique items from an iterable                                                                                                                        |
+| `upper(string)`                                    | Convert a value to all uppercase                                                                                                                                      |
+| `sort(iterable, reverse=False, case_sensitive=False, attribute=None)` | Sort an iterable with Python's `sorted()`. [More info](https://jinja.palletsprojects.com/en/3.0.x/templates/#jinja-filters.sort)                                       |
+| `dictsort(mapping, case_sensitive=False, by="key", reverse=False)`   | Like `sort` but accepts a mapping of key and value pairs to yield a dictionary. [More info](https://jinja.palletsprojects.com/en/3.0.x/templates/#jinja-filters.dictsort) |
+
+<Info>
+There are many other expressions and filters available. If you want to do something, there is probably a way to accomplish it with a built-in expression cleanly. You can perform math, logic, string mutations, and more.
+
+Check the Jinja2 documentation: [https://jinja.palletsprojects.com/en/3.1.x/templates/#expressions](https://jinja.palletsprojects.com/en/3.1.x/templates/#expressions)
+</Info>
+
+### Ghostwriter Expressions
+
+To see what is available for your report, generate the JSON report. Everything in the resulting JSON will be available in a report template. The following table describes the top-level keys:
+
+| **Expression**                                     | **Description**                                                                                                                                                       |
+|----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `report_date` | [`String`] Full date the report was generated (localized based on server settings) |
+| `project` | [`Dict`] All information about the project |
+| `client` | [`Dict`] All information about the project's client |
+| `team` | [`Dict`] All team information (individuals assigned to the project) |
+| `objectives` | [`Dict`] All objectives information |
+| `targets` | [`Dict`] All project targets |
+| `scope` | [`Dict`] All project scope lists |
+| `infrastructure` | [`Dict`] All project infrastructure information |
+| `logs` | [`Dict`] All activity logs and related entries from the project |
+| `findings` | [`Dict`] All information about a project's findings |
+| `observations` | [`Dict`] All information about a project's observations |
+| `docx_template` | [`Dict`] All information about the selected DOCX template |
+| `pptx_template` | [`Dict`] All information about the selected PPTX template |
+| `company` | [`Dict`] All information about your company (configured in the admin panel) |
+| `title` | [`String`] The report's title set in Ghostwriter |
+| `complete` | [`Bool`] Value indicating if the report has been marked as complete |
+| `archived` | [`Bool`] Value indicating if the report has been marked as archived |
+| `delivered` | [`Bool`] Value indicating if the report has been marked as delivered |
+| `totals` | [`Dict`] Various sums and counts of different project-related values (e.g., total findings, objectives, and targets) |
+
+<Info>
+Dates are localized based on your locale configuration in the server settings. The default date format is *M d, Y* (e.g., June 22, 2021).
+
+The `project` key has separate values for the day, month, and year the project started and ended. Use these to assemble your own date or date range formats if you need to represent a date differently or only want part of the date.
+</Info>
+
+<Check>
+If you do not have a client `short_name` value set, Ghostwriter will replace references to `client.short_name` with the client's full name.
+</Check>
+
+#### Findings Attributes – HTML & Rich Text Attributes
+
+You write your findings in Ghostwriter's WYSIWYG editor, where you can style text as you would directly in Word. The WYSIWYG editor uses HTML, so Ghostwriter stores your content as HTML.
+
+Let's say you put the following Jinja2 code in a template:
+
+```
+{% for finding in findings %}
+{{ finding.description }}
+{% endfor %}
+```
+
+That would drop in raw HTML using whatever style you had assigned to `{{ finding.description }}` in the template. It's unlikely you would want that.
+
+Jinja2's `striptags` filter can help, but it removes all HTML without preserving new lines. Ghostwriter's custom `strip_html` filter will strip the tags and preserve newlines, but the output will still be all plaintext. You must re-apply character and paragraph styles, font changes, and other options. Your evidence files will also appear as text placeholders.
+
+To get what you see in the WYSIWYG editor in your Word document, add `_rt` (for rich text) to the attribute's name, use the `p` tag (see **Ghostwriter Tags** below). The above example becomes:
+
+```
+{% for finding in findings %}
+{{p finding.description_rt }}
+{% endfor %}
+```
+
+This will drop in your WYSIWYG HTML converted to Open XML for Word. Your image and text evidence will be present (with style and border options applied), and your text will be styled.
+
+Each finding also has a unique `severity_rt` attribute. You don't style this text in the WYSIWYG editor. Ghostwriter creates a rich text version of your severity category that is colored using your configured color code.
+
+The `severity_rt` attribute only styles the color of the text run so that you can apply a paragraph style to it directly in your Word template. Use it with the `r` tag (for a run) like so:
+
+<Frame>
+  <img src="/images/features/image-52.png" alt=""/>
+</Frame>
+
+That template renders as:
+
+<Frame>
+  <img src="/images/features/image-53.png" alt=""/>
+</Frame>
+
+### Ghostwriter Tags
+
+Several tags used for Word documents are not built into Jinja2. These tags are added after you open an expression or statement (before the space).
+
+Example: `{{p findings_subdoc }}`
+
+| **Tag** | **Description**      |
+|---------|-----------------------|
+| `r`     | Text run             |
+| `p`     | New paragraph        |
+| `tr`    | Table row            |
+| `tc`    | Table column         |
+
+
+The table tags may appear complicated at first. You can create a table with a row for each point of contact using the provided statements, expressions, and tags like this:
+
+<Warning>
+Per `python-docx-template`, do not use `{%p`, `{%tr`, `{%tc` or `{%r` twice in the same paragraph, row, column, or run.
+
+Bad:
+
+```
+{%p if display_paragraph %}Here is my paragraph {%p endif %}
+```
+
+Good:
+
+```
+{%p if display_paragraph %}
+Here is my paragraph
+{%p endif %}
+```
+</Warning>
+
+### Ghostwriter Statements
+
+There are several statements for Word documents that are not built into Jinja2:
+
+| **Statement**              | **Description**                                                                                   |
+|-----------------------------|---------------------------------------------------------------------------------------------------|
+| `{% cellbg color_var %}`    | Color a table cell where `color_var` is a hex value without the #                                |
+| `{% colspan some_number %}` | Span a table cell over a `some_number` of columns                                                |
+
+
+### Ghostwriter Filters
+
+Ghostwriter offers some custom filters you can use to modify report values quickly:
+
+The filter collection is under development and will continue to grow.
+
+| **Filter**                        | **Usage**                                                                                                                                                                                                                                                                                                                                                                           |
+|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `filter_severity(list)`           | Accepts the `findings` variable and filters it with a list of severities. **Example:** This statement loops over only findings rated as *High* or *Medium* severity: `\{% for x in findings|filter_severity(["High", "Medium"]) %}`                                                                                                             |
+| `strip_html(string)`              | Accepts HTML strings and strips all tags.                                                                                                                                                                                                                                                                                                   |
+| `compromised(targets)`            | Accepts `targets` value and filters it to only include hosts marked as compromised.                                                                                                                                                                                                                                                        |
+| `filter_type(list)`               | Accepts the `findings` variable and filters it with a list of categories. **Example:** This statement loops over only findings with the type *Network*: `\{% for x in findings|filter_type(["Network"]) %}`                                                                                                                                   |
+| `add_days(date, days)`            | Provide a date and a number of days (integer) to add or subtract. Use negative numbers for subtraction and Python's date format strings. **Example:** `Feb. 1, 2022 | add_days(-10)`                                                                                                                                                         |
+| `format_datetime(date, format_str)` | Provide a date and a format string. Use Python's date format strings. **Example:** `Feb. 1, 2022 | format_datetime("%B %-d, %Y")`                                                                                                                                                                                                           |
+| `get_item(list, index)`           | Provide a list and an index to retrieve the list item at that index. **Example:** `["ghostwriter", "report", "ghost"] | get_item(0)` returns `ghostwriter`                                                                                                                                                                                |
+| `filter_tags(list, allowlist)`    | Accepts a list of objects (e.g., `findings`) and filters it with a list of tags. **Example:** This statement loops over only findings tagged with `xss`: `\{% for x in findings|filter_tags(["xss"]) %}`                                                                                                                                       |
+| `regex_search(text, regex)`       | Perform a search with a regular expression and get the first match.                                                                                                                                                                                                                                                                       |
+| `replace_blanks(list, placeholder)` | Replace null dictionary keys with `""` (default) or the specified placeholder value. **Example:** Attempting to use Jinja2's `sort` filter with a list of dictionaries with null values will cause an error. This statement loops over all entries in an activity log while also replacing blank values and then sorting: `\{% for entry in log|replace_blanks|sort(attribute="tool") %}` |
+
+
+### Subdocuments
+
+Subdocuments are like other variables, except they are pre-rendered Word documents. Inserting a subdocument is like copying and pasting content from one document into another. A subdocument can be a small paragraph or a much larger section.
+
+Ghostwriter uses subdocuments to translate your WYSIWYG content (e.g., findings) to Office Open XML.
+
+Subdocuments are referenced as `{{p VARIABLE }}`. That variable is automatically replaced with the contents of the subdocument.
+
+## Debugging a Template
+
+Ghostwriter uses the `jinja2.ext.debug` extension to make it easier for you to debug a template. Place a `{% debug %}` tag somewhere in your template.
+
+The next time you generate a report with that template, Ghostwriter will replace the tag with the template's available context (the report and project data) and filters.
+
+Also, see [Troubleshooting Word Templates](/features/reporting/report-templates/troubleshooting-word-templates) for a more in-depth explanation of how to troubleshoot a template that gives you problems.
+

@@ -1,0 +1,72 @@
+---
+title: "Role-Based Access Controls"
+---
+
+1. [Features](/features)
+2. [Access, Authentication, & Session Controls](/features/access-authentication-and-session-controls)
+
+Explanation of Ghostwriter's role-based access controls
+
+<Check>
+In Ghostwriter \<= v3.x, the role-based access controls described on this page apply *only to the GraphQL API*. In those older versions, user privileges are equivalent to every account having the `manager` role.
+</Check>
+
+## Introduction
+
+User roles are the primary authorization mechanism. There are three user roles:
+
+* User
+
+* Manager
+
+* Admin
+
+A Ghostwriter administrator sets a user's role in the admin panel. All accounts are assigned the `user` role by default.
+
+<Info>
+If you look in the Hasura GraphQL console, you will also see a `public` role. Only Hasura uses this role. An unauthenticated request (i.e., any request that lacks a valid JWT in a request's `Authorization` header) is considered to have the `public` role. Specific webhook endpoints (e.g., `login`) are accessible to this role.
+</Info>
+
+The roles carry the following privileges:
+
+### User Role Privileges
+
+The `user` role can only access project and related client data if they:
+
+* have been assigned to the project
+
+* have been invited to access the client
+
+* have been invited to access the project
+
+Otherwise, this role has the standard permissions you might expect. They can edit or delete their comments, update their profiles, and view the shared information in the various libraries (e.g., findings, domains).
+
+When viewing the project history for a domain or server, an account with the `user` role will only see project details if they can access the project or the related client.
+
+#### Augmenting User Permission
+
+An admin can augment user permissions in the admin console. By default, the `user` role cannot edit, update, or delete entries in the Findings or Observation libraries.
+
+### Manager Role Privileges
+
+The `manager` role can view all clients and projects. The role can also:
+
+* invite others to access client data
+
+* invite others to access project data
+
+* assign others to a project
+
+* edit report templates flagged as *protected*
+
+If an account is flagged as a Django *Superuser* that account will automatically inherit the `manager` role.
+
+Users with thr `manager` role can invite users to have full access to a client or project from the client and project dashboards.
+
+### Admin Role Privileges
+
+The `admin` role is only used by the GraphQL API. This role has complete access to everything available via the API. This role can create and manage users and modify fields not exposed to other roles.
+
+<Warning>
+Use great care when assigning this role to an account. In general, a user should only ever be a `manager` or a `user`.
+</Warning>

@@ -8,369 +8,518 @@
 {% block pagetitle %}{{ client.name }} Details{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ client.name }}</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ client.name }}</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <!-- Current language: {{ LANGUAGE_CODE }} -->
-    {% if request.user|is_privileged %}
-      <div class="dropdown">
-          <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-              <div class="bar1"></div>
-              <div class="bar2"></div>
-              <div class="bar3"></div>
-          </div>
-          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
-              <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:client_update' client.id %}"> Edit</a>
-              <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:client_delete' client.id %}"> Delete</a>
-          </div>
+  <!-- Current language: {{ LANGUAGE_CODE }} -->
+  {% if request.user|is_privileged %}
+    <div class="dropdown">
+      <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+           onclick="hamburger(this)">
+        <div class="bar1"></div>
+        <div class="bar2"></div>
+        <div class="bar3"></div>
       </div>
-    {% endif %}
-
-    <div class="container">
-        <h2>{{ client.name }}</h2>
+      <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
+        <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:client_update' client.id %}"> Edit</a>
+        <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:client_delete' client.id %}"> Delete</a>
+      </div>
     </div>
-    {% if client.tags.names %}
-        {% for tag in client.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
-    {% endif %}
-    <hr />
+  {% endif %}
 
-    <div>
-        <p class="form-spacer"></p>
+  <div class="container">
+    <h2>{{ client.name }}</h2>
+  </div>
+  {% if client.tags.names %}
+    {% for tag in client.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+  {% endif %}
+  <hr/>
 
-        <!-- Navigation Tabs -->
-        {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
-        <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'rolodex:ajax_update_client_badges' client.id %}">
-            {% include "snippets/client_nav_tabs.html" %}
-        </ul>
+  <div>
+    <p class="form-spacer"></p>
 
-        <!-- Info Tab -->
-        <div class="tab-content">
-            <div id="general" class="tab-pane in active">
-                <h4>Client Details</h4>
-                <hr />
+    <!-- Navigation Tabs -->
+    {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
+    <ul id="tab-bar" class="nav nav-tabs nav-justified"
+        js-update-tabs-url="{% url 'rolodex:ajax_update_client_badges' client.id %}">
+      {% include "snippets/client_nav_tabs.html" %}
+    </ul>
 
-                <table class="table table-borderless table-centered project-details-table">
-                    <tr>
-                        <td class="text-left bold">Short Name</td>
-                        <td class="text-left">
-                            {% if client.short_name %} {{ client.short_name }} {% else %} No Short Name {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Codename</td>
-                        <td class="text-left">
-                            {% if client.codename %} {{ client.codename }} {% else %} No Codename {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Client's Current Time</td>
-                        <td class="text-left"><span class="client-datetime"></span></td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Additional Information</td>
-                        <td class="text-left">
-                            <a href="javascript:void(0);" id="clientDescriptionDropdown" class="align-icon icon add-icon">Expand Information</a>
-                        </td>
-                    </tr>
-                </table>
+    <!-- Info Tab -->
+    <div class="tab-content">
+      <div id="general" class="tab-pane in active">
+        <h4>Client Details</h4>
+        <hr/>
 
-                <div id="clientDescription" class="description-block offset-md-2 col-8">
-                    {% if client.note %}
-                        {{ client.note|bleach }}
-                    {% else %}
-                        <p class="text-center">No additional information provided for this client. <a class="clickable" href="{% url 'rolodex:client_update' client.id %}">Fix that here.</a></p>
-                    {% endif %}
-                </div>
+        <table class="table table-borderless table-centered project-details-table">
+          <tr>
+            <td class="text-left bold">Short Name</td>
+            <td class="text-left">
+              {% if client.short_name %} {{ client.short_name }} {% else %} No Short Name {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Codename</td>
+            <td class="text-left">
+              {% if client.codename %} {{ client.codename }} {% else %} No Codename {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Client's Current Time</td>
+            <td class="text-left"><span class="client-datetime"></span></td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Additional Information</td>
+            <td class="text-left">
+              <a href="javascript:void(0);" id="clientDescriptionDropdown" class="align-icon icon add-icon">Expand
+                Information</a>
+            </td>
+          </tr>
+        </table>
 
-                <div class="hidden-element"></div>
+        <div id="clientDescription" class="description-block offset-md-2 col-8">
+          {% if client.note %}
+            {{ client.note|bleach }}
+          {% else %}
+            <p class="text-center">No additional information provided for this client. <a class="clickable"
+                                                                                          href="{% url 'rolodex:client_update' client.id %}">Fix
+              that here.</a></p>
+          {% endif %}
+        </div>
 
-                <h5>Business Address</h5>
-                <hr>
+        <div class="hidden-element"></div>
 
-                <div class="address">
-                    {% if client.address %}
-                        {{ client.address|bleach }}
-                    {% else %}
-                        <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No address provided for this client.</div>
-                    {% endif %}
-                </div>
+        <h5>Business Address</h5>
+        <hr>
+
+        <div class="address">
+          {% if client.address %}
+            {{ client.address|bleach }}
+          {% else %}
+            <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No address provided for this
+              client.
             </div>
+          {% endif %}
+        </div>
+      </div>
 
-            <!-- POC Tab -->
-            <div id="contacts" class="tab-pane">
-                <h4>Client Contacts</h4>
-                <hr />
-
-                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a>
-                {% if client.clientcontact_set.all %}
-                    <table id="clientTable" class="tablesorter table table-striped">
-                        <thead>
-                            <tr>
-                                <th class="align-middle pr-4">Name</th>
-                                <th class="align-middle pr-4">Title/Role</th>
-                                <th class="align-middle pr-4">Email</th>
-                                <th class="sorter-false">Phone</th>
-                                <th class="sorter-false">Note</th>
-                                <th class="sorter-false">Options</th>
-                            </tr>
-                        </thead>
-                        {% for poc in client.clientcontact_set.all %}
-                            <tr>
-                                <td class="align-middle" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
-                                <td class="align-middle">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
-                                <td class="align-middle">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
-                                <td class="align-middle">
-                                    {% if poc.phone %}
-                                        {{ poc.phone }}
-                                    {% else %}
-                                        --
-                                    {% endif %}
-                                </td>
-                                <td class="align-middle table-note">{{ poc.note|bleach }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu" aria-labelledby="poc-dropdown-btn_{{ poc.id }}">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:client_update' client.id %}#contacts">Edit</a>
-                                            <a class="dropdown-item icon trash-icon" id="poc-delete-button-{{ poc.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id%}" delete-target-id="{{ poc.id }}" delete-target-type="contact">Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.</div>
-                {% endif %}
+      {% comment %} Invitations {% endcomment %}
+      {% if request.user|is_privileged %}
+        <div id="invitations" class="tab-pane">
+          <h4>Invitations</h4>
+          <hr/>
+          <a class="icon add-icon btn btn-primary mb-3 col-3"
+             href="{% url 'rolodex:client_update' client.id %}#invites">Add & Edit Invitations</a>
+          <p class="text-center offset-2 col-8">Users listed here have view access to this client and all of their
+            projects, infrastructure, etc.</p>
+          {% if client.clientinvite_set.all %}
+            <table id="clientTable" class="tablesorter table table-striped">
+              <thead>
+              <tr>
+                <th class="align-middle pr-4">Name</th>
+                <th class="align-middle pr-4">Comment</th>
+                <th class="align-middle sorter-false">Options</th>
+              </tr>
+              </thead>
+              {% for invite in client.clientinvite_set.all %}
+                <tr>
+                  <td class="align-middle">
+                    <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
+                      {% if invite.user.name %}
+                        {{ invite.user.name }}
+                      {% else %}
+                        Missing Full Name ({{ invite.user.username|capfirst }})
+                      {% endif %}
+                    </a>
+                  </td>
+                  <td class="align-middle">
+                    {{ invite.comment|bleach }}
+                  </td>
+                  <td class="align-middle">
+                    <div class="dropdown dropleft">
+                      <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
+                              aria-expanded="false"></button>
+                      <div class="dropdown-menu" aria-labelledby="invite-dropdown-btn_{{ invite.id }}">
+                        <a class="dropdown-item icon edit-icon"
+                           href="{% url 'rolodex:client_update' client.id %}#invites">Edit</a>
+                        <a class="dropdown-item icon trash-icon" id="invite-delete-button-{{ invite.id }}"
+                           class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                           href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
+                           delete-target-url="{% url 'rolodex:ajax_delete_client_invite' invite.id %}"
+                           delete-target-id="{{ invite.id }}" delete-target-type="invitation">Delete</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </table>
+          {% else %}
+            <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.
             </div>
+          {% endif %}
+        </div>
+      {% endif %}
 
-            <!-- Project History Tab -->
-            <div id="project-history" class="tab-pane">
-                <h4>Client Projects</h4>
-                <hr />
+      <!-- POC Tab -->
+      <div id="contacts" class="tab-pane">
+        <h4>Client Contacts</h4>
+        <hr/>
 
-                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a>
-                {% if client.project_set.all %}
-                    <table id="projectTable" class="tablesorter table">
-                        <thead>
-                            <tr>
-                                <th class="align-middle pr-4">Codename</th>
-                                <th class="align-middle pr-4">Project Type</th>
-                                <th class="sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
-                                <th class="sorter-false">Note</th>
-                                <th class="sorter-false">Options</th>
-                            </tr>
-                        </thead>
-                        {% for project in client.project_set.all %}
-                            <tr>
-                                <td class="align-middle"><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
-                                <td class="align-middle">{{ project.project_type }}</td>
-                                <td class="align-middle">{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
-                                <td class="align-middle table-note">{{ project.note|bleach|truncatewords:35 }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu" aria-labelledby="project-dropdown-btn_{{ project.id }}">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
-                                            <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This client has no project history.</div>
-                {% endif %}
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add & Edit
+          Points of Contact</a>
+        {% if client.clientcontact_set.all %}
+          <table id="clientTable" class="tablesorter table table-striped">
+            <thead>
+            <tr>
+              <th class="align-middle pr-4">Name</th>
+              <th class="align-middle pr-4">Title/Role</th>
+              <th class="align-middle pr-4">Email</th>
+              <th class="sorter-false">Phone</th>
+              <th class="sorter-false">Note</th>
+              <th class="sorter-false">Options</th>
+            </tr>
+            </thead>
+            {% for poc in client.clientcontact_set.all %}
+              <tr>
+                <td class="align-middle" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
+                <td class="align-middle">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
+                <td class="align-middle">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
+                <td class="align-middle">
+                  {% if poc.phone %}
+                    {{ poc.phone }}
+                  {% else %}
+                    --
+                  {% endif %}
+                </td>
+                <td class="align-middle table-note">{{ poc.note|bleach }}</td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false"></button>
+                    <div class="dropdown-menu" aria-labelledby="poc-dropdown-btn_{{ poc.id }}">
+                      <a class="dropdown-item icon edit-icon"
+                         href="{% url 'rolodex:client_update' client.id %}#contacts">Edit</a>
+                      <a class="dropdown-item icon trash-icon" id="poc-delete-button-{{ poc.id }}"
+                         class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                         href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id %}"
+                         delete-target-id="{{ poc.id }}" delete-target-type="contact">Delete</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Project History Tab -->
+      <div id="project-history" class="tab-pane">
+        <h4>Client Projects</h4>
+        <hr/>
+
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_create' client.id %}">Add a
+          Project</a>
+
+        {% if not request.user|is_privileged %}
+          <div class="alert alert-success col-md-12 mt-3" role="alert">Some projects shown here may have incomplete
+            information if you do not have access. You gain access to a project by being assigned to it or invited to have full access
+            to the related client's history.
+          </div>
+        {% endif %}
+
+        {% if projects %}
+          <table id="projectTable" class="tablesorter table">
+            <thead>
+            <tr>
+              <th class="align-middle pr-4">Codename</th>
+              <th class="align-middle pr-4">Project Type</th>
+              <th class="sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
+              <th class="sorter-false">Note</th>
+              <th class="sorter-false">Options</th>
+            </tr>
+            </thead>
+            {% for project in projects %}
+              {% with has_access=project|has_access:request.user %}
+                <tr>
+                  {% if has_access %}
+                    <td class="align-middle"><a class="clickable"
+                                                href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                  {% else %}
+                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                  {% endif %}
+                  <td class="align-middle">{{ project.project_type }}</td>
+                  <td class="align-middle">{{ project.start_date|date:"d M Y" }}
+                    – {{ project.end_date|date:"d M Y" }}</td>
+                  {% if has_access %}
+                    <td class="align-middle table-note">{{ project.note|bleach|truncatewords:35 }}</td>
+                  {% else %}
+                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                  {% endif %}
+                  <td class="align-middle">
+                    <div class="dropdown dropleft">
+                      <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
+                              aria-expanded="false"></button>
+                      <div class="dropdown-menu" aria-labelledby="project-dropdown-btn_{{ project.id }}">
+                        <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
+                        <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endwith %}
+            {% endfor %}
+          </table>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This client has no project history.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Infrastructure History Tab -->
+      <div id="infrastructure-history" class="tab-pane">
+        {% if domains or servers or vps %}
+          <h4>Domains Used with Client</h4>
+          <hr/>
+          {% if domains %}
+            {% if not request.user|is_privileged %}
+              <div class="alert alert-success col-md-12 mt-3" role="alert">Some projects shown here will be hidden if you do
+                not have access. You gain access to a project by being assigned to it or invited to have full access
+                to the related client's history.
+              </div>
+            {% endif %}
+            <table id="domainTable" class="tablesorter table table-striped">
+              <thead>
+              <tr>
+                <th class="align-middle pr-4">Project</th>
+                <th class="align-middle pr-4">Domain</th>
+                <th class="align-middle pr-4">Activity Type</th>
+                <th class="align-middle pr-4">End Date</th>
+              </tr>
+              </thead>
+              {% for domain in domains %}
+                <tr>
+                  {% if domain.project|has_access:request.user %}
+                    <td class="align-middle"><a class="clickable"
+                                                href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a>
+                    </td>
+                  {% else %}
+                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                  {% endif %}
+                  <td class="align-middle"><a class="clickable"
+                                              href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a>
+                  </td>
+                  <td class="align-middle">{{ domain.activity_type }}</td>
+                  <td class="align-middle">{{ domain.end_date|date:"DATE_FORMAT" }}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          {% else %}
+            <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No domain history for this
+              client yet.
             </div>
+          {% endif %}
 
-            <!-- Infrastructure History Tab -->
-            <div id="infrastructure-history" class="tab-pane">
-                {% if domains or servers or vps %}
-                    {% if domains %}
-                        <h4>Domains Used with Client</h4>
-                        <hr />
+          <h4>Servers Used with {{ client.name }}</h4>
+          <hr/>
 
-                        <table id="domainTable" class="tablesorter table table-striped">
-                            <thead>
-                                <tr>
-                                    <th class="align-middle pr-4">Project</th>
-                                    <th class="align-middle pr-4">Domain</th>
-                                    <th class="align-middle pr-4">Activity Type</th>
-                                    <th class="align-middle pr-4">End Date</th>
-                                </tr>
-                            </thead>
-                            {% for domain in domains %}
-                                <tr>
-                                    <td class="align-middle"><a class="clickable" href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a></td>
-                                    <td class="align-middle"><a class="clickable" href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a></td>
-                                    <td class="align-middle">{{ domain.activity_type }}</td>
-                                    <td class="align-middle">{{ domain.end_date|date:"DATE_FORMAT" }}</td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    {% endif %}
-
-                    {% if servers or vps %}
-                        <h4>Servers Used with {{ client.name }}</h4>
-                        <hr />
-
-                        <table id="serverTable" class="tablesorter table table-striped">
-                            <thead>
-                                <tr>
-                                    <th class="align-middle pr-4">Project</th>
-                                    <th class="align-middle pr-4">Server</th>
-                                    <th class="align-middle pr-4">Activity Type</th>
-                                    <th class="align-middle pr-4">End Date</th>
-                                </tr>
-                            </thead>
-                            {% for server in servers %}
-                                <tr>
-                                    <td class="align-middle"><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
-                                    <td class="align-middle"><a class="clickable" href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a></td>
-                                    <td class="align-middle">{{ server.activity_type }}</td>
-                                    <td class="align-middle">{{ server.end_date|date:"DATE_FORMAT" }}</td>
-                                </tr>
-                            {% endfor %}
-
-                            {% for server in vps %}
-                                <tr>
-                                    <td class="align-middle"><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
-                                    <td class="align-middle">{{ server.ip_address }}</td>
-                                    <td class="align-middle">{{ server.activity_type }}</td>
-                                    <td class="align-middle"> {{ server.project.end_date|date:"DATE_FORMAT" }}</td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    {% endif %}
-                {% else %}
-                  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No infrastructure history for this client yet.</div>
-                {% endif %}
-            </div>
-
-            {% comment %} Extra Fields Tab {% endcomment %}
-            {% if client_extra_fields_spec %}
-                <div id="extra_fields" class="tab-pane">
-                  <h4>Extra Fields</h4>
-                  <hr/>
-
-                  {% include "user_extra_fields/field_preview_display.html" with object=client object_extra_fields_spec=client_extra_fields_spec %}
-                </div>
+          {% if servers or vps %}
+            {% if not request.user|is_privileged %}
+              <div class="alert alert-success col-md-12 mt-3" role="alert">Some projects shown here will be hidden if you do
+                not have access. You gain access to a project by being assigned to it or invited to have full access
+                to the related client's history.
+              </div>
             {% endif %}
 
-            <!-- Notes Tab -->
-            <div id="notes" class="tab-pane">
-                <h4>Client Notes</h4>
-                <hr />
+            <table id="serverTable" class="tablesorter table table-striped">
+              <thead>
+              <tr>
+                <th class="align-middle pr-4">Project</th>
+                <th class="align-middle pr-4">Server</th>
+                <th class="align-middle pr-4">Activity Type</th>
+                <th class="align-middle pr-4">End Date</th>
+              </tr>
+              </thead>
+              {% for server in servers %}
+                <tr>
+                  {% if server.project|has_access:request.user %}
+                    <td class="align-middle"><a class="clickable"
+                                                href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
+                    </td>
+                  {% else %}
+                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                  {% endif %}
+                  <td class="align-middle"><a class="clickable"
+                                              href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a>
+                  </td>
+                  <td class="align-middle">{{ server.activity_type }}</td>
+                  <td class="align-middle">{{ server.end_date|date:"DATE_FORMAT" }}</td>
+                </tr>
+              {% endfor %}
 
-                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_note_add' client.id %}">Add a Note</a>
-
-                {% if client.clientnote_set.all %}
-                    {% for note in client.clientnote_set.all reversed %}
-                        <div id="note-container-{{ note.id }}">
-                            <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                <div class="float-left col-10 col-md-10 col-sm-8">
-                                    {{ note.note|bleach }}
-                                </div>
-
-                                <div class="float-right col-2 col-md-2 col-sm-4">
-                                    <div>{% if note.operator %}<a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}<span class="note-link">Deleted</span>{% endif %}</div>
-                                    <div><p class="note-time">{{ note.timestamp }}</p></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {% if request.user == note.operator or request.user|is_privileged %}
-                            <div class="pb-3">
-                                <a class="note-link" href="{% url 'rolodex:client_note_edit' note.id %}">Edit</a> |
-                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_client_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No notes for this client.</div>
-                {% endif %}
+              {% for server in vps %}
+                <tr>
+                  {% if server.project|has_access:request.user %}
+                    <td class="align-middle"><a class="clickable"
+                                                href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
+                    </td>
+                  {% else %}
+                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                  {% endif %}
+                  <td class="align-middle">{{ server.ip_address }}</td>
+                  <td class="align-middle">{{ server.activity_type }}</td>
+                  <td class="align-middle"> {{ server.project.end_date|date:"DATE_FORMAT" }}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          {% else %}
+            <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No server history for this
+              client yet.
             </div>
+          {% endif %}
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No infrastructure history for this
+            client yet.
+          </div>
+        {% endif %}
+      </div>
+
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if client_extra_fields_spec %}
+        <div id="extra_fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          {% include "user_extra_fields/field_preview_display.html" with object=client object_extra_fields_spec=client_extra_fields_spec %}
         </div>
+      {% endif %}
+
+      <!-- Notes Tab -->
+      <div id="notes" class="tab-pane">
+        <h4>Client Notes</h4>
+        <hr/>
+
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_note_add' client.id %}">Add a
+          Note</a>
+
+        {% if client.clientnote_set.all %}
+          {% for note in client.clientnote_set.all reversed %}
+            <div id="note-container-{{ note.id }}">
+              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                <div class="float-left col-10 col-md-10 col-sm-8">
+                  {{ note.note|bleach }}
+                </div>
+
+                <div class="float-right col-2 col-md-2 col-sm-4">
+                  <div>{% if note.operator %}<a class="note-link"
+                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
+                    <span class="note-link">Deleted</span>{% endif %}</div>
+                  <div><p class="note-time">{{ note.timestamp }}</p></div>
+                </div>
+              </div>
+            </div>
+
+            {% if request.user == note.operator or request.user|is_privileged %}
+              <div class="pb-3">
+                <a class="note-link" href="{% url 'rolodex:client_note_edit' note.id %}">Edit</a> |
+                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
+                   data-target="#confirm-delete-modal" href="javascript:void(0);"
+                   delete-target-csrftoken="{{ csrf_token }}"
+                   delete-target-url="{% url 'rolodex:ajax_delete_client_note' note.id %}"
+                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No notes for this client.</div>
+        {% endif %}
+      </div>
     </div>
+  </div>
 {% endblock %}
 
 {% block tabs %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $("#clientTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#projectTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#domainTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#serverTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-        });
-    </script>
+  <!-- jQuery Tablesorter Script -->
+  <script>
+    $(document).ready(function () {
+      $("#clientTable").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $("#projectTable").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $("#domainTable").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $("#serverTable").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('.tablesorter').trigger('update');
+    });
+  </script>
 
-    <!-- Hide Client Description -->
-    <script>
-        $('div.description-block').each(function(){
-            $(this).css('height', $(this).height()+'px');
-            $(this).hide();
-        });
-    </script>
+  <!-- Hide Client Description -->
+  <script>
+    $('div.description-block').each(function () {
+      $(this).css('height', $(this).height() + 'px');
+      $(this).hide();
+    });
+  </script>
 
-    <!-- Expand Hidden Client Description -->
-    <script>
-        $('#clientDescriptionDropdown').click(function () {
-            $('#clientDescription').slideToggle('slow');
-            $('#clientDescriptionDropdown').toggleClass('add-icon sub-icon')
-        });
-    </script>
+  <!-- Expand Hidden Client Description -->
+  <script>
+    $('#clientDescriptionDropdown').click(function () {
+      $('#clientDescription').slideToggle('slow');
+      $('#clientDescriptionDropdown').toggleClass('add-icon sub-icon')
+    });
+  </script>
 
-    <!-- Set Current Time for Timezone -->
-    <script>
-        let client_datetime_str = new Date().toLocaleString('{{ LANGUAGE_CODE }}', { timeZone: '{{ client.timezone }}', timeZoneName: 'short' });
-        $('.client-datetime').text(client_datetime_str);
-    </script>
+  <!-- Set Current Time for Timezone -->
+  <script>
+    let client_datetime_str = new Date().toLocaleString('{{ LANGUAGE_CODE }}', {
+      timeZone: '{{ client.timezone }}',
+      timeZoneName: 'short'
+    });
+    $('.client-datetime').text(client_datetime_str);
+  </script>
 
-    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
-    {% include "confirm_delete_modal.html" %}
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
 
-    {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
-    {% if client_extra_fields_spec %}
-      {% for field_spec in client_extra_fields_spec %}
-        {% include "user_extra_fields/extra_field_modal.html" with extra_fields=client.extra_fields field_spec=field_spec %}
-      {% endfor %}
-    {% endif %}
+  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% if client_extra_fields_spec %}
+    {% for field_spec in client_extra_fields_spec %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=client.extra_fields field_spec=field_spec %}
+    {% endfor %}
+  {% endif %}
 {% endblock %}

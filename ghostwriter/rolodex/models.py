@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
+from django.db.models import Q
 
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
@@ -74,6 +75,26 @@ class Client(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+    @classmethod
+    def for_user(cls, user):
+        """
+        Retrieve a filtered list of :model:`rolodex.Client` entries based on the user's role.
+
+        Privileged users will receive all entries. Non-privileged users will receive only those entries to which they
+        have access.
+        """
+        if user.is_privileged:
+            return cls.objects.all().order_by("name")
+        return (
+            cls.objects.filter(
+                Q(clientinvite__user=user)
+                | Q(project__projectinvite__user=user)
+                | Q(project__projectassignment__operator=user)
+            )
+            .order_by("name")
+            .distinct()
+        )
 
 
 class ClientContact(models.Model):
@@ -232,6 +253,26 @@ class Project(models.Model):
 
     def __str__(self):
         return f"{self.start_date} {self.client} {self.project_type} ({self.codename})"
+
+    @classmethod
+    def for_user(cls, user):
+        """
+        Retrieve a filtered list of :model:`rolodex.Project` entries based on the user's role.
+
+        Privileged users will receive all entries. Non-privileged users will receive only those entries to which they
+        have access.
+        """
+        if user.is_privileged:
+            return cls.objects.select_related("client").all().order_by("complete", "client")
+        return (
+            cls.objects.select_related("client")
+            .filter(
+                Q(client__clientinvite__user=user)
+                | Q(projectinvite__user=user)
+                | Q(projectassignment__operator=user)
+            )
+            .order_by("complete", "client")
+        )
 
 
 class ProjectRole(models.Model):
@@ -448,6 +489,12 @@ class ProjectObjective(models.Model):
     position = models.IntegerField(
         "List Position",
         default=1,
+    )
+    result = models.TextField(
+        "Result",
+        default="",
+        blank=True,
+        help_text="Provide a detailed result or outcome for this objective",
     )
     # Foreign Keys
     project = models.ForeignKey(
