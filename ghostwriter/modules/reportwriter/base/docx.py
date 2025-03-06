@@ -54,6 +54,7 @@ class ExportDocxBase(ExportBase):
     company_config: CompanyInformation
     linting: bool
     p_style: str | None
+    evidence_image_width: float | None
 
     @classmethod
     def mime_type(cls) -> str:
@@ -63,12 +64,22 @@ class ExportDocxBase(ExportBase):
     def extension(cls) -> str:
         return "docx"
 
-    def __init__(self, object, *, template_loc: str, p_style: str | None, linting: bool = False, **kwargs):
+    def __init__(
+        self,
+        object,
+        *,
+        template_loc: str,
+        p_style: str | None,
+        linting: bool = False,
+        evidence_image_width: float | None,
+        **kwargs,
+    ):
         if "jinja_debug" not in kwargs:
             kwargs["jinja_debug"] = linting
         super().__init__(object, **kwargs)
         self.linting = linting
         self.p_style = p_style
+        self.evidence_image_width = evidence_image_width
 
         # Create Word document writer using the specified template file
         try:
@@ -234,6 +245,7 @@ class ExportDocxBase(ExportBase):
                 rich_text.render_html(),
                 doc=doc,
                 p_style=self.p_style,
+                evidence_image_width=self.evidence_image_width,
                 evidences=self.evidences_by_id,
                 figure_label=self.label_figure,
                 figure_prefix=self.prefix_figure,
@@ -274,6 +286,7 @@ class ExportDocxBase(ExportBase):
                 linting=True,
                 template_loc=template_loc,
                 p_style=p_style,
+                evidence_image_width=6.5,  # Value doesn't matter for linting
             )
             logger.info("Template loaded for linting")
 

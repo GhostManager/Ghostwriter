@@ -680,6 +680,8 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
+        self.fields["evidence_image_width"].label = "Evidence Image Width"
+        self.fields["evidence_image_width"].inital = "6.5"
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -707,7 +709,8 @@ class ReportTemplateForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Row(
-                Column("tags", css_class="form-group col-md-12 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
+                Column("evidence_image_width", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(

@@ -538,6 +538,7 @@ class ReportTemplateFormTests(TestCase):
         client_id=None,
         doc_type=None,
         p_type=None,
+        evidence_image_width=None,
         user=None,
         **kwargs,
     ):
@@ -551,6 +552,7 @@ class ReportTemplateFormTests(TestCase):
                 "client": client_id,
                 "doc_type": doc_type,
                 "p_type": p_type,
+                "evidence_image_width": evidence_image_width,
             },
             user=user,
             files={

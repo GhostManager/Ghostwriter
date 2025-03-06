@@ -1845,7 +1845,11 @@ class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
     def get_initial(self):
         date = datetime.now().strftime("%d %B %Y")
         initial_upload = f'<p><span class="bold">{date}</span></p><p>Initial upload</p>'
-        return {"changelog": initial_upload, "p_style": "Normal"}
+        return {
+            "changelog": initial_upload,
+            "p_style": "Normal",
+            "evidence_image_width": 6.5,
+        }
 
     def get_success_url(self):
         messages.success(
