@@ -92,39 +92,39 @@ CVSS31.scopeCoefficient = 1.08;
 // values. It does not check that a metric is specified more than once and it does not check that all base
 // metrics are present. These checks need to be performed separately.
 
-CVSS31.vectorStringRegex_31 = /^CVSS:3\.1\/((AV:[NALP]|AC:[LH]|PR:[UNLH]|UI:[NR]|S:[UC]|[CIA]:[NLH]|E:[XUPFH]|RL:[XOTWU]|RC:[XURC]|[CIA]R:[XLMH]|MAV:[XNALP]|MAC:[XLH]|MPR:[XUNLH]|MUI:[XNR]|MS:[XUC]|M[CIA]:[XNLH])\/)*(AV:[NALP]|AC:[LH]|PR:[UNLH]|UI:[NR]|S:[UC]|[CIA]:[NLH]|E:[XUPFH]|RL:[XOTWU]|RC:[XURC]|[CIA]R:[XLMH]|MAV:[XNALP]|MAC:[XLH]|MPR:[XUNLH]|MUI:[XNR]|MS:[XUC]|M[CIA]:[XNLH])$/;
-
+CVSS31.vectorStringRegex_31 =
+    /^CVSS:3\.1\/((AV:[NALP]|AC:[LH]|PR:[UNLH]|UI:[NR]|S:[UC]|[CIA]:[NLH]|E:[XUPFH]|RL:[XOTWU]|RC:[XURC]|[CIA]R:[XLMH]|MAV:[XNALP]|MAC:[XLH]|MPR:[XUNLH]|MUI:[XNR]|MS:[XUC]|M[CIA]:[XNLH])\/)*(AV:[NALP]|AC:[LH]|PR:[UNLH]|UI:[NR]|S:[UC]|[CIA]:[NLH]|E:[XUPFH]|RL:[XOTWU]|RC:[XURC]|[CIA]R:[XLMH]|MAV:[XNALP]|MAC:[XLH]|MPR:[XUNLH]|MUI:[XNR]|MS:[XUC]|M[CIA]:[XNLH])$/;
 
 // Associative arrays mapping each metric value to the constant defined in the CVSS scoring formula in the CVSS v3.1
 // specification.
 
 CVSS31.Weight = {
-  AV:   { N: 0.85,  A: 0.62,  L: 0.55,  P: 0.2},
-  AC:   { H: 0.44,  L: 0.77},
-  PR:   { U:       {N: 0.85,  L: 0.62,  H: 0.27},         // These values are used if Scope is Unchanged
-          C:       {N: 0.85,  L: 0.68,  H: 0.5}},         // These values are used if Scope is Changed
-  UI:   { N: 0.85,  R: 0.62},
-  S:    { U: 6.42,  C: 7.52},                             // Note: not defined as constants in specification
-  CIA:  { N: 0,     L: 0.22,  H: 0.56},                   // C, I and A have the same weights
+    AV: { N: 0.85, A: 0.62, L: 0.55, P: 0.2 },
+    AC: { H: 0.44, L: 0.77 },
+    PR: {
+        U: { N: 0.85, L: 0.62, H: 0.27 }, // These values are used if Scope is Unchanged
+        C: { N: 0.85, L: 0.68, H: 0.5 },
+    }, // These values are used if Scope is Changed
+    UI: { N: 0.85, R: 0.62 },
+    S: { U: 6.42, C: 7.52 }, // Note: not defined as constants in specification
+    CIA: { N: 0, L: 0.22, H: 0.56 }, // C, I and A have the same weights
 
-  E:    { X: 1,     U: 0.91,  P: 0.94,  F: 0.97,  H: 1},
-  RL:   { X: 1,     O: 0.95,  T: 0.96,  W: 0.97,  U: 1},
-  RC:   { X: 1,     U: 0.92,  R: 0.96,  C: 1},
+    E: { X: 1, U: 0.91, P: 0.94, F: 0.97, H: 1 },
+    RL: { X: 1, O: 0.95, T: 0.96, W: 0.97, U: 1 },
+    RC: { X: 1, U: 0.92, R: 0.96, C: 1 },
 
-  CIAR: { X: 1,     L: 0.5,   M: 1,     H: 1.5}           // CR, IR and AR have the same weights
+    CIAR: { X: 1, L: 0.5, M: 1, H: 1.5 }, // CR, IR and AR have the same weights
 };
-
 
 // Severity rating bands, as defined in the CVSS v3.1 specification.
 
-CVSS31.severityRatings  = [ { name: "None",     bottom: 0.0, top:  0.0},
-                            { name: "Low",      bottom: 0.1, top:  3.9},
-                            { name: "Medium",   bottom: 4.0, top:  6.9},
-                            { name: "High",     bottom: 7.0, top:  8.9},
-                            { name: "Critical", bottom: 9.0, top: 10.0} ];
-
-
-
+CVSS31.severityRatings = [
+    { name: "None", bottom: 0.0, top: 0.0 },
+    { name: "Low", bottom: 0.1, top: 3.9 },
+    { name: "Medium", bottom: 4.0, top: 6.9 },
+    { name: "High", bottom: 7.0, top: 8.9 },
+    { name: "Critical", bottom: 9.0, top: 10.0 },
+];
 
 /* ** CVSS31.calculateCVSSFromMetrics **
  *
@@ -158,314 +158,500 @@ CVSS31.severityRatings  = [ { name: "None",     bottom: 0.0, top:  0.0},
  *                  metrics, as defined in the CVSS v3.1 standard definition of the Vector String.
  */
 CVSS31.calculateCVSSFromMetrics = function (
-  AttackVector, AttackComplexity, PrivilegesRequired, UserInteraction, Scope, Confidentiality, Integrity, Availability,
-  ExploitCodeMaturity, RemediationLevel, ReportConfidence,
-  ConfidentialityRequirement, IntegrityRequirement, AvailabilityRequirement,
-  ModifiedAttackVector, ModifiedAttackComplexity, ModifiedPrivilegesRequired, ModifiedUserInteraction, ModifiedScope,
-  ModifiedConfidentiality, ModifiedIntegrity, ModifiedAvailability) {
+    AttackVector,
+    AttackComplexity,
+    PrivilegesRequired,
+    UserInteraction,
+    Scope,
+    Confidentiality,
+    Integrity,
+    Availability,
+    ExploitCodeMaturity,
+    RemediationLevel,
+    ReportConfidence,
+    ConfidentialityRequirement,
+    IntegrityRequirement,
+    AvailabilityRequirement,
+    ModifiedAttackVector,
+    ModifiedAttackComplexity,
+    ModifiedPrivilegesRequired,
+    ModifiedUserInteraction,
+    ModifiedScope,
+    ModifiedConfidentiality,
+    ModifiedIntegrity,
+    ModifiedAvailability
+) {
+    // If input validation fails, this array is populated with strings indicating which metrics failed validation.
+    var badMetrics = [];
 
-  // If input validation fails, this array is populated with strings indicating which metrics failed validation.
-  var badMetrics = [];
+    // ENSURE ALL BASE METRICS ARE DEFINED
+    //
+    // We need values for all Base Score metrics to calculate scores.
+    // If any Base Score parameters are undefined, create an array of missing metrics and return it with an error.
 
-  // ENSURE ALL BASE METRICS ARE DEFINED
-  //
-  // We need values for all Base Score metrics to calculate scores.
-  // If any Base Score parameters are undefined, create an array of missing metrics and return it with an error.
-
-  if (typeof AttackVector       === "undefined" || AttackVector       === "") { badMetrics.push("AV"); }
-  if (typeof AttackComplexity   === "undefined" || AttackComplexity   === "") { badMetrics.push("AC"); }
-  if (typeof PrivilegesRequired === "undefined" || PrivilegesRequired === "") { badMetrics.push("PR"); }
-  if (typeof UserInteraction    === "undefined" || UserInteraction    === "") { badMetrics.push("UI"); }
-  if (typeof Scope              === "undefined" || Scope              === "") { badMetrics.push("S");  }
-  if (typeof Confidentiality    === "undefined" || Confidentiality    === "") { badMetrics.push("C");  }
-  if (typeof Integrity          === "undefined" || Integrity          === "") { badMetrics.push("I");  }
-  if (typeof Availability       === "undefined" || Availability       === "") { badMetrics.push("A");  }
-
-  if (badMetrics.length > 0) {
-    return { success: false, errorType: "MissingBaseMetric", errorMetrics: badMetrics };
-  }
-
-
-  // STORE THE METRIC VALUES THAT WERE PASSED AS PARAMETERS
-  //
-  // Temporal and Environmental metrics are optional, so set them to "X" ("Not Defined") if no value was passed.
-
-  var AV = AttackVector;
-  var AC = AttackComplexity;
-  var PR = PrivilegesRequired;
-  var UI = UserInteraction;
-  var S  = Scope;
-  var C  = Confidentiality;
-  var I  = Integrity;
-  var A  = Availability;
-
-  var E =   ExploitCodeMaturity || "X";
-  var RL =  RemediationLevel    || "X";
-  var RC =  ReportConfidence    || "X";
-
-  var CR =  ConfidentialityRequirement || "X";
-  var IR =  IntegrityRequirement       || "X";
-  var AR =  AvailabilityRequirement    || "X";
-  var MAV = ModifiedAttackVector       || "X";
-  var MAC = ModifiedAttackComplexity   || "X";
-  var MPR = ModifiedPrivilegesRequired || "X";
-  var MUI = ModifiedUserInteraction    || "X";
-  var MS =  ModifiedScope              || "X";
-  var MC =  ModifiedConfidentiality    || "X";
-  var MI =  ModifiedIntegrity          || "X";
-  var MA =  ModifiedAvailability       || "X";
-
-
-  // CHECK VALIDITY OF METRIC VALUES
-  //
-  // Use the Weight object to ensure that, for every metric, the metric value passed is valid.
-  // If any invalid values are found, create an array of their metrics and return it with an error.
-  //
-  // The Privileges Required (PR) weight depends on Scope, but when checking the validity of PR we must not assume
-  // that the given value for Scope is valid. We therefore always look at the weights for Unchanged Scope when
-  // performing this check. The same applies for validation of Modified Privileges Required (MPR).
-  //
-  // The Weights object does not contain "X" ("Not Defined") values for Environmental metrics because we replace them
-  // with their Base metric equivalents later in the function. For example, an MAV of "X" will be replaced with the
-  // value given for AV. We therefore need to explicitly allow a value of "X" for Environmental metrics.
-
-  if (!CVSS31.Weight.AV.hasOwnProperty(AV))   { badMetrics.push("AV"); }
-  if (!CVSS31.Weight.AC.hasOwnProperty(AC))   { badMetrics.push("AC"); }
-  if (!CVSS31.Weight.PR.U.hasOwnProperty(PR)) { badMetrics.push("PR"); }
-  if (!CVSS31.Weight.UI.hasOwnProperty(UI))   { badMetrics.push("UI"); }
-  if (!CVSS31.Weight.S.hasOwnProperty(S))     { badMetrics.push("S"); }
-  if (!CVSS31.Weight.CIA.hasOwnProperty(C))   { badMetrics.push("C"); }
-  if (!CVSS31.Weight.CIA.hasOwnProperty(I))   { badMetrics.push("I"); }
-  if (!CVSS31.Weight.CIA.hasOwnProperty(A))   { badMetrics.push("A"); }
-
-  if (!CVSS31.Weight.E.hasOwnProperty(E))     { badMetrics.push("E"); }
-  if (!CVSS31.Weight.RL.hasOwnProperty(RL))   { badMetrics.push("RL"); }
-  if (!CVSS31.Weight.RC.hasOwnProperty(RC))   { badMetrics.push("RC"); }
-
-  if (!(CR  === "X" || CVSS31.Weight.CIAR.hasOwnProperty(CR)))  { badMetrics.push("CR"); }
-  if (!(IR  === "X" || CVSS31.Weight.CIAR.hasOwnProperty(IR)))  { badMetrics.push("IR"); }
-  if (!(AR  === "X" || CVSS31.Weight.CIAR.hasOwnProperty(AR)))  { badMetrics.push("AR"); }
-  if (!(MAV === "X" || CVSS31.Weight.AV.hasOwnProperty(MAV)))   { badMetrics.push("MAV"); }
-  if (!(MAC === "X" || CVSS31.Weight.AC.hasOwnProperty(MAC)))   { badMetrics.push("MAC"); }
-  if (!(MPR === "X" || CVSS31.Weight.PR.U.hasOwnProperty(MPR))) { badMetrics.push("MPR"); }
-  if (!(MUI === "X" || CVSS31.Weight.UI.hasOwnProperty(MUI)))   { badMetrics.push("MUI"); }
-  if (!(MS  === "X" || CVSS31.Weight.S.hasOwnProperty(MS)))     { badMetrics.push("MS"); }
-  if (!(MC  === "X" || CVSS31.Weight.CIA.hasOwnProperty(MC)))   { badMetrics.push("MC"); }
-  if (!(MI  === "X" || CVSS31.Weight.CIA.hasOwnProperty(MI)))   { badMetrics.push("MI"); }
-  if (!(MA  === "X" || CVSS31.Weight.CIA.hasOwnProperty(MA)))   { badMetrics.push("MA"); }
-
-  if (badMetrics.length > 0) {
-    return { success: false, errorType: "UnknownMetricValue", errorMetrics: badMetrics };
-  }
-
-
-
-  // GATHER WEIGHTS FOR ALL METRICS
-
-  var metricWeightAV  = CVSS31.Weight.AV    [AV];
-  var metricWeightAC  = CVSS31.Weight.AC    [AC];
-  var metricWeightPR  = CVSS31.Weight.PR    [S][PR];  // PR depends on the value of Scope (S).
-  var metricWeightUI  = CVSS31.Weight.UI    [UI];
-  var metricWeightS   = CVSS31.Weight.S     [S];
-  var metricWeightC   = CVSS31.Weight.CIA   [C];
-  var metricWeightI   = CVSS31.Weight.CIA   [I];
-  var metricWeightA   = CVSS31.Weight.CIA   [A];
-
-  var metricWeightE   = CVSS31.Weight.E     [E];
-  var metricWeightRL  = CVSS31.Weight.RL    [RL];
-  var metricWeightRC  = CVSS31.Weight.RC    [RC];
-
-  // For metrics that are modified versions of Base Score metrics, e.g. Modified Attack Vector, use the value of
-  // the Base Score metric if the modified version value is "X" ("Not Defined").
-  var metricWeightCR  = CVSS31.Weight.CIAR  [CR];
-  var metricWeightIR  = CVSS31.Weight.CIAR  [IR];
-  var metricWeightAR  = CVSS31.Weight.CIAR  [AR];
-  var metricWeightMAV = CVSS31.Weight.AV    [MAV !== "X" ? MAV : AV];
-  var metricWeightMAC = CVSS31.Weight.AC    [MAC !== "X" ? MAC : AC];
-  var metricWeightMPR = CVSS31.Weight.PR    [MS  !== "X" ? MS  : S] [MPR !== "X" ? MPR : PR];  // Depends on MS.
-  var metricWeightMUI = CVSS31.Weight.UI    [MUI !== "X" ? MUI : UI];
-  var metricWeightMS  = CVSS31.Weight.S     [MS  !== "X" ? MS  : S];
-  var metricWeightMC  = CVSS31.Weight.CIA   [MC  !== "X" ? MC  : C];
-  var metricWeightMI  = CVSS31.Weight.CIA   [MI  !== "X" ? MI  : I];
-  var metricWeightMA  = CVSS31.Weight.CIA   [MA  !== "X" ? MA  : A];
-
-
-
-  // CALCULATE THE CVSS BASE SCORE
-
-  var iss; /* Impact Sub-Score */
-  var impact;
-  var exploitability;
-  var baseScore;
-
-  iss = (1 - ((1 - metricWeightC) * (1 - metricWeightI) * (1 - metricWeightA)));
-
-  if (S === 'U') {
-    impact = metricWeightS * iss;
-  } else {
-    impact = metricWeightS * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15);
-  }
-
-  exploitability = CVSS31.exploitabilityCoefficient * metricWeightAV * metricWeightAC * metricWeightPR * metricWeightUI;
-
-  if (impact <= 0) {
-    baseScore = 0;
-  } else {
-    if (S === 'U') {
-      baseScore = CVSS31.roundUp1(Math.min((exploitability + impact), 10));
-    } else {
-      baseScore = CVSS31.roundUp1(Math.min(CVSS31.scopeCoefficient * (exploitability + impact), 10));
+    if (typeof AttackVector === "undefined" || AttackVector === "") {
+        badMetrics.push("AV");
     }
-  }
+    if (typeof AttackComplexity === "undefined" || AttackComplexity === "") {
+        badMetrics.push("AC");
+    }
+    if (
+        typeof PrivilegesRequired === "undefined" ||
+        PrivilegesRequired === ""
+    ) {
+        badMetrics.push("PR");
+    }
+    if (typeof UserInteraction === "undefined" || UserInteraction === "") {
+        badMetrics.push("UI");
+    }
+    if (typeof Scope === "undefined" || Scope === "") {
+        badMetrics.push("S");
+    }
+    if (typeof Confidentiality === "undefined" || Confidentiality === "") {
+        badMetrics.push("C");
+    }
+    if (typeof Integrity === "undefined" || Integrity === "") {
+        badMetrics.push("I");
+    }
+    if (typeof Availability === "undefined" || Availability === "") {
+        badMetrics.push("A");
+    }
 
+    if (badMetrics.length > 0) {
+        return {
+            success: false,
+            errorType: "MissingBaseMetric",
+            errorMetrics: badMetrics,
+        };
+    }
 
-  // CALCULATE THE CVSS TEMPORAL SCORE
+    // STORE THE METRIC VALUES THAT WERE PASSED AS PARAMETERS
+    //
+    // Temporal and Environmental metrics are optional, so set them to "X" ("Not Defined") if no value was passed.
 
-  var temporalScore = CVSS31.roundUp1(baseScore * metricWeightE * metricWeightRL * metricWeightRC);
+    var AV = AttackVector;
+    var AC = AttackComplexity;
+    var PR = PrivilegesRequired;
+    var UI = UserInteraction;
+    var S = Scope;
+    var C = Confidentiality;
+    var I = Integrity;
+    var A = Availability;
 
+    var E = ExploitCodeMaturity || "X";
+    var RL = RemediationLevel || "X";
+    var RC = ReportConfidence || "X";
 
-  // CALCULATE THE CVSS ENVIRONMENTAL SCORE
-  //
-  // - modifiedExploitability recalculates the Base Score Exploitability sub-score using any modified values from the
-  //   Environmental metrics group in place of the values specified in the Base Score, if any have been defined.
-  // - modifiedImpact recalculates the Base Score Impact sub-score using any modified values from the
-  //   Environmental metrics group in place of the values specified in the Base Score, and any additional weightings
-  //   given in the Environmental metrics group.
+    var CR = ConfidentialityRequirement || "X";
+    var IR = IntegrityRequirement || "X";
+    var AR = AvailabilityRequirement || "X";
+    var MAV = ModifiedAttackVector || "X";
+    var MAC = ModifiedAttackComplexity || "X";
+    var MPR = ModifiedPrivilegesRequired || "X";
+    var MUI = ModifiedUserInteraction || "X";
+    var MS = ModifiedScope || "X";
+    var MC = ModifiedConfidentiality || "X";
+    var MI = ModifiedIntegrity || "X";
+    var MA = ModifiedAvailability || "X";
 
-  var miss; /* Modified Impact Sub-Score */
-  var modifiedImpact;
-  var envScore;
-  var modifiedExploitability;
+    // CHECK VALIDITY OF METRIC VALUES
+    //
+    // Use the Weight object to ensure that, for every metric, the metric value passed is valid.
+    // If any invalid values are found, create an array of their metrics and return it with an error.
+    //
+    // The Privileges Required (PR) weight depends on Scope, but when checking the validity of PR we must not assume
+    // that the given value for Scope is valid. We therefore always look at the weights for Unchanged Scope when
+    // performing this check. The same applies for validation of Modified Privileges Required (MPR).
+    //
+    // The Weights object does not contain "X" ("Not Defined") values for Environmental metrics because we replace them
+    // with their Base metric equivalents later in the function. For example, an MAV of "X" will be replaced with the
+    // value given for AV. We therefore need to explicitly allow a value of "X" for Environmental metrics.
 
-  miss = Math.min (1 -
-                    ( (1 - metricWeightMC * metricWeightCR) *
-                      (1 - metricWeightMI * metricWeightIR) *
-                      (1 - metricWeightMA * metricWeightAR)), 0.915);
+    if (!CVSS31.Weight.AV.hasOwnProperty(AV)) {
+        badMetrics.push("AV");
+    }
+    if (!CVSS31.Weight.AC.hasOwnProperty(AC)) {
+        badMetrics.push("AC");
+    }
+    if (!CVSS31.Weight.PR.U.hasOwnProperty(PR)) {
+        badMetrics.push("PR");
+    }
+    if (!CVSS31.Weight.UI.hasOwnProperty(UI)) {
+        badMetrics.push("UI");
+    }
+    if (!CVSS31.Weight.S.hasOwnProperty(S)) {
+        badMetrics.push("S");
+    }
+    if (!CVSS31.Weight.CIA.hasOwnProperty(C)) {
+        badMetrics.push("C");
+    }
+    if (!CVSS31.Weight.CIA.hasOwnProperty(I)) {
+        badMetrics.push("I");
+    }
+    if (!CVSS31.Weight.CIA.hasOwnProperty(A)) {
+        badMetrics.push("A");
+    }
 
-  if (MS === "U" ||
-     (MS === "X" && S === "U")) {
-    modifiedImpact = metricWeightMS * miss;
-  } else {
-    modifiedImpact = metricWeightMS * (miss - 0.029) - 3.25 * Math.pow(miss * 0.9731 - 0.02, 13);
-  }
+    if (!CVSS31.Weight.E.hasOwnProperty(E)) {
+        badMetrics.push("E");
+    }
+    if (!CVSS31.Weight.RL.hasOwnProperty(RL)) {
+        badMetrics.push("RL");
+    }
+    if (!CVSS31.Weight.RC.hasOwnProperty(RC)) {
+        badMetrics.push("RC");
+    }
 
-  modifiedExploitability = CVSS31.exploitabilityCoefficient * metricWeightMAV * metricWeightMAC * metricWeightMPR * metricWeightMUI;
+    if (!(CR === "X" || CVSS31.Weight.CIAR.hasOwnProperty(CR))) {
+        badMetrics.push("CR");
+    }
+    if (!(IR === "X" || CVSS31.Weight.CIAR.hasOwnProperty(IR))) {
+        badMetrics.push("IR");
+    }
+    if (!(AR === "X" || CVSS31.Weight.CIAR.hasOwnProperty(AR))) {
+        badMetrics.push("AR");
+    }
+    if (!(MAV === "X" || CVSS31.Weight.AV.hasOwnProperty(MAV))) {
+        badMetrics.push("MAV");
+    }
+    if (!(MAC === "X" || CVSS31.Weight.AC.hasOwnProperty(MAC))) {
+        badMetrics.push("MAC");
+    }
+    if (!(MPR === "X" || CVSS31.Weight.PR.U.hasOwnProperty(MPR))) {
+        badMetrics.push("MPR");
+    }
+    if (!(MUI === "X" || CVSS31.Weight.UI.hasOwnProperty(MUI))) {
+        badMetrics.push("MUI");
+    }
+    if (!(MS === "X" || CVSS31.Weight.S.hasOwnProperty(MS))) {
+        badMetrics.push("MS");
+    }
+    if (!(MC === "X" || CVSS31.Weight.CIA.hasOwnProperty(MC))) {
+        badMetrics.push("MC");
+    }
+    if (!(MI === "X" || CVSS31.Weight.CIA.hasOwnProperty(MI))) {
+        badMetrics.push("MI");
+    }
+    if (!(MA === "X" || CVSS31.Weight.CIA.hasOwnProperty(MA))) {
+        badMetrics.push("MA");
+    }
 
-  if (modifiedImpact <= 0) {
-    envScore = 0;
-  } else if (MS === "U" || (MS === "X" && S === "U")) {
-    envScore = CVSS31.roundUp1(CVSS31.roundUp1(Math.min((modifiedImpact + modifiedExploitability), 10)) *
-                        metricWeightE * metricWeightRL * metricWeightRC);
-  } else {
-    envScore = CVSS31.roundUp1(CVSS31.roundUp1(Math.min(CVSS31.scopeCoefficient * (modifiedImpact + modifiedExploitability), 10)) *
-                        metricWeightE * metricWeightRL * metricWeightRC);
-  }
+    if (badMetrics.length > 0) {
+        return {
+            success: false,
+            errorType: "UnknownMetricValue",
+            errorMetrics: badMetrics,
+        };
+    }
 
+    // GATHER WEIGHTS FOR ALL METRICS
 
-  // CONSTRUCT THE VECTOR STRING
+    var metricWeightAV = CVSS31.Weight.AV[AV];
+    var metricWeightAC = CVSS31.Weight.AC[AC];
+    var metricWeightPR = CVSS31.Weight.PR[S][PR]; // PR depends on the value of Scope (S).
+    var metricWeightUI = CVSS31.Weight.UI[UI];
+    var metricWeightS = CVSS31.Weight.S[S];
+    var metricWeightC = CVSS31.Weight.CIA[C];
+    var metricWeightI = CVSS31.Weight.CIA[I];
+    var metricWeightA = CVSS31.Weight.CIA[A];
 
-  var vectorString =
-    CVSS31.CVSSVersionIdentifier +
-    "/AV:" + AV +
-    "/AC:" + AC +
-    "/PR:" + PR +
-    "/UI:" + UI +
-    "/S:"  + S +
-    "/C:"  + C +
-    "/I:"  + I +
-    "/A:"  + A;
+    var metricWeightE = CVSS31.Weight.E[E];
+    var metricWeightRL = CVSS31.Weight.RL[RL];
+    var metricWeightRC = CVSS31.Weight.RC[RC];
 
-  if (E  !== "X")  {vectorString = vectorString + "/E:" + E;}
-  if (RL !== "X")  {vectorString = vectorString + "/RL:" + RL;}
-  if (RC !== "X")  {vectorString = vectorString + "/RC:" + RC;}
+    // For metrics that are modified versions of Base Score metrics, e.g. Modified Attack Vector, use the value of
+    // the Base Score metric if the modified version value is "X" ("Not Defined").
+    var metricWeightCR = CVSS31.Weight.CIAR[CR];
+    var metricWeightIR = CVSS31.Weight.CIAR[IR];
+    var metricWeightAR = CVSS31.Weight.CIAR[AR];
+    var metricWeightMAV = CVSS31.Weight.AV[MAV !== "X" ? MAV : AV];
+    var metricWeightMAC = CVSS31.Weight.AC[MAC !== "X" ? MAC : AC];
+    var metricWeightMPR =
+        CVSS31.Weight.PR[MS !== "X" ? MS : S][MPR !== "X" ? MPR : PR]; // Depends on MS.
+    var metricWeightMUI = CVSS31.Weight.UI[MUI !== "X" ? MUI : UI];
+    var metricWeightMS = CVSS31.Weight.S[MS !== "X" ? MS : S];
+    var metricWeightMC = CVSS31.Weight.CIA[MC !== "X" ? MC : C];
+    var metricWeightMI = CVSS31.Weight.CIA[MI !== "X" ? MI : I];
+    var metricWeightMA = CVSS31.Weight.CIA[MA !== "X" ? MA : A];
 
-  if (CR  !== "X") {vectorString = vectorString + "/CR:" + CR;}
-  if (IR  !== "X") {vectorString = vectorString + "/IR:"  + IR;}
-  if (AR  !== "X") {vectorString = vectorString + "/AR:"  + AR;}
-  if (MAV !== "X") {vectorString = vectorString + "/MAV:" + MAV;}
-  if (MAC !== "X") {vectorString = vectorString + "/MAC:" + MAC;}
-  if (MPR !== "X") {vectorString = vectorString + "/MPR:" + MPR;}
-  if (MUI !== "X") {vectorString = vectorString + "/MUI:" + MUI;}
-  if (MS  !== "X") {vectorString = vectorString + "/MS:"  + MS;}
-  if (MC  !== "X") {vectorString = vectorString + "/MC:"  + MC;}
-  if (MI  !== "X") {vectorString = vectorString + "/MI:"  + MI;}
-  if (MA  !== "X") {vectorString = vectorString + "/MA:"  + MA;}
+    // CALCULATE THE CVSS BASE SCORE
 
+    var iss; /* Impact Sub-Score */
+    var impact;
+    var exploitability;
+    var baseScore;
 
-  // Return an object containing the scores for all three metric groups, and an overall vector string.
-  // Sub-formula values are also included.
+    iss = 1 - (1 - metricWeightC) * (1 - metricWeightI) * (1 - metricWeightA);
 
-  return {
-    success: true,
+    if (S === "U") {
+        impact = metricWeightS * iss;
+    } else {
+        impact =
+            metricWeightS * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15);
+    }
 
-    baseMetricScore: baseScore.toFixed(1),
-    baseSeverity: CVSS31.severityRating( baseScore.toFixed(1) ),
-    baseISS: iss,
-    baseImpact: impact,
-    baseExploitability: exploitability,
+    exploitability =
+        CVSS31.exploitabilityCoefficient *
+        metricWeightAV *
+        metricWeightAC *
+        metricWeightPR *
+        metricWeightUI;
 
-    temporalMetricScore: temporalScore.toFixed(1),
-    temporalSeverity: CVSS31.severityRating( temporalScore.toFixed(1) ),
+    if (impact <= 0) {
+        baseScore = 0;
+    } else {
+        if (S === "U") {
+            baseScore = CVSS31.roundUp1(Math.min(exploitability + impact, 10));
+        } else {
+            baseScore = CVSS31.roundUp1(
+                Math.min(
+                    CVSS31.scopeCoefficient * (exploitability + impact),
+                    10
+                )
+            );
+        }
+    }
 
-    environmentalMetricScore: envScore.toFixed(1),
-    environmentalSeverity: CVSS31.severityRating( envScore.toFixed(1) ),
-    environmentalMISS: miss,
-    environmentalModifiedImpact: modifiedImpact,
-    environmentalModifiedExploitability: modifiedExploitability,
+    // CALCULATE THE CVSS TEMPORAL SCORE
 
-    vectorString: vectorString
-  };
+    var temporalScore = CVSS31.roundUp1(
+        baseScore * metricWeightE * metricWeightRL * metricWeightRC
+    );
+
+    // CALCULATE THE CVSS ENVIRONMENTAL SCORE
+    //
+    // - modifiedExploitability recalculates the Base Score Exploitability sub-score using any modified values from the
+    //   Environmental metrics group in place of the values specified in the Base Score, if any have been defined.
+    // - modifiedImpact recalculates the Base Score Impact sub-score using any modified values from the
+    //   Environmental metrics group in place of the values specified in the Base Score, and any additional weightings
+    //   given in the Environmental metrics group.
+
+    var miss; /* Modified Impact Sub-Score */
+    var modifiedImpact;
+    var envScore;
+    var modifiedExploitability;
+
+    miss = Math.min(
+        1 -
+            (1 - metricWeightMC * metricWeightCR) *
+                (1 - metricWeightMI * metricWeightIR) *
+                (1 - metricWeightMA * metricWeightAR),
+        0.915
+    );
+
+    if (MS === "U" || (MS === "X" && S === "U")) {
+        modifiedImpact = metricWeightMS * miss;
+    } else {
+        modifiedImpact =
+            metricWeightMS * (miss - 0.029) -
+            3.25 * Math.pow(miss * 0.9731 - 0.02, 13);
+    }
+
+    modifiedExploitability =
+        CVSS31.exploitabilityCoefficient *
+        metricWeightMAV *
+        metricWeightMAC *
+        metricWeightMPR *
+        metricWeightMUI;
+
+    if (modifiedImpact <= 0) {
+        envScore = 0;
+    } else if (MS === "U" || (MS === "X" && S === "U")) {
+        envScore = CVSS31.roundUp1(
+            CVSS31.roundUp1(
+                Math.min(modifiedImpact + modifiedExploitability, 10)
+            ) *
+                metricWeightE *
+                metricWeightRL *
+                metricWeightRC
+        );
+    } else {
+        envScore = CVSS31.roundUp1(
+            CVSS31.roundUp1(
+                Math.min(
+                    CVSS31.scopeCoefficient *
+                        (modifiedImpact + modifiedExploitability),
+                    10
+                )
+            ) *
+                metricWeightE *
+                metricWeightRL *
+                metricWeightRC
+        );
+    }
+
+    // CONSTRUCT THE VECTOR STRING
+
+    var vectorString =
+        CVSS31.CVSSVersionIdentifier +
+        "/AV:" +
+        AV +
+        "/AC:" +
+        AC +
+        "/PR:" +
+        PR +
+        "/UI:" +
+        UI +
+        "/S:" +
+        S +
+        "/C:" +
+        C +
+        "/I:" +
+        I +
+        "/A:" +
+        A;
+
+    if (E !== "X") {
+        vectorString = vectorString + "/E:" + E;
+    }
+    if (RL !== "X") {
+        vectorString = vectorString + "/RL:" + RL;
+    }
+    if (RC !== "X") {
+        vectorString = vectorString + "/RC:" + RC;
+    }
+
+    if (CR !== "X") {
+        vectorString = vectorString + "/CR:" + CR;
+    }
+    if (IR !== "X") {
+        vectorString = vectorString + "/IR:" + IR;
+    }
+    if (AR !== "X") {
+        vectorString = vectorString + "/AR:" + AR;
+    }
+    if (MAV !== "X") {
+        vectorString = vectorString + "/MAV:" + MAV;
+    }
+    if (MAC !== "X") {
+        vectorString = vectorString + "/MAC:" + MAC;
+    }
+    if (MPR !== "X") {
+        vectorString = vectorString + "/MPR:" + MPR;
+    }
+    if (MUI !== "X") {
+        vectorString = vectorString + "/MUI:" + MUI;
+    }
+    if (MS !== "X") {
+        vectorString = vectorString + "/MS:" + MS;
+    }
+    if (MC !== "X") {
+        vectorString = vectorString + "/MC:" + MC;
+    }
+    if (MI !== "X") {
+        vectorString = vectorString + "/MI:" + MI;
+    }
+    if (MA !== "X") {
+        vectorString = vectorString + "/MA:" + MA;
+    }
+
+    // Return an object containing the scores for all three metric groups, and an overall vector string.
+    // Sub-formula values are also included.
+
+    return {
+        success: true,
+
+        baseMetricScore: baseScore.toFixed(1),
+        baseSeverity: CVSS31.severityRating(baseScore.toFixed(1)),
+        baseISS: iss,
+        baseImpact: impact,
+        baseExploitability: exploitability,
+
+        temporalMetricScore: temporalScore.toFixed(1),
+        temporalSeverity: CVSS31.severityRating(temporalScore.toFixed(1)),
+
+        environmentalMetricScore: envScore.toFixed(1),
+        environmentalSeverity: CVSS31.severityRating(envScore.toFixed(1)),
+        environmentalMISS: miss,
+        environmentalModifiedImpact: modifiedImpact,
+        environmentalModifiedExploitability: modifiedExploitability,
+
+        vectorString: vectorString,
+    };
 };
 
+CVSS31.parseVector = function (vectorString) {
+    var metricValues = {
+        AV: undefined,
+        AC: undefined,
+        PR: undefined,
+        UI: undefined,
+        S: undefined,
+        C: undefined,
+        I: undefined,
+        A: undefined,
+        E: undefined,
+        RL: undefined,
+        RC: undefined,
+        CR: undefined,
+        IR: undefined,
+        AR: undefined,
+        MAV: undefined,
+        MAC: undefined,
+        MPR: undefined,
+        MUI: undefined,
+        MS: undefined,
+        MC: undefined,
+        MI: undefined,
+        MA: undefined,
+    };
 
-CVSS31.parseVector = function(vectorString) {
-  var metricValues = {
-    AV:  undefined, AC:  undefined, PR:  undefined, UI:  undefined, S:  undefined,
-    C:   undefined, I:   undefined, A:   undefined,
-    E:   undefined, RL:  undefined, RC:  undefined,
-    CR:  undefined, IR:  undefined, AR:  undefined,
-    MAV: undefined, MAC: undefined, MPR: undefined, MUI: undefined, MS: undefined,
-    MC:  undefined, MI:  undefined, MA:  undefined
-  };
+    // If input validation fails, this array is populated with strings indicating which metrics failed validation.
+    var badMetrics = [];
 
-  // If input validation fails, this array is populated with strings indicating which metrics failed validation.
-  var badMetrics = [];
-
-  if (!CVSS31.vectorStringRegex_31.test(vectorString)) {
-    return null;
-  }
-
-  var metricNameValue = vectorString.substring(CVSS31.CVSSVersionIdentifier.length).split("/");
-
-  for (var i in metricNameValue) {
-    if (metricNameValue.hasOwnProperty(i)) {
-
-      var singleMetric = metricNameValue[i].split(":");
-
-      if (typeof metricValues[singleMetric[0]] === "undefined") {
-        metricValues[singleMetric[0]] = singleMetric[1];
-      } else {
-        badMetrics.push(singleMetric[0]);
-      }
+    if (!CVSS31.vectorStringRegex_31.test(vectorString)) {
+        return null;
     }
-  }
 
-  if (badMetrics.length > 0) {
-    return null;
-  }
+    var metricNameValue = vectorString
+        .substring(CVSS31.CVSSVersionIdentifier.length)
+        .split("/");
 
-  return metricValues;
-}
+    for (var i in metricNameValue) {
+        if (metricNameValue.hasOwnProperty(i)) {
+            var singleMetric = metricNameValue[i].split(":");
 
-CVSS31.calculateCVSSFromObject = function(metricValues) {
-  return CVSS31.calculateCVSSFromMetrics (
-    metricValues.AV,  metricValues.AC,  metricValues.PR,  metricValues.UI,  metricValues.S,
-    metricValues.C,   metricValues.I,   metricValues.A,
-    metricValues.E,   metricValues.RL,  metricValues.RC,
-    metricValues.CR,  metricValues.IR,  metricValues.AR,
-    metricValues.MAV, metricValues.MAC, metricValues.MPR, metricValues.MUI, metricValues.MS,
-    metricValues.MC,  metricValues.MI,  metricValues.MA);
-}
+            if (typeof metricValues[singleMetric[0]] === "undefined") {
+                metricValues[singleMetric[0]] = singleMetric[1];
+            } else {
+                badMetrics.push(singleMetric[0]);
+            }
+        }
+    }
+
+    if (badMetrics.length > 0) {
+        return null;
+    }
+
+    return metricValues;
+};
+
+CVSS31.calculateCVSSFromObject = function (metricValues) {
+    return CVSS31.calculateCVSSFromMetrics(
+        metricValues.AV,
+        metricValues.AC,
+        metricValues.PR,
+        metricValues.UI,
+        metricValues.S,
+        metricValues.C,
+        metricValues.I,
+        metricValues.A,
+        metricValues.E,
+        metricValues.RL,
+        metricValues.RC,
+        metricValues.CR,
+        metricValues.IR,
+        metricValues.AR,
+        metricValues.MAV,
+        metricValues.MAC,
+        metricValues.MPR,
+        metricValues.MUI,
+        metricValues.MS,
+        metricValues.MC,
+        metricValues.MI,
+        metricValues.MA
+    );
+};
 
 /* ** CVSS31.calculateCVSSFromVector **
  *
@@ -482,15 +668,12 @@ CVSS31.calculateCVSSFromObject = function(metricValues) {
  *   "MultipleDefinitionsOfMetric", if the Vector String is well formed but defines the same metric (or metrics),
  *                                  more than once.
  */
-CVSS31.calculateCVSSFromVector = function ( vectorString ) {
-  var metricValues = CVSS31.parseVector(vectorString);
-  if(metricValues === null)
-    return { success: false, errorType: "MalformedVectorString" };
-  return CVSS31.calculateCVSSFromObject(metricValues);
+CVSS31.calculateCVSSFromVector = function (vectorString) {
+    var metricValues = CVSS31.parseVector(vectorString);
+    if (metricValues === null)
+        return { success: false, errorType: "MalformedVectorString" };
+    return CVSS31.calculateCVSSFromObject(metricValues);
 };
-
-
-
 
 /* ** CVSS31.roundUp1 **
  *
@@ -510,17 +693,15 @@ CVSS31.calculateCVSSFromVector = function ( vectorString ) {
  * A more elegant solution may be possible, but the following gives answers consistent with results from an arbitrary
  * precision library.
  */
-CVSS31.roundUp1 = function Roundup (input) {
-  var int_input = Math.round(input * 100000);
+CVSS31.roundUp1 = function Roundup(input) {
+    var int_input = Math.round(input * 100000);
 
-  if (int_input % 10000 === 0) {
-    return int_input / 100000;
-  } else {
-    return (Math.floor(int_input / 10000) + 1) / 10;
-  }
+    if (int_input % 10000 === 0) {
+        return int_input / 100000;
+    } else {
+        return (Math.floor(int_input / 10000) + 1) / 10;
+    }
 };
-
-
 
 /* ** CVSS31.severityRating **
  *
@@ -532,19 +713,22 @@ CVSS31.roundUp1 = function Roundup (input) {
  *   undefined - if the input is a number that is not within the range of any defined severity rating.
  */
 CVSS31.severityRating = function (score) {
-  var severityRatingLength = CVSS31.severityRatings.length;
+    var severityRatingLength = CVSS31.severityRatings.length;
 
-  var validatedScore = Number(score);
+    var validatedScore = Number(score);
 
-  if (isNaN(validatedScore)) {
-    return validatedScore;
-  }
-
-  for (var i = 0; i < severityRatingLength; i++) {
-    if (score >= CVSS31.severityRatings[i].bottom && score <= CVSS31.severityRatings[i].top) {
-      return CVSS31.severityRatings[i].name;
+    if (isNaN(validatedScore)) {
+        return validatedScore;
     }
-  }
 
-  return undefined;
+    for (var i = 0; i < severityRatingLength; i++) {
+        if (
+            score >= CVSS31.severityRatings[i].bottom &&
+            score <= CVSS31.severityRatings[i].top
+        ) {
+            return CVSS31.severityRatings[i].name;
+        }
+    }
+
+    return undefined;
 };

@@ -16,7 +16,8 @@
     gap: 1rem;
 }
 
-.cvss-calculator div.cvss-group {}
+.cvss-calculator div.cvss-group {
+}
 
 .cvss-calculator div.cvss-metric {
     padding: 0;
@@ -80,10 +81,10 @@
 .cvss-calculator label:hover {
     background: #666666;
     color: #ffffff;
-    border: 1px solid #666666
+    border: 1px solid #666666;
 }
 
-.cvss-calculator input:checked+label {
+.cvss-calculator input:checked + label {
     background: green;
     border: 1px solid green;
     color: #ffffff;

@@ -216,10 +216,13 @@ const server = new Hocuspocus({
             handlersByDocName.set(data.documentName, handler);
 
             const doc = await handler.load();
-            doc.transact(() => {
+            doc.transact((tx) => {
+                const serverInfo = tx.doc.get("serverInfo", Y.Map);
                 // Embed an ID unique to this particular yjs doc, so a client working with an older version
                 // won't try to merge with a divergent document and get weird results.
-                doc.get("serverInfo", Y.Map).set("instanceId", randomUUID());
+                serverInfo.set("instanceId", randomUUID());
+                // Save error flag
+                serverInfo.set("saveError", false);
             });
             return doc;
         } catch (e) {
@@ -236,8 +239,14 @@ const server = new Hocuspocus({
             await handler.save(data.document);
         } catch (e) {
             context.log.error({ msg: "Could not save document", err: e });
-            throw e;
+            data.document.transact((tx) => {
+                tx.doc.get("serverInfo", Y.Map).set("saveError", true);
+            });
+            return;
         }
+        data.document.transact((tx) => {
+            tx.doc.get("serverInfo", Y.Map).set("saveError", false);
+        });
     },
 
     async afterUnloadDocument(data) {

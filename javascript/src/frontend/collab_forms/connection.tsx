@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 
-export type ConnectionStatus = | "disconnected"
-| "connecting"
-| "initialSyncing"
-| "syncing"
-| "idle";
+export type ConnectionStatus =
+    | "disconnected"
+    | "connecting"
+    | "initialSyncing"
+    | "syncing"
+    | "error"
+    | "idle";
 
 /// Gets a YJS connection from the information embedded by the `collab_editing/update.html` view.
-export function usePageConnection(settings: {
-    model: string,
-}): {
+export function usePageConnection(settings: { model: string }): {
     // The YJS provider
     provider: HocuspocusProvider;
     // Detailed connection status
@@ -27,19 +27,20 @@ export function usePageConnection(settings: {
     const savedInstanceID = useRef<string | null>(null);
 
     // Type as `HocuspocusProvider` only, cuz it's only going to be null for a slight bit.
-    const provider = useRef<HocuspocusProvider>(null as unknown as HocuspocusProvider);
+    const provider = useRef<HocuspocusProvider>(
+        null as unknown as HocuspocusProvider
+    );
 
     // Not doing this inside of useEffect because we need to return the provider from this function - useEffect
     // is delayed.
     if (provider.current === null) {
         const url = document.getElementById("yjs-url")!.innerHTML;
         const id = document.getElementById("yjs-object-id")!.innerHTML;
-        const username = document.getElementById(
-            "yjs-username"
-        )!.innerHTML;
+        const username = document.getElementById("yjs-username")!.innerHTML;
         const jwt = document.getElementById("yjs-jwt")!.innerHTML;
 
         provider.current = new HocuspocusProvider({
+            connect: false,
             url,
             name: settings.model + "/" + id,
             token() {
@@ -47,22 +48,20 @@ export function usePageConnection(settings: {
 
                 // Send document instance ID so that server will kick us out if it's made a new document with
                 // a divergent history.
-                if(savedInstanceID.current !== null)
+                if (savedInstanceID.current !== null)
                     tok += " " + savedInstanceID.current;
                 return tok;
             },
             onStatus(event) {
                 setStatus(event.status);
-                if(event.status !== "connected")
-                    setInitialSyncDone(false);
+                if (event.status !== "connected") setInitialSyncDone(false);
             },
             onSynced(event) {
                 const state = event.state;
                 setSynced(state);
-                if(state)
-                    setInitialSyncDone(true);
+                if (state) setInitialSyncDone(true);
 
-                if(savedInstanceID.current === null) {
+                if (savedInstanceID.current === null) {
                     const doc = provider.current.document;
                     doc.transact(() => {
                         savedInstanceID.current = doc
@@ -75,25 +74,43 @@ export function usePageConnection(settings: {
 
         provider.current.awareness!.setLocalStateField("user", {
             name: username,
-            color: hsv_to_rgb((provider.current.document.clientID % 255) / 255.0, 0.5, 1.0),
+            color: hsv_to_rgb(
+                (provider.current.document.clientID % 255) / 255.0,
+                0.5,
+                1.0
+            ),
         });
 
         // Export connection for debugging
         (window as any).gwDebugYjsProvider = provider.current;
     }
-    useEffect(
-        () => () => {
+
+    useEffect(() => {
+        provider.current!.connect();
+        return () => {
             provider.current?.destroy();
             (window as any).gwDebugYjsProvider = null;
-        },
-        []
-    );
+        };
+    }, []);
+
+    const [hasSaveError, setHasSaveError] = useState(false);
+    useEffect(() => {
+        const serverInfo = provider.current!.document.get("serverInfo", Y.Map);
+        const cb = () => {
+            setHasSaveError(!!serverInfo.get("saveError"));
+        };
+        serverInfo.observe(cb);
+        return () => {
+            serverInfo.unobserve(cb);
+        };
+    });
 
     let outStatus: ConnectionStatus;
     if (status === "connected") {
         if (!initialSyncDone) outStatus = "initialSyncing";
-        else if (synced) outStatus = "idle";
-        else outStatus = "syncing";
+        else if (!synced) outStatus = "syncing";
+        else if (hasSaveError) outStatus = "error";
+        else outStatus = "idle";
     } else {
         outStatus = status;
     }
@@ -101,7 +118,10 @@ export function usePageConnection(settings: {
     return {
         provider: provider.current,
         status: outStatus,
-        connected: outStatus === "idle" || outStatus === "syncing",
+        connected:
+            outStatus === "idle" ||
+            outStatus === "syncing" ||
+            outStatus === "error",
     };
 }
 
@@ -142,17 +162,16 @@ function hsv_to_rgb(h: number, s: number, v: number) {
     return `#${to_hex(r!)}${to_hex(g!)}${to_hex(b!)}`;
 }
 
-const STATUS_LOOKUP: {[key in ConnectionStatus]: string} = {
+const STATUS_LOOKUP: { [key in ConnectionStatus]: string } = {
     disconnected: "Disconnected",
     connecting: "Connecting...",
     initialSyncing: "Synchronizing...",
     syncing: "Synchronizing...",
     idle: "Saved",
+    error: "Could not save data - refresh page and try again",
 };
 
-export function ConnectionStatus(props: {
-    status: ConnectionStatus;
-}) {
+export function ConnectionStatus(props: { status: ConnectionStatus }) {
     return (
         <div className="col-md-12">
             <small className="form-text text-muted">
