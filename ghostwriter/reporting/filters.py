@@ -37,6 +37,10 @@ class FindingFilter(django_filters.FilterSet):
         Multiple choice filter using :model:`reporting.FindingType`.
     ``tags``
         Search of the tags field contents.
+     ``on_reports``
+        Boolean field to filter findings on reports.
+     ``not_cloned``
+        Boolean field to filter findings on reports and not in the library.
     """
 
     title = django_filters.CharFilter(
@@ -65,15 +69,22 @@ class FindingFilter(django_filters.FilterSet):
         ),
     )
 
-    # Dummy filter to add a checkbox onto the form, which the view uses to select Findings vs
-    # ReportFindingLinks
+    # Dummy filter to add a checkbox onto the form, which the view uses to select Findings vs ReportFindingLinks
     on_reports = django_filters.BooleanFilter(
         method="filter_on_reports",
         label="Search findings on reports",
         widget=forms.CheckboxInput,
     )
+    not_cloned = django_filters.BooleanFilter(
+        method="filter_on_library",
+        label="Return only findings on reports & not in the library",
+        widget=forms.CheckboxInput,
+    )
 
     def filter_on_reports(self, queryset, *args, **kwargs):
+        return queryset
+
+    def filter_on_library(self, queryset, *args, **kwargs):
         return queryset
 
     class Meta:
@@ -115,10 +126,16 @@ class FindingFilter(django_filters.FilterSet):
                 Row(
                     Column(
                         "on_reports",
-                        css_class="col-md-12 m-1",
-                        data_toggle="tooltip",
-                        data_placement="top",
-                        title="Return results from reports instead of the library",
+                        css_class="col-md-12 m-1 tooltip-label-only",
+                        data_tooltip_text="Return results from reports instead of the library",
+                    ),
+                    css_class="form-row",
+                ),
+                Row(
+                    Column(
+                        "not_cloned",
+                        css_class="col-md-12 m-1 tooltip-label-only",
+                        data_tooltip_text="Return only findings attached to reports and not in the library (based on title)",
                     ),
                     css_class="form-row",
                 ),
