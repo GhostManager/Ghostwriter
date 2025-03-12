@@ -18,7 +18,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.db import transaction
-from django.db.models import Q, Max, OuterRef, Subquery, Exists
+from django.db.models import Q, Max, OuterRef, Exists
 from django.http import (
     FileResponse,
     Http404,
