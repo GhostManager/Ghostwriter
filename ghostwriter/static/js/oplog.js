@@ -1,5 +1,8 @@
 /* JavaScript specific to the log entry view page goes here. */
 $(document).ready(function() {
+    const $table = $('#oplogTable');
+    const $tableBody = $('#oplogTableBody');
+
     // Get the array of hidden columns from local storage or set to empty array
     let hiddenLogTblColumns = JSON.parse((localStorage.getItem('hiddenLogTblColumns') !== null ? localStorage.getItem('hiddenLogTblColumns') : JSON.stringify([])));
 
@@ -104,9 +107,8 @@ $(document).ready(function() {
 
     const oplog_entry_extra_fields_spec = JSON.parse(document.getElementById('oplog_entry_extra_fields_spec').textContent);
 
-    const $table = $('#oplogTableBody');
-    const oplog_name = $table.attr("data-oplog-name");
-    const oplog_id = parseInt($table.attr("data-oplog-id"));
+    const oplog_name = $tableBody.attr("data-oplog-name");
+    const oplog_id = parseInt($tableBody.attr("data-oplog-id"));
     const $tableHeader = $('#oplogTableHeader');
     const $checkboxList = $('#checkboxList');
     const $connectionStatus = $('#connectionStatus');
@@ -131,7 +133,7 @@ $(document).ready(function() {
         }
 
         $oplogTableLoading.hide();
-        $oplogTableNoEntries.toggle($table.find("> tr").length === 0)
+        $oplogTableNoEntries.toggle($tableBody.find("> tr").length === 0)
     }
 
     $clearSearchBtn.click(function () {
@@ -168,11 +170,11 @@ $(document).ready(function() {
 
     // Generate table headers
     function generateTableHeaders() {
-        let out = "";
+        let out = "<tr>";
         columnInfo.forEach(column => {
             out += `<th class="${column.columnClass} align-middle">${column.prettyName}</th>\n`
         });
-        out += `<th class="optionsColumn align-middle">Options</th>`;
+        out += `<th class="optionsColumn align-middle">Options</th></tr>`;
         return out;
     }
 
@@ -289,10 +291,10 @@ $(document).ready(function() {
             </div>
             `
             $checkboxList.append(checkboxEntry)
-            let headerColumn = `
-            <th class="${column.columnClass} align-middle">${column.prettyName}</th>
-            `
-            $tableHeader.append(headerColumn)
+            // let headerColumn = `
+            // <th class="${column.columnClass} align-middle">${column.prettyName}</th>
+            // `
+            // $tableHeader.append(headerColumn)
             coupleCheckboxColumn('#' + column.checkBoxID, '.' + column.columnClass)
 
             if (hiddenLogTblColumns.includes('.' + column.columnClass)) {
@@ -392,7 +394,7 @@ $(document).ready(function() {
 
     function fetch(clear_existing) {
         const new_filter = $searchInput.val();
-        const new_offset = clear_existing ? 0 : $table.find('> tr').length;
+        const new_offset = clear_existing ? 0 : $tableBody.find('> tr').length;
         if (pendingOperation !== null && pendingOperation.filter === new_filter && pendingOperation.new_offset === new_offset)
             return;
 
@@ -403,7 +405,7 @@ $(document).ready(function() {
         allEntriesFetched = false;
 
         if (clear_existing)
-            $table.find('tr').remove();
+            $tableBody.find('tr').remove();
         $oplogTableNoEntries.hide();
         $oplogTableLoading.show();
 
@@ -443,7 +445,7 @@ $(document).ready(function() {
                 if (entries.length !== 0) {
                     entries.forEach(element => {
                         let newRow = generateRow(element);
-                        $table.append(newRow);
+                        $tableBody.append(newRow);
                     })
                 } else {
                     allEntriesFetched = true;
@@ -475,7 +477,7 @@ $(document).ready(function() {
 
                 // If the row doesn't exist, add it to the table
                 if (!rowFound) {
-                    $table.prepend(generateRow(entry));
+                    $tableBody.prepend(generateRow(entry));
                     let $newRow = $(`#${entry['id']}`);
                     $newRow.hide();
 
@@ -498,7 +500,6 @@ $(document).ready(function() {
                     }
                 })
             }
-            $("#oplogTable").trigger("updateAll");
         }
 
         // Update connection status on error
@@ -536,16 +537,18 @@ $(document).ready(function() {
         }
     }
 
-    $("#oplogTable").tablesorter(
-        {
-            cssAsc: ' down', cssDesc: 'up', cssNone: 'none',
-        }
-    );
     connect();
     updateColumnInfo(oplog_entry_extra_fields_spec);
     buildColumnsCheckboxes();
     $tableHeader.html(generateTableHeaders());
     buildSanitizeCheckboxes();
+
+    $table.tablesorter(
+        {
+            cssAsc: ' down', cssDesc: 'up', cssNone: 'none', debug: true
+        }
+    );
+    $table.trigger('updateAll')
 
     // Show or hide the table column select options
     $('#columnSelectDropdown').click(function () {
@@ -554,7 +557,7 @@ $(document).ready(function() {
     });
 
     // Pull additional entries if user scrolls to bottom of ``tbody``
-    $('#oplogTableBody').scroll(function () {
+    $tableBody.scroll(function () {
         if (pendingOperation === null) {
             // Check if current scroll position + height of div is >= height of the content
             // True if scroll has reached the bottom
@@ -568,7 +571,7 @@ $(document).ready(function() {
     });
 
     // Open the entry modal when user double-clicks a row
-    $('#oplogTableBody').on('dblclick', '.editableRow', function (e) {
+    $tableBody.on('dblclick', '.editableRow', function (e) {
         e.preventDefault();
         let url = window.location.origin + '/oplog/entry/update/' + $(this).attr('id');
         $('.oplog-form-div').load(url, function () {
@@ -611,7 +614,7 @@ $(document).ready(function() {
     // Download the log as a CSV file when the user clicks the "Export Entries" menu item
     $('#exportEntries').click(function () {
         let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
-        let export_url = $table.attr("data-oplog-export-url");
+        let export_url = $tableBody.attr("data-oplog-export-url");
         download(export_url, filename);
     })
 
@@ -678,8 +681,10 @@ $(document).ready(function() {
         if (event.ctrlKey && event.keyCode === 83) {
             event.preventDefault();
             let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
-            let export_url = $table.attr("data-oplog-export-url");
+            let export_url = $tableBody.attr("data-oplog-export-url");
             download(export_url + oplog_id.toString(), filename);
         }
     });
+
+    // $table.trigger('updateAll');
 });
