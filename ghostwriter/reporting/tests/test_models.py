@@ -499,6 +499,16 @@ class ReportFindingLinkModelTests(TestCase):
         self.assertEqual(medium_finding.cvss_data, medium_data)
         self.assertEqual(unknown_finding.cvss_data, unknown_data)
 
+    def test_exists_in_finding_library(self):
+        attached_finding = ReportFindingLinkFactory(added_as_blank=False)
+        blank_finding = ReportFindingLinkFactory(added_as_blank=True, title="Blank Finding Not in the Library")
+        self.assertTrue(attached_finding.exists_in_finding_library)
+        self.assertFalse(blank_finding.exists_in_finding_library)
+
+        # Test a finding that's linked to a library finding
+        cloned_finding = FindingFactory(title="Blank Finding Not in the Library")
+        self.assertTrue(blank_finding.exists_in_finding_library)
+
 
 class EvidenceModelTests(TestCase):
     """Collection of tests for :model:`reporting.Evidence`."""
