@@ -172,9 +172,9 @@ $(document).ready(function() {
     function generateTableHeaders() {
         let out = "<tr>";
         columnInfo.forEach(column => {
-            out += `<th class="${column.columnClass} align-middle">${column.prettyName}</th>\n`
+            out += `<th class="${column.columnClass} align-middle" data-sorter="text">${column.prettyName}</th>\n`
         });
-        out += `<th class="optionsColumn align-middle">Options</th></tr>`;
+        out += `<th class="optionsColumn align-middle" data-sorter="false">Options</th></tr>`;
         return out;
     }
 
@@ -454,6 +454,8 @@ $(document).ready(function() {
                 hideColumns();
                 $oplogTableLoading.hide();
                 $('[data-toggle="tooltip"]').tooltip();
+                $table.trigger('updateAll');
+                $table.trigger('updateCache');
             } else if (message['action'] === 'create') {
                 // Handle the `create` action that is received whenever a new entry is created
 
@@ -487,6 +489,8 @@ $(document).ready(function() {
                 }
                 updatePlaceholder();
                 $('[data-toggle="tooltip"]').tooltip();
+                $table.trigger('updateAll');
+                $table.trigger('updateCache');
             } else if (message['action'] === 'delete') {
                 // Handle the `delete` action that is received whenever an entry is deleted
                 let id = message['data'];
@@ -498,7 +502,8 @@ $(document).ready(function() {
                             updatePlaceholder();
                         });
                     }
-                })
+                });
+                $table.trigger('updateAll');
             }
         }
 
@@ -545,10 +550,9 @@ $(document).ready(function() {
 
     $table.tablesorter(
         {
-            cssAsc: ' down', cssDesc: 'up', cssNone: 'none', debug: true
+            cssAsc: ' down', cssDesc: 'up', cssNone: 'none'
         }
     );
-    $table.trigger('updateAll')
 
     // Show or hide the table column select options
     $('#columnSelectDropdown').click(function () {
