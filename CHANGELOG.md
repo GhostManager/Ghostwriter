@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.4] - 13 March 2025
+
+### Added
+
+* Added a filter to the findings library to show only findings on reports that have not been created in or cloned to the library
+  * While filtering with "Search findings on reports" you can select "Return only findings on reports & not in the library"
+
+### Fixed
+
+* Fixed table sorting on activity logs
+
 ## [5.0.3] - 28 February 2025
 
 ### Added
