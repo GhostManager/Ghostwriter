@@ -18,7 +18,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.db import transaction
-from django.db.models import Q, Max
+from django.db.models import Q, Max, OuterRef, Exists
 from django.http import (
     FileResponse,
     Http404,
@@ -1146,6 +1146,17 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         if self.request.GET.get("on_reports", "").strip():
             findings = ReportFindingLink.objects.filter(report__project__in=get_project_list(self.request.user))
             self.searching_report_findings = True
+            if self.request.GET.get("not_cloned", "").strip():
+                # Create a subquery to check if a Finding with the same title exists
+                subquery = Finding.objects.filter(title=OuterRef("title"))
+
+                # Annotate the ReportFindingLink queryset with the ``exists_in_finding`` property
+                report_finding_links = ReportFindingLink.objects.annotate(
+                    exists_in_finding=Exists(subquery)
+                )
+
+                # Filter the queryset based on the exists_in_finding property
+                findings = report_finding_links.filter(exists_in_finding=True)
         else:
             findings = Finding.objects.all()
 

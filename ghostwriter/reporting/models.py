@@ -727,6 +727,17 @@ class ReportFindingLink(models.Model):
 
         return cvss_version, cvss_scores, cvss_severities, cvss_severity_colors
 
+    @property
+    def exists_in_finding_library(self):
+        """
+        Returns True if the finding exists in the finding library. If a finding was not added as a blank finding,
+        it is assumed to exist in the library.
+        """
+        if not self.added_as_blank:
+            return True
+        return Finding.objects.filter(title=self.title).exists()
+
+
 
 def set_evidence_upload_destination(this, filename):
     """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
