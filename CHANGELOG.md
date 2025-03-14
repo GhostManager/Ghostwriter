@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.5] - 14 March 2025
+
+### Added
+
+* Added a setting on report templates to control the width of evidence files for Microsoft Word reports (PR #597)
+  * The default is still Word's standard 6.5" width
+  * The setting allows you to adjust the width to fit your needs
+
 ## [5.0.4] - 13 March 2025
 
 ### Added

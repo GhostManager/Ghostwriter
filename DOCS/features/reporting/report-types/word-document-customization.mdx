@@ -32,6 +32,7 @@ Ghostwriter will replace every instance of `{{ report_date }}` in your template 
 <Frame>
   <img src="/images/features/image-48.png" alt=""/>
 </Frame>
+
 Everything seen in the report [JSON](/features/reporting/report-types#json) is accessible as a variable within your template. You can also use additional variables, filters, and expressions to refine or customize the report content.
 
 You decide what to include in your templates.
@@ -42,19 +43,23 @@ Learn more about the available filters, expressions, and variables in this secti
 
 ### Inserting Evidence
 
-Ghostwriter will insert any evidence files you have added to your findings. The report will have the evidence file's contents followed by your caption. The default behavior is slightly different for images and text.
+Ghostwriter will insert any evidence files you have added to your report. The report will have the evidence file's
+contents followed by your caption.
+
+The default behavior is slightly different for images and text.
 
 #### Inline Image Evidence
 
 The report engine will insert images with the following default characteristics:
 
-* 6.5" wide (full page width)
-
 * Center aligned
-
-* 1pt border
-
-* Figure caption using: _Figure – Your Caption_
+* 6.5" wide (full page width)
+    * You can adjust the width to be used in the configuration for your Word report templates
+* Image border
+    * You can turn borders on or off and adjust the weight and color of image borders in the global report configuration
+* Figure caption using your label and prefix character
+    * You can adjust the label and prefix character (e.g., _Figure —_, _Evidence:_) in the global report configuration
+    * You can also adjust placement (above or below) in the global report configuration
 
 
 #### Inline Text Evidence
@@ -62,12 +67,10 @@ The report engine will insert images with the following default characteristics:
 The report engine will insert text evidence with the following default characteristics:
 
 * Applies **Code Block** style
-
 * Left aligned text (per above style)
-
-* 1pt border
-
-* Figure caption using: _Figure – Your Caption_
+* Figure caption using your label and prefix character
+    * You can adjust the label and prefix character (e.g., _Figure —_, _Evidence:_) in the global report configuration
+    * You can also adjust placement (above or below) in the global report configuration
 
 
 You can edit the weight and color of image borders and the character that follows _Figure_ in the global report configuration.
