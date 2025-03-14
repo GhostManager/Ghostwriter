@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added a setting on report templates to control the width of evidence files for Microsoft Word reports
+* Added a setting on report templates to control the width of evidence files for Microsoft Word reports (PR #597)
   * The default is still Word's standard 6.5" width
   * The setting allows you to adjust the width to fit your needs
 
