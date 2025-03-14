@@ -7,13 +7,14 @@ from django.urls import path
 from ghostwriter.reporting import views
 import ghostwriter.reporting.views2.observations
 import ghostwriter.reporting.views2.report_observation_link
+import ghostwriter.reporting.views2.finding
 
 app_name = "reporting"
 
 # URLs for the basic views
 urlpatterns = [
     path("", views.index, name="index"),
-    path("findings/", views.FindingListView.as_view(), name="findings"),
+    path("findings/", ghostwriter.reporting.views2.finding.FindingListView.as_view(), name="findings"),
     path("reports/", views.ReportListView.as_view(), name="reports"),
     path("templates/", views.ReportTemplateListView.as_view(), name="templates"),
     path("reports/archive", views.archive_list, name="archived_reports"),
@@ -106,18 +107,18 @@ urlpatterns += [
 
 # URLs for creating, updating, and deleting findings
 urlpatterns += [
-    path("findings/<int:pk>", views.FindingDetailView.as_view(), name="finding_detail"),
-    path("findings/create/", views.FindingCreate.as_view(), name="finding_create"),
-    path("findings/update/<int:pk>", views.FindingUpdate.as_view(), name="finding_update"),
-    path("findings/delete/<int:pk>", views.FindingDelete.as_view(), name="finding_delete"),
+    path("findings/<int:pk>", ghostwriter.reporting.views2.finding.FindingDetailView.as_view(), name="finding_detail"),
+    path("findings/create/", ghostwriter.reporting.views2.finding.FindingCreate.as_view(), name="finding_create"),
+    path("findings/update/<int:pk>", ghostwriter.reporting.views2.finding.FindingUpdate.as_view(), name="finding_update"),
+    path("findings/delete/<int:pk>", ghostwriter.reporting.views2.finding.FindingDelete.as_view(), name="finding_delete"),
     path(
         "findings/notes/create/<int:pk>",
-        views.FindingNoteCreate.as_view(),
+        ghostwriter.reporting.views2.finding.FindingNoteCreate.as_view(),
         name="finding_note_add",
     ),
     path(
         "findings/notes/update/<int:pk>",
-        views.FindingNoteUpdate.as_view(),
+        ghostwriter.reporting.views2.finding.FindingNoteUpdate.as_view(),
         name="finding_note_edit",
     ),
 ]

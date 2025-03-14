@@ -16,6 +16,24 @@
   <!-- Filter Section -->
   <div class="filter-form">
     {% crispy filter.form filter.helper %}
+
+    <div class="justify-content-center">
+      <div class="buttonHolder">
+        <form action="{% url 'reporting:finding_create' %}" method="POST" style="display:contents">
+          {% csrf_token %}
+          <input type="submit" class="btn btn-info col-md-2" role="button" value="Create" />
+        </form>
+
+        <input
+          type="submit"
+          class="btn btn-primary col-md-2"
+          form="findings-filter-form"
+          value="Filter"
+        />
+
+        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
+      </div>
+    </div>
   </div>
 
   {% if filter.qs|length == 0 %}
@@ -132,7 +150,7 @@
 
             <!-- Other Information -->
             <td class="text-justify">
-              <a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.title }}</a>
+              <a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.display_title }}</a>
             </td>
             {% if searching_report_findings %}
               <td class="text-justify">

@@ -122,19 +122,6 @@ class FindingFilter(django_filters.FilterSet):
                     ),
                     css_class="form-row",
                 ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:finding_create' %}">Create</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
-                        """
-                    ),
-                ),
                 css_class="justify-content-center",
             ),
         )

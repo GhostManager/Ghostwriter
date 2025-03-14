@@ -3,6 +3,13 @@
 import * as Y from "yjs";
 import { useEffect, useMemo, useReducer, useState } from "react";
 
+/**
+ * Gets and observes a YJS map key.
+ * @param map The YJS map to observe
+ * @param key The key of the YJS map to get and observe
+ * @param defaultValue The value to return if the key is missing
+ * @returns The current value and a setter that sets the value on the YJS map.
+ */
 export function usePlainField<T>(
     map: Y.Map<T>,
     key: string,
@@ -154,6 +161,34 @@ export function IntegerInput(props: {
             {...props}
             inputProps={inputProps}
             parse={tryToInteger}
+            toString={toString}
+            defaultValue={props.defaultValue ?? 0}
+        />
+    );
+}
+
+const tryToFloat = (v: string) => {
+    const n = parseFloat(v);
+    return n === n ? n : null;
+};
+
+export function FloatInput(props: {
+    connected: boolean;
+    map: Y.Map<any>;
+    mapKey: string;
+    inputProps?: React.HTMLAttributes<HTMLInputElement>;
+    defaultValue?: number;
+}) {
+    const inputProps = {
+        type: "number",
+        step: "any",
+        ...props.inputProps,
+    };
+    return (
+        <BaseInput
+            {...props}
+            inputProps={inputProps}
+            parse={tryToFloat}
             toString={toString}
             defaultValue={props.defaultValue ?? 0}
         />

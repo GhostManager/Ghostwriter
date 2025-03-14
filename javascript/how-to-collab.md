@@ -6,4 +6,4 @@
     -   Extend the `collab_editing/update.html` template with breadcrumbs, etc. for the model and set the `template_name` class attribute.
 -   Add a handler in `/collab-server/src/handlers` and set it up in `HANDLERS` in `collab-server/src/index.ts`.
     -   If needed, ensure the models' tags field is named `tags` and add the model to `/ghostwriter/api/views.py` `GetTags` / `SetTags` to use the graphql `tags` / `setTags` endpoints.
--   Ensure that "create" views for the model do not have a form (or GET functionality at all). They should create a new model on a POST, then, if desired, redirect to the edit page.
+-   Avoid duplicating forms. Ensure that "create" views for the model either: do not have a form or any GET functionality, and create their models with default values on POST and redirect to the collab edit page; or that the form for a new model asks for necessary, non-collab-editable fields only.

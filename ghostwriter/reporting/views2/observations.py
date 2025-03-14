@@ -87,6 +87,11 @@ class ObservationCreate(RoleBasedAccessControlMixin, View):
     def post(self, request: HttpRequest) -> HttpResponse:
         obj = Observation()
         obj.save()
+        messages.success(
+            self.request,
+            "New observation created",
+            extra_tags="alert-success",
+        )
         return redirect("reporting:observation_update", pk=obj.id)
 
 

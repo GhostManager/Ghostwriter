@@ -17,6 +17,7 @@ import { type Logger } from "pino";
 import { type ModelHandler } from "./base_handler";
 import ObservationHandler from "./handlers/observation";
 import ReportObservationLinkHandler from "./handlers/report_observation_link";
+import FindingHandler from "./handlers/finding";
 
 // Extend this with your model handlers. See how-to-collab.md.
 const HANDLERS: Map<
@@ -25,6 +26,7 @@ const HANDLERS: Map<
 > = new Map([
     ["observation", ObservationHandler],
     ["report_observation_link", ReportObservationLinkHandler],
+    ["finding", FindingHandler],
 ]);
 
 // Graphql Client

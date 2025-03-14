@@ -1187,8 +1187,10 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
 
     required_inputs = ["model", "id"]
     available_models = {
+        # Models here need to have a `user_can_edit(user)` method.
         "observation": Observation,
         "report_observation_link": ReportObservationLink,
+        "finding": Finding,
     }
 
     def post(self, request):
@@ -1209,8 +1211,10 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
 class GetTags(HasuraActionView):
     required_inputs = ["model", "id"]
     available_models = {
+        # Models here need to have a `tags` field, and optionally a `user_can_view(user)` method.
         "observation": Observation,
         "report_observation_link": ReportObservationLink,
+        "finding": Finding,
     }
 
     def post(self, request: HttpRequest):
@@ -1237,8 +1241,10 @@ class GetTags(HasuraActionView):
 class SetTags(HasuraActionView):
     required_inputs = ["model", "id", "tags"]
     available_models = {
+        # Models here need to have a `tags` field and a `user_can_edit(user)` method.
         "observation": Observation,
         "report_observation_link": ReportObservationLink,
+        "finding": Finding,
     }
 
     def post(self, request: HttpRequest):

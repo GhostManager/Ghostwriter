@@ -139,10 +139,9 @@ class FindingType(models.Model):
 class Finding(models.Model):
     """Stores an individual finding, related to :model:`reporting.Severity` and :model:`reporting.FindingType`."""
 
-    title = models.CharField(
+    title = models.TextField(
         "Title",
-        max_length=255,
-        unique=True,
+        blank=True,
         help_text="Enter a title for this finding that will appear in reports",
     )
     description = models.TextField(
@@ -233,6 +232,26 @@ class Finding(models.Model):
 
     def get_edit_url(self):
         return reverse("reporting:finding_update", kwargs={"pk": self.pk})
+
+    @classmethod
+    def user_can_create(cls, user) -> bool:
+        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
+        from ghostwriter.api.utils import verify_finding_access
+        return verify_finding_access(user, "create")
+
+    def user_can_edit(self, user) -> bool:
+        from ghostwriter.api.utils import verify_finding_access
+        return verify_finding_access(user, "edit")
+
+    def user_can_delete(self, user) -> bool:
+        from ghostwriter.api.utils import verify_finding_access
+        return verify_finding_access(user, "delete")
+
+    @property
+    def display_title(self) -> str:
+        if self.title:
+            return self.title
+        return "(Untitled Finding)"
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
