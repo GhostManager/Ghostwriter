@@ -243,6 +243,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                     "client",
                     "doc_type",
                     "p_style",
+                    "evidence_image_width",
                 )
             },
         ),

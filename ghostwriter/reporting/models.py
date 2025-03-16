@@ -349,6 +349,13 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
     )
+    evidence_image_width = models.FloatField(
+        "Evidence Image Width",
+        default=6.5,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="The width of inserted evidence images, in inches (Word only)",
+    )
 
     class Meta:
         ordering = ["doc_type", "client", "name"]
@@ -393,13 +400,23 @@ class ReportTemplate(models.Model):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 
-            return ExportReportDocx(object, template_loc=self.document.path, p_style=self.p_style)
+            return ExportReportDocx(
+                object,
+                template_loc=self.document.path,
+                p_style=self.p_style,
+                evidence_image_width=self.evidence_image_width,
+            )
         if self.doc_type.doc_type == "project_docx":
             assert isinstance(object, Project)
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 
-            return ExportProjectDocx(object, template_loc=self.document.path, p_style=self.p_style)
+            return ExportProjectDocx(
+                object,
+                template_loc=self.document.path,
+                p_style=self.p_style,
+                evidence_image_width=self.evidence_image_width,
+            )
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
