@@ -37,11 +37,13 @@ function useExtraFieldSpecs(): ExtraFieldSpec[] {
 export default function ExtraFieldsSection(props: {
     connected: boolean;
     provider: HocuspocusProvider;
+    header?: React.ReactNode;
 }) {
     const specs = useExtraFieldSpecs();
 
     return (
         <>
+            {specs.length > 0 && props.header}
             {specs.map((spec) => (
                 <div className="form-group col-md-12" key={spec.internal_name}>
                     <label>{spec.display_name}</label>

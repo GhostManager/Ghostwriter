@@ -9,6 +9,11 @@ import EvidenceButton from "../rich_text_editor/evidence";
 import ReactModal from "react-modal";
 import { ProvidePageEvidence } from "../../graphql/evidence";
 import PageGraphqlProvider from "../../graphql/client";
+import { Editor } from "@tiptap/core";
+
+const renderToolbarExtra = (editor: Editor) => (
+    <EvidenceButton editor={editor} />
+);
 
 function ReportObservationLinkForm() {
     const { provider, status, connected } = usePageConnection({
@@ -58,9 +63,7 @@ function ReportObservationLinkForm() {
                             fragment={provider.document.getXmlFragment(
                                 "description"
                             )}
-                            toolbarExtra={(editor) => (
-                                <EvidenceButton editor={editor} />
-                            )}
+                            toolbarExtra={renderToolbarExtra}
                         />
                     </div>
                 </div>

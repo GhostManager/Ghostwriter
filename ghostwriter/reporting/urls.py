@@ -8,6 +8,7 @@ from ghostwriter.reporting import views
 import ghostwriter.reporting.views2.observations
 import ghostwriter.reporting.views2.report_observation_link
 import ghostwriter.reporting.views2.finding
+import ghostwriter.reporting.views2.report_finding_link
 
 app_name = "reporting"
 
@@ -30,7 +31,7 @@ urlpatterns = [
 urlpatterns += [
     path(
         "ajax/report/finding/order",
-        views.ajax_update_report_findings,
+        ghostwriter.reporting.views2.report_finding_link.ajax_update_report_findings,
         name="update_report_findings",
     ),
     path(
@@ -45,7 +46,7 @@ urlpatterns += [
     ),
     path(
         "ajax/report/finding/status/<int:pk>/<str:status>",
-        views.ReportFindingStatusUpdate.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingStatusUpdate.as_view(),
         name="ajax_set_finding_status",
     ),
     path(
@@ -70,12 +71,12 @@ urlpatterns += [
     ),
     path(
         "ajax/finding/assign/<int:pk>",
-        views.AssignFinding.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.AssignFinding.as_view(),
         name="ajax_assign_finding",
     ),
     path(
         "ajax/finding/delete/<int:pk>",
-        views.ReportFindingLinkDelete.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkDelete.as_view(),
         name="ajax_delete_local_finding",
     ),
     path(
@@ -146,7 +147,7 @@ urlpatterns += [
     path("reports/clone/<int:pk>", views.ReportClone.as_view(), name="report_clone"),
     path(
         "reports/create/blank/<int:pk>",
-        views.AssignBlankFinding.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.AssignBlankFinding.as_view(),
         name="assign_blank_finding",
     ),
     path(
@@ -200,7 +201,7 @@ urlpatterns += [
 urlpatterns += [
     path(
         "reports/findings/update/<int:pk>",
-        views.ReportFindingLinkUpdate.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkUpdate.as_view(),
         name="local_edit",
     ),
     path(
@@ -250,7 +251,7 @@ urlpatterns += [
     ),
     path(
         "reports/findings/convert/<int:pk>",
-        views.ConvertFinding.as_view(),
+        ghostwriter.reporting.views2.finding.ConvertFinding.as_view(),
         name="convert_finding",
     ),
     path(

@@ -2,7 +2,6 @@
 
 # Standard Libraries
 import io
-import json
 import logging.config
 import os
 import zipfile
@@ -28,8 +27,7 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
-from django.urls import reverse, reverse_lazy
-from django.utils import dateformat, timezone
+from django.urls import reverse
 from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
@@ -100,16 +98,6 @@ User = get_user_model()
 # Using __name__ resolves to ghostwriter.reporting.views
 logger = logging.getLogger(__name__)
 
-
-def get_position(report_pk, severity):
-    findings = ReportFindingLink.objects.filter(Q(report__pk=report_pk) & Q(severity=severity)).order_by("-position")
-    if findings:
-        # Set new position to be one above the last/largest position
-        last_position = findings[0].position
-        return last_position + 1
-    return 1
-
-
 def zip_directory(path, zip_handler):
     """Compress the target directory as a Zip file for archiving."""
     # Walk the target directory
@@ -125,64 +113,6 @@ def zip_directory(path, zip_handler):
 ##################
 # AJAX Functions #
 ##################
-
-
-@login_required
-def ajax_update_report_findings(request):
-    """
-    Update the ``position`` and ``severity`` fields of all :model:`reporting.ReportFindingLink`
-    attached to an individual :model:`reporting.Report`.
-    """
-    if request.method == "POST" and request.is_ajax():
-        pos = request.POST.get("positions")
-        report_id = request.POST.get("report")
-        weight = request.POST.get("weight")
-        order = json.loads(pos)
-
-        report = get_object_or_404(Report, pk=report_id)
-        if verify_access(request.user, report.project):
-            logger.info(
-                "Received AJAX POST to update report %s's %s severity group findings in this order: %s",
-                report_id,
-                weight,
-                ", ".join(order),
-            )
-            data = {"result": "success"}
-
-            try:
-                severity = Severity.objects.get(weight=weight)
-            except Severity.DoesNotExist:
-                severity = None
-                logger.exception("Failed to get Severity object for weight %s", weight)
-
-            if severity:
-                counter = 1
-                for finding_id in order:
-                    if "placeholder" not in finding_id:
-                        finding_instance = ReportFindingLink.objects.get(id=finding_id)
-                        if finding_instance:
-                            finding_instance.severity = severity
-                            finding_instance.position = counter
-                            finding_instance.save()
-                            counter += 1
-                        else:
-                            logger.error(
-                                "Received a finding ID, %s, that did not match an existing finding",
-                                finding_id,
-                            )
-            else:
-                data = {"result": "error", "message": "Specified severity weight, {}, is invalid.".format(weight)}
-        else:
-            logger.error(
-                "AJAX request submitted by user %s without access to report %s",
-                request.user,
-                report_id,
-            )
-            data = {"result": "error"}
-    else:
-        data = {"result": "error"}
-    return JsonResponse(data)
-
 
 class UpdateTemplateLintResults(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
@@ -203,89 +133,6 @@ class UpdateTemplateLintResults(RoleBasedAccessControlMixin, SingleObjectMixin, 
             {"reporttemplate": template},
         )
         return HttpResponse(html)
-
-
-class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """
-    Copy an individual :model:`reporting.Finding` to create a new
-    :model:`reporting.ReportFindingLink` connected to the user's active
-    :model:`reporting.Report`.
-    """
-
-    model = Finding
-
-    def post(self, *args, **kwargs):
-        finding_instance = self.get_object()
-        finding_dict = to_dict(finding_instance, resolve_fk=True)
-
-        # Remove the tags from the finding dict to add them later with the ``taggit`` API
-        del finding_dict["tags"]
-        del finding_dict["tagged_items"]
-
-        try:
-            # If the POST includes an `report` value, give that priority over the session variable
-            if "report" in self.request.POST:
-                report_id = self.request.POST["report"]
-                report = Report.objects.get(pk=report_id)
-            # Otherwise, use the session variable for the "active" report
-            else:
-                active_report = self.request.session.get("active_report", None)
-                if active_report:
-                    report = Report.objects.get(pk=active_report["id"])
-                else:
-                    raise Report.DoesNotExist
-        except (Report.DoesNotExist, ValueError):
-            message = (
-                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
-            )
-            data = {"result": "error", "message": message}
-            return JsonResponse(data)
-
-        # If we have a report, we can proceed after verifying access
-        data = {}
-        if report:
-            if not verify_access(self.request.user, report.project):
-                return ForbiddenJsonResponse()
-
-            # Clone the selected object to make a new :model:`reporting.ReportFindingLink`
-            report_link = ReportFindingLink(
-                report=report,
-                assigned_to=self.request.user,
-                position=get_position(report.id, finding_instance.severity),
-                **finding_dict,
-            )
-            report_link.save()
-            report_link.tags.add(*finding_instance.tags.all())
-
-            message = "{} successfully added to your active report. Click here to return to your report.".format(
-                finding_instance
-            )
-            table_html = render_to_string(
-                "snippets/report_findings_table.html", {"report": report}, request=self.request
-            )
-            data = {
-                "result": "success",
-                "message": message,
-                "url": f"{report.get_absolute_url()}#findings",
-                "table_html": table_html,
-            }
-            logger.info(
-                "Copied %s %s to %s %s (%s %s) by request of %s",
-                finding_instance.__class__.__name__,
-                finding_instance.id,
-                report.__class__.__name__,
-                report.id,
-                report_link.__class__.__name__,
-                report_link.id,
-                self.request.user,
-            )
-        else:
-            message = (
-                "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
-            )
-            data = {"result": "error", "message": message}
-
-        return JsonResponse(data)
 
 
 class LocalFindingNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -337,34 +184,6 @@ class FindingNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             note.id,
             self.request.user,
         )
-        return JsonResponse(data)
-
-
-class ReportFindingLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Delete an individual :model:`reporting.ReportFindingLink`."""
-
-    model = ReportFindingLink
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().report.project)
-
-    def handle_no_permission(self):
-        return ForbiddenJsonResponse()
-
-    def post(self, *args, **kwargs):
-        finding = self.get_object()
-        finding.delete()
-        data = {
-            "result": "success",
-            "message": "Successfully deleted {finding} and cleaned up evidence.".format(finding=finding),
-        }
-        logger.info(
-            "Deleted %s %s by request of %s",
-            finding.__class__.__name__,
-            finding.id,
-            self.request.user,
-        )
-
         return JsonResponse(data)
 
 
@@ -497,64 +316,6 @@ class ReportDeliveryToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 "result": "error",
                 "message": "Could not update report's delivery status!",
             }
-
-        return JsonResponse(data)
-
-
-class ReportFindingStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Update the ``complete`` field of an individual :model:`reporting.ReportFindingLink`."""
-
-    model = ReportFindingLink
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().report.project)
-
-    def handle_no_permission(self):
-        return ForbiddenJsonResponse()
-
-    def post(self, *args, **kwargs):
-        # Get ``status`` kwargs from the URL
-        status = self.kwargs["status"]
-        finding = self.get_object()
-
-        try:
-            result = "success"
-            if status.lower() == "edit":
-                finding.complete = False
-                message = "Successfully flagged finding for editing."
-                display_status = "Needs Editing"
-                classes = "burned"
-            elif status.lower() == "complete":
-                finding.complete = True
-                message = "Successfully marking finding as complete."
-                display_status = "Ready"
-                classes = "healthy"
-            else:
-                result = "error"
-                message = "Could not update the finding's status to: {}".format(status)
-                display_status = "Error"
-                classes = "burned"
-            finding.save()
-            # Prepare the JSON response data
-            data = {
-                "result": result,
-                "status": display_status,
-                "classes": classes,
-                "message": message,
-            }
-            logger.info(
-                "Set status of %s %s to %s by request of %s",
-                finding.__class__.__name__,
-                finding.id,
-                status,
-                self.request.user,
-            )
-        # Return an error message if the query for the requested status returned DoesNotExist
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
-            data = {"result": "error", "message": "Could not update finding's status!"}
 
         return JsonResponse(data)
 
@@ -819,131 +580,6 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             )
 
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": new_pk}))
-
-
-class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """
-    Create a blank :model:`reporting.ReportFindingLink` entry linked to an individual
-    :model:`reporting.Report`.
-    """
-
-    model = Report
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
-
-    def handle_no_permission(self):
-        return ForbiddenJsonResponse()
-
-    def __init__(self):
-        self.severity = Severity.objects.order_by("weight").last()
-        self.finding_type = FindingType.objects.all().first()
-        super().__init__()
-
-    def post(self, *args, **kwargs):
-        obj = self.get_object()
-        try:
-            report_link = ReportFindingLink(
-                title="Blank Template",
-                severity=self.severity,
-                finding_type=self.finding_type,
-                report=obj,
-                assigned_to=self.request.user,
-                position=get_position(obj.id, self.severity),
-                added_as_blank=True,
-                extra_fields=ExtraFieldSpec.initial_json(Finding),
-            )
-            report_link.save()
-
-            logger.info(
-                "Added a blank finding to %s %s by request of %s",
-                obj.__class__.__name__,
-                obj.id,
-                self.request.user,
-            )
-
-            message = "Successfully added a blank finding to the report."
-            table_html = render_to_string("snippets/report_findings_table.html", {"report": obj}, request=self.request)
-            data = {
-                "result": "success",
-                "message": message,
-                "table_html": table_html,
-            }
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.exception(log_message)
-
-            message = f"Encountered an error while trying to add a blank finding to your report: {exception.args}."
-            data = {"result": "error", "message": message}
-
-        return JsonResponse(data)
-
-
-class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """
-    Create a copy of an individual :model:`reporting.ReportFindingLink` and prepare
-    it to be saved as a new :model:`reporting.Finding`.
-
-    **Template**
-
-    :template:`reporting/finding_form.html`
-    """
-
-    model = ReportFindingLink
-
-    def test_func(self):
-        if verify_access(self.request.user, self.get_object().report.project):
-            if verify_finding_access(self.request.user, "create"):
-                return True
-        return False
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have the necessary permission to create new findings.")
-        return redirect(reverse("reporting:report_detail", kwargs={"pk": self.get_object().report.pk}) + "#findings")
-
-    def get(self, *args, **kwargs):
-        finding_instance = self.get_object()
-        try:
-            form = FindingForm(
-                initial={
-                    "title": finding_instance.title,
-                    "description": finding_instance.description,
-                    "impact": finding_instance.impact,
-                    "mitigation": finding_instance.mitigation,
-                    "replication_steps": finding_instance.replication_steps,
-                    "host_detection_techniques": finding_instance.host_detection_techniques,
-                    "network_detection_techniques": finding_instance.network_detection_techniques,
-                    "references": finding_instance.references,
-                    "severity": finding_instance.severity,
-                    "finding_type": finding_instance.finding_type,
-                    "cvss_score": finding_instance.cvss_score,
-                    "cvss_vector": finding_instance.cvss_vector,
-                    "tags": finding_instance.tags.all(),
-                }
-            )
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
-
-            messages.error(
-                self.request,
-                "Encountered an error while trying to convert your finding: {}".format(exception.args),
-                extra_tags="alert-error",
-            )
-            return HttpResponse(status=500)
-
-        return render(self.request, "reporting/finding_form.html", {"form": form})
-
-    def post(self, *args, **kwargs):
-        form = FindingForm(self.request.POST)
-        if form.is_valid():
-            new_finding = form.save()
-            return HttpResponseRedirect(reverse("reporting:finding_detail", kwargs={"pk": new_finding.pk}))
-        logger.warning(form.errors.as_data())
-        return render(self.request, "reporting/finding_form.html", {"form": form})
-
 
 
 ##################
@@ -2089,120 +1725,6 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             )
 
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
-
-
-# CBVs related to :model:`reporting.ReportFindingLink`
-
-
-class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
-    """
-    Update an individual instance of :model:`reporting.ReportFindingLink`.
-
-    **Context**
-
-    ``cancel_link``
-        Link for the form's Cancel button to return to report's detail page
-
-    **Template**
-
-    :template:`reporting/local_edit.html.html`
-    """
-
-    model = ReportFindingLink
-    form_class = ReportFindingLinkUpdateForm
-    template_name = "reporting/local_edit.html"
-    success_url = reverse_lazy("reporting:reports")
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().report.project)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#findings"
-        return ctx
-
-    def form_valid(self, form):
-        if form.changed_data:
-            changed_at = dateformat.format(timezone.now(), "H:i:s e")
-            async_to_sync(channel_layer.group_send)(
-                "finding_{}".format(self.object.id),
-                {
-                    "type": "message",
-                    "message": {
-                        "message": f"User {self.request.user.username} updated this finding at {changed_at}.",
-                        "level": "warning",
-                        "title": "Content Has Changed",
-                    },
-                },
-            )
-
-        # Send Websockets messages if assignment changed
-        if "assigned_to" in form.changed_data:
-            # Get the entries current values (those being changed)
-            old_entry = ReportFindingLink.objects.get(pk=self.object.pk)
-            old_assignee = old_entry.assigned_to
-            # Notify new assignee over WebSockets
-            if "assigned_to" in form.changed_data:
-                # Only notify if the assignee is not the user who made the change
-                if self.request.user != self.object.assigned_to:
-                    try:
-                        # Send a message to the assigned user
-                        async_to_sync(channel_layer.group_send)(
-                            f"notify_{self.object.assigned_to.get_clean_username() if self.object.assigned_to else None}",
-                            {
-                                "type": "message",
-                                "message": {
-                                    "message": "You have been assigned to this finding for {}:\n{}".format(
-                                        self.object.report, self.object.title
-                                    ),
-                                    "level": "info",
-                                    "title": "New Assignment",
-                                },
-                            },
-                        )
-                    except gaierror:
-                        # WebSocket are unavailable (unit testing)
-                        pass
-                if self.request.user != old_assignee:
-                    try:
-                        # Send a message to the unassigned user
-                        async_to_sync(channel_layer.group_send)(
-                            f"notify_{old_assignee.get_clean_username() if old_assignee else None}",
-                            {
-                                "type": "message",
-                                "message": {
-                                    "message": "You have been unassigned from this finding for {}:\n{}".format(
-                                        self.object.report, self.object.title
-                                    ),
-                                    "level": "info",
-                                    "title": "Assignment Change",
-                                },
-                            },
-                        )
-                    except gaierror:
-                        # WebSocket are unavailable (unit testing)
-                        pass
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        user_primary_keys = ProjectAssignment.objects.filter(project=self.object.report.project).values_list(
-            "operator", flat=True
-        )
-        form.fields["assigned_to"].queryset = User.objects.filter(id__in=user_primary_keys)
-        return form
-
-    def get_success_url(self):
-        messages.success(
-            self.request,
-            "Successfully updated {}.".format(self.get_object().title),
-            extra_tags="alert-success",
-        )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id}) + "#findings"
 
 
 # CBVs related to :model:`reporting.Evidence`

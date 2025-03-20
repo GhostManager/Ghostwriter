@@ -97,15 +97,15 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         rol.tags.set(obs.tags.names())
 
         logger.info(
-                "Copied %s %s to %s %s (%s %s) by request of %s",
-                obs.__class__.__name__,
-                obs.id,
-                report.__class__.__name__,
-                report.id,
-                rol.__class__.__name__,
-                rol.id,
-                self.request.user,
-            )
+            "Copied %s %s to %s %s (%s %s) by request of %s",
+            obs.__class__.__name__,
+            obs.id,
+            report.__class__.__name__,
+            report.id,
+            rol.__class__.__name__,
+            rol.id,
+            self.request.user,
+        )
 
         return JsonResponse({
             "result": "success",
@@ -200,35 +200,6 @@ class ReportObservationLinkUpdate(CollabModelUpdate):
     model = ReportObservationLink
     template_name = "reporting/report_observation_link_update.html"
     unauthorized_redirect = "home:dashboard"
-
-    # form_class = ReportObservationLinkUpdateForm
-    # template_name = "reporting/local_observation_edit.html"
-    # success_url = reverse_lazy("reporting:reports")
-
-    # def test_func(self):
-    #     return verify_access(self.request.user, self.get_object().report.project)
-
-    # def handle_no_permission(self):
-    #     messages.error(self.request, "You do not have permission to access that.")
-    #     return redirect("home:dashboard")
-
-    # def get_context_data(self, **kwargs):
-    #     ctx = super().get_context_data(**kwargs)
-    #     ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#observations"
-    #     ctx["evidence_upload_url"] = reverse(
-    #         "reporting:upload_evidence_modal",
-    #         kwargs={"parent_type": "report", "pk": self.object.report.pk, "modal": "modal"},
-    #     )
-    #     ctx["evidences"] = self.object.report.evidence_set.all()
-    #     return ctx
-
-    # def get_success_url(self):
-    #     messages.success(
-    #         self.request,
-    #         "Successfully updated {}.".format(self.get_object().title),
-    #         extra_tags="alert-success",
-    #     )
-    #     return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id}) + "#observations"
 
 
 @login_required

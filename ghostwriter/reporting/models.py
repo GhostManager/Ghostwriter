@@ -583,9 +583,9 @@ class ReportFindingLink(models.Model):
     :model:`reporting.Severity`, :model:`reporting.FindingType`, and :model:`users.User`.
     """
 
-    title = models.CharField(
+    title = models.TextField(
         "Title",
-        max_length=255,
+        blank=True,
         help_text="Enter a title for this finding that will appear in the reports",
     )
     position = models.IntegerField(
@@ -698,15 +698,40 @@ class ReportFindingLink(models.Model):
         ordering = ["report", "severity__weight", "position"]
         verbose_name = "Report finding"
         verbose_name_plural = "Report findings"
+        _extra_fields_model = Finding
 
     def __str__(self):
-        return f"{self.title} on {self.report}"
+        return f"{self.display_title} on {self.report}"
 
     def get_absolute_url(self):
         return reverse("reporting:report_detail", kwargs={"pk": self.report.pk}) + "#findings"
 
     def get_edit_url(self):
         return reverse("reporting:local_edit", kwargs={"pk": self.pk})
+
+    @property
+    def display_title(self) -> str:
+        if self.title:
+            return self.title
+        return "(Untitled Finding)"
+
+    @classmethod
+    def user_can_create(cls, user, report: Report) -> bool:
+        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
+        from ghostwriter.api.utils import verify_access, verify_finding_access
+        return verify_finding_access(user, "create") and verify_access(user, report.project)
+
+    def user_can_view(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self.report.project)
+
+    def user_can_edit(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self.report.project)
+
+    def user_can_delete(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self.report.project)
 
     @property
     def cvss_data(self):
@@ -980,6 +1005,7 @@ class ReportObservationLink(models.Model):
         ordering = ["report", "position"]
         verbose_name = "Report observation"
         verbose_name_plural = "Report observations"
+        _extra_fields_model = Observation
 
     def __str__(self):
         return str(self.title)

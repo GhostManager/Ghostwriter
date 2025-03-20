@@ -1,13 +1,20 @@
-import { createRoot } from "react-dom/client";
 import ReactModal from "react-modal";
+import { Editor } from "@tiptap/core";
+import { createRoot } from "react-dom/client";
 
-import PageGraphqlProvider from "../../graphql/client";
 import { usePageConnection } from "../connection";
 import { FindingFormFields } from "../forms_common/finding";
+import PageGraphqlProvider from "../../graphql/client";
+import { ProvidePageEvidence } from "../../graphql/evidence";
+import EvidenceButton from "../rich_text_editor/evidence";
 
-function FindingForm() {
+const renderToolbarExtra = (editor: Editor) => (
+    <EvidenceButton editor={editor} />
+);
+
+function ReportFindingLinkForm() {
     const { provider, status, connected } = usePageConnection({
-        model: "finding",
+        model: "report_finding_link",
     });
 
     return (
@@ -15,6 +22,7 @@ function FindingForm() {
             provider={provider}
             status={status}
             connected={connected}
+            toolbarExtra={renderToolbarExtra}
         />
     );
 }
@@ -26,7 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const root = createRoot(document.getElementById("collab-form-container")!);
     root.render(
         <PageGraphqlProvider>
-            <FindingForm />
+            <ProvidePageEvidence>
+                <ReportFindingLinkForm />
+            </ProvidePageEvidence>
         </PageGraphqlProvider>
     );
 });

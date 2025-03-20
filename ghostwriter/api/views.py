@@ -46,7 +46,7 @@ from ghostwriter.reporting.models import (
     ReportObservationLink,
     ReportTemplate,
 )
-from ghostwriter.reporting.views import get_position
+from ghostwriter.reporting.views2.report_finding_link import get_position
 from ghostwriter.rolodex.models import (
     Project,
     ProjectContact,
@@ -1191,6 +1191,7 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
         "observation": Observation,
         "report_observation_link": ReportObservationLink,
         "finding": Finding,
+        "report_finding_link": ReportFindingLink,
     }
 
     def post(self, request):
@@ -1215,6 +1216,7 @@ class GetTags(HasuraActionView):
         "observation": Observation,
         "report_observation_link": ReportObservationLink,
         "finding": Finding,
+        "report_finding_link": ReportFindingLink,
     }
 
     def post(self, request: HttpRequest):
@@ -1245,6 +1247,7 @@ class SetTags(HasuraActionView):
         "observation": Observation,
         "report_observation_link": ReportObservationLink,
         "finding": Finding,
+        "report_finding_link": ReportFindingLink,
     }
 
     def post(self, request: HttpRequest):

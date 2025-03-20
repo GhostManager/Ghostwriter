@@ -1,11 +1,13 @@
 
+import logging
+
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.views.generic.list import ListView
 from django.contrib import messages
 from django.views import View
-from django.views.generic.detail import DetailView
+from django.views.generic.detail import DetailView, SingleObjectMixin
+from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.db.models import Q
 
@@ -16,6 +18,7 @@ from ghostwriter.reporting.filters import FindingFilter
 from ghostwriter.reporting.forms import FindingForm, FindingNoteForm
 from ghostwriter.reporting.models import Finding, FindingNote, ReportFindingLink
 
+logger = logging.getLogger(__name__)
 
 class FindingListView(RoleBasedAccessControlMixin, ListView):
     """
@@ -106,6 +109,68 @@ class FindingCreate(RoleBasedAccessControlMixin, View):
             extra_tags="alert-success",
         )
         return redirect("reporting:finding_update", pk=obj.id)
+
+
+class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Create a copy of an individual :model:`reporting.ReportFindingLink` and prepare
+    it to be saved as a new :model:`reporting.Finding`.
+
+    **Template**
+
+    :template:`reporting/finding_form.html`
+    """
+
+    model = ReportFindingLink
+
+    def test_func(self):
+        return Finding.user_can_create(self.request.user) and self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have the necessary permission to create new findings.")
+        return redirect(reverse("reporting:report_detail", kwargs={"pk": self.get_object().report.pk}) + "#findings")
+
+    def get(self, *args, **kwargs):
+        finding_instance = self.get_object()
+        try:
+            form = FindingForm(
+                initial={
+                    "title": finding_instance.title,
+                    "description": finding_instance.description,
+                    "impact": finding_instance.impact,
+                    "mitigation": finding_instance.mitigation,
+                    "replication_steps": finding_instance.replication_steps,
+                    "host_detection_techniques": finding_instance.host_detection_techniques,
+                    "network_detection_techniques": finding_instance.network_detection_techniques,
+                    "references": finding_instance.references,
+                    "severity": finding_instance.severity,
+                    "finding_type": finding_instance.finding_type,
+                    "cvss_score": finding_instance.cvss_score,
+                    "cvss_vector": finding_instance.cvss_vector,
+                    "tags": finding_instance.tags.all(),
+                }
+            )
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+
+            messages.error(
+                self.request,
+                "Encountered an error while trying to convert your finding: {}".format(exception.args),
+                extra_tags="alert-error",
+            )
+            return HttpResponse(status=500)
+
+        return render(self.request, "reporting/finding_form.html", {"form": form})
+
+    def post(self, *args, **kwargs):
+        form = FindingForm(self.request.POST)
+        if form.is_valid():
+            new_finding = form.save()
+            return redirect("reporting:finding_detail", kwargs={"pk": new_finding.pk})
+        logger.warning(form.errors.as_data())
+        return render(self.request, "reporting/finding_form.html", {"form": form})
 
 
 class FindingUpdate(CollabModelUpdate):

@@ -4,7 +4,6 @@
   <table id="findings-table" class="table table-sm table-hover"
          findings-update-url="{% url 'reporting:update_report_findings' %}">
     <tr>
-      <th class="icon ol-list-icon text-center"></th>
       <th class="align-middle">Finding</th>
       <th>CVSS Score</th>
       <th class="align-middle">
@@ -55,12 +54,6 @@
       {% if values.findings %}
         {% for finding in values.findings %}
           <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
-            <td
-              class="holdme align-middle"
-              data-toggle="tooltip"
-              data-placement="top"
-              title="Click-n-drag to reposition or categorize"
-            ></td>
             <td class="align-middle">
               <a id="delete-target-content-finding-{{ finding.id }}"
                 {% if finding.added_as_blank %}
@@ -232,178 +225,6 @@
       $('#confirm-delete-modal').attr('caller-id', $(this).attr('id'));
     });
   });
-
-  {% comment %} Configure table sorting by severity groups {% endcomment %}
-  {% if report.reportfindinglink_set.all %}
-    var update_url = $('#findings-table').attr('findings-update-url');
-    {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
-    {% for group, values in severity_groups.items %}
-      var {{ values.tpl_name }}_sortable = Sortable.create({{ values.tpl_name }}_severity, {
-        items: 'tbody > tr',
-        group: 'severity',
-        animation: 150,
-        filter: '.severity-row-placeholder',
-        ghostClass: 'sortable-ghost',
-        handle: '.holdme',
-
-        // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
-        setData: function (dataTransfer, dragEl) {
-          dataTransfer.setData('text/plain', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
-        },
-
-        // Element is chosen
-        onChoose: function (event) {
-          event.oldIndex;
-        },
-
-        // Element is unchosen
-        onUnchoose: function (event) {
-        },
-
-        // Element dragging started
-        onStart: function (event) {
-          event.oldIndex;
-        },
-
-        // Element is dropped into the list from another list
-        onAdd: function (event) {
-          // Get the placeholder `tr` if it exists
-          let weight = event.to.getAttribute('severity-weight')
-          let placeholder = event.to.getElementsByClassName('severity-row-placeholder')[0];
-          let positions = {{ values.tpl_name }}_sortable.toArray();
-          // Prep AJAX request with CSRF token
-          $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader('X-CSRFToken', csrftoken);
-              }
-            }
-          });
-          // Send AJAX POST request
-          $.ajax(update_url, {
-            type: 'POST',
-            data: {
-              'report': report_id,
-              'severity': event.to.id,
-              'positions': JSON.stringify(positions),
-              'weight': weight
-            },
-            success: function (data) {
-              console.log(data)
-            }
-          });
-          // An "empty" group will have one row, the placeholder row
-          if (event.to.rows.length > 0) {
-            if (placeholder !== undefined) {
-              // Group contains at least one finding, delete the placeholder
-              placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-            }
-          }
-        },
-
-        // Called by any change to the list (add / update / remove)
-        onSort: function (event) {
-          // Code here triggers twice for the element if dragged to another group (two sorts)
-          [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, _) {
-            let cell = el.getElementsByClassName('holdme')[0];
-          });
-        },
-
-        // Changed sorting within list
-        onUpdate: function (event) {
-          let weight = event.item.parentNode.getAttribute('severity-weight')
-          let positions = {{ values.tpl_name }}_sortable.toArray();
-          // Prep AJAX request with CSRF token
-          $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader('X-CSRFToken', csrftoken);
-              }
-            }
-          });
-          // Send AJAX POST request
-          $.ajax(update_url, {
-            type: 'POST',
-            data: {
-              'report': report_id,
-              'severity': event.item.parentNode.id,
-              'positions': JSON.stringify(positions),
-              'weight': weight
-            },
-            success: function (data) {
-              console.log(data);
-            }
-          });
-        },
-
-        // Element is removed from the list into another list
-        onRemove: function (event) {
-          // Get the placeholder `tr` if it exists
-          let placeholder = event.from.getElementsByClassName('severity-row-placeholder')[0];
-          let positions = {{ values.tpl_name }}_sortable.toArray();
-          let weight = event.from.getAttribute('severity-weight')
-          $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader('X-CSRFToken', csrftoken);
-              }
-            }
-          });
-          $.ajax(update_url, {
-            type: 'POST',
-            data: {
-              'report': report_id,
-              'severity': event.from.id,
-              'positions': JSON.stringify(positions),
-              'weight': weight
-            },
-            success: function (data) {
-              console.log(data);
-            }
-          });
-          // An "empty" group will have one row, the placeholder row
-          if (event.from.rows.length === 0) {
-            // Just one row, add a placeholder row
-            let placeholder_row = event.from.insertRow(0)
-            placeholder_row.id = '{{ values.tpl_name }}_placeholder'
-            placeholder_row.className = 'severity-row-placeholder'
-            placeholder_row.setAttribute('data-id', '{{ values.tpl_name }}_placeholder')
-            let cell = placeholder_row.insertCell(0);
-            cell.colSpan = 7
-            cell.innerHTML = 'Add {{ group }} findings or drag-and-drop a finding here to update its severity.'
-          } else {
-            if (placeholder !== undefined) {
-              // Otherwise, delete the placeholder
-              placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-            }
-          }
-        },
-
-        // Event when you move an item in the list or between lists
-        onMove: function (event, originalEvent) {
-          // Code here triggers with every drag to a new position
-        },
-
-        // Attempt to drag a filtered element
-        onFilter: function (event) {
-        },
-
-        // Called when creating a clone of element
-        onClone: function (event) {
-        },
-
-        // Called when dragging element changes position
-        onChange: function (event) {
-          // Code here triggers with every move while drag is in progress
-        },
-
-        // Element dragging ended
-        onEnd: function (event) {
-          // Code here triggers when element is dropped
-        },
-      });
-    {% endfor %}
-  {% endif %}
 
   {% comment %} Set finding status with AJAX {% endcomment %}
   $('.js-set-finding-status').each(function () {

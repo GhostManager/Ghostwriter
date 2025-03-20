@@ -5,6 +5,7 @@ from django.views.generic.detail import DetailView
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.conf import settings
+from django.db.models import Model
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, generate_jwt
 from ghostwriter.commandcenter.models import ExtraFieldSpec
@@ -24,7 +25,7 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
     unauthorized_redirect = "home:dashboard"
 
     # If set, also adds the extra fields for the model
-    has_extra_fields = True
+    has_extra_fields: bool | type[Model] = True
 
     def test_func(self):
         return self.get_object().user_can_edit(self.request.user)
@@ -39,7 +40,11 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
         context["jwt"] = generate_jwt(self.request.user)[1]
         context["media_url"] = settings.MEDIA_URL
         if self.has_extra_fields:
+            if self.has_extra_fields is True:
+                extra_fields_model = self.model
+            else:
+                extra_fields_model = self.has_extra_fields
             context["extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
-                ExtraFieldSpec.for_model(self.model), many=True
+                ExtraFieldSpec.for_model(extra_fields_model), many=True
             ).data
         return context
