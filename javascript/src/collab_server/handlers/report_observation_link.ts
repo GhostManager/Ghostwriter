@@ -12,7 +12,7 @@ const GET = gql(`
         tags(model: "report_observation_link", id: $id) {
             tags
         }
-        extraFieldSpec(where:{targetModel:{_eq:"reporting.ReportObservationLink"}}) {
+        extraFieldSpec(where:{targetModel:{_eq:"reporting.Observation"}}) {
             internalName, type
         }
     }

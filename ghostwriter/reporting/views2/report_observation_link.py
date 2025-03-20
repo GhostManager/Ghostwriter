@@ -200,6 +200,7 @@ class ReportObservationLinkUpdate(CollabModelUpdate):
     model = ReportObservationLink
     template_name = "reporting/report_observation_link_update.html"
     unauthorized_redirect = "home:dashboard"
+    has_extra_fields = Observation
 
 
 @login_required
