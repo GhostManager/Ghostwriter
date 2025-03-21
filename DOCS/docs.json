@@ -336,5 +336,10 @@
       "format": "woff2",
       "source": "https://fonts.gstatic.com/s/nunitosans/v15/pe0TMImSLYBIv1o4X1M8ce2xCx3yop4tQpF_MeTm0lfGWVpNn64CL7U8upHZIbMV51Q42ptCp7t1R-s.woff2"
     }
+  },
+  "integrations": {
+   "plausible": {
+     "domain": "ghostwriter.wiki"
+    }
   }
 }
