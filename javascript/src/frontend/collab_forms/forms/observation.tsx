@@ -24,7 +24,7 @@ function ObservationForm() {
                                 className: "form-control",
                             }}
                             connected={connected}
-                            map={provider.document.getMap("plain_fields")}
+                            provider={provider}
                             mapKey="title"
                         />
                     </div>
@@ -38,7 +38,7 @@ function ObservationForm() {
                             id="id_tags"
                             className="form-control"
                             connected={connected}
-                            doc={provider.document}
+                            provider={provider}
                             docKey="tags"
                         />
                     </div>

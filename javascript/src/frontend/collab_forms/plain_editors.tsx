@@ -2,6 +2,12 @@
 
 import * as Y from "yjs";
 import { useEffect, useMemo, useReducer, useState } from "react";
+import { HocuspocusProvider } from "@hocuspocus/provider";
+import {
+    FocusedUsersList,
+    setFocusStyles,
+    useYMapFocus,
+} from "./plain_editors/focus";
 
 /**
  * Gets and observes a YJS map key.
@@ -41,59 +47,79 @@ export function usePlainField<T>(
 }
 
 export function BaseInput<T>(props: {
-    connected: boolean;
-    map: Y.Map<T>;
+    provider: HocuspocusProvider;
     mapKey: string;
+    connected: boolean;
     toString: (v: T) => string;
     parse: (v: string) => T | null;
     defaultValue: T;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }) {
+    const map = useMemo(
+        () => props.provider.document.get("plain_fields", Y.Map<any>)!,
+        [props.provider]
+    );
     const [docValue, setDocValue] = usePlainField<T>(
-        props.map,
+        map,
         props.mapKey,
         props.defaultValue
     );
     const [formValue, setFormValue] = useState<string | null>(null);
+    const { focusedUsers, onFocus, onBlur } = useYMapFocus(
+        props.provider.awareness!,
+        map,
+        props.mapKey
+    );
+
+    const style = setFocusStyles(focusedUsers, props.inputProps?.style);
 
     return (
-        <input
-            {...props.inputProps}
-            disabled={!props.connected}
-            value={formValue === null ? props.toString(docValue) : formValue}
-            onInput={(ev) => {
-                setFormValue((ev.target as HTMLInputElement).value);
-            }}
-            onBlur={() => {
-                if (formValue === null) return;
-                const parsed = props.parse(formValue);
-                if (parsed === null || parsed === docValue) {
-                    setFormValue(null);
-                    return;
+        <>
+            <input
+                {...props.inputProps}
+                style={style}
+                disabled={!props.connected}
+                value={
+                    formValue === null ? props.toString(docValue) : formValue
                 }
-                setDocValue(parsed);
-                setFormValue(null);
-            }}
-            onKeyUp={(ev) => {
-                if (ev.key !== "Enter" || formValue === null) return;
-                const parsed = props.parse(formValue);
-                if (parsed === null || parsed === docValue) {
+                onInput={(ev) => {
+                    setFormValue((ev.target as HTMLInputElement).value);
+                }}
+                onFocus={onFocus}
+                onBlur={() => {
+                    onBlur();
+
+                    if (formValue === null) return;
+                    const parsed = props.parse(formValue);
+                    if (parsed === null || parsed === docValue) {
+                        setFormValue(null);
+                        return;
+                    }
+                    setDocValue(parsed);
                     setFormValue(null);
-                    return;
-                }
-                setDocValue(parsed);
-                setFormValue(null);
-            }}
-        />
+                }}
+                onKeyUp={(ev) => {
+                    if (ev.key !== "Enter" || formValue === null) return;
+                    const parsed = props.parse(formValue);
+                    if (parsed === null || parsed === docValue) {
+                        setFormValue(null);
+                        return;
+                    }
+                    setDocValue(parsed);
+                    setFormValue(null);
+                }}
+            />
+            <FocusedUsersList focusedUsers={focusedUsers} />
+        </>
     );
 }
 
 const identity = (v: string) => v;
 
 export function PlainTextInput(props: {
-    connected: boolean;
-    map: Y.Map<any>;
+    provider: HocuspocusProvider;
     mapKey: string;
+    connected: boolean;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }) {
     const inputProps = {
@@ -102,7 +128,9 @@ export function PlainTextInput(props: {
     };
     return (
         <BaseInput
-            {...props}
+            provider={props.provider}
+            mapKey={props.mapKey}
+            connected={props.connected}
             inputProps={inputProps}
             parse={identity}
             toString={identity}
@@ -118,9 +146,9 @@ const tryToNumber = (v: string) => {
 };
 
 export function NumberInput(props: {
-    connected: boolean;
-    map: Y.Map<any>;
+    provider: HocuspocusProvider;
     mapKey: string;
+    connected: boolean;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
     defaultValue?: number;
 }) {
@@ -146,9 +174,9 @@ const tryToInteger = (v: string) => {
 };
 
 export function IntegerInput(props: {
-    connected: boolean;
-    map: Y.Map<any>;
+    provider: HocuspocusProvider;
     mapKey: string;
+    connected: boolean;
     inputProps?: React.HTMLAttributes<HTMLInputElement>;
     defaultValue?: number;
 }) {
@@ -173,9 +201,9 @@ const tryToFloat = (v: string) => {
 };
 
 export function FloatInput(props: {
-    connected: boolean;
-    map: Y.Map<any>;
+    provider: HocuspocusProvider;
     mapKey: string;
+    connected: boolean;
     inputProps?: React.HTMLAttributes<HTMLInputElement>;
     defaultValue?: number;
 }) {
@@ -197,13 +225,17 @@ export function FloatInput(props: {
 
 export function CheckboxInput(props: {
     connected: boolean;
-    map: Y.Map<any>;
+    provider: HocuspocusProvider;
     mapKey: string;
     inputProps?: React.HTMLAttributes<HTMLInputElement>;
     defaultValue?: boolean;
 }) {
+    const map = useMemo(
+        () => props.provider.document.get("plain_fields", Y.Map<any>),
+        [props.provider]
+    );
     const [docValue, setDocValue] = usePlainField<boolean>(
-        props.map,
+        map,
         props.mapKey,
         props.defaultValue ?? false
     );

@@ -281,3 +281,27 @@
         white-space: nowrap;
     }
 }
+
+ul.collab-focused-users {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.1rem;
+
+    > li {
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px 3px 3px 0;
+        color: #0d0d0d;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 600;
+        user-select: none;
+        white-space: nowrap;
+    }
+}

@@ -4,15 +4,32 @@ import * as Y from "yjs";
 import Tagify from "@yaireo/tagify";
 
 import "./editor.scss";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { HocuspocusProvider } from "@hocuspocus/provider";
+import {
+    FocusedUsersList,
+    setFocusStyles,
+    useYMapFocus,
+} from "./plain_editors/focus";
 
 export function TagEditor(props: {
     connected: boolean;
-    doc: Y.Doc;
+    provider: HocuspocusProvider;
     docKey: string;
     id?: string;
     className?: string;
 }) {
+    const map = useMemo(
+        () => props.provider.document.get(props.docKey, Y.Map<boolean>),
+        [props.provider, props.docKey]
+    );
+
+    const { focusedUsers, onFocus, onBlur } = useYMapFocus(
+        props.provider.awareness!,
+        map,
+        ""
+    );
+
     const inputRef = useRef<HTMLInputElement>(null);
     const taggify = useRef<Tagify | null>(null);
     useEffect(() => {
@@ -24,7 +41,6 @@ export function TagEditor(props: {
             },
         });
 
-        const map = props.doc.get(props.docKey, Y.Map);
         taggify.current.addTags(Array.from(map.keys()));
 
         map.observe((ev, _tx) => {
@@ -56,11 +72,26 @@ export function TagEditor(props: {
             map.delete(oldTag);
             map.set(newTag, true);
         });
+        taggify.current.on("focus", onFocus);
+        taggify.current.on("blur", onBlur);
 
         return () => {
             taggify.current?.destroy();
         };
-    }, []);
+    }, [map]);
 
-    return <input id={props.id} type="text" ref={inputRef} />;
+    const style = setFocusStyles(focusedUsers);
+    useEffect(() => {
+        taggify.current!.DOM.scope.style.setProperty(
+            "outline",
+            (style.outline ?? "") as string
+        );
+    }, [style.outline]);
+
+    return (
+        <>
+            <input id={props.id} type="text" ref={inputRef} />
+            <FocusedUsersList focusedUsers={focusedUsers} />
+        </>
+    );
 }

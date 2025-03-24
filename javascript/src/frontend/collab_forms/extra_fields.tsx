@@ -70,7 +70,7 @@ function ExtraFieldInput(props: {
             return (
                 <CheckboxInput
                     connected={props.connected}
-                    map={map}
+                    provider={props.provider}
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
                 />
@@ -79,7 +79,7 @@ function ExtraFieldInput(props: {
             return (
                 <NumberInput
                     connected={props.connected}
-                    map={map}
+                    provider={props.provider}
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
                 />
@@ -88,7 +88,7 @@ function ExtraFieldInput(props: {
             return (
                 <IntegerInput
                     connected={props.connected}
-                    map={map}
+                    provider={props.provider}
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
                 />
@@ -97,7 +97,7 @@ function ExtraFieldInput(props: {
             return (
                 <PlainTextInput
                     connected={props.connected}
-                    map={map}
+                    provider={props.provider}
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
                 />

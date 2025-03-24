@@ -65,7 +65,7 @@ export function FindingFormFields({
                                     className: "form-control",
                                 }}
                                 connected={connected}
-                                map={plainFields}
+                                provider={provider}
                                 mapKey="title"
                             />
                         </div>
@@ -79,7 +79,7 @@ export function FindingFormFields({
                                 id="id_tags"
                                 className="form-control"
                                 connected={connected}
-                                doc={provider.document}
+                                provider={provider}
                                 docKey="tags"
                             />
                         </div>
@@ -97,7 +97,7 @@ export function FindingFormFields({
                             <Dropdown
                                 id="collab-form-finding-type"
                                 className="select custom-select"
-                                map={plainFields}
+                                provider={provider}
                                 mapKey="findingTypeId"
                                 optionsQuery={GET_FINDING_TYPES}
                                 optionsVars={EMPTY}
@@ -118,7 +118,7 @@ export function FindingFormFields({
                             <Dropdown
                                 id="collab-form-severity"
                                 className="select custom-select"
-                                map={plainFields}
+                                provider={provider}
                                 mapKey="severityId"
                                 connected={connected}
                                 optionsQuery={GET_SEVERITIES}
@@ -143,9 +143,9 @@ export function FindingFormFields({
                                 id: "collab-form-cvss-score",
                                 className: "form-control numberinput",
                             }}
-                            connected={connected}
-                            map={plainFields}
+                            provider={provider}
                             mapKey="cvssScore"
+                            connected={connected}
                         />
                         <small className="form-text text-muted">
                             Set the CVSS score for this finding
@@ -163,7 +163,7 @@ export function FindingFormFields({
                                 maxLength: 255,
                             }}
                             connected={connected}
-                            map={plainFields}
+                            provider={provider}
                             mapKey="cvssVector"
                         />
                         <small className="form-text text-muted">
@@ -180,8 +180,8 @@ export function FindingFormFields({
                 <label>Description</label>
                 <div>
                     <RichTextEditor
-                        connected={connected}
                         provider={provider}
+                        connected={connected}
                         fragment={provider.document.getXmlFragment(
                             "description"
                         )}

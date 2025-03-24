@@ -5,6 +5,13 @@ import {
 } from "@apollo/client";
 import * as Y from "yjs";
 import { usePlainField } from "./plain_editors";
+import { HocuspocusProvider } from "@hocuspocus/provider";
+import { useMemo } from "react";
+import {
+    FocusedUsersList,
+    setFocusStyles,
+    useYMapFocus,
+} from "./plain_editors/focus";
 
 /**
  * Dropdown filled via a graphql query and read from/written to a YJS map.
@@ -13,8 +20,7 @@ export default function Dropdown<
     TData,
     TVars extends OperationVariables,
 >(props: {
-    // YJS map that stores the value
-    map: Y.Map<any>;
+    provider: HocuspocusProvider;
     // Key of the YJS map
     mapKey: string;
     // Apollo query to fetch containing the options
@@ -31,39 +37,56 @@ export default function Dropdown<
     // ID to apply to the select element
     id?: string;
 }) {
+    const map = useMemo(
+        () => props.provider.document.get("plain_fields", Y.Map<any>),
+        [props.provider]
+    );
     const { data } = useQuery(props.optionsQuery, {
         variables: props.optionsVars,
         pollInterval: 10000,
     });
 
     const [selected, setSelected] = usePlainField<number | null>(
-        props.map,
+        map,
         props.mapKey,
         null
     );
 
+    const { focusedUsers, onFocus, onBlur } = useYMapFocus(
+        props.provider.awareness!,
+        map,
+        props.mapKey
+    );
+    const style = setFocusStyles(focusedUsers);
+
     return (
-        <select
-            id={props.id}
-            className={props.className}
-            value={selected?.toString()}
-            onChange={(e) => {
-                setSelected(
-                    e.target.value === "" ? null : parseInt(e.target.value)
-                );
-            }}
-            disabled={!props.connected}
-        >
-            {props.unselectedText ? (
-                <option value="">{props.unselectedText}</option>
-            ) : null}
-            {data
-                ? props.convertOptions(data).map(([id, text]) => (
-                      <option key={id} value={id}>
-                          {text}
-                      </option>
-                  ))
-                : null}
-        </select>
+        <>
+            <select
+                id={props.id}
+                className={props.className}
+                style={style}
+                value={selected?.toString()}
+                onChange={(e) => {
+                    setSelected(
+                        e.target.value === "" ? null : parseInt(e.target.value)
+                    );
+                }}
+                onFocus={onFocus}
+                onBlur={onBlur}
+                disabled={!props.connected}
+            >
+                {props.unselectedText ? (
+                    <option value="">{props.unselectedText}</option>
+                ) : null}
+                {data
+                    ? props.convertOptions(data).map(([id, text]) => (
+                          <option key={id} value={id}>
+                              {text}
+                          </option>
+                      ))
+                    : null}
+            </select>
+            <FocusedUsersList focusedUsers={focusedUsers} />
+        </>
     );
 }
