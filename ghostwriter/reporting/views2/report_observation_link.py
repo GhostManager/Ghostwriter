@@ -41,6 +41,7 @@ class CloneObservationLinkToObservation(RoleBasedAccessControlMixin, SingleObjec
         )
         observation.save()
         observation.tags.set(rol.tags.names())
+        messages.info(self.request, "Observation cloned to library.")
         return HttpResponseRedirect(reverse("reporting:observation_detail", kwargs={"pk": observation.pk}))
 
 

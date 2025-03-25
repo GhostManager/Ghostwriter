@@ -189,9 +189,10 @@
                      set-finding-status-csrftoken="{{ csrf_token }}"
                      set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
                      set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
-                  <a class="dropdown-item icon clone-icon"
-                     href="{% url 'reporting:convert_finding' finding.id %}">Clone
-                    to Library</a>
+                  <form style="display:contents" action="{% url 'reporting:convert_finding' finding.id %}" method="post">
+                    {% csrf_token %}
+                    <button class="dropdown-item icon clone-icon">Clone to Library</button>
+                  </form>
                   <a id="finding-delete-button-{{ finding.id }}"
                      class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
                      data-target="#confirm-delete-modal" href="javascript:void(0);"

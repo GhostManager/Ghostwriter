@@ -66,10 +66,7 @@ from ghostwriter.reporting.filters import (
 )
 from ghostwriter.reporting.forms import (
     EvidenceForm,
-    FindingForm,
-    FindingNoteForm,
     LocalFindingNoteForm,
-    ReportFindingLinkUpdateForm,
     ReportForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
@@ -79,17 +76,15 @@ from ghostwriter.reporting.models import (
     Evidence,
     Finding,
     FindingNote,
-    FindingType,
     LocalFindingNote,
     Observation,
     Report,
     ReportFindingLink,
     ReportObservationLink,
     ReportTemplate,
-    Severity,
 )
 from ghostwriter.reporting.resources import FindingResource, ObservationResource
-from ghostwriter.rolodex.models import Project, ProjectAssignment
+from ghostwriter.rolodex.models import Project
 
 channel_layer = get_channel_layer()
 
