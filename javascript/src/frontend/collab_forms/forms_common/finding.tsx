@@ -2,11 +2,11 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Editor } from "@tiptap/core";
 
 import { ConnectionStatus } from "../connection";
-import { FloatInput, PlainTextInput } from "../plain_editors";
-import { TagEditor } from "../tag_editor";
+import { FloatInput, PlainTextInput } from "../plain_editors/input";
+import { TagEditor } from "../plain_editors/tag_editor";
 import RichTextEditor from "../rich_text_editor";
 import ExtraFieldsSection from "../extra_fields";
-import Dropdown from "../dropdown";
+import Dropdown from "../plain_editors/dropdown";
 import { gql } from "../../../__generated__";
 import {
     Get_Finding_TypesQuery,

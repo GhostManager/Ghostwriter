@@ -2,15 +2,9 @@
 
 import * as Y from "yjs";
 import Tagify from "@yaireo/tagify";
-
-import "./editor.scss";
 import { useEffect, useMemo, useRef } from "react";
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import {
-    FocusedUsersList,
-    setFocusStyles,
-    useYMapFocus,
-} from "./plain_editors/focus";
+import { FocusedUsersList, setFocusStyles, useYMapFocus } from "./focus";
 
 export function TagEditor(props: {
     connected: boolean;

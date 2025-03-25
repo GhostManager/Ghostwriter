@@ -1,5 +1,5 @@
 import * as Y from "yjs";
-import { usePlainField } from "./plain_editors";
+import { usePlainField } from "./field";
 import { useState } from "react";
 
 export default function JsonEditor(props: {

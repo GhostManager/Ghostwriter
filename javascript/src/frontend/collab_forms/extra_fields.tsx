@@ -4,8 +4,8 @@ import {
     IntegerInput,
     NumberInput,
     PlainTextInput,
-} from "./plain_editors";
-import JsonEditor from "./json_editor";
+} from "./plain_editors/input";
+import JsonEditor from "./plain_editors/json_editor";
 import RichTextEditor from "./rich_text_editor";
 import { XmlFragment } from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";

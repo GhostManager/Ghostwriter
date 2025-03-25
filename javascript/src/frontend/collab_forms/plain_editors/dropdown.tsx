@@ -4,14 +4,10 @@ import {
     useQuery,
 } from "@apollo/client";
 import * as Y from "yjs";
-import { usePlainField } from "./plain_editors";
+import { usePlainField } from "./field";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { useMemo } from "react";
-import {
-    FocusedUsersList,
-    setFocusStyles,
-    useYMapFocus,
-} from "./plain_editors/focus";
+import { FocusedUsersList, setFocusStyles, useYMapFocus } from "./focus";
 
 /**
  * Dropdown filled via a graphql query and read from/written to a YJS map.

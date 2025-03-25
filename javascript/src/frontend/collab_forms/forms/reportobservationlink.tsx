@@ -1,8 +1,8 @@
 import { createRoot } from "react-dom/client";
 
 import { ConnectionStatus, usePageConnection } from "../connection";
-import { PlainTextInput } from "../plain_editors";
-import { TagEditor } from "../tag_editor";
+import { PlainTextInput } from "../plain_editors/input";
+import { TagEditor } from "../plain_editors/tag_editor";
 import RichTextEditor from "../rich_text_editor";
 import ExtraFieldsSection from "../extra_fields";
 import EvidenceButton from "../rich_text_editor/evidence";
