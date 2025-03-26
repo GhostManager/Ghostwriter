@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
 # 3rd Party Libraries
-from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
+from crispy_forms.bootstrap import FieldWithButtons
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -34,7 +34,6 @@ from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import (
     Evidence,
-    Finding,
     FindingNote,
     LocalFindingNote,
     Observation,
@@ -45,6 +44,27 @@ from ghostwriter.reporting.models import (
     Severity,
 )
 from ghostwriter.rolodex.models import Project
+
+class AssignReportFindingForm(forms.ModelForm):
+    class Meta:
+        model = ReportFindingLink
+        fields = ("assigned_to",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Field("assigned_to"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML("""
+                    <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
+                """)
+            )
+        )
 
 class ReportForm(forms.ModelForm):
     """

@@ -181,6 +181,8 @@
                     Evidence</a>
                   <a class="dropdown-item icon edit-icon"
                      href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
+                  <a class="dropdown-item icon user-icon"
+                     href="{% url 'reporting:local_assign' finding.id %}">Re-Assign</a>
                   <a class="dropdown-item icon toggle-off-icon js-set-finding-status" href="javascript:void(0);"
                      set-finding-status-csrftoken="{{ csrf_token }}"
                      set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"

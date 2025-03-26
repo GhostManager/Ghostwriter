@@ -205,6 +205,11 @@ urlpatterns += [
         name="local_edit",
     ),
     path(
+        "reports/findings/assign/<int:pk>",
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingAssign.as_view(),
+        name="local_assign",
+    ),
+    path(
         "reports/observations/update/<int:pk>",
         ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkUpdate.as_view(),
         name="local_observation_edit",

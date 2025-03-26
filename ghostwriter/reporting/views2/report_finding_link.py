@@ -1,21 +1,32 @@
 
 import logging
 import json
+from socket import gaierror
 
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.views import View
 from django.views.generic.detail import SingleObjectMixin
+from django.views.generic.edit import UpdateView
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin, verify_access
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.reporting.forms import AssignReportFindingForm
 from ghostwriter.reporting.models import Finding, FindingType, Report, ReportFindingLink, Severity
+from ghostwriter.rolodex.models import ProjectAssignment
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 
 def get_position(report_pk, severity):
@@ -316,113 +327,62 @@ def ajax_update_report_findings(request):
     return JsonResponse(data)
 
 
-# class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
-#     """
-#     Update an individual instance of :model:`reporting.ReportFindingLink`.
+class ReportFindingAssign(RoleBasedAccessControlMixin, UpdateView):
+    model = ReportFindingLink
+    form_class = AssignReportFindingForm
+    template_name = "reporting/report_finding_link_assign.html"
 
-#     **Context**
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
 
-#     ``cancel_link``
-#         Link for the form's Cancel button to return to report's detail page
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
-#     **Template**
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#findings"
+        return ctx
 
-#     :template:`reporting/local_edit.html.html`
-#     """
+    def get_form(self, form_class=None):
+        self.old_assignment = self.object.assigned_to
+        form = super().get_form(form_class)
+        user_primary_keys = ProjectAssignment.objects.filter(project=self.object.report.project).values_list(
+            "operator", flat=True
+        )
+        form.fields["assigned_to"].queryset = User.objects.filter(id__in=user_primary_keys)
+        return form
 
-#     model = ReportFindingLink
-#     form_class = ReportFindingLinkUpdateForm
-#     template_name = "reporting/local_edit.html"
-#     success_url = reverse_lazy("reporting:reports")
+    def form_valid(self, form: AssignReportFindingForm):
+        if self.old_assignment == self.object.assigned_to:
+            if self.object.assigned_to:
+                messages.info(self.request, "The finding was already assigned to this user. No changes made.")
+            else:
+                messages.info(self.request, "The finding was already unassigned. No changes made.")
+            return HttpResponseRedirect(self.get_success_url())
+        try:
+            # Send a message to the assigned user
+            async_to_sync(get_channel_layer().group_send)(
+                f"notify_{self.object.assigned_to.get_clean_username() if self.object.assigned_to else None}",
+                {
+                    "type": "message",
+                    "message": {
+                        "message": "You have been assigned to this finding for {}:\n{}".format(
+                            self.object.report, self.object.title
+                        ),
+                        "level": "info",
+                        "title": "New Assignment",
+                    },
+                },
+            )
+        except gaierror:
+            # WebSocket are unavailable (unit testing)
+            pass
+        if self.object.assigned_to:
+            messages.success(self.request, "Finding reassigned successfully.")
+        else:
+            messages.success(self.request, "Finding unassigned successfully.")
+        return super().form_valid(form)
 
-#     def test_func(self):
-#         return verify_access(self.request.user, self.get_object().report.project)
-
-#     def handle_no_permission(self):
-#         messages.error(self.request, "You do not have permission to access that.")
-#         return redirect("home:dashboard")
-
-#     def get_context_data(self, **kwargs):
-#         ctx = super().get_context_data(**kwargs)
-#         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#findings"
-#         return ctx
-
-#     def form_valid(self, form):
-#         if form.changed_data:
-#             changed_at = dateformat.format(timezone.now(), "H:i:s e")
-#             async_to_sync(channel_layer.group_send)(
-#                 "finding_{}".format(self.object.id),
-#                 {
-#                     "type": "message",
-#                     "message": {
-#                         "message": f"User {self.request.user.username} updated this finding at {changed_at}.",
-#                         "level": "warning",
-#                         "title": "Content Has Changed",
-#                     },
-#                 },
-#             )
-
-#         # Send Websockets messages if assignment changed
-#         if "assigned_to" in form.changed_data:
-#             # Get the entries current values (those being changed)
-#             old_entry = ReportFindingLink.objects.get(pk=self.object.pk)
-#             old_assignee = old_entry.assigned_to
-#             # Notify new assignee over WebSockets
-#             if "assigned_to" in form.changed_data:
-#                 # Only notify if the assignee is not the user who made the change
-#                 if self.request.user != self.object.assigned_to:
-#                     try:
-#                         # Send a message to the assigned user
-#                         async_to_sync(channel_layer.group_send)(
-#                             f"notify_{self.object.assigned_to.get_clean_username() if self.object.assigned_to else None}",
-#                             {
-#                                 "type": "message",
-#                                 "message": {
-#                                     "message": "You have been assigned to this finding for {}:\n{}".format(
-#                                         self.object.report, self.object.title
-#                                     ),
-#                                     "level": "info",
-#                                     "title": "New Assignment",
-#                                 },
-#                             },
-#                         )
-#                     except gaierror:
-#                         # WebSocket are unavailable (unit testing)
-#                         pass
-#                 if self.request.user != old_assignee:
-#                     try:
-#                         # Send a message to the unassigned user
-#                         async_to_sync(channel_layer.group_send)(
-#                             f"notify_{old_assignee.get_clean_username() if old_assignee else None}",
-#                             {
-#                                 "type": "message",
-#                                 "message": {
-#                                     "message": "You have been unassigned from this finding for {}:\n{}".format(
-#                                         self.object.report, self.object.title
-#                                     ),
-#                                     "level": "info",
-#                                     "title": "Assignment Change",
-#                                 },
-#                             },
-#                         )
-#                     except gaierror:
-#                         # WebSocket are unavailable (unit testing)
-#                         pass
-#         return super().form_valid(form)
-
-#     def get_form(self, form_class=None):
-#         form = super().get_form(form_class)
-#         user_primary_keys = ProjectAssignment.objects.filter(project=self.object.report.project).values_list(
-#             "operator", flat=True
-#         )
-#         form.fields["assigned_to"].queryset = User.objects.filter(id__in=user_primary_keys)
-#         return form
-
-#     def get_success_url(self):
-#         messages.success(
-#             self.request,
-#             "Successfully updated {}.".format(self.get_object().title),
-#             extra_tags="alert-success",
-#         )
-#         return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id}) + "#findings"
-
+    def get_success_url(self):
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id}) + "#findings"
