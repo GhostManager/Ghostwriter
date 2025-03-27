@@ -950,6 +950,12 @@ class Observation(models.Model):
     def get_absolute_url(self):
         return reverse("reporting:observation_detail", args=[str(self.id)])
 
+    @property
+    def display_title(self) -> str:
+        if self.title:
+            return self.title
+        return "(Untitled Observation)"
+
     @classmethod
     def user_can_create(cls, user) -> bool:
         # TODO: dynamic import to fix circular reference. Should refactor utils.py...

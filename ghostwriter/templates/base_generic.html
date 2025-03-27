@@ -188,7 +188,12 @@
               {% comment %} Findings Submenu Items {% endcomment %}
               <li><a class="icon list-icon" href="{% url 'reporting:findings' %}">Finding Library</a></li>
               {% if request.user|can_create_finding %}
-                <li><a class="icon plus-icon" href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
+                <li>
+                  <form action="{% url 'reporting:finding_create' %}" method="POST" style="display:contents">
+                    {% csrf_token %}
+                    <button class="icon plus-icon">Add New Finding</a>
+                  </form>
+                </li>
               {% endif %}
             </ul>
           </li>

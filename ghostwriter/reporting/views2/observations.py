@@ -10,6 +10,7 @@ from django.urls import reverse, reverse_lazy
 from django.db.models import Q
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin
+from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.reporting.filters import ObservationFilter
 from ghostwriter.reporting.models import Observation
@@ -85,7 +86,9 @@ class ObservationCreate(RoleBasedAccessControlMixin, View):
         return redirect("reporting:observations")
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        obj = Observation()
+        obj = Observation(
+            extra_fields=ExtraFieldSpec.initial_json(Observation),
+        )
         obj.save()
         messages.success(
             self.request,

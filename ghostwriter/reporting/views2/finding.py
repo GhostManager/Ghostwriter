@@ -101,7 +101,9 @@ class FindingCreate(RoleBasedAccessControlMixin, View):
         return redirect("reporting:findings")
 
     def post(self, request) -> HttpResponse:
-        obj = Finding()
+        obj = Finding(
+            extra_fields=ExtraFieldSpec.initial_json(Finding),
+        )
         obj.save()
         messages.success(
             self.request,

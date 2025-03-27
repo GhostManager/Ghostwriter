@@ -13,6 +13,7 @@ from django.views import View
 from django.views.generic.detail import SingleObjectMixin
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin, verify_access
+from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.reporting.models import Observation, Report, ReportObservationLink
 from ghostwriter.commandcenter.views import CollabModelUpdate
 
@@ -137,6 +138,7 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
                 report=obj,
                 position=position,
                 added_as_blank=True,
+                extra_fields=ExtraFieldSpec.initial_json(Observation),
             )
             report_link.save()
 
