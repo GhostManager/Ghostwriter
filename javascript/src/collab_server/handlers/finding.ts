@@ -1,10 +1,10 @@
 import { gql } from "../../__generated__/";
-import { ModelHandler } from "../base_handler";
+import { simpleModelHandler } from "../base_handler";
 import * as Y from "yjs";
 import { htmlToYjs, tagsToYjs, yjsToHtml, yjsToTags } from "../yjs_converters";
 import { extraFieldsFromYdoc, extraFieldsToYdoc } from "../extra_fields";
 
-const GET_FINDING = gql(`
+const GET = gql(`
     query GET_FINDING($id: bigint!) {
         finding_by_pk(id: $id) {
             title,
@@ -31,7 +31,7 @@ const GET_FINDING = gql(`
     }
 `);
 
-const SET_FINDING = gql(`
+const SET = gql(`
     mutation SET_FINDING(
         $id:bigint!,
         $set:finding_set_input!,
@@ -46,103 +46,73 @@ const SET_FINDING = gql(`
     }
 `);
 
-export default class FindingHandler extends ModelHandler {
-    async load(): Promise<Y.Doc> {
-        const res = await this.client.query({
-            query: GET_FINDING,
-            variables: {
-                id: this.id,
-            },
-        });
-        if (res.error || res.errors) {
-            throw res.error || res.errors;
-        }
-        const obj = res.data.finding_by_pk;
+const FindingHandler = simpleModelHandler(
+    GET,
+    SET,
+    (doc, res) => {
+        const obj = res.finding_by_pk;
         if (!obj) throw new Error("No object");
+        const plain_fields = doc.get("plain_fields", Y.Map);
+        plain_fields.set("title", obj.title);
+        plain_fields.set("cvssScore", obj.cvssScore);
+        plain_fields.set("cvssVector", obj.cvssVector);
+        plain_fields.set("findingTypeId", obj.findingTypeId);
+        plain_fields.set("severityId", obj.severity.id);
+        htmlToYjs(obj.description, doc.get("description", Y.XmlFragment));
+        htmlToYjs(obj.impact, doc.get("impact", Y.XmlFragment));
+        htmlToYjs(obj.mitigation, doc.get("mitigation", Y.XmlFragment));
+        htmlToYjs(
+            obj.replication_steps,
+            doc.get("replicationSteps", Y.XmlFragment)
+        );
+        htmlToYjs(
+            obj.hostDetectionTechniques,
+            doc.get("hostDetectionTechniques", Y.XmlFragment)
+        );
+        htmlToYjs(
+            obj.networkDetectionTechniques,
+            doc.get("networkDetectionTechniques", Y.XmlFragment)
+        );
+        htmlToYjs(obj.references, doc.get("references", Y.XmlFragment));
+        htmlToYjs(
+            obj.findingGuidance,
+            doc.get("findingGuidance", Y.XmlFragment)
+        );
+        tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
+        extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
+    },
+    (doc, id) => {
+        const plainFields = doc.get("plain_fields", Y.Map<any>);
+        const extraFields = extraFieldsFromYdoc(doc);
+        return {
+            id: 123,
+            set: {
+                title: plainFields.get("title") ?? "",
+                cvssScore: plainFields.get("cvssScore") ?? null,
+                cvssVector: plainFields.get("cvssVector") ?? "",
+                findingTypeId: plainFields.get("findingTypeId"),
+                severityId: plainFields.get("severityId"),
 
-        const doc = new Y.Doc();
-
-        doc.transact(() => {
-            const plain_fields = doc.get("plain_fields", Y.Map);
-            plain_fields.set("title", obj.title);
-            plain_fields.set("cvssScore", obj.cvssScore);
-            plain_fields.set("cvssVector", obj.cvssVector);
-            plain_fields.set("findingTypeId", obj.findingTypeId);
-            plain_fields.set("severityId", obj.severity.id);
-            htmlToYjs(obj.description, doc.get("description", Y.XmlFragment));
-            htmlToYjs(obj.impact, doc.get("impact", Y.XmlFragment));
-            htmlToYjs(obj.mitigation, doc.get("mitigation", Y.XmlFragment));
-            htmlToYjs(
-                obj.replication_steps,
-                doc.get("replicationSteps", Y.XmlFragment)
-            );
-            htmlToYjs(
-                obj.hostDetectionTechniques,
-                doc.get("hostDetectionTechniques", Y.XmlFragment)
-            );
-            htmlToYjs(
-                obj.networkDetectionTechniques,
-                doc.get("networkDetectionTechniques", Y.XmlFragment)
-            );
-            htmlToYjs(obj.references, doc.get("references", Y.XmlFragment));
-            htmlToYjs(
-                obj.findingGuidance,
-                doc.get("findingGuidance", Y.XmlFragment)
-            );
-            tagsToYjs(res.data.tags.tags, doc.get("tags", Y.Map<boolean>));
-            extraFieldsToYdoc(res.data.extraFieldSpec, doc, obj.extraFields);
-        });
-
-        return doc;
+                description: yjsToHtml(doc.get("description", Y.XmlFragment)),
+                impact: yjsToHtml(doc.get("impact", Y.XmlFragment)),
+                mitigation: yjsToHtml(doc.get("mitigation", Y.XmlFragment)),
+                replication_steps: yjsToHtml(
+                    doc.get("replicationSteps", Y.XmlFragment)
+                ),
+                hostDetectionTechniques: yjsToHtml(
+                    doc.get("hostDetectionTechniques", Y.XmlFragment)
+                ),
+                networkDetectionTechniques: yjsToHtml(
+                    doc.get("networkDetectionTechniques", Y.XmlFragment)
+                ),
+                references: yjsToHtml(doc.get("references", Y.XmlFragment)),
+                findingGuidance: yjsToHtml(
+                    doc.get("findingGuidance", Y.XmlFragment)
+                ),
+            },
+            tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
+            extraFields,
+        };
     }
-
-    async save(doc: Y.Doc): Promise<void> {
-        let mutate_promise;
-        doc.transact(() => {
-            const plainFields = doc.get("plain_fields", Y.Map<any>);
-            const extraFields = extraFieldsFromYdoc(doc);
-            mutate_promise = this.client.mutate({
-                mutation: SET_FINDING,
-                variables: {
-                    id: this.id,
-                    set: {
-                        title: plainFields.get("title") ?? "",
-                        cvssScore: plainFields.get("cvssScore") ?? null,
-                        cvssVector: plainFields.get("cvssVector") ?? "",
-                        findingTypeId: plainFields.get("findingTypeId"),
-                        severityId: plainFields.get("severityId"),
-
-                        description: yjsToHtml(
-                            doc.get("description", Y.XmlFragment)
-                        ),
-                        impact: yjsToHtml(doc.get("impact", Y.XmlFragment)),
-                        mitigation: yjsToHtml(
-                            doc.get("mitigation", Y.XmlFragment)
-                        ),
-                        replication_steps: yjsToHtml(
-                            doc.get("replicationSteps", Y.XmlFragment)
-                        ),
-                        hostDetectionTechniques: yjsToHtml(
-                            doc.get("hostDetectionTechniques", Y.XmlFragment)
-                        ),
-                        networkDetectionTechniques: yjsToHtml(
-                            doc.get("networkDetectionTechniques", Y.XmlFragment)
-                        ),
-                        references: yjsToHtml(
-                            doc.get("references", Y.XmlFragment)
-                        ),
-                        findingGuidance: yjsToHtml(
-                            doc.get("findingGuidance", Y.XmlFragment)
-                        ),
-                    },
-                    tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
-                    extraFields,
-                },
-            });
-        });
-        const res = await mutate_promise!;
-        if (res.error || res.errors) {
-            throw res.error || res.errors;
-        }
-    }
-}
+);
+export default FindingHandler;

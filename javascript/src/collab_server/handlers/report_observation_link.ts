@@ -1,5 +1,5 @@
 import { gql } from "../../__generated__/";
-import { ModelHandler } from "../base_handler";
+import { simpleModelHandler } from "../base_handler";
 import * as Y from "yjs";
 import { htmlToYjs, tagsToYjs, yjsToHtml, yjsToTags } from "../yjs_converters";
 import { extraFieldsFromYdoc, extraFieldsToYdoc } from "../extra_fields";
@@ -39,55 +39,29 @@ const SET = gql(`
     }
 `);
 
-export default class ReportObservationLinkHandler extends ModelHandler {
-    async load(): Promise<Y.Doc> {
-        const res = await this.client.query({
-            query: GET,
-            variables: {
-                id: this.id,
-            },
-        });
-        if (res.error || res.errors) {
-            throw res.error || res.errors;
-        }
-        const obj = res.data.reporting_reportobservationlink_by_pk;
+const ReportObservationLinkHandler = simpleModelHandler(
+    GET,
+    SET,
+    (doc, res) => {
+        const obj = res.reporting_reportobservationlink_by_pk;
         if (!obj) throw new Error("No object");
 
-        const doc = new Y.Doc();
-
-        doc.transact(() => {
-            const plain_fields = doc.get("plain_fields", Y.Map);
-            plain_fields.set("title", obj.title);
-            htmlToYjs(obj.description, doc.get("description", Y.XmlFragment));
-            tagsToYjs(res.data.tags.tags, doc.get("tags", Y.Map<boolean>));
-            extraFieldsToYdoc(res.data.extraFieldSpec, doc, obj.extraFields);
-        });
-
-        return doc;
+        const plain_fields = doc.get("plain_fields", Y.Map);
+        plain_fields.set("title", obj.title);
+        htmlToYjs(obj.description, doc.get("description", Y.XmlFragment));
+        tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
+        extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
+    },
+    (doc, id) => {
+        const plainFields = doc.get("plain_fields", Y.Map);
+        const extraFields = extraFieldsFromYdoc(doc);
+        return {
+            id,
+            title: (plainFields.get("title") as string | undefined) ?? "",
+            description: yjsToHtml(doc.get("description", Y.XmlFragment)),
+            tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
+            extraFields,
+        };
     }
-
-    async save(doc: Y.Doc): Promise<void> {
-        let mutate_promise;
-        doc.transact(() => {
-            const plainFields = doc.get("plain_fields", Y.Map);
-            const extraFields = extraFieldsFromYdoc(doc);
-            mutate_promise = this.client.mutate({
-                mutation: SET,
-                variables: {
-                    id: this.id,
-                    title:
-                        (plainFields.get("title") as string | undefined) ?? "",
-                    description: yjsToHtml(
-                        doc.get("description", Y.XmlFragment)
-                    ),
-                    tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
-                    extraFields,
-                },
-            });
-        });
-        const res = await mutate_promise!;
-        if (res.error || res.errors) {
-            throw res.error || res.errors;
-        }
-    }
-}
+);
+export default ReportObservationLinkHandler;

@@ -21,10 +21,7 @@ import FindingHandler from "./handlers/finding";
 import ReportFindingLinkHandler from "./handlers/report_finding_link";
 
 // Extend this with your model handlers. See how-to-collab.md.
-const HANDLERS: Map<
-    string,
-    { new (client: apollo.ApolloClient<unknown>, id: number): ModelHandler }
-> = new Map([
+const HANDLERS: Map<string, ModelHandler> = new Map([
     ["observation", ObservationHandler],
     ["report_observation_link", ReportObservationLinkHandler],
     ["finding", FindingHandler],
@@ -80,7 +77,6 @@ class AuthError extends Error {
 }
 
 const BASE_LOGGER = pino({});
-const handlersByDocName = new Map<string, ModelHandler>();
 
 const server = new Hocuspocus({
     port: 8000,
@@ -211,15 +207,8 @@ const server = new Hocuspocus({
         try {
             context.log.info("Loading document");
 
-            if (handlersByDocName.has(data.documentName))
-                throw new Error(
-                    "Already have a handler for " + data.documentName
-                );
-            const handlerClass = HANDLERS.get(context.model)!;
-            const handler = new handlerClass(gqlClient, context.id);
-            handlersByDocName.set(data.documentName, handler);
-
-            const doc = await handler.load();
+            const handler = HANDLERS.get(context.model)!;
+            const doc = await handler.load(gqlClient, context.id);
             doc.transact((tx) => {
                 const serverInfo = tx.doc.get("serverInfo", Y.Map);
                 // Embed an ID unique to this particular yjs doc, so a client working with an older version
@@ -239,8 +228,8 @@ const server = new Hocuspocus({
         const context = data.context as Context;
         try {
             context.log.info("Saving document");
-            const handler = handlersByDocName.get(data.documentName)!;
-            await handler.save(data.document);
+            const handler = HANDLERS.get(context.model)!;
+            await handler.save(gqlClient, context.id, data.document);
         } catch (e) {
             context.log.error({ msg: "Could not save document", err: e });
             data.document.transact((tx) => {
@@ -251,12 +240,6 @@ const server = new Hocuspocus({
         data.document.transact((tx) => {
             tx.doc.get("serverInfo", Y.Map).set("saveError", false);
         });
-    },
-
-    async afterUnloadDocument(data) {
-        const handler = handlersByDocName.get(data.documentName);
-        if (handler) handler.close();
-        handlersByDocName.delete(data.documentName);
     },
 
     async onDisconnect(data) {
