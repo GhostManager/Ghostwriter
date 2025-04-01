@@ -22,6 +22,8 @@ export default defineConfig(({ mode }) => {
                         "./src/frontend/collab_forms/forms/finding.tsx",
                     collab_forms_reportfindinglink:
                         "./src/frontend/collab_forms/forms/reportfindinglink.tsx",
+                    collab_forms_report_field:
+                        "./src/frontend/collab_forms/forms/report_field.tsx",
                 },
                 output: {
                     entryFileNames: "assets/[name].js",

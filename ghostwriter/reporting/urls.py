@@ -9,6 +9,7 @@ import ghostwriter.reporting.views2.observations
 import ghostwriter.reporting.views2.report_observation_link
 import ghostwriter.reporting.views2.finding
 import ghostwriter.reporting.views2.report_finding_link
+import ghostwriter.reporting.views2.report
 
 app_name = "reporting"
 
@@ -16,12 +17,12 @@ app_name = "reporting"
 urlpatterns = [
     path("", views.index, name="index"),
     path("findings/", ghostwriter.reporting.views2.finding.FindingListView.as_view(), name="findings"),
-    path("reports/", views.ReportListView.as_view(), name="reports"),
-    path("templates/", views.ReportTemplateListView.as_view(), name="templates"),
+    path("reports/", ghostwriter.reporting.views2.report.ReportListView.as_view(), name="reports"),
+    path("templates/", ghostwriter.reporting.views2.report.ReportTemplateListView.as_view(), name="templates"),
     path("reports/archive", views.archive_list, name="archived_reports"),
     path(
         "reports/archive/download/<int:pk>/",
-        views.ArchiveDownloadView.as_view(),
+        ghostwriter.reporting.views2.report.ArchiveDownloadView.as_view(),
         name="download_archive",
     ),
     path("observations/", ghostwriter.reporting.views2.observations.ObservationList.as_view(), name="observations"),
@@ -134,16 +135,16 @@ urlpatterns += [
 
 # URLs for creating, updating, and deleting reports
 urlpatterns += [
-    path("reports/<int:pk>", views.ReportDetailView.as_view(), name="report_detail"),
-    path("reports/create/<int:pk>", views.ReportCreate.as_view(), name="report_create"),
+    path("reports/<int:pk>", ghostwriter.reporting.views2.report.ReportDetailView.as_view(), name="report_detail"),
+    path("reports/create/<int:pk>", ghostwriter.reporting.views2.report.ReportCreate.as_view(), name="report_create"),
     path(
         "reports/create/",
-        views.ReportCreate.as_view(),
+        ghostwriter.reporting.views2.report.ReportCreate.as_view(),
         name="report_create_no_project",
     ),
-    path("reports/update/<int:pk>", views.ReportUpdate.as_view(), name="report_update"),
-    path("reports/delete/<int:pk>", views.ReportDelete.as_view(), name="report_delete"),
-    path("reports/archive/<int:pk>", views.ArchiveView.as_view(), name="archive"),
+    path("reports/update/<int:pk>", ghostwriter.reporting.views2.report.ReportUpdate.as_view(), name="report_update"),
+    path("reports/delete/<int:pk>", ghostwriter.reporting.views2.report.ReportDelete.as_view(), name="report_delete"),
+    path("reports/archive/<int:pk>", ghostwriter.reporting.views2.report.ArchiveView.as_view(), name="archive"),
     path("reports/clone/<int:pk>", views.ReportClone.as_view(), name="report_clone"),
     path(
         "reports/create/blank/<int:pk>",
@@ -157,32 +158,32 @@ urlpatterns += [
     ),
     path(
         "reports/<int:pk>/edit-extra-field/<str:extra_field_name>",
-        views.ReportExtraFieldEdit.as_view(),
+        ghostwriter.reporting.views2.report.ReportExtraFieldEdit.as_view(),
         name="report_extra_field_edit",
     ),
     path(
         "templates/<int:pk>",
-        views.ReportTemplateDetailView.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateDetailView.as_view(),
         name="template_detail",
     ),
     path(
         "templates/create",
-        views.ReportTemplateCreate.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateCreate.as_view(),
         name="template_create",
     ),
     path(
         "templates/update/<int:pk>",
-        views.ReportTemplateUpdate.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateUpdate.as_view(),
         name="template_update",
     ),
     path(
         "templates/delete/<int:pk>",
-        views.ReportTemplateDelete.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateDelete.as_view(),
         name="template_delete",
     ),
     path(
         "templates/download/<int:pk>",
-        views.ReportTemplateDownload.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateDownload.as_view(),
         name="template_download",
     ),
     path(
@@ -270,25 +271,25 @@ urlpatterns += [
 urlpatterns += [
     path(
         "reports/<int:pk>/docx/",
-        views.GenerateReportDOCX.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportDOCX.as_view(),
         name="generate_docx",
     ),
     path(
         "reports/<int:pk>/xlsx/",
-        views.GenerateReportXLSX.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportXLSX.as_view(),
         name="generate_xlsx",
     ),
     path(
         "reports/<int:pk>/pptx/",
-        views.GenerateReportPPTX.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportPPTX.as_view(),
         name="generate_pptx",
     ),
     path(
         "reports/<int:pk>/raw/",
-        views.GenerateReportJSON.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportJSON.as_view(),
         name="generate_json",
     ),
-    path("reports/<int:pk>/all/", views.GenerateReportAll.as_view(), name="generate_all"),
+    path("reports/<int:pk>/all/", ghostwriter.reporting.views2.report.GenerateReportAll.as_view(), name="generate_all"),
 ]
 
 # URLs for management functions

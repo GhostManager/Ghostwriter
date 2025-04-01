@@ -11,7 +11,7 @@ import { XmlFragment } from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 
 /// Emitted from ExtraFieldsSpecSerializer
-type ExtraFieldSpec = {
+export type ExtraFieldSpec = {
     internal_name: string;
     display_name: string;
     description: string;
@@ -24,7 +24,7 @@ type ExtraFieldSpec = {
         | "json";
 };
 
-function useExtraFieldSpecs(): ExtraFieldSpec[] {
+export function useExtraFieldSpecs(): ExtraFieldSpec[] {
     return useMemo(
         () =>
             JSON.parse(
@@ -59,12 +59,15 @@ export default function ExtraFieldsSection(props: {
     );
 }
 
-function ExtraFieldInput(props: {
+export function ExtraFieldInput(props: {
     connected: boolean;
     provider: HocuspocusProvider;
     spec: ExtraFieldSpec;
 }) {
-    const map = props.provider.document.getMap("extra_fields");
+    const map = useMemo(
+        () => props.provider.document.getMap("extra_fields"),
+        [props.provider]
+    );
     switch (props.spec.type) {
         case "checkbox":
             return (

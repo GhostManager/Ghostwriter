@@ -331,7 +331,6 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
     def tag_div(self, el, **kwargs):
         if "richtext-evidence" in el.attrs.get("class", []):
-            logger.error("DEBUG: div evidence")
             try:
                 evidence = self.evidences[int(el.attrs["data-evidence-id"])]
             except (KeyError, ValueError):

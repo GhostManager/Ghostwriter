@@ -576,6 +576,24 @@ class Report(models.Model):
     def __str__(self):
         return f"{self.title}"
 
+    @classmethod
+    def user_can_create(cls, user, project) -> bool:
+        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, project)
+
+    def user_can_view(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self.project)
+
+    def user_can_edit(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self.project)
+
+    def user_can_delete(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self.project)
+
 
 class ReportFindingLink(models.Model):
     """

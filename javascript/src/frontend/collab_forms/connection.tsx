@@ -11,7 +11,11 @@ export type ConnectionStatus =
     | "idle";
 
 /// Gets a YJS connection from the information embedded by the `collab_editing/update.html` view.
-export function usePageConnection(settings: { model: string }): {
+export function usePageConnection(settings: {
+    model: string;
+    yjs_url?: string;
+    id?: string;
+}): {
     // The YJS provider
     provider: HocuspocusProvider;
     // Detailed connection status
@@ -34,8 +38,10 @@ export function usePageConnection(settings: { model: string }): {
     // Not doing this inside of useEffect because we need to return the provider from this function - useEffect
     // is delayed.
     if (provider.current === null) {
-        const url = document.getElementById("yjs-url")!.innerHTML;
-        const id = document.getElementById("yjs-object-id")!.innerHTML;
+        const url =
+            settings.yjs_url ?? document.getElementById("yjs-url")!.innerHTML;
+        const id =
+            settings.id ?? document.getElementById("yjs-object-id")!.innerHTML;
         const username = document.getElementById("yjs-username")!.innerHTML;
         const jwt = document.getElementById("yjs-jwt")!.innerHTML;
 

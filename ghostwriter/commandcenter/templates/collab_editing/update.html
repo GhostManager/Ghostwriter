@@ -11,7 +11,7 @@
 {% load static %}
 
 {% block content %}
-    <div id="collab-form-container">
+    <div id="collab-form-container" {% block collab_form_attrs %}{% endblock %} >
         <p>Loading...</p>
         <noscript><p>Javascript is required.</p></noscript>
     </div>
@@ -26,12 +26,11 @@
     {% if extra_fields_spec_ser is not None %}
     {{extra_fields_spec_ser|json_script:"yjs-extra-field-specs"}}
     {% endif %}
-    <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">
-    {% with script_name='assets/collab_forms_'|add:model_name|add:'.js' %}
-    <script type="module" src="{% static script_name %}"></script>
-    {% endwith %}
-
     <script type="text/plain" id="graphql-path">/v1/graphql</script>
     <script type="text/plain" id="graphql-auth">{{jwt}}</script>
     <script type="text/plain" id="graphql-media-url">{{media_url}}</script>
+
+    <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">
+
+    <script type="module" src="{% static collab_editing_script_path %}"></script>
 {% endblock %}

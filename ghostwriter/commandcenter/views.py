@@ -34,11 +34,16 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have the necessary permission to edit " + self.model._meta.verbose_name_plural + ".")
         return redirect(self.unauthorized_redirect)
 
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
+    @property
+    def collab_editing_script_path(self) -> str:
+        return "assets/collab_forms_{}.js".format(self.model._meta.model_name)
+
+    def get_context_data(self, object) -> dict[str, Any]:
+        context = super().get_context_data(object=object)
         context["model_name"] = self.model._meta.model_name
         context["jwt"] = generate_jwt(self.request.user)[1]
         context["media_url"] = settings.MEDIA_URL
+        context["collab_editing_script_path"] = self.collab_editing_script_path
         if self.has_extra_fields:
             if self.has_extra_fields is True:
                 extra_fields_model = self.model

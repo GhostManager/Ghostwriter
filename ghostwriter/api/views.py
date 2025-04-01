@@ -1192,6 +1192,7 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
         "report_observation_link": ReportObservationLink,
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
+        "report": Report,
     }
 
     def post(self, request):

@@ -43,7 +43,7 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
                 isOpen={!!modalMode}
                 onRequestClose={() => setModalMode(null)}
                 contentLabel="Insert Evidence"
-                className="modal-dialog midal-dialog-centered"
+                className="modal-dialog modal-dialog-centered"
             >
                 <div className="modal-content">
                     <div className="modal-header">
