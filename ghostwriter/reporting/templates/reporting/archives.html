@@ -27,15 +27,15 @@
 
         <table class="roundedCorners table table-sm table-hover">
             <tr>
-                <th>Client</th>
-                <th>Project</th>
-                <th>Zip Archive</th>
+                <th class="align-middle text-left">Client</th>
+                <th class="align-middle text-left">Project</th>
+                <th class="align-middle text-left">Zip Archive</th>
             </tr>
             {% for zip in filter.qs %}
                 <tr>
-                    <td>{{ zip.project.client.name }}</td>
-                    <td>{{ zip.project.start_date }} {{ zip.project.project_type }}</td>
-                    <td><a class="icon download-icon" href="{% url 'reporting:download_archive' zip.pk %}">{{ zip.filename }}</a></td>
+                    <td class="align-middle text-left">{{ zip.project.client.name }}</td>
+                    <td class="align-middle text-left">{{ zip.project.start_date }} {{ zip.project.project_type }}</td>
+                    <td class="align-middle text-left"><a class="icon download-icon" href="{% url 'reporting:download_archive' zip.pk %}">{{ zip.filename }}</a></td>
                 </tr>
             {% endfor %}
         </table>

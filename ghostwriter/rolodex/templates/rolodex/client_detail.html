@@ -178,40 +178,42 @@
           <table id="clientTable" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th class="align-middle pr-4">Name</th>
-              <th class="align-middle pr-4">Title/Role</th>
-              <th class="align-middle pr-4">Email</th>
-              <th class="sorter-false">Phone</th>
-              <th class="sorter-false">Note</th>
+              <th class="align-middle pr-4 text-left">Name</th>
+              <th class="align-middle pr-4 text-left">Title/Role</th>
+              <th class="align-middle pr-4 text-left">Email</th>
+              <th class="sorter-false text-left">Phone</th>
               <th class="sorter-false">Options</th>
             </tr>
             </thead>
             {% for poc in client.clientcontact_set.all %}
               <tr>
-                <td class="align-middle" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
-                <td class="align-middle">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
-                <td class="align-middle">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
-                <td class="align-middle">
+                <td class="align-middle text-left" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
+                <td class="align-middle text-left">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
+                <td class="align-middle text-left">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
+                <td class="align-middle text-left">
                   {% if poc.phone %}
                     {{ poc.phone }}
                   {% else %}
                     --
                   {% endif %}
                 </td>
-                <td class="align-middle table-note">{{ poc.note|bleach }}</td>
+
                 <td class="align-middle">
-                  <div class="dropdown dropleft">
-                    <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
-                            aria-expanded="false"></button>
-                    <div class="dropdown-menu" aria-labelledby="poc-dropdown-btn_{{ poc.id }}">
-                      <a class="dropdown-item icon edit-icon"
-                         href="{% url 'rolodex:client_update' client.id %}#contacts">Edit</a>
-                      <a class="dropdown-item icon trash-icon" id="poc-delete-button-{{ poc.id }}"
-                         class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
-                         href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
-                         delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id %}"
-                         delete-target-id="{{ poc.id }}" delete-target-type="contact">Delete</a>
-                    </div>
+                  <div class="d-flex justify-content-center">
+                    <span
+                      class="icon preview-icon clickable-link"
+                      title="View additional information"
+                      onclick="openModal('#client_contact_detail_{{ poc.id }}')"
+                    ></span>
+                    <a class="icon edit-icon"
+                       title="Edit this contact"
+                         href="{% url 'rolodex:client_update' client.id %}#contacts"></a>
+                    <a class="icon trash-icon" id="poc-delete-button-{{ poc.id }}"
+                       title="Delete this contact"
+                       class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                       href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
+                       delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id %}"
+                       delete-target-id="{{ poc.id }}" delete-target-type="contact"></a>
                   </div>
                 </td>
               </tr>
@@ -265,7 +267,7 @@
                     {% if has_access %}
                       <button
                         class="icon ext-link-icon btn btn-transparent"
-                        title="Expand to view additional information"
+                        title="Click to view additional information"
                         onclick="openModal('#project_history_details_{{ project.id }}')"
                       ></button>
                     {% endif %}
@@ -534,13 +536,8 @@
     {% endif %}
   {% endfor %}
 
-  <script>
-    function openModal(modalId) {
-      // Add # prefix if not present for jQuery selector
-      const selector = modalId.startsWith('#') ? modalId : '#' + modalId;
-
-      // Show the modal
-      $(selector).modal('show');
-    }
-  </script>
+  {% comment %} Insert modals for additional contact details {% endcomment %}
+  {% for poc in client.clientcontact_set.all %}
+    {% include "snippets/client_contact_detail_modal.html" with poc=poc %}
+  {% endfor %}
 {% endblock %}

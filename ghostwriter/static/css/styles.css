@@ -1234,7 +1234,6 @@ th:last-child {
 
 th,
 td {
-  margin-right: 10px;
   text-align: center;
   max-width: 500px;
 }
@@ -1473,19 +1472,19 @@ thead th {
 
 thead th.none {
   padding-right: 10px;
-  padding-left: 30px;
+  padding-left: 10px;
   background-image: url(data:img/gif;base64,R0lGODlhFQAJAIAAAP///////yH5BAEAAAEALAAAAAAVAAkAAAIXjI+AywnaYnhUMoqt3gZXPmVg94yJVQAAOw==);
 }
 
 thead th.up {
   padding-right: 10px;
-  padding-left: 30px;
+  padding-left: 10px;
   background-image: url(data:image/gif;base64,R0lGODlhFQAEAIAAAP///////yH5BAEAAAEALAAAAAAVAAQAAAINjI8Bya2wnINUMopZAQA7);
 }
 
 thead th.down {
   padding-right: 10px;
-  padding-left: 30px;
+  padding-left: 10px;
   background-image: url(data:image/gif;base64,R0lGODlhFQAEAIAAAP///////yH5BAEAAAEALAAAAAAVAAQAAAINjB+gC+jP2ptn0WskLQA7);
 }
 
@@ -1792,6 +1791,10 @@ td p {
   font-size: 1em;
 }
 
+.icon-last:before {
+  padding-right: 0;
+}
+
 h3.icon:before {
   margin-bottom: 8px;
 }
@@ -1811,6 +1814,10 @@ th.icon {
 
 .2fa-icon:before {
   content: '\f577';
+}
+
+.export-icon {
+  content: '\f56e';
 }
 
 .tint-icon:before {
@@ -2064,10 +2071,15 @@ th.icon {
 
 .edit-icon:before {
   content: '\f044';
+  font-weight: 600;
 }
 
 .edit-icon-right:after {
   content: '\f044';
+}
+
+.preview-icon:before {
+  content: '\f06e';
 }
 
 .redo-icon:before {
@@ -2081,7 +2093,7 @@ th.icon {
 
 .add-icon:before {
   content: '\f0fe';
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .sub-icon:before {

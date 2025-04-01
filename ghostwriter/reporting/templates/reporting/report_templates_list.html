@@ -34,11 +34,11 @@
     <table id="reportTemplateTable" class="tablesorter table table-sm table-hover">
       <thead>
       <tr>
-        <th class="align-middle pr-4">Status</th>
+        <th class="align-middle pr-4 text-left">Status</th>
         <th class="align-middle pr-4">Doc Type</th>
-        <th class="align-middle pr-4">Name</th>
-        <th class="align-middle pr-4">Orientation</th>
-        <th class="align-middle pr-4">Client</th>
+        <th class="align-middle pr-4 text-left">Name</th>
+        <th class="align-middle pr-4 text-left">Orientation</th>
+        <th class="align-middle pr-4 text-left">Client</th>
         <th class="align-middle pr-4">Project-Only</th>
         <th class="sorter-false align-middle">Options</th>
       </tr>
@@ -46,7 +46,7 @@
 
       {% for template in filter.qs %}
         <tr>
-          <td class="align-middle">
+          <td class="align-middle text-left">
             {% with template.get_status as status %}
               <span class="badge
                                 {% if status == "success" %}
@@ -65,11 +65,11 @@
           </td>
           <td
             class="align-middle icon {% if template.doc_type.extension == "docx" %}word-icon{% else %}pptx-icon{% endif %}"></td>
-          <td class="align-middle"><a class="clickable"
+          <td class="align-middle text-left"><a class="clickable"
                                       href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a>
           </td>
-          <td class="align-middle">{% if template.landscape %}Landscsape{% else %}Portrait{% endif %}</td>
-          <td class="align-middle">
+          <td class="align-middle text-left">{% if template.landscape %}Landscsape{% else %}Portrait{% endif %}</td>
+          <td class="align-middle text-left">
             {% if template.client %}
               {{ template.client }}
             {% else %}
@@ -77,20 +77,22 @@
             {% endif %}
           </td>
           <td class="icon {% if template.doc_type.doc_type == "project_docx" %}check-icon healthy{% else %}cross-icon burned{% endif %}"></td>
+
           <td class="align-middle">
-            <div class="dropdown dropleft">
-              <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
-                      aria-expanded="false"></button>
-              <div class="dropdown-menu" aria-labelledby="template-dropdown-btn_{{ template.id }}">
-                <a class="dropdown-item icon download-icon" href="{% url 'reporting:template_download' template.id %}">Download</a>
+            <div class="d-flex justify-content-center">
+              <span
+                class="icon preview-icon clickable-link"
+                title="View additional information"
+                onclick="openModal('#template_detail_{{ template.id }}')"
+              ></span>
+              <a class="icon download-icon" href="{% url 'reporting:template_download' template.id %}"></a>
                 {% if template.protected and request.user|is_privileged or not template.protected %}
-                  <a class="dropdown-item icon edit-icon"
-                     href="{% url 'reporting:template_update' template.id %}">Edit</a>
-                  <a class="dropdown-item icon trash-icon" href="{% url 'reporting:template_delete' template.id %}">Delete</a>
+                  <a class="icon edit-icon"
+                     href="{% url 'reporting:template_update' template.id %}"></a>
+                  <a class="icon trash-icon" href="{% url 'reporting:template_delete' template.id %}"></a>
                 {% else %}
-                  <a class="dropdown-item icon locked-icon" href="javascript:void(0)">Editing Locked</a>
+                  <a class="icon locked-icon" href="javascript:void(0)">Editing Locked</a>
                 {% endif %}
-              </div>
             </div>
           </td>
         </tr>
@@ -114,4 +116,9 @@
       $('.tablesorter').trigger('update');
     });
   </script>
+
+  {% comment %} Insert modals for additional template details {% endcomment %}
+  {% for template in filter.qs %}
+    {% include "snippets/template_detail_modal.html" with template=template %}
+  {% endfor %}
 {% endblock %}

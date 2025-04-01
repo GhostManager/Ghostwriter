@@ -31,30 +31,29 @@
       <table id="domainTable" class="tablesorter table table-sm table-hover">
         <thead>
         <tr>
-          <th id="domain" class="align-middle pr-4">Domain</th>
-          <th class="align-middle pr-4">Status</th>
-          <th class="align-middle pr-4">Age (Days)</th>
-          <th class="align-middle pr-4 sorter-sugar">Expiry</th>
-          <th class="align-middle sorter-false pr-4">Additional Info</th>
-          <th class="align-middle sorter-false">Check-out</th>
+          <th id="domain" class="align-middle pr-4 text-left">Domain</th>
+          <th class="align-middle pr-4 text-left">Status</th>
+          <th class="align-middle pr-4 text-left">Age (Days)</th>
+          <th class="align-middle pr-4 sorter-sugar text-left">Expiry</th>
+          <th class="align-middle sorter-false">Options</th>
         </tr>
         </thead>
         <tbody>
         {% for domain in filter.qs %}
           <tr>
-            <td class="align-middle"><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
+            <td class="align-middle text-left"><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
 
             {% if domain.domain_status.domain_status == "Available" %}
-              <td class="align-middle healthy">{{ domain.domain_status }}</td>
+              <td class="align-middle healthy text-left">{{ domain.domain_status }}</td>
             {% elif domain.domain_status.domain_status == "Unavailable" %}
-              <td class="align-middle burned">Checked Out</td>
+              <td class="align-middle burned text-left">Checked Out</td>
             {% else %}
-              <td class="align-middle burned">{{ domain.domain_status }}</td>
+              <td class="align-middle burned text-left">{{ domain.domain_status }}</td>
             {% endif %}
 
-            <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
+            <td class="align-middle text-left">{{ domain.get_domain_age|intcomma }}</td>
 
-            <td class="align-middle align-middle">
+            <td class="align-middle align-middle text-left">
               {% if domain.is_expired %}
                 <span class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</span>
               {% elif domain.may_expire_soon %}
@@ -65,23 +64,20 @@
             </td>
 
             <td class="align-middle">
-              <button
-                class="icon ext-link-icon btn btn-transparent"
-                title="Expand to view additional information"
-                onclick="openModal('#domain_details_{{ domain.id }}')"
-              ></button>
+              <div class="d-flex justify-content-center">
+                <span
+                  class="icon preview-icon clickable-link"
+                  title="View additional information"
+                  onclick="openModal('#domain_detail_{{ domain.id }}')"
+                ></span>
+                {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
+                  <a class="icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}"></a>
+                {% else %}
+                  <a class="icon block-icon" href="#"></a>
+                {% endif %}
+              </div>
             </td>
-
-            {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
-              <td class="align-middle">
-                <a class="icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}"></a>
-              </td>
-            {% else %}
-              <td class="align-middle">
-                <a class="icon block-icon" href="#"></a>
-              </td>
-            {% endif %}
-            </tr>
+          </tr>
         {% endfor %}
         </tbody>
       </table>

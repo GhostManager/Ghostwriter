@@ -1,6 +1,6 @@
-{% load extra_fields bleach_tags %}
+{% load bleach_tags %}
 
-<div id="domain_details_{{ domain.id }}" class="modal fade" tabindex="-1" role="dialog">
+<div id="domain_detail_{{ domain.id }}" class="modal fade" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -9,7 +9,7 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body extra-field-modal-content">
+      <div class="modal-body">
 
         {%  for tag in domain.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
 
