@@ -21,6 +21,8 @@
         {% crispy filter.form filter.helper %}
     </div>
 
+    <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'rolodex:client_create' %}">Create Client</a>
+
     {% if filter.qs|length == 0 %}
         <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no clients to see here yet, or your search returned no results. Create a client above or adjust your filters.</div>
     {% else %}

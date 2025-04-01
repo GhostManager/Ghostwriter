@@ -18,6 +18,8 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'reporting:report_create_no_project' %}">Create Report</a>
+
   {% if filter.qs|length == 0 %}
     <p class="mt-3">There are no reports to see here yet, or your search returned no results. Start a new report up
       above or from a project page.</p>

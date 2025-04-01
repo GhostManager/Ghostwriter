@@ -29,17 +29,17 @@ function displayToastTop({
     let msg;
     if (type === 'success') {
         if (title === '') {
-            title = 'Great Success';
+            title = 'Success';
         }
         msg = toastr.success(string, title);
     } else if (type === 'warning') {
         if (title === '') {
-            title = 'Beware';
+            title = 'Warning';
         }
         msg = toastr.warning(string, title);
     } else if (type === 'error') {
         if (title === '') {
-            title = 'Great Failure';
+            title = 'Issue Detected';
         }
         msg = toastr.error(string, title);
     } else if (type === 'info') {

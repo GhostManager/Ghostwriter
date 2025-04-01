@@ -245,7 +245,7 @@
               <th class="align-middle pr-4">Codename</th>
               <th class="align-middle pr-4">Project Type</th>
               <th class="sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
-              <th class="sorter-false">Note</th>
+              <th class="align-middle sorter-false">Additional Info</th>
               <th class="sorter-false">Options</th>
             </tr>
             </thead>
@@ -261,11 +261,15 @@
                   <td class="align-middle">{{ project.project_type }}</td>
                   <td class="align-middle">{{ project.start_date|date:"d M Y" }}
                     – {{ project.end_date|date:"d M Y" }}</td>
-                  {% if has_access %}
-                    <td class="align-middle table-note">{{ project.note|bleach|truncatewords:35 }}</td>
-                  {% else %}
-                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
-                  {% endif %}
+                  <td class="align-middle">
+                    {% if has_access %}
+                      <button
+                        class="icon ext-link-icon btn btn-transparent"
+                        title="Expand to view additional information"
+                        onclick="openModal('#project_history_details_{{ project.id }}')"
+                      ></button>
+                    {% endif %}
+                  </td>
                   <td class="align-middle">
                     <div class="dropdown dropleft">
                       <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
@@ -522,4 +526,21 @@
       {% include "user_extra_fields/extra_field_modal.html" with extra_fields=client.extra_fields field_spec=field_spec %}
     {% endfor %}
   {% endif %}
+
+  {% comment %} Insert modals for additional domain details {% endcomment %}
+  {% for project in projects %}
+    {% if project|has_access:request.user %}
+      {% include "snippets/project_history_detail_modal.html" with checkout=checkout %}
+    {% endif %}
+  {% endfor %}
+
+  <script>
+    function openModal(modalId) {
+      // Add # prefix if not present for jQuery selector
+      const selector = modalId.startsWith('#') ? modalId : '#' + modalId;
+
+      // Show the modal
+      $(selector).modal('show');
+    }
+  </script>
 {% endblock %}

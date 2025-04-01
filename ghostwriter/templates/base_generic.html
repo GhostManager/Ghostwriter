@@ -90,15 +90,10 @@
           <p class="sideheader icon icon home-icon">Project Shortcuts</p>
 
           <a
-            {% if request.session.active_report.id and request.session.active_report.title %}
-              class="btn btn-primary mb-3 col-10 active-report-shortcut icon ext-link-icon"
-              href="{% url 'reporting:report_detail' request.session.active_report.id %}"
-              >Jump to Report
-            {% else %}
-              class="btn btn-primary mb-3 col-10 active-report-shortcut icon ext-link-icon btn-disabled"
-              href="#"
-              >Select Report Below
-            {% endif %}
+            class="btn btn-primary mb-3 col-9 active-report-shortcut icon ext-link-icon {% if not request.session.active_report.id and not request.session.active_report.title %}btn-disabled{% endif %}"
+            href="{% url 'reporting:report_detail' request.session.active_report.id %}"
+            data-toggle="tooltip" data-placement="right" title="Open your active report after selecting one below"
+            >Jump to Report
           </a>
 
           <!-- Menu Section -->
@@ -367,9 +362,9 @@
         <!-- Sidebar Buttons -->
         <div class="align-middle text-center">
           {% if user.is_authenticated %}
-            <a href="{% url 'account_logout' %}" class="btn btn-primary col-10 icon logout-icon">Logout</a>
+            <a href="{% url 'account_logout' %}" class="btn btn-primary col-9 icon logout-icon">Logout</a>
           {% else %}
-            <a href="{% url 'account_login' %}" class="btn btn-primary col-10 icon login-icon">Login</a>
+            <a href="{% url 'account_login' %}" class="btn btn-primary col-9 icon login-icon">Login</a>
           {% endif %}
 
           <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
@@ -411,6 +406,15 @@
 
 {% comment %} Scripts included on ALL pages {% endcomment %}
 <script>
+  {% comment %} Open a modal by ID {% endcomment %}
+  function openModal(modalId) {
+    // Add # prefix if not present for jQuery selector
+    const selector = modalId.startsWith('#') ? modalId : '#' + modalId;
+
+    // Show the modal
+    $(selector).modal('show');
+  }
+
   {% comment %} Handle AJAX errors {% endcomment %}
   (function ($) {
     $(document).on('ajaxError', function (event, xhr) {
@@ -573,6 +577,37 @@
     {% endif %}
   {% endfor %}
 
+  // Handle library-filter accordion clicks
+  $(document).ready(function() {
+    // Listen for clicks on library-filter accordions or their toggle controls
+    $(document).on('click', '.library-filter, [data-target*=".library-filter"], [href*=".library-filter"]', function(e) {
+      // Get the accordion ID if available
+      let accordionId = $(this).attr('id') ||
+                        $(this).data('target') ||
+                        $(this).attr('href') ||
+                        'unknown';
+
+      // If this is just an ID string, clean it up
+      if (typeof accordionId === 'string') {
+        accordionId = accordionId.replace(/^[#.]/, '');
+      }
+
+      $.ajax({
+        url: '/home/ajax/session/update',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'session_data': 'filter',
+        },
+        success: function(response) {
+          if (response && response.message) {
+            console.log('Library filter state updated:', response.message);
+          }
+        }
+      });
+    });
+  });
+
   {% if user.is_authenticated %}
     {% comment %} Configure WebSockets protocol – HTTP for dev and HTTPS for prod {% endcomment %}
     let ws_proto = 'ws://'
@@ -633,6 +668,27 @@
       console.error('Global notification WebSocket closed unexpectedly');
     };
   {% endif %}
+
+  // Make sidebar dropdowns behave like an accordion
+  $(document).on('click', '.sidebar-dropdown-toggle', function(e) {
+    // Don't interfere with default Bootstrap collapse behavior
+    e.preventDefault();
+
+    // Get the target dropdown from data-target or href attribute
+    const targetDropdown = $(this).data('target') || $(this).attr('href');
+
+    // Close all other dropdowns except the one that was clicked
+    $('.sidebar-dropdown-toggle').not(this).each(function() {
+      const otherDropdown = $(this).data('target') || $(this).attr('href');
+      if ($(otherDropdown).hasClass('show')) {
+        $(otherDropdown).collapse('hide');
+      }
+    });
+
+  // Toggle the clicked dropdown
+  $(targetDropdown).collapse('toggle');
+});
+
 </script>
 
 {% comment %} Blocks used by forms that use Bootstrap tabs {% endcomment %}

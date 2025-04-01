@@ -34,8 +34,9 @@
   {% endif %}
 
   {% comment %} Project title constructed from attributes {% endcomment %}
-  <div class="container">
-    <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
+  <div class="container offset-col-1 col-10">
+    <h2>{{ project.client }} {{ project.project_type }}</h2>
+    <h3>{{ project.start_date }}</h3>
   </div>
   {% if project.tags.all %}
     {% for tag in project.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}

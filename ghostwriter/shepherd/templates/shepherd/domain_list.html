@@ -19,6 +19,8 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create Entry</a>
+
   {% if filter.qs|length == 0 %}
     <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains to see here yet, or
       your search returned no results. Create a domain above or adjust your filters.
@@ -31,19 +33,16 @@
         <tr>
           <th id="domain" class="align-middle pr-4">Domain</th>
           <th class="align-middle pr-4">Status</th>
-          <th class="align-middle pr-4">Health</th>
           <th class="align-middle pr-4">Age (Days)</th>
-          <th class="sorter-sugar align-middle pr-4">Expiry</th>
-          <th class="align-middle pr-4">Categories</th>
-          <th class="align-middle pr-4">Tags</th>
-          <th class="sorter-false align-middle">Check-out</th>
+          <th class="align-middle pr-4 sorter-sugar">Expiry</th>
+          <th class="align-middle sorter-false pr-4">Additional Info</th>
+          <th class="align-middle sorter-false">Check-out</th>
         </tr>
         </thead>
         <tbody>
         {% for domain in filter.qs %}
           <tr>
-            <td class="align-middle"><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a>
-            </td>
+            <td class="align-middle"><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
 
             {% if domain.domain_status.domain_status == "Available" %}
               <td class="align-middle healthy">{{ domain.domain_status }}</td>
@@ -53,31 +52,25 @@
               <td class="align-middle burned">{{ domain.domain_status }}</td>
             {% endif %}
 
-            {% if domain.health_status.health_status == "Healthy" %}
-              <td class="align-middle healthy">{{ domain.health_status }}</td>
-            {% else %}
-              <td class="align-middle burned">{{ domain.health_status }}</td>
-            {% endif %}
-
             <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
 
-            {% if domain.is_expired %}
-              <td class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</td>
-            {% else %}
-              <td class="align-middle healthy">{{ domain.expiration|date:"d M Y" }}</td>
-            {% endif %}
+            <td class="align-middle align-middle">
+              {% if domain.is_expired %}
+                <span class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</span>
+              {% elif domain.may_expire_soon %}
+                <span class="align-middle warning">{{ domain.expiration|date:"d M Y" }}</span>
+              {% else %}
+                <span class="align-middle healthy">{{ domain.expiration|date:"d M Y" }}</span>
+              {% endif %}
+            </td>
 
-            {% if domain.categorization.items %}
-              <td class="align-middle">
-                {% for source, cat in domain.categorization.items %}
-                  {{ cat|bleach|title }}{% if not forloop.last %},&nbsp;{% endif %}
-                {% endfor %}
-              </td>
-            {% else %}
-              <td class="align-middle">No Results</td>
-            {% endif %}
-
-            <td class="text-justify align-middle">{%  for tag in domain.tags.all %}<span class="badge badge-secondary">{{ tag.name }}</span>{% endfor %}</td>
+            <td class="align-middle">
+              <button
+                class="icon ext-link-icon btn btn-transparent"
+                title="Expand to view additional information"
+                onclick="openModal('#domain_details_{{ domain.id }}')"
+              ></button>
+            </td>
 
             {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
               <td class="align-middle">
@@ -88,7 +81,7 @@
                 <a class="icon block-icon" href="#"></a>
               </td>
             {% endif %}
-          </tr>
+            </tr>
         {% endfor %}
         </tbody>
       </table>
@@ -137,4 +130,9 @@
       });
     });
   </script>
+
+  {% comment %} Insert modals for additional project details {% endcomment %}
+  {% for domain in filter.qs %}
+    {% include "snippets/domain_detail_modal.html" with domain=domain %}
+  {% endfor %}
 {% endblock %}

@@ -1,0 +1,44 @@
+{% load extra_fields bleach_tags %}
+
+<div id="project_history_details_{{ project.id }}" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Additional Details for {{ project }}</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body extra-field-modal-content">
+
+        <h5>Description</h5>
+        {% if project.note %}
+          {{ project.note|bleach }}
+        {% else %}
+          <p class="text-justify">No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+        {% endif %}
+
+        <h5>Assignments:<br></h5>
+        {% if project.projectassignment_set.all %}
+          <ul>
+            {% for assignment in project.projectassignment_set.all %}
+              <li>
+                {% if assignment.operator.name %}
+                  {{ assignment.operator.name }} ({{ assignment.operator.username }})
+                {% else %}
+                  Missing Full Name ({{ assignment.operator.username }})
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No assignments found.</p>
+        {% endif %}
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

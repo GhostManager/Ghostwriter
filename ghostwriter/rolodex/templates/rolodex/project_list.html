@@ -21,6 +21,8 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'rolodex:project_create_no_client' %}">Create Project</a>
+
   {% if not request.user|is_privileged %}
     <div class="alert alert-success offset-md-3 col-md-6 mt-3" role="alert">Projects shown here are projects to which you have access. You gain access to a project by being assigned to it or invited to have full access to the related client's history.</div>
   {% endif %}

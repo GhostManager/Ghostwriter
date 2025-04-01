@@ -296,9 +296,9 @@
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
                     <button
-                      class="expandme btn btn-transparent"
-                      onclick="showHideRow($(this), 'hidden-domain-data-{{ checkout.id }}');"
+                      class="icon ext-link-icon btn btn-transparent"
                       title="Expand to view additional information"
+                      onclick="openModal('#domain_history_details_{{ checkout.id }}')"
                     ></button>
                   {% endif %}
                 </td>
@@ -315,19 +315,6 @@
                   {% endif %}
                 </td>
               </tr>
-              {% if checkout.project|has_access:request.user %}
-                <tr class="hidden-row">
-                  <td colspan=5>
-                    <div id="hidden-domain-data-{{ checkout.id }}" class="hidden-div">
-                      {%  if checkout.note %}
-                        {{ checkout.note|bleach }}
-                      {% else %}
-                        <p>No notes for this checkout.</p>
-                      {%  endif %}
-                    </div>
-                  </td>
-                </tr>
-              {% endif %}
             {% endfor %}
           </table>
         {% else %}
@@ -454,4 +441,11 @@
       {% include "user_extra_fields/extra_field_modal.html" with extra_fields=domain.extra_fields field_spec=field_spec %}
     {% endfor %}
   {% endif %}
+
+  {% comment %} Insert modals for additional domain details {% endcomment %}
+  {% for checkout in domain.history_set.all %}
+    {% if checkout.project|has_access:request.user %}
+      {% include "snippets/domain_history_detail_modal.html" with checkout=checkout %}
+    {% endif %}
+  {% endfor %}
 {% endblock %}

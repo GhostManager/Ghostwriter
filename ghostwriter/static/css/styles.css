@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Roboto&family=Roboto+Mono:wght@300;400&family=Kalam&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Roboto&family=Roboto+Mono:wght@300;400&family=Kalam&family=Metrophobic&display=swap');
 @import '/static/css/base_styles.css';
 
 
@@ -117,6 +117,10 @@ hr {
 
 .form-check-label {
   cursor: pointer;
+}
+
+label {
+  margin-top: .5rem;
 }
 
 .form-select {
@@ -292,33 +296,32 @@ hr {
 h1 {
   text-align: center;
   color: var(--h1-font-color);
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.75em;
 }
 
 h2 {
   text-align: center;
   color: var(--h2-font-color);
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.5em;
 }
 
 h3 {
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-  padding-top: 20px;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2em;
   color: var(--h3-font-color);
 }
 
 h4 {
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   margin-top: 20px;
   margin-bottom: 20px;
   font-size: 1.75em;
 }
 
 h6 {
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 1em;
   padding-top: 10px;
 }
@@ -443,26 +446,26 @@ h6 {
 ----------------------------------------------------- */
 
 .form-control::placeholder {
-  color: var(--primary-color);
+  color: var(--ghost-grey);
   opacity: 0.75;
 }
 
 .form-control::-webkit-input-placeholder {
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .form-control:-moz-placeholder {
   /* Firefox 18- */
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .form-control::-moz-placeholder {
   /* Firefox 19+ */
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .form-control:-ms-input-placeholder {
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .filter-form .card-body .form-group {
@@ -617,9 +620,9 @@ input[type='file'] {
 
 .sideheader {
   margin-top: 0;
-  margin-bottom: 5px;
-  margin-left: 20px;
-  font-weight: 500;
+  margin-bottom: 0px;
+  margin-left: 5px;
+  font-weight: 400;
   text-align: left;
 }
 
@@ -727,10 +730,10 @@ input[type='file'] {
 }
 
 #sidebar ul li a {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  padding-left: 30px;
-  font-size: 1.1em;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 40px;
+  font-size: 1em;
   display: block;
 }
 
@@ -978,6 +981,11 @@ p.severity-box.info {
   -webkit-transition-duration: 0.4s;
   /* Safari */
   transition-duration: 0.4s;
+}
+
+.btn {
+  padding-right: .5rem;
+  padding-left: .5rem;
 }
 
 .btn:focus {
@@ -1243,6 +1251,12 @@ td {
 
 .burned {
   color: var(--burned-color);
+  font-weight: 600;
+  text-align: center;
+}
+
+.warning {
+  color: var(--warning-color);
   font-weight: 600;
   text-align: center;
 }
@@ -1776,6 +1790,10 @@ td p {
   vertical-align: middle;
   padding-left: 10px;
   font-size: 1em;
+}
+
+h3.icon:before {
+  margin-bottom: 8px;
 }
 
 th.icon {
@@ -2497,6 +2515,10 @@ th.icon {
 /* ---------------------------------------------------
     COLLAPSIBLE SECTION STYLES
 ----------------------------------------------------- */
+
+.card-header {
+  cursor: pointer;
+}
 
 .show {
   display: block;
