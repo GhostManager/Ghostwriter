@@ -91,7 +91,7 @@
 
           <a
             class="btn btn-primary mb-3 col-9 active-report-shortcut icon ext-link-icon {% if not request.session.active_report.id and not request.session.active_report.title %}btn-disabled{% endif %}"
-            href="{% url 'reporting:report_detail' request.session.active_report.id %}"
+            href={% if request.session.active_report.id and request.session.active_report.title %}"{% url 'reporting:report_detail' request.session.active_report.id %}{% else %}"#"{% endif %}"
             data-toggle="tooltip" data-placement="right" title="Open your active report after selecting one below"
             >Jump to Report
           </a>
