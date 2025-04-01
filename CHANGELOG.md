@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.6] - 31 March 2025
+
+### Changed
+
+* Numerous user interface and user experience (UI/UX) enhancements
+* Reduced table sizes to improve readability
+  * Some table columns (e.g., notes and additional information unneeded for sorting) have moved into informational modals
+  * You can open the modals by clicking the "i" icon in the table row
+* Library filters are now inside collapsible sections to reduce clutter
+  * If you prefer the filters always be accessible, their collapsed status is now tracked in your browser's local storage
+  * If you open a filter, all filters will be open by default until you close them
+
 ## [5.0.5] - 14 March 2025
 
 ### Added
