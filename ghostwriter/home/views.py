@@ -47,6 +47,12 @@ def update_session(request):
                 else:
                     request.session["sidebar"] = {}
                     request.session["sidebar"]["sticky"] = True
+            if req_data == "filter":
+                if "filter" in request.session.keys():
+                    request.session["filter"]["sticky"] ^= True
+                else:
+                    request.session["filter"] = {}
+                    request.session["filter"]["sticky"] = True
             request.session.save()
         data = {
             "result": "success",
