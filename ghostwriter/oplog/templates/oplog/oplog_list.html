@@ -25,11 +25,10 @@
     {% endfor %}
 
     <!-- Oplog Table Section -->
-    <p>
-        <a class="icon add-icon" href="{% url 'oplog:oplog_create_no_project' %}">Start New Operation Log</a>
-        <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-        <a class="icon upload-icon" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
-    </p>
+    <div class="buttonHolder">
+      <a class="btn btn-primary icon add-icon col-2" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
+      <a class="btn btn-secondary icon upload-icon col-2" href="{% url 'oplog:oplog_import' %}">Import Log</a>
+    </div>
     {% if oplog_list %}
         <table id="oplogTable" class="tablesorter table table-hover table-striped table-sm">
             <thead>

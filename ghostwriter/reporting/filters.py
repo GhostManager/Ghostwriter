@@ -6,7 +6,7 @@ from django.forms.widgets import TextInput
 
 # 3rd Party Libraries
 import django_filters
-from crispy_forms.bootstrap import InlineCheckboxes, PrependedText
+from crispy_forms.bootstrap import Accordion, AccordionGroup, InlineCheckboxes, PrependedText
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
@@ -95,62 +95,72 @@ class FindingFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Div(
-                Row(
-                    Column(
-                        PrependedText("title", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-4 offset-md-2 mb-0",
+            Accordion(
+                AccordionGroup(
+                    "Finding Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("title", '<i class="fas fa-filter"></i>'),
+                                css_class="col-md-4 offset-md-2 mb-0",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="col-md-4 mb-0",
+                            ),
+                            css_class="form-row",
+                        ),
+                        Row(
+                            Column(
+                                InlineCheckboxes("severity"),
+                                css_class="col-md-12 m-1",
+                            ),
+                            css_class="form-row",
+                        ),
+                        Row(
+                            Column(
+                                InlineCheckboxes("finding_type"),
+                                css_class="col-md-12 m-1",
+                            ),
+                            css_class="form-row",
+                        ),
+                        Row(
+                            Column(
+                                "on_reports",
+                                css_class="col-md-12 m-1 tooltip-label-only",
+                                data_tooltip_text="Return results from reports instead of the library",
+                            ),
+                            css_class="form-row",
+                        ),
+                        Row(
+                            Column(
+                                "not_cloned",
+                                css_class="col-md-12 m-1 tooltip-label-only",
+                                data_tooltip_text="Return only findings attached to reports and not in the library (based on title)",
+                            ),
+                            css_class="form-row",
+                        ),
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-2",
+                        ),
                     ),
-                    Column(
-                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="col-md-4 mb-0",
-                    ),
-                    css_class="form-row",
-                ),
-                Row(
-                    Column(
-                        InlineCheckboxes("severity"),
-                        css_class="col-md-12 m-1",
-                    ),
-                    css_class="form-row",
-                ),
-                Row(
-                    Column(
-                        InlineCheckboxes("finding_type"),
-                        css_class="col-md-12 m-1",
-                    ),
-                    css_class="form-row",
-                ),
-                Row(
-                    Column(
-                        "on_reports",
-                        css_class="col-md-12 m-1 tooltip-label-only",
-                        data_tooltip_text="Return results from reports instead of the library",
-                    ),
-                    css_class="form-row",
-                ),
-                Row(
-                    Column(
-                        "not_cloned",
-                        css_class="col-md-12 m-1 tooltip-label-only",
-                        data_tooltip_text="Return only findings attached to reports and not in the library (based on title)",
-                    ),
-                    css_class="form-row",
-                ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:finding_create' %}">Create</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
-                        """
-                    ),
+                    active = is_active,
+                    template = "accordion_group.html",
                 ),
                 css_class="justify-content-center",
             ),
@@ -195,31 +205,41 @@ class ObservationFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         self.helper.layout = Layout(
-            Div(
-                Row(
-                    Column(
-                        PrependedText("title", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-4 offset-md-2 mb-0",
+            Accordion(
+                AccordionGroup(
+                    "Observation Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("title", '<i class="fas fa-filter"></i>'),
+                                css_class="col-md-4 offset-md-2 mb-0",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="col-md-4 mb-0",
+                            ),
+                            css_class="form-row",
+                        ),
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:observations' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
+                        ),
                     ),
-                    Column(
-                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="col-md-4 mb-0",
-                    ),
-                    css_class="form-row",
-                ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:observation_create' %}">Create</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:observations' %}">Reset</a>
-                        """
-                    ),
+                    active=is_active,
+                    template="accordion_group.html",
                 ),
                 css_class="justify-content-center",
             ),
@@ -275,39 +295,49 @@ class ReportFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Div(
-                Row(
-                    Column(
-                        PrependedText("title", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-4",
-                    ),
-                    Column(
-                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="col-md-4 mb-0",
-                    ),
-                    Column(
-                        PrependedText(
-                            "complete",
-                            '<i class="fas fa-toggle-on"></i>',
+            Accordion(
+                AccordionGroup(
+                    "Report Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("title", '<i class="fas fa-filter"></i>'),
+                                css_class="col-md-4",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="col-md-4 mb-0",
+                            ),
+                            Column(
+                                PrependedText(
+                                    "complete",
+                                    '<i class="fas fa-toggle-on"></i>',
+                                ),
+                                css_class="col-md-4 mb-0",
+                            ),
+                            css_class="form-row",
                         ),
-                        css_class="col-md-4 mb-0",
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:reports' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
+                        ),
                     ),
-                    css_class="form-row",
-                ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:report_create_no_project' %}">Create</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:reports' %}">Reset</a>
-                        """
-                    ),
+                    active=is_active,
+                    template="accordion_group.html",
                 ),
                 css_class="justify-content-center",
             ),
@@ -345,20 +375,28 @@ class ArchiveFilter(django_filters.FilterSet):
         self.helper.form_method = "get"
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Div(
-                Row(
-                    Column(
-                        PrependedText("client", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-6 offset-md-3 mb-0",
+            Accordion(
+                AccordionGroup(
+                    "Archive Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("client", '<i class="fas fa-filter"></i>'),
+                                css_class="col-md-4 offset-md-4 mb-0",
+                            ),
+                        ),
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:archived_reports' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
+                        ),
                     ),
-                ),
-                ButtonHolder(
-                    Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:archived_reports' %}">Reset</a>
-                        """
-                    ),
+                    active=False,
+                    template="accordion_group.html",
                 ),
                 css_class="justify-content-center",
             ),
@@ -427,46 +465,56 @@ class ReportTemplateFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Div(
-                Row(
-                    Column(
-                        PrependedText("name", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-6",
-                    ),
-                    Column(
-                        PrependedText(
-                            "doc_type",
-                            '<i class="fas fa-file-alt"></i>',
+            Accordion(
+                AccordionGroup(
+                    "Report Template Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("name", '<i class="fas fa-filter"></i>'),
+                                css_class="col-md-6",
+                            ),
+                            Column(
+                                PrependedText(
+                                    "doc_type",
+                                    '<i class="fas fa-file-alt"></i>',
+                                ),
+                                css_class="col-md-6 mb-0",
+                            ),
+                            css_class="form-row",
                         ),
-                        css_class="col-md-6 mb-0",
+                        Row(
+                            Column(
+                                PrependedText("client", '<i class="fas fa-filter"></i>'),
+                                css_class="col-md-6",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="col-md-6 mb-0",
+                            ),
+                            css_class="form-row",
+                        ),
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:templates' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
+                        ),
                     ),
-                    css_class="form-row",
-                ),
-                Row(
-                    Column(
-                        PrependedText("client", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-6",
-                    ),
-                    Column(
-                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="col-md-6 mb-0",
-                    ),
-                    css_class="form-row",
-                ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info" href="{% url 'reporting:template_create' %}">Upload a Report Template</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:templates' %}">Reset</a>
-                        """
-                    ),
+                    active=is_active,
+                    template="accordion_group.html",
                 ),
                 css_class="justify-content-center",
             ),

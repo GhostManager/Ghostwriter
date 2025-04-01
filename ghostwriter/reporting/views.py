@@ -1176,7 +1176,7 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         return findings
 
     def get(self, request, *args, **kwarg):
-        findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())
+        findings_filter = FindingFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(
             request, "reporting/finding_list.html", {
                 "filter": findings_filter,
@@ -1343,7 +1343,7 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
         return get_reports_list(self.request.user)
 
     def get(self, request, *args, **kwarg):
-        reports_filter = ReportFilter(request.GET, queryset=self.get_queryset())
+        reports_filter = ReportFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(request, "reporting/report_list.html", {"filter": reports_filter})
 
 
@@ -1803,7 +1803,7 @@ class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
         return queryset
 
     def get(self, request, *args, **kwarg):
-        templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset())
+        templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(request, "reporting/report_templates_list.html", {"filter": templates_filter})
 
 
@@ -2965,7 +2965,7 @@ class ObservationListView(RoleBasedAccessControlMixin, ListView):
         return observations
 
     def get(self, request, *args, **kwarg):
-        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset())
+        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(
             request,
             "reporting/observation_list.html",
