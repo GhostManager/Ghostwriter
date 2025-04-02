@@ -4,7 +4,7 @@
     <thead>
     <tr>
       <th class="icon ol-list-icon text-center"></th>
-      <th class="align-middle">Observation</th>
+      <th class="align-middle text-left">Observation</th>
       <th class="align-middle">Options</th>
     </tr>
     </thead>
@@ -17,7 +17,7 @@
           data-placement="top"
           title="Click-n-drag to reposition or categorize"
         ></td>
-        <td class="align-middle">
+        <td class="align-middle text-left">
           <a id="delete-target-content-observation-{{ observation.id }}"
             {% if observation.added_as_blank %}
              class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
@@ -28,22 +28,19 @@
              href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}
           </a>
         </td>
+
         <td class="align-middle">
-          <div class="dropdown dropleft">
-            <button id="observation-dropdown-btn-{{ observation.id }}" class="dropdown-menu-btn-table"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-            <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
-                 aria-labelledby="dns-dropdown-btn_{{ observation.id }}">
-              <a class="dropdown-item icon clone-icon"
-                 href="{% url 'reporting:convert_observation' observation.id %}">Clone
-                to Library</a>
-              <a id="observation-delete-button-{{ observation.id }}"
-                 class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
-                 data-target="#confirm-delete-modal" href="javascript:void(0);"
-                 delete-target-csrftoken="{{ csrf_token }}"
-                 delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
-                 delete-target-id="{{ observation.id }}" delete-target-type="observation">Delete</a>
-            </div>
+          <div class="d-flex justify-content-center">
+            <a class="icon clone-icon"
+               title="Clone this observation to the library"
+               href="{% url 'reporting:convert_observation' observation.id %}"></a>
+            <a id="observation-delete-button-{{ observation.id }}"
+               class="icon trash-icon js-confirm-delete" data-toggle="modal"
+               title="Delete this observation"
+               data-target="#confirm-delete-modal" href="javascript:void(0);"
+               delete-target-csrftoken="{{ csrf_token }}"
+               delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
+               delete-target-id="{{ observation.id }}" delete-target-type="observation"></a>
           </div>
         </td>
       </tr>

@@ -5,8 +5,8 @@
          findings-update-url="{% url 'reporting:update_report_findings' %}">
     <tr>
       <th class="icon ol-list-icon text-center"></th>
-      <th class="align-middle">Finding</th>
-      <th>CVSS Score</th>
+      <th class="align-middle text-left">Finding</th>
+      <th class="align-middle">CVSS Score</th>
       <th class="align-middle">
         <div class="dropdown dropleft">
           <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
@@ -19,7 +19,7 @@
           </div>
         </div>
       </th>
-      <th class="align-middle">
+      <th class="align-middle text-left">
         <div class="dropdown dropleft">
           <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                 aria-expanded="false">Owner</span>
@@ -61,7 +61,7 @@
               data-placement="top"
               title="Click-n-drag to reposition or categorize"
             ></td>
-            <td class="align-middle">
+            <td class="align-middle text-left">
               <a id="delete-target-content-finding-{{ finding.id }}"
                 {% if finding.added_as_blank %}
                  class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
@@ -151,7 +151,7 @@
               </td>
             {% endif %}
             {% if finding.assigned_to == request.user %}
-              <td class="align-middle">
+              <td class="align-middle text-left">
                 <span id="assignee-status-{{ finding.id }}" class="
                   {% if finding.complete %}
                     healthy">
@@ -163,9 +163,9 @@
               </td>
             {% else %}
               {% if finding.assigned_to %}
-                <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+                <td class="neutral align-middle text-left">{{ finding.assigned_to }}</td>
               {% else %}
-                <td class="medium align-middle">TBD</td>
+                <td class="medium align-middle text-left">TBD</td>
               {% endif %}
             {% endif %}
             <td class="align-middle">

@@ -355,8 +355,8 @@ h6 {
   border-radius: 50%;
   margin: 30px;
   position: fixed;
-  bottom: 30px;
-  right: 30px;
+  bottom: 15px;
+  right: 15px;
   transition: background-color .3s;
   z-index: 1000;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
@@ -1118,6 +1118,10 @@ table {
 .table-config th {
   background-color: transparent;
   color: var(--main-txt-color);
+}
+
+.table-config td {
+  width: 50%;
 }
 
 .table-centered {
