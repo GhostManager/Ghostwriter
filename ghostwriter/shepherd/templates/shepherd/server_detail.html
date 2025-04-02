@@ -127,7 +127,7 @@
 
       <!-- History Tab -->
       <div id="history" class="tab-pane">
-        <h4 class="icon history-icon">Server History</h4>
+        <h4>Server History</h4>
         <hr/>
 
         <p>If you do not have access to the related client or project, the history entry will be partially redacted.</p>
@@ -145,7 +145,7 @@
             </thead>
             {% for checkout in staticserver.serverhistory_set.all %}
               <tr>
-                <td class="align-middle">
+                <td class="align-middle text-left">
                   {% if checkout.project|has_access:request.user %}
                     <a class="clickable"
                        href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</a>
@@ -153,9 +153,9 @@
                     <span class="blurry">REDACTED</span>
                   {% endif %}
                 </td>
-                <td class="align-middle">{{ checkout.activity_type }}</td>
-                <td class="align-middle">{{ checkout.server_role }}</td>
-                <td class="align-middle">{{ checkout.start_date|date:"d M Y" }}
+                <td class="align-middle text-left">{{ checkout.activity_type }}</td>
+                <td class="align-middle text-left">{{ checkout.server_role }}</td>
+                <td class="align-middle text-left">{{ checkout.start_date|date:"d M Y" }}
                   - {{ checkout.end_date|date:"d M Y" }}</td>
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}

@@ -91,7 +91,7 @@
                      href="{% url 'reporting:template_update' template.id %}"></a>
                   <a class="icon trash-icon" href="{% url 'reporting:template_delete' template.id %}"></a>
                 {% else %}
-                  <a class="icon locked-icon" href="javascript:void(0)">Editing Locked</a>
+                  <a class="icon lock-icon" title="This template is protected and cannot be edited or deleted" href="javascript:void(0)"></a>
                 {% endif %}
             </div>
           </td>

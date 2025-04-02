@@ -62,11 +62,11 @@
           {% endif %}
           <td class="align-middle text-left">{{ report.created_by }}</td>
           <td class="align-middle text-left">
-            <a title="Set this report as your active report" href="javascript:void(0)"
+            <button title="Set this report as your active report" href="javascript:void(0)"
                class="clickable-link js-activate-report btn btn-secondary"
                activate-report-csrftoken="{{ csrf_token }}"
                activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
-               activate-report-id="{{ report.id }}">Select Report</a>
+               activate-report-id="{{ report.id }}">Select Report</button>
           </td>
         </tr>
       {% endfor %}
