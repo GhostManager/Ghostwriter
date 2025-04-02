@@ -736,8 +736,9 @@ class ReportFindingLink(models.Model):
     @classmethod
     def user_can_create(cls, user, report: Report) -> bool:
         # TODO: dynamic import to fix circular reference. Should refactor utils.py...
-        from ghostwriter.api.utils import verify_access, verify_finding_access
-        return verify_finding_access(user, "create") and verify_access(user, report.project)
+        assert isinstance(report, Report)
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, report.project)
 
     def user_can_view(self, user) -> bool:
         from ghostwriter.api.utils import verify_access
