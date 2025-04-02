@@ -478,7 +478,7 @@
               $(this).toggleClass('selected-report');
             }
           });
-          $('.js-activate-report').each(function () {
+          $('a.js-activate-report').each(function () {
             if (reportId === $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
               $(this).toggleClass('selected-report');
               $(this).addClass('toggle-on-icon');
@@ -501,9 +501,9 @@
         }
         if (data['message']) {
           displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
-          setTimeout(function () {
-            window.location.href = shortcut_url;
-          }, 5000);
+          {#setTimeout(function () {#}
+          {#  window.location.href = shortcut_url;#}
+          {#}, 5000);#}
         }
       }
     });
