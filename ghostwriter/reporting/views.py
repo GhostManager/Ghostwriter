@@ -431,7 +431,7 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = report.id
             self.request.session["active_report"]["title"] = report.title
-            message = "{report} is now your active report and you will be redirected there in 5 seconds...".format(
+            message = "{report} is now your active report and you can open it with the button at the top of the sidebar.".format(
                 report=report.title
             )
             data = {
