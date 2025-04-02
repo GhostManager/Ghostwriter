@@ -1120,8 +1120,8 @@ table {
   color: var(--main-txt-color);
 }
 
-.table-config td {
-  width: 50%;
+.table-config td:first-child {
+  width: 30%;
 }
 
 .table-centered {
@@ -1786,6 +1786,7 @@ td p {
   padding-right: 10px;
   font-size: .75em;
   display: inline-block;
+  padding-bottom: 2px;
 }
 
 .icon:after {
