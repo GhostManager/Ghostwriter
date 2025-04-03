@@ -176,6 +176,10 @@ class TemplateTagTests(TestCase):
         tags = custom_tags.get_tags_list(self.project.tags.names())
         self.assertEqual(tags, "tag1, tag2")
 
+        request = self.client_auth.get(self.uri).wsgi_request
+        hide_quickstart = custom_tags.hide_quickstart(request)
+        self.assertEqual(hide_quickstart, False)
+
 
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""

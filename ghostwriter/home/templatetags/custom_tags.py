@@ -22,6 +22,7 @@ from ghostwriter.api.utils import (
     verify_observation_access,
     verify_user_is_privileged,
 )
+from ghostwriter.home.models import UserProfile
 from ghostwriter.reporting.models import Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
@@ -197,3 +198,12 @@ def split_and_join(value, delimiter):
 def get_tags_list(value):
     """Return a list of tags from an object's `tags.names` value."""
     return ", ".join(value)
+
+
+@register.simple_tag
+def hide_quickstart(request):
+    """
+    Return a boolean value indicating if the quickstart card should be hidden.
+    """
+    user_profile = UserProfile.objects.get(user=request.user)
+    return user_profile.hide_quickstart
