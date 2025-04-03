@@ -66,17 +66,24 @@
           <td
             class="align-middle icon {% if template.doc_type.extension == "docx" %}word-icon{% else %}pptx-icon{% endif %}"></td>
           <td class="align-middle text-left"><a class="clickable"
-                                      href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a>
+                                                href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a>
           </td>
           <td class="align-middle text-left">{% if template.landscape %}Landscsape{% else %}Portrait{% endif %}</td>
           <td class="align-middle text-left">
             {% if template.client %}
               {{ template.client }}
             {% else %}
-              --
+              <span style="display:none;">N/A</span>
             {% endif %}
           </td>
-          <td class="icon {% if template.doc_type.doc_type == "project_docx" %}check-icon healthy{% else %}cross-icon burned{% endif %}"></td>
+          <td
+            class="{% if template.doc_type.doc_type == "project_docx" %}icon check-icon{% endif %}">
+            {% if template.doc_type.doc_type == "project_docx" %}
+              <span style="display:none;">Project Only</span>
+            {% else %}
+              <span style="display:none;">N/A</span>
+            {% endif %}
+          </td>
 
           <td class="align-middle">
             <div class="d-flex justify-content-center">
@@ -85,14 +92,16 @@
                 title="View additional information"
                 onclick="openModal('#template_detail_{{ template.id }}')"
               ></span>
-              <a class="icon download-icon" href="{% url 'reporting:template_download' template.id %}"></a>
-                {% if template.protected and request.user|is_privileged or not template.protected %}
-                  <a class="icon edit-icon"
-                     href="{% url 'reporting:template_update' template.id %}"></a>
-                  <a class="icon trash-icon" href="{% url 'reporting:template_delete' template.id %}"></a>
-                {% else %}
-                  <a class="icon lock-icon" title="This template is protected and cannot be edited or deleted" href="javascript:void(0)"></a>
-                {% endif %}
+              <a class="icon download-icon" href="javascript:void(0)"
+                 onclick="downloadTemplate({{ template.id }}, '{{ template.filename }}')" title="Download template"></a>
+              {% if template.protected and request.user|is_privileged or not template.protected %}
+                <a class="icon edit-icon"
+                   href="{% url 'reporting:template_update' template.id %}"></a>
+                <a class="icon trash-icon" href="{% url 'reporting:template_delete' template.id %}"></a>
+              {% else %}
+                <a class="icon lock-icon" title="This template is protected and cannot be edited or deleted"
+                   href="javascript:void(0)"></a>
+              {% endif %}
             </div>
           </td>
         </tr>
@@ -115,6 +124,41 @@
       );
       $('.tablesorter').trigger('update');
     });
+
+    function downloadTemplate(templateId, templateName) {
+      fetch("{% url 'reporting:template_download' 0 %}".replace('0', templateId), {
+        method: 'GET',
+      })
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 404) {
+              displayToastTop({
+                type: 'error',
+                string: 'Template file not found. The file may have been deleted or moved.'
+              });
+            } else {
+              displayToastTop({type: 'error', string: 'Error downloading template: ' + response.statusText});
+            }
+            throw new Error('Network response was not ok');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = templateName;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          displayToastTop({type: 'success', string: 'Download started...'});
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    }
   </script>
 
   {% comment %} Insert modals for additional template details {% endcomment %}
