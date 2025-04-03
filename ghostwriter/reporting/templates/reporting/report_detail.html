@@ -316,6 +316,8 @@
                       title="View additional information"
                       onclick="openModal('#evidence_detail_{{ evidence_file.id }}')"
                     ></span>
+                    <a class="icon download-icon" href="javascript:void(0)"
+                       onclick="downloadEvidence({{ evidence_file.id }}, '{{ evidence_file.filename }}')" title="Download this evidence file"></a>
                     <a href="{% url 'reporting:evidence_update' evidence_file.id %}"
                        title="Edit this evidence file"
                        class="icon edit-icon"></a>
@@ -817,6 +819,41 @@
           }
         }
       });
+    }
+
+    function downloadEvidence(evidenceId, filename) {
+      fetch("{% url 'reporting:evidence_download' 0 %}".replace('0', evidenceId), {
+        method: 'GET',
+      })
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 404) {
+              displayToastTop({
+                type: 'error',
+                string: 'Evidence file not found. The file may have been deleted or moved.'
+              });
+            } else {
+              displayToastTop({type: 'error', string: 'Error downloading evidence file: ' + response.statusText});
+            }
+            throw new Error('Network response was not ok');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          displayToastTop({type: 'success', string: 'Download started...'});
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
     }
   </script>
 
