@@ -501,9 +501,6 @@
         }
         if (data['message']) {
           displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
-          {#setTimeout(function () {#}
-          {#  window.location.href = shortcut_url;#}
-          {#}, 5000);#}
         }
       }
     });
