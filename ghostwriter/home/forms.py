@@ -17,7 +17,7 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = UserProfile
-        exclude = ("user",)
+        exclude = ("user", "hide_quickstart")
         widgets = {
             "avatar": forms.FileInput(attrs={"class": "form-control"}),
         }
