@@ -964,6 +964,20 @@ p.severity-box.info {
   padding: .5em;
 }
 
+ul.dashboard-list {
+  list-style-type: circle;
+  padding-left: 10px;
+}
+
+.dashboard-link {
+  text-decoration-thickness: 3px;
+  color: var(--active-link-color);
+}
+
+ul.dashboard-checklist {
+  list-style-type: none;
+}
+
 /* ---------------------------------------------------
     GENERAL BUTTON STYLES
 ----------------------------------------------------- */
