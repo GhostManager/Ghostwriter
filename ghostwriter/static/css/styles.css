@@ -78,6 +78,7 @@ hr {
 .img-evidence {
   height: auto;
   max-width: 6.5in;
+  max-height: 70%;
   display: block;
   margin-left: auto;
   margin-right: auto;
