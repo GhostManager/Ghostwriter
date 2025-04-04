@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Modified the homepage dashboard to show more relevant information and provide user guidance
   * We will continue to improve the homepage dashboard in future releases based on feedback
 
+### Fixed
+
+* Fixed report template "Upload Date" changing whenever the template was updated without changing the template file
+
 ## [5.0.5] - 14 March 2025
 
 ### Added
