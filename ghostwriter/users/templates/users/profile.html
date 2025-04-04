@@ -29,7 +29,7 @@
         <p class="bold icon user-icon">Full Name</p>
       </div>
       <div class="col-sm">
-        <p class="text-center">{% if user.name %}{{ user.name }}{% else %}Missing Full Name{% endif %}</p>
+        <p class="text-left">{% if user.name %}{{ user.name }}{% else %}Missing Full Name{% endif %}</p>
       </div>
     </div>
 
@@ -38,7 +38,7 @@
         <p class="bold icon user-icon-ninja">Username</p>
       </div>
       <div class="col-sm">
-        <p class="text-center">{{ user.username }}</p>
+        <p class="text-left">{{ user.username }}</p>
       </div>
     </div>
 
@@ -47,7 +47,7 @@
         <p class="bold icon email-icon">Email</p>
       </div>
       <div class="col-sm">
-        <p class="text-center">{{ user.email }}</p>
+        <p class="text-left">{{ user.email }}</p>
       </div>
     </div>
 
@@ -56,7 +56,7 @@
         <p class="bold icon phone-icon">Phone</p>
       </div>
       <div class="col-sm">
-        <p class="text-center">{% if user.phone %}{{ user.phone }}{% else %}Unavailable{% endif %}</p>
+        <p class="text-left">{% if user.phone %}{{ user.phone }}{% else %}Unavailable{% endif %}</p>
       </div>
     </div>
 
@@ -65,7 +65,7 @@
         <p class="bold icon globe-icon">Timezone</p>
       </div>
       <div class="col-sm">
-        <p class="text-center">{{ user.timezone }}</p>
+        <p class="text-left">{{ user.timezone }}</p>
       </div>
     </div>
 
@@ -75,7 +75,7 @@
           <p class="bold icon user-role-icon">Role</p>
         </div>
         <div class="col-sm">
-          <p class="text-center">
+          <p class="text-left">
             {{ user.role|capfirst }}
           </p>
         </div>
@@ -86,7 +86,7 @@
           <p class="bold icon access-icon">Access</p>
         </div>
         <div class="col-sm">
-          <p class="text-center">
+          <p class="text-left">
             {% if user.is_superuser %}Superuser{% elif user.is_staff %}Staff{% else %}Normal User{% endif %}
           </p>
         </div>
@@ -115,16 +115,16 @@
 
       <table id="assignmentTable" class="tablesorter table-sm table-hover">
         <thead>
-        <th class="align-middle">Project</th>
-        <th class="align-middle">Role</th>
-        <th class="align-middle sorter-date-range-dMMMyyyy">Execution Dates</th>
+        <th class="align-middle text-left">Project</th>
+        <th class="align-middle text-left">Role</th>
+        <th class="align-middle sorter-date-range-dMMMyyyy text-left">Execution Dates</th>
         </thead>
         {% for assignment in user.projectassignment_set.all %}
           {% if not assignment.project.complete %}
             <tr id="assignment_{{ assignment.id }}">
-              <td class="align-middle"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a>
-              <td class="align-middle">{{ assignment.role }}</td>
-              <td class="align-middle">{{ assignment.start_date|date:"d M Y" }} – {{ assignment.end_date|date:"d M Y" }}</td>
+              <td class="align-middle text-left"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a>
+              <td class="align-middle text-left">{{ assignment.role }}</td>
+              <td class="align-middle text-left">{{ assignment.start_date|date:"d M Y" }} – {{ assignment.end_date|date:"d M Y" }}</td>
             </tr>
           {% endif %}
         {% endfor %}
@@ -178,19 +178,19 @@
     {% if user.apikey_set.get_usable_keys %}
       <table id="tokenTable" class="tablesorter table-sm table-hover">
         <thead>
-        <th class="align-middle">Name</th>
-        <th class="align-middle">Added</th>
-        <th class="align-middle">Expires</th>
-        <th class="align-middle sorter-false"></th>
+        <th class="align-middle text-left">Name</th>
+        <th class="align-middle text-left">Added</th>
+        <th class="align-middle text-left">Expires</th>
+        <th class="align-middle sorter-false">Revoke</th>
         </thead>
         {% for key in user.apikey_set.get_usable_keys %}
           <tr id="token_{{ key.id }}">
-            <td id="key_name_{{ key.id }}" class="align-middle">{{ key.name|bleach }}</td>
-            <td class="align-middle">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
+            <td id="key_name_{{ key.id }}" class="align-middle text-left">{{ key.name|bleach }}</td>
+            <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
             {% if key.has_expired %}
-              <td class="align-middle burned js-expired-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+              <td class="align-middle text-left burned js-expired-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
             {% else %}
-              <td class="align-middle">
+              <td class="align-middle text-left">
                 {% if key.expiry_date %}
                   {{ key.expiry_date|date:"d M Y @ H:i:s e" }}
                 {% else %}

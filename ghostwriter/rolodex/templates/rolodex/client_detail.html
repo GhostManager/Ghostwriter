@@ -58,7 +58,7 @@
         <h4>Client Details</h4>
         <hr/>
 
-        <table class="table table-borderless table-centered project-details-table">
+        <table class="table table-borderless project-details-table offset-2 col-8">
           <tr>
             <td class="text-left bold">Short Name</td>
             <td class="text-left">
@@ -171,8 +171,7 @@
         <h4>Client Contacts</h4>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add & Edit
-          Points of Contact</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add & Edit Contacts</a>
         {% if client.clientcontact_set.all %}
           <table id="clientTable" class="tablesorter table table-striped">
             <thead>

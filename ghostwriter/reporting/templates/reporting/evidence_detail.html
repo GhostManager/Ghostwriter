@@ -49,22 +49,22 @@
   <hr>
 
   <!-- File Information Section -->
-  <table class="table table-borderless table-centered">
+  <table class="table table-borderless project-details-table offset-2 col-8">
     <tr>
       <td class="text-left bold">Original Filename</td>
-      <td data-toggle="tooltip" data-placement="bottom" title="{{ evidence.filename|bleach }}">{{ evidence.filename|bleach|truncate_filename:50 }}</td>
+      <td class="text-left" data-toggle="tooltip" data-placement="bottom" title="{{ evidence.filename|bleach }}">{{ evidence.filename|bleach|truncate_filename:50 }}</td>
     </tr>
     <tr>
       <td class="text-left bold">Uploaded by</td>
-      <td>{{ evidence.uploaded_by }}</td>
+      <td class="text-left">{{ evidence.uploaded_by }}</td>
     </tr>
     <tr>
       <td class="text-left bold">Upload Date</td>
-      <td>{{ evidence.upload_date }}</td>
+      <td class="text-left">{{ evidence.upload_date }}</td>
     </tr>
     <tr>
       <td class="text-left bold">Report Caption</td>
-      <td>
+      <td class="text-left">
         {% if evidence.caption %}
           {{ evidence.caption }}
         {% else %}
@@ -74,7 +74,7 @@
     </tr>
     <tr>
       <td class="text-left bold">Description</td>
-      <td>
+      <td class="text-left">
         {% if evidence.description %}
           {{ evidence.description|bleach }}
         {% else %}
