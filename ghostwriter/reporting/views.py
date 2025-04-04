@@ -431,7 +431,7 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = report.id
             self.request.session["active_report"]["title"] = report.title
-            message = "{report} is now your active report and you will be redirected there in 5 seconds...".format(
+            message = "{report} is now your active report and you can open it with the button at the top of the sidebar.".format(
                 report=report.title
             )
             data = {
@@ -1176,7 +1176,7 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         return findings
 
     def get(self, request, *args, **kwarg):
-        findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())
+        findings_filter = FindingFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(
             request, "reporting/finding_list.html", {
                 "filter": findings_filter,
@@ -1343,7 +1343,7 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
         return get_reports_list(self.request.user)
 
     def get(self, request, *args, **kwarg):
-        reports_filter = ReportFilter(request.GET, queryset=self.get_queryset())
+        reports_filter = ReportFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(request, "reporting/report_list.html", {"filter": reports_filter})
 
 
@@ -1803,7 +1803,7 @@ class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
         return queryset
 
     def get(self, request, *args, **kwarg):
-        templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset())
+        templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(request, "reporting/report_templates_list.html", {"filter": templates_filter})
 
 
@@ -2965,7 +2965,7 @@ class ObservationListView(RoleBasedAccessControlMixin, ListView):
         return observations
 
     def get(self, request, *args, **kwarg):
-        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset())
+        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(
             request,
             "reporting/observation_list.html",

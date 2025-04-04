@@ -58,7 +58,7 @@
         <h4>Client Details</h4>
         <hr/>
 
-        <table class="table table-borderless table-centered project-details-table">
+        <table class="table table-borderless project-details-table offset-2 col-8">
           <tr>
             <td class="text-left bold">Short Name</td>
             <td class="text-left">
@@ -123,14 +123,14 @@
             <table id="clientTable" class="tablesorter table table-striped">
               <thead>
               <tr>
-                <th class="align-middle pr-4">Name</th>
-                <th class="align-middle pr-4">Comment</th>
+                <th class="align-middle pr-4 text-left">Name</th>
+                <th class="align-middle pr-4 text-left">Comment</th>
                 <th class="align-middle sorter-false">Options</th>
               </tr>
               </thead>
               {% for invite in client.clientinvite_set.all %}
                 <tr>
-                  <td class="align-middle">
+                  <td class="align-middle text-left">
                     <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
                       {% if invite.user.name %}
                         {{ invite.user.name }}
@@ -142,19 +142,18 @@
                   <td class="align-middle">
                     {{ invite.comment|bleach }}
                   </td>
+
                   <td class="align-middle">
-                    <div class="dropdown dropleft">
-                      <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
-                              aria-expanded="false"></button>
-                      <div class="dropdown-menu" aria-labelledby="invite-dropdown-btn_{{ invite.id }}">
-                        <a class="dropdown-item icon edit-icon"
-                           href="{% url 'rolodex:client_update' client.id %}#invites">Edit</a>
-                        <a class="dropdown-item icon trash-icon" id="invite-delete-button-{{ invite.id }}"
+                    <div class="d-flex justify-content-center">
+                        <a class="icon edit-icon"
+                           title="Edit this invitation"
+                           href="{% url 'rolodex:client_update' client.id %}#invites"></a>
+                      <a class="icon trash-icon" id="invite-delete-button-{{ invite.id }}"
                            class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                         title="Delete this invitation"
                            href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
                            delete-target-url="{% url 'rolodex:ajax_delete_client_invite' invite.id %}"
-                           delete-target-id="{{ invite.id }}" delete-target-type="invitation">Delete</a>
-                      </div>
+                           delete-target-id="{{ invite.id }}" delete-target-type="invitation"></a>
                     </div>
                   </td>
                 </tr>
@@ -172,46 +171,47 @@
         <h4>Client Contacts</h4>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add & Edit
-          Points of Contact</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add & Edit Contacts</a>
         {% if client.clientcontact_set.all %}
           <table id="clientTable" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th class="align-middle pr-4">Name</th>
-              <th class="align-middle pr-4">Title/Role</th>
-              <th class="align-middle pr-4">Email</th>
-              <th class="sorter-false">Phone</th>
-              <th class="sorter-false">Note</th>
+              <th class="align-middle pr-4 text-left">Name</th>
+              <th class="align-middle pr-4 text-left">Title/Role</th>
+              <th class="align-middle pr-4 text-left">Email</th>
+              <th class="sorter-false text-left">Phone</th>
               <th class="sorter-false">Options</th>
             </tr>
             </thead>
             {% for poc in client.clientcontact_set.all %}
               <tr>
-                <td class="align-middle" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
-                <td class="align-middle">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
-                <td class="align-middle">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
-                <td class="align-middle">
+                <td class="align-middle text-left" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
+                <td class="align-middle text-left">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
+                <td class="align-middle text-left">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
+                <td class="align-middle text-left">
                   {% if poc.phone %}
                     {{ poc.phone }}
                   {% else %}
                     --
                   {% endif %}
                 </td>
-                <td class="align-middle table-note">{{ poc.note|bleach }}</td>
+
                 <td class="align-middle">
-                  <div class="dropdown dropleft">
-                    <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
-                            aria-expanded="false"></button>
-                    <div class="dropdown-menu" aria-labelledby="poc-dropdown-btn_{{ poc.id }}">
-                      <a class="dropdown-item icon edit-icon"
-                         href="{% url 'rolodex:client_update' client.id %}#contacts">Edit</a>
-                      <a class="dropdown-item icon trash-icon" id="poc-delete-button-{{ poc.id }}"
-                         class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
-                         href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
-                         delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id %}"
-                         delete-target-id="{{ poc.id }}" delete-target-type="contact">Delete</a>
-                    </div>
+                  <div class="d-flex justify-content-center">
+                    <span
+                      class="icon preview-icon clickable-link"
+                      title="View additional information"
+                      onclick="openModal('#client_contact_detail_{{ poc.id }}')"
+                    ></span>
+                    <a class="icon edit-icon"
+                       title="Edit this contact"
+                         href="{% url 'rolodex:client_update' client.id %}#contacts"></a>
+                    <a class="icon trash-icon" id="poc-delete-button-{{ poc.id }}"
+                       title="Delete this contact"
+                       class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                       href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
+                       delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id %}"
+                       delete-target-id="{{ poc.id }}" delete-target-type="contact"></a>
                   </div>
                 </td>
               </tr>
@@ -242,10 +242,9 @@
           <table id="projectTable" class="tablesorter table">
             <thead>
             <tr>
-              <th class="align-middle pr-4">Codename</th>
-              <th class="align-middle pr-4">Project Type</th>
-              <th class="sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
-              <th class="sorter-false">Note</th>
+              <th class="align-middle pr-4 text-left">Codename</th>
+              <th class="align-middle pr-4 text-left">Project Type</th>
+              <th class="sorter-date-range-dMMMyyyy pr-4 text-left">Execution Window</th>
               <th class="sorter-false">Options</th>
             </tr>
             </thead>
@@ -253,27 +252,30 @@
               {% with has_access=project|has_access:request.user %}
                 <tr>
                   {% if has_access %}
-                    <td class="align-middle"><a class="clickable"
+                    <td class="align-middle text-left"><a class="clickable"
                                                 href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                   {% else %}
-                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                    <td class="align-middle text-left"><span class="blurry">REDACTED</span></td>
                   {% endif %}
-                  <td class="align-middle">{{ project.project_type }}</td>
-                  <td class="align-middle">{{ project.start_date|date:"d M Y" }}
+                  <td class="align-middle text-left">{{ project.project_type }}</td>
+                  <td class="align-middle text-left">{{ project.start_date|date:"d M Y" }}
                     – {{ project.end_date|date:"d M Y" }}</td>
-                  {% if has_access %}
-                    <td class="align-middle table-note">{{ project.note|bleach|truncatewords:35 }}</td>
-                  {% else %}
-                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
-                  {% endif %}
+
                   <td class="align-middle">
-                    <div class="dropdown dropleft">
-                      <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
-                              aria-expanded="false"></button>
-                      <div class="dropdown-menu" aria-labelledby="project-dropdown-btn_{{ project.id }}">
-                        <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
-                        <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
-                      </div>
+                    <div class="d-flex justify-content-center">
+                      {% if has_access %}
+                        <a
+                          class="icon preview-icon clickable-link"
+                          title="Click to view additional information"
+                          onclick="openModal('#project_history_details_{{ project.id }}')"
+                        ></a>
+                      {% endif %}
+                      <a class="icon edit-icon"
+                         title="Edit this project"
+                         href="{% url 'rolodex:project_update' project.id %}"></a>
+                      <a class="icon trash-icon"
+                         title="Delete this project"
+                         href="{% url 'rolodex:project_delete' project.id %}"></a>
                     </div>
                   </td>
                 </tr>
@@ -301,26 +303,26 @@
             <table id="domainTable" class="tablesorter table table-striped">
               <thead>
               <tr>
-                <th class="align-middle pr-4">Project</th>
-                <th class="align-middle pr-4">Domain</th>
-                <th class="align-middle pr-4">Activity Type</th>
-                <th class="align-middle pr-4">End Date</th>
+                <th class="align-middle pr-4 text-left">Project</th>
+                <th class="align-middle pr-4 text-left">Domain</th>
+                <th class="align-middle pr-4 text-left">Activity Type</th>
+                <th class="align-middle pr-4 text-left">End Date</th>
               </tr>
               </thead>
               {% for domain in domains %}
                 <tr>
                   {% if domain.project|has_access:request.user %}
-                    <td class="align-middle"><a class="clickable"
+                    <td class="align-middle text-left"><a class="clickable"
                                                 href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a>
                     </td>
                   {% else %}
-                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                    <td class="align-middle text-left"><span class="blurry">REDACTED</span></td>
                   {% endif %}
-                  <td class="align-middle"><a class="clickable"
+                  <td class="align-middle text-left"><a class="clickable"
                                               href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a>
                   </td>
-                  <td class="align-middle">{{ domain.activity_type }}</td>
-                  <td class="align-middle">{{ domain.end_date|date:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-left">{{ domain.activity_type }}</td>
+                  <td class="align-middle text-left">{{ domain.end_date|date:"DATE_FORMAT" }}</td>
                 </tr>
               {% endfor %}
             </table>
@@ -344,41 +346,41 @@
             <table id="serverTable" class="tablesorter table table-striped">
               <thead>
               <tr>
-                <th class="align-middle pr-4">Project</th>
-                <th class="align-middle pr-4">Server</th>
-                <th class="align-middle pr-4">Activity Type</th>
-                <th class="align-middle pr-4">End Date</th>
+                <th class="align-middle pr-4 text-left">Project</th>
+                <th class="align-middle pr-4 text-left">Server</th>
+                <th class="align-middle pr-4 text-left">Activity Type</th>
+                <th class="align-middle pr-4 text-left">End Date</th>
               </tr>
               </thead>
               {% for server in servers %}
                 <tr>
                   {% if server.project|has_access:request.user %}
-                    <td class="align-middle"><a class="clickable"
+                    <td class="align-middle text-left"><a class="clickable"
                                                 href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
                     </td>
                   {% else %}
-                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                    <td class="align-middle text-left"><span class="blurry">REDACTED</span></td>
                   {% endif %}
-                  <td class="align-middle"><a class="clickable"
+                  <td class="align-middle text-left"><a class="clickable"
                                               href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a>
                   </td>
-                  <td class="align-middle">{{ server.activity_type }}</td>
-                  <td class="align-middle">{{ server.end_date|date:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-left">{{ server.activity_type }}</td>
+                  <td class="align-middle text-left">{{ server.end_date|date:"DATE_FORMAT" }}</td>
                 </tr>
               {% endfor %}
 
               {% for server in vps %}
                 <tr>
                   {% if server.project|has_access:request.user %}
-                    <td class="align-middle"><a class="clickable"
+                    <td class="align-middle text-left"><a class="clickable"
                                                 href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
                     </td>
                   {% else %}
-                    <td class="align-middle"><span class="blurry">REDACTED</span></td>
+                    <td class="align-middle text-left"><span class="blurry">REDACTED</span></td>
                   {% endif %}
-                  <td class="align-middle">{{ server.ip_address }}</td>
-                  <td class="align-middle">{{ server.activity_type }}</td>
-                  <td class="align-middle"> {{ server.project.end_date|date:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-left">{{ server.ip_address }}</td>
+                  <td class="align-middle text-left">{{ server.activity_type }}</td>
+                  <td class="align-middle text-left"> {{ server.project.end_date|date:"DATE_FORMAT" }}</td>
                 </tr>
               {% endfor %}
             </table>
@@ -522,4 +524,16 @@
       {% include "user_extra_fields/extra_field_modal.html" with extra_fields=client.extra_fields field_spec=field_spec %}
     {% endfor %}
   {% endif %}
+
+  {% comment %} Insert modals for additional domain details {% endcomment %}
+  {% for project in projects %}
+    {% if project|has_access:request.user %}
+      {% include "snippets/project_history_detail_modal.html" with checkout=checkout %}
+    {% endif %}
+  {% endfor %}
+
+  {% comment %} Insert modals for additional contact details {% endcomment %}
+  {% for poc in client.clientcontact_set.all %}
+    {% include "snippets/client_contact_detail_modal.html" with poc=poc %}
+  {% endfor %}
 {% endblock %}

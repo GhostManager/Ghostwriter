@@ -1,0 +1,26 @@
+{% load bleach_tags %}
+
+<div id="client_contact_detail_{{ poc.id }}" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Additional Details for {{ poc.name }}</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        {% if poc.note %}
+          <p>{{ poc.note|bleach|safe }}</p>
+        {% else %}
+          <p>No additional information available.</p>
+        {% endif %}
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

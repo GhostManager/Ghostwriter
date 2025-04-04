@@ -25,64 +25,32 @@
   {% else %}
     <!-- Instructions Section -->
     {% if not searching_report_findings %}
-      <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>current report</em>
+      <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>active report</em>
         displayed at the top of the page.</p>
     {% else %}
       <p class="mt-3">The following results include findings attached to reports, not findings in your library.</p>
     {% endif %}
+
+    <a class="btn btn-info col-2 icon add-icon" role="button" href="{%  url 'reporting:finding_create' %}">Create Finding</a>
 
     <!-- Findings Table Section -->
     <div id="findings_table">
       <table id="findingsTable" class="tablesorter table table-striped table-sm">
         <thead>
         <tr>
-          <th class="sortable pr-4 align-middle">Severity</th>
-          <th class="sortable pr-4 align-middle">Type</th>
-          <th class="sortable pr-4 align-middle">Title</th>
+          <th class="sortable align-middle text-left">Severity</th>
+          <th class="sortable align-middle text-left">Type</th>
+          <th class="sortable align-middle text-left">Title</th>
           {% if searching_report_findings %}
-            <th class="sortable pr-4 align-middle">Report</th>
+            <th class="sortable pr-4 align-middle text-left">Report</th>
           {% endif %}
-          <th class="sorter-false align-middle">Tags</th>
-
-          {% if searching_report_findings %}
-            <th class="sorter-false align-middle">
-              <div class="dropdown dropleft">
-                <span id="edit-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
-                      aria-expanded="false">Edit Finding on Report</span>
-                <div id="edit-info" class="dropdown-menu dropdown-info-content" aria-labelledby="edit-info-btn">
-                  <p>Editing a finding here edits the <em>version on the report</em>.</p>
-                </div>
-              </div>
-            </th>
-          {% else %}
-            <th class="sorter-false align-middle">
-              <div class="dropdown dropleft">
-                <span id="finding-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
-                      aria-expanded="false">Add to Report</span>
-                <div id="finding-info" class="dropdown-menu dropdown-info-content" aria-labelledby="finding-info-btn">
-                  <p>Clicking <span class="add-icon"></span> will add the finding to your active report displayed at the
-                    top of the screen.</p>
-                </div>
-              </div>
-            </th>
-            <th class="sorter-false align-middle">
-              <div class="dropdown dropleft">
-                <span id="edit-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
-                      aria-expanded="false">Edit Finding</span>
-                <div id="edit-info" class="dropdown-menu dropdown-info-content" aria-labelledby="edit-info-btn">
-                  <p>Editing a finding here edits the <em>master record</em> for every other user. Only customize a
-                    finding after adding it to your report.</p>
-                </div>
-              </div>
-            </th>
-          {% endif %}
+          <th class="sorter-false align-middle">Options</th>
         </tr>
         </thead>
         <tbody class="list">
         {% for finding in filter.qs %}
           <tr>
-            <!-- Severity Column -->
-            <td class="align-middle
+            <td class="align-middle text-left
                                 {% if finding.severity.weight == 1 %}
                                     critical
                                 {% elif finding.severity.weight == 2 %}
@@ -99,38 +67,34 @@
                 style="display: none">{{ finding.severity.weight }}{{ cvss_score }}</span>{{ finding.severity.severity }}
               {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
             </td>
-            <!-- Finding Type (e.g. Network) -->
-            <td class="align-middle icon
-                                {% if finding.finding_type.finding_type == "Network" %}
-                                    network-icon"
-                title="Network Finding"
-            {% elif finding.finding_type.finding_type == "Wireless" %}
-                wireless-icon"
-              title="Wireless Finding"
-            {% elif finding.finding_type.finding_type == "Physical" %}
-              physical-icon"
-              title="Physical Security Finding"
-            {% elif finding.finding_type.finding_type == "Web" %}
-              code-icon"
-              title="Web App Finding"
-            {% elif finding.finding_type.finding_type == "Mobile Application" %}
-              mobile-icon"
-              title="Mobile Finding"
-            {% elif finding.finding_type.finding_type == "Cloud" %}
-              cloud-icon"
-              title="Cloud Finding"
-            {% elif finding.finding_type.finding_type == "Host" %}
-              host-icon"
-              title="Local Host Finding"
-            {% else %}
-              host-icon"
-              title="other Finding"
-            {% endif %}
-            >
-            <span style="display: none;">{{ finding.finding_type.finding_type }}</span>
+            <td class="align-middle text-left">
+              <span class="badge badge-primary
+                  icon
+                  {% if finding.finding_type.finding_type == "Cloud" %}
+                      cloud-icon
+                  {% elif finding.finding_type.finding_type == "Host" %}
+                      host-icon
+                  {% elif finding.finding_type.finding_type == "Mobile" %}
+                      mobile-icon
+                  {% elif finding.finding_type.finding_type == "Network" %}
+                      network-icon
+                  {% elif finding.finding_type.finding_type == "Physical" %}
+                      physical-icon
+                  {% elif finding.finding_type.finding_type == "Web" %}
+                      code-icon
+                  {% elif finding.finding_type.finding_type == "Wireless" %}
+                      wireless-icon
+                  {% else %}
+                      bug-icon
+                  {% endif %}"
+                  style="cursor: help"
+                  data-toggle="tooltip"
+                  data-placement="bottom"
+                  title="Finding Type"
+              >
+                {{ finding.finding_type.finding_type|bleach }}
+              </span>
             </td>
-
-            <!-- Other Information -->
             <td class="text-justify">
               <a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.title }}</a>
             </td>
@@ -139,18 +103,25 @@
                 <a class="clickable" href="{{ finding.report.get_absolute_url }}">{{ finding.report.title }}</a>
               </td>
             {% endif %}
-            <td class="text-justify align-middle">
-              {% for tag in finding.tags.all %}<span class="badge badge-secondary">{{ tag.name }}</span>{% endfor %}
-            </td>
-            {% if not searching_report_findings %}
-              <td class="align-middle">
-                <a class="js-assign-finding icon add-icon" assign-finding-id="{{ finding.id }}"
-                   href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}"
-                   assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"></a>
-              </td>
-            {% endif %}
             <td class="align-middle">
-              <a class="icon edit-icon" href="{{ finding.get_edit_url }}"></a>
+              <div class="d-flex justify-content-center">
+                <span
+                  class="icon preview-icon clickable-link"
+                  title="View additional information"
+                  onclick="openModal('#finding_detail_{{ finding.id }}')"
+                ></span>
+                {% if not searching_report_findings %}
+                  <a class="js-assign-finding icon add-icon"
+                     title="Add finding to your active report (selected in the left-hand sidebar)"
+                     assign-finding-id="{{ finding.id }}"
+                     href="javascript:void(0);"
+                     assign-finding-csrftoken="{{ csrf_token }}"
+                     assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"></a>
+                {% endif %}
+                <a class="icon edit-icon icon-last"
+                   title="Edit the library record for this finding"
+                   href="{{ finding.get_edit_url }}"></a>
+              </div>
             </td>
           </tr>
         {% endfor %}
@@ -262,4 +233,9 @@
       $('.input-group-text').closest('form').submit();
     });
   </script>
+
+  {% comment %} Insert modals for additional finding details {% endcomment %}
+  {% for finding in filter.qs %}
+    {% include "snippets/finding_detail_modal.html" with finding=finding %}
+  {% endfor %}
 {% endblock %}

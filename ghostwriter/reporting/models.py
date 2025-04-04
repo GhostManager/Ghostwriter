@@ -283,7 +283,6 @@ class ReportTemplate(models.Model):
     )
     upload_date = models.DateField(
         "Upload Date",
-        auto_now=True,
         help_text="Date and time the template was first uploaded",
     )
     last_update = models.DateField(

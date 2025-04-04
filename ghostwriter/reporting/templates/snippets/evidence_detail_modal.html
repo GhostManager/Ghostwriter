@@ -1,0 +1,26 @@
+{% load bleach_tags %}
+
+<div id="evidence_detail_{{ evidence.id }}" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Preview for {{ evidence.friendly_name }}</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>This is a preview of what your evidence file will look like in a report. It may not look exactly like this (depending on your template's styles), but it will give you an idea of what to expect.</p>
+
+        <p>If you have borders enabled for reports, images will include a border with your configured color and width.</p>
+
+        <p>Previews also show you what captions will look like with your caption and configured labelling for figures.</p>
+
+        {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

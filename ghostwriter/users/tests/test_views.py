@@ -354,3 +354,34 @@ class AvatarDownloadTest(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+
+
+class HideQuickStarttViewTests(TestCase):
+    """Collection of tests for :view:`users.HideQuickStart`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.other_user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("users:hide_quickstart", kwargs={"slug": cls.user.username})
+        cls.other_user_uri = reverse("users:hide_quickstart", kwargs={"slug": cls.other_user.username})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        user_profile = UserProfile.objects.get(user=self.user)
+        user_profile.hide_quickstart = False
+        user_profile.save()
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(self.other_user_uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        user_profile.refresh_from_db()
+        self.assertTrue(user_profile.hide_quickstart)

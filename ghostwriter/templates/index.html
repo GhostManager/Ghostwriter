@@ -16,105 +16,129 @@
 {% block content %}
   <div id="calendar" class="mt-3 mb-3"></div>
 
+  {% hide_quickstart request as hide_quickstart %}
   <div class="admin">
     <main class="admin__main">
       <div class="dashboard">
-        <div class="dashboard__item">
+
+        {% if not hide_quickstart %}
+        <div class="dashboard__item dashboard__item--full">
           <div class="card">
-            <p class="dashboard-header text-center">Project Assignments</p>
-            {% if active_projects %}
-              <table>
+            <p class="dashboard-header text-center">Quickstart</p>
+            <div class="text-left">
+                <p>Welcome to Ghostwriter! This platform streamlines security assessment reporting and team collaboration.</p>
+
+                <p>Ghostwriter helps you manage the entire assessment lifecycle through:</p>
+                <ul>
+                  <li>Client management and project tracking</li>
+                  <li>Findings library with reusable content</li>
+                  <li>Infrastructure tracking for assessments</li>
+                  <li>Report generation and collaboration with customizable templates</li>
+                </ul>
+
+                <p>To get started:</p>
+                <ul>
+                  <li>Explore existing clients and projects via the sidebar</li>
+                  <li>Set your active report to track your current work</li>
+                  <li>Add findings to your report from the library or create custom ones</li>
+                  <li>Generate reports with consistent formatting</li>
+                </ul>
+
+                <p>Use the sidebar navigation to access all features. This dashboard will show your assignments and project calendar events to keep you organized.</p>
+                <p>If you don't see any clients or projects, you may need to create them or request access. A manager or admin can assign you to an existing project to get you started. Once you have a project and a report, you can easily access them at any time from the left-hand sidebar available on every page.</p>
+
+              <p>Learn more from the <a href="https://ghostwriter.wiki/" class="dashboard-link">Ghostwriter Wiki</a>. Join our <a href="https://ghst.ly/BHSlack" class="dashboard-link">SpecterOps Slack Community</a> and the <em>#ghostwriter</em> channel to discuss Ghostwriter, ask questions, and get help.</p>
+
+              <button id="hideQuickstart" csrftoken="{{ csrf_token }}" class="btn btn-primary float-right"><span aria-hidden="true">&times;</span> Don't Show This Again</button>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="dashboard__item dashboard__item--full">
+          <div class="card">
+            <p class="dashboard-header text-center">Ready to Work?</p>
+            <div class="text-left">
+              {% if active_projects %}
+                <p>You're assigned to some active projects. Check those out here:</p>
+                <ul class="dashboard-list">
                 {% for project in active_projects %}
-                  <tr>
-                    <td class="text-left align-middle"><a
-                      href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }}
-                      ({{ project.role }})</a></td>
-                    <td class="text-right align-middle">{{ project.start_date }}–{{ project.end_date }}</td>
-                  </tr>
+                  <li><a
+                    class="dashboard-link"
+                    href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }}
+                    ({{ project.role }})</a></li>
                 {% endfor %}
-              </table>
-            {% else %}
-              <p class="align-middle text-center pt-3">You have no project assignments.</p>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="dashboard__item">
-          <div class="card">
-            <p class="dashboard-header text-center">Top Ten Reporting Tasks</p>
-            {% count_assignments request as assignment_count %}
-            {% if user_tasks %}
-              <ul class="text-left" style="list-style-type: none;">
-                {% for finding in user_tasks %}
-                  <li class="pb-2"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
-                    ({{ finding.report.project.codename }})</a></li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="align-middle text-center pt-3">You have no reporting tasks. Nice!</p>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="dashboard__item">
-          <div class="card">
-            <p class="dashboard-header text-center">Recent Background Tasks</p>
-            <table>
-              {% if recent_tasks %}
-                {% for task in recent_tasks %}
-                  <tr>
-                    {% if task.success %}
-                      <td class="text-center healthy align-middle">SUCCESS</td>
-                      <td class="align-middle text-center">{{ task.group }}</td>
-                    {% else %}
-                      <td class="text-center burned">
-                        {% if task.result %}
-                          <div class="dropdown dropleft">
-                            <span id="task-status-info-btn" class="dropdown-info dropdown-info-dashboard"
-                                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">FAILED</span>
-                            <div id="task-status-info" class="dropdown-menu dropdown-info-content"
-                                 aria-labelledby="task-status-info-btn">
-                              <p>Unsuccessful task returned this message/stack trace:</p>
-                              <br/>
-                              <code>{{ task.result }}</code>
-                            </div>
-                          </div>
-                        {% endif %}
-                      </td>
-                      <td class="align-middle text-center">{{ task.group }}</td>
-                    {% endif %}
-                  </tr>
-                {% endfor %}
+                </ul>
+                <p>Open the sidebar on the left to view/manage your reports under <em>My Active Reports</em>.</p>
+                <p>Select a report to mark it as active. If you're managing multiple reports, you can switch your active reports from there, too.</p>
               {% else %}
-                <tr>
-                  <td class="align-middle text-center">No completed tasks.</td>
-                </tr>
+                <p>You're not assigned to any projects right now. If you're looking for a project, visit the <a class="dashboard-link" href="{% url 'rolodex:projects' %}">Project Library</a>. You can also contact a manager or admin to get assigned to a project.</p>
               {% endif %}
-            </table>
+            </div>
           </div>
         </div>
 
-        <div class="dashboard__item">
-          <div class="card">
-            <p class="dashboard-header text-center">System Status</p>
-            <div class="float-right {% if system_health == "OK" %}led-green{% else %}led-red{% endif %}"></div>
-            {% if system_health == "OK" %}
-              <table class="align-middle">
-                <tr>
-                  <td class="text-center healthy align-middle">All Systems Go!</td>
-                </tr>
-              </table>
-            {% else %}
+        {%  if request.user|is_privileged %}
+          <div class="dashboard__item">
+            <div class="card">
+              <p class="dashboard-header text-center">Recent Background Tasks</p>
               <table>
-                <tr>
-                  <td class="text-center burned align-middle">Issues Detected!</td>
-                </tr>
+                {% if recent_tasks %}
+                  {% for task in recent_tasks %}
+                    <tr>
+                      {% if task.success %}
+                        <td class="text-center healthy align-middle">SUCCESS</td>
+                        <td class="align-middle text-center">{{ task.group }}</td>
+                      {% else %}
+                        <td class="text-center burned">
+                          {% if task.result %}
+                            <div class="dropdown dropleft">
+                              <span id="task-status-info-btn" class="dropdown-info dropdown-info-dashboard"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">FAILED</span>
+                              <div id="task-status-info" class="dropdown-menu dropdown-info-content"
+                                   aria-labelledby="task-status-info-btn">
+                                <p>Unsuccessful task returned this message/stack trace:</p>
+                                <br/>
+                                <code>{{ task.result }}</code>
+                              </div>
+                            </div>
+                          {% endif %}
+                        </td>
+                        <td class="align-middle text-center">{{ task.group }}</td>
+                      {% endif %}
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td class="align-middle text-center">No completed tasks.</td>
+                  </tr>
+                {% endif %}
               </table>
-            {% endif %}
-            <p class="mt-auto">Visit the <a class="clickable italic" href="{% url 'status:healthcheck' %}">Detailed
-              Status Page</a></p>
+            </div>
           </div>
-        </div>
+
+          <div class="dashboard__item">
+            <div class="card">
+              <p class="dashboard-header text-center">System Status</p>
+              <div class="float-right {% if system_health == "OK" %}led-green{% else %}led-red{% endif %}"></div>
+              {% if system_health == "OK" %}
+                <table class="align-middle">
+                  <tr>
+                    <td class="text-center healthy align-middle">All Systems Go!</td>
+                  </tr>
+                </table>
+              {% else %}
+                <table>
+                  <tr>
+                    <td class="text-center burned align-middle">Issues Detected!</td>
+                  </tr>
+                </table>
+              {% endif %}
+              <p class="mt-auto">Visit the <a class="clickable italic" href="{% url 'status:healthcheck' %}">Detailed
+                Status Page</a></p>
+            </div>
+          </div>
+        {% endif %}
       </div>
     </main>
   </div>
@@ -170,5 +194,44 @@
         calendar.addEvent(event_{{ assignment.id }});
       {% endfor %}
     });
+
+    {% comment %} Hide the Quickstart card when the button is clicked {% endcomment %}
+    document.addEventListener('DOMContentLoaded', function() {
+      const hideQuickstartBtn = document.getElementById('hideQuickstart');
+
+      if (hideQuickstartBtn) {
+          hideQuickstartBtn.addEventListener('click', function() {
+              let csrftoken = $(this).attr('csrftoken');
+
+              // Send POST request to update user preference
+              fetch('{% url "users:hide_quickstart" request.user.username %}', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': csrftoken
+                  },
+                  body: JSON.stringify({
+                      'hide_quickstart': true,
+                      'username': '{{ user.username }}'
+                  })
+              })
+              .then(response => {
+                  if (response.ok) {
+                      // Hide the quickstart div on success
+                      const quickstartCard = hideQuickstartBtn.closest('.dashboard__item--full');
+                      if (quickstartCard) {
+                          quickstartCard.style.display = 'none';
+                      }
+                  } else {
+                      console.error('Failed to update preferences');
+                      console.error('Response:', response);
+                  }
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+              });
+          });
+      }
+  });
   </script>
 {% endblock %}

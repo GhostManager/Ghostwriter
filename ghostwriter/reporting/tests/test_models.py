@@ -1,13 +1,17 @@
 # Standard Libraries
+from datetime import timedelta
 import logging
 import os
+import time
 
 # 3rd Party Libraries
 import factory
 
 # Django Imports
 from django.db import transaction
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.utils import timezone
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -277,6 +281,44 @@ class ReportTemplateModelTests(TestCase):
             self.assertEqual("success", status)
         except Exception:
             self.fail("ReportTemplate model `get_status` method failed unexpectedly with PPTX template!")
+
+    def test_update_upload_date_signal(self):
+        # Create a template with an initial document
+        template = ReportTemplateFactory()
+
+        # Set upload_date to a specific date in the past
+        past_date = (timezone.now() - timedelta(days=30)).date()
+        template.upload_date = past_date
+        template.save()
+        template.refresh_from_db()
+        self.assertEqual(template.upload_date, past_date)
+
+        # Update a field other than document
+        template.name = "Updated Name Only"
+        template.save()
+        template.refresh_from_db()
+
+        # Check that upload_date did not change
+        self.assertEqual(template.upload_date, past_date)
+
+        # Create a distinctly different document file
+        new_file = SimpleUploadedFile(
+            name="test_document_new.docx",
+            content=b"New document content",
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+        # Update the document with the new file
+        template.document = new_file
+        template.save()
+        template.refresh_from_db()
+
+        # Check that upload_date has changed from our past date
+        self.assertNotEqual(template.upload_date, past_date)
+
+        # Also verify it's set to today's date
+        today = timezone.now().date()
+        self.assertEqual(template.upload_date, today)
 
     def test_clean_template_signal(self):
         template = ReportDocxTemplateFactory()

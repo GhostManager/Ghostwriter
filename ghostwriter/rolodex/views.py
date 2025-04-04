@@ -1165,7 +1165,7 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset())
+        ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset(), request=self.request)
         ctx["autocomplete"] = self.autocomplete
         return ctx
 
@@ -1569,7 +1569,7 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
         # If user has not submitted their own filter, default to showing only active projects
         if len(data) == 0:
             data["complete"] = 0
-        ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset())
+        ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset(), request=self.request)
         ctx["autocomplete"] = self.autocomplete
         return ctx
 

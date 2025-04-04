@@ -17,7 +17,7 @@ from crispy_forms.bootstrap import (
     PrependedText,
 )
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+from crispy_forms.layout import Div, HTML, ButtonHolder, Column, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
@@ -84,36 +84,72 @@ class DomainFilter(django_filters.FilterSet):
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_show_labels = True
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Row(
-                Column(
-                    PrependedText("domain", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-6",
-                ),
-                Column(
-                    PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                    css_class="form-group col-md-6 mb-0",
-                ),
-                css_class="form-row",
-            ),
             Accordion(
-                AccordionGroup("Domain Status", InlineCheckboxes("domain_status"), SwitchToggle("exclude_expired")),
-                AccordionGroup("Health Status", InlineCheckboxes("health_status")),
-            ),
-            ButtonHolder(
-                HTML(
-                    """
-                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create</a>
-                    """
+                AccordionGroup(
+                    "Domain Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("domain", '<i class="fas fa-filter"></i>'),
+                                css_class="col-md-6",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="form-group col-md-6 mb-0",
+                            ),
+                            css_class="form-row",
+                        ),
+                        HTML(
+                            """
+                            <label for="div_id_domain_status" class="mt-3">Domain Status</label>
+                            """
+                        ),
+                        Row(
+                             Column(
+                                 InlineCheckboxes("domain_status"),
+                             ),
+                            css_class="form-row",
+                        ),
+                        Row(
+                          Column(
+                              SwitchToggle("exclude_expired"),
+                          ),
+                            css_class="form-row",
+                        ),
+                        HTML(
+                          """
+                          <label for="div_id_health_status" class-"mt-3">Health Status</label>
+                          """
+                        ),
+                        Row(
+                            Column(
+                                InlineCheckboxes("health_status"),
+                            ),
+                            css_class="form-row",
+                        ),
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'shepherd:domains' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
+                        ),
+                    ),
+                    active=is_active,
+                    template="accordion_group.html",
                 ),
-                Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
-                HTML(
-                    """
-                    <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:domains' %}">Reset</a>
-                    """
-                ),
-                css_class="mt-3",
+                css_class="justify-content-center",
             ),
         )
 
@@ -181,35 +217,55 @@ class ServerFilter(django_filters.FilterSet):
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_show_labels = True
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Row(
-                Column(
-                    PrependedText("server", '<i class="fas fa-filter"></i>'),
-                    css_class="form-group col-md-6 mb-0",
-                ),
-                Column(
-                    PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                    css_class="form-group col-md-6 mb-0",
-                ),
-                css_class="form-row",
-            ),
             Accordion(
-                AccordionGroup("Server Status", InlineCheckboxes("server_status")),
-            ),
-            ButtonHolder(
-                HTML(
-                    """
-                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:server_create' %}">Create</a>
-                    """
+                AccordionGroup(
+                    "Server Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("server", '<i class="fas fa-filter"></i>'),
+                                css_class="form-group col-md-6 mb-0",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="form-group col-md-6 mb-0",
+                            ),
+                            css_class="form-row",
+                        ),
+                        HTML(
+                            """
+                            <label for="div_id_server_status" class="mt-3">Server Status</label>
+                            """
+                        ),
+                        Row(
+                            Column(
+                                InlineCheckboxes("server_status"),
+                            ),
+                            css_class="form-row",
+                        ),
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'shepherd:servers' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
+                        ),
+                    ),
+                    active=is_active,
+                    template="accordion_group.html",
                 ),
-                Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
-                HTML(
-                    """
-                    <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:servers' %}">Reset</a>
-                    """
-                ),
-                css_class="mt-3",
+                css_class="justify-content-center",
             ),
         )
 
