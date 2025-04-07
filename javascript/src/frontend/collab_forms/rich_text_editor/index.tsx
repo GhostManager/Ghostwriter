@@ -81,8 +81,12 @@ function FormatButton(props: {
     );
 }
 
-function Toolbar({ extra }: { extra?: (editor: Editor) => React.ReactNode }) {
-    const { editor } = useCurrentEditor();
+export function Toolbar(props: {
+    editor?: Editor | null;
+    extra?: (editor: Editor) => React.ReactNode;
+}) {
+    const ce = useCurrentEditor();
+    const editor = props.editor ?? ce.editor;
     if (!editor) return null;
     return (
         <div className="control-group">
@@ -294,8 +298,8 @@ function Toolbar({ extra }: { extra?: (editor: Editor) => React.ReactNode }) {
                     Page Break
                 </FormatButton>
             </div>
-            {extra && <div className="separator" />}
-            {extra && extra(editor)}
+            {props.extra && <div className="separator" />}
+            {props.extra && props.extra(editor)}
         </div>
     );
 }

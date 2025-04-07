@@ -80,14 +80,16 @@ export type Evidence = {
 };
 
 export type Evidences = {
-    baseUrl: string;
     evidence: Evidence[];
+    mediaUrl: string;
+    uploadUrl: string;
+    poll: () => Promise<void>;
 };
 
 export const EvidencesContext = React.createContext<Evidences | null>(null);
 
 function EvidenceView(props: NodeViewProps) {
-    const id = props.node.attrs.id;
+    const id = parseInt(props.node.attrs.id);
     const ghostwriterEvidences = useContext(EvidencesContext);
     const evidence =
         ghostwriterEvidences &&
@@ -111,7 +113,7 @@ function EvidenceView(props: NodeViewProps) {
         return (
             <NodeViewWrapper className="richtext-evidence">
                 <img
-                    src={ghostwriterEvidences.baseUrl + evidence["document"]}
+                    src={ghostwriterEvidences.mediaUrl + evidence["document"]}
                 />
                 <span className="richtext-evidence-name">
                     {"Evidence: " + evidence.friendlyName}

@@ -1,8 +1,8 @@
 import { useQuery } from "@apollo/client";
 import { gql } from "../../__generated__/";
 import { Evidence_Bool_Exp } from "../../__generated__/graphql";
-import { useMemo } from "react";
-import { type Evidence, EvidencesContext } from "../../tiptap_gw/evidence";
+import { useCallback, useMemo } from "react";
+import { Evidences, EvidencesContext } from "../../tiptap_gw/evidence";
 
 const QUERY_EVIDENCE = gql(`
     query QUERY_EVIDENCE($where: evidence_bool_exp!) {
@@ -12,7 +12,7 @@ const QUERY_EVIDENCE = gql(`
     }
 `);
 
-export function usePageEvidence(): Evidence[] | null {
+export function usePageEvidence(): Evidences | null {
     const filters: Evidence_Bool_Exp["_or"] = useMemo(() => {
         const reportId = parseInt(
             document.getElementById("graphql-evidence-report-id")!.innerHTML
@@ -33,7 +33,7 @@ export function usePageEvidence(): Evidence[] | null {
         return filters;
     }, []);
 
-    const { data } = useQuery(QUERY_EVIDENCE, {
+    const { data, refetch } = useQuery(QUERY_EVIDENCE, {
         variables: {
             where: {
                 _or: filters,
@@ -42,7 +42,22 @@ export function usePageEvidence(): Evidence[] | null {
         pollInterval: 10000,
     });
 
-    return data?.evidence ?? null;
+    const poll = useCallback(() => refetch().then(() => {}), [refetch]);
+
+    const evidences = data?.evidence;
+    if (evidences === null || evidences === undefined) return null;
+
+    const mediaUrl = document.getElementById("graphql-media-url")!.innerHTML;
+    const uploadUrl = document.getElementById(
+        "graphql-evidence-upload-url"
+    )!.innerHTML;
+
+    return {
+        evidence: evidences,
+        mediaUrl,
+        uploadUrl,
+        poll,
+    };
 }
 
 export function ProvidePageEvidence({
@@ -51,17 +66,8 @@ export function ProvidePageEvidence({
     children: React.ReactNode;
 }) {
     const evidence = usePageEvidence();
-    const evidences = useMemo(
-        () =>
-            evidence && {
-                evidence,
-                baseUrl:
-                    document.getElementById("graphql-media-url")!.innerHTML,
-            },
-        [evidence]
-    );
     return (
-        <EvidencesContext.Provider value={evidences}>
+        <EvidencesContext.Provider value={evidence}>
             {children}
         </EvidencesContext.Provider>
     );

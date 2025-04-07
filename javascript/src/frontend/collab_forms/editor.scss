@@ -211,6 +211,7 @@
         width: fit-content;
     }
     .node-evidence.ProseMirror-selectednode .richtext-evidence {
+        color: #fff;
         background-color: #88c;
     }
     .richtext-evidence {
@@ -222,7 +223,7 @@
         margin-left: 1rem;
         margin-right: 1rem;
         border-radius: 0.9rem;
-        background-color: #ccc;
+        background-color: #ddd;
 
         img {
             width: 300px;

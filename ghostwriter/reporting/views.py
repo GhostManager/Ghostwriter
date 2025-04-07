@@ -724,7 +724,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
         return ctx
 
-    def form_valid(self, form, **kwargs):
+    def form_valid(self, form: EvidenceForm):
         obj = form.save(commit=False)
         obj.uploaded_by = self.request.user
         if self.finding_instance:
@@ -745,7 +745,17 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
                 "Evidence file failed to upload!",
                 extra_tags="alert-danger",
             )
-        return HttpResponseRedirect(self.get_success_url())
+        if self.request.accepts("text/html") or not self.request.accepts("application/json"):
+            return HttpResponseRedirect(self.get_success_url())
+        return JsonResponse({
+            "pk": obj.pk,
+        })
+
+    def form_invalid(self, form: EvidenceForm):
+        if self.request.accepts("text/html") or not self.request.accepts("application/json"):
+            return super().form_invalid(form)
+        return JsonResponse(form.errors, status=400, safe=True)
+
 
     def get_success_url(self):
         if "modal" in self.kwargs:

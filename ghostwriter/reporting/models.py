@@ -964,7 +964,7 @@ class Observation(models.Model):
         verbose_name_plural = "Observations"
 
     def __str__(self):
-        return str(self.title)
+        return self.display_title
 
     def get_absolute_url(self):
         return reverse("reporting:observation_detail", args=[str(self.id)])

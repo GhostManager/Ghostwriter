@@ -6,11 +6,15 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.conf import settings
 from django.db.models import Model
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import requires_csrf_token
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, generate_jwt
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 
+# Ensure a CSRF token is available for JS code that makes use of it.
+@method_decorator(requires_csrf_token, name="dispatch")
 class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
     """
     Base view for collaborative forms.

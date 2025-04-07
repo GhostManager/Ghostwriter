@@ -275,7 +275,7 @@ SESSION_SAVE_EVERY_REQUEST = env("DJANGO_SESSION_SAVE_EVERY_REQUEST", default=Tr
 # https://docs.djangoproject.com/en/3.2/ref/settings/#session-cookie-secure
 SESSION_COOKIE_SECURE = env("DJANGO_SESSION_COOKIE_SECURE", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False
 # https://docs.djangoproject.com/en/3.2/ref/settings/#csrf-cookie-secure
 CSRF_COOKIE_SECURE = env("DJANGO_CSRF_COOKIE_SECURE", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
