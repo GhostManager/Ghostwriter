@@ -68,7 +68,11 @@ function ReportObservationLinkForm() {
                     </div>
                 </div>
 
-                <ExtraFieldsSection connected={connected} provider={provider} />
+                <ExtraFieldsSection
+                    connected={connected}
+                    provider={provider}
+                    toolbarExtra={renderToolbarExtra}
+                />
 
                 <ConnectionStatus status={status} />
             </div>

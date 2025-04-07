@@ -48,8 +48,6 @@ export function FindingFormFields({
     connected: boolean;
     toolbarExtra?: (editor: Editor) => React.ReactNode;
 }) {
-    const plainFields = provider.document.getMap("plain_fields");
-
     return (
         <>
             <h4 className="icon search-icon">Categorization</h4>
@@ -197,6 +195,7 @@ export function FindingFormFields({
                         connected={connected}
                         provider={provider}
                         fragment={provider.document.getXmlFragment("impact")}
+                        toolbarExtra={toolbarExtra}
                     />
                 </div>
             </div>
@@ -300,6 +299,7 @@ export function FindingFormFields({
                         <hr />
                     </>
                 }
+                toolbarExtra={toolbarExtra}
             />
 
             <ConnectionStatus status={status} />

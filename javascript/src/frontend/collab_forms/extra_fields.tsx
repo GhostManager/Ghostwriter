@@ -9,6 +9,7 @@ import JsonEditor from "./plain_editors/json_editor";
 import RichTextEditor from "./rich_text_editor";
 import { XmlFragment } from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
+import { Editor } from "@tiptap/core";
 
 /// Emitted from ExtraFieldsSpecSerializer
 export type ExtraFieldSpec = {
@@ -38,6 +39,7 @@ export default function ExtraFieldsSection(props: {
     connected: boolean;
     provider: HocuspocusProvider;
     header?: React.ReactNode;
+    toolbarExtra?: (editor: Editor) => React.ReactNode;
 }) {
     const specs = useExtraFieldSpecs();
 
@@ -63,6 +65,7 @@ export function ExtraFieldInput(props: {
     connected: boolean;
     provider: HocuspocusProvider;
     spec: ExtraFieldSpec;
+    toolbarExtra?: (editor: Editor) => React.ReactNode;
 }) {
     const map = useMemo(
         () => props.provider.document.getMap("extra_fields"),
@@ -118,6 +121,7 @@ export function ExtraFieldInput(props: {
                     connected={props.connected}
                     provider={props.provider}
                     fragment={frag as XmlFragment}
+                    toolbarExtra={props.toolbarExtra}
                 />
             );
         case "json":
@@ -134,6 +138,6 @@ export function ExtraFieldInput(props: {
                 "Unrecognized extra field type (this is a bug):",
                 props.spec.type
             );
-            return <></>;
+            return null;
     }
 }
