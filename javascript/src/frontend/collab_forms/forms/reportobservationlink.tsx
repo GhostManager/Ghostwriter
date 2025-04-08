@@ -22,6 +22,8 @@ function ReportObservationLinkForm() {
 
     return (
         <ProvidePageEvidence>
+            <ConnectionStatus status={status} />
+
             <div className="form-row">
                 <div className="form-group col-md-6 mb-0">
                     <div className="form-group">
@@ -73,8 +75,6 @@ function ReportObservationLinkForm() {
                     provider={provider}
                     toolbarExtra={renderToolbarExtra}
                 />
-
-                <ConnectionStatus status={status} />
             </div>
         </ProvidePageEvidence>
     );

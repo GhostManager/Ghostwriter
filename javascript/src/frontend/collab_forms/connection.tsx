@@ -168,21 +168,20 @@ function hsv_to_rgb(h: number, s: number, v: number) {
     return `#${to_hex(r!)}${to_hex(g!)}${to_hex(b!)}`;
 }
 
-const STATUS_LOOKUP: { [key in ConnectionStatus]: string } = {
-    disconnected: "Disconnected",
-    connecting: "Connecting...",
-    initialSyncing: "Synchronizing...",
-    syncing: "Synchronizing...",
-    idle: "Saved",
-    error: "Could not save data - refresh page and try again",
+const STATUS_LOOKUP: { [key in ConnectionStatus]: [string, string] } = {
+    disconnected: ["Disconnected", "alert-danger"],
+    connecting: ["Connecting...", "alert-warning"],
+    initialSyncing: ["Synchronizing...", "alert-warning"],
+    syncing: ["Synchronizing...", "alert-warning"],
+    idle: ["Connected", "alert-success"],
+    error: ["Could not save data - refresh page and try again", "alert-danger"],
 };
 
 export function ConnectionStatus(props: { status: ConnectionStatus }) {
+    const [text, cls] = STATUS_LOOKUP[props.status];
     return (
-        <div className="col-md-12">
-            <small className="form-text text-muted">
-                {STATUS_LOOKUP[props.status]}
-            </small>
+        <div className={"collab-connection-status alert " + cls}>
+            <small className="form-text text-muted">{text}</small>
         </div>
     );
 }

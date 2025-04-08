@@ -15,7 +15,6 @@ body {
   background: var(--main-bg-color);
   color: var(--main-txt-color);
   font-weight: 300;
-  overflow: scroll;
 }
 
 p {
@@ -3570,4 +3569,4 @@ input[type="color"]:focus,
   border-color: var(--primary-color);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(126, 239, 104, 0.6);
   outline: 0 none;
-}
+}

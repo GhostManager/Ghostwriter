@@ -17,12 +17,12 @@ function ReportExtraFieldForm(props: { field: string }) {
 
     return (
         <>
+            <ConnectionStatus status={status} />
             <ExtraFieldInput
                 connected={connected}
                 provider={provider}
                 spec={extraField}
             />
-            <ConnectionStatus status={status} />
         </>
     );
 }

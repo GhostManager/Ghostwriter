@@ -52,6 +52,9 @@ export function FindingFormFields({
         <>
             <h4 className="icon search-icon">Categorization</h4>
             <hr />
+
+            <ConnectionStatus status={status} />
+
             <div className="form-row">
                 <div className="form-group col-md-6 mb-0">
                     <div className="form-group">
@@ -301,8 +304,6 @@ export function FindingFormFields({
                 }
                 toolbarExtra={toolbarExtra}
             />
-
-            <ConnectionStatus status={status} />
         </>
     );
 }
