@@ -7,6 +7,7 @@ import os
 # Django Imports
 from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import (
@@ -26,6 +27,22 @@ def backup_template_attr(sender, instance, **kwargs):
     """
     instance._current_template = instance.document
     instance._current_type = instance.doc_type
+
+
+@receiver(pre_save, sender=ReportTemplate)
+def update_upload_date(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = ReportTemplate.objects.get(pk=instance.pk)
+            # Use name/path comparison instead of direct object comparison
+            if old_instance.document.name != instance.document.name:
+                instance.upload_date = timezone.now().date()
+        except (ReportTemplate.DoesNotExist, ValueError):
+            # Handle case where instance exists but has no previous document
+            instance.upload_date = timezone.now().date()
+    else:
+        # New instance, set the upload_date
+        instance.upload_date = timezone.now().date()
 
 
 @receiver(post_save, sender=ReportTemplate)

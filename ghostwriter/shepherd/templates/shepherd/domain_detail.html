@@ -86,32 +86,32 @@
 
         <table class="table">
           <tr>
-            <th>Status</th>
-            <th>Registrar</th>
-            <th>Purchase Date</th>
-            <th>Expiration Date</th>
-            <th>Auto Renew Status</th>
-            <th>Domain Age</th>
+            <th class="align-middle text-left">Status</th>
+            <th class="align-middle text-left">Registrar</th>
+            <th class="align-middle text-left">Purchase Date</th>
+            <th class="align-middle text-left">Expiration Date</th>
+            <th class="align-middle">Auto Renew Status</th>
+            <th class="align-middle">Domain Age (Days)</th>
           </tr>
           <tr>
             {% if domain.domain_status.domain_status == "Available" %}
-              <td class="healthy">{{ domain.domain_status }}</td>
+              <td class="healthy align-middle text-left">{{ domain.domain_status }}</td>
             {% else %}
-              <td class="burned">{{ domain.domain_status }}</td>
+              <td class="burned align-middle text-left">{{ domain.domain_status }}</td>
             {% endif %}
-            <td>{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
-            <td>{{ domain.creation }}</td>
+            <td class="align-middle text-left">{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
+            <td class="align-middle text-left">{{ domain.creation }}</td>
             {% if domain.is_expired %}
-              <td class="high">{{ domain.expiration }}</td>
+              <td class="high align-middle text-left">{{ domain.expiration }}</td>
             {% else %}
-              <td>{{ domain.expiration }}</td>
+              <td class="align-middle text-left">{{ domain.expiration }}</td>
             {% endif %}
             {% if domain.auto_renew %}
               <td class="icon check-icon healthy"></td>
             {% else %}
               <td class="icon cross-icon burned"></td>
             {% endif %}
-            <td>{{ domain.get_domain_age|intcomma }}</td>
+            <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
           </tr>
         </table>
       </div>
@@ -143,14 +143,14 @@
         {% if domain.dns %}
           <table class="table">
             <tr>
-              <th>Record</th>
-              <th>Value</th>
+              <th class="align-middle text-left">Record</th>
+              <th class="align-middle text-left">Value</th>
             </tr>
             {% if domain.dns.items %}
               {% for record, value in domain.dns.items %}
                 <tr>
-                  <td class="text-center">{{ record|upper }}</td>
-                  <td class="table-note">
+                  <td class="align-middle text-left">{{ record|upper }}</td>
+                  <td class="align-middle text-justify table-note">
                     {% if value != "NoAnswer" and value != "NXDOMAIN" %}
                       {{ value }}
                     {% else %}
@@ -161,8 +161,8 @@
               {% endfor %}
             {% else %}
               <tr>
-                <td class="text-center">Record Dictionary</td>
-                <td class="table-note">{{ domain.dns }}</td>
+                <td class="align-middle text-left">Record Dictionary</td>
+                <td class="align-middle text-justify table-note">{{ domain.dns }}</td>
               </tr>
             {% endif %}
           </table>
@@ -205,31 +205,31 @@
 
         <table class="table">
           <tr>
-            <th>Status</th>
-            <th>Health</th>
-            <th>Whois Privacy</th>
-            <th>Last Update</th>
+            <th class="align-middle text-left">Status</th>
+            <th class="align-middle text-left">Health</th>
+            <th class="align-middle text-left">Whois Privacy</th>
+            <th class="align-middle text-left">Last Update</th>
           </tr>
           <tr>
             {% if domain.domain_status.domain_status == "Available" %}
-              <td class="healthy">{{ domain.domain_status }}</td>
+              <td class="healthy align-middle text-left">{{ domain.domain_status }}</td>
             {% else %}
-              <td class="burned">{{ domain.domain_status }}</td>
+              <td class="burned align-middle text-left">{{ domain.domain_status }}</td>
             {% endif %}
 
             {% if domain.health_status.health_status == "Healthy" %}
-              <td class="healthy">{{ domain.health_status }}</td>
+              <td class="healthy align-middle text-left">{{ domain.health_status }}</td>
             {% else %}
-              <td class="burned">{{ domain.health_status }}</td>
+              <td class="burned align-middle text-left">{{ domain.health_status }}</td>
             {% endif %}
 
             {% if domain.whois_status.whois_status == "Enabled" %}
-              <td class="healthy">{{ domain.whois_status }}</td>
+              <td class="healthy align-middle text-left">{{ domain.whois_status }}</td>
             {% else %}
-              <td class="burned">{{ domain.whois_status }}</td>
+              <td class="burned align-middle text-left">{{ domain.whois_status }}</td>
             {% endif %}
 
-            <td>
+            <td class="align-middle text-left">
               {% if domain.last_health_check %}
                 {{ domain.last_health_check|naturalday:"DATE_FORMAT" }}
               {% else %}
@@ -243,20 +243,20 @@
         <p>The following third-parties have categorized this domain:</p>
         <table class="table">
           <tr>
-            <th>Categorizer</th>
-            <th>Category</th>
+            <th class="align-middle text-left">Categorizer</th>
+            <th class="align-middle text-left">Category</th>
           </tr>
           <tr>
             {% if domain.categorization.items %}
               {% for source, cat in domain.categorization.items %}
                 <tr>
-                  <td>{{ source }}</td>
-                  <td>{{ cat|title }}</td>
+                  <td class="align-middle text-left">{{ source }}</td>
+                  <td class="align-middle text-left">{{ cat|title }}</td>
                 </tr>
               {% endfor %}
             {% else %}
-              <td>No Results</td>
-              <td>Refresh categories to poll VirusTotal</td>
+              <td class="align-middle text-left">No Results</td>
+              <td class="align-middle text-left">Refresh categories to poll VirusTotal</td>
             {% endif %}
           </tr>
         </table>
@@ -273,16 +273,15 @@
           <table id="project-table" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th class="align-middle pr-4">Project</th>
-              <th class="align-middle pr-4">Activity Type</th>
-              <th class="align-middle sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
-              <th class="align-middle sorter-false pr-4">Additional Info</th>
+              <th class="align-middle pr-4 text-left">Project</th>
+              <th class="align-middle pr-4 text-left">Activity Type</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy pr-4 text-left">Execution Window</th>
               <th class="align-middle sorter-false pr-4">Options</th>
             </tr>
             </thead>
             {% for checkout in domain.history_set.all %}
               <tr>
-                <td class="align-middle">
+                <td class="align-middle text-left">
                   {% if checkout.project|has_access:request.user %}
                     <a class="clickable"
                        href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</i></a>
@@ -290,44 +289,23 @@
                     <span class="blurry">REDACTED</span>
                   {% endif %}
                 </td>
-                <td class="align-middle">{{ checkout.activity_type }}</td>
-                <td class="align-middle">{{ checkout.start_date|date:"d M Y" }}
+                <td class="align-middle text-left">{{ checkout.activity_type }}</td>
+                <td class="align-middle text-left">{{ checkout.start_date|date:"d M Y" }}
                   – {{ checkout.end_date|date:"d M Y" }}</td>
-                <td class="align-middle">
+                <td class="align-middle text-left">
                   {% if checkout.project|has_access:request.user %}
-                    <button
-                      class="expandme btn btn-transparent"
-                      onclick="showHideRow($(this), 'hidden-domain-data-{{ checkout.id }}');"
-                      title="Expand to view additional information"
-                    ></button>
-                  {% endif %}
-                </td>
-                <td class="align-middle">
-                  {% if checkout.project|has_access:request.user %}
-                    <div class="dropdown dropleft">
-                      <button id="history-dropdown-btn_{{ checkout.id }}" class="dropdown-menu-btn-table"
-                              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                      <div class="dropdown-menu" aria-labelledby="history-dropdown-btn_{{ checkout.id }}">
-                        <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' checkout.id %}">Edit</a>
-                        <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' checkout.id %}">Delete</a>
-                      </div>
+                    <div class="d-flex justify-content-center">
+                      <span
+                        class="icon preview-icon clickable-link"
+                        title="View additional information"
+                        onclick="openModal('#domain_history_detail_{{ checkout.id }}')"
+                      ></span>
+                      <a class="icon edit-icon" href="{% url 'shepherd:history_update' checkout.id %}"></a>
+                      <a class="icon trash-icon" href="{% url 'shepherd:history_delete' checkout.id %}"></a>
                     </div>
                   {% endif %}
                 </td>
               </tr>
-              {% if checkout.project|has_access:request.user %}
-                <tr class="hidden-row">
-                  <td colspan=5>
-                    <div id="hidden-domain-data-{{ checkout.id }}" class="hidden-div">
-                      {%  if checkout.note %}
-                        {{ checkout.note|bleach }}
-                      {% else %}
-                        <p>No notes for this checkout.</p>
-                      {%  endif %}
-                    </div>
-                  </td>
-                </tr>
-              {% endif %}
             {% endfor %}
           </table>
         {% else %}
@@ -454,4 +432,11 @@
       {% include "user_extra_fields/extra_field_modal.html" with extra_fields=domain.extra_fields field_spec=field_spec %}
     {% endfor %}
   {% endif %}
+
+  {% comment %} Insert modals for additional domain details {% endcomment %}
+  {% for checkout in domain.history_set.all %}
+    {% if checkout.project|has_access:request.user %}
+      {% include "snippets/domain_history_detail_modal.html" with checkout=checkout %}
+    {% endif %}
+  {% endfor %}
 {% endblock %}

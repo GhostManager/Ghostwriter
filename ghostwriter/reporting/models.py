@@ -302,7 +302,6 @@ class ReportTemplate(models.Model):
     )
     upload_date = models.DateField(
         "Upload Date",
-        auto_now=True,
         help_text="Date and time the template was first uploaded",
     )
     last_update = models.DateField(
@@ -368,6 +367,13 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
     )
+    evidence_image_width = models.FloatField(
+        "Evidence Image Width",
+        default=6.5,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="The width of inserted evidence images, in inches (Word only)",
+    )
 
     class Meta:
         ordering = ["doc_type", "client", "name"]
@@ -412,13 +418,23 @@ class ReportTemplate(models.Model):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 
-            return ExportReportDocx(object, template_loc=self.document.path, p_style=self.p_style)
+            return ExportReportDocx(
+                object,
+                template_loc=self.document.path,
+                p_style=self.p_style,
+                evidence_image_width=self.evidence_image_width,
+            )
         if self.doc_type.doc_type == "project_docx":
             assert isinstance(object, Project)
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 
-            return ExportProjectDocx(object, template_loc=self.document.path, p_style=self.p_style)
+            return ExportProjectDocx(
+                object,
+                template_loc=self.document.path,
+                p_style=self.p_style,
+                evidence_image_width=self.evidence_image_width,
+            )
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
@@ -789,6 +805,17 @@ class ReportFindingLink(models.Model):
                     cvss_severity_colors = "7A7A7A"
 
         return cvss_version, cvss_scores, cvss_severities, cvss_severity_colors
+
+    @property
+    def exists_in_finding_library(self):
+        """
+        Returns True if the finding exists in the finding library. If a finding was not added as a blank finding,
+        it is assumed to exist in the library.
+        """
+        if not self.added_as_blank:
+            return True
+        return Finding.objects.filter(title=self.title).exists()
+
 
 
 def set_evidence_upload_destination(this, filename):

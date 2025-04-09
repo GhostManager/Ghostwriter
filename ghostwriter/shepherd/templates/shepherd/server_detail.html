@@ -58,7 +58,7 @@
         <h4>Server Details</h4>
         <hr>
 
-        <table class="table table-borderless table-centered project-details-table">
+        <table class="table table-borderless project-details-table offset-2 col-8">
           <tr>
             <td class="text-left bold">Hostname</td>
             <td class="text-left">
@@ -100,19 +100,19 @@
         <table id="address-table" class="tablesorter table table-striped">
           <thead>
           <tr>
-            <th>IP Address</th>
-            <th>Primary</th>
+            <th class="align-middle text-left">IP Address</th>
+            <th class="align-middle text-left">Primary</th>
           </tr>
           </thead>
           <tr>
-            <td>{{ staticserver.ip_address }}</td>
-            <td>Assigned to Server</td>
+            <td class="align-middle text-left">{{ staticserver.ip_address }}</td>
+            <td class="align-middle text-left">Assigned to Server</td>
           </tr>
           {% if staticserver.auxserveraddress_set %}
             {% for addy in staticserver.auxserveraddress_set.all %}
               <tr>
-                <td>{{ addy }}</td>
-                <td>
+                <td class="align-middle text-left">{{ addy }}</td>
+                <td class="align-middle text-left">
                   {% if addy.primary %}
                     Yes
                   {% else %}
@@ -127,7 +127,7 @@
 
       <!-- History Tab -->
       <div id="history" class="tab-pane">
-        <h4 class="icon history-icon">Server History</h4>
+        <h4>Server History</h4>
         <hr/>
 
         <p>If you do not have access to the related client or project, the history entry will be partially redacted.</p>
@@ -136,17 +136,16 @@
           <table id="project-table" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th class="align-middle pr-4">Project</th>
-              <th class="align-middle pr-4">Activity Type</th>
-              <th class="align-middle pr-4">Server Role</th>
-              <th class="align-middle sorter-date-range-dMMMyyyy pr-4">Execution Window</th>
-              <th class="align-middle sorter-false">Additional Info</th>
+              <th class="align-middle pr-4 text-left">Project</th>
+              <th class="align-middle pr-4 text-left">Activity Type</th>
+              <th class="align-middle pr-4 text-left">Server Role</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy pr-4 text-left">Execution Window</th>
               <th class="align-middle sorter-false">Options</th>
             </tr>
             </thead>
             {% for checkout in staticserver.serverhistory_set.all %}
               <tr>
-                <td class="align-middle">
+                <td class="align-middle text-left">
                   {% if checkout.project|has_access:request.user %}
                     <a class="clickable"
                        href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</a>
@@ -154,47 +153,23 @@
                     <span class="blurry">REDACTED</span>
                   {% endif %}
                 </td>
-                <td class="align-middle">{{ checkout.activity_type }}</td>
-                <td class="align-middle">{{ checkout.server_role }}</td>
-                <td class="align-middle">{{ checkout.start_date|date:"d M Y" }}
+                <td class="align-middle text-left">{{ checkout.activity_type }}</td>
+                <td class="align-middle text-left">{{ checkout.server_role }}</td>
+                <td class="align-middle text-left">{{ checkout.start_date|date:"d M Y" }}
                   - {{ checkout.end_date|date:"d M Y" }}</td>
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
-                    <button
-                      class="expandme btn btn-transparent"
-                      onclick="showHideRow($(this), 'hidden-server-data-{{ checkout.id }}');"
-                      title="Expand to view additional information"
-                    ></button>
-                  {% endif %}
-                </td>
-                <td class="align-middle">
-                  {% if checkout.project|has_access:request.user %}
-                    <div class="dropdown dropleft">
-                      <button id="history-dropdown-btn_{{ checkout.id }}" class="dropdown-menu-btn-table"
-                              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                      <div class="dropdown-menu" aria-labelledby="history-dropdown-btn_{{ checkout.id }}">
-                        <a class="dropdown-item icon edit-icon"
-                           href="{% url 'shepherd:server_history_update' checkout.id %}">Edit</a>
-                        <a class="dropdown-item icon trash-icon"
-                           href="{% url 'shepherd:server_history_delete' checkout.id %}">Delete</a>
-                      </div>
+                    <div class="d-flex justify-content-center">
+                      <a class="icon edit-icon"
+                         title="Edit this history entry"
+                         href="{% url 'shepherd:server_history_update' checkout.id %}"></a>
+                      <a class="icon trash-icon"
+                         title="Delete this history entry"
+                         href="{% url 'shepherd:server_history_delete' checkout.id %}"></a>
                     </div>
                   {% endif %}
                 </td>
               </tr>
-              {% if checkout.project|has_access:request.user %}
-                <tr class="hidden-row">
-                  <td colspan=5>
-                    <div id="hidden-server-data-{{ checkout.id }}" class="hidden-div">
-                      {%  if checkout.note %}
-                        {{ checkout.note|bleach }}
-                      {% else %}
-                        <p>No notes for this checkout.</p>
-                      {%  endif %}
-                    </div>
-                  </td>
-                </tr>
-              {% endif %}
             {% endfor %}
           </table>
         {% else %}

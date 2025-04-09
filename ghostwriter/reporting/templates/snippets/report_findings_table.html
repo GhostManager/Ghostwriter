@@ -4,8 +4,8 @@
   <table id="findings-table" class="table table-sm table-hover"
          findings-update-url="{% url 'reporting:update_report_findings' %}">
     <tr>
-      <th class="align-middle">Finding</th>
-      <th>CVSS Score</th>
+      <th class="align-middle text-left">Finding</th>
+      <th class="align-middle">CVSS Score</th>
       <th class="align-middle">
         <div class="dropdown dropleft">
           <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
@@ -18,7 +18,7 @@
           </div>
         </div>
       </th>
-      <th class="align-middle">
+      <th class="align-middle text-left">
         <div class="dropdown dropleft">
           <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                 aria-expanded="false">Owner</span>
@@ -54,7 +54,7 @@
       {% if values.findings %}
         {% for finding in values.findings %}
           <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
-            <td class="align-middle">
+            <td class="align-middle text-left">
               <a id="delete-target-content-finding-{{ finding.id }}"
                 {% if finding.added_as_blank %}
                  class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
@@ -144,7 +144,7 @@
               </td>
             {% endif %}
             {% if finding.assigned_to == request.user %}
-              <td class="align-middle">
+              <td class="align-middle text-left">
                 <span id="assignee-status-{{ finding.id }}" class="
                   {% if finding.complete %}
                     healthy">
@@ -156,9 +156,9 @@
               </td>
             {% else %}
               {% if finding.assigned_to %}
-                <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+                <td class="neutral align-middle text-left">{{ finding.assigned_to }}</td>
               {% else %}
-                <td class="medium align-middle">TBD</td>
+                <td class="medium align-middle text-left">TBD</td>
               {% endif %}
             {% endif %}
             <td class="align-middle">
@@ -219,7 +219,7 @@
     </tbody>
   </table>
 {% else %}
-  <p>No findings have been added to this report yet.</p>
+  <p class="mt-3">No findings have been added to this report yet.</p>
 {% endif %}
 
 <script>

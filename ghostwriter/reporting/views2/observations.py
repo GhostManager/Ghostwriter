@@ -49,7 +49,7 @@ class ObservationList(RoleBasedAccessControlMixin, ListView):
         return observations
 
     def get(self, request: HttpRequest, *args, **kwarg) -> HttpResponse:
-        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset())
+        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset(), request=self.request)
         return render(
             request,
             "reporting/observation_list.html",

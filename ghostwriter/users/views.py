@@ -8,7 +8,7 @@ import os
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.http import FileResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, RedirectView, UpdateView, View
@@ -244,3 +244,25 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
 
 avatar_download = AvatarDownload.as_view()
+
+
+class HideQuickStart(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Disable the Quickstart card on the dashboard for the target :model:`users.User` entry."""
+
+    model = UserProfile
+    slug_field = "username"
+    slug_url_kwarg = "username"
+
+    def test_func(self):
+        return self.get_object().user.id == self.request.user.id
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(UserProfile, user__username=self.kwargs.get("slug"))
+
+    def post(self, *args, **kwargs):
+        obj = self.get_object()
+        obj.hide_quickstart = True
+        obj.save()
+        return JsonResponse({"result": "success"})
+
+hide_quickstart = HideQuickStart.as_view()

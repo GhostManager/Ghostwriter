@@ -50,10 +50,10 @@ export function FindingFormFields({
 }) {
     return (
         <>
+            <ConnectionStatus status={status} />
+
             <h4 className="icon search-icon">Categorization</h4>
             <hr />
-
-            <ConnectionStatus status={status} />
 
             <div className="form-row">
                 <div className="form-group col-md-6 mb-0">

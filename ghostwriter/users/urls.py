@@ -6,6 +6,7 @@ from django.urls import path
 # Ghostwriter Libraries
 from ghostwriter.users.views import (
     avatar_download,
+    hide_quickstart,
     user_detail_view,
     user_redirect_view,
     user_update_view,
@@ -22,5 +23,10 @@ urlpatterns = [
         "<str:slug>/avatar",
         avatar_download,
         name="avatar_download",
+    ),
+    path(
+        "<str:slug>/quickstart",
+        hide_quickstart,
+        name="hide_quickstart",
     ),
 ]

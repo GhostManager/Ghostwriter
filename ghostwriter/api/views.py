@@ -1263,6 +1263,7 @@ class SetTags(HasuraActionView):
             return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
 
         try:
+            print("DEBUG", self.input)
             obj = cls.objects.get(id=self.input["id"])
         except ObjectDoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)

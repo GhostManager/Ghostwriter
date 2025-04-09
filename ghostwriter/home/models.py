@@ -22,6 +22,7 @@ class UserProfile(models.Model):
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to=set_upload_destination, default=None, blank=True)
+    hide_quickstart = models.BooleanField(default=False)
 
     class Meta:
 

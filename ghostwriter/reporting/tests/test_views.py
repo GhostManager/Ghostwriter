@@ -501,9 +501,13 @@ class FindingsListViewTests(TestCase):
         cls.accessibleReport = ReportFactory(project=cls.project)
         _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
         cls.accessibleReportFindings = [
-            ReportFindingLinkFactory(title=f"Report Finding {i}", report=cls.accessibleReport)
+            ReportFindingLinkFactory(title=f"Report Finding {i}", report=cls.accessibleReport, added_as_blank=False)
             for i in range(cls.num_of_findings)
         ]
+        cls.blankReportFinding = ReportFindingLinkFactory(
+            title=f"Report Finding {cls.num_of_findings + 1}", added_as_blank=True, report=cls.accessibleReport
+        )
+        cls.accessibleReportFindings.append(cls.blankReportFinding)
 
         cls.inaccessibleReport = ReportFactory()
         cls.inaccessibleReportFindings = [
@@ -556,6 +560,15 @@ class FindingsListViewTests(TestCase):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == len(self.accessibleReportFindings))
+
+        response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == 0)
+
+        FindingFactory(title=f"Report Finding {self.num_of_findings + 1}")
+        response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == 1)
 
 
 class FindingDetailViewTests(TestCase):

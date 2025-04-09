@@ -9,7 +9,7 @@ from django.views import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Exists
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_finding_access, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec
@@ -46,6 +46,17 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         if self.request.GET.get("on_reports", "").strip():
             findings = ReportFindingLink.objects.filter(report__project__in=get_project_list(self.request.user))
             self.searching_report_findings = True
+            if self.request.GET.get("not_cloned", "").strip():
+                # Create a subquery to check if a Finding with the same title exists
+                subquery = Finding.objects.filter(title=OuterRef("title"))
+
+                # Annotate the ReportFindingLink queryset with the ``exists_in_finding`` property
+                report_finding_links = ReportFindingLink.objects.annotate(
+                    exists_in_finding=Exists(subquery)
+                )
+
+                # Filter the queryset based on the exists_in_finding property
+                findings = report_finding_links.filter(exists_in_finding=True)
         else:
             findings = Finding.objects.all()
 

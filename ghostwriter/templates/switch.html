@@ -4,7 +4,7 @@
     {{ field }}
 {% else %}
     {% if field|is_checkbox %}
-        <div id="div_{{ field.auto_id }}" class="mb-3 custom-control custom-switch {% if wrapper_class %} {{ wrapper_class }}{% endif %}">
+        <div id="div_{{ field.auto_id }}" class="mb-1 custom-control custom-switch {% if wrapper_class %} {{ wrapper_class }}{% endif %}">
             {% crispy_field field 'class' 'custom-control-input' %}
             <label for="{{ field.id_for_label }}" class="custom-control-label form-check-label{% if field.field.required %} requiredField{% endif %}">
                 {{ field.label|safe }}

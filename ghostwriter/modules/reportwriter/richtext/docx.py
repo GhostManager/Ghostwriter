@@ -274,6 +274,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         doc,
         *,
         p_style,
+        evidence_image_width,
         evidences,
         figure_label: str,
         figure_prefix: str,
@@ -296,6 +297,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.title_case_captions = title_case_captions
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
+        self.evidence_image_width = evidence_image_width
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
         self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
 
@@ -480,7 +482,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = par.add_run()
             try:
-                run.add_picture(file_path, width=Inches(6.5))
+                run.add_picture(file_path, width=Inches(self.evidence_image_width))
             except UnrecognizedImageError as e:
                 logger.exception(
                     "Evidence file known as %s (%s) was not recognized as a %s file.",

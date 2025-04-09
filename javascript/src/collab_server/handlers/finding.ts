@@ -85,7 +85,7 @@ const FindingHandler = simpleModelHandler(
         const plainFields = doc.get("plain_fields", Y.Map<any>);
         const extraFields = extraFieldsFromYdoc(doc);
         return {
-            id: 123,
+            id,
             set: {
                 title: plainFields.get("title") ?? "",
                 cvssScore: plainFields.get("cvssScore") ?? null,

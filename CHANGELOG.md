@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.6] - 04 April 2025
+
+### Added
+
+* Added a new "Quickstart" card to the homepage dashboard to help guide new users
+  * The card includes general information tog et started, links to the wiki, and a link to the Ghostwriter community
+  * Users can hide the card with the button on the card
+
+### Changed
+
+* Numerous user interface and user experience (UI/UX) enhancements
+* Reduced table sizes to improve readability
+  * Some table columns (e.g., notes and additional information unneeded for sorting) have moved into informational modals
+  * You can open the modals by clicking the "i" icon in the table row
+* Library filters are now inside collapsible sections to reduce clutter
+  * If you prefer the filters always be accessible, their collapsed status is now tracked in your browser's local storage
+  * If you open a filter, all filters will be open by default until you close them
+* Selecting a report to edit from the sidebar will no longer redirect you to the report
+  * We added the redirect to remove a click long ago, but this made it difficult to manage multiple reports
+  * Now, selecting a report will swap reports and allow you to continue selecting findings in the library without a redirect
+* Modified the homepage dashboard to show more relevant information and provide user guidance
+  * We will continue to improve the homepage dashboard in future releases based on feedback
+
+### Fixed
+
+* Fixed report template "Upload Date" changing whenever the template was updated without changing the template file
+
+## [5.0.5] - 14 March 2025
+
+### Added
+
+* Added a setting on report templates to control the width of evidence files for Microsoft Word reports (PR #597)
+  * The default is still Word's standard 6.5" width
+  * The setting allows you to adjust the width to fit your needs
+
+## [5.0.4] - 13 March 2025
+
+### Added
+
+* Added a filter to the findings library to show only findings on reports that have not been created in or cloned to the library
+  * While filtering with "Search findings on reports" you can select "Return only findings on reports & not in the library"
+
+### Fixed
+
+* Fixed table sorting on activity logs
+
 ## [5.0.3] - 28 February 2025
 
 ### Added

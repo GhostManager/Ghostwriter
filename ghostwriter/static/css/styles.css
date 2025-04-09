@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Roboto&family=Roboto+Mono:wght@300;400&family=Kalam&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Roboto&family=Roboto+Mono:wght@300;400&family=Kalam&family=Metrophobic&display=swap');
 @import '/static/css/base_styles.css';
 
 
@@ -77,6 +77,7 @@ hr {
 .img-evidence {
   height: auto;
   max-width: 6.5in;
+  max-height: 70%;
   display: block;
   margin-left: auto;
   margin-right: auto;
@@ -116,6 +117,10 @@ hr {
 
 .form-check-label {
   cursor: pointer;
+}
+
+label {
+  margin-top: .5rem;
 }
 
 .form-select {
@@ -291,33 +296,32 @@ hr {
 h1 {
   text-align: center;
   color: var(--h1-font-color);
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.75em;
 }
 
 h2 {
   text-align: center;
   color: var(--h2-font-color);
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.5em;
 }
 
 h3 {
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-  padding-top: 20px;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2em;
   color: var(--h3-font-color);
 }
 
 h4 {
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   margin-top: 20px;
   margin-bottom: 20px;
   font-size: 1.75em;
 }
 
 h6 {
-  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 1em;
   padding-top: 10px;
 }
@@ -351,8 +355,8 @@ h6 {
   border-radius: 50%;
   margin: 30px;
   position: fixed;
-  bottom: 30px;
-  right: 30px;
+  bottom: 15px;
+  right: 15px;
   transition: background-color .3s;
   z-index: 1000;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
@@ -442,26 +446,26 @@ h6 {
 ----------------------------------------------------- */
 
 .form-control::placeholder {
-  color: var(--primary-color);
+  color: var(--ghost-grey);
   opacity: 0.75;
 }
 
 .form-control::-webkit-input-placeholder {
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .form-control:-moz-placeholder {
   /* Firefox 18- */
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .form-control::-moz-placeholder {
   /* Firefox 19+ */
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .form-control:-ms-input-placeholder {
-  color: var(--primary-color);
+  color: var(--ghost-grey);
 }
 
 .filter-form .card-body .form-group {
@@ -616,9 +620,9 @@ input[type='file'] {
 
 .sideheader {
   margin-top: 0;
-  margin-bottom: 5px;
-  margin-left: 20px;
-  font-weight: 500;
+  margin-bottom: 0px;
+  margin-left: 5px;
+  font-weight: 400;
   text-align: left;
 }
 
@@ -727,10 +731,10 @@ input[type='file'] {
 
 #sidebar ul li a,
 #sidebar ul li button {
-  padding-top: 10px;
-  padding-bottom: 10px;
-  padding-left: 30px;
-  font-size: 1.1em;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 40px;
+  font-size: 1em;
   display: block;
   text-align: left;
   border: none;
@@ -976,6 +980,20 @@ p.severity-box.info {
   padding: .5em;
 }
 
+ul.dashboard-list {
+  list-style-type: circle;
+  padding-left: 10px;
+}
+
+.dashboard-link {
+  text-decoration-thickness: 3px;
+  color: var(--active-link-color);
+}
+
+ul.dashboard-checklist {
+  list-style-type: none;
+}
+
 /* ---------------------------------------------------
     GENERAL BUTTON STYLES
 ----------------------------------------------------- */
@@ -994,6 +1012,11 @@ p.severity-box.info {
   -webkit-transition-duration: 0.4s;
   /* Safari */
   transition-duration: 0.4s;
+}
+
+.btn {
+  padding-right: .5rem;
+  padding-left: .5rem;
 }
 
 .btn:focus {
@@ -1128,9 +1151,8 @@ table {
   color: var(--main-txt-color);
 }
 
-.table-centered {
-  width: 50%;
-  margin: auto;
+.table-config td:first-child {
+  width: 30%;
 }
 
 .user-profile-table {
@@ -1242,7 +1264,6 @@ th:last-child {
 
 th,
 td {
-  margin-right: 10px;
   text-align: center;
   max-width: 500px;
 }
@@ -1259,6 +1280,12 @@ td {
 
 .burned {
   color: var(--burned-color);
+  font-weight: 600;
+  text-align: center;
+}
+
+.warning {
+  color: var(--warning-color);
   font-weight: 600;
   text-align: center;
 }
@@ -1475,19 +1502,19 @@ thead th {
 
 thead th.none {
   padding-right: 10px;
-  padding-left: 30px;
+  padding-left: 10px;
   background-image: url(data:img/gif;base64,R0lGODlhFQAJAIAAAP///////yH5BAEAAAEALAAAAAAVAAkAAAIXjI+AywnaYnhUMoqt3gZXPmVg94yJVQAAOw==);
 }
 
 thead th.up {
   padding-right: 10px;
-  padding-left: 30px;
+  padding-left: 10px;
   background-image: url(data:image/gif;base64,R0lGODlhFQAEAIAAAP///////yH5BAEAAAEALAAAAAAVAAQAAAINjI8Bya2wnINUMopZAQA7);
 }
 
 thead th.down {
   padding-right: 10px;
-  padding-left: 30px;
+  padding-left: 10px;
   background-image: url(data:image/gif;base64,R0lGODlhFQAEAIAAAP///////yH5BAEAAAEALAAAAAAVAAQAAAINjB+gC+jP2ptn0WskLQA7);
 }
 
@@ -1785,6 +1812,7 @@ td p {
   padding-right: 10px;
   font-size: .75em;
   display: inline-block;
+  padding-bottom: 2px;
 }
 
 .icon:after {
@@ -1792,6 +1820,14 @@ td p {
   vertical-align: middle;
   padding-left: 10px;
   font-size: 1em;
+}
+
+.icon-last:before {
+  padding-right: 0;
+}
+
+h3.icon:before {
+  margin-bottom: 8px;
 }
 
 th.icon {
@@ -1809,6 +1845,10 @@ th.icon {
 
 .2fa-icon:before {
   content: '\f577';
+}
+
+.export-icon {
+  content: '\f56e';
 }
 
 .tint-icon:before {
@@ -2062,10 +2102,15 @@ th.icon {
 
 .edit-icon:before {
   content: '\f044';
+  font-weight: 600;
 }
 
 .edit-icon-right:after {
   content: '\f044';
+}
+
+.preview-icon:before {
+  content: '\f06e';
 }
 
 .redo-icon:before {
@@ -2079,7 +2124,7 @@ th.icon {
 
 .add-icon:before {
   content: '\f0fe';
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .sub-icon:before {
@@ -2513,6 +2558,10 @@ th.icon {
 /* ---------------------------------------------------
     COLLAPSIBLE SECTION STYLES
 ----------------------------------------------------- */
+
+.card-header {
+  cursor: pointer;
+}
 
 .show {
   display: block;
