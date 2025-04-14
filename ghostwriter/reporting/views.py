@@ -3211,6 +3211,7 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
                 report=obj,
                 position=position,
                 added_as_blank=True,
+                extra_fields=ExtraFieldSpec.initial_json(Observation),
             )
             report_link.save()
 
