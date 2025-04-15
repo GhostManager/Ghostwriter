@@ -32139,6 +32139,7 @@ export type Template = {
   docxTemplates: Array<Report>;
   /** An aggregate relationship */
   docxTemplates_aggregate: Report_Aggregate;
+  evidence_image_width: Scalars['float8']['output'];
   filename_override: Scalars['String']['output'];
   id: Scalars['bigint']['output'];
   landscape: Scalars['Boolean']['output'];
@@ -32253,9 +32254,24 @@ export type Template_Aggregate = {
 };
 
 export type Template_Aggregate_Bool_Exp = {
+  avg?: InputMaybe<Template_Aggregate_Bool_Exp_Avg>;
   bool_and?: InputMaybe<Template_Aggregate_Bool_Exp_Bool_And>;
   bool_or?: InputMaybe<Template_Aggregate_Bool_Exp_Bool_Or>;
+  corr?: InputMaybe<Template_Aggregate_Bool_Exp_Corr>;
   count?: InputMaybe<Template_Aggregate_Bool_Exp_Count>;
+  covar_samp?: InputMaybe<Template_Aggregate_Bool_Exp_Covar_Samp>;
+  max?: InputMaybe<Template_Aggregate_Bool_Exp_Max>;
+  min?: InputMaybe<Template_Aggregate_Bool_Exp_Min>;
+  stddev_samp?: InputMaybe<Template_Aggregate_Bool_Exp_Stddev_Samp>;
+  sum?: InputMaybe<Template_Aggregate_Bool_Exp_Sum>;
+  var_samp?: InputMaybe<Template_Aggregate_Bool_Exp_Var_Samp>;
+};
+
+export type Template_Aggregate_Bool_Exp_Avg = {
+  arguments: Template_Select_Column_Template_Aggregate_Bool_Exp_Avg_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
 };
 
 export type Template_Aggregate_Bool_Exp_Bool_And = {
@@ -32272,11 +32288,70 @@ export type Template_Aggregate_Bool_Exp_Bool_Or = {
   predicate: Boolean_Comparison_Exp;
 };
 
+export type Template_Aggregate_Bool_Exp_Corr = {
+  arguments: Template_Aggregate_Bool_Exp_Corr_Arguments;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type Template_Aggregate_Bool_Exp_Corr_Arguments = {
+  X: Template_Select_Column_Template_Aggregate_Bool_Exp_Corr_Arguments_Columns;
+  Y: Template_Select_Column_Template_Aggregate_Bool_Exp_Corr_Arguments_Columns;
+};
+
 export type Template_Aggregate_Bool_Exp_Count = {
   arguments?: InputMaybe<Array<Template_Select_Column>>;
   distinct?: InputMaybe<Scalars['Boolean']['input']>;
   filter?: InputMaybe<Template_Bool_Exp>;
   predicate: Int_Comparison_Exp;
+};
+
+export type Template_Aggregate_Bool_Exp_Covar_Samp = {
+  arguments: Template_Aggregate_Bool_Exp_Covar_Samp_Arguments;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type Template_Aggregate_Bool_Exp_Covar_Samp_Arguments = {
+  X: Template_Select_Column_Template_Aggregate_Bool_Exp_Covar_Samp_Arguments_Columns;
+  Y: Template_Select_Column_Template_Aggregate_Bool_Exp_Covar_Samp_Arguments_Columns;
+};
+
+export type Template_Aggregate_Bool_Exp_Max = {
+  arguments: Template_Select_Column_Template_Aggregate_Bool_Exp_Max_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type Template_Aggregate_Bool_Exp_Min = {
+  arguments: Template_Select_Column_Template_Aggregate_Bool_Exp_Min_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type Template_Aggregate_Bool_Exp_Stddev_Samp = {
+  arguments: Template_Select_Column_Template_Aggregate_Bool_Exp_Stddev_Samp_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type Template_Aggregate_Bool_Exp_Sum = {
+  arguments: Template_Select_Column_Template_Aggregate_Bool_Exp_Sum_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type Template_Aggregate_Bool_Exp_Var_Samp = {
+  arguments: Template_Select_Column_Template_Aggregate_Bool_Exp_Var_Samp_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Template_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
 };
 
 /** aggregate fields of "reporting_reporttemplate" */
@@ -32334,6 +32409,7 @@ export type Template_Avg_Fields = {
   __typename?: 'template_avg_fields';
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
@@ -32342,6 +32418,7 @@ export type Template_Avg_Fields = {
 export type Template_Avg_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -32363,6 +32440,7 @@ export type Template_Bool_Exp = {
   document?: InputMaybe<String_Comparison_Exp>;
   docxTemplates?: InputMaybe<Report_Bool_Exp>;
   docxTemplates_aggregate?: InputMaybe<Report_Aggregate_Bool_Exp>;
+  evidence_image_width?: InputMaybe<Float8_Comparison_Exp>;
   filename_override?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   landscape?: InputMaybe<Boolean_Comparison_Exp>;
@@ -32404,6 +32482,7 @@ export type Template_Delete_Key_Input = {
 export type Template_Inc_Input = {
   clientId?: InputMaybe<Scalars['bigint']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -32419,6 +32498,7 @@ export type Template_Insert_Input = {
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
   docxTemplates?: InputMaybe<Report_Arr_Rel_Insert_Input>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   filename_override?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   landscape?: InputMaybe<Scalars['Boolean']['input']>;
@@ -32442,6 +32522,7 @@ export type Template_Max_Fields = {
   description?: Maybe<Scalars['String']['output']>;
   docTypeId?: Maybe<Scalars['bigint']['output']>;
   document?: Maybe<Scalars['String']['output']>;
+  evidence_image_width?: Maybe<Scalars['float8']['output']>;
   filename_override?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   lastUpdate?: Maybe<Scalars['date']['output']>;
@@ -32458,6 +32539,7 @@ export type Template_Max_Order_By = {
   description?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   filename_override?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   lastUpdate?: InputMaybe<Order_By>;
@@ -32475,6 +32557,7 @@ export type Template_Min_Fields = {
   description?: Maybe<Scalars['String']['output']>;
   docTypeId?: Maybe<Scalars['bigint']['output']>;
   document?: Maybe<Scalars['String']['output']>;
+  evidence_image_width?: Maybe<Scalars['float8']['output']>;
   filename_override?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   lastUpdate?: Maybe<Scalars['date']['output']>;
@@ -32491,6 +32574,7 @@ export type Template_Min_Order_By = {
   description?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   filename_override?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   lastUpdate?: InputMaybe<Order_By>;
@@ -32534,6 +32618,7 @@ export type Template_Order_By = {
   docTypeId?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
   docxTemplates_aggregate?: InputMaybe<Report_Aggregate_Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   filename_override?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   landscape?: InputMaybe<Order_By>;
@@ -32572,6 +32657,8 @@ export enum Template_Select_Column {
   /** column name */
   Document = 'document',
   /** column name */
+  EvidenceImageWidth = 'evidence_image_width',
+  /** column name */
   FilenameOverride = 'filename_override',
   /** column name */
   Id = 'id',
@@ -32593,6 +32680,12 @@ export enum Template_Select_Column {
   UploadedById = 'uploadedById'
 }
 
+/** select "template_aggregate_bool_exp_avg_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Avg_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
 /** select "template_aggregate_bool_exp_bool_and_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
   /** column name */
@@ -32609,6 +32702,48 @@ export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_Or_Arguments
   Protected = 'protected'
 }
 
+/** select "template_aggregate_bool_exp_corr_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Corr_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "template_aggregate_bool_exp_covar_samp_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Covar_Samp_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "template_aggregate_bool_exp_max_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Max_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "template_aggregate_bool_exp_min_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Min_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "template_aggregate_bool_exp_stddev_samp_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Stddev_Samp_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "template_aggregate_bool_exp_sum_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Sum_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "template_aggregate_bool_exp_var_samp_arguments_columns" columns of table "reporting_reporttemplate" */
+export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Var_Samp_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
 /** input type for updating data in table "reporting_reporttemplate" */
 export type Template_Set_Input = {
   changelog?: InputMaybe<Scalars['String']['input']>;
@@ -32616,6 +32751,7 @@ export type Template_Set_Input = {
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   filename_override?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   landscape?: InputMaybe<Scalars['Boolean']['input']>;
@@ -32633,6 +32769,7 @@ export type Template_Stddev_Fields = {
   __typename?: 'template_stddev_fields';
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
@@ -32641,6 +32778,7 @@ export type Template_Stddev_Fields = {
 export type Template_Stddev_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -32650,6 +32788,7 @@ export type Template_Stddev_Pop_Fields = {
   __typename?: 'template_stddev_pop_fields';
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
@@ -32658,6 +32797,7 @@ export type Template_Stddev_Pop_Fields = {
 export type Template_Stddev_Pop_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -32667,6 +32807,7 @@ export type Template_Stddev_Samp_Fields = {
   __typename?: 'template_stddev_samp_fields';
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
@@ -32675,6 +32816,7 @@ export type Template_Stddev_Samp_Fields = {
 export type Template_Stddev_Samp_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -32694,6 +32836,7 @@ export type Template_Stream_Cursor_Value_Input = {
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   filename_override?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   landscape?: InputMaybe<Scalars['Boolean']['input']>;
@@ -32711,6 +32854,7 @@ export type Template_Sum_Fields = {
   __typename?: 'template_sum_fields';
   clientId?: Maybe<Scalars['bigint']['output']>;
   docTypeId?: Maybe<Scalars['bigint']['output']>;
+  evidence_image_width?: Maybe<Scalars['float8']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
 };
@@ -32719,6 +32863,7 @@ export type Template_Sum_Fields = {
 export type Template_Sum_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -32735,6 +32880,8 @@ export enum Template_Update_Column {
   DocTypeId = 'docTypeId',
   /** column name */
   Document = 'document',
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width',
   /** column name */
   FilenameOverride = 'filename_override',
   /** column name */
@@ -32781,6 +32928,7 @@ export type Template_Var_Pop_Fields = {
   __typename?: 'template_var_pop_fields';
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
@@ -32789,6 +32937,7 @@ export type Template_Var_Pop_Fields = {
 export type Template_Var_Pop_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -32798,6 +32947,7 @@ export type Template_Var_Samp_Fields = {
   __typename?: 'template_var_samp_fields';
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
@@ -32806,6 +32956,7 @@ export type Template_Var_Samp_Fields = {
 export type Template_Var_Samp_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -32815,6 +32966,7 @@ export type Template_Variance_Fields = {
   __typename?: 'template_variance_fields';
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
@@ -32823,6 +32975,7 @@ export type Template_Variance_Fields = {
 export type Template_Variance_Order_By = {
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34038,6 +34191,7 @@ export type UserPermission_Variance_Order_By = {
 export type UserProfile = {
   __typename?: 'userProfile';
   avatar: Scalars['String']['output'];
+  hide_quickstart: Scalars['Boolean']['output'];
   id: Scalars['bigint']['output'];
   /** An object relationship */
   user: User;
@@ -34087,6 +34241,7 @@ export type UserProfile_Bool_Exp = {
   _not?: InputMaybe<UserProfile_Bool_Exp>;
   _or?: InputMaybe<Array<UserProfile_Bool_Exp>>;
   avatar?: InputMaybe<String_Comparison_Exp>;
+  hide_quickstart?: InputMaybe<Boolean_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   user?: InputMaybe<User_Bool_Exp>;
   userId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -34109,6 +34264,7 @@ export type UserProfile_Inc_Input = {
 /** input type for inserting data into table "home_userprofile" */
 export type UserProfile_Insert_Input = {
   avatar?: InputMaybe<Scalars['String']['input']>;
+  hide_quickstart?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   user?: InputMaybe<User_Obj_Rel_Insert_Input>;
   userId?: InputMaybe<Scalars['bigint']['input']>;
@@ -34156,6 +34312,7 @@ export type UserProfile_On_Conflict = {
 /** Ordering options when selecting data from "home_userprofile". */
 export type UserProfile_Order_By = {
   avatar?: InputMaybe<Order_By>;
+  hide_quickstart?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   user?: InputMaybe<User_Order_By>;
   userId?: InputMaybe<Order_By>;
@@ -34171,6 +34328,8 @@ export enum UserProfile_Select_Column {
   /** column name */
   Avatar = 'avatar',
   /** column name */
+  HideQuickstart = 'hide_quickstart',
+  /** column name */
   Id = 'id',
   /** column name */
   UserId = 'userId'
@@ -34179,6 +34338,7 @@ export enum UserProfile_Select_Column {
 /** input type for updating data in table "home_userprofile" */
 export type UserProfile_Set_Input = {
   avatar?: InputMaybe<Scalars['String']['input']>;
+  hide_quickstart?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   userId?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -34215,6 +34375,7 @@ export type UserProfile_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type UserProfile_Stream_Cursor_Value_Input = {
   avatar?: InputMaybe<Scalars['String']['input']>;
+  hide_quickstart?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   userId?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -34230,6 +34391,8 @@ export type UserProfile_Sum_Fields = {
 export enum UserProfile_Update_Column {
   /** column name */
   Avatar = 'avatar',
+  /** column name */
+  HideQuickstart = 'hide_quickstart',
   /** column name */
   Id = 'id',
   /** column name */
@@ -35414,7 +35577,7 @@ export const Set_ObservationDocument = {"kind":"Document","definitions":[{"kind"
 export const Get_ReportDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_REPORT"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"report_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"extraFields"}}]}},{"kind":"Field","name":{"kind":"Name","value":"extraFieldSpec"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"targetModel"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"_eq"},"value":{"kind":"StringValue","value":"reporting.Report","block":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"internalName"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}}]}}]} as unknown as DocumentNode<Get_ReportQuery, Get_ReportQueryVariables>;
 export const EviDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"evi"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"jsonb"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_report_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"extraFields"},"value":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<EviMutation, EviMutationVariables>;
 export const Get_Report_Finding_LinkDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_REPORT_FINDING_LINK"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reportedFinding_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"impact"}},{"kind":"Field","name":{"kind":"Name","value":"mitigation"}},{"kind":"Field","name":{"kind":"Name","value":"replication_steps"}},{"kind":"Field","name":{"kind":"Name","value":"hostDetectionTechniques"}},{"kind":"Field","name":{"kind":"Name","value":"networkDetectionTechniques"}},{"kind":"Field","name":{"kind":"Name","value":"references"}},{"kind":"Field","name":{"kind":"Name","value":"findingGuidance"}},{"kind":"Field","name":{"kind":"Name","value":"cvssScore"}},{"kind":"Field","name":{"kind":"Name","value":"cvssVector"}},{"kind":"Field","name":{"kind":"Name","value":"severity"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}},{"kind":"Field","name":{"kind":"Name","value":"findingTypeId"}},{"kind":"Field","name":{"kind":"Name","value":"extraFields"}}]}},{"kind":"Field","name":{"kind":"Name","value":"tags"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"model"},"value":{"kind":"StringValue","value":"report_finding_link","block":false}},{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tags"}}]}},{"kind":"Field","name":{"kind":"Name","value":"extraFieldSpec"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"targetModel"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"_eq"},"value":{"kind":"StringValue","value":"reporting.Finding","block":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"internalName"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}}]}}]} as unknown as DocumentNode<Get_Report_Finding_LinkQuery, Get_Report_Finding_LinkQueryVariables>;
-export const Set_Report_Finding_LinkDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SET_REPORT_FINDING_LINK"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"set"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"reportedFinding_set_input"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"tags"}},"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_reportedFinding_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"Variable","name":{"kind":"Name","value":"set"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}},{"kind":"Field","name":{"kind":"Name","value":"setTags"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"model"},"value":{"kind":"StringValue","value":"report_observation_link","block":false}},{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"tags"},"value":{"kind":"Variable","name":{"kind":"Name","value":"tags"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tags"}}]}}]}}]} as unknown as DocumentNode<Set_Report_Finding_LinkMutation, Set_Report_Finding_LinkMutationVariables>;
+export const Set_Report_Finding_LinkDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SET_REPORT_FINDING_LINK"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"set"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"reportedFinding_set_input"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"tags"}},"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_reportedFinding_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"Variable","name":{"kind":"Name","value":"set"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}},{"kind":"Field","name":{"kind":"Name","value":"setTags"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"model"},"value":{"kind":"StringValue","value":"report_finding_link","block":false}},{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"tags"},"value":{"kind":"Variable","name":{"kind":"Name","value":"tags"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tags"}}]}}]}}]} as unknown as DocumentNode<Set_Report_Finding_LinkMutation, Set_Report_Finding_LinkMutationVariables>;
 export const Get_Report_Observation_LinkDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_REPORT_OBSERVATION_LINK"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reporting_reportobservationlink_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"extraFields"}}]}},{"kind":"Field","name":{"kind":"Name","value":"tags"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"model"},"value":{"kind":"StringValue","value":"report_observation_link","block":false}},{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tags"}}]}},{"kind":"Field","name":{"kind":"Name","value":"extraFieldSpec"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"targetModel"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"_eq"},"value":{"kind":"StringValue","value":"reporting.Observation","block":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"internalName"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}}]}}]} as unknown as DocumentNode<Get_Report_Observation_LinkQuery, Get_Report_Observation_LinkQueryVariables>;
 export const Set_Report_Observation_LinkDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SET_REPORT_OBSERVATION_LINK"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"description"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"tags"}},"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"jsonb"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_reporting_reportobservationlink_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"description"},"value":{"kind":"Variable","name":{"kind":"Name","value":"description"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"extraFields"},"value":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}},{"kind":"Field","name":{"kind":"Name","value":"setTags"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"model"},"value":{"kind":"StringValue","value":"report_observation_link","block":false}},{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"tags"},"value":{"kind":"Variable","name":{"kind":"Name","value":"tags"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tags"}}]}}]}}]} as unknown as DocumentNode<Set_Report_Observation_LinkMutation, Set_Report_Observation_LinkMutationVariables>;
 export const Get_Finding_TypesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_FINDING_TYPES"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"findingType"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"order_by"},"value":{"kind":"ListValue","values":[{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"EnumValue","value":"asc"}}]}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"findingType"}}]}}]}}]} as unknown as DocumentNode<Get_Finding_TypesQuery, Get_Finding_TypesQueryVariables>;
