@@ -173,7 +173,7 @@ const STATUS_LOOKUP: { [key in ConnectionStatus]: [string, string] } = {
     connecting: ["Connecting...", "alert-warning"],
     initialSyncing: ["Synchronizing...", "alert-warning"],
     syncing: ["Synchronizing...", "alert-warning"],
-    idle: ["Connected", "alert-success"],
+    idle: ["Connected, changes saved automatically", "alert-success"],
     error: ["Could not save data - refresh page and try again", "alert-danger"],
 };
 

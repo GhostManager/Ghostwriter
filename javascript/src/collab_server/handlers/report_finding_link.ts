@@ -40,7 +40,7 @@ const SET = gql(`
         update_reportedFinding_by_pk(pk_columns:{id:$id}, _set:$set) {
             id
         }
-        setTags(model: "report_observation_link", id: $id, tags: $tags) {
+        setTags(model: "report_finding_link", id: $id, tags: $tags) {
             tags
         }
     }
