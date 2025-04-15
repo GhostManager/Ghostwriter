@@ -9,7 +9,7 @@ import { faCode } from "@fortawesome/free-solid-svg-icons/faCode";
 import { faHeading } from "@fortawesome/free-solid-svg-icons/faHeading";
 import { faItalic } from "@fortawesome/free-solid-svg-icons/faItalic";
 import { faList } from "@fortawesome/free-solid-svg-icons/faList";
-import { faQuoteLeft } from "@fortawesome/free-solid-svg-icons";
+import { faHighlighter, faQuoteLeft } from "@fortawesome/free-solid-svg-icons";
 import { faSubscript } from "@fortawesome/free-solid-svg-icons/faSubscript";
 import { faSuperscript } from "@fortawesome/free-solid-svg-icons/faSuperscript";
 import { faTable } from "@fortawesome/free-solid-svg-icons/faTable";
@@ -133,6 +133,13 @@ export function Toolbar(props: {
                     tooltip="Superscript"
                 >
                     <FontAwesomeIcon icon={faSuperscript} />
+                </FormatButton>
+                <FormatButton
+                    chain={(c) => c.toggleHighlight()}
+                    active="highlight"
+                    tooltip="Highlight"
+                >
+                    <FontAwesomeIcon icon={faHighlighter} />
                 </FormatButton>
                 <FormatButton
                     chain={(c) => c.unsetAllMarks()}
