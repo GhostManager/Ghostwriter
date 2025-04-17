@@ -12,6 +12,7 @@ import {
     Get_Finding_TypesQuery,
     Get_SeveritiesQuery,
 } from "../../../__generated__/graphql";
+import CvssCalculator from "../plain_editors/cvss";
 
 const GET_FINDING_TYPES = gql(`
     query GET_FINDING_TYPES {
@@ -173,6 +174,13 @@ export function FindingFormFields({
                     </div>
                 </div>
             </div>
+
+            <CvssCalculator
+                provider={provider}
+                connected={connected}
+                vectorKey="cvssVector"
+                scoreKey="cvssScore"
+            />
 
             <h4 className="icon pencil-icon">General Information</h4>
             <hr />

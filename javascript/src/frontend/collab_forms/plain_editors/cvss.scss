@@ -1,22 +1,118 @@
-#cvssReference {
-    font-size: 100%;
-}
-
 .cvss-calculator {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    .cvss-buttons {
+        display: grid;
+        // 5 = max number of values for one metric
+        grid-template-columns: auto repeat(5, 1fr);
+        row-gap: 0.2rem;
+
+        .cvss-category-header {
+            // Take the entire row
+            grid-column-start: 1;
+            grid-column-end: -1;
+            text-align: left;
+        }
+
+        .cvss-metric-name {
+            // Ensure start of new row
+            grid-column-start: 1;
+
+            margin-bottom: 0;
+            text-align: left;
+            align-self: center;
+            font-size: 1rem;
+        }
+
+        .cvss-button {
+            margin-left: 0.3rem;
+            &.cvss-button-selected {
+            }
+        }
+    }
+
+    .cvss-score-ratings {
+        position: absolute;
+        top: 5px;
+        right: -10px;
+        font-size: 11px;
+        line-height: 150%;
+        text-align: center;
+
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+
+        & > div {
+            padding: 0 0.4em;
+            margin: 0 15px;
+            border: 2px solid #666666;
+            background: #dddddd;
+
+            border-radius: 10px;
+            width: 100px;
+            height: auto;
+
+            display: flex;
+            flex-direction: column;
+
+            h4 {
+                margin-top: 0.2rem;
+                margin-bottom: 0;
+            }
+
+            .cvss-rating-score {
+                font-size: 1.5rem;
+                font-weight: bold;
+                margin-top: 1rem;
+            }
+            .cvss-rating-severity {
+                margin-top: 1rem;
+                margin-bottom: 0.2rem;
+                font-size: 1.2rem;
+                &.cvss-no-severity {
+                    font-size: 1rem;
+                }
+            }
+
+            &.cvss-severity-CRITICAL {
+                color: #fff;
+                background: #cc0500;
+                border: 2px solid #cc0500;
+            }
+            &.cvss-severity-HIGH {
+                color: #fff;
+                background: #df3d03;
+                border-color: #df3d03;
+            }
+            &.cvss-severity-MEDIUM {
+                color: #fff;
+                background: #f9a009;
+                border-color: #f9a009;
+            }
+            &.cvss-severity-LOW {
+                color: #000;
+                background: #ffcb0d;
+                border-color: #ffcb0d;
+            }
+            &.cvss-severity-NONE {
+                color: #000;
+                background: #53aa33;
+                border-color: #53aa33;
+            }
+        }
+    }
 }
 
+/*
 .cvss-calculator div.cvss-groups {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
     gap: 1rem;
-}
-
-.cvss-calculator div.cvss-group {
 }
 
 .cvss-calculator div.cvss-metric {
@@ -27,6 +123,7 @@
 .cvss-calculator div.cvss-values {
     display: flex;
     flex-direction: row;
+    gap: 0.5rem;
 }
 
 .cvss-calculator h2 {
@@ -57,25 +154,12 @@
     padding: 0;
 }
 
-.cvss-calculator input {
-    display: none;
-}
-
-.cvss-calculator label {
+.cvss-calculator button {
     flex-grow: 1;
-    background: #cccccc;
-    display: inline-block;
-    margin: 3px;
-    padding: 2px 5px;
-    cursor: pointer;
-    font-size: 90%;
-    border-radius: 5px;
-    color: #666666;
-    border: 1px solid #999999;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: -moz-none;
-    -ms-user-select: none;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
 }
 
 .cvss-calculator label:hover {
@@ -206,3 +290,5 @@
     margin-bottom: 10px;
     display: block;
 }
+
+*/

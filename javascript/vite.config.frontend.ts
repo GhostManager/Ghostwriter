@@ -9,7 +9,6 @@ export default defineConfig(({ mode }) => {
         build: {
             rollupOptions: {
                 input: {
-                    cvss: resolve(__dirname, "./src/frontend/cvss/ui.js"),
                     collab_forms_observation: resolve(
                         __dirname,
                         "./src/frontend/collab_forms/forms/observation.tsx"

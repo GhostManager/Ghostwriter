@@ -54,6 +54,7 @@
         "@tiptap/react": "^2.11.5",
         "@tiptap/starter-kit": "^2.11.5",
         "@yaireo/tagify": "^4.33.1",
+        "ae-cvss-calculator": "^1.0.4",
         "pino": "^9.6.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",

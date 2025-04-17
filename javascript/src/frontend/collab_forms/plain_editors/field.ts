@@ -1,7 +1,7 @@
 /** Last-write-wins editors. They will sync but don't have doc-style collaborative editing - the latest update will overwrite the others. */
 
 import * as Y from "yjs";
-import { useEffect, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 
 /**
  * Gets and observes a YJS map key.
@@ -13,26 +13,34 @@ import { useEffect, useMemo, useReducer } from "react";
 export function usePlainField<T>(
     map: Y.Map<T>,
     key: string,
-    defaultValue: T
+    defaultValue: T,
+    onExternalChange?: (value: T) => void
 ): [T, (v: T) => void] {
     const forceUpdate = useReducer((x) => x + 1, 0)[1];
 
+    const onExternalChangeRef = useRef(onExternalChange);
+    onExternalChangeRef.current = onExternalChange;
+
     useEffect(() => {
         const cbObserve = (ev: Y.YMapEvent<T>) => {
-            if (ev.keysChanged.has(key)) forceUpdate();
+            if (ev.keysChanged.has(key)) {
+                if (onExternalChangeRef.current)
+                    onExternalChangeRef.current(map.get(key) ?? defaultValue);
+                forceUpdate();
+            }
         };
         map.observe(cbObserve);
         return () => {
             map.unobserve(cbObserve);
         };
-    });
+    }, [map, key, defaultValue]);
 
     const setInDoc = useMemo(
         () => (v: T) => {
             map.set(key, v);
             forceUpdate();
         },
-        [map]
+        [map, key]
     );
 
     const value = map.get(key) ?? defaultValue;
