@@ -89,14 +89,17 @@ export default function CvssCalculator(props: {
         <div className="card mb-2">
             <div
                 className={
-                    "card-header library-filter" + (open ? "" : "collapsed")
+                    "card-header library-filter d-flex " +
+                    (open ? "" : "collapsed")
                 }
+                aria-expanded={open ? "true" : "false"}
                 onClick={(e) => {
                     e.preventDefault();
                     setOpen((v) => !v);
                 }}
             >
-                <h5 className="mb-0">CVSS Calculator</h5>
+                <h5 className="mb-0 flex-grow-1">CVSS Calculator</h5>
+                <span>{open ? "\u2212" : "\u002b"}</span>
             </div>
             <div
                 id="cvss-calculator"
