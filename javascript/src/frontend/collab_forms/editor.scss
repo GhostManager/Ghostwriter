@@ -27,6 +27,9 @@
         border-bottom: 1px solid #aaa;
 
         font-size: 0.9rem;
+
+        // Show on top of editor items, in particular highlight
+        z-index: 1;
     }
 
     .button-group {
