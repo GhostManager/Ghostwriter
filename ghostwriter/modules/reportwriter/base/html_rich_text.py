@@ -75,3 +75,19 @@ class HtmlAndRich:
 
     def __html__(self):
         return self.html
+
+
+class LazySubdocRender:
+    def __init__(self, render):
+        self._render = render
+        self._rendered = None
+
+    def __str__(self):
+        if not self._rendered:
+            self._rendered = self._render()
+        return self._rendered.__str__()
+
+    def __html__(self):
+        if not self._rendered:
+            self._rendered = self._render()
+        return self._rendered.__html__()

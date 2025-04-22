@@ -2076,11 +2076,16 @@ class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Base class for report generation"""
     model = Report
-    queryset = Report.objects.all().select_related().prefetch_related(
+    queryset = Report.objects.all().prefetch_related(
+        "tags",
+        "reportfindinglink_set",
+        "reportfindinglink_set__evidence_set",
+        "reportobservationlink_set",
+        "evidence_set",
         "project__oplog_set",
         "project__oplog_set__entries",
         "project__oplog_set__entries__tags",
-    )
+    ).select_related()
 
     def test_func(self):
         return verify_access(self.request.user, self.get_object().project)
