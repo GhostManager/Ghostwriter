@@ -2088,11 +2088,15 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     ).select_related()
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.object.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().dispatch(request, *args, **kwargs)
 
 
 
@@ -2100,7 +2104,7 @@ class GenerateReportDOCX(GenerateReportBase):
     """Generate a DOCX report for an individual :model:`reporting.Report`."""
 
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating DOCX report for %s %s by request of %s",
@@ -2187,7 +2191,7 @@ class GenerateReportXLSX(GenerateReportBase):
     """Generate an XLSX report for an individual :model:`reporting.Report`."""
 
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating XLSX report for %s %s by request of %s",
@@ -2228,7 +2232,7 @@ class GenerateReportPPTX(GenerateReportBase):
     """Generate a PPTX report for an individual :model:`reporting.Report`."""
 
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating PPTX report for %s %s by request of %s",
@@ -2303,7 +2307,7 @@ class GenerateReportAll(GenerateReportBase):
     """Generate all report types for an individual :model:`reporting.Report`."""
 
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating all reports for %s %s by request of %s",
