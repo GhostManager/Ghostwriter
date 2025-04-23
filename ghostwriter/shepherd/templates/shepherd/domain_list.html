@@ -35,6 +35,7 @@
           <th class="align-middle pr-4 text-left">Status</th>
           <th class="align-middle pr-4 text-left">Age (Days)</th>
           <th class="align-middle pr-4 sorter-sugar text-left">Expiry</th>
+          <th class="align-middle pr-4 text-left sorter-false">Tags</th>
           <th class="align-middle sorter-false">Options</th>
         </tr>
         </thead>
@@ -61,6 +62,10 @@
               {% else %}
                 <span class="align-middle healthy">{{ domain.expiration|date:"d M Y" }}</span>
               {% endif %}
+            </td>
+
+            <td class="align-middle text-left">
+              {%  for tag in domain.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
             </td>
 
             <td class="align-middle">
@@ -95,8 +100,9 @@
           cssDesc: 'up',
           cssNone: 'none',
           headers: {
-            3: {sorter: 'digit'},
-            4: {sorter: 'sugar'},
+            2: {sorter: 'digit'},
+            3: {sorter: 'sugar'},
+            4: {sorter: false}
           }
         }
       );
@@ -123,6 +129,17 @@
       ];
       $("#id_domain").autocomplete({
         source: availableDomains
+      });
+    });
+
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
       });
     });
   </script>

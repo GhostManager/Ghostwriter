@@ -34,9 +34,10 @@
         <thead>
         <tr>
           <th id="server" class="align-middle pr-4 text-left">IP Address</th>
-          <th class="align-middle pr-4 text-left">Name</ht>
+          <th class="align-middle pr-4 text-left">Name</th>
           <th class="align-middle pr-4 text-left">Status</th>
           <th class="align-middle pr-4 text-left">Provider</th>
+          <th class="align-middle pr-4 text-left sorter-false">Tags</th>
           <th class="align-middle sorter-false">Options</th>
         </tr>
         </thead>
@@ -55,6 +56,10 @@
             {% endif %}
 
             <td class="align-middle text-left">{{ server.server_provider }}</td>
+
+            <td class="align-middle text-left">
+              {%  for tag in server.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+            </td>
 
             <td class="align-middle">
               <div class="d-flex justify-content-center">
@@ -106,6 +111,17 @@
       ];
       $("#id_server").autocomplete({
         source: availableServers
+      });
+    });
+
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
       });
     });
   </script>

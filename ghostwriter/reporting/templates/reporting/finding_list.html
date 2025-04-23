@@ -44,6 +44,7 @@
           {% if searching_report_findings %}
             <th class="sortable pr-4 align-middle text-left">Report</th>
           {% endif %}
+          <th class="align-middle pr-4 text-left sorter-false">Tags</th>
           <th class="sorter-false align-middle">Options</th>
         </tr>
         </thead>
@@ -103,6 +104,9 @@
                 <a class="clickable" href="{{ finding.report.get_absolute_url }}">{{ finding.report.title }}</a>
               </td>
             {% endif %}
+            <td class="align-middle text-left">
+              {%  for tag in finding.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+            </td>
             <td class="align-middle">
               <div class="d-flex justify-content-center">
                 <span
@@ -225,6 +229,17 @@
       ];
       $('#id_title').autocomplete({
         source: availableTitles
+      });
+    });
+
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
       });
     });
 
