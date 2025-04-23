@@ -38,6 +38,7 @@ from django.views.generic.list import ListView
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
 from crispy_forms.layout import Field
+from taggit.models import Tag
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -1182,6 +1183,7 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
                 "filter": findings_filter,
                 "autocomplete": self.autocomplete,
                 "searching_report_findings": self.searching_report_findings,
+                "tags": Tag.objects.all(),
             }
         )
 
@@ -1344,7 +1346,11 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
 
     def get(self, request, *args, **kwarg):
         reports_filter = ReportFilter(request.GET, queryset=self.get_queryset(), request=self.request)
-        return render(request, "reporting/report_list.html", {"filter": reports_filter})
+        return render(
+            request,
+            "reporting/report_list.html",
+            {"filter": reports_filter, "tags": Tag.objects.all()}
+        )
 
 
 class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -1804,7 +1810,11 @@ class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
 
     def get(self, request, *args, **kwarg):
         templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset(), request=self.request)
-        return render(request, "reporting/report_templates_list.html", {"filter": templates_filter})
+        return render(
+            request,
+            "reporting/report_templates_list.html",
+            {"filter": templates_filter, "tags": Tag.objects.all(),}
+        )
 
 
 class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
@@ -2961,7 +2971,7 @@ class ObservationListView(RoleBasedAccessControlMixin, ListView):
         return render(
             request,
             "reporting/observation_list.html",
-            {"filter": observation_filter, "autocomplete": self.autocomplete},
+            {"filter": observation_filter, "autocomplete": self.autocomplete, "tags": Tag.objects.all(),},
         )
 
 

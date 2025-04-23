@@ -20,6 +20,9 @@ from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
+# 3rd Party Libraries
+from taggit.models import Tag
+
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
@@ -1167,6 +1170,7 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset(), request=self.request)
         ctx["autocomplete"] = self.autocomplete
+        ctx["tags"] = Tag.objects.all()
         return ctx
 
 
@@ -1571,6 +1575,7 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
             data["complete"] = 0
         ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset(), request=self.request)
         ctx["autocomplete"] = self.autocomplete
+        ctx["tags"] = Tag.objects.all()
         return ctx
 
 

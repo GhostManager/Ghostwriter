@@ -123,6 +123,17 @@
       });
     });
 
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
+      });
+    });
+
     {%  comment %} Submit Filter when Clicking Bootstrap Icon {% endcomment %}
     $('.input-group-text').on('click', function (event) {
       $('.input-group-text').closest('form').submit();

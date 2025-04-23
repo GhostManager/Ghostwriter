@@ -24,6 +24,7 @@ from django.views.generic.list import ListView
 # 3rd Party Libraries
 from django_q.models import Task
 from django_q.tasks import async_task
+from taggit.models import Tag
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -938,7 +939,13 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
             data["exclude_expired"] = True
         domains_filter = DomainFilter(data, queryset=self.get_queryset(), request=self.request)
         return render(
-            request, "shepherd/domain_list.html", {"filter": domains_filter, "autocomplete": self.autocomplete}
+            request,
+            "shepherd/domain_list.html",
+            {
+                "filter": domains_filter,
+                "autocomplete": self.autocomplete,
+                "tags": Tag.objects.all(),
+            }
         )
 
 
@@ -1004,7 +1011,13 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
             data["server_status"] = 1
         servers_filter = ServerFilter(data, queryset=self.get_queryset(), request=self.request)
         return render(
-            request, "shepherd/server_list.html", {"filter": servers_filter, "autocomplete": self.autocomplete}
+            request,
+            "shepherd/server_list.html",
+            {
+                "filter": servers_filter,
+                "autocomplete": self.autocomplete,
+                "tags": Tag.objects.all(),
+            }
         )
 
 
