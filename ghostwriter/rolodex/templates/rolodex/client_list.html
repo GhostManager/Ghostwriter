@@ -74,6 +74,17 @@
           source: availableNames
         });
       });
+
+      $(function () {
+        let availableTags = [
+          {% for tag in tags %}
+            '{{ tag.name|escapejs }}',
+          {% endfor %}
+        ];
+        $('#id_tags').autocomplete({
+          source: availableTags
+        });
+      });
     </script>
 
     <!-- Submit Filter when Clicking Bootstrap Icon -->
