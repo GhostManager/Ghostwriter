@@ -3,7 +3,7 @@
 # Standard Libraries
 import io
 import json
-import logging.config
+import logging
 import os
 import zipfile
 from asgiref.sync import async_to_sync
@@ -2082,20 +2082,39 @@ class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponse(json_report.getvalue(), "application/json")
 
 
-class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Generate a DOCX report for an individual :model:`reporting.Report`."""
 
+class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Base class for report generation"""
     model = Report
+    queryset = Report.objects.all().prefetch_related(
+        "tags",
+        "reportfindinglink_set",
+        "reportfindinglink_set__evidence_set",
+        "reportobservationlink_set",
+        "evidence_set",
+        "project__oplog_set",
+        "project__oplog_set__entries",
+        "project__oplog_set__entries__tags",
+    ).select_related()
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.object.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().dispatch(request, *args, **kwargs)
+
+
+
+class GenerateReportDOCX(GenerateReportBase):
+    """Generate a DOCX report for an individual :model:`reporting.Report`."""
+
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating DOCX report for %s %s by request of %s",
@@ -2178,20 +2197,11 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return response
 
 
-class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportXLSX(GenerateReportBase):
     """Generate an XLSX report for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating XLSX report for %s %s by request of %s",
@@ -2228,20 +2238,11 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
-class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportPPTX(GenerateReportBase):
     """Generate a PPTX report for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating PPTX report for %s %s by request of %s",
@@ -2312,20 +2313,11 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
-class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportAll(GenerateReportBase):
     """Generate all report types for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating all reports for %s %s by request of %s",
