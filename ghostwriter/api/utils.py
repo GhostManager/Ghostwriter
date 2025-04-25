@@ -223,58 +223,6 @@ def verify_user_is_privileged(user):
     return user.is_privileged
 
 
-def verify_finding_access(user, mode):
-    """
-    Verify that the user is flagged as being able to create and/or edit findings in the global library.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    ``mode``
-        The mode to check for (``create``, ``edit``, or ``delete``)
-    """
-    if verify_user_is_privileged(user):
-        return True
-
-    if mode == "create" and user.enable_finding_create:
-        return True
-
-    if mode == "edit" and user.enable_finding_edit:
-        return True
-
-    if mode == "delete" and user.enable_finding_delete:
-        return True
-
-    return False
-
-
-def verify_observation_access(user, mode):
-    """
-    Verify that the user is flagged as being able to create and/or edit observations in the global library.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    ``mode``
-        The mode to check for (``create``, ``edit``, or ``delete``)
-    """
-    if verify_user_is_privileged(user):
-        return True
-
-    if mode == "create" and user.enable_observation_create:
-        return True
-
-    if mode == "edit" and user.enable_observation_edit:
-        return True
-
-    if mode == "delete" and user.enable_observation_delete:
-        return True
-
-    return False
-
-
 def get_client_list(user):
     """
     Retrieve a filtered list of :model:`rolodex.Client` entries based on the user's role.

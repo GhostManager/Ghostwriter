@@ -11,7 +11,7 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.db.models import Q, OuterRef, Exists
 
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_finding_access, verify_user_is_privileged
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.reporting.filters import FindingFilter
@@ -195,7 +195,7 @@ class FindingDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_finding_access(self.request.user, "delete")
+        return self.get_object().user_can_delete(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have the necessary permission to delete findings.")
