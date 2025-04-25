@@ -24,7 +24,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.files import File
 from channels.layers import get_channel_layer
-from crispy_forms.layout import Field
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
@@ -1075,4 +1074,3 @@ def zip_directory(path, zip_handler):
             absname = os.path.abspath(os.path.join(root, file))
             arcname = absname[len(abs_src) + 1 :]
             zip_handler.write(os.path.join(root, file), "evidence/" + arcname)
-

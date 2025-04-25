@@ -1,9 +1,8 @@
 """This contains all the views used by the Reporting application."""
 
 # Standard Libraries
-import logging.config
+import logging
 import os
-from asgiref.sync import async_to_sync
 from datetime import datetime
 from os.path import exists
 
