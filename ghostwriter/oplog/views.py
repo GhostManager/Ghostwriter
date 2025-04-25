@@ -24,7 +24,6 @@ from tablib import Dataset
 from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
     get_logs_list,
-    verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec

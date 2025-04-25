@@ -727,7 +727,7 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
                 )
 
         if template.client:
-            if not utils.verify_access(self.user_obj, template.client):
+            if not template.client.user_can_edit(self.user_obj):
                 return JsonResponse(
                     utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
                 )

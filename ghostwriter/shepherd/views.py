@@ -30,7 +30,6 @@ from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
     RoleBasedAccessControlMixin,
     get_project_list,
-    verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import (
@@ -101,7 +100,7 @@ class AjaxLoadProjects(RoleBasedAccessControlMixin, View):
             try:
                 client_id = int(client_id)
                 client = Client.objects.get(id=client_id)
-                if verify_access(request.user, client):
+                if client.user_can_view(request.user):
                     projects = get_project_list(request.user)
                     projects = (
                         projects.filter(Q(client_id=client_id) & Q(complete=False))
@@ -156,7 +155,7 @@ class AjaxDomainOverwatch(RoleBasedAccessControlMixin, View):
                 client_id = int(client_id)
 
                 client = Client.objects.get(id=client_id)
-                if verify_access(request.user, client):
+                if client.user_can_view(request.user):
                     domain_history = History.objects.filter(Q(domain=domain_id) & Q(client=client_id))
                     if domain_history:
                         data = {

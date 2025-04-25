@@ -26,7 +26,6 @@ from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
     get_client_list,
     get_project_list,
-    verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
@@ -119,7 +118,7 @@ def update_client_badges(request, pk):
     """
     client_instance = get_object_or_404(Client, pk=pk)
 
-    if not verify_access(request.user, client_instance):
+    if not client_instance.user_can_edit(request.user):
         return ForbiddenJsonResponse()
 
     html = render_to_string(
@@ -523,7 +522,7 @@ class ClientContactDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ClientContact
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().client)
+        return self.get_object().client.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -1054,7 +1053,7 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 if contact_id < 0:
                     return JsonResponse({"result": "error", "message": "You must choose a contact."})
                 contact_instance = get_object_or_404(ClientContact, id=contact_id)
-                if not verify_access(self.request.user, contact_instance.client):
+                if not contact_instance.client.user_can_edit(self.request.user):
                     return ForbiddenJsonResponse()
                 contact_dict = to_dict(contact_instance, resolve_fk=True)
                 del contact_dict["client"]
@@ -1191,7 +1190,7 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Client
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object())
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1462,7 +1461,7 @@ class ClientNoteCreate(RoleBasedAccessControlMixin, CreateView):
 
     def test_func(self):
         self.client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        return verify_access(self.request.user, self.client_instance)
+        return self.client_instance.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

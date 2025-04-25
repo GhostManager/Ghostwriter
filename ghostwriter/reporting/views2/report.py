@@ -26,8 +26,7 @@ from django.core.files import File
 from channels.layers import get_channel_layer
 from crispy_forms.layout import Field
 
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_access, verify_user_is_privileged
-from ghostwriter.commandcenter.forms import SingleExtraFieldForm
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules.exceptions import MissingTemplate
@@ -510,7 +509,7 @@ class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
     def test_func(self):
         client = self.get_object().client
         if client:
-            return verify_access(self.request.user, client)
+            return client.user_can_view(self.request.user)
         return self.request.user.is_active
 
     def handle_no_permission(self):
@@ -665,7 +664,7 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
         if obj.client:
-            return verify_access(self.request.user, obj.client)
+            return obj.client.user_can_edit(self.request.user)
         return self.request.user.is_active
 
     def handle_no_permission(self):

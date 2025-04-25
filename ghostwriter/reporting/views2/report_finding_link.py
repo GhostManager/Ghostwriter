@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin, verify_access
+from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.reporting.forms import AssignReportFindingForm
