@@ -283,7 +283,7 @@ def ajax_update_report_findings(request):
         order = json.loads(pos)
 
         report = get_object_or_404(Report, pk=report_id)
-        if verify_access(request.user, report.project):
+        if report.user_can_edit(request.user):
             logger.info(
                 "Received AJAX POST to update report %s's %s severity group findings in this order: %s",
                 report_id,

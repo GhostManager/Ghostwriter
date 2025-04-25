@@ -274,6 +274,24 @@ class Project(models.Model):
             .order_by("complete", "client")
         )
 
+    @classmethod
+    def user_can_create(cls, user) -> bool:
+        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
+        from ghostwriter.api.utils import verify_user_is_privileged
+        return verify_user_is_privileged(user)
+
+    def user_can_view(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self)
+
+    def user_can_edit(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self)
+
+    def user_can_delete(self, user) -> bool:
+        from ghostwriter.api.utils import verify_access
+        return verify_access(user, self)
+
 
 class ProjectRole(models.Model):
     """Stores an individual project role."""
