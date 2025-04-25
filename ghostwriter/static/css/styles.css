@@ -25,8 +25,8 @@ p {
   color: var(--main-txt-color);
 }
 
-ul:not(.list-unstyled):not(.nav):not(.breadcrumb),
-ol:not(.list-unstyled):not(.nav):not(.breadcrumb) {
+ul:not(.list-unstyled):not(.nav):not(.breadcrumb):not(.tiptap ul),
+ol:not(.list-unstyled):not(.nav):not(.breadcrumb):not(.tiptap ol) {
   margin-top: 10px;
   margin-bottom: 10px;
   list-style-position: inside;
