@@ -994,6 +994,25 @@ ul.dashboard-checklist {
   list-style-type: none;
 }
 
+.centered-container {
+  text-align: justify;
+}
+
+.centered-container h1,
+.centered-container h2,
+.centered-container h3,
+.centered-container h4,
+.centered-container h5,
+.centered-container h6 {
+  text-align: center;
+}
+
+.centered-container ul,
+.centered-container ol {
+  text-align: left;
+}
+
+
 /* ---------------------------------------------------
     GENERAL BUTTON STYLES
 ----------------------------------------------------- */

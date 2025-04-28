@@ -8,6 +8,7 @@ from django.shortcuts import redirect, render
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.db.models import Q
+from taggit.models import Tag
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
@@ -53,7 +54,7 @@ class ObservationList(RoleBasedAccessControlMixin, ListView):
         return render(
             request,
             "reporting/observation_list.html",
-            {"filter": observation_filter, "autocomplete": self.autocomplete},
+            {"filter": observation_filter, "autocomplete": self.autocomplete, "tags": Tag.objects.all(),},
         )
 
 

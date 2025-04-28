@@ -24,6 +24,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.files import File
 from channels.layers import get_channel_layer
+from taggit.models import Tag
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
@@ -60,7 +61,11 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
 
     def get(self, request, *args, **kwarg):
         reports_filter = ReportFilter(request.GET, queryset=self.get_queryset())
-        return render(request, "reporting/report_list.html", {"filter": reports_filter})
+        return render(
+            request,
+            "reporting/report_list.html",
+            {"filter": reports_filter, "tags": Tag.objects.all()}
+        )
 
 
 class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -707,11 +712,19 @@ class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
             )
         raise Http404
 
-
-class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Generate a JSON report for an individual :model:`reporting.Report`."""
-
+class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Base class for report generation"""
     model = Report
+    queryset = Report.objects.all().prefetch_related(
+        "tags",
+        "reportfindinglink_set",
+        "reportfindinglink_set__evidence_set",
+        "reportobservationlink_set",
+        "evidence_set",
+        "project__oplog_set",
+        "project__oplog_set__entries",
+        "project__oplog_set__entries__tags",
+    ).select_related()
 
     def test_func(self):
         return self.get_object().user_can_view(self.request.user)
@@ -720,8 +733,15 @@ class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().dispatch(request, *args, **kwargs)
+
+class GenerateReportJSON(GenerateReportBase):
+    """Generate a JSON report for an individual :model:`reporting.Report`."""
+
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating JSON report for %s %s by request of %s",
@@ -734,20 +754,20 @@ class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponse(json_report.getvalue(), "application/json")
 
 
-class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportDOCX(GenerateReportBase):
     """Generate a DOCX report for an individual :model:`reporting.Report`."""
 
     model = Report
 
     def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
+        return self.object.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating DOCX report for %s %s by request of %s",
@@ -830,20 +850,11 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return response
 
 
-class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportXLSX(GenerateReportBase):
     """Generate an XLSX report for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating XLSX report for %s %s by request of %s",
@@ -880,20 +891,11 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
-class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportPPTX(GenerateReportBase):
     """Generate a PPTX report for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating PPTX report for %s %s by request of %s",
@@ -964,20 +966,11 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
-class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportAll(GenerateReportBase):
     """Generate all report types for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating all reports for %s %s by request of %s",

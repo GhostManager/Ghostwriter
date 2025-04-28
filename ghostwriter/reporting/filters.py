@@ -423,7 +423,7 @@ class ReportTemplateFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Report Title Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Report Title", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "Partial Template Title", "autocomplete": "off"}),
     )
     client = django_filters.CharFilter(
         field_name="client__name",
@@ -436,7 +436,7 @@ class ReportTemplateFilter(django_filters.FilterSet):
         label="Template Tags Contain",
         widget=TextInput(
             attrs={
-                "placeholder": "Report Tag",
+                "placeholder": "Template Tag",
                 "autocomplete": "off",
             }
         ),

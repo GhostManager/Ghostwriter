@@ -161,6 +161,19 @@
     }
   </script>
 
+  <script>
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
+      });
+    });
+  </script>
+
   {% comment %} Insert modals for additional template details {% endcomment %}
   {% for template in filter.qs %}
     {% include "snippets/template_detail_modal.html" with template=template %}

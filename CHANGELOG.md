@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.7] - 23 April 2025
+
+### Changed
+
+* Added auto-complete for tags in filter forms (e.g., domain and finding libraries)
+* Added the Tags column back to the tables for the domain and finding libraries
+* Made changes to optimize Word document generation
+  * This is part of an ongoing effort to optimize these workflows to reduce the time it takes to generate reports, especially those with large tables (Issue #585) 
+
+### Fixed
+
+* Fixed default values not populating for extra fields on observations (PR #604 by @rteatea)
+
 ## [5.0.6] - 04 April 2025
 
 ### Added
