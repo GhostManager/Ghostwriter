@@ -24,10 +24,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.files import File
 from channels.layers import get_channel_layer
-from crispy_forms.layout import Field
+from taggit.models import Tag
 
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_access, verify_user_is_privileged
-from ghostwriter.commandcenter.forms import SingleExtraFieldForm
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules.exceptions import MissingTemplate
@@ -62,7 +61,11 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
 
     def get(self, request, *args, **kwarg):
         reports_filter = ReportFilter(request.GET, queryset=self.get_queryset())
-        return render(request, "reporting/report_list.html", {"filter": reports_filter})
+        return render(
+            request,
+            "reporting/report_list.html",
+            {"filter": reports_filter, "tags": Tag.objects.all()}
+        )
 
 
 class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -75,7 +78,7 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -174,7 +177,7 @@ class ArchiveDownloadView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Archive
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -208,7 +211,7 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         self.observation_autocomplete = []
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -291,7 +294,7 @@ class ReportCreate(RoleBasedAccessControlMixin, CreateView):
             if pk:
                 try:
                     project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-                    if verify_access(self.request.user, project):
+                    if project.user_can_edit(self.request.user):
                         self.project = project
                 except Project.DoesNotExist:
                     logger.info(
@@ -369,7 +372,7 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = ReportForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -425,7 +428,7 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_delete(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -472,54 +475,6 @@ class ReportExtraFieldEdit(CollabModelUpdate):
         ctx["target_field"] = field
         return ctx
 
-# class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-#     model = Report
-
-#     def test_func(self):
-#         return verify_access(self.request.user, self.get_object().project)
-
-#     def run(self, request, pk, extra_field_name):
-#         report = self.get_object()
-#         field_spec = get_object_or_404(ExtraFieldSpec, target_model=Report._meta.label, internal_name=extra_field_name)
-#         form = SingleExtraFieldForm(
-#             field_spec,
-#             request.POST if request.method == "POST" else None,
-#             initial={field_spec.internal_name: report.extra_fields.get(field_spec.internal_name)},
-#             create_crispy_field=self._create_crispy_field,
-#         )
-#         if request.method == "POST":
-#             if form.is_valid():
-#                 report.extra_fields[field_spec.internal_name] = form.cleaned_data[field_spec.internal_name]
-#                 report.save()
-#                 return redirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields")
-
-#         return render(
-#             request,
-#             "reporting/report_extra_field_edit.html",
-#             {
-#                 "form": form,
-#                 "report": report,
-#                 "field_spec": field_spec,
-#                 "evidence_upload_url": reverse(
-#                     "reporting:upload_evidence_modal",
-#                     kwargs={"parent_type": "report", "pk": report.id, "modal": "modal"},
-#                 ),
-#                 "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields",
-#             },
-#         )
-
-#     def get(self, request, pk, extra_field_name):
-#         return self.run(request, pk, extra_field_name)
-
-#     def post(self, request, pk, extra_field_name):
-#         return self.run(request, pk, extra_field_name)
-
-#     @staticmethod
-#     def _create_crispy_field(spec):
-#         if spec.type == "rich_text":
-#             return Field(spec.internal_name, css_class="enable-evidence-upload")
-#         return Field(spec.internal_name)
-
 
 class ReportTemplateListView(RoleBasedAccessControlMixin, ListView):
     """
@@ -558,7 +513,7 @@ class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
     def test_func(self):
         client = self.get_object().client
         if client:
-            return verify_access(self.request.user, client)
+            return client.user_can_view(self.request.user)
         return self.request.user.is_active
 
     def handle_no_permission(self):
@@ -713,7 +668,7 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
         if obj.client:
-            return verify_access(self.request.user, obj.client)
+            return obj.client.user_can_edit(self.request.user)
         return self.request.user.is_active
 
     def handle_no_permission(self):
@@ -757,21 +712,36 @@ class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
             )
         raise Http404
 
-
-class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Generate a JSON report for an individual :model:`reporting.Report`."""
-
+class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Base class for report generation"""
     model = Report
+    queryset = Report.objects.all().prefetch_related(
+        "tags",
+        "reportfindinglink_set",
+        "reportfindinglink_set__evidence_set",
+        "reportobservationlink_set",
+        "evidence_set",
+        "project__oplog_set",
+        "project__oplog_set__entries",
+        "project__oplog_set__entries__tags",
+    ).select_related()
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().dispatch(request, *args, **kwargs)
+
+class GenerateReportJSON(GenerateReportBase):
+    """Generate a JSON report for an individual :model:`reporting.Report`."""
+
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating JSON report for %s %s by request of %s",
@@ -784,20 +754,20 @@ class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponse(json_report.getvalue(), "application/json")
 
 
-class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportDOCX(GenerateReportBase):
     """Generate a DOCX report for an individual :model:`reporting.Report`."""
 
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.object.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating DOCX report for %s %s by request of %s",
@@ -880,20 +850,11 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return response
 
 
-class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportXLSX(GenerateReportBase):
     """Generate an XLSX report for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating XLSX report for %s %s by request of %s",
@@ -930,20 +891,11 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
-class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportPPTX(GenerateReportBase):
     """Generate a PPTX report for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating PPTX report for %s %s by request of %s",
@@ -1014,20 +966,11 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
-class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class GenerateReportAll(GenerateReportBase):
     """Generate all report types for an individual :model:`reporting.Report`."""
 
-    model = Report
-
-    def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
-
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
 
         logger.info(
             "Generating all reports for %s %s by request of %s",
@@ -1124,4 +1067,3 @@ def zip_directory(path, zip_handler):
             absname = os.path.abspath(os.path.join(root, file))
             arcname = absname[len(abs_src) + 1 :]
             zip_handler.write(os.path.join(root, file), "evidence/" + arcname)
-

@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin, verify_access
+from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.reporting.forms import AssignReportFindingForm
@@ -283,7 +283,7 @@ def ajax_update_report_findings(request):
         order = json.loads(pos)
 
         report = get_object_or_404(Report, pk=report_id)
-        if verify_access(request.user, report.project):
+        if report.user_can_edit(request.user):
             logger.info(
                 "Received AJAX POST to update report %s's %s severity group findings in this order: %s",
                 report_id,

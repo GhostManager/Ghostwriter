@@ -16,6 +16,7 @@ from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import (
     HtmlAndRich,
     LazilyRenderedTemplate,
+    LazySubdocRender,
     deep_copy_with_copiers,
 )
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
@@ -239,27 +240,29 @@ class ExportDocxBase(ExportBase):
         """
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
         """
-        doc = self.word_doc.new_subdoc()
-        ReportExportError.map_jinja2_render_errors(
-            lambda: HtmlToDocxWithEvidence.run(
-                rich_text.render_html(),
-                doc=doc,
-                p_style=self.p_style,
-                evidence_image_width=self.evidence_image_width,
-                evidences=self.evidences_by_id,
-                figure_label=self.label_figure,
-                figure_prefix=self.prefix_figure,
-                figure_caption_location=self.figure_caption_location,
-                table_label=self.label_table,
-                table_prefix=self.prefix_table,
-                table_caption_location=self.table_caption_location,
-                title_case_captions=self.title_case_captions,
-                title_case_exceptions=self.title_case_exceptions,
-                border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
-            ),
-            getattr(rich_text, "location", None),
-        )
-        return doc
+        def render():
+            doc = self.word_doc.new_subdoc()
+            ReportExportError.map_jinja2_render_errors(
+                lambda: HtmlToDocxWithEvidence.run(
+                    rich_text.render_html(),
+                    doc=doc,
+                    p_style=self.p_style,
+                    evidence_image_width=self.evidence_image_width,
+                    evidences=self.evidences_by_id,
+                    figure_label=self.label_figure,
+                    figure_prefix=self.prefix_figure,
+                    figure_caption_location=self.figure_caption_location,
+                    table_label=self.label_table,
+                    table_prefix=self.prefix_table,
+                    table_caption_location=self.table_caption_location,
+                    title_case_captions=self.title_case_captions,
+                    title_case_exceptions=self.title_case_exceptions,
+                    border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                ),
+                getattr(rich_text, "location", None),
+            )
+            return doc
+        return LazySubdocRender(render)
 
     @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:

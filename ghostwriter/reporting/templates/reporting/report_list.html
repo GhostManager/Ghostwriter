@@ -95,4 +95,17 @@
       $('.input-group-text').closest('form').submit();
     });
   </script>
+
+  <script>
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
+      });
+    });
+  </script>
 {% endblock %}

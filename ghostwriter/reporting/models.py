@@ -235,17 +235,16 @@ class Finding(models.Model):
 
     @classmethod
     def user_can_create(cls, user) -> bool:
-        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
-        from ghostwriter.api.utils import verify_finding_access
-        return verify_finding_access(user, "create")
+        return user.is_privileged or user.enable_finding_create
+
+    def user_can_view(self, user) -> bool:
+        return True
 
     def user_can_edit(self, user) -> bool:
-        from ghostwriter.api.utils import verify_finding_access
-        return verify_finding_access(user, "edit")
+        return user.is_privileged or user.enable_finding_edit
 
     def user_can_delete(self, user) -> bool:
-        from ghostwriter.api.utils import verify_finding_access
-        return verify_finding_access(user, "delete")
+        return user.is_privileged or user.enable_finding_delete
 
     @property
     def display_title(self) -> str:
@@ -594,21 +593,16 @@ class Report(models.Model):
 
     @classmethod
     def user_can_create(cls, user, project) -> bool:
-        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, project)
+        return project.user_can_edit(user)
 
     def user_can_view(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.project)
+        return self.project.user_can_view(user)
 
     def user_can_edit(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.project)
+        return self.project.user_can_edit(user)
 
     def user_can_delete(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.project)
+        return self.project.user_can_edit(user)
 
 
 class ReportFindingLink(models.Model):
@@ -750,23 +744,17 @@ class ReportFindingLink(models.Model):
         return "(Untitled Finding)"
 
     @classmethod
-    def user_can_create(cls, user, report: Report) -> bool:
-        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
-        assert isinstance(report, Report)
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, report.project)
+    def user_can_create(cls, user, report) -> bool:
+        return report.user_can_edit(user)
 
     def user_can_view(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.report.project)
+        return self.report.user_can_view(user)
 
     def user_can_edit(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.report.project)
+        return self.report.user_can_edit(user)
 
     def user_can_delete(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.report.project)
+        return self.report.user_can_edit(user)
 
     @property
     def cvss_data(self):
@@ -1004,17 +992,16 @@ class Observation(models.Model):
 
     @classmethod
     def user_can_create(cls, user) -> bool:
-        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
-        from ghostwriter.api.utils import verify_observation_access
-        return verify_observation_access(user, "create")
+        return user.is_privileged or user.enable_observation_create
+
+    def user_can_view(self, user) -> bool:
+        return True
 
     def user_can_edit(self, user) -> bool:
-        from ghostwriter.api.utils import verify_observation_access
-        return verify_observation_access(user, "edit")
+        return user.is_privileged or user.enable_observation_edit
 
     def user_can_delete(self, user) -> bool:
-        from ghostwriter.api.utils import verify_observation_access
-        return verify_observation_access(user, "delete")
+        return user.is_privileged or user.enable_observation_delete
 
 
 class ReportObservationLink(models.Model):
@@ -1064,18 +1051,13 @@ class ReportObservationLink(models.Model):
 
     @classmethod
     def user_can_create(cls, user, report: Report) -> bool:
-        # TODO: dynamic import to fix circular reference. Should refactor utils.py...
-        from ghostwriter.api.utils import verify_access, verify_observation_access
-        return verify_observation_access(user, "create") and verify_access(user, report.project)
+        return Observation.user_can_create(user) and report.user_can_edit(user)
 
     def user_can_view(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.report.project)
+        return self.report.user_can_view(user)
 
     def user_can_edit(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.report.project)
+        return self.report.user_can_edit(user)
 
     def user_can_delete(self, user) -> bool:
-        from ghostwriter.api.utils import verify_access
-        return verify_access(user, self.report.project)
+        return self.report.user_can_edit(user)

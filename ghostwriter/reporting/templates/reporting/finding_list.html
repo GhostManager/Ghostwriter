@@ -17,24 +17,24 @@
   <div class="filter-form">
     {% crispy filter.form filter.helper %}
 
+  <!-- Instructions Section -->
+  {% if not searching_report_findings %}
+    <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>active report</em>
+      displayed at the top of the page.</p>
+  {% else %}
+    <p class="mt-3">The following results include findings attached to reports, not findings in your library.</p>
+  {% endif %}
+
+    <form action="{% url 'reporting:finding_create' %}" method="POST" style="display:contents">
+      {% csrf_token %}
+      <button role="button" class="btn btn-info col-2 icon add-icon">Create Finding</button>
+    </form>
+
   {% if filter.qs|length == 0 %}
     <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no findings yet, or your search
       returned no results. Create a finding above or adjust your filters.
     </div>
   {% else %}
-    <!-- Instructions Section -->
-    {% if not searching_report_findings %}
-      <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>active report</em>
-        displayed at the top of the page.</p>
-    {% else %}
-      <p class="mt-3">The following results include findings attached to reports, not findings in your library.</p>
-    {% endif %}
-
-    <form action="{% url 'reporting:finding_create' %}" method="POST" style="display:contents">
-      {% csrf_token %}
-      <button class="btn btn-info col-2 icon add-icon">Create Finding</button>
-    </form>
-
     <!-- Findings Table Section -->
     <div id="findings_table">
       <table id="findingsTable" class="tablesorter table table-striped table-sm">
@@ -46,6 +46,7 @@
           {% if searching_report_findings %}
             <th class="sortable pr-4 align-middle text-left">Report</th>
           {% endif %}
+          <th class="align-middle pr-4 text-left sorter-false">Tags</th>
           <th class="sorter-false align-middle">Options</th>
         </tr>
         </thead>
@@ -105,6 +106,9 @@
                 <a class="clickable" href="{{ finding.report.get_absolute_url }}">{{ finding.report.title }}</a>
               </td>
             {% endif %}
+            <td class="align-middle text-left">
+              {%  for tag in finding.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+            </td>
             <td class="align-middle">
               <div class="d-flex justify-content-center">
                 <span
@@ -227,6 +231,17 @@
       ];
       $('#id_title').autocomplete({
         source: availableTitles
+      });
+    });
+
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
       });
     });
 

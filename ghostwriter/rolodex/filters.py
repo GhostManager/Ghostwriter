@@ -2,7 +2,6 @@
 
 # Django Imports
 from django import forms
-from django.db import ProgrammingError
 from django.db.models import Q
 from django.forms.widgets import TextInput
 

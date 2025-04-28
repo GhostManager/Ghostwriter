@@ -42,9 +42,9 @@
       </thead>
       {% for project in filter.qs %}
         <tr>
-          <td class="align-middle text-left"><a class="clickable"
-                                      href="{{ project.client.get_absolute_url }}">{{ project.client.name }}
-            ({{ project.client.short_name }})</a></td>
+          <td class="align-middle text-left"><a class="clickable" href="{{ project.client.get_absolute_url }}">
+            {{ project.client.name }}{% if project.client.short_name %} ({{ project.client.short_name }}){% endif %}
+          </a></td>
           <td class="align-middle text-left"><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a>
           </td>
           <td class="align-middle text-left">{{ project.project_type }}</td>
@@ -103,6 +103,17 @@
         ];
         $('#id_codename').autocomplete({
           source: availableCodenames
+        });
+      });
+
+      $(function () {
+        let availableTags = [
+          {% for tag in tags %}
+            '{{ tag.name|escapejs }}',
+          {% endfor %}
+        ];
+        $('#id_tags').autocomplete({
+          source: availableTags
         });
       });
     </script>

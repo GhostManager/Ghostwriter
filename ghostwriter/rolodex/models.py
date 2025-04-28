@@ -96,6 +96,19 @@ class Client(models.Model):
             .distinct()
         )
 
+    @classmethod
+    def user_can_create(cls, user) -> bool:
+        return user.is_privileged
+
+    def user_can_view(self, user) -> bool:
+        return self in self.for_user(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.user_can_view(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.user_can_view(user)
+
 
 class ClientContact(models.Model):
     """Stores an individual point of contact, related to :model:`rolodex.Client`."""
@@ -273,6 +286,19 @@ class Project(models.Model):
             )
             .order_by("complete", "client")
         )
+
+    @classmethod
+    def user_can_create(cls, user) -> bool:
+        return user.is_privileged
+
+    def user_can_view(self, user) -> bool:
+        return self in self.for_user(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.user_can_view(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.user_can_view(user)
 
 
 class ProjectRole(models.Model):

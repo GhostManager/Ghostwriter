@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.views import View
 from django.views.generic.detail import SingleObjectMixin
 
-from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin, verify_access
+from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.reporting.models import Observation, Report, ReportObservationLink
 from ghostwriter.commandcenter.views import CollabModelUpdate
@@ -122,7 +122,7 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -220,7 +220,7 @@ def ajax_update_report_observation_order(request: HttpRequest):
     order = json.loads(pos)
 
     report = get_object_or_404(Report, pk=report_id)
-    if not verify_access(request.user, report.project):
+    if not report.user_can_edit(request.user):
         logger.error(
             "AJAX request submitted by user %s without access to report %s",
             request.user,

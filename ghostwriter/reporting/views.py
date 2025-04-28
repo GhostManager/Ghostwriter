@@ -1,9 +1,9 @@
 """This contains all the views used by the Reporting application."""
 
 # Standard Libraries
-import logging.config
+import io
+import logging
 import os
-from asgiref.sync import async_to_sync
 from datetime import datetime
 from os.path import exists
 
@@ -30,12 +30,12 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
+from crispy_forms.layout import Field
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
     get_archives_list,
-    verify_access,
     verify_user_is_privileged,
     RoleBasedAccessControlMixin,
 )
@@ -147,7 +147,7 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -185,7 +185,7 @@ class ReportStatusToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -231,7 +231,7 @@ class ReportDeliveryToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -280,7 +280,7 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -442,7 +442,8 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        obj = self.get_object()
+        return obj.user_can_view(self.request.user) and Report.user_can_create(self.request.user, obj.project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -622,7 +623,7 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Evidence
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().associated_report.project)
+        return self.get_object().associated_report.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -637,7 +638,7 @@ class EvidencePreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Evidence
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().associated_report.project)
+        return self.get_object().associated_report.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -667,10 +668,10 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
     def test_func(self):
         if self.finding_instance:
-            project = self.finding_instance.report.project
+            report = self.finding_instance.report
         else:
-            project = self.report_instance.project
-        return verify_access(self.request.user, project)
+            report = self.report_instance
+        return report.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -785,7 +786,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().associated_report.project)
+        return self.get_object().associated_report.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -835,7 +836,7 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().associated_report.project)
+        return self.get_object().associated_report.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -867,7 +868,7 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Evidence
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().associated_report.project)
+        return self.get_object().associated_report.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -912,7 +913,7 @@ class LocalFindingNoteCreate(RoleBasedAccessControlMixin, CreateView):
         self.finding_instance = get_object_or_404(ReportFindingLink, pk=self.kwargs.get("pk"))
 
     def test_func(self):
-        return verify_access(self.request.user, self.finding_instance.report.project)
+        return self.finding_instance.report.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

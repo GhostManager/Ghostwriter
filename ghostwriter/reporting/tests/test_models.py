@@ -17,12 +17,14 @@ from django.utils import timezone
 from ghostwriter.factories import (
     ArchiveFactory,
     ClientFactory,
+    ClientInviteFactory,
     DocTypeFactory,
     EvidenceOnFindingFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
     LocalFindingNoteFactory,
+    ProjectAssignmentFactory,
     ProjectFactory,
     ReportDocxTemplateFactory,
     ReportFactory,
@@ -30,7 +32,10 @@ from ghostwriter.factories import (
     ReportPptxTemplateFactory,
     ReportTemplateFactory,
     SeverityFactory,
+    UserFactory,
 )
+from ghostwriter.reporting.models import Report
+from ghostwriter.rolodex.models import Project
 
 logging.disable(logging.CRITICAL)
 
@@ -485,6 +490,57 @@ class ReportModelTests(TestCase):
         new_report = self.Report.objects.first()
         self.assertEqual(new_report.project.client, client)
         self.assertIsNone(new_report.pptx_template)
+
+    def test_access(self):
+        project: Project = ProjectFactory()
+        report: Report = ReportFactory(
+            title="New report",
+            project=project,
+        )
+        user = UserFactory(password="SuperNaturalReporting!")
+
+        self.assertFalse(Report.user_can_create(user, project))
+        self.assertFalse(report.user_can_view(user))
+        self.assertFalse(report.user_can_edit(user))
+        self.assertFalse(report.user_can_delete(user))
+
+        user.role = "manager"
+        user.save()
+        self.assertTrue(Report.user_can_create(user, project))
+        self.assertTrue(report.user_can_view(user))
+        self.assertTrue(report.user_can_edit(user))
+        self.assertTrue(report.user_can_delete(user))
+
+        user.role = "user"
+        user.save()
+        self.assertFalse(Report.user_can_create(user, project))
+        self.assertFalse(report.user_can_view(user))
+        self.assertFalse(report.user_can_edit(user))
+        self.assertFalse(report.user_can_delete(user))
+
+        assignment = ProjectAssignmentFactory(operator=user, project=project)
+        self.assertTrue(Report.user_can_create(user, project))
+        self.assertTrue(report.user_can_view(user))
+        self.assertTrue(report.user_can_edit(user))
+        self.assertTrue(report.user_can_delete(user))
+
+        assignment.delete()
+        self.assertFalse(Report.user_can_create(user, project))
+        self.assertFalse(report.user_can_view(user))
+        self.assertFalse(report.user_can_edit(user))
+        self.assertFalse(report.user_can_delete(user))
+
+        client_invite = ClientInviteFactory(user=user, client=project.client)
+        self.assertTrue(Report.user_can_create(user, project))
+        self.assertTrue(report.user_can_view(user))
+        self.assertTrue(report.user_can_edit(user))
+        self.assertTrue(report.user_can_delete(user))
+
+        client_invite.delete()
+        self.assertFalse(Report.user_can_create(user, project))
+        self.assertFalse(report.user_can_view(user))
+        self.assertFalse(report.user_can_edit(user))
+        self.assertFalse(report.user_can_delete(user))
 
 
 class ReportFindingLinkModelTests(TestCase):
