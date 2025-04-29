@@ -606,8 +606,10 @@ class FindingCreateViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.finding = FindingFactory()
-        cls.Finding = FindingFactory._meta.model
+        # Create page assumes that these exist with these IDs
+        cls.type = FindingTypeFactory(id=1)
+        cls.severity = SeverityFactory(id=1)
+
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:finding_create")
