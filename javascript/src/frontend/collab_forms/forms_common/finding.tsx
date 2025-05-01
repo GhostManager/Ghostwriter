@@ -180,6 +180,7 @@ export function FindingFormFields({
                 connected={connected}
                 vectorKey="cvssVector"
                 scoreKey="cvssScore"
+                severityKey="severityId"
             />
 
             <h4 className="icon pencil-icon">General Information</h4>

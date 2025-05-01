@@ -17,9 +17,32 @@ import {
     type VectorComponent,
     type VectorComponentValue,
 } from "ae-cvss-calculator/dist/types/src/CvssVector";
+import {
+    CriticalSeverityType,
+    HighSeverityType,
+    LowSeverityType,
+    MediumSeverityType,
+    NoneSeverityType,
+} from "ae-cvss-calculator/dist/types/src/cvss4p0/Cvss4P0";
 
 type Vector = Cvss3P1 | Cvss4P0;
 type SetVector = (cb: (v: Vector) => Vector) => void;
+
+// IDs taken from the fixture at reporting/fixtures/initial.json
+const SEVERITY_TO_ID: {
+    [k in
+        | NoneSeverityType
+        | LowSeverityType
+        | MediumSeverityType
+        | HighSeverityType
+        | CriticalSeverityType]: number;
+} = {
+    NONE: 1,
+    LOW: 2,
+    MEDIUM: 3,
+    HIGH: 4,
+    CRITICAL: 5,
+};
 
 /**
  * CVSS calculator widget that reads/edits plain fields in a ydoc.
@@ -28,6 +51,7 @@ export default function CvssCalculator(props: {
     provider: HocuspocusProvider;
     vectorKey: string;
     scoreKey: string;
+    severityKey: string;
     connected: boolean;
 }) {
     const map = useMemo(
@@ -57,13 +81,18 @@ export default function CvssCalculator(props: {
                     // can't set inside of another set call
                     setTimeout(() => {
                         setDocValue(next.toString(false, undefined, true));
-                        map.set(props.scoreKey, next.calculateScores().overall);
+                        const scores = next.createJsonSchema();
+                        map.set(props.scoreKey, scores.baseScore!);
+                        map.set(
+                            props.severityKey,
+                            SEVERITY_TO_ID[scores.baseSeverity!]
+                        );
                     });
                 }
                 return next;
             });
         },
-        [map, setDocValue, setEditingVector, props.scoreKey]
+        [map, setDocValue, setEditingVector, props.scoreKey, props.severityKey]
     );
 
     let form;
