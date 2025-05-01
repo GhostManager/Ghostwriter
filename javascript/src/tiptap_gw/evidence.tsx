@@ -105,25 +105,20 @@ function EvidenceView(props: NodeViewProps) {
         );
     }
 
+    let img = null;
     if (
         evidence.document.endsWith(".png") ||
         evidence.document.endsWith(".jpg") ||
         evidence.document.endsWith(".jpeg")
     ) {
-        return (
-            <NodeViewWrapper className="richtext-evidence">
-                <img
-                    src={ghostwriterEvidences.mediaUrl + evidence["document"]}
-                />
-                <span className="richtext-evidence-name">
-                    {"Evidence: " + evidence.friendlyName}
-                </span>
-            </NodeViewWrapper>
+        img = (
+            <img src={ghostwriterEvidences.mediaUrl + evidence["document"]} />
         );
     }
 
     return (
         <NodeViewWrapper className="richtext-evidence">
+            {img}
             <span className="richtext-evidence-name">
                 {"Evidence: " + evidence.friendlyName}
             </span>

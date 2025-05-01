@@ -1,4 +1,4 @@
-import { useContext, useId, useRef, useState } from "react";
+import { useContext, useEffect, useId, useRef, useState } from "react";
 import { EvidencesContext } from "../../../../tiptap_gw/evidence";
 
 type DjangoFormErrors = Record<string, string[]>;
@@ -159,11 +159,22 @@ function FileInput(props: {
     const fileRef = useRef<HTMLInputElement | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
 
+    useEffect(() => {
+        const cb = (ev: ClipboardEvent) => {
+            if (ev.clipboardData?.files.length != 1) return;
+            ev.preventDefault();
+            fileRef.current!.files = ev.clipboardData.files;
+            setFileName(ev.clipboardData.files[0].name);
+        };
+        document.addEventListener("paste", cb);
+        return () => document.removeEventListener("paste", cb);
+    }, [fileRef]);
+
     return (
         <>
             <p>
-                Attach text evidence (*.txt, *.log, or *.md) or image evidence
-                (*.png, *.jpg, or *.jpeg).
+                Attach or paste text evidence (*.txt, *.log, or *.md) or image
+                evidence (*.png, *.jpg, or *.jpeg).
             </p>
             <div
                 className="custom-file"
