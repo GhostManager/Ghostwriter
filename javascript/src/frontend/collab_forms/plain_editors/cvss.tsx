@@ -301,13 +301,46 @@ function CvssCategoryButtons(props: {
         categoryName = "Environmental (Modified Base Metrics)";
     else if (props.category.name === "environmental-security-requirement")
         categoryName = "Environmental (Security Requirements)";
-    else
-        categoryName =
-            props.category.name.substring(0, 1).toUpperCase() +
-            props.category.name.substring(1);
+    else categoryName = capitalize(props.category.name);
+
+    const subcategories = useMemo(
+        () =>
+            Array.from(
+                groupBy(props.components, (c) => c.subCategory).entries()
+            ),
+        [props.components]
+    );
     return (
         <>
             <h3 className="cvss-category-header">{capitalize(categoryName)}</h3>
+            {subcategories.map(([title, components], i) => (
+                <CvssSubcategoryButtons
+                    key={i}
+                    vector={props.vector}
+                    setVector={props.setVector}
+                    connected={props.connected}
+                    category={props.category}
+                    title={title}
+                    components={components}
+                />
+            ))}
+        </>
+    );
+}
+
+function CvssSubcategoryButtons(props: {
+    vector: Vector;
+    setVector: SetVector;
+    connected: boolean;
+    category: ComponentCategory;
+    title: string | undefined;
+    components: VectorComponent<VectorComponentValue>[];
+}) {
+    return (
+        <>
+            {props.title && (
+                <h4 className="cvss-subcategory-header">{props.title}</h4>
+            )}
             {props.components.map((component, i) => (
                 <CvssRowButtons
                     key={i}
@@ -398,4 +431,14 @@ function CvssButton(props: {
 
 function capitalize(s: string): string {
     return s.substring(0, 1).toUpperCase() + s.substring(1);
+}
+
+function groupBy<T, K>(arr: Iterable<T>, key: (v: T) => K): Map<K, T[]> {
+    const map = new Map<K, T[]>();
+    for (const v of arr) {
+        const k = key(v);
+        if (!map.has(k)) map.set(k, []);
+        map.get(k)!.push(v);
+    }
+    return map;
 }
