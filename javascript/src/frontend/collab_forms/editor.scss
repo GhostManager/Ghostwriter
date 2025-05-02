@@ -245,6 +245,9 @@
     strong {
         font-weight: 500;
     }
+    pre strong {
+        font-weight: 700;
+    }
 
     /* Placeholder (at the top) */
     p.is-editor-empty:first-child::before {

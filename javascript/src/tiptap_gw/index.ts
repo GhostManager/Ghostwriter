@@ -16,10 +16,17 @@ import { type Extensions } from "@tiptap/core";
 
 import PageBreak from "./pagebreak";
 import Evidence from "./evidence";
+import FormattedCodeblock from "./codeblock";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
         history: false,
+        codeBlock: false,
+    }),
+    FormattedCodeblock.configure({
+        HTMLAttributes: {
+            spellcheck: "false",
+        },
     }),
     Underline,
     Link.configure({
