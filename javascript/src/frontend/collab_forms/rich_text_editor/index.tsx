@@ -250,6 +250,7 @@ export function Toolbar(props: {
                     menuButton={
                         <MenuButton tabIndex={-1} title="Table">
                             <FontAwesomeIcon icon={faTable} />
+                            <FontAwesomeIcon icon={faChevronDown} />
                         </MenuButton>
                     }
                 >
@@ -290,6 +291,12 @@ export function Toolbar(props: {
                     </FormatButton>
                     <FormatButton menuItem chain={(c) => c.deleteColumn()}>
                         Delete column
+                    </FormatButton>
+                    <FormatButton menuItem chain={(c) => c.mergeCells()}>
+                        Merge cells
+                    </FormatButton>
+                    <FormatButton menuItem chain={(c) => c.splitCell()}>
+                        Split cell
                     </FormatButton>
                     <FormatButton
                         menuItem
