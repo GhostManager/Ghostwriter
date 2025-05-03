@@ -5,6 +5,7 @@ import { EditorProvider, useCurrentEditor } from "@tiptap/react";
 import { faAlignCenter } from "@fortawesome/free-solid-svg-icons/faAlignCenter";
 import { faBold } from "@fortawesome/free-solid-svg-icons/faBold";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight";
 import { faCode } from "@fortawesome/free-solid-svg-icons/faCode";
 import { faHeading } from "@fortawesome/free-solid-svg-icons/faHeading";
 import { faItalic } from "@fortawesome/free-solid-svg-icons/faItalic";
@@ -18,7 +19,7 @@ import { faTextSlash } from "@fortawesome/free-solid-svg-icons/faTextSlash";
 import { faUnderline } from "@fortawesome/free-solid-svg-icons/faUnderline";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import { Menu, MenuButton, MenuDivider, MenuItem } from "@szhsin/react-menu";
+import { Menu, SubMenu, MenuButton, MenuItem } from "@szhsin/react-menu";
 import { useMemo } from "react";
 import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
@@ -269,41 +270,66 @@ export function Toolbar(props: {
                     <FormatButton menuItem chain={(c) => c.deleteTable()}>
                         Delete
                     </FormatButton>
-                    <MenuDivider />
-                    <FormatButton menuItem chain={(c) => c.addRowBefore()}>
-                        Add row before
-                    </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.addRowAfter()}>
-                        Add row after
-                    </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.deleteRow()}>
-                        Delete row
-                    </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.toggleHeaderRow()}>
-                        Toggle header column
-                    </FormatButton>
-                    <MenuDivider />
-                    <FormatButton menuItem chain={(c) => c.addColumnBefore()}>
-                        Add column before
-                    </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.addColumnAfter()}>
-                        Add column after
-                    </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.deleteColumn()}>
-                        Delete column
-                    </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.mergeCells()}>
-                        Merge cells
-                    </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.splitCell()}>
-                        Split cell
-                    </FormatButton>
-                    <FormatButton
-                        menuItem
-                        chain={(c) => c.toggleHeaderColumn()}
+                    <SubMenu
+                        label={
+                            <span>
+                                Columns
+                                <FontAwesomeIcon icon={faChevronRight} />
+                            </span>
+                        }
                     >
-                        Toggle header column
-                    </FormatButton>
+                        <FormatButton
+                            menuItem
+                            chain={(c) => c.toggleHeaderColumn()}
+                        >
+                            Toggle header column
+                        </FormatButton>
+                        <FormatButton menuItem chain={(c) => c.addColumnBefore()}>
+                            Add column before
+                        </FormatButton>
+                        <FormatButton menuItem chain={(c) => c.addColumnAfter()}>
+                            Add column after
+                        </FormatButton>
+                        <FormatButton menuItem chain={(c) => c.deleteColumn()}>
+                            Delete column
+                        </FormatButton>
+                    </SubMenu>
+                    <SubMenu
+                        label={
+                            <span>
+                                Rows
+                                <FontAwesomeIcon icon={faChevronRight} />
+                            </span>
+                        }
+                    >
+                        <FormatButton menuItem chain={(c) => c.toggleHeaderRow()}>
+                            Toggle header row
+                        </FormatButton>
+                        <FormatButton menuItem chain={(c) => c.addRowBefore()}>
+                            Add row before
+                        </FormatButton>
+                        <FormatButton menuItem chain={(c) => c.addRowAfter()}>
+                            Add row after
+                        </FormatButton>
+                        <FormatButton menuItem chain={(c) => c.deleteRow()}>
+                            Delete row
+                        </FormatButton>
+                    </SubMenu>
+                    <SubMenu
+                        label={
+                            <span>
+                                Cells
+                                <FontAwesomeIcon icon={faChevronRight} />
+                            </span>
+                        }
+                    >
+                        <FormatButton menuItem chain={(c) => c.mergeCells()}>
+                            Merge cells
+                        </FormatButton>
+                        <FormatButton menuItem chain={(c) => c.splitCell()}>
+                            Split cell
+                        </FormatButton>
+                    </SubMenu>
                 </Menu>
                 <FormatButton chain={(c) => c.setHorizontalRule()}>
                     Horizontal Rule
