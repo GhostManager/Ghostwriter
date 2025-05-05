@@ -64,12 +64,12 @@
             background-color: #aaa;
         }
     }
+}
 
-    .szh-menu {
-        display: flex;
-        flex-direction: column;
-        flex-wrap: nowrap;
-    }
+.collab-edit-toolbar-menu {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
 
     .szh-menu__item {
         font-size: 0.9rem;

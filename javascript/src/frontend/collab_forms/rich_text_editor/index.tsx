@@ -152,6 +152,8 @@ export function Toolbar(props: {
             <div className="separator" />
             <div className="button-group">
                 <Menu
+                    portal
+                    menuClassName="collab-edit-toolbar-menu"
                     menuButton={
                         <MenuButton tabIndex={-1} title="Heading">
                             <FontAwesomeIcon icon={faHeading} />
@@ -171,6 +173,8 @@ export function Toolbar(props: {
                     ))}
                 </Menu>
                 <Menu
+                    portal
+                    menuClassName="collab-edit-toolbar-menu"
                     menuButton={
                         <MenuButton tabIndex={-1} title="Justification">
                             <FontAwesomeIcon icon={faAlignCenter} />
@@ -225,6 +229,8 @@ export function Toolbar(props: {
             <div className="separator" />
             <div className="button-group">
                 <Menu
+                    portal
+                    menuClassName="collab-edit-toolbar-menu"
                     menuButton={
                         <MenuButton tabIndex={-1} title="List">
                             <FontAwesomeIcon icon={faList} />
@@ -248,6 +254,8 @@ export function Toolbar(props: {
                     </FormatButton>
                 </Menu>
                 <Menu
+                    portal
+                    menuClassName="collab-edit-toolbar-menu"
                     menuButton={
                         <MenuButton tabIndex={-1} title="Table">
                             <FontAwesomeIcon icon={faTable} />
@@ -284,10 +292,16 @@ export function Toolbar(props: {
                         >
                             Toggle header column
                         </FormatButton>
-                        <FormatButton menuItem chain={(c) => c.addColumnBefore()}>
+                        <FormatButton
+                            menuItem
+                            chain={(c) => c.addColumnBefore()}
+                        >
                             Add column before
                         </FormatButton>
-                        <FormatButton menuItem chain={(c) => c.addColumnAfter()}>
+                        <FormatButton
+                            menuItem
+                            chain={(c) => c.addColumnAfter()}
+                        >
                             Add column after
                         </FormatButton>
                         <FormatButton menuItem chain={(c) => c.deleteColumn()}>
@@ -302,7 +316,10 @@ export function Toolbar(props: {
                             </span>
                         }
                     >
-                        <FormatButton menuItem chain={(c) => c.toggleHeaderRow()}>
+                        <FormatButton
+                            menuItem
+                            chain={(c) => c.toggleHeaderRow()}
+                        >
                             Toggle header row
                         </FormatButton>
                         <FormatButton menuItem chain={(c) => c.addRowBefore()}>
