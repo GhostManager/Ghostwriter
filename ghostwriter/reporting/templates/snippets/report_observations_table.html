@@ -25,15 +25,23 @@
             {% else %}
              class="clickable"
             {% endif %}
-             href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}
+             href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation }}
           </a>
         </td>
 
         <td class="align-middle">
           <div class="d-flex justify-content-center">
-            <a class="icon clone-icon"
+            <form
+              action="{% url 'reporting:convert_observation' observation.id %}"
+              method="post"
+              style="display:contents"
+            >
+              {% csrf_token %}
+              <button class="icon clone-icon" style="border:0;padding:0;background:none"></button>
+            </form>
+            {%comment%}<a class="icon clone-icon"
                title="Clone this observation to the library"
-               href="{% url 'reporting:convert_observation' observation.id %}"></a>
+               href="{% url 'reporting:convert_observation' observation.id %}"></a>{%endcomment%}
             <a id="observation-delete-button-{{ observation.id }}"
                class="icon trash-icon js-confirm-delete" data-toggle="modal"
                title="Delete this observation"

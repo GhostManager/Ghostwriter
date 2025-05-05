@@ -27,6 +27,10 @@ logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 
+def messages_in_response(response):
+    messages = get_messages(response.wsgi_request)
+    return ", ".join(str(msg) for msg in messages)
+
 
 # Tests related to report modification actions
 
@@ -367,7 +371,7 @@ class OplogEntriesImportTests(TestCase):
         with open(self.filename, "r") as csvfile:
             response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
-            self.assertRedirects(response, self.redirect_uri)
+            self.assertRedirects(response, self.redirect_uri, msg_prefix=messages_in_response(response))
             self.assertEqual(self.OplogEntry.objects.filter(oplog_id=self.oplog).count(), starting_entries + 1)
 
     def test_naive_timestamp(self):

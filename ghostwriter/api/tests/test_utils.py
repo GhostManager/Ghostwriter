@@ -67,37 +67,3 @@ class JwtUtilsTests(TestCase):
             self.assertEqual(user_obj, self.user)
         except AttributeError:
             self.fail("get_user_from_token() raised an AttributeError unexpectedly!")
-
-    def test_verify_access(self):
-        project = ProjectFactory()
-        self.assertFalse(utils.verify_access(self.user, project))
-        self.assertFalse(utils.verify_access(self.user, project.client))
-
-        self.user.role = "manager"
-        self.user.save()
-        self.assertTrue(utils.verify_access(self.user, project))
-        self.assertTrue(utils.verify_access(self.user, project.client))
-        self.user.role = "admin"
-        self.user.save()
-        self.assertTrue(utils.verify_access(self.user, project))
-        self.assertTrue(utils.verify_access(self.user, project.client))
-
-        self.user.role = "user"
-        self.user.save()
-        self.assertFalse(utils.verify_access(self.user, project))
-        self.assertFalse(utils.verify_access(self.user, project.client))
-
-        assignment = ProjectAssignmentFactory(operator=self.user, project=project)
-        self.assertTrue(utils.verify_access(self.user, project))
-        assignment.delete()
-        self.assertFalse(utils.verify_access(self.user, project))
-
-        project_invite = ProjectInviteFactory(user=self.user, project=project)
-        self.assertTrue(utils.verify_access(self.user, project))
-        project_invite.delete()
-        self.assertFalse(utils.verify_access(self.user, project))
-
-        client_invite = ClientInviteFactory(user=self.user, client=project.client)
-        self.assertTrue(utils.verify_access(self.user, project))
-        client_invite.delete()
-        self.assertFalse(utils.verify_access(self.user, project))

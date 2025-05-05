@@ -21,7 +21,6 @@ from rest_framework.utils.serializer_helpers import ReturnList
 from taggit.models import TaggedItem
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_access
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -53,7 +52,7 @@ def create_oplog_entry(oplog_id, user):
         logger.warning("Failed to create log entry for log ID %s because that log ID does not exist.", oplog_id)
         return
 
-    if verify_access(user, oplog.project):
+    if oplog.project.user_can_edit(user):
         OplogEntry.objects.create(
             oplog_id_id=oplog_id, operator_name=user.username, extra_fields=ExtraFieldSpec.initial_json(OplogEntry)
         )
@@ -68,7 +67,7 @@ def delete_oplog_entry(entry_id, user):
     """Attempt to delete the log entry with the given entry ID."""
     try:
         entry = OplogEntry.objects.get(pk=entry_id)
-        if verify_access(user, entry.oplog_id.project):
+        if entry.oplog_id.project.user_can_edit(user):
             entry.delete()
         else:
             logger.warning(
@@ -91,7 +90,7 @@ def copy_oplog_entry(entry_id, user):
         logger.warning("Failed to copy log entry %s because that entry ID does not exist.", entry_id)
         return
 
-    if verify_access(user, entry.oplog_id.project):
+    if entry.oplog_id.project.user_can_edit(user):
         copy = deepcopy(entry)
         copy.pk = None
         copy.start_date = make_aware(datetime.utcnow())
@@ -118,7 +117,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             logger.warning("Failed to get log entries for log ID %s because that log ID does not exist.", oplog_id)
             return OplogEntrySerializer([], many=True).data
 
-        if not verify_access(user, oplog.project):
+        if not oplog.project.user_can_view(user):
             return OplogEntrySerializer([], many=True).data
 
         entries = OplogEntry.objects.filter(oplog_id=oplog_id)
