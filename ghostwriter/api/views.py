@@ -1180,7 +1180,7 @@ class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
 
 class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
     """
-    Checks if the given API token or JWT authorizes accesses to an object.
+    Checks if the given API token or JWT authorizes edit accesses to an object.
 
     Used by the collab editing server for authentication. Not used by Hasura.
     """
@@ -1221,7 +1221,7 @@ class GetTags(HasuraActionView):
     }
 
     def post(self, request: HttpRequest):
-        is_admin = self.data["session_variables"].get("x-hasura-role", "admin")
+        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
         if not self.encoded_token and not is_admin:
             return JsonResponse(
                 utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
@@ -1252,7 +1252,7 @@ class SetTags(HasuraActionView):
     }
 
     def post(self, request: HttpRequest):
-        is_admin = self.data["session_variables"].get("x-hasura-role", "admin")
+        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
         if not self.encoded_token and not is_admin:
             return JsonResponse(
                 utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
@@ -1263,7 +1263,6 @@ class SetTags(HasuraActionView):
             return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
 
         try:
-            print("DEBUG", self.input)
             obj = cls.objects.get(id=self.input["id"])
         except ObjectDoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
