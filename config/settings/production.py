@@ -9,6 +9,11 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 hosts = env("DJANGO_ALLOWED_HOSTS", default="ghostwriter.local localhost host.docker.internal")
 ALLOWED_HOSTS = hosts.split(" ")
 
+STATICFILES_DIRS += [
+    # Populated by production/django/Dockerfile
+    "/frontend/"
+]
+
 # DATABASES
 # ------------------------------------------------------------------------------
 DATABASES["default"] = env.db("DATABASE_URL")  # noqa F405
@@ -35,7 +40,9 @@ CACHES = {
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
-SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+# This is False. On production, Nginx does the redirect itself, and the graphql and collab server containers
+# will make requests directly to Django, which will break if Django tries to redirect them.
+SECURE_SSL_REDIRECT = False
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-secure
 SESSION_COOKIE_SECURE = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-secure

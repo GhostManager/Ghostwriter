@@ -10,11 +10,26 @@
         "reportMissingImports": "none",
         "reportMissingModuleSource": "none",
     },
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "[javascript]": {
-        "editor.formatOnSave": false
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": false,
+        "editor.tabSize": 4,
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
     },
     "[html]": {
+        "editor.formatOnSave": false
+    },
+    "[django-html]": {
         "editor.formatOnSave": false
     },
     "files.trimTrailingWhitespace": true,
@@ -120,4 +135,5 @@
         "xforce",
         "xlsxwriter"
     ],
+    "typescript.tsdk": "javascript\\node_modules\\typescript\\lib",
 }

@@ -70,6 +70,21 @@ type Mutation {
 }
 
 type Mutation {
+  setTags(
+    model: String!
+    id: bigint!
+    tags: [String!]!
+  ): TagsResult!
+}
+
+type Query {
+  tags(
+    model: String!
+    id: bigint!
+  ): TagsResult!
+}
+
+type Mutation {
   uploadEvidence(
     file_base64: String!
     filename: String!
@@ -148,3 +163,8 @@ type UploadEvidenceResult {
 type UploadReportTemplateResult {
   id: Int!
 }
+
+type TagsResult {
+  tags: [String!]!
+}
+

@@ -45,6 +45,7 @@ class HealthCheckSimpleView(View):
             if not db_status["default"] or not cache_status["default"]:  # pragma: no cover
                 status = "WARNING"
         except Exception:  # pragma: no cover
+            logger.exception("Health check failed")
             status = "ERROR"
             code = 500
         return HttpResponse(status, status=code)
