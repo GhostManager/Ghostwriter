@@ -1,7 +1,6 @@
 """This contains all the views used by the Reporting application."""
 
 # Standard Libraries
-import io
 import logging
 import os
 from datetime import datetime
@@ -30,7 +29,6 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
-from crispy_forms.layout import Field
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (

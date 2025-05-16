@@ -469,8 +469,8 @@ class ReportExtraFieldEdit(CollabModelUpdate):
         self.extra_field_name = extra_field_name
         return super().get(request, pk=pk)
 
-    def get_context_data(self, object):
-        ctx = super().get_context_data(object=object)
+    def get_context_data(self, obj):
+        ctx = super().get_context_data(object=obj)
         field = get_object_or_404(ExtraFieldSpec.for_model(self.model), internal_name=self.extra_field_name)
         ctx["target_field"] = field
         return ctx
