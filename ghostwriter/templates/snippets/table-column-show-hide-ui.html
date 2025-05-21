@@ -1,0 +1,41 @@
+<div id="{{ column_show_hide_id|default:'column-show-hide-ui' }}-parent">
+  <div class="card mb-2">
+    <div
+      class="card-header"
+      role="tab"
+      data-toggle="collapse"
+      data-target="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
+    >
+      <h5 class="mb-0">
+        <a
+          data-toggle="collapse"
+          data-target="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
+          href="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
+          aria-controls="{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
+          aria-expanded="false"
+        >
+          Show/Hide Columns
+        </a>
+      </h5>
+    </div>
+    <div
+      id="{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
+      class="collapse"
+      role="tabpanel"
+      data-parent="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-parent"
+    >
+      <div class="card-body">
+        <div class="form-row">
+          <div class="col-md-12 m-1">
+            <div
+              class="form-group"
+              id="{{ column_show_hide_id|default:'column-show-hide-ui' }}"
+            >
+              {%comment%} Filled by table-columns.js {%endcomment%}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

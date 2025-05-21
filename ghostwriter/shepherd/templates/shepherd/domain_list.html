@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load crispy_forms_tags humanize bleach_tags %}
+{% load crispy_forms_tags humanize bleach_tags static %}
 
 {% block pagetitle %}Domain Catalog{% endblock %}
 
@@ -19,6 +19,8 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
+
   <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create Entry</a>
 
   {% if filter.qs|length == 0 %}
@@ -28,15 +30,24 @@
   {% else %}
     <!-- Domain Table Section -->
     <div id="domains_table">
-      <table id="domainTable" class="tablesorter table table-sm table-hover">
+      <table
+        id="domainTable"
+        class="tablesorter table table-sm table-hover column-show-hide-table"
+        data-table-name="domains"
+        data-controls-el="column-show-hide-ui"
+      >
         <thead>
         <tr>
-          <th id="domain" class="align-middle pr-4 text-left">Domain</th>
-          <th class="align-middle pr-4 text-left">Status</th>
-          <th class="align-middle pr-4 text-left">Age (Days)</th>
-          <th class="align-middle pr-4 sorter-sugar text-left">Expiry</th>
-          <th class="align-middle pr-4 text-left sorter-false">Tags</th>
-          <th class="align-middle sorter-false">Options</th>
+          <th id="domain" class="align-middle pr-4 text-left" data-no-hide>Domain</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="status">Status</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="creation" data-hide-default>Purchase Date</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="expiration" data-hide-default>Expiration Date</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="age">Age (Days)</th>
+          <th class="align-middle pr-4 sorter-sugar text-left" data-internal-name="expiry">Expiry</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="registrar" data-hide-default>Registrar</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="note" data-hide-default>Details</th>
+          <th class="align-middle text-left sorter-false" data-hide-default data-internal-name="tags">Tags</th>
+          <th class="align-middle sorter-false" data-no-hide>Options</th>
         </tr>
         </thead>
         <tbody>
@@ -52,9 +63,17 @@
               <td class="align-middle burned text-left">{{ domain.domain_status }}</td>
             {% endif %}
 
+            <td class="align-middle text-left">
+              {{ domain.creation }}
+            </td>
+
+            <td class="align-middle text-left">
+              {{ domain.expiration }}
+            </td>
+
             <td class="align-middle text-left">{{ domain.get_domain_age|intcomma }}</td>
 
-            <td class="align-middle align-middle text-left">
+            <td class="align-middle text-left">
               {% if domain.is_expired %}
                 <span class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</span>
               {% elif domain.may_expire_soon %}
@@ -65,7 +84,17 @@
             </td>
 
             <td class="align-middle text-left">
-              {%  for tag in domain.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+              {{ domain.registrar }}
+            </td>
+
+            <td class="align-middle text-left">
+              {{ domain.note|bleach }}
+            </td>
+
+            <td class="align-middle text-left">
+              {% for tag in domain.tags.names %}
+                <span class="badge badge-secondary mb-3">{{ tag }}</span>
+              {% endfor %}
             </td>
 
             <td class="align-middle">
@@ -91,6 +120,8 @@
 {% endblock %}
 
 {% block morescripts %}
+  <script type="application/javascript" src="{% static 'js/table-columns.js' %}"></script>
+
   {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
