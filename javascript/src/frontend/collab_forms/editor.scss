@@ -30,6 +30,9 @@
 
         // Show on top of editor items, in particular highlight
         z-index: 1;
+
+        position: sticky;
+        top: 0;
     }
 
     .button-group {
@@ -312,11 +315,17 @@ ul.collab-focused-users {
 }
 
 .collab-connection-status {
-    position: sticky;
-    top: 1rem;
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
     z-index: 100;
 
     width: 400px;
     max-width: 100%;
-    margin-left: auto;
+    margin: 0;
+}
+
+#collab-form-container {
+    // Add padding for the .collab-connection-status
+    padding-bottom: 60px;
 }

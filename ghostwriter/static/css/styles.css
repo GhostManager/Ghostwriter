@@ -651,7 +651,6 @@ input[type='file'] {
   display: flex;
   width: 100%;
   align-items: stretch;
-  perspective: 2500px;
   text-align: center;
   position: relative;
 }
