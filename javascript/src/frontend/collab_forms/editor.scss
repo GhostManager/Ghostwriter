@@ -116,14 +116,18 @@
         background-color: #ccc;
     }
 
-    ul,
-    ol {
+    ul, ol {
         padding: 0 1rem;
         margin: 1.25rem 1rem 1.25rem 0.4rem;
 
         li p {
             margin-top: 0.25em;
             margin-bottom: 0.25em;
+        }
+
+        ul, ol {
+            margin-top: 0;
+            margin-bottom: 0;
         }
     }
 
