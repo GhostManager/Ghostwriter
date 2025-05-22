@@ -1,6 +1,11 @@
+FROM node:21-alpine AS frontendbuild
+
+COPY ./javascript /app
+RUN cd /app && npm ci && npm run build-frontend-prod
+
 FROM python:3.10.9-alpine3.17
 
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 
 ENV PYTHONPATH="$PYTHONPATH:/app/config"
 
@@ -53,6 +58,8 @@ RUN sed -i 's/\r$//g' /seed_data \
     && mkdir -p /app/staticfiles \
     && mkdir -p /app/ghostwriter/media \
     && chown -R django /app
+
+COPY --from=frontendbuild /app/dist_frontend /frontend
 
 USER django
 

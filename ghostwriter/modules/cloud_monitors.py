@@ -3,11 +3,10 @@
 # Standard Libraries
 import logging
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 
 # 3rd Party Libraries
 import boto3
-import pytz
 import requests
 from botocore.config import Config
 from botocore.exceptions import ClientError, ConnectTimeoutError
@@ -16,7 +15,7 @@ from botocore.exceptions import ClientError, ConnectTimeoutError
 logger = logging.getLogger(__name__)
 
 # Set timezone for dates to UTC
-utc = pytz.UTC
+utc = timezone.utc
 
 # Digital Ocean API endpoint for droplets
 digital_ocean_endpoint = "https://api.digitalocean.com/v2/droplets"
