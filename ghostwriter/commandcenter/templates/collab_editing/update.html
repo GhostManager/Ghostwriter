@@ -1,0 +1,36 @@
+{% extends "base_generic.html" %}
+
+{% comment %}
+    Base template for Ghostwriter collaborative forms.
+
+    The actual form is a React component implemented in `/frontend/src/collab_forms/forms/` - this template
+    provides the data and content that those components look for. Templates for specific models should inherit
+    this one and provide thigns like breadcrumbs.
+{% endcomment %}
+
+{% load static %}
+
+{% block content %}
+    <div id="collab-form-container" {% block collab_form_attrs %}{% endblock %} >
+        <p>Loading...</p>
+        <noscript><p>Javascript is required.</p></noscript>
+    </div>
+{% endblock %}
+
+{%  block morescripts %}
+    {{ block.super }}
+    <script type="text/plain" id="yjs-url">/ws-collab</script>
+    <script type="text/plain" id="yjs-object-id">{{object.id}}</script>
+    <script type="text/plain" id="yjs-username">{{user.get_username}}</script>
+    <script type="text/plain" id="yjs-jwt">{{jwt}}</script>
+    {% if extra_fields_spec_ser is not None %}
+    {{extra_fields_spec_ser|json_script:"yjs-extra-field-specs"}}
+    {% endif %}
+    <script type="text/plain" id="graphql-path">/v1/graphql</script>
+    <script type="text/plain" id="graphql-auth">{{jwt}}</script>
+    <script type="text/plain" id="graphql-media-url">{{media_url}}</script>
+
+    <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">
+
+    <script type="module" src="{% static collab_editing_script_path %}"></script>
+{% endblock %}

@@ -2,14 +2,14 @@
 
 {% load bleach_tags extra_fields custom_tags %}
 
-{% block pagetitle %}{{ finding.title }} Details{% endblock %}
+{% block pagetitle %}{{ finding.display_title }} Details{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ finding.title }}</li>
+      <li class="breadcrumb-item active" aria-current="page">{{ finding.display_title }}</li>
     </ul>
   </nav>
 {% endblock %}
@@ -33,7 +33,7 @@
   </div>
 
   <div class="container">
-    <h2>{{ finding.title }}</h2>
+    <h2>{{ finding.display_title }}</h2>
   </div>
 
   {% comment %} Finding Severity Badge {% endcomment %}

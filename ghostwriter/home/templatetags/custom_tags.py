@@ -16,14 +16,9 @@ from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import (
-    verify_access,
-    verify_finding_access,
-    verify_observation_access,
-    verify_user_is_privileged,
-)
+from ghostwriter.api.utils import verify_user_is_privileged
 from ghostwriter.home.models import UserProfile
-from ghostwriter.reporting.models import Report, ReportFindingLink
+from ghostwriter.reporting.models import Finding, Observation, Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
 register = template.Library()
@@ -129,19 +124,19 @@ def divide(value, arg):
 @register.filter
 def has_access(project, user):
     """Check if the user has access to the project."""
-    return verify_access(user, project)
+    return project.user_can_view(user)
 
 
 @register.filter
 def can_create_finding(user):
     """Check if the user has the permission to create a finding."""
-    return verify_finding_access(user, "create")
+    return Finding.user_can_create(user)
 
 
 @register.filter
 def can_create_observation(user):
     """Check if the user has the permission to create a finding."""
-    return verify_observation_access(user, "create")
+    return Observation.user_can_create(user)
 
 
 @register.filter
