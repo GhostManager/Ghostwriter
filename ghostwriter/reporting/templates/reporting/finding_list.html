@@ -18,6 +18,8 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
+
   <!-- Instructions Section -->
   {% if not searching_report_findings %}
     <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>active report</em>
@@ -27,8 +29,6 @@
   {% endif %}
 
   <a class="btn btn-info col-2 icon add-icon mb-2" role="button" href="{%  url 'reporting:finding_create' %}">Create Finding</a>
-
-  {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
 
   {% if filter.qs|length == 0 %}
     <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no findings yet, or your search
