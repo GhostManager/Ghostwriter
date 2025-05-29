@@ -164,8 +164,8 @@ $(document).ready(function() {
             });
         });
 
-        $oplogTableNoEntries.find("td").attr("colspan", columnInfo.length.toString());
-        $oplogTableLoading.find("td").attr("colspan", columnInfo.length.toString());
+        $oplogTableNoEntries.find("td").attr("colspan", columnInfo.length+1);
+        $oplogTableLoading.find("td").attr("colspan", columnInfo.length+1);
     }
 
     // Generate table headers
