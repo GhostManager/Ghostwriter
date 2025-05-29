@@ -22,6 +22,7 @@
   {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
 
   <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create Entry</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
 
   {% if filter.qs|length == 0 %}
     <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains to see here yet, or
@@ -125,11 +126,16 @@
   {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
-      $("#domainTable").tablesorter(
+      $('#domainTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ["saveSort"],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: "domainLibraryTable"
+          },
           headers: {
             2: {sorter: 'digit'},
             3: {sorter: 'sugar'},
@@ -138,6 +144,13 @@
         }
       );
       $('.tablesorter').trigger('update');
+    });
+
+    $('#resetSortBtn').click(function() {
+      $('#domainTable')
+        .trigger('saveSortReset') // clear saved sort
+        .trigger("sortReset");    // reset current table sort
+      return false;
     });
 
     {%  comment %} Fix for Accordion Markers {% endcomment %}

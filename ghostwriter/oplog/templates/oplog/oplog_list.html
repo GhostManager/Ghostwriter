@@ -27,7 +27,8 @@
     <!-- Oplog Table Section -->
     <div class="buttonHolder">
       <a class="btn btn-primary icon add-icon col-2" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
-      <a class="btn btn-secondary icon upload-icon col-2" href="{% url 'oplog:oplog_import' %}">Import Log</a>
+      <a class="btn btn-info icon upload-icon col-2" href="{% url 'oplog:oplog_import' %}">Import Log</a>
+      <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
     </div>
     {% if oplog_list %}
         <table id="oplogTable" class="tablesorter table table-hover table-striped table-sm">
@@ -75,7 +76,21 @@
             $("#oplogTable").tablesorter(
                 {
                     cssAsc: ' down', cssDesc: 'up', cssNone: 'none',
-                }); $('.tablesorter').trigger('update');
+                    widgets: ["saveSort"],
+                    widgetOptions: {
+                      saveSort: true,
+                      storage_page: "oplogLibraryTable"
+                    }
+                });
+
+            $('.tablesorter').trigger('update');
+
+            $('#resetSortBtn').click(function() {
+              $('#oplogTable')
+                .trigger('saveSortReset') // clear saved sort
+                .trigger("sortReset");    // reset current table sort
+              return false;
+            });
         });
     </script>
 

@@ -21,7 +21,8 @@
     {% crispy filter.form filter.helper %}
   </div>
 
-  <a class="btn btn-info col-2 icon add-icon mt-3" role="button" href="{%  url 'shepherd:server_create' %}">Create Server</a>
+  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:server_create' %}">Create Server</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
 
   {% if filter.qs|length == 0 %}
     <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no servers to see here yet, or
@@ -87,14 +88,27 @@
   {% comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
-      $("#serverTable").tablesorter(
+      $('#serverTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ["saveSort"],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: "serverLibraryTable"
+          }
         }
       );
+
       $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#serverTable')
+          .trigger('saveSortReset') // clear saved sort
+          .trigger("sortReset");    // reset current table sort
+        return false;
+      });
     });
 
     {% comment %} Submit Filter when Clicking Bootstrap Icon {% endcomment %}

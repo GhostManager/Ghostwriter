@@ -22,6 +22,7 @@
     </div>
 
     <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'rolodex:client_create' %}">Create Client</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
 
     {% if filter.qs|length == 0 %}
         <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no clients to see here yet, or your search returned no results. Create a client above or adjust your filters.</div>
@@ -51,14 +52,27 @@
     <!-- jQuery Tablesorter Script -->
     <script>
         $(document).ready(function()  {
-            $("#clientTable").tablesorter(
+            $('#clientTable').tablesorter(
                             {
                                 cssAsc: 'down',
                                 cssDesc: 'up',
                                 cssNone: 'none',
+                                widgets: ["saveSort"],
+                                widgetOptions: {
+                                  saveSort: true,
+                                  storage_page: "clientLibraryTable"
+                                }
                             }
                         );
+
             $('.tablesorter').trigger('update');
+
+            $('#resetSortBtn').click(function() {
+              $('#clientTable')
+                .trigger('saveSortReset') // clear saved sort
+                .trigger("sortReset");    // reset current table sort
+              return false;
+            });
         });
     </script>
 
