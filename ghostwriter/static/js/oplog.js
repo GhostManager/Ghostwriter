@@ -550,9 +550,21 @@ $(document).ready(function() {
 
     $table.tablesorter(
         {
-            cssAsc: ' down', cssDesc: 'up', cssNone: 'none'
+            cssAsc: 'down', cssDesc: 'up', cssNone: 'none',
+            widgets: ["saveSort"],
+            widgetOptions: {
+                saveSort: true,
+                storage_page: "logDetailTable"
+            }
         }
     );
+
+    $('#resetSortBtn').click(function() {
+      $table
+        .trigger('saveSortReset') // clear saved sort
+        .trigger("sortReset");    // reset current table sort
+      return false;
+    });
 
     // Show or hide the table column select options
     $('#columnSelectDropdown').click(function () {
