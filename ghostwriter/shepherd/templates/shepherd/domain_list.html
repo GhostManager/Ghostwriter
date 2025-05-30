@@ -131,10 +131,10 @@
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
-          widgets: ["saveSort"],
+          widgets: ['saveSort'],
           widgetOptions: {
             saveSort: true,
-            storage_page: "domainLibraryTable"
+            storage_page: 'domainLibraryTable'
           },
           headers: {
             2: {sorter: 'digit'},
@@ -148,8 +148,8 @@
 
     $('#resetSortBtn').click(function() {
       $('#domainTable')
-        .trigger('saveSortReset') // clear saved sort
-        .trigger("sortReset");    // reset current table sort
+        .trigger('saveSortReset')
+        .trigger('sortReset');
       return false;
     });
 

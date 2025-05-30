@@ -93,10 +93,10 @@
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
-          widgets: ["saveSort"],
+          widgets: ['saveSort'],
           widgetOptions: {
             saveSort: true,
-            storage_page: "serverLibraryTable"
+            storage_page: 'serverLibraryTable'
           }
         }
       );
@@ -105,8 +105,8 @@
 
       $('#resetSortBtn').click(function() {
         $('#serverTable')
-          .trigger('saveSortReset') // clear saved sort
-          .trigger("sortReset");    // reset current table sort
+          .trigger('saveSortReset')
+          .trigger('sortReset');
         return false;
       });
     });

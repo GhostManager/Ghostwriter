@@ -121,10 +121,10 @@
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
-          widgets: ["saveSort"],
+          widgets: ['saveSort'],
           widgetOptions: {
             saveSort: true,
-            storage_page: "templateLibraryTable"
+            storage_page: 'templateLibraryTable'
           }
         }
       );
@@ -133,8 +133,8 @@
 
       $('#resetSortBtn').click(function() {
         $('#reportTemplateTable')
-          .trigger('saveSortReset') // clear saved sort
-          .trigger("sortReset");    // reset current table sort
+          .trigger('saveSortReset')
+          .trigger('sortReset');
         return false;
       });
     });

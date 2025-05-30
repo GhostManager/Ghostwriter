@@ -74,10 +74,10 @@
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
-          widgets: ["saveSort"],
+          widgets: ['saveSort'],
           widgetOptions: {
             saveSort: true,
-            storage_page: "projectLibraryTable"
+            storage_page: 'projectLibraryTable'
           }
         }
       );
@@ -86,8 +86,8 @@
 
       $('#resetSortBtn').click(function() {
         $('#projectTable')
-          .trigger('saveSortReset') // clear saved sort
-          .trigger("sortReset");    // reset current table sort
+          .trigger('saveSortReset')
+          .trigger('sortReset');
         return false;
       });
     });

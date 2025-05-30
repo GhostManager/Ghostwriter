@@ -551,18 +551,18 @@ $(document).ready(function() {
     $table.tablesorter(
         {
             cssAsc: 'down', cssDesc: 'up', cssNone: 'none',
-            widgets: ["saveSort"],
+            widgets: ['saveSort'],
             widgetOptions: {
                 saveSort: true,
-                storage_page: "logDetailTable"
+                storage_page: 'logDetailTable'
             }
         }
     );
 
     $('#resetSortBtn').click(function() {
       $table
-        .trigger('saveSortReset') // clear saved sort
-        .trigger("sortReset");    // reset current table sort
+        .trigger('saveSortReset')
+        .trigger('sortReset');
       return false;
     });
 

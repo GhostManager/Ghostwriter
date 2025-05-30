@@ -76,10 +76,10 @@
             $("#oplogTable").tablesorter(
                 {
                     cssAsc: ' down', cssDesc: 'up', cssNone: 'none',
-                    widgets: ["saveSort"],
+                    widgets: ['saveSort'],
                     widgetOptions: {
                       saveSort: true,
-                      storage_page: "oplogLibraryTable"
+                      storage_page: 'oplogLibraryTable'
                     }
                 });
 
@@ -87,8 +87,8 @@
 
             $('#resetSortBtn').click(function() {
               $('#oplogTable')
-                .trigger('saveSortReset') // clear saved sort
-                .trigger("sortReset");    // reset current table sort
+                .trigger('saveSortReset')
+                .trigger('sortReset');
               return false;
             });
         });
