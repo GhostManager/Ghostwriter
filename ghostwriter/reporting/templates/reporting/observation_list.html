@@ -27,6 +27,7 @@
       displayed at the top of the page.</p>
 
     <a class="btn btn-info col-2 icon add-icon" role="button" href="{%  url 'reporting:observation_create' %}">Create Entry</a>
+    <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
 
     <!-- Observations Table -->
     <div id="observations_table">
@@ -69,14 +70,26 @@
   {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
-      $("#observationsTable").tablesorter(
+      $('#observationsTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'observationLibraryTable'
+          }
         }
       );
       $('.tablesorter').trigger('update');
+    });
+
+    $('#resetSortBtn').click(function() {
+      $('#observationsTable')
+        .trigger('saveSortReset')
+        .trigger('sortReset');
+      return false;
     });
 
     {%  comment %} Assign Finding with AJAX {% endcomment %}
