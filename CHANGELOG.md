@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [5.0.8] - 30 May 2025
 
+### Added
+
+* Added options to show and hide columns in the findings and domains libraries
+  * This change allows you to customize the columns displayed in the libraries to suit your needs
+  * Selections are preserved in your browser's local storage, so they will not persist across browsers or devices
+
 ### Changed
 
 * Table sorting will now be preserved between page loads and visits
