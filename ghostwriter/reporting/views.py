@@ -1343,7 +1343,7 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
         )
 
 
-class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class ArchiveView(RoleBasedAccessControlMixin, DetailView):
     """
     Generate all report types for an individual :model:`reporting.Report`, collect all
     related :model:`reporting.Evidence` and related files, and compress the files into a
@@ -1351,6 +1351,7 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
 
     model = Report
+    template_name = "confirm_archive.html"
     queryset = report_generation_queryset()
 
     def test_func(self):
@@ -1360,7 +1361,12 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
-    def get(self, *args, **kwargs):
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        return ctx
+
+    def post(self, *args, **kwargs):
         report_instance = self.get_object()
         try:
             archive_report(report_instance)
