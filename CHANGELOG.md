@@ -9,19 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added an option to exclude archived reports in teh report library when viewing completed reports
+* Added an option to exclude archived reports in the report library when viewing completed reports
 * Added observation and report evidence relationships for reports in the GraphQL schema 
 
 ### Changed
 
-* The archive task will now use the selected default templates when generating an archived reports
+* The archive task will now use the selected default templates when generating archived reports
 * The archive report action will now display a confirmation prompt to confirm the action
 
 ### Fixed
 
 * Fix archive task selecting reports to archive incorrectly
-  * It should now properly archive reports of completed projects that are 90 days (default) passed the project end date
-  * It will now catch and log errors in the archive task, and continue with other reports (Fixes #617)
+  * It should now properly archive reports of completed projects that are 90 days (default) past the project end date
+  * It will now catch and log errors in the archive task and continue with other reports (Fixes #617)
 * The archiving task now stops on the first exception
 * Fixed the archive task not deleting evidence files (Fixes #618)
 
