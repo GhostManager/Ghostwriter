@@ -72,8 +72,9 @@
         <p>Double-click a row to edit the details of any log entry. Use <em>CTRL+S</em> and <em>CTRL+N</em> to export the log and create new entries.</p>
     </div>
 
-    <a id="createNewEntryButton" class="icon add-icon btn btn-primary mb-3 col-3" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
-    <a id="columnSelectDropdown" class="icon open-icon btn btn-secondary mb-3 col-3" href="javascript:void(0);">Show/Hide Columns</a>
+    <a id="createNewEntryButton" class="icon add-icon btn btn-primary mb-3 col-2" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
+    <a id="columnSelectDropdown" class="icon open-icon btn btn-info mb-3 col-2" href="javascript:void(0);">Show/Hide Columns</a>
+    <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mb-3 col-2" role="button">Reset Sort</a>
 
     <div id="columnSelect" style="display:none;">
         <div class="list-group-row" id="checkboxList">

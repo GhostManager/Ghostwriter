@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.8] - 30 May 2025
+
+### Added
+
+* Added options to show and hide columns in the findings and domains libraries
+  * This change allows you to customize the columns displayed in the libraries to suit your needs
+  * Selections are preserved in your browser's local storage, so they will not persist across browsers or devices
+
+### Changed
+
+* Table sorting will now be preserved between page loads and visits
+  * This change allows you to sort a table and have the sorting remain when you navigate away from the page and return
+  * The sorting is stored in your browser's local storage, so it will not persist across browsers or devices
+
 ## [5.0.7] - 23 April 2025
 
 ### Changed

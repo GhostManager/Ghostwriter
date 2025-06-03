@@ -22,6 +22,7 @@
   </div>
 
   <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'rolodex:project_create_no_client' %}">Create Project</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
 
   {% if not request.user|is_privileged %}
     <div class="alert alert-success offset-md-3 col-md-6 mt-3" role="alert">Projects shown here are projects to which you have access. You gain access to a project by being assigned to it or invited to have full access to the related client's history.</div>
@@ -68,14 +69,27 @@
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {
-      $("#projectTable").tablesorter(
+      $('#projectTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'projectLibraryTable'
+          }
         }
       );
+
       $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#projectTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
+      });
     });
   </script>
 
