@@ -144,6 +144,13 @@ array_relationships:
         table:
           name: reporting_reportfindinglink
           schema: public
+  - name: reportedObservations
+    using:
+      foreign_key_constraint_on:
+        column: assigned_to_id
+        table:
+          name: reporting_reportobservationlink
+          schema: public
   - name: reports
     using:
       foreign_key_constraint_on:

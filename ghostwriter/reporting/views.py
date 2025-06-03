@@ -57,12 +57,14 @@ from ghostwriter.commandcenter.forms import SingleExtraFieldForm
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
+from ghostwriter.modules.reportwriter import report_generation_queryset
 from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import (
     ArchiveFilter,
     FindingFilter,
@@ -114,18 +116,6 @@ def get_position(report_pk, severity):
         last_position = findings[0].position
         return last_position + 1
     return 1
-
-
-def zip_directory(path, zip_handler):
-    """Compress the target directory as a Zip file for archiving."""
-    # Walk the target directory
-    abs_src = os.path.abspath(path)
-    for root, _, files in os.walk(path):
-        # Add each file to the zip file handler
-        for file in files:
-            absname = os.path.abspath(os.path.join(root, file))
-            arcname = absname[len(abs_src) + 1 :]
-            zip_handler.write(os.path.join(root, file), "evidence/" + arcname)
 
 
 ##################
@@ -1353,7 +1343,7 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
         )
 
 
-class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class ArchiveView(RoleBasedAccessControlMixin, DetailView):
     """
     Generate all report types for an individual :model:`reporting.Report`, collect all
     related :model:`reporting.Evidence` and related files, and compress the files into a
@@ -1361,6 +1351,8 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
 
     model = Report
+    template_name = "confirm_archive.html"
+    queryset = report_generation_queryset()
 
     def test_func(self):
         return verify_access(self.request.user, self.get_object().project)
@@ -1369,65 +1361,15 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
-    def get(self, *args, **kwargs):
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        return ctx
+
+    def post(self, *args, **kwargs):
         report_instance = self.get_object()
         try:
-            archive_loc = os.path.join(settings.MEDIA_ROOT, "archives/")
-            evidence_loc = os.path.join(settings.MEDIA_ROOT, "evidence", str(report_instance.id))
-
-            # Get the templates for Word and PowerPoint
-            report_config = ReportConfiguration.get_solo()
-            if report_instance.docx_template:
-                docx_template = report_instance.docx_template.document.path
-            else:
-                docx_template = report_config.default_docx_template
-                if not docx_template:
-                    raise MissingTemplate
-            if report_instance.pptx_template:
-                pptx_template = report_instance.pptx_template.document.path
-            else:
-                pptx_template = report_config.default_pptx_template
-                if not pptx_template:
-                    raise MissingTemplate
-
-            word_exp = ExportReportDocx(report_instance, template_loc=docx_template)
-            report_filename = word_exp.render_filename(ReportConfiguration.get_solo().report_filename, ext="zip")
-            try:
-                word_doc = word_exp.run()
-                ppt_doc = ExportReportPptx(report_instance, template_loc=pptx_template).run()
-                excel_doc = ExportReportXlsx(report_instance).run()
-                json_doc = ExportReportJson(report_instance).run()
-            except ReportExportError as error:
-                logger.error(
-                    "Generation failed for %s %s and user %s: %s",
-                    report_instance.__class__.__name__,
-                    report_instance.id,
-                    self.request.user,
-                    error,
-                )
-                messages.error(
-                    self.request,
-                    error,
-                    extra_tags="alert-danger",
-                )
-                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report_instance.id}))
-
-            # Create a zip file in memory and add the reports to it
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "a") as zf:
-                zf.writestr("report.json", json_doc.getvalue())
-                zf.writestr("report.docx", word_doc.getvalue())
-                zf.writestr("report.xlsx", excel_doc.getvalue())
-                zf.writestr("report.pptx", ppt_doc.getvalue())
-                zip_directory(evidence_loc, zf)
-            zip_buffer.seek(0)
-            with open(os.path.join(archive_loc, report_filename), "wb+") as archive_file:
-                archive_file.write(zip_buffer.getvalue())
-            new_archive = Archive(
-                project=report_instance.project,
-                report_archive=File(zip_buffer, name=report_filename),
-            )
-            new_archive.save()
+            archive_report(report_instance)
             messages.success(
                 self.request,
                 "Successfully archived {}!".format(report_instance.title),
@@ -2086,16 +2028,7 @@ class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Base class for report generation"""
     model = Report
-    queryset = Report.objects.all().prefetch_related(
-        "tags",
-        "reportfindinglink_set",
-        "reportfindinglink_set__evidence_set",
-        "reportobservationlink_set",
-        "evidence_set",
-        "project__oplog_set",
-        "project__oplog_set__entries",
-        "project__oplog_set__entries__tags",
-    ).select_related()
+    queryset = report_generation_queryset()
 
     def test_func(self):
         return verify_access(self.request.user, self.object.project)

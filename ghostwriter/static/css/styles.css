@@ -2097,6 +2097,7 @@ th.icon {
 
 .archive-icon:before {
   content: '\f187';
+  color: var(--blocked-color);
 }
 
 .clone-icon:before {

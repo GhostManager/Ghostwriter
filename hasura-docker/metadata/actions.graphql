@@ -148,3 +148,4 @@ type UploadEvidenceResult {
 type UploadReportTemplateResult {
   id: Int!
 }
+

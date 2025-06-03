@@ -1,0 +1,18 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Archive {{ object }}{% endblock %}
+
+{% block content %}
+    <div class="alert alert-danger mt-5" role="alert">
+        <h5 class="alert-heading">Tread Carefully!</h4>
+        You are seeing this message because what you are about to do might have serious consequences.
+    </div>
+
+    <p>Are you sure you want to archive report {{ object }}? This will generate the report, save it, then <em>delete all evidence</em>.</p>
+
+    <form action="" method="POST">
+        {% csrf_token %}
+        <input type="submit" class="btn btn-danger col-md-2" value="Archive">
+        <a class="btn btn-outline-secondary col-md-2" href="{{cancel_link}}">Cancel</a>
+    </form>
+{% endblock %}
