@@ -48,5 +48,6 @@ def archive_report(report: Report):
             new_archive.save()
             report.archived = True
             report.complete = True
+            report.delivered = True
             report.save()
             evidences.delete()
