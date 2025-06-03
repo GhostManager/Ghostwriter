@@ -1,10 +1,12 @@
 from collections import ChainMap
 import copy
 import html
+import logging
+from urllib.parse import urlparse
 
 from markupsafe import Markup
 
-from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.commandcenter.models import ExtraFieldSpec, BloodHoundConfiguration
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
@@ -16,6 +18,38 @@ from ghostwriter.reporting.models import Finding, Observation, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
+from ghostwriter.shepherd.external.bloodhound import (
+    APIClient, Credentials, FindingsResponse
+)
+
+logger = logging.getLogger(__name__)
+
+
+def fetch_bloodhound_findings(bh_config: BloodHoundConfiguration) -> FindingsResponse:
+    """
+    fetch_bloodhound_findings returns a FindingsResponse that is fetched from a BloodHound
+    instance as described by bh_config
+
+    :return:
+    """
+    bh_url = urlparse(bh_config.api_root_url)
+    bh_client = APIClient(
+        scheme=bh_url.scheme,
+        host=bh_url.hostname,
+        port=bh_url.port,
+        credentials=Credentials(
+            token_id=bh_config.api_key_id,
+            token_key=bh_config.api_key_token,
+        ),
+    )
+
+    # This is really helpful during debug since BH versions and API revisions may drift over time
+    bh_version = bh_client.get_version()
+    logger.info(
+        f"BloodHound instance version: {bh_version.server_version} with current API version set to: {bh_version.current_api_version}")
+
+    return bh_client.get_findings()
+
 
 class ExportReportBase(ExportBase):
     """
@@ -26,10 +60,25 @@ class ExportReportBase(ExportBase):
     """
 
     def serialize_object(self, report):
-        return ReportDataSerializer(
+        data = ReportDataSerializer(
             report,
             exclude=["id"],
         ).data
+
+        # Look for a global bloodhound configuration and if set, attempt to fetch findings from the API
+        bh_config = BloodHoundConfiguration.get_solo()
+
+        if bh_config is not None and bh_config.is_set():
+            findings_response = fetch_bloodhound_findings(bh_config=bh_config)
+            logger.info(
+                f"Loaded {len(findings_response.findings)} findings from BloodHound instance {bh_config.api_root_url}")
+
+            data["bh_findings"] = {
+                "findings": findings_response.findings,
+                "finding_assets": findings_response.finding_assets,
+            }
+
+        return data
 
     def severity_rich_text(self, text, severity_color):
         """
