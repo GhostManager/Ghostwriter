@@ -33,19 +33,6 @@ class Domain(NamedTuple):
     collected: bool
 
 
-# // ErrorWrapper is the V2 response
-# type ErrorWrapper struct {
-# 	HTTPStatus int            `json:"http_status"`
-# 	Timestamp  time.Time      `json:"timestamp"`
-# 	RequestID  string         `json:"request_id"`
-# 	Errors     []ErrorDetails `json:"errors"`
-# }
-#
-# type ErrorDetails struct {
-# 	Context string `json:"context"`
-# 	Message string `json:"message"`
-# }
-
 class ErrorDetails(NamedTuple):
     context: str
     message: str
@@ -154,14 +141,14 @@ class APIClient:
         response = self._request("GET", "/api/v1/availabledomains")
         payload = response.json()
 
-        domains = list()
+        domains = []
         for domain in payload:
             domains.append(Domain(domain["name"], domain["id"], domain["collected"]))
 
         return domains
 
     def get_findings(self) -> FindingsResponse:
-        response = self._request("GET", "/api/v2/attack-paths/details?accepted_until=lt:2025-06-03")
+        response = self._request("GET", "/api/v2/attack-paths/details")
         payload = response.json()["data"]
 
         return FindingsResponse(findings=payload["findings"],

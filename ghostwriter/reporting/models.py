@@ -935,7 +935,6 @@ class Observation(models.Model):
 
 
 class ReportObservationLink(models.Model):
-
     title = models.CharField(
         "Title",
         max_length=255,
