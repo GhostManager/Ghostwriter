@@ -2,41 +2,90 @@ import base64
 import hashlib
 import hmac
 import logging
+
 from datetime import datetime
-from typing import Optional
+from typing import Optional, NamedTuple, Dict, Any, List
 
 import requests
 
 logger = logging.getLogger(__name__)
 
 
-class Credentials(object):
-    def __init__(self, token_id: str, token_key: str) -> None:
-        self.token_id = token_id
-        self.token_key = token_key
+class Credentials(NamedTuple):
+    token_id: str
+    token_key: str
 
 
-class FindingsResponse(object):
-    def __init__(self, findings, finding_assets) -> None:
-        self.findings = findings
-        self.finding_assets = finding_assets
+class FindingsResponse(NamedTuple):
+    findings: Dict[str, Any]
+    finding_assets: Dict[str, Any]
 
 
-class APIVersion(object):
-    def __init__(self, current_api_version: str, deprecated_api_version: str, server_version: str) -> None:
-        self.current_api_version = current_api_version
-        self.deprecated_api_version = deprecated_api_version
-        self.server_version = server_version
+class APIVersion(NamedTuple):
+    current_api_version: str
+    deprecated_api_version: str
+    server_version: str
 
 
-class Domain(object):
-    def __init__(self, name: str, sid: str, collected: bool) -> None:
-        self.name = name
-        self.sid = sid
-        self.collected = collected
+class Domain(NamedTuple):
+    name: str
+    sid: str
+    collected: bool
 
 
-class APIClient(object):
+# // ErrorWrapper is the V2 response
+# type ErrorWrapper struct {
+# 	HTTPStatus int            `json:"http_status"`
+# 	Timestamp  time.Time      `json:"timestamp"`
+# 	RequestID  string         `json:"request_id"`
+# 	Errors     []ErrorDetails `json:"errors"`
+# }
+#
+# type ErrorDetails struct {
+# 	Context string `json:"context"`
+# 	Message string `json:"message"`
+# }
+
+class ErrorDetails(NamedTuple):
+    context: str
+    message: str
+
+    @classmethod
+    def from_json_dict(cls, json_dict: Dict[str, Any]) -> "ErrorDetails":
+        return ErrorDetails(
+            context=json_dict["context"],
+            message=json_dict["message"],
+        )
+
+
+class ErrorResponse(NamedTuple):
+    status: int
+    timestamp: str
+    request_id: str
+    errors: List[ErrorDetails]
+
+    @classmethod
+    def from_json_dict(cls, json_dict: Dict[str, Any]) -> "ErrorResponse":
+        errors: List[ErrorDetails] = []
+
+        for error_details_json in json_dict["errors"]:
+            errors.append(ErrorDetails.from_json_dict(error_details_json))
+
+        return ErrorResponse(
+            status=json_dict["status"],
+            timestamp=json_dict["timestamp"],
+            request_id=json_dict["request_id"],
+            errors=errors,
+        )
+
+
+class APIException(Exception):
+    def __init__(self, msg: str, err_response: ErrorResponse = None) -> None:
+        self.msg = msg
+        self.err_response = err_response
+
+
+class APIClient:
     def __init__(self, scheme: str, host: str, port: int, credentials: Credentials) -> None:
         self._scheme = scheme
         self._host = host
@@ -63,13 +112,13 @@ class APIClient(object):
         # Update the digester for further chaining
         digester = hmac.new(digester.digest(), None, hashlib.sha256)
 
-        # If is no body content the HMAC digest is computed anyway, simply with no values written to the
+        # If there is no body content, the HMAC digest is computed anyway, simply with no values written to the
         # digester.
         if body is not None:
             digester.update(body)
 
         # Perform the request with the signed and expected headers
-        return requests.request(
+        response = requests.request(
             method=method,
             url=self._format_url(uri),
             headers={
@@ -81,6 +130,17 @@ class APIClient(object):
             },
             data=body,
         )
+
+        if response.status_code < 200:
+            raise APIException(msg=f"API response received with unexpected status code {response.status_code}")
+
+        if response.status_code >= 400:
+            # Attempt to read an error response object from the API response
+            err_response = ErrorResponse.from_json_dict(response.json())
+            raise APIException(msg=f"API request failed with status code {response.status_code}",
+                               err_response=err_response)
+
+        return response
 
     def get_version(self) -> APIVersion:
         response = self._request("GET", "/api/version")
