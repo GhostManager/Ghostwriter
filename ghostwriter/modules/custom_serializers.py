@@ -3,7 +3,9 @@
 # IF YOU EDIT THIS FILE: also update `linting_utils.py`
 
 # Standard Libraries
+import logging
 from datetime import datetime
+from urllib.parse import urlparse
 
 # Django Imports
 from django.conf import settings
@@ -22,7 +24,7 @@ from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, BloodHoundConfiguration
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
@@ -57,7 +59,12 @@ from ghostwriter.shepherd.models import (
     StaticServer,
     TransientServer,
 )
+from ghostwriter.shepherd.external.bloodhound import (
+    APIClient, Credentials
+)
 from ghostwriter.users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 def strip_html(value):
@@ -903,6 +910,7 @@ class ReportDataSerializer(CustomModelSerializer):
     company = SerializerMethodField("get_company_info")
     tools = SerializerMethodField("get_tools")
     extra_fields = ExtraFieldsSerField(Report._meta.label)
+    bloodhound_findings = SerializerMethodField("get_bloodhound_findings")
 
     class Meta:
         model = Report
@@ -915,6 +923,48 @@ class ReportDataSerializer(CustomModelSerializer):
     def get_company_info(self, obj):
         serializer = CompanyInfoSerializer(CompanyInformation.get_solo())
         return serializer.data
+
+    @classmethod
+    def get_bloodhound_findings(cls, obj):
+        """
+        bloodhound_findings returns a dict of all findings fetched from a BloodHound
+        instance
+        """
+        bh_config = BloodHoundConfiguration.get_solo()
+
+        if bh_config is None or not bh_config.is_set():
+            # Return an empty findings dict w/ the fetched field set to false
+            return {
+                "findings": [],
+                "finding_assets": {},
+                "fetched": False,
+            }
+
+        bh_url = urlparse(bh_config.api_root_url)
+        bh_client = APIClient(
+            scheme=bh_url.scheme,
+            host=bh_url.hostname,
+            port=bh_url.port,
+            credentials=Credentials(
+                token_id=bh_config.api_key_id,
+                token_key=bh_config.api_key_token,
+            ),
+        )
+
+        # This is really helpful during debug since BH versions and API revisions may drift over time
+        bh_version = bh_client.get_version()
+        logger.info(
+            f"BloodHound instance version: {bh_version.server_version} with current API version set to: {bh_version.current_api_version}")
+
+        findings_response = bh_client.get_findings()
+        logger.info(
+            f"Loaded {len(findings_response.findings)} findings from BloodHound instance {bh_config.api_root_url}")
+
+        return {
+            "findings": findings_response.findings,
+            "finding_assets": findings_response.finding_assets,
+            "fetched": True,
+        }
 
     def get_tools(self, obj):
         tools = []
