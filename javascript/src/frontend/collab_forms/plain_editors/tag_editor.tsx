@@ -33,6 +33,7 @@ export function TagEditor(props: {
             classNames: {
                 namespace: "tagify form-control",
             },
+            placeholder: "ATT&CK:T1555, privesc, ..."
         });
 
         taggify.current.addTags(Array.from(map.keys()));
@@ -81,6 +82,11 @@ export function TagEditor(props: {
             (style.outline ?? "") as string
         );
     }, [style.outline]);
+
+    useEffect(() => {
+        if(taggify.current)
+            taggify.current.setDisabled(!props.connected);
+    }, [props.connected]);
 
     return (
         <>

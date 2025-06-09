@@ -43,11 +43,13 @@ export function FindingFormFields({
     status,
     connected,
     toolbarExtra,
+    extra,
 }: {
     provider: HocuspocusProvider;
     status: ConnectionStatus;
     connected: boolean;
     toolbarExtra?: (editor: Editor) => React.ReactNode;
+    extra?: React.ReactNode;
 }) {
     return (
         <>
@@ -182,6 +184,8 @@ export function FindingFormFields({
                 scoreKey="cvssScore"
                 severityKey="severityId"
             />
+
+            {extra}
 
             <h4 className="icon pencil-icon">General Information</h4>
             <hr />

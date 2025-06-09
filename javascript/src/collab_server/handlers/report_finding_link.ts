@@ -20,6 +20,7 @@ const GET = gql(`
             cvssVector,
             severity { id },
             findingTypeId,
+            affectedEntities,
             extraFields
         }
         tags(model: "report_finding_link", id: $id) {
@@ -78,6 +79,7 @@ const ReportFindingLinkHandler = simpleModelHandler(
             obj.findingGuidance,
             doc.get("findingGuidance", Y.XmlFragment)
         );
+        htmlToYjs(obj.affectedEntities, doc.get("affectedEntities", Y.XmlFragment));
         tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
         extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
     },
@@ -108,6 +110,9 @@ const ReportFindingLinkHandler = simpleModelHandler(
                 references: yjsToHtml(doc.get("references", Y.XmlFragment)),
                 findingGuidance: yjsToHtml(
                     doc.get("findingGuidance", Y.XmlFragment)
+                ),
+                affectedEntities: yjsToHtml(
+                    doc.get("affectedEntities", Y.XmlFragment)
                 ),
             },
             tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),

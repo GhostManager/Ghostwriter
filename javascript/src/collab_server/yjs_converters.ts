@@ -3,7 +3,6 @@ import {
     prosemirrorToYXmlFragment,
     yXmlFragmentToProseMirrorRootNode,
 } from "y-prosemirror";
-import { Node } from "prosemirror-model";
 import { createHTMLDocument, parseHTML, VHTMLDocument } from "zeed-dom";
 import { DOMParser, DOMSerializer } from "@tiptap/pm/model";
 
