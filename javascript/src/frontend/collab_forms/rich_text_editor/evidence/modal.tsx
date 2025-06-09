@@ -1,4 +1,4 @@
-import { useContext, useId, useMemo, useState } from "react";
+import { useContext, useId, useState } from "react";
 import ReactModal from "react-modal";
 import { EvidencesContext } from "../../../../tiptap_gw/evidence";
 import { Editor } from "@tiptap/react";

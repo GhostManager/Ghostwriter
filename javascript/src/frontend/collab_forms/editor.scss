@@ -333,3 +333,7 @@ ul.collab-focused-users {
     // Add padding for the .collab-connection-status
     padding-bottom: 60px;
 }
+
+.ReactModal__Overlay {
+    z-index: 50;
+}
