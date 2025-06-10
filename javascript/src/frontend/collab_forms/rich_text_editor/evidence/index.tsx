@@ -1,7 +1,7 @@
 import { faPaperclip } from "@fortawesome/free-solid-svg-icons/faPaperclip";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Editor } from "@tiptap/core";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import EvidenceModal from "./modal";
 
 export default function EvidenceButton({ editor }: { editor: Editor }) {
@@ -38,6 +38,13 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
             />
         );
     }
+
+    const editorEl = editor.options.element;
+    useEffect(() => {
+        const evl = () => setModalInitial("new");
+        editorEl.addEventListener("openevidencemodal", evl);
+        return () => editorEl.removeEventListener("openevidencemodal", evl);
+    }, [editorEl]);
 
     return (
         <>

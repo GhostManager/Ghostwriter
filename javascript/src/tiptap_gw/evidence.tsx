@@ -70,6 +70,12 @@ const Evidence = Node.create<EvidenceOptions>({
                     }),
         };
     },
+
+    addKeyboardShortcuts() {
+        return {
+            'Mod-Shift-d': () => this.editor.options.element.dispatchEvent(new CustomEvent("openevidencemodal")),
+        };
+    },
 });
 
 export type Evidence = {
