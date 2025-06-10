@@ -17,18 +17,27 @@ import { type Extensions } from "@tiptap/core";
 import PageBreak from "./pagebreak";
 import Evidence from "./evidence";
 import FormattedCodeblock from "./codeblock";
+import {
+    BoldCompat,
+    ItalicCompat,
+    UnderlineCompat,
+} from "./bold_italic_underline";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
         history: false,
         codeBlock: false,
+        bold: false,
+        italic: false,
     }),
+    BoldCompat,
+    ItalicCompat,
+    UnderlineCompat,
     FormattedCodeblock.configure({
         HTMLAttributes: {
             spellcheck: "false",
         },
     }),
-    Underline,
     Link.configure({
         openOnClick: false,
     }),
