@@ -18,11 +18,18 @@ function ReportExtraFieldForm(props: { field: string }) {
     return (
         <>
             <ConnectionStatus status={status} />
-            <ExtraFieldInput
-                connected={connected}
-                provider={provider}
-                spec={extraField}
-            />
+            <div className="form-group col-md-12">
+                <ExtraFieldInput
+                    connected={connected}
+                    provider={provider}
+                    spec={extraField}
+                />
+                {extraField.description && (
+                    <small className="form-text text-muted">
+                        {extraField.description}
+                    </small>
+                )}
+            </div>
         </>
     );
 }
