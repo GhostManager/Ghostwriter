@@ -10,7 +10,6 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
-import Highlight from "@tiptap/extension-highlight";
 import { type Extensions } from "@tiptap/core";
 
 import PageBreak from "./pagebreak";
@@ -18,6 +17,7 @@ import Evidence from "./evidence";
 import FormattedCodeblock from "./codeblock";
 import {
     BoldCompat,
+    HighlightCompat,
     ItalicCompat,
     UnderlineCompat,
 } from "./bold_italic_underline";
@@ -43,7 +43,7 @@ const EXTENSIONS: Extensions = [
     TextAlign.configure({
         types: ["heading", "paragraph"],
     }),
-    Highlight.configure(),
+    HighlightCompat,
     Table,
     TableRow,
     TableHeader,

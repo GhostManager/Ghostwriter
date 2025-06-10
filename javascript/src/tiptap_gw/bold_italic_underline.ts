@@ -1,9 +1,10 @@
-// The regular bold/italic/underline extensions but also parses `<span class="bold/italic/underline">` for
+// The regular mark extensions but also parses `<span class="bold/italic/underline/highlight">` for
 // tinymce compatibility
 
 import Bold from "@tiptap/extension-bold";
 import Italic from "@tiptap/extension-italic";
 import Underline from "@tiptap/extension-underline";
+import Highlight from "@tiptap/extension-highlight";
 
 export const BoldCompat = Bold.extend({
     parseHTML() {
@@ -33,6 +34,17 @@ export const UnderlineCompat = Underline.extend({
         arr.push({
             tag: "span",
             getAttrs: (node) => node.classList.contains("underline") && null,
+        });
+        return arr;
+    },
+});
+
+export const HighlightCompat = Highlight.extend({
+    parseHTML() {
+        const arr = Array.from(Highlight.config.parseHTML!.bind(this)()!);
+        arr.push({
+            tag: "span",
+            getAttrs: (node) => node.classList.contains("highlight") && null,
         });
         return arr;
     },
