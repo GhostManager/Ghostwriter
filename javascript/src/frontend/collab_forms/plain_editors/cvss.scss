@@ -10,7 +10,8 @@
         grid-template-columns: auto repeat(5, 1fr);
         row-gap: 0.2rem;
 
-        .cvss-category-header, .cvss-subcategory-header {
+        .cvss-category-header,
+        .cvss-subcategory-header {
             // Take the entire row
             grid-column-start: 1;
             grid-column-end: -1;

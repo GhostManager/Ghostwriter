@@ -90,62 +90,88 @@
 .tiptap {
     min-height: 100px;
     padding-bottom: 1em;
+    font-family: sans-serif;
+    color: #000;
 
-    :first-child {
-        margin-top: 0;
-    }
-
-    :last-child {
-        margin-bottom: 0;
+    &,
+    p,
+    blockquote {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
     }
 
     p,
     blockquote {
-        margin-top: 1em;
-        margin-bottom: 1em;
-    }
-
-    p {
+        margin: 0;
         word-break: break-all;
+        font-weight: unset;
+        font-family: unset;
+        color: inherit;
     }
 
     blockquote {
-        margin-left: 2em;
-        margin-right: 2em;
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 2rem;
+        margin-right: 2rem;
         padding: 0.5em;
         background-color: #ccc;
     }
 
-    ul, ol {
+    code {
+        font-family: monospace;
+        font-weight: normal;
+        font-size: unset;
+        color: inherit;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        margin: 0;
+        color: inherit;
+        text-align: start;
+    }
+
+    ul,
+    ol {
         padding: 0 1rem;
-        margin: 1.25rem 1rem 1.25rem 0.4rem;
+        margin: 0 1rem 0 0.4rem;
+    }
 
-        li p {
-            margin-top: 0.25em;
-            margin-bottom: 0.25em;
-        }
-
-        ul, ol {
-            margin-top: 0;
-            margin-bottom: 0;
-        }
+    pre {
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 1rem;
+        margin-right: 1rem;
+        color: inherit;
     }
 
     table {
         border-collapse: collapse;
-        margin: 0;
+        margin-left: 1rem;
+        margin-right: 1rem;
         overflow: hidden;
-        table-layout: fixed;
-        width: 100%;
+        table-layout: auto;
+        width: unset;
 
         td,
         th {
-            border: 1px solid #aaa;
+            border: 1px solid #444;
+            border-radius: 0;
             box-sizing: border-box;
-            min-width: 1em;
+            height: 2rem;
+            min-width: 2rem;
             padding: 6px 8px;
             position: relative;
             vertical-align: top;
+            color: inherit;
+            text-align: inherit;
 
             > * {
                 margin-bottom: 0;
@@ -250,9 +276,6 @@
     }
 
     strong {
-        font-weight: 500;
-    }
-    pre strong {
         font-weight: 700;
     }
 

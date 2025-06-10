@@ -24,25 +24,30 @@ function ReportFindingLinkForm() {
             status={status}
             connected={connected}
             toolbarExtra={renderToolbarExtra}
-            extra={<>
-                <h4 className="icon list-icon">Affected Entities</h4>
-                <div className="form-group col-md-12">
-                    <label htmlFor="collab-form-affected-entities">Affected Entities</label>
-                    <div>
-                        <RichTextEditor
-                            provider={provider}
-                            connected={connected}
-                            fragment={provider.document.getXmlFragment(
-                                "affectedEntities"
-                            )}
-                            toolbarExtra={renderToolbarExtra}
-                        />
-                        <small className="form-text text-muted">
-                            Provide a list of the affected entities (e.g. domains, hostnames, IP addresses)
-                        </small>
+            extra={
+                <>
+                    <h4 className="icon list-icon">Affected Entities</h4>
+                    <div className="form-group col-md-12">
+                        <label htmlFor="collab-form-affected-entities">
+                            Affected Entities
+                        </label>
+                        <div>
+                            <RichTextEditor
+                                provider={provider}
+                                connected={connected}
+                                fragment={provider.document.getXmlFragment(
+                                    "affectedEntities"
+                                )}
+                                toolbarExtra={renderToolbarExtra}
+                            />
+                            <small className="form-text text-muted">
+                                Provide a list of the affected entities (e.g.
+                                domains, hostnames, IP addresses)
+                            </small>
+                        </div>
                     </div>
-                </div>
-            </>}
+                </>
+            }
         />
     );
 }

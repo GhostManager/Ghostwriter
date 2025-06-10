@@ -79,7 +79,10 @@ const ReportFindingLinkHandler = simpleModelHandler(
             obj.findingGuidance,
             doc.get("findingGuidance", Y.XmlFragment)
         );
-        htmlToYjs(obj.affectedEntities, doc.get("affectedEntities", Y.XmlFragment));
+        htmlToYjs(
+            obj.affectedEntities,
+            doc.get("affectedEntities", Y.XmlFragment)
+        );
         tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
         extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
     },
