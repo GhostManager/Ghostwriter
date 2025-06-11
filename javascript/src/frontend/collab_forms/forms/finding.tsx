@@ -4,6 +4,7 @@ import ReactModal from "react-modal";
 import PageGraphqlProvider from "../../graphql/client";
 import { usePageConnection } from "../connection";
 import { FindingFormFields } from "../forms_common/finding";
+import RichTextEditor from "../rich_text_editor";
 
 function FindingForm() {
     const { provider, status, connected } = usePageConnection({
@@ -15,6 +16,22 @@ function FindingForm() {
             provider={provider}
             status={status}
             connected={connected}
+            extraBottom={
+                <>
+                    <div className="form-group col-md-12">
+                        <label>Finding Guidance</label>
+                        <div>
+                            <RichTextEditor
+                                connected={connected}
+                                provider={provider}
+                                fragment={provider.document.getXmlFragment(
+                                    "findingGuidance"
+                                )}
+                            />
+                        </div>
+                    </div>
+                </>
+            }
         />
     );
 }

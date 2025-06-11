@@ -24,7 +24,7 @@ function ReportFindingLinkForm() {
             status={status}
             connected={connected}
             toolbarExtra={renderToolbarExtra}
-            extra={
+            extraTop={
                 <>
                     <h4 className="icon list-icon">Affected Entities</h4>
                     <div className="form-group col-md-12">

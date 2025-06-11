@@ -43,13 +43,15 @@ export function FindingFormFields({
     status,
     connected,
     toolbarExtra,
-    extra,
+    extraTop,
+    extraBottom,
 }: {
     provider: HocuspocusProvider;
     status: ConnectionStatus;
     connected: boolean;
     toolbarExtra?: (editor: Editor) => React.ReactNode;
-    extra?: React.ReactNode;
+    extraTop?: React.ReactNode;
+    extraBottom?: React.ReactNode;
 }) {
     return (
         <>
@@ -189,7 +191,7 @@ export function FindingFormFields({
                 severityKey="severityId"
             />
 
-            {extra}
+            {extraTop}
 
             <h4 className="icon pencil-icon">General Information</h4>
             <hr />
@@ -296,19 +298,7 @@ export function FindingFormFields({
                 </div>
             </div>
 
-            <div className="form-group col-md-12">
-                <label>Finding Guidance</label>
-                <div>
-                    <RichTextEditor
-                        connected={connected}
-                        provider={provider}
-                        fragment={provider.document.getXmlFragment(
-                            "findingGuidance"
-                        )}
-                        toolbarExtra={toolbarExtra}
-                    />
-                </div>
-            </div>
+            {extraBottom}
 
             <ExtraFieldsSection
                 connected={connected}
