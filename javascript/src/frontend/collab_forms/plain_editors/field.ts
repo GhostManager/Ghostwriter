@@ -37,7 +37,8 @@ export function usePlainField<T>(
 
     const setInDoc = useMemo(
         () => (v: T) => {
-            map.set(key, v);
+            if (v === null) map.delete(key);
+            else map.set(key, v);
             forceUpdate();
         },
         [map, key]

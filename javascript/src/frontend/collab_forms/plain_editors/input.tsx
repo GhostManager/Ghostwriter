@@ -11,7 +11,7 @@ export function BaseInput<T>(props: {
     mapKey: string;
     connected: boolean;
     toString: (v: T) => string;
-    parse: (v: string) => T | null;
+    parse: (v: string) => T | undefined;
     defaultValue: T;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }) {
@@ -33,6 +33,19 @@ export function BaseInput<T>(props: {
 
     const style = setFocusStyles(focusedUsers, props.inputProps?.style);
 
+    const materializeValue = () => {
+        if (formValue === null) return;
+        let parsed = props.parse(formValue);
+        if (parsed === undefined || parsed === docValue) {
+            setFormValue(null);
+            return;
+        } else if (parsed === null) {
+            parsed = props.defaultValue;
+        }
+        setDocValue(parsed);
+        setFormValue(null);
+    };
+
     return (
         <>
             <input
@@ -48,25 +61,11 @@ export function BaseInput<T>(props: {
                 onFocus={onFocus}
                 onBlur={() => {
                     onBlur();
-
-                    if (formValue === null) return;
-                    const parsed = props.parse(formValue);
-                    if (parsed === null || parsed === docValue) {
-                        setFormValue(null);
-                        return;
-                    }
-                    setDocValue(parsed);
-                    setFormValue(null);
+                    materializeValue();
                 }}
                 onKeyUp={(ev) => {
                     if (ev.key !== "Enter" || formValue === null) return;
-                    const parsed = props.parse(formValue);
-                    if (parsed === null || parsed === docValue) {
-                        setFormValue(null);
-                        return;
-                    }
-                    setDocValue(parsed);
-                    setFormValue(null);
+                    materializeValue();
                 }}
             />
             <FocusedUsersList focusedUsers={focusedUsers} />
@@ -99,10 +98,12 @@ export function PlainTextInput(props: {
     );
 }
 
-const toString = (v: any) => v.toString();
+const toString = (v: any) => (v === null ? "" : v.toString());
 const tryToNumber = (v: string) => {
+    v = v.trim();
+    if (v === "") return null;
     const n = parseFloat(v);
-    return n === n ? n : null;
+    return n === n ? n : undefined;
 };
 
 export function NumberInput(props: {
@@ -110,7 +111,7 @@ export function NumberInput(props: {
     mapKey: string;
     connected: boolean;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
-    defaultValue?: number;
+    defaultValue: number | null;
 }) {
     const inputProps = {
         type: "number",
@@ -123,14 +124,16 @@ export function NumberInput(props: {
             inputProps={inputProps}
             parse={tryToNumber}
             toString={toString}
-            defaultValue={props.defaultValue ?? 0}
+            defaultValue={props.defaultValue}
         />
     );
 }
 
 const tryToInteger = (v: string) => {
+    v = v.trim();
+    if (v === "") return null;
     const n = parseInt(v);
-    return n === n ? n : null;
+    return n === n ? n : undefined;
 };
 
 export function IntegerInput(props: {
@@ -138,7 +141,7 @@ export function IntegerInput(props: {
     mapKey: string;
     connected: boolean;
     inputProps?: React.HTMLAttributes<HTMLInputElement>;
-    defaultValue?: number;
+    defaultValue: number;
 }) {
     const inputProps = {
         type: "number",
@@ -150,35 +153,7 @@ export function IntegerInput(props: {
             inputProps={inputProps}
             parse={tryToInteger}
             toString={toString}
-            defaultValue={props.defaultValue ?? 0}
-        />
-    );
-}
-
-const tryToFloat = (v: string) => {
-    const n = parseFloat(v);
-    return n === n ? n : null;
-};
-
-export function FloatInput(props: {
-    provider: HocuspocusProvider;
-    mapKey: string;
-    connected: boolean;
-    inputProps?: React.HTMLAttributes<HTMLInputElement>;
-    defaultValue?: number;
-}) {
-    const inputProps = {
-        type: "number",
-        step: "any",
-        ...props.inputProps,
-    };
-    return (
-        <BaseInput
-            {...props}
-            inputProps={inputProps}
-            parse={tryToFloat}
-            toString={toString}
-            defaultValue={props.defaultValue ?? 0}
+            defaultValue={props.defaultValue}
         />
     );
 }

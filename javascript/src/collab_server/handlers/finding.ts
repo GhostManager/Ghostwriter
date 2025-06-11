@@ -54,7 +54,8 @@ const FindingHandler = simpleModelHandler(
         if (!obj) throw new Error("No object");
         const plain_fields = doc.get("plain_fields", Y.Map);
         plain_fields.set("title", obj.title);
-        plain_fields.set("cvssScore", obj.cvssScore);
+        if (obj.cvssScore !== null && obj.cvssScore !== undefined)
+            plain_fields.set("cvssScore", obj.cvssScore);
         plain_fields.set("cvssVector", obj.cvssVector);
         plain_fields.set("findingTypeId", obj.findingTypeId);
         plain_fields.set("severityId", obj.severity.id);

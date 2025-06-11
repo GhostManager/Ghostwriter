@@ -2,7 +2,7 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Editor } from "@tiptap/core";
 
 import { ConnectionStatus } from "../connection";
-import { FloatInput, PlainTextInput } from "../plain_editors/input";
+import { NumberInput, PlainTextInput } from "../plain_editors/input";
 import { TagEditor } from "../plain_editors/tag_editor";
 import RichTextEditor from "../rich_text_editor";
 import ExtraFieldsSection from "../extra_fields";
@@ -142,7 +142,7 @@ export function FindingFormFields({
                 <div className="form-group col-md-6 mb-0">
                     <label htmlFor="collab-form-cvss-score">CVSS Score</label>
                     <div>
-                        <FloatInput
+                        <NumberInput
                             inputProps={{
                                 id: "collab-form-cvss-score",
                                 className: "form-control numberinput",
@@ -150,6 +150,7 @@ export function FindingFormFields({
                             provider={provider}
                             mapKey="cvssScore"
                             connected={connected}
+                            defaultValue={null}
                         />
                         <small className="form-text text-muted">
                             Set the CVSS score for this finding
