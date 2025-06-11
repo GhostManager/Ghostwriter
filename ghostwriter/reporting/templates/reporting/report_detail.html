@@ -47,7 +47,7 @@
     <h2>{{ report.title }}</h2>
   </div>
   {% for tag in report.tags.names %}
-    <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    <span class="badge badge-secondary">{{ tag }}</span>
   {% endfor %}
   <hr>
 
@@ -302,7 +302,7 @@
                 <td
                   class="pl-3 text-left align-middle text-left icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
                   <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{ evidence_file.friendly_name|bleach }}
+                    {{ evidence_file.friendly_name }}
                   </a>
                 </td>
                 <td class="align-middle text-left">
@@ -365,7 +365,7 @@
                      class="icon edit-icon-right">{{ field_spec.display_name }}</a>
                 </h6>
                 <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
+                        data-target="#field_spec_{{ field_spec.internal_name }}">Preview
                 </button>
                 {% if not forloop.last %}
                   <hr>{% endif %}

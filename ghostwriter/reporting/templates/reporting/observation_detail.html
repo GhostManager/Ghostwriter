@@ -42,7 +42,7 @@
     </div>
     <div class="card-body observation-content">
       {% if observation.description %}
-        {{ observation.description|bleach }}
+        <div class="rich-text-field-preview">{{ observation.description|bleach }}</div>
       {% else %}
         <p>Description write-up is needed.</p>
       {% endif %}
