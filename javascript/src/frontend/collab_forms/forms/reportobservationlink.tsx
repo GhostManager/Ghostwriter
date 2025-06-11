@@ -52,6 +52,9 @@ function ReportObservationLinkForm() {
                                 provider={provider}
                                 docKey="tags"
                             />
+                            <small className="form-text text-muted">
+                                Separate tags with commas
+                            </small>
                         </div>
                     </div>
                 </div>
