@@ -692,11 +692,8 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
         self.evidence_queryset = report.all_evidences()
 
     def get_template_names(self):
-        if "modal" in self.kwargs:
-            modal = self.kwargs["modal"]
-            if modal:
-                return ["reporting/evidence_form_modal.html"]
-            return ["reporting/evidence_form.html"]
+        if self.kwargs.get("modal", False):
+            return ["reporting/evidence_form_modal.html"]
         return ["reporting/evidence_form.html"]
 
     def get_form_kwargs(self):
@@ -761,9 +758,11 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
             return reverse("reporting:upload_evidence_modal_success")
         if self.report_instance:
             report_pk = self.report_instance.pk
+            fragment = "#evidence"
         else:
             report_pk = self.finding_instance.report.pk
-        return reverse("reporting:report_detail", args=(report_pk,)) + "#evidence"
+            fragment = "#findings"
+        return reverse("reporting:report_detail", args=(report_pk,)) + fragment
 
 
 class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
@@ -804,12 +803,16 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
         return ctx
 
     def get_success_url(self):
+        return reverse("reporting:evidence_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form):
+        res = super().form_valid(form)
         messages.success(
             self.request,
-            "Successfully updated {}.".format(self.get_object().friendly_name),
+            "Successfully updated {}.".format(self.object.friendly_name),
             extra_tags="alert-success",
         )
-        return reverse("reporting:evidence_detail", kwargs={"pk": self.object.pk})
+        return res
 
 
 class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
@@ -841,6 +844,14 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
         return redirect("home:dashboard")
 
     def get_success_url(self):
+        if self.object.finding:
+            fragment = "#findings"
+        else:
+            fragment = "#evidence"
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.associated_report.pk}) + fragment
+
+    def form_valid(self, form):
+        res = super().form_valid(form)
         message = "Successfully deleted the evidence and associated file."
         if os.path.isfile(self.object.document.name):
             message = "Successfully deleted the evidence, but could not delete the associated file."
@@ -849,12 +860,12 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
             message,
             extra_tags="alert-success",
         )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.associated_report.pk}) + "#evidence"
+        return res
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse("reporting:evidence_detail", kwargs={"pk": queryset.pk}) + "#evidence"
+        ctx["cancel_link"] = self.get_success_url()
         ctx["object_type"] = "evidence file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.friendly_name
         return ctx
