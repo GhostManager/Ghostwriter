@@ -2112,6 +2112,7 @@ th.icon {
 
 .archive-icon:before {
   content: '\f187';
+  color: var(--blocked-color);
 }
 
 .clone-icon:before {
@@ -3643,4 +3644,9 @@ input[type="color"]:focus,
 }
 .rich-text-field-preview li p:last-child {
   margin-bottom: 0;
+}
+
+.column-hide {
+  /* Applied by table-columns.js to hide columns */
+  display: none;
 }

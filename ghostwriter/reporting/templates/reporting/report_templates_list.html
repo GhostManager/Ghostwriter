@@ -30,6 +30,7 @@
     <p><strong>Note:</strong> Only admins and managers may edit protected report templates.</p>
 
     <a class="btn btn-info icon upload-icon col-2" href="{% url 'reporting:template_create' %}">Upload</a>
+    <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
 
     <table id="reportTemplateTable" class="tablesorter table table-sm table-hover">
       <thead>
@@ -114,15 +115,28 @@
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {
-      $("#reportTemplateTable").tablesorter(
+      $('#reportTemplateTable').tablesorter(
         {
           sortInitialOrder: 'desc',
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'templateLibraryTable'
+          }
         }
       );
+
       $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#reportTemplateTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
+      });
     });
 
     function downloadTemplate(templateId, templateName) {

@@ -11,6 +11,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
+from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.modules.shared import search_tags
 from ghostwriter.reporting.models import (
     Archive,
@@ -282,8 +283,14 @@ class ReportFilter(django_filters.FilterSet):
     )
 
     STATUS_CHOICES = (
-        (0, "All Reports"),
+        (0, "Incomplete Reports"),
         (1, "Completed"),
+    )
+
+    exclude_archived = django_filters.BooleanFilter(
+        label="Filter Archived",
+        method="filter_archived",
+        widget=forms.CheckboxInput,
     )
 
     complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label=None, label="Report Status")
@@ -327,6 +334,12 @@ class ReportFilter(django_filters.FilterSet):
                             ),
                             css_class="form-row",
                         ),
+                        Row(
+                            Column(
+                                SwitchToggle("exclude_archived"),
+                            ),
+                            css_class="form-row",
+                        ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
                             HTML(
@@ -347,6 +360,14 @@ class ReportFilter(django_filters.FilterSet):
     def search_tags(self, queryset, name, value):
         """Filter reports by tags."""
         return search_tags(queryset, value)
+
+    def filter_archived(self, queryset, name, value):
+        """
+        Choose to include or exclude archived reports in search results.
+        """
+        if value:
+            return queryset.filter(archived=False)
+        return queryset
 
 
 class ArchiveFilter(django_filters.FilterSet):

@@ -35,12 +35,26 @@ object_relationships:
     using:
       foreign_key_constraint_on: created_by_id
 array_relationships:
+  - name: evidence
+    using:
+      foreign_key_constraint_on:
+        column: report_id
+        table:
+          name: reporting_evidence
+          schema: public
   - name: findings
     using:
       foreign_key_constraint_on:
         column: report_id
         table:
           name: reporting_reportfindinglink
+          schema: public
+  - name: observations
+    using:
+      foreign_key_constraint_on:
+        column: report_id
+        table:
+          name: reporting_reportobservationlink
           schema: public
 insert_permissions:
   - role: manager
