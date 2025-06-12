@@ -274,7 +274,7 @@ export function FindingFormFields({
                         connected={connected}
                         provider={provider}
                         fragment={provider.document.getXmlFragment(
-                            "networkDetectionTechinques"
+                            "networkDetectionTechniques"
                         )}
                         toolbarExtra={toolbarExtra}
                     />
