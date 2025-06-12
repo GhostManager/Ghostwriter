@@ -89,9 +89,10 @@
 
 .tiptap {
     min-height: 100px;
-    padding-bottom: 1em;
     font-family: sans-serif;
     color: #000;
+    overflow-wrap: break-word;
+    padding: 0.3rem;
 
     &,
     blockquote {
@@ -104,7 +105,6 @@
     p,
     blockquote {
         margin: 0;
-        word-break: break-all;
         font-weight: unset;
         font-family: unset;
         color: inherit;
