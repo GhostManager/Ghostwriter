@@ -5,34 +5,39 @@ from django.urls import path
 
 # Ghostwriter Libraries
 from ghostwriter.reporting import views
+import ghostwriter.reporting.views2.observations
+import ghostwriter.reporting.views2.report_observation_link
+import ghostwriter.reporting.views2.finding
+import ghostwriter.reporting.views2.report_finding_link
+import ghostwriter.reporting.views2.report
 
 app_name = "reporting"
 
 # URLs for the basic views
 urlpatterns = [
     path("", views.index, name="index"),
-    path("findings/", views.FindingListView.as_view(), name="findings"),
-    path("reports/", views.ReportListView.as_view(), name="reports"),
-    path("templates/", views.ReportTemplateListView.as_view(), name="templates"),
+    path("findings/", ghostwriter.reporting.views2.finding.FindingListView.as_view(), name="findings"),
+    path("reports/", ghostwriter.reporting.views2.report.ReportListView.as_view(), name="reports"),
+    path("templates/", ghostwriter.reporting.views2.report.ReportTemplateListView.as_view(), name="templates"),
     path("reports/archive", views.archive_list, name="archived_reports"),
     path(
         "reports/archive/download/<int:pk>/",
-        views.ArchiveDownloadView.as_view(),
+        ghostwriter.reporting.views2.report.ArchiveDownloadView.as_view(),
         name="download_archive",
     ),
-    path("observations/", views.ObservationListView.as_view(), name="observations"),
+    path("observations/", ghostwriter.reporting.views2.observations.ObservationList.as_view(), name="observations"),
 ]
 
 # URLs for AJAX requests – deletion and toggle views
 urlpatterns += [
     path(
         "ajax/report/finding/order",
-        views.ajax_update_report_findings,
+        ghostwriter.reporting.views2.report_finding_link.ajax_update_report_findings,
         name="update_report_findings",
     ),
     path(
         "ajax/report/observation/order",
-        views.ajax_update_report_observations,
+        ghostwriter.reporting.views2.report_observation_link.ajax_update_report_observation_order,
         name="update_report_observations",
     ),
     path(
@@ -42,7 +47,7 @@ urlpatterns += [
     ),
     path(
         "ajax/report/finding/status/<int:pk>/<str:status>",
-        views.ReportFindingStatusUpdate.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingStatusUpdate.as_view(),
         name="ajax_set_finding_status",
     ),
     path(
@@ -67,22 +72,22 @@ urlpatterns += [
     ),
     path(
         "ajax/finding/assign/<int:pk>",
-        views.AssignFinding.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.AssignFinding.as_view(),
         name="ajax_assign_finding",
     ),
     path(
         "ajax/finding/delete/<int:pk>",
-        views.ReportFindingLinkDelete.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkDelete.as_view(),
         name="ajax_delete_local_finding",
     ),
     path(
         "ajax/observation/assign/<int:pk>",
-        views.AssignObservation.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.AssignObservation.as_view(),
         name="ajax_assign_observation",
     ),
     path(
         "ajax/obseravation/delete/<int:pk>",
-        views.ReportObservationLinkDelete.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkDelete.as_view(),
         name="ajax_delete_local_observation",
     ),
     path(
@@ -104,81 +109,81 @@ urlpatterns += [
 
 # URLs for creating, updating, and deleting findings
 urlpatterns += [
-    path("findings/<int:pk>", views.FindingDetailView.as_view(), name="finding_detail"),
-    path("findings/create/", views.FindingCreate.as_view(), name="finding_create"),
-    path("findings/update/<int:pk>", views.FindingUpdate.as_view(), name="finding_update"),
-    path("findings/delete/<int:pk>", views.FindingDelete.as_view(), name="finding_delete"),
+    path("findings/<int:pk>", ghostwriter.reporting.views2.finding.FindingDetailView.as_view(), name="finding_detail"),
+    path("findings/create/", ghostwriter.reporting.views2.finding.FindingCreate.as_view(), name="finding_create"),
+    path("findings/update/<int:pk>", ghostwriter.reporting.views2.finding.FindingUpdate.as_view(), name="finding_update"),
+    path("findings/delete/<int:pk>", ghostwriter.reporting.views2.finding.FindingDelete.as_view(), name="finding_delete"),
     path(
         "findings/notes/create/<int:pk>",
-        views.FindingNoteCreate.as_view(),
+        ghostwriter.reporting.views2.finding.FindingNoteCreate.as_view(),
         name="finding_note_add",
     ),
     path(
         "findings/notes/update/<int:pk>",
-        views.FindingNoteUpdate.as_view(),
+        ghostwriter.reporting.views2.finding.FindingNoteUpdate.as_view(),
         name="finding_note_edit",
     ),
 ]
 
 # URLs for creating, updating, and deleting observations
 urlpatterns += [
-    path("observations/<int:pk>", views.ObservationDetailView.as_view(), name="observation_detail"),
-    path("observations/create/", views.ObservationCreate.as_view(), name="observation_create"),
-    path("observations/update/<int:pk>", views.ObservationUpdate.as_view(), name="observation_update"),
-    path("observations/delete/<int:pk>", views.ObservationDelete.as_view(), name="observation_delete"),
+    path("observations/<int:pk>", ghostwriter.reporting.views2.observations.ObservationDetail.as_view(), name="observation_detail"),
+    path("observations/create/", ghostwriter.reporting.views2.observations.ObservationCreate.as_view(), name="observation_create"),
+    path("observations/update/<int:pk>", ghostwriter.reporting.views2.observations.ObservationUpdate.as_view(), name="observation_update"),
+    path("observations/delete/<int:pk>", ghostwriter.reporting.views2.observations.ObservationDelete.as_view(), name="observation_delete"),
 ]
 
 # URLs for creating, updating, and deleting reports
 urlpatterns += [
-    path("reports/<int:pk>", views.ReportDetailView.as_view(), name="report_detail"),
-    path("reports/create/<int:pk>", views.ReportCreate.as_view(), name="report_create"),
+    path("reports/<int:pk>", ghostwriter.reporting.views2.report.ReportDetailView.as_view(), name="report_detail"),
+    path("reports/create/<int:pk>", ghostwriter.reporting.views2.report.ReportCreate.as_view(), name="report_create"),
     path(
         "reports/create/",
-        views.ReportCreate.as_view(),
+        ghostwriter.reporting.views2.report.ReportCreate.as_view(),
         name="report_create_no_project",
     ),
-    path("reports/update/<int:pk>", views.ReportUpdate.as_view(), name="report_update"),
-    path("reports/delete/<int:pk>", views.ReportDelete.as_view(), name="report_delete"),
-    path("reports/archive/<int:pk>", views.ArchiveView.as_view(), name="archive"),
+    path("reports/update/<int:pk>", ghostwriter.reporting.views2.report.ReportUpdate.as_view(), name="report_update"),
+    path("reports/delete/<int:pk>", ghostwriter.reporting.views2.report.ReportDelete.as_view(), name="report_delete"),
+    path("reports/archive/<int:pk>", ghostwriter.reporting.views2.report.ArchiveView.as_view(), name="archive"),
     path("reports/clone/<int:pk>", views.ReportClone.as_view(), name="report_clone"),
     path(
         "reports/create/blank/<int:pk>",
-        views.AssignBlankFinding.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.AssignBlankFinding.as_view(),
         name="assign_blank_finding",
     ),
     path(
         "reports/create/blank-observation/<int:pk>",
-        views.AssignBlankObservation.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.AssignBlankObservation.as_view(),
         name="assign_blank_observation",
     ),
     path(
         "reports/<int:pk>/edit-extra-field/<str:extra_field_name>",
-        views.ReportExtraFieldEdit.as_view(),
+        ghostwriter.reporting.views2.report.ReportExtraFieldEdit.as_view(),
         name="report_extra_field_edit",
     ),
     path(
         "templates/<int:pk>",
-        views.ReportTemplateDetailView.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateDetailView.as_view(),
         name="template_detail",
     ),
     path(
         "templates/create",
-        views.ReportTemplateCreate.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateCreate.as_view(),
         name="template_create",
     ),
     path(
         "templates/update/<int:pk>",
-        views.ReportTemplateUpdate.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateUpdate.as_view(),
         name="template_update",
     ),
     path(
         "templates/delete/<int:pk>",
-        views.ReportTemplateDelete.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateDelete.as_view(),
         name="template_delete",
     ),
     path(
         "templates/download/<int:pk>",
-        views.ReportTemplateDownload.as_view(),
+        ghostwriter.reporting.views2.report.ReportTemplateDownload.as_view(),
         name="template_download",
     ),
     path(
@@ -197,12 +202,17 @@ urlpatterns += [
 urlpatterns += [
     path(
         "reports/findings/update/<int:pk>",
-        views.ReportFindingLinkUpdate.as_view(),
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkUpdate.as_view(),
         name="local_edit",
     ),
     path(
+        "reports/findings/assign/<int:pk>",
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingAssign.as_view(),
+        name="local_assign",
+    ),
+    path(
         "reports/observations/update/<int:pk>",
-        views.ReportObservationLinkUpdate.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkUpdate.as_view(),
         name="local_observation_edit",
     ),
     path(
@@ -247,12 +257,12 @@ urlpatterns += [
     ),
     path(
         "reports/findings/convert/<int:pk>",
-        views.ConvertFinding.as_view(),
+        ghostwriter.reporting.views2.finding.ConvertFinding.as_view(),
         name="convert_finding",
     ),
     path(
         "reports/observations/convert/<int:pk>",
-        views.ConvertObservation.as_view(),
+        ghostwriter.reporting.views2.report_observation_link.CloneObservationLinkToObservation.as_view(),
         name="convert_observation",
     ),
 ]
@@ -261,25 +271,25 @@ urlpatterns += [
 urlpatterns += [
     path(
         "reports/<int:pk>/docx/",
-        views.GenerateReportDOCX.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportDOCX.as_view(),
         name="generate_docx",
     ),
     path(
         "reports/<int:pk>/xlsx/",
-        views.GenerateReportXLSX.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportXLSX.as_view(),
         name="generate_xlsx",
     ),
     path(
         "reports/<int:pk>/pptx/",
-        views.GenerateReportPPTX.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportPPTX.as_view(),
         name="generate_pptx",
     ),
     path(
         "reports/<int:pk>/raw/",
-        views.GenerateReportJSON.as_view(),
+        ghostwriter.reporting.views2.report.GenerateReportJSON.as_view(),
         name="generate_json",
     ),
-    path("reports/<int:pk>/all/", views.GenerateReportAll.as_view(), name="generate_all"),
+    path("reports/<int:pk>/all/", ghostwriter.reporting.views2.report.GenerateReportAll.as_view(), name="generate_all"),
 ]
 
 # URLs for management functions

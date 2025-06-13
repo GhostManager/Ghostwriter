@@ -2,14 +2,14 @@
 
 {% load bleach_tags extra_fields custom_tags %}
 
-{% block pagetitle %}{{ finding.title }} Details{% endblock %}
+{% block pagetitle %}{{ finding.display_title }} Details{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ finding.title }}</li>
+      <li class="breadcrumb-item active" aria-current="page">{{ finding.display_title }}</li>
     </ul>
   </nav>
 {% endblock %}
@@ -33,7 +33,7 @@
   </div>
 
   <div class="container">
-    <h2>{{ finding.title }}</h2>
+    <h2>{{ finding.display_title }}</h2>
   </div>
 
   {% comment %} Finding Severity Badge {% endcomment %}
@@ -83,10 +83,10 @@
         data-placement="bottom"
         title="Finding Type"
     >
-      {{ finding.finding_type.finding_type|bleach }}
+      {{ finding.finding_type.finding_type }}
     </span>
     {% for tag in finding.tags.names %}
-      <span class="badge badge-secondary">{{ tag|bleach }}</span>
+      <span class="badge badge-secondary">{{ tag }}</span>
     {% endfor %}
   </div>
   <hr>
@@ -95,9 +95,9 @@
     <div class="card-header finding-header icon writing-icon">
       Description
     </div>
-    <div class="card-body finding-content">
+    <div class="card-body finding-content rich-text-field-preview">
       {% if finding.description %}
-        {{ finding.description|bleach }}
+        <div class="rich-text-field-preview">{{ finding.description|bleach }}</div>
       {% else %}
         <p>Description write-up is needed.</p>
       {% endif %}
@@ -108,9 +108,9 @@
     <div class="card-header finding-header icon impact-icon">
       Impact
     </div>
-    <div class="card-body finding-content">
+    <div class="card-body finding-content rich-text-field-preview">
       {% if finding.impact %}
-        {{ finding.impact|bleach }}
+        <div class="rich-text-field-preview">{{ finding.impact|bleach }}</div>
       {% else %}
         <p>Impact write-up is needed.</p>
       {% endif %}
@@ -123,7 +123,7 @@
     </div>
     <div class="card-body finding-content">
       {% if finding.mitigation %}
-        {{ finding.mitigation|bleach }}
+        <div class="rich-text-field-preview">{{ finding.mitigation|bleach }}</div>
       {% else %}
         <p>Recommendations are needed.</p>
       {% endif %}
@@ -138,13 +138,13 @@
       {% if finding.host_detection_techniques %}
         <h6 class="text-center card-title">Host Detection</h6>
         <hr>
-        {{ finding.host_detection_techniques|bleach }}
+        <div class="rich-text-field-preview">{{ finding.host_detection_techniques|bleach }}</div>
       {% endif %}
 
       {% if finding.network_detection_techniques %}
         <h6 class="text-center card-title">Network Detection</h6>
         <hr>
-        {{ finding.network_detection_techniques|bleach }}
+        <div class="rich-text-field-preview">{{ finding.network_detection_techniques|bleach }}</div>
       {% endif %}
 
       {% if not finding.network_detection_techniques and not finding.host_detection_techniques %}
@@ -159,7 +159,7 @@
     </div>
     <div class="card-body finding-content">
       {% if finding.replication_steps %}
-        {{ finding.replication_steps|bleach }}
+        <div class="rich-text-field-preview">{{ finding.replication_steps|bleach }}</div>
       {% else %}
         <p>Replication steps are needed.</p>
       {% endif %}
@@ -172,7 +172,7 @@
     </div>
     <div class="card-body finding-content">
       {% if finding.references %}
-        {{ finding.references|bleach }}
+        <div class="rich-text-field-preview">{{ finding.references|bleach }}</div>
       {% else %}
         <p>References are needed.</p>
       {% endif %}
@@ -185,7 +185,7 @@
         Finding Guidance
       </div>
       <div class="card-body finding-content">
-        {{ finding.finding_guidance|bleach }}
+        <div class="rich-text-field-preview">{{ finding.finding_guidance|bleach }}</div>
       </div>
     </div>
   {% endif %}
@@ -198,7 +198,7 @@
       {% if field_spec.type != "rich_text" %}
         <div class="row justify-content-md-center">
           <h6 class="col-3 text-left">
-            {{ field_spec.display_name|bleach }}
+            {{ field_spec.display_name }}
           </h6>
           <div class="mt-2 col-3 text-md-center align-middle offset-2">
             {% include "user_extra_fields/field.html" with extra_fields=finding.extra_fields field_spec=field_spec %}
@@ -208,9 +208,9 @@
     {% endfor %}
     {% for field_spec in finding_extra_fields_spec %}
       {% if field_spec.type == "rich_text" %}
-        <div id="extraFieldCard_{{ field_spec.internal_name|bleach }}" class="card mb-3">
+        <div id="extraFieldCard_{{ field_spec.internal_name }}" class="card mb-3">
           <div class="card-header finding-header icon custom-field-icon">
-            {{ field_spec.display_name|bleach }}
+            {{ field_spec.display_name }}
           </div>
           <div class="card-body finding-content">
             {% include "user_extra_fields/field.html" with extra_fields=finding.extra_fields field_spec=field_spec %}
@@ -233,7 +233,7 @@
       <div id="note-container-{{ note.id }}">
         <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
           <div class="float-left col-10 col-md-10 col-sm-8">
-            {{ note.note|bleach }}
+            <div class="rich-text-field-preview">{{ note.note|bleach }}</div>
           </div>
 
           <div class="float-right col-2 col-md-2 col-sm-4">

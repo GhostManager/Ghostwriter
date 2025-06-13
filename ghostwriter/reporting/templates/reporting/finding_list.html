@@ -28,7 +28,10 @@
     <p class="mt-3">The following results include findings attached to reports, not findings in your library.</p>
   {% endif %}
 
-  <a class="btn btn-info col-2 icon add-icon" role="button" href="{%  url 'reporting:finding_create' %}">Create Finding</a>
+  <form action="{% url 'reporting:finding_create' %}" method="POST" style="display:contents">
+    {% csrf_token %}
+    <button role="button" class="btn btn-info col-2 icon add-icon">Create Finding</button>
+  </form>
   <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
 
   {% if filter.qs|length == 0 %}
@@ -106,7 +109,7 @@
               </span>
             </td>
             <td class="text-justify">
-              <a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.title }}</a>
+              <a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.display_title }}</a>
             </td>
             {% if searching_report_findings %}
               <td class="text-justify">

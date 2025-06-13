@@ -22,7 +22,7 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.context)
 
     def test_view_uses_correct_template(self):
         response = self.client.get(self.uri)

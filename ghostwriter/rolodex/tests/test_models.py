@@ -36,6 +36,7 @@ from ghostwriter.factories import (
     UserFactory,
     WhiteCardFactory,
 )
+from ghostwriter.rolodex.models import Client, Project
 
 logging.disable(logging.CRITICAL)
 
@@ -69,6 +70,41 @@ class ClientModelTests(TestCase):
             client.get_absolute_url()
         except:
             self.fail("Client.get_absolute_url() raised an exception")
+
+    def test_access(self):
+        client: Client = ClientFactory(name="SpecterOps, Inc.")
+        user = UserFactory(password="SuperNaturalReporting!")
+
+        self.assertFalse(Client.user_can_create(user))
+        self.assertFalse(client.user_can_view(user))
+        self.assertFalse(client.user_can_edit(user))
+        self.assertFalse(client.user_can_delete(user))
+
+        user.role = "manager"
+        user.save()
+        self.assertTrue(Client.user_can_create(user))
+        self.assertTrue(client.user_can_view(user))
+        self.assertTrue(client.user_can_edit(user))
+        self.assertTrue(client.user_can_delete(user))
+
+        user.role = "user"
+        user.save()
+        self.assertFalse(Client.user_can_create(user))
+        self.assertFalse(client.user_can_view(user))
+        self.assertFalse(client.user_can_edit(user))
+        self.assertFalse(client.user_can_delete(user))
+
+        client_invite = ClientInviteFactory(user=user, client=client)
+        self.assertFalse(Client.user_can_create(user))
+        self.assertTrue(client.user_can_view(user))
+        self.assertTrue(client.user_can_edit(user))
+        self.assertTrue(client.user_can_delete(user))
+
+        client_invite.delete()
+        self.assertFalse(Client.user_can_create(user))
+        self.assertFalse(client.user_can_view(user))
+        self.assertFalse(client.user_can_edit(user))
+        self.assertFalse(client.user_can_delete(user))
 
 
 class ClientContactModelTests(TestCase):
@@ -198,6 +234,53 @@ class ProjectModelTests(TestCase):
         project.save()
         project.slack_channel = ""
         project.save()
+
+    def test_access(self):
+        project: Project = ProjectFactory()
+        user = UserFactory(password="SuperNaturalReporting!")
+
+        self.assertFalse(Project.user_can_create(user))
+        self.assertFalse(project.user_can_view(user))
+        self.assertFalse(project.user_can_edit(user))
+        self.assertFalse(project.user_can_delete(user))
+
+        user.role = "manager"
+        user.save()
+        self.assertTrue(Project.user_can_create(user))
+        self.assertTrue(project.user_can_view(user))
+        self.assertTrue(project.user_can_edit(user))
+        self.assertTrue(project.user_can_delete(user))
+
+        user.role = "user"
+        user.save()
+        self.assertFalse(Project.user_can_create(user))
+        self.assertFalse(project.user_can_view(user))
+        self.assertFalse(project.user_can_edit(user))
+        self.assertFalse(project.user_can_delete(user))
+
+        assignment = ProjectAssignmentFactory(operator=user, project=project)
+        self.assertFalse(Project.user_can_create(user))
+        self.assertTrue(project.user_can_view(user))
+        self.assertTrue(project.user_can_edit(user))
+        self.assertTrue(project.user_can_delete(user))
+
+        assignment.delete()
+        self.assertFalse(Project.user_can_create(user))
+        self.assertFalse(project.user_can_view(user))
+        self.assertFalse(project.user_can_edit(user))
+        self.assertFalse(project.user_can_delete(user))
+
+        client_invite = ClientInviteFactory(user=user, client=project.client)
+        self.assertFalse(Project.user_can_create(user))
+        self.assertTrue(project.user_can_view(user))
+        self.assertTrue(project.user_can_edit(user))
+        self.assertTrue(project.user_can_delete(user))
+
+        client_invite.delete()
+        self.assertFalse(Project.user_can_create(user))
+        self.assertFalse(project.user_can_view(user))
+        self.assertFalse(project.user_can_edit(user))
+        self.assertFalse(project.user_can_delete(user))
 
 
 class ProjectRoleModelTests(TestCase):

@@ -200,6 +200,11 @@ class BaseHtmlToOOXML:
 
         self.process_children(el.children, style=style, **kwargs)
 
+    def tag_mark(self, el, *, style={}, **kwargs):
+        style = style.copy()
+        style["highlight"] = True
+        self.process_children(el.children, style=style, **kwargs)
+
     def tag_table(self, el, **kwargs):
         self.text_tracking.new_block()
         table_width, table_height = self._table_size(el)

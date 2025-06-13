@@ -1,0 +1,7 @@
+{
+    "name": "ghostwriter-js",
+    "workspaces": [
+        "tiptap-gw/",
+        "collab-server/"
+    ]
+}

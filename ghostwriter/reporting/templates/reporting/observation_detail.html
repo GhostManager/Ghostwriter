@@ -2,14 +2,14 @@
 
 {% load bleach_tags %}
 
-{% block pagetitle %}{{ observation.title }} Details{% endblock %}
+{% block pagetitle %}{{ observation.display_title }} Details{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'reporting:observations' %}">Observations</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ observation.title }}</li>
+      <li class="breadcrumb-item active" aria-current="page">{{ observation.display_title }}</li>
     </ul>
   </nav>
 {% endblock %}
@@ -33,7 +33,7 @@
   </div>
 
   <div class="container">
-    <h2>{{ observation.title }}</h2>
+    <h2>{{ observation.display_title }}</h2>
   </div>
 
   <div id="descriptionCard" class="card mb-3">
@@ -42,7 +42,7 @@
     </div>
     <div class="card-body observation-content">
       {% if observation.description %}
-        {{ observation.description|bleach }}
+        <div class="rich-text-field-preview">{{ observation.description|bleach }}</div>
       {% else %}
         <p>Description write-up is needed.</p>
       {% endif %}

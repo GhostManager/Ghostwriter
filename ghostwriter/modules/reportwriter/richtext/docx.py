@@ -228,6 +228,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
             pass
         self.process_children(el.children, par=par, **kwargs)
 
+    def tag_div(self, el, par=None, **kwargs):
+        if "page-break" in el.attrs.get("class", []):
+            self.text_tracking.new_block()
+            self.doc.add_page_break()
+
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         self.set_autofit()
@@ -330,6 +335,19 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         super().tag_table(el, **kwargs)
         if self.table_caption_location == "bottom":
             self._mk_table_caption(el)
+
+    def tag_div(self, el, **kwargs):
+        if "richtext-evidence" in el.attrs.get("class", []):
+            try:
+                evidence = self.evidences[int(el.attrs["data-evidence-id"])]
+            except (KeyError, ValueError):
+                logger.exception("Could not get evidence")
+                return
+
+            par = self.doc.add_paragraph()
+            self.make_evidence(par, evidence)
+        else:
+            super().tag_div(el, **kwargs)
 
     def _mk_table_caption(self, el):
         par_caption = self.doc.add_paragraph()
