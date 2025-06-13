@@ -228,6 +228,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
             pass
         self.process_children(el.children, par=par, **kwargs)
 
+    def tag_div(self, el, par=None, **kwargs):
+        if "page-break" in el.attrs.get("class", []):
+            self.text_tracking.new_block()
+            self.doc.add_page_break()
+
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         self.set_autofit()
