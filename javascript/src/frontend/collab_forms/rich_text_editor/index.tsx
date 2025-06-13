@@ -348,9 +348,6 @@ export function Toolbar(props: {
                         </FormatButton>
                     </SubMenu>
                 </Menu>
-                <FormatButton chain={(c) => c.setHorizontalRule()}>
-                    Horizontal Rule
-                </FormatButton>
                 <FormatButton chain={(c) => c.setPageBreak()}>
                     Page Break
                 </FormatButton>

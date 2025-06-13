@@ -28,6 +28,7 @@ const EXTENSIONS: Extensions = [
         codeBlock: false,
         bold: false,
         italic: false,
+        horizontalRule: false,
     }),
     BoldCompat,
     ItalicCompat,
