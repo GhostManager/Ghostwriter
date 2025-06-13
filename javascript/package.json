@@ -36,13 +36,13 @@
         "@hocuspocus/transformer": "^2.15.0",
         "@szhsin/react-menu": "^4.2.4",
         "@tiptap/core": "^2.11.5",
-        "@tiptap/extension-bold": "^2.14.0",
+        "@tiptap/extension-bold": "^2.11.5",
         "@tiptap/extension-code": "^2.11.5",
-        "@tiptap/extension-code-block": "^2.11.9",
+        "@tiptap/extension-code-block": "^2.11.5",
         "@tiptap/extension-collaboration": "^2.11.5",
         "@tiptap/extension-collaboration-cursor": "^2.11.5",
-        "@tiptap/extension-highlight": "^2.11.7",
-        "@tiptap/extension-italic": "^2.14.0",
+        "@tiptap/extension-highlight": "^2.11.5",
+        "@tiptap/extension-italic": "^2.11.5",
         "@tiptap/extension-link": "^2.11.5",
         "@tiptap/extension-subscript": "^2.11.5",
         "@tiptap/extension-superscript": "^2.11.5",
@@ -51,7 +51,7 @@
         "@tiptap/extension-table-header": "^2.11.5",
         "@tiptap/extension-table-row": "^2.11.5",
         "@tiptap/extension-text-align": "^2.11.5",
-        "@tiptap/extension-underline": "^2.14.0",
+        "@tiptap/extension-underline": "^2.11.5",
         "@tiptap/html": "^2.11.5",
         "@tiptap/pm": "^2.11.5",
         "@tiptap/react": "^2.11.5",
@@ -65,6 +65,7 @@
         "rollup-plugin-sourcemaps2": "^0.4.3",
         "tiptap-gw": "file:../tiptap-gw",
         "y-protocols": "^1.0.6",
-        "yjs": "^13.6.22"
+        "yjs": "^13.6.22",
+        "zeed-dom": "^0.15.1"
     }
 }
