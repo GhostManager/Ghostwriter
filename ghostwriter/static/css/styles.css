@@ -3645,6 +3645,17 @@ input[type="color"]:focus,
 .rich-text-field-preview li p:last-child {
   margin-bottom: 0;
 }
+.rich-text-field-preview th, .rich-text-field-preview td {
+  border-radius: 0;
+  height: 1rem;
+  border: 1px solid #000;
+}
+.rich-text-field-preview th p {
+  color: inherit;
+}
+.rich-text-field-preview th p:last-child {
+  margin-bottom: 0;
+}
 
 .column-hide {
   /* Applied by table-columns.js to hide columns */
