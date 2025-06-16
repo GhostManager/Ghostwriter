@@ -1138,16 +1138,8 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
             findings = ReportFindingLink.objects.filter(report__project__in=get_project_list(self.request.user))
             self.searching_report_findings = True
             if self.request.GET.get("not_cloned", "").strip():
-                # Create a subquery to check if a Finding with the same title exists
-                subquery = Finding.objects.filter(title=OuterRef("title"))
-
-                # Annotate the ReportFindingLink queryset with the ``exists_in_finding`` property
-                report_finding_links = ReportFindingLink.objects.annotate(
-                    exists_in_finding=Exists(subquery)
-                )
-
-                # Filter the queryset based on the exists_in_finding property
-                findings = report_finding_links.filter(exists_in_finding=True)
+                # Filter the queryset to show only findings that started as blanks
+                findings = findings.filter(added_as_blank=True)
         else:
             findings = Finding.objects.all()
 
