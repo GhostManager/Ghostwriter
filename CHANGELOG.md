@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.0.10] - 16 June 2025
+## [5.0.10] - 18 June 2025
 
 ### Changed
 
@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The "Return only findings on reports that started as blank findings" used to attempt to filter findings based on the `title` field
   * That filtering was incorrect and led to results that did not align with the filters intent and tooltip
   * The filter will now further filter the results to show only findings that started as blank templates
+
+### Fixed
+
+* Fixed disallowing signups not working for the general signup form (i.e., not the SSO signup)
 
 ## [5.0.9] - 3 June 2025
 
