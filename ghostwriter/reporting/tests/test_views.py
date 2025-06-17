@@ -1667,7 +1667,7 @@ class EvidenceDeleteViewTests(TestCase):
         self.assertIn("object_to_be_deleted", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            f"{reverse('reporting:evidence_detail', kwargs={'pk': self.evidence.pk})}#evidence",
+            f"{reverse('reporting:report_detail', kwargs={'pk': self.evidence.finding.report.pk})}#findings",
         )
         self.assertEqual(
             response.context["object_type"],
