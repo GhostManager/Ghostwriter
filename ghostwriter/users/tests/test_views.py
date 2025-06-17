@@ -5,6 +5,7 @@ from base64 import b64decode
 from io import BytesIO
 
 # Django Imports
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.test import Client, TestCase
@@ -356,7 +357,7 @@ class AvatarDownloadTest(TestCase):
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
 
 
-class HideQuickStarttViewTests(TestCase):
+class HideQuickStartViewTests(TestCase):
     """Collection of tests for :view:`users.HideQuickStart`."""
 
     @classmethod
@@ -385,3 +386,31 @@ class HideQuickStarttViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         user_profile.refresh_from_db()
         self.assertTrue(user_profile.hide_quickstart)
+
+
+class SignupViewTests(TestCase):
+    """Collection of tests for :view:`allauth.account_signup`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.uri = reverse("account_signup")
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        settings.ACCOUNT_ALLOW_REGISTRATION = True
+        self.assertTrue(settings.ACCOUNT_ALLOW_REGISTRATION)
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/signup.html")
+
+        settings.ACCOUNT_ALLOW_REGISTRATION = False
+        self.assertFalse(settings.ACCOUNT_ALLOW_REGISTRATION)
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/signup_closed.html")
