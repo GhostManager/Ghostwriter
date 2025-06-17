@@ -25,14 +25,17 @@ const PageBreak = Node.create<PageBreakOptions>({
             {
                 tag: "div",
                 getAttrs: (node) =>
-                    (node as any).classList.contains("page-break") && null,
+                    node.classList.contains("page-break") && null,
             },
         ];
     },
     renderHTML({ HTMLAttributes }) {
         return [
             "div",
-            mergeAttributes({ class: "page-break" }, HTMLAttributes),
+            mergeAttributes(
+                { class: "page-break", contenteditable: false },
+                HTMLAttributes
+            ),
             ["div", { class: "page-break-line" }],
             ["div", { class: "page-break-text" }, "Page Break"],
             ["div", { class: "page-break-line" }],

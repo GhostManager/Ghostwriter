@@ -347,6 +347,12 @@ export function Toolbar(props: {
                             Split cell
                         </FormatButton>
                     </SubMenu>
+                    <FormatButton menuItem chain={(c) => c.addCaption()}>
+                        Add Caption
+                    </FormatButton>
+                    <FormatButton menuItem chain={(c) => c.removeCaption()}>
+                        Remove Caption
+                    </FormatButton>
                 </Menu>
                 <FormatButton chain={(c) => c.setPageBreak()}>
                     Page Break

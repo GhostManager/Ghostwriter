@@ -88,6 +88,7 @@ export function ExtraFieldInput(props: {
                     provider={props.provider}
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
+                    defaultValue={0}
                 />
             );
         case "integer":
@@ -97,6 +98,7 @@ export function ExtraFieldInput(props: {
                     provider={props.provider}
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
+                    defaultValue={0}
                 />
             );
         case "single_line_text":

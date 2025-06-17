@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
             ssr: resolve(__dirname, "./src/collab_server/index.ts"),
             outDir: "dist_collab_server",
             sourcemap: mode === "development",
+            target: "es2022",
         },
     };
 });

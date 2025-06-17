@@ -244,6 +244,15 @@ class BaseHtmlToOOXML:
                 par = self.paragraph_for_table_cell(cell, cell_el)
                 self.process_children(cell_el.children, par=par, **kwargs)
 
+    def tag_div(self, el, **kwargs):
+        classes = el.attrs.get("class", [])
+        if "collab-table-wrapper" in classes:
+            table = el.find("table")
+            caption = el.find(class_="collab-table-caption-content")
+            self.tag_table(table, caption=caption, **kwargs)
+        else:
+            logger.warning("Don't know how to handle div: %s", el)
+
     @staticmethod
     def _table_rows(table_el):
         for item in table_el.children:

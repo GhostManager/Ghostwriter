@@ -21,6 +21,7 @@ import {
     ItalicCompat,
     UnderlineCompat,
 } from "./bold_italic_underline";
+import { TableWithCaption, TableCaption } from "./table";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -53,6 +54,8 @@ const EXTENSIONS: Extensions = [
     Subscript,
     Superscript,
     Evidence,
+    TableWithCaption,
+    TableCaption,
 ];
 
 export default EXTENSIONS;

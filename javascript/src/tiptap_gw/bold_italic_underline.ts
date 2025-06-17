@@ -5,15 +5,7 @@ import Bold from "@tiptap/extension-bold";
 import Italic from "@tiptap/extension-italic";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
-import { h } from "zeed-dom"; // TODO: import only on SSR
-
-// Makes an element for tiptap
-let mkElem: (name: string) => HTMLElement;
-if (import.meta.env.SSR) {
-    mkElem = (name) => h(name);
-} else {
-    mkElem = (name) => document.createElement(name);
-}
+import mkElem from "./mkelem";
 
 // TinyMCE uses one span with multiple classes to represent combined bold/italic/underline/etc., but
 // Tiptap assumse one element per mark. So fake it with this `contentElement` function that strips

@@ -228,17 +228,26 @@ class HtmlToDocx(BaseHtmlToOOXML):
             pass
         self.process_children(el.children, par=par, **kwargs)
 
-    def tag_div(self, el, par=None, **kwargs):
+    def tag_div(self, el, **kwargs):
         if "page-break" in el.attrs.get("class", []):
             self.text_tracking.new_block()
             self.doc.add_page_break()
+        else:
+            super().tag_div(el, **kwargs)
 
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
-        self.set_autofit()
+        table.autofit = True
+        table.allow_autofit = True
+        table._tblPr.xpath("./w:tblW")[0].attrib[
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
+        ] = "auto"
         return table
 
     def paragraph_for_table_cell(self, cell, td_el):
+        cell._tc.tcPr.tcW.type = "auto"
+        cell._tc.tcPr.tcW.w = 0
+
         def handle_style(key, value):
             if key == "background-color":
                 shade = OxmlElement("w:shd")
@@ -248,24 +257,6 @@ class HtmlToDocx(BaseHtmlToOOXML):
         parse_styles(td_el.attrs.get("style", ""), handle_style)
 
         return next(iter(cell.paragraphs))
-
-    def set_autofit(self):
-        """
-        Hotfix for lack of full autofit support for tables in `python-docx`.
-
-        Ref: https://github.com/python-openxml/python-docx/issues/209
-        """
-        for t_idx, _ in enumerate(self.doc.tables):
-            self.doc.tables[t_idx].autofit = True
-            self.doc.tables[t_idx].allow_autofit = True
-            self.doc.tables[t_idx]._tblPr.xpath("./w:tblW")[0].attrib[
-                "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
-            ] = "auto"
-            for row_idx, _ in enumerate(self.doc.tables[t_idx].rows):
-                for cell_idx, _ in enumerate(self.doc.tables[t_idx].rows[row_idx].cells):
-                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
-                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.w = 0
-        return self.doc
 
 
 class HtmlToDocxWithEvidence(HtmlToDocx):
@@ -330,11 +321,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             super().tag_span(el, par=par, **kwargs)
 
     def tag_table(self, el, **kwargs):
+        caption = kwargs.get("caption") or el.find("caption")
         if self.table_caption_location == "top":
-            self._mk_table_caption(el)
+            self._mk_table_caption(caption)
         super().tag_table(el, **kwargs)
         if self.table_caption_location == "bottom":
-            self._mk_table_caption(el)
+            self._mk_table_caption(caption)
 
     def tag_div(self, el, **kwargs):
         if "richtext-evidence" in el.attrs.get("class", []):
@@ -349,10 +341,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         else:
             super().tag_div(el, **kwargs)
 
-    def _mk_table_caption(self, el):
+    def _mk_table_caption(self, caption):
         par_caption = self.doc.add_paragraph()
         self.make_caption(par_caption, self.table_label, None)
-        caption = next((child for child in el.children if child.name == "caption"), None)
         if caption is not None:
             par_caption.add_run(self.table_prefix)
             par_caption.add_run(self.title_except(caption.get_text()))

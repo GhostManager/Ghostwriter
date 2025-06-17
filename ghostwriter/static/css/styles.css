@@ -3656,6 +3656,9 @@ input[type="color"]:focus,
 .rich-text-field-preview th p:last-child {
   margin-bottom: 0;
 }
+.rich-text-field-preview .collab-table-caption {
+  text-align: center;
+}
 
 .column-hide {
   /* Applied by table-columns.js to hide columns */

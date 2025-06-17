@@ -33,8 +33,7 @@ const Evidence = Node.create<EvidenceOptions>({
             {
                 tag: "div",
                 getAttrs: (node) =>
-                    (node as any).classList.contains("richtext-evidence") &&
-                    null,
+                    node.classList.contains("richtext-evidence") && null,
             },
         ];
     },

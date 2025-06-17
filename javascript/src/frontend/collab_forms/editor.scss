@@ -153,6 +153,8 @@
 
     table {
         border-collapse: collapse;
+        margin-top: 0;
+        margin-bottom: 0;
         margin-left: 1rem;
         margin-right: 1rem;
         overflow: hidden;
@@ -199,6 +201,22 @@
     .tableWrapper {
         margin: 1.5rem 0;
         overflow-x: auto;
+    }
+
+    .collab-table-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+
+        > .collab-table-caption {
+            align-self: center;
+            padding-left: 3rem;
+            padding-right: 3rem;
+
+            .collab-table-caption-prefix {
+                color: #33c;
+            }
+        }
     }
 
     hr {
