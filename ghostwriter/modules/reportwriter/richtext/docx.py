@@ -343,7 +343,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
     def _mk_table_caption(self, caption):
         par_caption = self.doc.add_paragraph()
-        self.make_caption(par_caption, self.table_label, None)
+        self.make_caption(par_caption, self.table_label, None, styles=["Quote", "Caption"])
         if caption is not None:
             par_caption.add_run(self.table_prefix)
             par_caption.add_run(self.title_except(caption.get_text()))
@@ -372,12 +372,14 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             s = " ".join(final)
         return s
 
-    def make_caption(self, par, label: str, ref: str | None = None):
+    def make_caption(self, par, label: str, ref: str | None = None, styles = ["Caption"]):
         par._gw_is_caption = True
-        try:
-            par.style = "Caption"
-        except KeyError:
-            pass
+        for style in styles:
+            try:
+                par.style = style
+                break
+            except KeyError:
+                continue
 
         if ref:
             ref = f"_Ref{ref}"
