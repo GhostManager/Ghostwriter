@@ -1,0 +1,16 @@
+{% extends "collab_editing/update.html" %}
+
+{% load static %}
+
+{% block pagetitle %}Observation Form{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:observations' %}">Observations</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:observation_detail' pk=object.id %}">{{object.display_title}}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Observation Form</li>
+        </ul>
+    </nav>
+{% endblock %}

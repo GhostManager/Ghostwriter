@@ -1,0 +1,23 @@
+{% extends "collab_editing/update.html" %}
+
+{% load static %}
+
+{% block pagetitle %}Report Observation Form{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' object.report.project.client.id %}">{{ object.report.project.client }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' object.report.project.id %}">{{ report.project.start_date }} {{ object.report.project.project_type }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' object.report.id %}">{{ object.report }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Report Observation</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{%  block morescripts %}
+    {{ block.super }}
+    <script type="text/plain" id="graphql-evidence-report-id">{{object.report.id}}</script>
+    <script type="text/plain" id="graphql-evidence-upload-url">{% url 'reporting:upload_evidence' 'report' object.report.id %}</script>
+{% endblock %}

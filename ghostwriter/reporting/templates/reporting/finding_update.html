@@ -1,0 +1,16 @@
+{% extends "collab_editing/update.html" %}
+
+{% load static %}
+
+{% block pagetitle %}Finding Form{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:finding_detail' pk=object.id %}">{{object.display_title}}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Finding Form</li>
+        </ul>
+    </nav>
+{% endblock %}

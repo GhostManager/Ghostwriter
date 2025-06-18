@@ -15,6 +15,8 @@ from taggit.models import Tag
 
 class TagWidget(widgets.ManyToManyWidget):
     def render(self, value, obj=None):
+        if value is None:
+            return ""
         return self.separator.join([obj.name for obj in value.all()])
 
     def clean(self, value, row=None, *args, **kwargs):

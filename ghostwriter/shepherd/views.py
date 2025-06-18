@@ -31,7 +31,6 @@ from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
     RoleBasedAccessControlMixin,
     get_project_list,
-    verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import (
@@ -102,7 +101,7 @@ class AjaxLoadProjects(RoleBasedAccessControlMixin, View):
             try:
                 client_id = int(client_id)
                 client = Client.objects.get(id=client_id)
-                if verify_access(request.user, client):
+                if client.user_can_view(request.user):
                     projects = get_project_list(request.user)
                     projects = (
                         projects.filter(Q(client_id=client_id) & Q(complete=False))
@@ -132,7 +131,7 @@ class AjaxLoadProject(RoleBasedAccessControlMixin, View):
             try:
                 project_id = int(project_id)
                 project = Project.objects.get(id=project_id)
-                if verify_access(request.user, project):
+                if project.user_can_view(request.user):
                     data = serializers.serialize("json", [project])
                     return JsonResponse(json.loads(data), safe=False)
                 return ForbiddenJsonResponse()
@@ -157,7 +156,7 @@ class AjaxDomainOverwatch(RoleBasedAccessControlMixin, View):
                 client_id = int(client_id)
 
                 client = Client.objects.get(id=client_id)
-                if verify_access(request.user, client):
+                if client.user_can_view(request.user):
                     domain_history = History.objects.filter(Q(domain=domain_id) & Q(client=client_id))
                     if domain_history:
                         data = {
@@ -224,11 +223,8 @@ class DomainRelease(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = History
 
     def test_func(self):
-        if self.request.user == self.get_object().operator and verify_access(
-            self.request.user, self.get_object().project
-        ):
-            return True
-        return False
+        obj = self.get_object()
+        return self.request.user == obj.operator and obj.project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse(
@@ -277,11 +273,8 @@ class ServerRelease(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ServerHistory
 
     def test_func(self):
-        if self.request.user == self.get_object().operator and verify_access(
-            self.request.user, self.get_object().project
-        ):
-            return True
-        return False
+        obj = self.get_object()
+        return self.request.user == obj.operator and obj.project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse(
@@ -510,7 +503,7 @@ class TransientServerDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View
     model = TransientServer
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -534,7 +527,7 @@ class DomainServerConnectionDelete(RoleBasedAccessControlMixin, SingleObjectMixi
     model = DomainServerConnection
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -1169,7 +1162,7 @@ class HistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "shepherd/checkout.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1220,7 +1213,7 @@ class HistoryDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1598,7 +1591,7 @@ class ServerHistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "shepherd/server_checkout.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1649,7 +1642,7 @@ class ServerHistoryDelete(RoleBasedAccessControlMixin, DeleteView):
     success_url = reverse_lazy("shepherd:domains")
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1715,7 +1708,7 @@ class TransientServerCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "shepherd/vps_form.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.project)
+        return self.project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1768,7 +1761,7 @@ class TransientServerUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "shepherd/vps_form.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1813,7 +1806,7 @@ class DomainServerConnectionCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "shepherd/connect_form.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.project)
+        return self.project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1869,7 +1862,7 @@ class DomainServerConnectionUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "shepherd/connect_form.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().project.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

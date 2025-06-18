@@ -1,0 +1,44 @@
+{% extends "collab_editing/update.html" %}
+
+{% load static %}
+
+{% block pagetitle %}Report Form{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+  <ul class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="{% url 'home:dashboard' %}">Dashboard</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'rolodex:client_detail' report.project.client.id %}">
+        {{ report.project.client }}
+      </a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'rolodex:project_detail' report.project.id %}">
+        {{ report.project.start_date }} {{ report.project.project_type }}
+      </a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'reporting:report_detail' report.id %}">
+        {{ report }}
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">
+      {{ target_field.display_name }}
+    </li>
+  </ul>
+</nav>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <h2>{{ target_field.display_name}} on {{ report }}</h2>
+  </div>
+  {{ block.super }}
+{% endblock %}
+
+{% block collab_form_attrs %}
+  data-extra-field-name="{{ target_field.internal_name }}"
+{% endblock %}

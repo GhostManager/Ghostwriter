@@ -139,10 +139,9 @@ class FindingType(models.Model):
 class Finding(models.Model):
     """Stores an individual finding, related to :model:`reporting.Severity` and :model:`reporting.FindingType`."""
 
-    title = models.CharField(
+    title = models.TextField(
         "Title",
-        max_length=255,
-        unique=True,
+        blank=True,
         help_text="Enter a title for this finding that will appear in reports",
     )
     description = models.TextField(
@@ -233,6 +232,25 @@ class Finding(models.Model):
 
     def get_edit_url(self):
         return reverse("reporting:finding_update", kwargs={"pk": self.pk})
+
+    @classmethod
+    def user_can_create(cls, user) -> bool:
+        return user.is_privileged or user.enable_finding_create
+
+    def user_can_view(self, user) -> bool:
+        return True
+
+    def user_can_edit(self, user) -> bool:
+        return user.is_privileged or user.enable_finding_edit
+
+    def user_can_delete(self, user) -> bool:
+        return user.is_privileged or user.enable_finding_delete
+
+    @property
+    def display_title(self) -> str:
+        if self.title:
+            return self.title
+        return "(Untitled Finding)"
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
@@ -573,6 +591,19 @@ class Report(models.Model):
     def __str__(self):
         return f"{self.title}"
 
+    @classmethod
+    def user_can_create(cls, user, project) -> bool:
+        return project.user_can_edit(user)
+
+    def user_can_view(self, user) -> bool:
+        return self.project.user_can_view(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.project.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.project.user_can_edit(user)
+
 
 class ReportFindingLink(models.Model):
     """
@@ -580,9 +611,9 @@ class ReportFindingLink(models.Model):
     :model:`reporting.Severity`, :model:`reporting.FindingType`, and :model:`users.User`.
     """
 
-    title = models.CharField(
+    title = models.TextField(
         "Title",
-        max_length=255,
+        blank=True,
         help_text="Enter a title for this finding that will appear in the reports",
     )
     position = models.IntegerField(
@@ -695,15 +726,35 @@ class ReportFindingLink(models.Model):
         ordering = ["report", "severity__weight", "position"]
         verbose_name = "Report finding"
         verbose_name_plural = "Report findings"
+        _extra_fields_model = Finding
 
     def __str__(self):
-        return f"{self.title} on {self.report}"
+        return f"{self.display_title} on {self.report}"
 
     def get_absolute_url(self):
         return reverse("reporting:report_detail", kwargs={"pk": self.report.pk}) + "#findings"
 
     def get_edit_url(self):
         return reverse("reporting:local_edit", kwargs={"pk": self.pk})
+
+    @property
+    def display_title(self) -> str:
+        if self.title:
+            return self.title
+        return "(Untitled Finding)"
+
+    @classmethod
+    def user_can_create(cls, user, report) -> bool:
+        return report.user_can_edit(user)
+
+    def user_can_view(self, user) -> bool:
+        return self.report.user_can_view(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.report.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.report.user_can_edit(user)
 
     @property
     def cvss_data(self):
@@ -907,10 +958,10 @@ class Observation(models.Model):
     Similar to a finding, but more generic. Can be used for positive observations or other things.
     """
 
-    title = models.CharField(
+    title = models.TextField(
         "Title",
-        max_length=255,
-        unique=True,
+        default="",
+        blank=True,
         help_text="Enter a title for this finding that will appear in reports",
     )
     description = models.TextField(
@@ -928,10 +979,29 @@ class Observation(models.Model):
         verbose_name_plural = "Observations"
 
     def __str__(self):
-        return str(self.title)
+        return self.display_title
 
     def get_absolute_url(self):
         return reverse("reporting:observation_detail", args=[str(self.id)])
+
+    @property
+    def display_title(self) -> str:
+        if self.title:
+            return self.title
+        return "(Untitled Observation)"
+
+    @classmethod
+    def user_can_create(cls, user) -> bool:
+        return user.is_privileged or user.enable_observation_create
+
+    def user_can_view(self, user) -> bool:
+        return True
+
+    def user_can_edit(self, user) -> bool:
+        return user.is_privileged or user.enable_observation_edit
+
+    def user_can_delete(self, user) -> bool:
+        return user.is_privileged or user.enable_observation_delete
 
 
 class ReportObservationLink(models.Model):
@@ -974,6 +1044,20 @@ class ReportObservationLink(models.Model):
         ordering = ["report", "position"]
         verbose_name = "Report observation"
         verbose_name_plural = "Report observations"
+        _extra_fields_model = Observation
 
     def __str__(self):
         return str(self.title)
+
+    @classmethod
+    def user_can_create(cls, user, report: Report) -> bool:
+        return Observation.user_can_create(user) and report.user_can_edit(user)
+
+    def user_can_view(self, user) -> bool:
+        return self.report.user_can_view(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.report.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.report.user_can_edit(user)

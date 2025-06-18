@@ -2,8 +2,6 @@
 import logging
 from datetime import date, datetime, timedelta, timezone
 
-import pytz
-
 # Django Imports
 from django.test import TestCase
 
@@ -911,9 +909,9 @@ class WhiteCardFormSetTests(TestCase):
     def setUpTestData(cls):
         cls.project = ProjectFactory(start_date=date.today(), end_date=date.today() + timedelta(days=10))
         cls.project_dict = cls.project.__dict__
-        cls.whitecard_1 = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
-        cls.whitecard_2 = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
-        cls.to_be_deleted = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
+        cls.whitecard_1 = WhiteCardFactory(project=cls.project, issued=datetime.now(timezone.utc))
+        cls.whitecard_2 = WhiteCardFactory(project=cls.project, issued=datetime.now(timezone.utc))
+        cls.to_be_deleted = WhiteCardFactory(project=cls.project, issued=datetime.now(timezone.utc))
 
     def form_data(self, data, **kwargs):
         return instantiate_formset(WhiteCardFormSet, data=data, instance=self.project)

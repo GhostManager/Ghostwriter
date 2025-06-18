@@ -11,8 +11,13 @@ SECRET_KEY = env(
     default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-hosts = env("DJANGO_ALLOWED_HOSTS", default="localhost 0.0.0.0 127.0.0.1 172.20.0.5 django host.docker.internal")
+hosts = env("DJANGO_ALLOWED_HOSTS", default="localhost 0.0.0.0 127.0.0.1 172.20.0.5 django host.docker.internal 127.0.0.1:8000")
 ALLOWED_HOSTS = hosts.split(" ")
+
+STATICFILES_DIRS += [
+    # Populated by frontend docker container
+    "/app/javascript/dist_frontend/"
+]
 
 # CACHES
 # ------------------------------------------------------------------------------
@@ -57,7 +62,7 @@ if env("USE_DOCKER") == "yes":
 # django-extensions
 # ------------------------------------------------------------------------------
 # https://django-extensions.readthedocs.io/en/latest/installation_instructions.html#configuration
-INSTALLED_APPS += ["django_extensions"]  # noqa F405
+#INSTALLED_APPS += ["django_extensions"]  # noqa F405
 
 # Your stuff...
 # ------------------------------------------------------------------------------

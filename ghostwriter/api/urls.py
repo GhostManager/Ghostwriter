@@ -34,6 +34,9 @@ from ghostwriter.api.views import (
     GraphqlUploadReportTemplateView,
     GraphqlWhoami,
     GraphqlUploadEvidenceView,
+    CheckEditPermissions,
+    GetTags,
+    SetTags,
 )
 
 app_name = "api"
@@ -116,4 +119,11 @@ urlpatterns = [
     ),
     path("ajax/token/revoke/<int:pk>", ApiKeyRevoke.as_view(), name="ajax_revoke_token"),
     path("token/create", ApiKeyCreate.as_view(), name="ajax_create_token"),
+    path(
+        "check_permissions",
+        csrf_exempt(CheckEditPermissions.as_view()),
+        name="check_permissions"
+    ),
+    path("tags/get", csrf_exempt(GetTags.as_view()), name="graphql_get_tags"),
+    path("tags/set", csrf_exempt(SetTags.as_view()), name="graphql_set_tags"),
 ]
