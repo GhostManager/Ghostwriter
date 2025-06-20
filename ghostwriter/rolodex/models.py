@@ -15,7 +15,6 @@ from taggit.managers import TaggableManager
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
-from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.validators import validate_ip_range
 
@@ -888,6 +887,7 @@ class Deconfliction(models.Model):
     @property
     def log_entries(self):
         """Get log entries that precede the alert by one hour."""
+        from ghostwriter.oplog.models import OplogEntry
         logs = None
         if self.alert_timestamp:
             one_hour_ago = self.alert_timestamp - timedelta(hours=1)

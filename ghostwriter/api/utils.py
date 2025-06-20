@@ -253,27 +253,6 @@ def get_project_list(user):
     return Project.for_user(user)
 
 
-def get_logs_list(user):
-    """
-    Retrieve a filtered list of :model:`oplog.Oplog` entries based on the user's role.
-
-    Privileged users will receive all logs. Non-privileged users will receive only those entries to which they
-    have access.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    """
-    logs = Oplog.objects.select_related("project")
-    if verify_user_is_privileged(user):
-        logs = logs.all()
-    else:
-        projects = get_project_list(user)
-        logs = logs.filter(project__in=projects).distinct()
-    return logs
-
-
 def get_reports_list(user):
     """
     Retrieve a filtered list of :model:`reporting.Report` entries based on the user's role.
