@@ -17,7 +17,7 @@ function unwrapClass(node: Node, cls: string): HTMLElement {
         return n;
     }
     const wrapper = mkElem("div");
-    wrapper.appendChild(node);
+    wrapper.appendChild(node.cloneNode(true));
     return wrapper;
 }
 

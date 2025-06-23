@@ -17,7 +17,7 @@ export const TableWithCaption = Node.create<{}>({
     group: "block",
     content: "table tableCaption",
     isolating: true,
-    // Run before regular table
+    // Parse before regular table
     priority: 101,
     parseHTML() {
         return [
@@ -38,6 +38,7 @@ export const TableWithCaption = Node.create<{}>({
                 },
                 contentElement: (node) => {
                     // Convert to wrapped format
+                    node = node.cloneNode(true);
                     const caption = (node as HTMLElement).getElementsByTagName(
                         "caption"
                     )[0];
