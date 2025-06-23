@@ -113,7 +113,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         heading_num = int(el.name[1:])
         self.text_tracking.new_block()
         heading_paragraph = self.doc.add_heading(el.text, heading_num)
-        if "id" in el.attrs:
+        if "id" in el.attrs and heading_paragraph.runs:
             run = heading_paragraph.runs[0]
             tag = run._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
