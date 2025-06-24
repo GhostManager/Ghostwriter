@@ -37,7 +37,7 @@ from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.oplog.models import OplogEntry
+from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Finding,
     Observation,
@@ -1218,6 +1218,7 @@ class GetTags(HasuraActionView):
         "report_observation_link": ReportObservationLink,
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
+        "oplog_entry": OplogEntry,
     }
 
     def post(self, request: HttpRequest):
@@ -1249,6 +1250,7 @@ class SetTags(HasuraActionView):
         "report_observation_link": ReportObservationLink,
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
+        "oplog_entry": OplogEntry,
     }
 
     def post(self, request: HttpRequest):

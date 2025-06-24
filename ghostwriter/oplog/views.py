@@ -23,7 +23,6 @@ from tablib import Dataset
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
-    get_logs_list,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec
@@ -248,7 +247,7 @@ def validate_log_selection(user, oplog_id):
     if oplog_id and isinstance(oplog_id, int):
         try:
             oplog = Oplog.objects.get(id=oplog_id)
-            if not oplog.project.user_can_view(user):
+            if not oplog.user_can_view(user):
                 bad_selection = True
         except Oplog.DoesNotExist:
             bad_selection = True
@@ -325,7 +324,7 @@ def oplog_entries_import(request):
     :template:`oplog/oplog_import.html`
     """
 
-    logs = get_logs_list(request.user)
+    logs = Oplog.for_user(request.user)
     if request.method == "POST":
         oplog_id = request.POST.get("oplog_id")
         new_entries = request.FILES["csv_file"].read().decode("iso-8859-1")
@@ -377,8 +376,7 @@ class OplogListView(RoleBasedAccessControlMixin, ListView):
     template_name = "oplog/oplog_list.html"
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = get_logs_list(user)
+        queryset = Oplog.for_user(self.request.user)
         return queryset
 
 
@@ -399,7 +397,7 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
     model = Oplog
 
     def test_func(self):
-        return self.get_object().project.user_can_view(self.request.user)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -503,7 +501,7 @@ class OplogUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = OplogForm
 
     def test_func(self):
-        return self.get_object().project.user_can_edit(self.request.user)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -554,7 +552,7 @@ class OplogEntryCreate(RoleBasedAccessControlMixin, AjaxTemplateMixin, CreateVie
     ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
 
     def test_func(self):
-        return self.get_object().oplog_id.project.user_can_edit(self.request.user)
+        return OplogEntry.user_can_create(self.request.user, self.get_object())
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -584,7 +582,7 @@ class OplogEntryUpdate(RoleBasedAccessControlMixin, AjaxTemplateMixin, UpdateVie
     ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
 
     def test_func(self):
-        return self.get_object().oplog_id.project.user_can_edit(self.request.user)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -603,7 +601,7 @@ class OplogEntryDelete(RoleBasedAccessControlMixin, DeleteView):
     fields = "__all__"
 
     def test_func(self):
-        return self.get_object().oplog_id.project.user_can_edit(self.request.user)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -619,7 +617,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Oplog
 
     def test_func(self):
-        return self.get_object().project.user_can_view(self.request.user)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
