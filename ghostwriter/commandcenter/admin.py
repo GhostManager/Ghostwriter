@@ -143,3 +143,10 @@ class ExtraFieldModelAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
+
+class CollabAdminBase(admin.ModelAdmin):
+    """
+    Model Admin for collab-editor-enabled models.
+    """
+    change_form_template = "collab_editing/admin/change_form.html"
+    change_list_template = "collab_editing/admin/change_list.html"

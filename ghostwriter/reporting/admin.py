@@ -4,9 +4,10 @@
 from django.contrib import admin
 
 # 3rd Party Libraries
-from import_export.admin import ImportExportModelAdmin
+from import_export.admin import ImportExportMixin
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.admin import CollabAdminBase
 from ghostwriter.reporting.forms import SeverityForm
 from ghostwriter.reporting.models import (
     Archive,
@@ -19,6 +20,7 @@ from ghostwriter.reporting.models import (
     Observation,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
     Severity,
 )
@@ -76,7 +78,7 @@ class FindingTypeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Finding)
-class FindingAdmin(ImportExportModelAdmin):
+class FindingAdmin(ImportExportMixin, CollabAdminBase):
     resource_class = FindingResource
     list_display = ("title", "severity", "finding_type", "tag_list")
     list_filter = (
@@ -160,7 +162,7 @@ class ReportAdmin(admin.ModelAdmin):
 
 
 @admin.register(ReportFindingLink)
-class ReportFindingLinkAdmin(admin.ModelAdmin):
+class ReportFindingLinkAdmin(CollabAdminBase):
     list_display = ("report", "severity", "finding_type", "title", "complete", "tag_list")
     list_filter = ("severity", "finding_type", "complete", "tags")
     list_editable = (
@@ -270,7 +272,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
 
 
 @admin.register(Observation)
-class ObservationAdmin(ImportExportModelAdmin):
+class ObservationAdmin(ImportExportMixin, CollabAdminBase):
     resource_class = ObservationResource
     list_display = (
         "title",
@@ -281,3 +283,8 @@ class ObservationAdmin(ImportExportModelAdmin):
 
     def tag_list(self, obj):
         return ", ".join(o.name for o in obj.tags.all())
+
+@admin.register(ReportObservationLink)
+class ReportObservationLinkAdmin(CollabAdminBase):
+    list_display = ("report", "title")
+    list_display_links = ("report", "title")
