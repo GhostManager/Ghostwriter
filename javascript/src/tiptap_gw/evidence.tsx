@@ -126,9 +126,12 @@ function EvidenceView(props: NodeViewProps) {
 
     return (
         <NodeViewWrapper className="richtext-evidence">
-            {img}
             <span className="richtext-evidence-name">
-                {"Evidence: " + evidence.friendlyName}
+                {evidence.friendlyName}
+            </span>
+            {img}
+            <span className="richtext-evidence-caption">
+                {"Evidence: " + evidence.caption}
             </span>
         </NodeViewWrapper>
     );
