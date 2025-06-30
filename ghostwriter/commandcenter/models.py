@@ -413,6 +413,7 @@ EXTRA_FIELD_TYPES = {
 class ExtraFieldModel(models.Model):
     model_internal_name = models.CharField(max_length=255, primary_key=True)
     model_display_name = models.CharField(max_length=255)
+    is_collab_editable = models.BooleanField(default=False)
 
     def __str__(self):
         return "Extra fields for {}".format(self.model_display_name)
