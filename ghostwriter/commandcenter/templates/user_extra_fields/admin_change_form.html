@@ -3,12 +3,19 @@
 
 {% block admin_change_form_document_ready %}
 {{ block.super }}
-<script type="text/javascript" src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
+{% if original.is_collab_editable %}
+    <script type="module" src="{% static 'assets/admin_tiptap.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">
+{% else %}
+    <script type="text/javascript" src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
+{% endif %}
 <script type="text/javascript">
     "use strict";
-    (($) => {
+    django.jQuery(function () {
+        const $ = django.jQuery;
         const INPUT_TYPES = "input, select, textarea";
+        const IS_COLLAB_EDITABLE = {% if original.is_collab_editable %}true{% else %}false{% endif %};
 
         function swap_control(row, tag, attrs, set_value) {
             let container = $(row).find(".field-user_default_value");
@@ -20,22 +27,26 @@
             let error_list = container.children(".errorlist").detach();
             container.empty();
 
-            let new_control = document.createElement(tag);
-            new_control.setAttribute("name", name);
-            new_control.setAttribute("id", id);
-            for(const attr in attrs) {
-                new_control.setAttribute(attr, attrs[attr]);
-            }
-            if(set_value) {
-                set_value(new_control, value);
+            if(typeof tag === "function") {
+                return tag(container, name, id, value);
             } else {
-                new_control.setAttribute("value", value);
+                let new_control = document.createElement(tag);
+                new_control.setAttribute("name", name);
+                new_control.setAttribute("id", id);
+                for(const attr in attrs) {
+                    new_control.setAttribute(attr, attrs[attr]);
+                }
+                if(set_value) {
+                    set_value(new_control, value);
+                } else {
+                    new_control.setAttribute("value", value);
+                }
+                if(error_list) {
+                    container.append(error_list);
+                }
+                container.append(new_control);
+                return new_control;
             }
-            if(error_list) {
-                container.append(error_list);
-            }
-            container.append(new_control);
-            return new_control;
         }
 
         const SWAP_WIDGET_FUNCTIONS = {
@@ -46,9 +57,18 @@
             }),
             "single_line_text": row => swap_control(row, "input", {"type": "text"}),
             "rich_text": row => {
-                let new_control = swap_control(row, "textarea", {"class": "no-auto-tinymce"}, (el, value) => el.innerText = value);
-                let editor = new tinymce.Editor($(new_control).attr("id"), GW_TINYMCE_DEFAULT_CONFIG, tinymce.EditorManager);
-                editor.render();
+                if(IS_COLLAB_EDITABLE) {
+                    swap_control(row, (container, name, id, value) => {
+                        const el = document.createElement("div");
+                        container.append(el);
+                        row._gw_destroyEditor = gwSetupTiptapEditor(el, name, id, value);
+                    });
+                } else {
+                    let new_control = swap_control(row, "textarea", {"class": "no-auto-tinymce"}, (el, value) => el.innerText = value);
+                    let editor = new tinymce.Editor($(new_control).attr("id"), GW_TINYMCE_DEFAULT_CONFIG, tinymce.EditorManager);
+                    editor.render();
+                    //row._gw_destroyEditor = () => editor.destroy();
+                }
             },
             "integer": row => swap_control(row, "input", {"type": "number", "step": "1"}),
             "float": row => swap_control(row, "input", {"type": "number"}),
@@ -57,9 +77,13 @@
 
         function extra_fields_set_default_value_widget(row) {
             let type = $(row).find(".field-type select").val();
-            if(type !== "") {
-                SWAP_WIDGET_FUNCTIONS[type](row);
+            if(type === "")
+                return;
+            if(row._gw_destroyEditor) {
+                row._gw_destroyEditor();
+                delete row._gw_destroyEditor;
             }
+            SWAP_WIDGET_FUNCTIONS[type](row);
         }
 
         function set_field_type_change_listener(row) {
@@ -75,6 +99,6 @@
         $(document).on("formset:added", (event, row, formsetName) => {
             set_field_type_change_listener(row);
         });
-    })(django.jQuery);
+    });
 </script>
 {% endblock %}
