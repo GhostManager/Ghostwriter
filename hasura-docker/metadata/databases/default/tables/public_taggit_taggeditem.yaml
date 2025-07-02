@@ -22,3 +22,13 @@ object_relationships:
   - name: taggedItem
     using:
       foreign_key_constraint_on: content_type_id
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - content_type_id
+        - id
+        - object_id
+        - tag_id
+      filter: {}
+    comment: ""
