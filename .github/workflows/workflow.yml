@@ -11,7 +11,7 @@ on:
 
 jobs:
   run-unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Check out source code
         uses: actions/checkout@v4
