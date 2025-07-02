@@ -26,6 +26,7 @@ import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
+import HeadingIdButton from "./heading";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -171,6 +172,8 @@ export function Toolbar(props: {
                             Heading {level}
                         </FormatButton>
                     ))}
+
+                    <HeadingIdButton />
                 </Menu>
                 <Menu
                     portal
