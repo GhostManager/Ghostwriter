@@ -113,16 +113,18 @@ class HtmlToDocx(BaseHtmlToOOXML):
         heading_num = int(el.name[1:])
         self.text_tracking.new_block()
         heading_paragraph = self.doc.add_heading(el.text, heading_num)
-        if "id" in el.attrs and heading_paragraph.runs:
+
+        bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
+        if bookmark_name and heading_paragraph.runs:
             run = heading_paragraph.runs[0]
             tag = run._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
             start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
+            start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
             tag.append(start)
             end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
             end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
+            end.set(docx.oxml.ns.qn("w:name"), bookmark_name)
             tag.append(end)
             self.current_bookmark_id += 1
 

@@ -22,15 +22,18 @@ import {
     UnderlineCompat,
 } from "./bold_italic_underline";
 import { TableWithCaption, TableCaption } from "./table";
+import { HeadingWithId } from "./heading";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
+        heading: false,
         history: false,
         codeBlock: false,
         bold: false,
         italic: false,
         horizontalRule: false,
     }),
+    HeadingWithId,
     BoldCompat,
     ItalicCompat,
     UnderlineCompat,

@@ -41,6 +41,7 @@
         "@tiptap/extension-code-block": "^2.11.5",
         "@tiptap/extension-collaboration": "^2.11.5",
         "@tiptap/extension-collaboration-cursor": "^2.11.5",
+        "@tiptap/extension-heading": "^2.23.1",
         "@tiptap/extension-highlight": "^2.11.5",
         "@tiptap/extension-italic": "^2.11.5",
         "@tiptap/extension-link": "^2.11.5",

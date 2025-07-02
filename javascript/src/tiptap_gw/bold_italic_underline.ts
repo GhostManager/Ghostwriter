@@ -23,7 +23,7 @@ function unwrapClass(node: Node, cls: string): HTMLElement {
 
 export const BoldCompat = Bold.extend({
     parseHTML() {
-        const arr = Array.from(Bold.config.parseHTML!.bind(this)()!);
+        const arr = Array.from(Bold.config.parseHTML!.call(this)!);
         arr.push({
             tag: "span",
             getAttrs: (node) => node.classList.contains("bold") && null,
@@ -35,7 +35,7 @@ export const BoldCompat = Bold.extend({
 
 export const ItalicCompat = Italic.extend({
     parseHTML() {
-        const arr = Array.from(Italic.config.parseHTML!.bind(this)()!);
+        const arr = Array.from(Italic.config.parseHTML!.call(this)!);
         arr.push({
             tag: "span",
             getAttrs: (node) => node.classList.contains("italic") && null,
@@ -47,7 +47,7 @@ export const ItalicCompat = Italic.extend({
 
 export const UnderlineCompat = Underline.extend({
     parseHTML() {
-        const arr = Array.from(Underline.config.parseHTML!.bind(this)()!);
+        const arr = Array.from(Underline.config.parseHTML!.call(this)!);
         arr.push({
             tag: "span",
             getAttrs: (node) => node.classList.contains("underline") && null,
@@ -59,7 +59,7 @@ export const UnderlineCompat = Underline.extend({
 
 export const HighlightCompat = Highlight.extend({
     parseHTML() {
-        const arr = Array.from(Highlight.config.parseHTML!.bind(this)()!);
+        const arr = Array.from(Highlight.config.parseHTML!.call(this)!);
         arr.push({
             tag: "span",
             getAttrs: (node) => node.classList.contains("highlight") && null,
