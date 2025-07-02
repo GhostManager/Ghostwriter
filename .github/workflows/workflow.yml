@@ -11,15 +11,15 @@ on:
 
 jobs:
   run-unit-tests:
-    runs-on: macos-latest
+    runs-on:  ubuntu-22.04
     steps:
       - name: Check out source code
         uses: actions/checkout@v4
 
       - name: Build environment
         run: |
-          chmod +x ghostwriter-cli-macos
-          ./ghostwriter-cli-macos install --dev
+          chmod +x ghostwriter-cli-linux
+          ./ghostwriter-cli-linux install --dev
 
       - name: Generate Coverage report
         run: |
