@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed an issue that prevented a new user from configuring a TOTP device on login when `Reuire 2FA` was checked for their account
+* Fixed an issue that prevented a new user from configuring a TOTP device on login when `Require 2FA` was checked for their account
 
 ## [5.0.10] - 18 June 2025
 
