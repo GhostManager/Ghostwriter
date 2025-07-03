@@ -10,9 +10,8 @@ from django.utils import timezone
 import factory
 import pytz
 from factory import Faker
-from faker import Faker as PyFaker
-
-fake = PyFaker()
+from faker.providers import BaseProvider
+from faker.providers.lorem.en_US import Provider as LoremProvider
 
 # ``TimezoneFields`` use the "common" timezones, which excludes a few timezones like "Asia\Saigon"
 # Factories select a choice from this list instead of using ``random.choice(TIMEZONES)``
@@ -28,6 +27,20 @@ EXTRA_FIELD_TYPES = [
 # Manually remove timezones not present in PostgreSQL 11.12's `pg_timezone_names` table
 TIMEZONES.remove("Pacific/Kanton")
 TIMEZONES.remove("Europe/Kyiv")
+
+# Add faker provider for rich text (html)
+class RichTextProvider(BaseProvider):
+    text_provider: LoremProvider
+
+    def __init__(self, generator):
+        super().__init__(generator)
+        self.text_provider = LoremProvider(generator)
+
+    def rich_text(self):
+        para = self.text_provider.paragraph()
+        return f"<p>{para}</p>"
+
+Faker.add_provider(RichTextProvider)
 
 
 # Users Factories
@@ -95,7 +108,7 @@ class ClientFactory(factory.django.DjangoModelFactory):
     name = Faker("company")
     short_name = Faker("name")
     codename = Faker("name")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     timezone = random.choice(TIMEZONES)
     address = Faker("address")
 
@@ -117,7 +130,7 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     job_title = Faker("job")
     email = Faker("email")
     phone = Faker("phone_number")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     timezone = random.choice(TIMEZONES)
     client = factory.SubFactory(ClientFactory)
 
@@ -144,7 +157,7 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     # Random dates within a year of each other and at least 7 days apart
     start_date = Faker("date_between", start_date="-365d", end_date="-182d")
     end_date = Faker("date_between", start_date="-190d", end_date="+182d")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     slack_channel = "#ghostwriter"
     complete = False
     client = factory.SubFactory(ClientFactory)
@@ -175,7 +188,7 @@ class ProjectAssignmentFactory(factory.django.DjangoModelFactory):
     )
     start_date = factory.SelfAttribute("project.start_date")
     end_date = factory.SelfAttribute("project.end_date")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     operator = factory.SubFactory(UserFactory)
     role = factory.SubFactory(ProjectRoleFactory)
 
@@ -200,14 +213,14 @@ class ProjectObjectiveFactory(factory.django.DjangoModelFactory):
         model = "rolodex.ProjectObjective"
 
     objective = Faker("sentence")
-    description = Faker("paragraph")
+    description = Faker("rich_text")
     complete = Faker("boolean")
     position = factory.Sequence(lambda n: n)
     project = factory.SubFactory(ProjectFactory)
     deadline = Faker("date_between", start_date="-305d", end_date="+60d")
     status = factory.SubFactory(ObjectiveStatusFactory)
     priority = factory.SubFactory(ObjectivePriorityFactory)
-    result = Faker("paragraph")
+    result = Faker("rich_text")
 
 class ProjectSubtaskFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -251,7 +264,7 @@ class ProjectContactFactory(factory.django.DjangoModelFactory):
     job_title = Faker("job")
     email = Faker("email")
     phone = Faker("phone_number")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     primary = False
     timezone = random.choice(TIMEZONES)
     project = factory.SubFactory(ProjectFactory)
@@ -284,14 +297,14 @@ class FindingFactory(factory.django.DjangoModelFactory):
     finding_type = factory.SubFactory(FindingTypeFactory)
     cvss_score = factory.LazyFunction(lambda: round(random.uniform(0, 10), 1))
     cvss_vector = factory.Sequence(lambda n: "Vector %s" % n)
-    description = Faker("paragraph")
-    impact = Faker("paragraph")
-    mitigation = Faker("paragraph")
-    replication_steps = Faker("paragraph")
-    host_detection_techniques = Faker("paragraph")
-    network_detection_techniques = Faker("paragraph")
-    references = Faker("paragraph")
-    finding_guidance = Faker("paragraph")
+    description = Faker("rich_text")
+    impact = Faker("rich_text")
+    mitigation = Faker("rich_text")
+    replication_steps = Faker("rich_text")
+    host_detection_techniques = Faker("rich_text")
+    network_detection_techniques = Faker("rich_text")
+    references = Faker("rich_text")
+    finding_guidance = Faker("rich_text")
 
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
@@ -308,7 +321,7 @@ class ObservationFactory(factory.django.DjangoModelFactory):
         model = "reporting.Observation"
 
     title = factory.Sequence(lambda n: "Observation %s" % n)
-    description = Faker("paragraph")
+    description = Faker("rich_text")
 
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
@@ -332,8 +345,8 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
 
     document = factory.django.FileField(from_path="DOCS/sample_reports/template.docx")
     name = factory.Sequence(lambda n: "Template %s" % n)
-    description = Faker("paragraph")
-    changelog = Faker("paragraph")
+    description = Faker("rich_text")
+    changelog = Faker("rich_text")
     lint_result = ""
     protected = False
     client = None
@@ -366,8 +379,8 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
 
     document = factory.django.FileField(from_path="DOCS/sample_reports/template.docx")
     name = factory.Sequence(lambda n: "Template %s" % n)
-    description = Faker("paragraph")
-    changelog = Faker("paragraph")
+    description = Faker("rich_text")
+    changelog = Faker("rich_text")
     lint_result = ""
     protected = False
     client = None
@@ -381,8 +394,8 @@ class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
 
     document = factory.django.FileField(from_path="DOCS/sample_reports/template.pptx")
     name = factory.Sequence(lambda n: "Template %s" % n)
-    description = Faker("paragraph")
-    changelog = Faker("paragraph")
+    description = Faker("rich_text")
+    changelog = Faker("rich_text")
     lint_result = ""
     protected = False
     client = None
@@ -419,21 +432,21 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
 
     title = factory.Sequence(lambda n: "Local Finding %s" % n)
     position = 1
-    affected_entities = Faker("hostname")
+    affected_entities = Faker("rich_text")
     severity = factory.SubFactory(SeverityFactory)
     finding_type = factory.SubFactory(FindingTypeFactory)
     cvss_score = factory.LazyFunction(lambda: round(random.uniform(0, 10), 1))
     cvss_vector = factory.Sequence(lambda n: "Vector %s" % n)
     report = factory.SubFactory(ReportFactory)
     assigned_to = factory.SubFactory(UserFactory)
-    description = Faker("paragraph")
-    impact = Faker("paragraph")
-    mitigation = Faker("paragraph")
-    replication_steps = Faker("paragraph")
-    host_detection_techniques = Faker("paragraph")
-    network_detection_techniques = Faker("paragraph")
-    references = Faker("paragraph")
-    finding_guidance = Faker("paragraph")
+    description = Faker("rich_text")
+    impact = Faker("rich_text")
+    mitigation = Faker("rich_text")
+    replication_steps = Faker("rich_text")
+    host_detection_techniques = Faker("rich_text")
+    network_detection_techniques = Faker("rich_text")
+    references = Faker("rich_text")
+    finding_guidance = Faker("rich_text")
     added_as_blank = Faker("boolean")
 
     @factory.post_generation
@@ -452,7 +465,7 @@ class ReportObservationLinkFactory(factory.django.DjangoModelFactory):
 
     title = factory.Sequence(lambda n: "Local Observation %s" % n)
     position = 1
-    description = Faker("paragraph")
+    description = Faker("rich_text")
     added_as_blank = Faker("boolean")
 
     @factory.post_generation
@@ -523,7 +536,7 @@ class FindingNoteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.FindingNote"
 
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     finding = factory.SubFactory(FindingFactory)
     operator = factory.SubFactory(UserFactory)
 
@@ -532,7 +545,7 @@ class LocalFindingNoteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.LocalFindingNote"
 
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     finding = factory.SubFactory(ReportFindingLinkFactory)
     operator = factory.SubFactory(UserFactory)
 
@@ -541,7 +554,7 @@ class ClientNoteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ClientNote"
 
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     client = factory.SubFactory(ClientFactory)
     operator = factory.SubFactory(UserFactory)
 
@@ -550,7 +563,7 @@ class ProjectNoteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ProjectNote"
 
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)
     operator = factory.SubFactory(UserFactory)
 
@@ -559,7 +572,7 @@ class ClientInviteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ClientInvite"
 
-    comment = Faker("paragraph")
+    comment = Faker("rich_text")
     client = factory.SubFactory(ClientFactory)
     user = factory.SubFactory(UserFactory)
 
@@ -568,7 +581,7 @@ class ProjectInviteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ProjectInvite"
 
-    comment = Faker("paragraph")
+    comment = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)
     user = factory.SubFactory(UserFactory)
 
@@ -655,8 +668,8 @@ class DomainFactory(factory.django.DjangoModelFactory):
     expiration = Faker("future_date")
     vt_permalink = Faker("url")
     categorization = Faker("pydict", value_types=(str,))
-    note = Faker("paragraph")
-    burned_explanation = Faker("paragraph")
+    note = Faker("rich_text")
+    burned_explanation = Faker("rich_text")
     auto_renew = Faker("boolean")
     expired = Faker("boolean")
     reset_dns = Faker("boolean")
@@ -681,7 +694,7 @@ class HistoryFactory(factory.django.DjangoModelFactory):
 
     start_date = Faker("past_date")
     end_date = Faker("future_date")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     domain = factory.SubFactory(DomainFactory)
     client = factory.SubFactory(ClientFactory)
     project = factory.SubFactory(ProjectFactory)
@@ -715,7 +728,7 @@ class StaticServerFactory(factory.django.DjangoModelFactory):
         model = "shepherd.StaticServer"
 
     ip_address = Faker("ipv4")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     name = Faker("hostname")
     server_status = factory.SubFactory(ServerStatusFactory)
     server_provider = factory.SubFactory(ServerProviderFactory)
@@ -728,7 +741,7 @@ class ServerHistoryFactory(factory.django.DjangoModelFactory):
 
     start_date = Faker("past_date")
     end_date = Faker("future_date")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     server = factory.SubFactory(StaticServerFactory)
     client = factory.SubFactory(ClientFactory)
     project = factory.SubFactory(ProjectFactory)
@@ -744,7 +757,7 @@ class TransientServerFactory(factory.django.DjangoModelFactory):
     ip_address = Faker("ipv4")
     aux_address = factory.List([Faker("ipv4") for _ in range(3)])
     name = Faker("hostname")
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)
     operator = factory.SubFactory(UserFactory)
     server_provider = factory.SubFactory(ServerProviderFactory)
@@ -777,7 +790,7 @@ class DomainNoteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.DomainNote"
 
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     domain = factory.SubFactory(DomainFactory)
     operator = factory.SubFactory(UserFactory)
 
@@ -786,7 +799,7 @@ class ServerNoteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.ServerNote"
 
-    note = Faker("paragraph")
+    note = Faker("rich_text")
     server = factory.SubFactory(StaticServerFactory)
     operator = factory.SubFactory(UserFactory)
 
@@ -889,7 +902,7 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     alert_timestamp = Faker("date_time", tzinfo=pytz.UTC)
     response_timestamp = Faker("date_time", tzinfo=pytz.UTC)
     title = Faker("sentence")
-    description = Faker("paragraph")
+    description = Faker("rich_text")
     alert_source = Faker("word")
     status = factory.SubFactory(DeconflictionStatusFactory)
     project = factory.SubFactory(ProjectFactory)
@@ -901,7 +914,7 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
 
     issued = Faker("date_time", tzinfo=pytz.UTC)
     title = Faker("user_name")
-    description = Faker("paragraph")
+    description = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)
 
 
