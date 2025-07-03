@@ -1,6 +1,7 @@
 name: Build and Run Unit Test Workflow
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
