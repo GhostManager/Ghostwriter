@@ -253,6 +253,32 @@ class HasuraViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
+    def test_action_with_incomplete_header(self):
+        result = {
+            "message": "No ``Authorization`` header found",
+            "extensions": {
+                "code": "JWTMissing",
+            },
+        }
+
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": ""},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(force_str(response.content), result)
+
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(force_str(response.content), result)
+
 
 class HasuraEventViewTests(TestCase):
     """Collection of tests for the :view:`api:HasuraEventView` custom CBV."""
