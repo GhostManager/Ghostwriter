@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.12] - 18 July 2025
+
+### Added
+
+* Added a `createUser` mutation to the GraphQL API to allow creating new users
+  * This mutation is useful for creating new users without needing to use the web interface
+  * The mutation requires the `email`, `username`, `password`, `name`, and `role` fields
+  * Only admins can create new users via this mutation
+  * If you choose to allow managers to create users, the mutation will not allow them to create users with the manager or admin roles
+
 ## [5.0.11] - 3 July 2025
 
 ### Fixed

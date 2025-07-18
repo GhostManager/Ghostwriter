@@ -8,7 +8,6 @@
 
 [![Black Hat USA Arsenal 2019 & 2022](https://img.shields.io/badge/2019%20&%202022-Black%20Hat%20USA%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![Black Hat Asia Arsenal 2022](https://img.shields.io/badge/2022-Black%20Hat%20Asia%20Arsenal-lightgrey.svg)](https://www.blackhat.com/asia-22/arsenal/schedule/index.html#ghostwriter-26252)
 
-
 ![ghostwriter](DOCS/images/logo.png)
 
 Ghostwriter is a Django-based web application designed to be used by an individual or a team of red team operators. The platform tracks and manages client and project information, covert infrastructure assets (e.g., servers and domain names), finding templates, report templates, evidence files, and more.
@@ -31,7 +30,7 @@ The wiki covers everything from installation and setup information for first tim
 
 ## Getting Help
 
-[![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet?logo=slack)](https://ghst.ly/BHSlack)
+[![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet?logo=slack)](https://slack.specterops.io/)
 
 The quickest way to get help is Slack. The BloodHound Slack Team has a *#ghostwriter* channel for discussing this project and requesting assistance. There is also a *#reporting* channel for discussing various topics related to writing and managing reports and findings.
 
@@ -49,10 +48,10 @@ We only ask you to limit PR submissions to those that fix a bug, enhance an exis
 
 The following people at SpecterOps have contributed much to this project:
 
+* [@ColonelThirtyTwo](https://github.com/ColonelThirtyTwo)
 * [@covertgeek](https://github.com/covertgeek)
 * [@hotnops](https://github.com/hotnops)
 * [@andrewchiles](https://github.com/andrewchiles)
-* [@ColonelThirtyTwo](https://github.com/ColonelThirtyTwo)
 
 These folks kindly submitted feedback and PRs to fix bugs and enhance existing features. Thank you! 
 
@@ -69,5 +68,3 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 ## Supporters
 
 Ghostwriter's continuous development would not be possible without [SpecterOps's](https://www.specterops.io/) commitment to transparency and support for open-source development.
-
-[GitBook](https://www.gitbook.com/) supports this project by hosting the wiki and granting the Ghostwriter team access to their GitBook Community tier as an open-source project.

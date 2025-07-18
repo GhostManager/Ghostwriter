@@ -29,6 +29,25 @@ type Mutation {
 }
 
 type Mutation {
+  createUser(
+    name: String!
+    email: String!
+    username: String!
+    password: String!
+    role: String!
+    timezone: String
+    phone: String
+    enableFindingCreate: Boolean
+    enableFindingEdit: Boolean
+    enableFindingDelete: Boolean
+    enableObservationCreate: Boolean
+    enableObservationEdit: Boolean
+    enableObservationDelete: Boolean
+    require2fa: Boolean
+  ): createUserResponse
+}
+
+type Mutation {
   deleteDomainCheckout(
     checkoutId: Int!
   ): checkoutResponse
@@ -147,5 +166,14 @@ type UploadEvidenceResult {
 
 type UploadReportTemplateResult {
   id: Int!
+}
+
+type createUserResponse {
+  id: Int!
+  name: String!
+  username: String!
+  email: String!
+  role: String!
+  result: String!
 }
 

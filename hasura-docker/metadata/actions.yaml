@@ -35,6 +35,15 @@ actions:
       - role: user
       - role: manager
     comment: Attempt to checkout a server for a project
+  - name: createUser
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/createUser'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    comment: Attempt to create a new user with the specified details
   - name: deleteDomainCheckout
     definition:
       kind: synchronous
@@ -166,4 +175,14 @@ custom_types:
     - name: ExtraFieldSpecOutput
     - name: UploadEvidenceResult
     - name: UploadReportTemplateResult
+    - name: createUserResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: user
+          remote_table:
+            name: users_user
+            schema: public
+          source: default
+          type: object
   scalars: []
