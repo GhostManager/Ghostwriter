@@ -871,7 +871,14 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
                         utils.generate_hasura_error_payload("Invalid timezone", "InvalidTimezone"), status=400
                     )
 
-            user = User.objects.create_user(username=self.input["username"], email=self.input["email"], password=self.input["password"], name=self.input["name"], role=role)
+            user_data = {
+                "username": self.input["username"],
+                "email": self.input["email"],
+                "password": self.input["password"],
+                "name": self.input["name"],
+                "role": role,
+            }
+            user = User.objects.create_user(**user_data)
 
             if timezone:
                 user.timezone = pytz.timezone(timezone)
@@ -913,7 +920,6 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
             return JsonResponse(
                 utils.generate_hasura_error_payload("Username or email already exists", "UserAlreadyExists"), status=400
             )
-
 
         data = {
             "id": user.pk,
