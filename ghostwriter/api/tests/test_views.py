@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 
 # Django Imports
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -53,6 +54,8 @@ logging.disable(logging.CRITICAL)
 PASSWORD = "SuperNaturalReporting!"
 
 ACTION_SECRET = settings.HASURA_ACTION_SECRET
+
+User = get_user_model()
 
 
 # Tests related to authentication in custom CBVs
@@ -1300,6 +1303,98 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["message"], "Model does not exist")
+
+
+class HasuraCreateUserTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlUserCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="admin")
+        cls.unprivileged_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_create_user")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def generate_data(self, name, email, username, role, **kwargs):
+        return {
+            "input": {
+                "name": name,
+                "email": email,
+                "username": username,
+                "role": role,
+                "password": PASSWORD,
+                **kwargs
+            }
+        }
+
+    def test_graphql_create_user(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("validuser", "validuser@specterops.io", "validuser", "user", require2fa=True, timezone="America/New_York"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        created_user = User.objects.get(username="validuser")
+        self.assertEqual(created_user.email, "validuser@specterops.io")
+        self.assertEqual(created_user.require_2fa, True)
+
+    def test_graphql_create_user_with_bad_timezone(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("badtimezone", "badtimezone@specterops.io", "badtimezone", "user", timezone="PST"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "Invalid timezone",
+            "extensions": {
+                "code": "InvalidTimezone",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_create_user_with_bad_role(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("badrole", "badrole@specterops.io", "badrole", "invalid"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "Invalid user role",
+            "extensions": {
+                "code": "InvalidUserRole",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_create_user_with_unprivileged_user(self):
+        _, token = utils.generate_jwt(self.unprivileged_user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("mgruser", "mgruser@specterops.io", "mgruser", "manager"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+        result = {
+            "message": "Unauthorized to create user with this role",
+            "extensions": {
+                "code": "Unauthorized",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
 
 
 # Tests related to Hasura Event Triggers
