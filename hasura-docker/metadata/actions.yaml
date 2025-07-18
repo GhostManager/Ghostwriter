@@ -43,8 +43,6 @@ actions:
       headers:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
-    permissions:
-      - role: manager
     comment: Attempt to create a new user with the specified details
   - name: deleteDomainCheckout
     definition:
