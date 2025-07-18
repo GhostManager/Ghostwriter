@@ -12,6 +12,7 @@ from ghostwriter.api.views import (
     GraphqlAuthenticationWebhook,
     GraphqlCheckoutDomain,
     GraphqlCheckoutServer,
+    GraphqlUserCreate,
     GraphqlDeleteReportTemplateAction,
     GraphqlDomainCheckoutDelete,
     GraphqlDomainUpdateEvent,
@@ -45,7 +46,7 @@ urlpatterns = [
     path("webhook", csrf_exempt(GraphqlAuthenticationWebhook.as_view()), name="graphql_webhook"),
     path("login", csrf_exempt(GraphqlLoginAction.as_view()), name="graphql_login"),
     path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
-    path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
+    path("createUser", csrf_exempt(GraphqlUserCreate.as_view()), name="graphql_create_user"),
     path(
         "getExtraFieldSpec", csrf_exempt(GraphqlGetExtraFieldSpecAction.as_view()), name="graphql_get_extra_field_spec"
     ),
