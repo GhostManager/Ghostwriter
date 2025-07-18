@@ -918,7 +918,7 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
             user.save()
         except IntegrityError:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Username or email already exists", "UserAlreadyExists"), status=400
+                utils.generate_hasura_error_payload("A user with that username already exists", "UserAlreadyExists"), status=400
             )
 
         data = {
