@@ -78,7 +78,7 @@ class FindingFilter(django_filters.FilterSet):
     )
     not_cloned = django_filters.BooleanFilter(
         method="filter_on_library",
-        label="Return only findings on reports & not in the library",
+        label="Return only findings on reports that started as blank findings",
         widget=forms.CheckboxInput,
     )
 

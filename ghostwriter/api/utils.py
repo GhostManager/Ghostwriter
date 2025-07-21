@@ -38,6 +38,14 @@ def get_jwt_from_request(request):
     ``request``
         Django ``request`` object
     """
+    if "HTTP_AUTHORIZATION" not in request.META:
+        logger.error("No HTTP_AUTHORIZATION header found in request")
+        return None
+
+    if not request.META.get("HTTP_AUTHORIZATION", "").split(" ")[1:]:
+        logger.error("HTTP_AUTHORIZATION header is empty or malformed")
+        return None
+
     return request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
 
 

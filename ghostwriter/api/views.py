@@ -16,6 +16,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -28,6 +29,7 @@ from allauth_2fa.utils import user_has_valid_totp_device
 from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
+import pytz
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
@@ -838,6 +840,98 @@ class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):
                 codename_verified = True
         data = {
             "codename": codename,
+        }
+        return JsonResponse(data, status=self.status)
+
+
+class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for creating a user object with the ``createUser`` action."""
+
+    def post(self, request, *args, **kwargs):
+        logger.info(self.input)
+        if not utils.verify_user_is_privileged(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        try:
+            # Check if the provided role is one of the active roles
+            role = self.input["role"].lower()
+            if role not in ["user", "manager", "admin"]:
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Invalid user role", "InvalidUserRole"), status=400
+                )
+
+            # If the user is not an admin, they cannot create users with higher privileges than user
+            if self.user_obj.role != "admin" and role in ["manager", "admin"]:
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Unauthorized to create user with this role", "Unauthorized"), status=401
+                )
+
+            timezone = None
+            if "timezone" in self.input:
+                timezone = self.input["timezone"]
+
+                if timezone not in pytz.all_timezones:
+                    return JsonResponse(
+                        utils.generate_hasura_error_payload("Invalid timezone", "InvalidTimezone"), status=400
+                    )
+
+            user_data = {
+                "username": self.input["username"],
+                "email": self.input["email"],
+                "password": self.input["password"],
+                "name": self.input["name"],
+                "role": role,
+            }
+            user = User.objects.create_user(**user_data)
+
+            if timezone:
+                user.timezone = pytz.timezone(timezone)
+
+            if "enableFindingCreate" in self.input:
+                enable_finding_create = self.input["enableFindingCreate"]
+                user.enable_finding_create = enable_finding_create
+
+            if "enableFindingEdit" in self.input:
+                enable_finding_edit = self.input["enableFindingEdit"]
+                user.enable_finding_edit = enable_finding_edit
+
+            if "enableFindingDelete" in self.input:
+                enable_finding_delete = self.input["enableFindingDelete"]
+                user.enable_finding_delete = enable_finding_delete
+
+            if "enableObservationCreate" in self.input:
+                enable_observation_create = self.input["enableObservationCreate"]
+                user.enable_observation_create = enable_observation_create
+
+            if "enableObservationEdit" in self.input:
+                enable_observation_edit = self.input["enableObservationEdit"]
+                user.enable_observation_edit = enable_observation_edit
+
+            if "enableObservationDelete" in self.input:
+                enable_observation_delete = self.input["enableObservationDelete"]
+                user.enable_observation_delete = enable_observation_delete
+
+            if "require2fa" in self.input:
+                require_2fa = self.input["require2fa"]
+                user.require_2fa = require_2fa
+
+            if "phone" in self.input:
+                phone = self.input["phone"]
+                user.phone = phone
+
+            user.save()
+        except IntegrityError:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("A user with that username already exists", "UserAlreadyExists"), status=400
+            )
+
+        data = {
+            "id": user.pk,
+            "name": user.name,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "result": "success",
         }
         return JsonResponse(data, status=self.status)
 

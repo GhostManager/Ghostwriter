@@ -81,19 +81,24 @@ class HtmlToPptx(BaseHtmlToOOXML):
     tag_h5 = _tag_h
     tag_h6 = _tag_h
 
-    def tag_p(self, el, **kwargs):
+    def tag_p(self, el, par=None, **kwargs):
         self.text_tracking.new_block()
-        par = self.shape.text_frame.add_paragraph()
+        if par is None:
+            par = self.shape.text_frame.add_paragraph()
 
-        par_classes = set(el.attrs.get("class", []))
-        if "left" in par_classes:
-            par.alignment = PP_ALIGN.LEFT
-        if "center" in par_classes:
-            par.alignment = PP_ALIGN.CENTER
-        if "right" in par_classes:
-            par.alignment = PP_ALIGN.RIGHT
-        if "justify" in par_classes:
-            par.alignment = PP_ALIGN.JUSTIFY
+            par_classes = set(el.attrs.get("class", []))
+            if "left" in par_classes:
+                par.alignment = PP_ALIGN.LEFT
+            if "center" in par_classes:
+                par.alignment = PP_ALIGN.CENTER
+            if "right" in par_classes:
+                par.alignment = PP_ALIGN.RIGHT
+            if "justify" in par_classes:
+                par.alignment = PP_ALIGN.JUSTIFY
+        elif any(r.text for r in par.runs):
+            # Might be in a table or something, add a break to simulate another paragraph.
+            run = par.add_run()
+            run.text = "\n"
 
         self.process_children(el, par=par, **kwargs)
 

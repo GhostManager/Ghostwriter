@@ -489,6 +489,7 @@ class FindingsListViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.Finding = FindingFactory._meta.model
+        cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
 
         cls.num_of_findings = 10
@@ -563,12 +564,9 @@ class FindingsListViewTests(TestCase):
 
         response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 0)
-
-        FindingFactory(title=f"Report Finding {self.num_of_findings + 1}")
-        response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
-        self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
+        blank_findings = self.ReportFindingLink.objects.filter(added_as_blank=True, report=self.accessibleReport)
+        self.assertQuerysetEqual(response.context["filter"].qs, list(blank_findings))
 
 
 class FindingDetailViewTests(TestCase):

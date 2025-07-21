@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.12] - 18 July 2025
+
+### Added
+
+* Added a `createUser` mutation to the GraphQL API to allow creating new users
+  * This mutation is useful for creating new users without needing to use the web interface
+  * The mutation requires the `email`, `username`, `password`, `name`, and `role` fields
+  * Only admins can create new users via this mutation
+  * If you choose to allow managers to create users, the mutation will not allow them to create users with the manager or admin roles
+
+## [5.0.11] - 3 July 2025
+
+### Fixed
+
+* Fixed an issue that prevented a new user from configuring a TOTP device on login when `Require 2FA` was checked for their account
+
+## [5.0.10] - 18 June 2025
+
+### Changed
+
+* Changed the findings library filter for findings on reports to clear up confusion (Fixes #622)
+  * The "Return only findings on reports that started as blank findings" used to attempt to filter findings based on the `title` field
+  * That filtering was incorrect and led to results that did not align with the filters intent and tooltip
+  * The filter will now further filter the results to show only findings that started as blank templates
+
+### Fixed
+
+* Fixed disallowing signups not working for the general signup form (i.e., not the SSO signup)
+
 ## [5.0.9] - 3 June 2025
 
 ### Added
