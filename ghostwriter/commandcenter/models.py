@@ -42,6 +42,38 @@ def sanitize(sensitive_thing):
     return sanitized_string
 
 
+class BloodHoundConfiguration(SingletonModel):
+    """
+    BloodHoundConfiguration represents a global BloodHound API integration that can be used to
+    access the BloodHound API of the configured instance.
+    """
+    api_root_url = models.CharField(
+        max_length=255,
+        default="BloodHound API URL",
+        help_text="The URL of the BloodHound instance"
+    )
+
+    api_key_id = models.CharField(
+        max_length=255,
+        default="BloodHound API Key ID",
+        help_text="The ID portion of a BloodHound API Key"
+    )
+
+    api_key_token = models.CharField(
+        max_length=255,
+        default="BloodHound API Key Token",
+        help_text="The token portion of a BloodHound API Key")
+
+    def is_set(self) -> bool:
+        return self.api_root_url != "" and self.api_key_id != "" and self.api_key_token != ""
+
+    def __str__(self):
+        return "BloodHound API Configuration"
+
+    class Meta:
+        verbose_name = "BloodHound API Configuration"
+
+
 class NamecheapConfiguration(SingletonModel):
     enable = models.BooleanField(default=False)
     api_key = models.CharField(max_length=255, default="Namecheap API Key", help_text="Your Namecheap API key")
@@ -357,10 +389,12 @@ class ExtraFieldType(NamedTuple):
     # Returns an "empty" value
     empty_value: Callable[[], Any]
 
+
 def float_widget(*args, **kwargs):
     widget = forms.widgets.NumberInput(*args, **kwargs)
     widget.attrs.setdefault("step", "any")
     return widget
+
 
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
