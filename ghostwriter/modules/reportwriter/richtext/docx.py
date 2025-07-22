@@ -244,12 +244,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
         table._tblPr.xpath("./w:tblW")[0].attrib[
             "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
         ] = "auto"
+        for row_idx, _ in enumerate(table.rows):
+            for cell_idx, _ in enumerate(table.rows[row_idx].cells):
+                table.rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
+                table.rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.w = 0
         return table
 
     def paragraph_for_table_cell(self, cell, td_el):
-        cell._tc.tcPr.tcW.type = "auto"
-        cell._tc.tcPr.tcW.w = 0
-
         def handle_style(key, value):
             if key == "background-color":
                 shade = OxmlElement("w:shd")
