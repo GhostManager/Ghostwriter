@@ -83,9 +83,9 @@ Ghostwriter provides the following extensions in rich text fields:
 
 * `{% for target in targets|compromised %}`: Filters targets by those marked as compromised.
 
-* `{{ start_date|add_days(1) }}`: Adds an amount of business days to the date.
+* `{{ start_date|add_days(1) }}`: Adds an number of business days to the date.
 
-* `{{ start_date|format_datetime("Ymd") }}`: Formats a date according to a [PHP-style format string](https://www.php.net/manual/en/datetime.format.php).
+* `{{ start_date|format_datetime("Ymd") }}`: Formats a date using [Django date format strings](https://docs.djangoproject.com/en/4.2/ref/templates/builtins/#std-templatefilter-date).
 
 * `{{ findings|get_item(0) }}`: Gets an item from a list or dictionary. Unlike `foo.bar` in Jinja, this forcibly uses the Python indexing operator, so it will not conflict with attributes.
 
