@@ -32,7 +32,7 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
-from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportError
@@ -1603,6 +1603,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["export_templates"] = ReportTemplate.objects.filter(
             Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))
+        ctx["global_bloodhound_config"] = BloodHoundConfiguration.get_solo()
         return ctx
 
 

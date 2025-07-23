@@ -14,9 +14,9 @@ class Migration(migrations.Migration):
             name='BloodHoundConfiguration',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('api_root_url', models.CharField(default='BloodHound API URL', help_text='The URL of the BloodHound instance', max_length=255)),
-                ('api_key_id', models.CharField(default='BloodHound API Key ID', help_text='The ID portion of a BloodHound API Key', max_length=255)),
-                ('api_key_token', models.CharField(default='BloodHound API Key Token', help_text='The token portion of a BloodHound API Key', max_length=255)),
+                ('api_root_url', models.CharField(verbose_name='BloodHound API URL', help_text='The URL of the BloodHound instance', max_length=255, default="", blank=True)),
+                ('api_key_id', models.CharField(verbose_name='BloodHound API Key ID', help_text='The ID portion of a BloodHound API Key', max_length=255, default="", blank=True)),
+                ('api_key_token', models.CharField(verbose_name='BloodHound API Key Token', help_text='The token portion of a BloodHound API Key', max_length=255, default="", blank=True)),
             ],
             options={
                 'verbose_name': 'BloodHound API Configuration',

@@ -925,29 +925,36 @@ class ReportDataSerializer(CustomModelSerializer):
         return serializer.data
 
     @classmethod
-    def get_bloodhound_findings(cls, obj):
+    def get_bloodhound_findings(cls, obj: Report):
         """
         bloodhound_findings returns a dict of all findings fetched from a BloodHound
         instance
         """
-        bh_config = BloodHoundConfiguration.get_solo()
 
-        if bh_config is None or not bh_config.is_set():
-            # Return an empty findings dict w/ the fetched field set to false
-            return {
-                "findings": [],
-                "finding_assets": {},
-                "fetched": False,
-            }
+        if obj.project.has_bloodhound():
+            url = obj.project.bloodhound_api_root_url
+            key_id = obj.project.bloodhound_api_key_id
+            key_token = obj.project.bloodhound_api_key_token
+        else:
+            global_config = BloodHoundConfiguration.get_solo()
+            if global_config is None or not global_config.is_set():
+                return {
+                    "findings": [],
+                    "finding_assets": {},
+                    "fetched": False,
+                }
+            url = global_config.api_root_url
+            key_id = global_config.api_key_id
+            key_token = global_config.api_key_token
 
-        bh_url = urlparse(bh_config.api_root_url)
+        bh_url = urlparse(url)
         bh_client = APIClient(
             scheme=bh_url.scheme,
             host=bh_url.hostname,
             port=bh_url.port,
             credentials=Credentials(
-                token_id=bh_config.api_key_id,
-                token_key=bh_config.api_key_token,
+                token_id=key_id,
+                token_key=key_token,
             ),
         )
 
@@ -958,7 +965,7 @@ class ReportDataSerializer(CustomModelSerializer):
 
         findings_response = bh_client.get_findings()
         logger.info(
-            f"Loaded {len(findings_response.findings)} findings from BloodHound instance {bh_config.api_root_url}")
+            f"Loaded {len(findings_response.findings)} findings from BloodHound instance {url}")
 
         return {
             "findings": findings_response.findings,

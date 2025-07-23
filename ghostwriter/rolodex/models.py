@@ -15,6 +15,7 @@ from taggit.managers import TaggableManager
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import validate_endpoint
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.validators import validate_ip_range
@@ -214,6 +215,32 @@ class Project(models.Model):
         help_text="Select the end time for each day",
     )
     tags = TaggableManager(blank=True)
+
+    bloodhound_api_root_url = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API URL",
+        help_text="The URL of the BloodHound instance",
+        default="",
+        blank=True,
+        validators=[validate_endpoint],
+    )
+
+    bloodhound_api_key_id = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API Key ID",
+        help_text="The ID portion of a BloodHound API Key",
+        default="",
+        blank=True,
+    )
+
+    bloodhound_api_key_token = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API Key Token",
+        help_text="The token portion of a BloodHound API Key",
+        default="",
+        blank=True,
+    )
+
     # Foreign keys
     client = models.ForeignKey(
         "Client",
@@ -247,9 +274,27 @@ class Project(models.Model):
         ordering = ["-start_date", "end_date", "client", "project_type"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
+        # constraints = [
+        #     models.CheckConstraint(
+        #         check=models.Q(
+        #             bloodhound_api_root_url="",
+        #             bloodhound_api_key_id="",
+        #             bloodhound_api_key_token=""
+        #         ) | models.Q(
+        #             ~models.Q(bloodhound_api_root_url="") &
+        #             ~models.Q(bloodhound_api_key_id="") &
+        #             ~models.Q(bloodhound_api_key_token="")
+        #         ),
+        #         name="rolodex_project_bloodhound_all_or_none_set",
+        #         #violation_error_message="Incomplete Bloodhound API Configuration",
+        #     ),
+        # ]
 
     def get_absolute_url(self):
         return reverse("rolodex:project_detail", args=[str(self.id)])
+
+    def has_bloodhound(self) -> bool:
+        return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
 
     def __str__(self):
         return f"{self.start_date} {self.client} {self.project_type} ({self.codename})"

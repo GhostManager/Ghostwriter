@@ -77,6 +77,9 @@ class ReportExportError(Exception):
         except TypeError as err:
             logger.exception("Template TypeError, may be a bug or an issue with the template")
             raise ReportExportError(f"Invalid template operation: {err}", location) from err
+        except:
+            logger.error("Error occured while rendering %s", location)
+            raise
 
 
 def _process_prefix(input_str: str, soup: bs4.BeautifulSoup, prefix: str):

@@ -73,10 +73,10 @@ class APIException(Exception):
 
 
 class APIClient:
-    def __init__(self, scheme: str, host: str, port: int, credentials: Credentials) -> None:
+    def __init__(self, scheme: str, host: str, port: int | None, credentials: Credentials) -> None:
         self._scheme = scheme
         self._host = host
-        self._port = port
+        self._port = port if port is not None else (443 if scheme == "https" else 80)
         self._credentials = credentials
 
     def _format_url(self, uri: str) -> str:

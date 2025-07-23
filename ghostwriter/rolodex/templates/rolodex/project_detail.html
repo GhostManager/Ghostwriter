@@ -118,6 +118,18 @@
                 Description</a>
             </td>
           </tr>
+          <tr>
+            <td class="text-left bold">Bloodhound</td>
+            <td class="text-left">
+              {% if project.has_bloodhound %}
+                Overwritten: {{ project.bloodhound_api_root_url }}
+              {% elif global_bloodhound_config.is_set %}
+                Global: {{ global_bloodhound_config.api_root_url }}
+              {% else %}
+                Unavailable
+              {% endif %}
+            </td>
+          </tr>
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">
