@@ -9,7 +9,7 @@ from django.views import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
-from django.db.models import Q, OuterRef, Exists
+from django.db.models import Q
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec
