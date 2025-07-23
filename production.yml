@@ -94,7 +94,9 @@ services:
       - "${POSTGRES_PORT}:5432"
 
   nginx:
-    build: ./compose/production/nginx
+    build:
+      context: .
+      dockerfile: ./compose/production/nginx/Dockerfile
     image: ghostwriter_production_nginx
     restart: unless-stopped
     depends_on:
@@ -103,6 +105,7 @@ services:
       - production_data:/app/media
       - production_staticfiles:/app/staticfiles
       - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
       - ./ssl:/ssl
     labels:
       name: ghostwriter_nginx
@@ -169,10 +172,10 @@ services:
     labels:
       name: ghostwriter_graphql
     environment:
-      - ACTIONS_URL_BASE=https://${NGINX_HOST}:${NGINX_PORT}/api
+      - ACTIONS_URL_BASE=http://django:8000/api
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
-      - HASURA_GRAPHQL_AUTH_HOOK=https://${NGINX_HOST}:${NGINX_PORT}/api/webhook
+      - HASURA_GRAPHQL_AUTH_HOOK=http://django:8000/api/webhook
       - HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=/srv/console-assets
       - HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - HASURA_GRAPHQL_DEV_MODE=${HASURA_GRAPHQL_DEV_MODE}
@@ -191,3 +194,15 @@ services:
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
+
+  collab-server:
+    build:
+      context: .
+      dockerfile: ./compose/production/collab-server/Dockerfile
+    image: ghostwriter_production_collab_server
+    restart: unless-stopped
+    #depends_on:
+    #  - graphql_engine
+    environment:
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}

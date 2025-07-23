@@ -25,9 +25,9 @@ Templates can contain basic expressions and more complicated statements (e.g., f
 
 To prevent cross-site scripting (XSS), Ghostwriter sanitizes formatted text fields. This sanitization creates a minor conflict with Jinja2 because it will escape `<` and `>` (e.g., replace the character with `%gt;`). If you want to check if something is greater or less than a value, use Jinja2's `gt()` and `lt()` tests.
 
-[https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.gt](https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.gt)
+[https://jinja.palletsprojects.com/en/stable/templates/#jinja-tests.gt](https://jinja.palletsprojects.com/en/stable/templates/#jinja-tests.gt)
 
-[https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.lt](https://jinja.palletsprojects.com/en/3.1.x/templates/#jinja-tests.lt)
+[https://jinja.palletsprojects.com/en/stable/templates/#jinja-tests.lt](https://jinja.palletsprojects.com/en/stable/templates/#jinja-tests.lt)
 
 You can freely use `<` or `>` if you use it inside your report template (not a text field inside Ghostwriter).
 
@@ -226,19 +226,18 @@ Ghostwriter offers some custom filters you can use to modify report values quick
 
 The filter collection is under development and will continue to grow.
 
-| **Filter**                        | **Usage**                                                                                                                                                                                                                                                                                                                                                                           |
-|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `filter_severity(list)`           | Accepts the `findings` variable and filters it with a list of severities. **Example:** This statement loops over only findings rated as *High* or *Medium* severity: `\{% for x in findings|filter_severity(["High", "Medium"]) %}`                                                                                                             |
-| `strip_html(string)`              | Accepts HTML strings and strips all tags.                                                                                                                                                                                                                                                                                                   |
-| `compromised(targets)`            | Accepts `targets` value and filters it to only include hosts marked as compromised.                                                                                                                                                                                                                                                        |
-| `filter_type(list)`               | Accepts the `findings` variable and filters it with a list of categories. **Example:** This statement loops over only findings with the type *Network*: `\{% for x in findings|filter_type(["Network"]) %}`                                                                                                                                   |
-| `add_days(date, days)`            | Provide a date and a number of days (integer) to add or subtract. Use negative numbers for subtraction and Python's date format strings. **Example:** `Feb. 1, 2022 | add_days(-10)`                                                                                                                                                         |
-| `format_datetime(date, format_str)` | Provide a date and a format string. Use Python's date format strings. **Example:** `Feb. 1, 2022 | format_datetime("%B %-d, %Y")`                                                                                                                                                                                                           |
-| `get_item(list, index)`           | Provide a list and an index to retrieve the list item at that index. **Example:** `["ghostwriter", "report", "ghost"] | get_item(0)` returns `ghostwriter`                                                                                                                                                                                |
-| `filter_tags(list, allowlist)`    | Accepts a list of objects (e.g., `findings`) and filters it with a list of tags. **Example:** This statement loops over only findings tagged with `xss`: `\{% for x in findings|filter_tags(["xss"]) %}`                                                                                                                                       |
-| `regex_search(text, regex)`       | Perform a search with a regular expression and get the first match.                                                                                                                                                                                                                                                                       |
-| `replace_blanks(list, placeholder)` | Replace null dictionary keys with `""` (default) or the specified placeholder value. **Example:** Attempting to use Jinja2's `sort` filter with a list of dictionaries with null values will cause an error. This statement loops over all entries in an activity log while also replacing blank values and then sorting: `\{% for entry in log|replace_blanks|sort(attribute="tool") %}` |
-
+| **Filter**                          | **Usage** |
+| ----------------------------------- | --------- |
+| `filter_severity(list)`             | Accepts the `findings` variable and filters it with a list of severities. **Example:** This statement loops over only findings rated as *High* or *Medium* severity: `{% for x in findings \| filter_severity(["High", "Medium"]) %}` |
+| `strip_html(string)`                | Accepts HTML strings and strips all tags. |
+| `compromised(targets)`              | Accepts `targets` value and filters it to only include hosts marked as compromised. |
+| `filter_type(list)`                 | Accepts the `findings` variable and filters it with a list of categories. **Example:** This statement loops over only findings with the type *Network*: `{% for x in findings \| filter_type(["Network"]) %}` |
+| `add_days(date, days)`              | Provide a date and a number of days (integer) to add or subtract. Use negative numbers for subtraction. **Examples:** `"February 1, 2025" \| add_days(-10)` and `{{ project.start_date }} \| add_days(-10)` return "2025 Jan 20" (where `project.start_date`: 2025 Feb 01) |
+| `format_datetime(date, format_str)` | Provide a date and a format string. Use [Django date format strings](https://docs.djangoproject.com/en/3.2/ref/templates/builtins/#std-templatefilter-date). **Examples:** `"February 1, 2025" \| format_datetime("N j, Y")` and `{{ project.start_date }} \| format_datetime("N j, Y")` return "Feb. 1, 2025" (where `project.start_date`: 2025 Feb 01) |
+| `get_item(list, index)`             | Provide a list and an index to retrieve the list item at that index. **Example:** `["ghostwriter", "report", "ghost"] \| get_item(0)` returns `ghostwriter` |
+| `filter_tags(list, allowlist)`      | Accepts a list of objects (e.g., `findings`) and filters it with a list of tags. **Example:** This statement loops over only findings tagged with `xss`: `{% for x in findings \| filter_tags(["xss"]) %}` |
+| `regex_search(text, regex)`         | Perform a search with a regular expression and get the first match. |
+| `replace_blanks(list, placeholder)` | Replace null dictionary keys with `""` (default) or the specified placeholder value. **Example:** Attempting to use Jinja2's `sort` filter with a list of dictionaries with null values will cause an error. This statement loops over all entries in an activity log while also replacing blank values and then sorting: `{% for entry in log \| replace_blanks \| sort(attribute="tool") %}` |
 
 ### Subdocuments
 

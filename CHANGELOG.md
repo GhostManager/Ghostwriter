@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 23 July 2025
+
+### Added
+
+* Introduced collaborative editing server and client-side components for real-time form collaboration
+  * This feature allows multiple users to edit the same form or field simultaneously
+  * The collaborative editing experience applies to report fields, findings, and observations for now
+  * We will expand this feature to other areas of Ghostwriter in future releases
+* Added new JavaScript/TypeScript frontend infrastructure with React components and GraphQL integration
+* Updated software dependencies to the latest versions, including Django and PostgreSQL
+  * **Important**: Upgrading an existing Ghostwriter v5 installation will require upgrading the database to v16
+    * Make a backup of your database before upgrading (`./ghostwriter-cli backup` or a server snapshot)
+    * Run `./ghostwriter-cli down`
+    * Update your release (e.g., `git pull`)
+    * Run`./ghostwriter-cli pg-upgrade`
+    * Run `./ghostwriter-cli containers build`
+
+### Changed
+
+* Replaced the TinyMCE WYSIWYG editor with the new Tiptap editor for collaborative writing
+  * TinyMCE is still used in some parts of Ghostwriter that are outside the collaborative editing experience
+  * This new editor looks different, but it offers all the same formatting features
+  * The new editor supports collaborative editing, allowing multiple users to edit the same document simultaneously
+  * You will no longer see a "Save" or "Submit" button as your work is saved automatically as part of the collaborative editing experience
+  * You can now insert image evidence and see a preview of it inline with your text as you work
+* Updated the Ghostwriter CLI binaries to v0.2.26
+  * These binaries include a new `tagcleanup` command to help you clean up unused or duplicated tags in your Ghostwriter instance
+
 ## [5.0.12] - 18 July 2025
 
 ### Added

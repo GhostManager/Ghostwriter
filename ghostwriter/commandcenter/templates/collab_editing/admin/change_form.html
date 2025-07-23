@@ -1,0 +1,9 @@
+{% extends "admin/change_form.html" %}
+
+{% block messages %}
+    {{ block.super }}
+
+    <ul class="messagelist">
+        <li class="warning">Changes made here will have no effect if the object is open in a collaborative editor!</li>
+    </ul>
+{% endblock %}

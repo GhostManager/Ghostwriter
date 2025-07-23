@@ -1,8 +1,6 @@
 # Standard Libraries
 import logging
-
-# 3rd Party Libraries
-import pytz
+import zoneinfo
 
 # Django Imports
 from django.test import TestCase
@@ -279,14 +277,14 @@ class GeneralConfigurationTests(TestCase):
         entry = GeneralConfigurationFactory(default_timezone="UTC")
 
         # Read
-        self.assertEqual(entry.default_timezone, "UTC")
+        self.assertEqual(entry.default_timezone, zoneinfo.ZoneInfo("UTC"))
         self.assertEqual(entry.pk, 1)
 
         # Update
         entry.default_timezone = "US/Pacific"
         entry.save()
         entry.refresh_from_db()
-        self.assertEqual(entry.default_timezone, pytz.timezone("US/Pacific"))
+        self.assertEqual(entry.default_timezone, zoneinfo.ZoneInfo("US/Pacific"))
 
         # Delete
         entry.delete()

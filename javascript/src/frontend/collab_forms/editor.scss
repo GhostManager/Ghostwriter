@@ -1,0 +1,380 @@
+@use "@szhsin/react-menu/dist/core.css";
+
+@use "./tagify.scss" with (
+    $tag-pad: 0 0.5em
+);
+
+.tagify {
+    text-align: left;
+}
+
+.collab-editor {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+
+    border: 1px solid #aaa;
+    background-color: #fafafa;
+
+    text-align: left;
+
+    .control-group {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+
+        background-color: #eee;
+        border-bottom: 1px solid #aaa;
+
+        font-size: 0.9rem;
+
+        // Show on top of editor items, in particular highlight
+        z-index: 1;
+
+        position: sticky;
+        top: 0;
+    }
+
+    .button-group {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .separator {
+        border-left: 1px solid #aaa;
+    }
+
+    button {
+        appearance: none;
+        background: none;
+        border: none;
+        font-size: 0.9rem;
+
+        padding-top: 0.3rem;
+        padding-bottom: 0.3rem;
+        margin: 0.1rem;
+        border-radius: 0.3rem;
+
+        cursor: pointer;
+
+        &.is-active {
+            background-color: #ccc;
+        }
+
+        &:hover,
+        &:active {
+            background-color: #aaa;
+        }
+    }
+}
+
+.collab-edit-toolbar-menu {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+
+    .szh-menu__item {
+        font-size: 0.9rem;
+
+        padding: 0.3rem 0.5rem;
+        margin: 0.1rem;
+        border-radius: 0.3rem;
+
+        &.is-active {
+            background-color: #ccc;
+        }
+    }
+}
+
+.tiptap {
+    min-height: 100px;
+    font-family: sans-serif;
+    color: #000;
+    overflow-wrap: break-word;
+    padding: 0.3rem;
+
+    &,
+    blockquote {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    p,
+    blockquote {
+        margin: 0;
+        font-weight: unset;
+        font-family: unset;
+        color: inherit;
+    }
+
+    blockquote {
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 2rem;
+        margin-right: 2rem;
+        padding: 0.5em;
+        background-color: #ccc;
+    }
+
+    code {
+        font-family: monospace;
+        font-weight: normal;
+        font-size: unset;
+        color: inherit;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        margin: 0;
+        color: inherit;
+        text-align: start;
+    }
+
+    ul,
+    ol {
+        padding: 0 1rem;
+        margin: 0 1rem 0 0.4rem;
+    }
+
+    pre {
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 1rem;
+        margin-right: 1rem;
+        color: inherit;
+    }
+
+    table {
+        border-collapse: collapse;
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 1rem;
+        margin-right: 1rem;
+        overflow: hidden;
+        table-layout: auto;
+        width: unset;
+
+        td,
+        th {
+            border: 1px solid #444;
+            border-radius: 0;
+            box-sizing: border-box;
+            height: 2rem;
+            min-width: 2rem;
+            padding: 6px 8px;
+            position: relative;
+            vertical-align: top;
+            color: inherit;
+            text-align: inherit;
+
+            > * {
+                margin-bottom: 0;
+            }
+        }
+
+        th {
+            background-color: #ccc;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .selectedCell:after {
+            background: rgba(190, 190, 255, 0.4);
+            content: "";
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            pointer-events: none;
+            position: absolute;
+            z-index: 2;
+        }
+    }
+
+    .tableWrapper {
+        margin: 1.5rem 0;
+        overflow-x: auto;
+    }
+
+    .collab-table-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+
+        > .collab-table-caption {
+            align-self: center;
+            padding-left: 3rem;
+            padding-right: 3rem;
+
+            .collab-table-caption-prefix {
+                color: #33c;
+            }
+        }
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid #aaa;
+        cursor: pointer;
+        margin: 1rem 0;
+
+        &.ProseMirror-selectednode {
+            border-top: 1px solid rgba(190, 190, 255, 1);
+        }
+    }
+
+    div.page-break {
+        display: flex;
+        flex-direction: row;
+        gap: 0.5rem;
+        align-items: center;
+
+        cursor: pointer;
+        margin: 1rem 0;
+
+        .page-break-text {
+            color: #aaa;
+        }
+
+        .page-break-line {
+            border-top: 1px solid #aaa;
+            flex-grow: 1;
+        }
+
+        &.ProseMirror-selectednode .page-break-text {
+            color: rgba(190, 190, 255, 1);
+        }
+
+        &.ProseMirror-selectednode .page-break-line {
+            border-top: 1px solid rgba(190, 190, 255, 1);
+        }
+    }
+
+    .node-evidence {
+        width: fit-content;
+    }
+    .node-evidence.ProseMirror-selectednode .richtext-evidence {
+        color: #fff;
+        background-color: #88c;
+    }
+    .richtext-evidence {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        padding: 1rem;
+        margin-left: 1rem;
+        margin-right: 1rem;
+        border-radius: 0.9rem;
+        background-color: #ddd;
+
+        img {
+            width: 300px;
+        }
+        .richtext-evidence-no-preview {
+            font-size: larger;
+        }
+        .richtext-evidence-missing {
+            font-size: larger;
+            color: #f77;
+        }
+    }
+
+    a {
+        color: #33c;
+        font-weight: bolder;
+    }
+
+    strong {
+        font-weight: 700;
+    }
+
+    /* Placeholder (at the top) */
+    p.is-editor-empty:first-child::before {
+        color: var(--gray-4);
+        content: attr(data-placeholder);
+        float: left;
+        height: 0;
+        pointer-events: none;
+    }
+
+    /* Collaboration caret */
+    .collaboration-cursor__caret {
+        border-left: 1px solid #0d0d0d;
+        border-right: 1px solid #0d0d0d;
+        margin-left: -1px;
+        margin-right: -1px;
+        pointer-events: none;
+        position: relative;
+        word-break: normal;
+    }
+
+    /* Collaboration caret username */
+    .collaboration-cursor__label {
+        border-radius: 3px 3px 3px 0;
+        color: #0d0d0d;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 600;
+        left: -1px;
+        line-height: normal;
+        padding: 0.1rem 0.3rem;
+        position: absolute;
+        top: -1.4em;
+        user-select: none;
+        white-space: nowrap;
+        z-index: 10;
+    }
+}
+
+ul.collab-focused-users {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.1rem;
+
+    > li {
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px 3px 3px 0;
+        color: #0d0d0d;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 600;
+        user-select: none;
+        white-space: nowrap;
+    }
+}
+
+.collab-connection-status {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 100;
+
+    width: 400px;
+    max-width: 100%;
+    margin: 0;
+}
+
+#collab-form-container {
+    // Add padding for the .collab-connection-status
+    padding-bottom: 60px;
+}
+
+.ReactModal__Overlay {
+    z-index: 50;
+}

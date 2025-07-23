@@ -10,11 +10,25 @@
 
 ![ghostwriter](DOCS/images/logo.png)
 
-Ghostwriter is a Django-based web application designed to be used by an individual or a team of red team operators. The platform tracks and manages client and project information, covert infrastructure assets (e.g., servers and domain names), finding templates, report templates, evidence files, and more.
+Ghostwriter is an open-source platform designed to enhance offensive security operations by simplifying report writing,
+asset tracking, and assessment management. It offers tools for managing clients, creating a reusable findings library,
+and organizing the infrastructure and domains utilized during assessments. With its powerful reporting engine, Ghostwriter
+includes comprehensive collaborative writing features and customizable report templates, allowing teams to produce polished
+deliverables with minimal manual effort.
 
-This data is available to Ghostwriter's reporting engine, which generates complete Word (DOCX) reports using Jinja2 templating and your customized report templates. Ghostwriter can also produce reports in XLSX, PPTX, and JSON formats.
+Ghostwriter comes equipped with "enterprise-level" features, such as role-based access controls, single sign-on authentication,
+and multi-factor authentication. Additionally, it integrates with tools like Mythic C2 and Cobalt Strike to enable automatic
+activity logging. These capabilities make Ghostwriter an ideal centralized and collaborative environment for red teams and
+consultants to efficiently plan, execute, and document their assessments.
 
-Tap into Ghostwriter's GraphQL API to integrate custom project management, reporting workflows, and external tools into Ghostwriter.
+The platform effectively tracks and manages client and project information, covert infrastructure assets (such as servers
+and domain names), finding templates, report templates, evidence files, and more.
+
+This data is accessible to Ghostwriter's reporting engine, which generates comprehensive Word (DOCX) reports using Jinja2
+templating and your customized report templates. Ghostwriter can also produce reports in XLSX, PPTX, and JSON formats.
+
+Furthermore, you can leverage Ghostwriter's GraphQL API to integrate custom project management, reporting workflows,
+and external tools into the platform.
 
 ## Details
 
@@ -26,21 +40,27 @@ This blogpost discusses the design and intent behind Ghostwriter: [Introducing G
 
 The [Ghostwriter Wiki](https://ghostwriter.wiki/) contains everything you need to know to use or customize Ghostwriter.
 
-The wiki covers everything from installation and setup information for first time users to database schemas, the project's code style guide, and how to expand or customize parts of the project to fit your needs.
+The wiki covers everything from installation and setup information for first time users to database schemas, the project's
+code style guide, and how to expand or customize parts of the project to fit your needs.
 
 ## Getting Help
 
 [![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet?logo=slack)](https://slack.specterops.io/)
 
-The quickest way to get help is Slack. The BloodHound Slack Team has a *#ghostwriter* channel for discussing this project and requesting assistance. There is also a *#reporting* channel for discussing various topics related to writing and managing reports and findings.
+The quickest way to get help is Slack. The BloodHound Slack Team has a *#ghostwriter* channel for discussing this project
+and requesting assistance. There is also a *#reporting* channel for discussing various topics related to writing and managing
+reports and findings.
 
 You can submit an issue. If you do, please use the issue template and provide as much information as possible.
 
-Before submitting an issue, review the [Ghostwriter Wiki](https://ghostwriter.wiki/). Many of the common issues new users encounter stem from missing an installation step or an issue with Docker on their host system.
+Before submitting an issue, review the [Ghostwriter Wiki](https://ghostwriter.wiki/). Many of the common issues new users encounter stem from
+missing an installation step or an issue with Docker on their host system.
 
 ## Contributing to the Project
 
-The project team welcomes feedback, new ideas, and external contributions. Please open issues or submit a pull requests! Before submitting a PR, please check open and closed issues for any previous related discussion. Also, the proposed code must follow the [Code Style Guide](https://ghostwriter.wiki/coding-style-guide/style-guide) to be accepted.
+The project team welcomes feedback, new ideas, and external contributions. Please open issues or submit a pull requests!
+Before submitting a PR, please check open and closed issues for any previous related discussion. Also, the proposed code
+must follow the [Code Style Guide](https://ghostwriter.wiki/coding-style-guide/style-guide) to be accepted.
 
 We only ask you to limit PR submissions to those that fix a bug, enhance an existing feature, or add something new.
 
@@ -64,7 +84,9 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 * [@domwhewell](https://github.com/domwhewell)
 * [@KomodoGal](https://github.com/KomodoGal)
 * [@federicodotta](https://github.com/federicodotta)
+* [@smcgu](https://github.com/smcgu)
 
 ## Supporters
 
-Ghostwriter's continuous development would not be possible without [SpecterOps's](https://www.specterops.io/) commitment to transparency and support for open-source development.
+Ghostwriter's continuous development would not be possible without [SpecterOps's](https://www.specterops.io/) commitment to transparency and
+support for open-source development.

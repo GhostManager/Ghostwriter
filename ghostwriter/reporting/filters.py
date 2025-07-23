@@ -206,6 +206,7 @@ class ObservationFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+        self.helper.form_id = "observations-filter-form"
 
         # Determine active state from session (default to False if not available)
         is_active = False

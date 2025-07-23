@@ -325,6 +325,7 @@ class GeneralConfiguration(SingletonModel):
         "Default Timezone",
         default="America/Los_Angeles",
         help_text="Select a default timezone for clients and projects",
+        use_pytz=False,
     )
     hostname = models.CharField(
         max_length=255,
@@ -362,6 +363,7 @@ def float_widget(*args, **kwargs):
     widget.attrs.setdefault("step", "any")
     return widget
 
+# Also edit frontend/src/extra_fields.tsx
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
         display_name="Checkbox",
@@ -411,6 +413,7 @@ EXTRA_FIELD_TYPES = {
 class ExtraFieldModel(models.Model):
     model_internal_name = models.CharField(max_length=255, primary_key=True)
     model_display_name = models.CharField(max_length=255)
+    is_collab_editable = models.BooleanField(default=False)
 
     def __str__(self):
         return "Extra fields for {}".format(self.model_display_name)
@@ -432,6 +435,18 @@ class ExtraFieldSpec(models.Model):
         blank=True,
         default="",
     )
+
+    @classmethod
+    def for_model(cls, model):
+        return cls.objects.filter(target_model=model._meta.label)
+
+    @classmethod
+    def for_instance(cls, instance):
+        return cls.objects.filter(target_model=type(instance)._meta.label)
+
+    @classmethod
+    def initial_json(cls, model):
+        return {v.internal_name: v.initial_value() for v in cls.for_model(model)}
 
     def __str__(self):
         return "Extra Field"
@@ -463,13 +478,6 @@ class ExtraFieldSpec(models.Model):
 
     def empty_value(self):
         return self.field_type_spec().empty_value()
-
-    @classmethod
-    def initial_json(cls, model):
-        obj = {}
-        for spec in cls.objects.filter(target_model=model._meta.label):
-            obj[spec.internal_name] = spec.initial_value()
-        return obj
 
     class Meta:
         verbose_name = "Extra Field"

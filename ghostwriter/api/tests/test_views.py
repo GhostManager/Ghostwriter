@@ -1919,7 +1919,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
                         "note": cls.other_contact.note,
-                        "timezone": cls.other_contact.timezone,
+                        "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": True,
                     },
@@ -1930,7 +1930,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
                         "note": cls.other_contact.note,
-                        "timezone": cls.other_contact.timezone,
+                        "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": cls.other_contact.primary,
                     },
@@ -2340,3 +2340,190 @@ class ApiKeyCreateTests(TestCase):
         self.assertRedirects(response, self.redirect_uri)
         obj = APIKey.objects.get(name="CreateView Test")
         self.assertEqual(obj.user, self.user)
+
+
+class CheckEditPermissionsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.finding = FindingFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:check_permissions")
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        _, token = utils.generate_jwt(user)
+        return {
+            "Hasura-Action-Secret": ACTION_SECRET,
+            "Authorization": f"Bearer {token}"
+        }
+
+    def data(self, hasura_role="user"):
+        return {
+            "input": {"model": "finding", "id": self.finding.id},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+
+    def test_no_access_without_action_secret(self):
+        headers = self.headers(self.manager)
+        del headers["Hasura-Action-Secret"]
+        response = self.client.post(self.uri, content_type="application/json", headers=headers, data=self.data())
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(self.uri, content_type="application/json", headers=headers, data=self.data("admin"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_access_finding_disallowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 403, response.content)
+
+    def test_access_finding_allowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 200, response.content)
+
+    def test_access_finding_not_found(self):
+        data = self.data()
+        data["input"]["id"] += 1024
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=data,
+        )
+        self.assertEquals(response.status_code, 404, response.content)
+
+
+class GetTagsTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.tags = {"severity:high", "att&ck:t1159"}
+        cls.report_finding = ReportFindingLinkFactory(tags=list(cls.tags))
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_get_tags")
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        headers = {
+            "Hasura-Action-Secret": ACTION_SECRET,
+        }
+        if user is not None:
+            _, token = utils.generate_jwt(user)
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def data(self, hasura_role="user"):
+        return {
+            "input": {"model": "report_finding_link", "id": self.report_finding.id},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+
+    def test_get_report_finding_tags_allowed_manager(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
+    def test_get_report_finding_tags_not_allowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(),
+        )
+        self.assertFalse(self.report_finding.user_can_view(self.user))
+        self.assertEquals(response.status_code, 403, response.content)
+        body = response.json()
+        self.assertFalse("tags" in body, body)
+
+    def test_get_report_finding_tags_allowed_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data("admin"),
+        )
+        self.assertEquals(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
+
+class SetTagsTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.tags = {"severity:high", "att&ck:t1159"}
+        cls.report_finding = ReportFindingLinkFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_set_tags")
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        headers = {
+            "Hasura-Action-Secret": ACTION_SECRET,
+        }
+        if user is not None:
+            _, token = utils.generate_jwt(user)
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def data(self, tags, hasura_role="user"):
+        v = {
+            "input": {"model": "report_finding_link", "id": self.report_finding.id, "tags": list(tags)},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+        return v
+
+    def test_set_report_finding_tags_allowed_manager(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data(self.tags),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags, response.content)
+
+    def test_set_report_finding_tags_not_allowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(self.tags),
+        )
+        self.assertEquals(response.status_code, 403, response.content)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), set())
+
+    def test_set_report_finding_tags_allowed_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data(self.tags, "admin"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
