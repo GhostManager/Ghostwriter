@@ -84,6 +84,7 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 * [@domwhewell](https://github.com/domwhewell)
 * [@KomodoGal](https://github.com/KomodoGal)
 * [@federicodotta](https://github.com/federicodotta)
+* [@smcgu](https://github.com/smcgu)
 
 ## Supporters
 

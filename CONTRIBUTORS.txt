@@ -42,3 +42,6 @@ Reported issues and feedback:
 
 Support for configuring evidence image width:
     @reesercollins
+
+Reported issues and submitted pull requests:
+    @smcgu
