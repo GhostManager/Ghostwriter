@@ -115,6 +115,14 @@ INSTALLED_APPS = ["collectfast"] + INSTALLED_APPS  # noqa F405
 AWS_PRELOAD_METADATA = True
 COLLECTFAST_STRATEGY = "collectfast.strategies.filesystem.FileSystemStrategy"
 
+# FILE UPLOAD SIZING
+# Useful settings to configure for GraphQL actions that upload large files like base64 encoded blobs
+# Default values for both are 2.5MiB. The options below up the values to 10MiB.
+# https://docs.djangoproject.com/en/1.11/ref/settings/#file-upload-max-memory-size
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
+# https://docs.djangoproject.com/en/1.11/ref/settings/#data-upload-max-memory-size
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
+
 # LOGGING
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
