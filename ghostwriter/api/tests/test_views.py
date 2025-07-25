@@ -1181,7 +1181,8 @@ class GraphqlUploadEvidenceViewTests(TestCase):
     """Collection of tests for :view:`api:GraphqlUploadEvidenceView`."""
     @classmethod
     def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(password=PASSWORD)
+        cls.disallowed_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("api:graphql_upload_evidence")
         cls.project = ProjectFactory()
         cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
@@ -1215,6 +1216,25 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
         self.assertEqual(evidence.pk, self.report.evidence_set.all().get().pk)
 
+    def test_upload_report_forbidden(self):
+        _, token = utils.generate_jwt(self.disallowed_user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "report": str(self.report.pk),
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertNotEqual(response.status_code, 201, response.content)
+
     def test_upload_finding(self):
         _, token = utils.generate_jwt(self.user)
         data = {
@@ -1238,6 +1258,25 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.caption, data["caption"])
         self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
         self.assertEqual(evidence.pk, self.finding.evidence_set.all().get().pk)
+
+    def test_upload_finding_forbidden(self):
+        _, token = utils.generate_jwt(self.disallowed_user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "finding": str(self.finding.pk),
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertNotEqual(response.status_code, 201, response.content)
 
 
 class GraphqlGenerateCodenameActionTests(TestCase):
