@@ -792,7 +792,7 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
 
 class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
     def post(self, request):
-        if self.user_obj is None or not utils.verify_user_is_privileged(self.user_obj):
+        if self.user_obj is None:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
         form = ApiEvidenceForm(
