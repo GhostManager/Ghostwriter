@@ -16,7 +16,6 @@ from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import validate_endpoint
-from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.validators import validate_ip_range
 
