@@ -39,6 +39,7 @@
         Project</a>
       <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' report.project.client.id %}">Jump
         to Client</a>
+      <a class="dropdown-item icon archive-icon" href="{% url 'reporting:archive' report.id %}">Archive</a>
       <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
     </div>
   </div>
@@ -47,7 +48,7 @@
     <h2>{{ report.title }}</h2>
   </div>
   {% for tag in report.tags.names %}
-    <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    <span class="badge badge-secondary">{{ tag }}</span>
   {% endfor %}
   <hr>
 
@@ -221,6 +222,9 @@
           clicking the <span class="p-1 add-icon"></span> button in the results, or
           by clicking an autocomplete result above.</p>
 
+        <p class="mt-3">Drag and drop findings within a severity category to change its ordering. Edit
+          a finding to change its severity.</p>
+
         <button class="btn btn-primary icon add-icon col-3"
           onclick="attachBlankFinding()"
           data-toggle="tooltip"
@@ -302,7 +306,7 @@
                 <td
                   class="pl-3 text-left align-middle text-left icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
                   <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{ evidence_file.friendly_name|bleach }}
+                    {{ evidence_file.friendly_name }}
                   </a>
                 </td>
                 <td class="align-middle text-left">
@@ -365,7 +369,7 @@
                      class="icon edit-icon-right">{{ field_spec.display_name }}</a>
                 </h6>
                 <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
+                        data-target="#field_spec_{{ field_spec.internal_name }}">Preview
                 </button>
                 {% if not forloop.last %}
                   <hr>{% endif %}
@@ -381,7 +385,7 @@
                      class="icon edit-icon-right">{{ field_spec.display_name }}</a>
                 </h6>
                 <button type="button" class="btn btn-primary col-3 offset-2 icon code-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">View JSON
+                        data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
                 </button>
               </div>
             {% endif %}

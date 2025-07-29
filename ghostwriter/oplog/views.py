@@ -23,8 +23,6 @@ from tablib import Dataset
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
-    get_logs_list,
-    verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec
@@ -249,7 +247,7 @@ def validate_log_selection(user, oplog_id):
     if oplog_id and isinstance(oplog_id, int):
         try:
             oplog = Oplog.objects.get(id=oplog_id)
-            if not verify_access(user, oplog.project):
+            if not oplog.user_can_view(user):
                 bad_selection = True
         except Oplog.DoesNotExist:
             bad_selection = True
@@ -265,8 +263,8 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
     oplog_entry_resource = OplogEntryResource()
     try:
         imported_data = dataset.load(new_entries, format="csv")
-    except csv.Error as exception:  # pragma: no cover
-        logger.error("An error occurred while loading the CSV file for log import: %s", exception)
+    except csv.Error:  # pragma: no cover
+        logger.exception("An error occurred while loading the CSV file for log import")
         messages.error(
             request,
             "Your log file could not be loaded. There may be cells that exceed the 128KB text size limit for CSVs.",
@@ -293,9 +291,10 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
 def handle_errors(request, result):
     """Handle errors from a dry run of an activity log import."""
     row_errors = result.row_errors()
-    for exc in row_errors:
-        error_message = escape_message(f"There was an error in row {exc[0]}: {exc[1][0].error}")
-        logger.error(error_message)
+    for (row, errors) in row_errors:
+        error_message = escape_message(f"There was an error in row {row}: {errors[0].error}")
+        for err in errors:
+            logger.error("Could not import row %d", row, exc_info=err.error)
         messages.error(
             request,
             error_message,
@@ -325,7 +324,7 @@ def oplog_entries_import(request):
     :template:`oplog/oplog_import.html`
     """
 
-    logs = get_logs_list(request.user)
+    logs = Oplog.for_user(request.user)
     if request.method == "POST":
         oplog_id = request.POST.get("oplog_id")
         new_entries = request.FILES["csv_file"].read().decode("iso-8859-1")
@@ -377,8 +376,7 @@ class OplogListView(RoleBasedAccessControlMixin, ListView):
     template_name = "oplog/oplog_list.html"
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = get_logs_list(user)
+        queryset = Oplog.for_user(self.request.user)
         return queryset
 
 
@@ -399,7 +397,7 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
     model = Oplog
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -443,7 +441,7 @@ class OplogCreate(RoleBasedAccessControlMixin, CreateView):
             if pk:
                 try:
                     project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-                    if verify_access(self.request.user, project):
+                    if project.user_can_edit(self.request.user):
                         self.project = project
                 except Project.DoesNotExist:
                     logger.info(
@@ -503,7 +501,7 @@ class OplogUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = OplogForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -533,7 +531,8 @@ class AjaxTemplateMixin:
             split[-1] = "_inner"
             split.append(".html")
             self.ajax_template_name = "".join(split)
-        if request.is_ajax():
+        # NOTE: this is JQuery specific
+        if request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
             self.template_name = self.ajax_template_name
         return super().dispatch(request, *args, **kwargs)
 
@@ -553,7 +552,7 @@ class OplogEntryCreate(RoleBasedAccessControlMixin, AjaxTemplateMixin, CreateVie
     ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().oplog_id.project)
+        return OplogEntry.user_can_create(self.request.user, self.get_object())
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -583,7 +582,7 @@ class OplogEntryUpdate(RoleBasedAccessControlMixin, AjaxTemplateMixin, UpdateVie
     ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().oplog_id.project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -602,7 +601,7 @@ class OplogEntryDelete(RoleBasedAccessControlMixin, DeleteView):
     fields = "__all__"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().oplog_id.project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -618,7 +617,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Oplog
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

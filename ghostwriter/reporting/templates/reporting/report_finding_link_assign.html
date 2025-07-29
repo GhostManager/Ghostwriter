@@ -1,0 +1,64 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Assign Finding{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item">
+        <a
+          data-toggle="tooltip"
+          title="{{ object.report.project.client }}"
+          href="{% url 'rolodex:client_detail' object.report.project.client.id %}"
+        >{{ object.report.project.client }}</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a
+          data-toggle="tooltip"
+          title="{{ object.report.project }}"
+          href="{% url 'rolodex:project_detail' object.report.project.id %}"
+        >{{ object.report.project.start_date }} {{ object.report.project.project_type }}</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a
+          data-toggle="tooltip"
+          title="{{ object.report }}"
+          href="{% url 'reporting:report_detail' object.report.id %}"
+        >
+          {{ object.report }}
+        </a>
+      </li>
+      <li class="breadcrumb-item">
+        {{ object }}
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        Assign
+      </li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <h2>Assign Finding</h2>
+    <h4>{{ object }}</h4>
+  </div>
+  <hr />
+
+  {% if form.errors %}
+  <script>
+    {% for field in form %}
+      {% for error in field.errors %}
+        displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
+      {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+      displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
+    {% endfor %}
+  </script>
+  {% endif %}
+
+  {% crispy form form.helper %}
+{% endblock %}

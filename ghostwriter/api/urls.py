@@ -12,6 +12,7 @@ from ghostwriter.api.views import (
     GraphqlAuthenticationWebhook,
     GraphqlCheckoutDomain,
     GraphqlCheckoutServer,
+    GraphqlUserCreate,
     GraphqlDeleteReportTemplateAction,
     GraphqlDomainCheckoutDelete,
     GraphqlDomainUpdateEvent,
@@ -34,6 +35,9 @@ from ghostwriter.api.views import (
     GraphqlUploadReportTemplateView,
     GraphqlWhoami,
     GraphqlUploadEvidenceView,
+    CheckEditPermissions,
+    GetTags,
+    SetTags,
 )
 
 app_name = "api"
@@ -45,7 +49,7 @@ urlpatterns = [
     path("webhook", csrf_exempt(GraphqlAuthenticationWebhook.as_view()), name="graphql_webhook"),
     path("login", csrf_exempt(GraphqlLoginAction.as_view()), name="graphql_login"),
     path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
-    path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
+    path("createUser", csrf_exempt(GraphqlUserCreate.as_view()), name="graphql_create_user"),
     path(
         "getExtraFieldSpec", csrf_exempt(GraphqlGetExtraFieldSpecAction.as_view()), name="graphql_get_extra_field_spec"
     ),
@@ -116,4 +120,11 @@ urlpatterns = [
     ),
     path("ajax/token/revoke/<int:pk>", ApiKeyRevoke.as_view(), name="ajax_revoke_token"),
     path("token/create", ApiKeyCreate.as_view(), name="ajax_create_token"),
+    path(
+        "check_permissions",
+        csrf_exempt(CheckEditPermissions.as_view()),
+        name="check_permissions"
+    ),
+    path("tags/get", csrf_exempt(GetTags.as_view()), name="graphql_get_tags"),
+    path("tags/set", csrf_exempt(SetTags.as_view()), name="graphql_set_tags"),
 ]

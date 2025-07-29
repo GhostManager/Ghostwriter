@@ -200,6 +200,11 @@ class BaseHtmlToOOXML:
 
         self.process_children(el.children, style=style, **kwargs)
 
+    def tag_mark(self, el, *, style={}, **kwargs):
+        style = style.copy()
+        style["highlight"] = True
+        self.process_children(el.children, style=style, **kwargs)
+
     def tag_table(self, el, **kwargs):
         self.text_tracking.new_block()
         table_width, table_height = self._table_size(el)
@@ -238,6 +243,15 @@ class BaseHtmlToOOXML:
                 self.text_tracking.new_block()
                 par = self.paragraph_for_table_cell(cell, cell_el)
                 self.process_children(cell_el.children, par=par, **kwargs)
+
+    def tag_div(self, el, **kwargs):
+        classes = el.attrs.get("class", [])
+        if "collab-table-wrapper" in classes:
+            table = el.find("table")
+            caption = el.find(class_="collab-table-caption-content")
+            self.tag_table(table, caption=caption, **kwargs)
+        else:
+            logger.warning("Don't know how to handle div: %s", el)
 
     @staticmethod
     def _table_rows(table_el):

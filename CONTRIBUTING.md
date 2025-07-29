@@ -14,7 +14,7 @@ This project and everyone participating in it is governed by the Code of Conduct
 
 Before asking a question, please check for an answer in the wiki: [ghostwriter.wiki](https://ghostwriter/wiki/)
 
-If you still need assistance, you can get in touch via the [SpecterOps/BloodHound Slack](https://ghst.ly/BHSlack) and the #ghostwriter channel.
+If you still need assistance, you can get in touch via the [SpecterOps/BloodHound Slack](https://slack.specterops.io/) and the #ghostwriter channel.
 
 If you'd prefer not to use Slack, you can ask your question in under the _Discussions_ tab. Ask your question under the _Q&A_ section.
 
@@ -38,7 +38,7 @@ First, review the current road map and Kanban board status under the _Projects_ 
 
 Please submit ideas under the _Ideas_ section of the _Discussions_ board. It can be tricky to track enhancement suggestions in issues. If the idea is popular, there might be multiple issues. If the idea might remain "open" for some time it can clutter the _Issues_ section and we'd prefer not to "close" an issue before it is truly done.
 
-Use a format like this one that provides all the encessary context for your idea:
+Use a format like this one that provides all the necessary context for your idea:
 
 * Is your feature request related to a problem? Please describe.
   * A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]

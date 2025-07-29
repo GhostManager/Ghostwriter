@@ -6,13 +6,13 @@
 import logging
 from datetime import datetime
 from urllib.parse import urlparse
+import zoneinfo
 
 # Django Imports
 from django.conf import settings
 from django.utils import dateformat
 
 # 3rd Party Libraries
-import pytz
 from bs4 import BeautifulSoup
 from rest_framework import serializers
 from rest_framework.serializers import (
@@ -424,8 +424,8 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
         return obj.operator.phone
 
     def get_timezone(self, obj):
-        tz = pytz.timezone(str(obj.operator.timezone))
-        return tz.zone
+        tz = zoneinfo.ZoneInfo(str(obj.operator.timezone))
+        return str(tz)
 
 
 class ProjectSubTaskSerializer(CustomModelSerializer):

@@ -5,6 +5,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.1] - 25 July 2025
+
+### Added
+
+* Added a _postgres.conf_ file for the PostgresSQL container and database
+  * This file allows you to customize the PostgreSQL configuration for your Ghostwriter instance
+  * The file is located in the _compose/production/postgres_ directory and can be modified as needed
+
+### Changed
+
+* Changed the default `MAX_CONN_AGE` value to `0` per Django's recommendations for ASGI applications
+* The `MAX_CONN_AGE` value is now controlled by a `POSTGRES_CONN_MAX_AGE` environment variable
+* Increased PostgreSQL's `max_connections` to `150` (up from `100`) to help accommodate increased concurrent connections
+  * This may help with the increased connections that came with the new collaborative editing feature in Ghostwriter v6.0.0
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.27
+    * This update adds a `POSTGRES_CONN_MAX_AGE` value to the _.env_ file to control the maximum age of PostgreSQL connections
+
+### Fixed
+
+* Fixed a permissions issue with the `uplaodEvidence` GraphQL mutation that prevented users from uploading evidence files unless they were a `manager` or `admin`
+
+## [6.0.0] - 23 July 2025
+
+### Added
+
+* Introduced collaborative editing server and client-side components for real-time form collaboration
+  * This feature allows multiple users to edit the same form or field simultaneously
+  * The collaborative editing experience applies to report fields, findings, and observations for now
+  * We will expand this feature to other areas of Ghostwriter in future releases
+* Added new JavaScript/TypeScript frontend infrastructure with React components and GraphQL integration
+* Updated software dependencies to the latest versions, including Django and PostgreSQL
+  * **Important**: Upgrading an existing Ghostwriter v5 installation will require upgrading the database to v16
+    * Make a backup of your database before upgrading (`./ghostwriter-cli backup` or a server snapshot)
+    * Run `./ghostwriter-cli down`
+    * Update your release (e.g., `git pull`)
+    * Run`./ghostwriter-cli pg-upgrade`
+    * Run `./ghostwriter-cli containers build`
+
+### Changed
+
+* Replaced the TinyMCE WYSIWYG editor with the new Tiptap editor for collaborative writing
+  * TinyMCE is still used in some parts of Ghostwriter that are outside the collaborative editing experience
+  * This new editor looks different, but it offers all the same formatting features
+  * The new editor supports collaborative editing, allowing multiple users to edit the same document simultaneously
+  * You will no longer see a "Save" or "Submit" button as your work is saved automatically as part of the collaborative editing experience
+  * You can now insert image evidence and see a preview of it inline with your text as you work
+* Updated the Ghostwriter CLI binaries to v0.2.26
+  * These binaries include a new `tagcleanup` command to help you clean up unused or duplicated tags in your Ghostwriter instance
+
+## [5.0.12] - 18 July 2025
+
+### Added
+
+* Added a `createUser` mutation to the GraphQL API to allow creating new users
+  * This mutation is useful for creating new users without needing to use the web interface
+  * The mutation requires the `email`, `username`, `password`, `name`, and `role` fields
+  * Only admins can create new users via this mutation
+  * If you choose to allow managers to create users, the mutation will not allow them to create users with the manager or admin roles
+
+## [5.0.11] - 3 July 2025
+
+### Fixed
+
+* Fixed an issue that prevented a new user from configuring a TOTP device on login when `Require 2FA` was checked for their account
+
+## [5.0.10] - 18 June 2025
+
+### Changed
+
+* Changed the findings library filter for findings on reports to clear up confusion (Fixes #622)
+  * The "Return only findings on reports that started as blank findings" used to attempt to filter findings based on the `title` field
+  * That filtering was incorrect and led to results that did not align with the filters intent and tooltip
+  * The filter will now further filter the results to show only findings that started as blank templates
+
+### Fixed
+
+* Fixed disallowing signups not working for the general signup form (i.e., not the SSO signup)
+
+## [5.0.9] - 3 June 2025
+
+### Added
+
+* Added an option to exclude archived reports in the report library when viewing completed reports
+* Added observation and report evidence relationships for reports in the GraphQL schema 
+
+### Changed
+
+* The archive task will now use the selected default templates when generating archived reports
+* The archive report action will now display a confirmation prompt to confirm the action
+
+### Fixed
+
+* Fix archive task selecting reports to archive incorrectly
+  * It should now properly archive reports of completed projects that are 90 days (default) past the project end date
+  * It will now catch and log errors in the archive task and continue with other reports (Fixes #617)
+* The archiving task now stops on the first exception
+* Fixed the archive task not deleting evidence files (Fixes #618)
+
+
 ## [5.0.8] - 30 May 2025
 
 ### Added

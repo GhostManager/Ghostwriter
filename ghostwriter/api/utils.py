@@ -38,6 +38,14 @@ def get_jwt_from_request(request):
     ``request``
         Django ``request`` object
     """
+    if "HTTP_AUTHORIZATION" not in request.META:
+        logger.error("No HTTP_AUTHORIZATION header found in request")
+        return None
+
+    if not request.META.get("HTTP_AUTHORIZATION", "").split(" ")[1:]:
+        logger.error("HTTP_AUTHORIZATION header is empty or malformed")
+        return None
+
     return request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
 
 
@@ -138,8 +146,6 @@ def generate_jwt(user, exp=None):
         The :model:`users.User` object for the token
     ``exp``
         The expiration timestamp for the token
-    ``exclude_hasura``
-        If ``True``, the token will not contain the Hasura claims
     """
     jwt_iat = datetime.utcnow()
     if exp:
@@ -225,85 +231,6 @@ def verify_user_is_privileged(user):
     return user.is_privileged
 
 
-def verify_access(user, obj):
-    """
-    Verify that the user has access to a client or project.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    ``obj``
-        Instance of :model:`rolodex.Project` or :model:`rolodex.Client`
-    """
-    if verify_user_is_privileged(user):
-        return True
-
-    if isinstance(obj, Project):
-        projects = get_project_list(user)
-        if obj in projects:
-            return True
-
-    if isinstance(obj, Client):
-        clients = get_client_list(user)
-        if obj in clients:
-            return True
-
-    return False
-
-
-def verify_finding_access(user, mode):
-    """
-    Verify that the user is flagged as being able to create and/or edit findings in the global library.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    ``mode``
-        The mode to check for (``create``, ``edit``, or ``delete``)
-    """
-    if verify_user_is_privileged(user):
-        return True
-
-    if mode == "create" and user.enable_finding_create:
-        return True
-
-    if mode == "edit" and user.enable_finding_edit:
-        return True
-
-    if mode == "delete" and user.enable_finding_delete:
-        return True
-
-    return False
-
-
-def verify_observation_access(user, mode):
-    """
-    Verify that the user is flagged as being able to create and/or edit observations in the global library.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    ``mode``
-        The mode to check for (``create``, ``edit``, or ``delete``)
-    """
-    if verify_user_is_privileged(user):
-        return True
-
-    if mode == "create" and user.enable_observation_create:
-        return True
-
-    if mode == "edit" and user.enable_observation_edit:
-        return True
-
-    if mode == "delete" and user.enable_observation_delete:
-        return True
-
-    return False
-
-
 def get_client_list(user):
     """
     Retrieve a filtered list of :model:`rolodex.Client` entries based on the user's role.
@@ -332,27 +259,6 @@ def get_project_list(user):
         The :model:`users.User` object
     """
     return Project.for_user(user)
-
-
-def get_logs_list(user):
-    """
-    Retrieve a filtered list of :model:`oplog.Oplog` entries based on the user's role.
-
-    Privileged users will receive all logs. Non-privileged users will receive only those entries to which they
-    have access.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    """
-    logs = Oplog.objects.select_related("project")
-    if verify_user_is_privileged(user):
-        logs = logs.all()
-    else:
-        projects = get_project_list(user)
-        logs = logs.filter(project__in=projects).distinct()
-    return logs
 
 
 def get_reports_list(user):

@@ -17,7 +17,8 @@
     "model": "commandcenter.ExtraFieldModel",
     "pk": "reporting.Finding",
     "fields": {
-      "model_display_name": "Findings"
+      "model_display_name": "Findings",
+      "is_collab_editable": true
     }
   },
   {
@@ -45,14 +46,16 @@
     "model": "commandcenter.ExtraFieldModel",
     "pk": "reporting.Report",
     "fields": {
-      "model_display_name": "Reports"
+      "model_display_name": "Reports",
+      "is_collab_editable": true
     }
   },
   {
     "model": "commandcenter.ExtraFieldModel",
     "pk": "reporting.Observation",
     "fields": {
-      "model_display_name": "Observations"
+      "model_display_name": "Observations",
+      "is_collab_editable": true
     }
   }
 ]

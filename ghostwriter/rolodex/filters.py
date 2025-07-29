@@ -2,7 +2,6 @@
 
 # Django Imports
 from django import forms
-from django.db import ProgrammingError
 from django.db.models import Q
 from django.forms.widgets import TextInput
 
@@ -184,16 +183,8 @@ class ProjectFilter(django_filters.FilterSet):
 
     complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label="All Projects", label="Project Status")
 
-    PROJECT_TYPE_CHOICES = []
-    try:
-        for p_type in ProjectType.objects.all():
-            PROJECT_TYPE_CHOICES.append((p_type.pk, p_type))
-    # New installs will not have the ``ProjectType`` table yet and throw a ``ProgrammingError`` exception here
-    except ProgrammingError:
-        pass
-
-    project_type = django_filters.ChoiceFilter(
-        choices=PROJECT_TYPE_CHOICES,
+    project_type = django_filters.ModelChoiceFilter(
+        queryset=lambda _: ProjectType.objects.all(),
         label="Project Type",
         field_name="project_type",
         empty_label="-- Project Type --",

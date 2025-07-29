@@ -29,7 +29,7 @@
     <table id="reportTable" class="tablesorter table table-sm table-hover">
       <thead>
       <tr>
-        <th class="align-middle pr-4 text-left">Created</th>
+        <th class="sorter-sugar align-middle pr-4 text-left">Created</th>
         <th class="align-middle pr-4 text-left">Title</th>
         <th class="sorter-sugar align-middle pr-4 text-left">Updated</th>
         <th class="align-middle pr-4 text-left">Status</th>
@@ -52,17 +52,21 @@
           <td class="align-middle text-left">{{ report.creation|naturalday:"DATE_FORMAT" }}</td>
           <td class="align-middle text-left"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
           <td class="align-middle text-left">{{ report.last_update|naturalday:"DATE_FORMAT" }}</td>
-          {% if report.complete %}
-            {% if report.delivered %}
-              <td class="align-middle text-left"><span class="badge badge-success">Delivered</span></td>
-            {% else %}
-              <td class="align-middle text-left"><span class="badge badge-warning">Awaiting Delivery</span></td>
-            {% endif %}
+          {%  if report.archived %}
+            <td class="align-middle text-left"><span class="badge badge-secondary">Archived</span></td>
           {% else %}
-            <td class="align-middle text-left"><span class="badge badge-primary">In Progress</span></td>
+            {% if report.complete %}
+              {% if report.delivered %}
+                <td class="align-middle text-left"><span class="badge badge-success">Delivered</span></td>
+              {% else %}
+                <td class="align-middle text-left"><span class="badge badge-warning">Awaiting Delivery</span></td>
+              {% endif %}
+            {% else %}
+              <td class="align-middle text-left"><span class="badge badge-primary">In Progress</span></td>
+            {% endif %}
           {% endif %}
           <td class="align-middle text-left">{{ report.created_by }}</td>
-          <td class="align-middle text-left">
+          <td class="align-middle align-middle">
             <button title="Set this report as your active report" href="javascript:void(0)"
                class="clickable-link js-activate-report btn btn-secondary"
                activate-report-csrftoken="{{ csrf_token }}"

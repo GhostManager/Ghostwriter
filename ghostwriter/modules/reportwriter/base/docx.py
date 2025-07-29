@@ -115,18 +115,18 @@ class ExportDocxBase(ExportBase):
         self.title_case_exceptions = global_report_config.title_case_exceptions.split(",")
 
     def run(self) -> io.BytesIO:
-        self.create_styles()
-
-        rich_text_context = self.map_rich_texts()
-        docx_context = deep_copy_with_copiers(
-            rich_text_context,
-            {
-                LazilyRenderedTemplate: self.render_rich_text_docx,
-                HtmlAndRich: lambda v: v.rich,
-            },
-        )
-
         try:
+            self.create_styles()
+
+            rich_text_context = self.map_rich_texts()
+            docx_context = deep_copy_with_copiers(
+                rich_text_context,
+                {
+                    LazilyRenderedTemplate: self.render_rich_text_docx,
+                    HtmlAndRich: lambda v: v.rich,
+                },
+            )
+
             ReportExportError.map_jinja2_render_errors(
                 lambda: self.word_doc.render(docx_context, self.jinja_env, autoescape=True), "the DOCX template"
             )
@@ -152,7 +152,7 @@ class ExportDocxBase(ExportBase):
         """
         Creates default styles
         """
-        styles = self.word_doc.styles
+        styles = self.word_doc.get_docx().styles
         if "CodeBlock" not in styles:
             codeblock_style = styles.add_style("CodeBlock", WD_STYLE_TYPE.PARAGRAPH)
             codeblock_style.base_style = styles["Normal"]
