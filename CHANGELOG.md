@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.0.1] - 25 July 2025
+## [6.0.1] - 30 July 2025
 
 ### Added
 
@@ -21,10 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * This may help with the increased connections that came with the new collaborative editing feature in Ghostwriter v6.0.0
 * Updated the pre-built Ghostwriter CLI binaries to v0.2.27
     * This update adds a `POSTGRES_CONN_MAX_AGE` value to the _.env_ file to control the maximum age of PostgreSQL connections
+* Updated the Ghostwriter CLI binaries to v0.2.28
+  * This update adds the collaborative editing and development frontend servers to the `running` and `logs` commands
 
 ### Fixed
 
-* Fixed a permissions issue with the `uplaodEvidence` GraphQL mutation that prevented users from uploading evidence files unless they were a `manager` or `admin`
+* Fixed a permissions issue with the `uploadEvidence` GraphQL mutation that prevented users from uploading evidence files unless they were a `manager` or `admin`
+* Fixed collaborative editing not working for boolean custom fields
 
 ## [6.0.0] - 23 July 2025
 
