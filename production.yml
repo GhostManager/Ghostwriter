@@ -201,8 +201,10 @@ services:
       dockerfile: ./compose/production/collab-server/Dockerfile
     image: ghostwriter_production_collab_server
     restart: unless-stopped
-    #depends_on:
-    #  - graphql_engine
+    depends_on:
+      - graphql_engine
+    labels:
+      name: ghostwriter_collab
     environment:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}

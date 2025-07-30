@@ -135,16 +135,24 @@ services:
     command: /start-queue
 
   frontend:
-    image: node:21-alpine
+    build:
+      context: .
+      dockerfile: ./compose/local/node/Dockerfile
+    image: ghostwriter_frontend
     volumes:
       - ./javascript:/app
     working_dir: /app
     command: sh -c 'npm install && exec npm run watch-frontend-dev'
+    labels:
+      name: ghostwriter_frontend
     environment:
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
 
   collab-server:
-    image: node:21-alpine
+    build:
+      context: .
+      dockerfile: ./compose/local/node/Dockerfile
+    image: ghostwriter_collab_server
     depends_on:
       - graphql_engine
     volumes:
@@ -152,6 +160,8 @@ services:
       - local_node_modules:/app/node_modules
     working_dir: /app
     command: sh -c 'npm install && npm run build-collab-server-dev && exec npm run run-collab-server'
+    labels:
+      name: ghostwriter_collab
     environment:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
