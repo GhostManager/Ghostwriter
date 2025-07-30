@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed a permissions issue with the `uploadEvidence` GraphQL mutation that prevented users from uploading evidence files unless they were a `manager` or `admin`
 * Fixed collaborative editing not working for boolean custom fields
+* Fixed permission errors that could occur when trying to add an observation from a search result without permission
 
 ## [6.0.0] - 23 July 2025
 
