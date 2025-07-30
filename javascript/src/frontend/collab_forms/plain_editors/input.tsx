@@ -8,6 +8,7 @@ import { usePlainField } from "./field";
 
 export function BaseInput<T>(props: {
     provider: HocuspocusProvider;
+    map?: Y.Map<any>;
     mapKey: string;
     connected: boolean;
     toString: (v: T) => string;
@@ -16,8 +17,10 @@ export function BaseInput<T>(props: {
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }) {
     const map = useMemo(
-        () => props.provider.document.get("plain_fields", Y.Map<any>)!,
-        [props.provider]
+        () =>
+            props.map ??
+            props.provider.document.get("plain_fields", Y.Map<any>)!,
+        [props.map, props.provider]
     );
     const [docValue, setDocValue] = usePlainField<T>(
         map,
@@ -77,6 +80,7 @@ const identity = (v: string) => v;
 
 export function PlainTextInput(props: {
     provider: HocuspocusProvider;
+    map?: Y.Map<any>;
     mapKey: string;
     connected: boolean;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
@@ -87,9 +91,7 @@ export function PlainTextInput(props: {
     };
     return (
         <BaseInput
-            provider={props.provider}
-            mapKey={props.mapKey}
-            connected={props.connected}
+            {...props}
             inputProps={inputProps}
             parse={identity}
             toString={identity}
@@ -108,6 +110,7 @@ const tryToNumber = (v: string) => {
 
 export function NumberInput(props: {
     provider: HocuspocusProvider;
+    map?: Y.Map<any>;
     mapKey: string;
     connected: boolean;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
@@ -138,6 +141,7 @@ const tryToInteger = (v: string) => {
 
 export function IntegerInput(props: {
     provider: HocuspocusProvider;
+    map?: Y.Map<any>;
     mapKey: string;
     connected: boolean;
     inputProps?: React.HTMLAttributes<HTMLInputElement>;
@@ -161,13 +165,16 @@ export function IntegerInput(props: {
 export function CheckboxInput(props: {
     connected: boolean;
     provider: HocuspocusProvider;
+    map?: Y.Map<any>;
     mapKey: string;
     inputProps?: React.HTMLAttributes<HTMLInputElement>;
     defaultValue?: boolean;
 }) {
     const map = useMemo(
-        () => props.provider.document.get("plain_fields", Y.Map<any>),
-        [props.provider]
+        () =>
+            props.map ??
+            props.provider.document.get("plain_fields", Y.Map<any>),
+        [props.map, props.provider]
     );
     const [docValue, setDocValue] = usePlainField<boolean>(
         map,
