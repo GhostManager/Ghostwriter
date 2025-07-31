@@ -311,17 +311,20 @@ class CompanyInformation(SingletonModel):
     company_address = models.TextField(
         default="14 N Moore St, New York, NY 10013",
         help_text="Company address to reference in reports",
+        blank=True,
     )
     company_twitter = models.CharField(
         "Twitter Handle",
         max_length=255,
         default="@specterops",
         help_text="Twitter handle to reference in reports",
+        blank=True,
     )
     company_email = models.CharField(
         max_length=255,
         default="info@specterops.io",
         help_text="Email address to reference in reports",
+        blank=True,
     )
 
     def __str__(self):
@@ -404,6 +407,39 @@ class GeneralConfiguration(SingletonModel):
 
     class Meta:
         verbose_name = "General Settings"
+
+
+class BannerConfiguration(SingletonModel):
+    enable_banner = models.BooleanField(default=False, help_text="Enable the homepage banner to display for all users")
+    banner_title = models.CharField(
+        max_length=255,
+        default="",
+        help_text="Title to display in the banner",
+        blank=True,
+    )
+    banner_message = models.CharField(
+        max_length=255,
+        default="",
+        help_text="Message to display in the banner",
+        blank=True,
+    )
+    banner_link = models.CharField(
+        max_length=255,
+        default="",
+        help_text="URL to link the banner to (leave blank for no link)",
+        blank=True,
+    )
+    public_banner = models.BooleanField(
+        default=False,
+        help_text="Display the banner to all users, including unauthenticated users on the login page",
+    )
+    expiry_date = models.DateTimeField("Display Until", help_text="Select the date when the banner should stop displaying (leave blank if it should not expire)", blank=True, null=True)
+
+    def __str__(self):
+        return "Banner Settings"
+
+    class Meta:
+        verbose_name = "Banner Configuration"
 
 
 class IndentingJsonEncoder(json.JSONEncoder):
