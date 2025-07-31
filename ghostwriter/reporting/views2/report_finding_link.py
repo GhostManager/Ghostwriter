@@ -66,7 +66,7 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         except (Report.DoesNotExist, ValueError):
             return JsonResponse({
                 "result": "error",
-                "message": "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+                "message": "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
             }, status=400)
 
         if not ReportFindingLink.user_can_create(self.request.user, report):

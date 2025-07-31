@@ -307,7 +307,7 @@ class AssignFindingTests(TestCase):
 
         response = self.client_mgr.post(self.uri)
         message = (
-            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
         )
         data = {"result": "error", "message": message}
 
@@ -322,7 +322,7 @@ class AssignFindingTests(TestCase):
 
         response = self.client_mgr.post(self.uri)
         message = (
-            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
         )
         data = {"result": "error", "message": message}
 
@@ -2911,3 +2911,89 @@ class ObservationDeleteViewTests(TestCase):
         )
         self.assertEqual(response.context["object_to_be_deleted"], self.observation.title)
 
+
+class AssignObservationViewTests(TestCase):
+    """Collection of tests for :view:`reporting.AssignObservation`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.observation = ObservationFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+
+        cls.uri = reverse("reporting:ajax_assign_observation", kwargs={"pk": cls.observation.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_response_with_session_vars_with_permissions(self):
+        self.session = self.client_auth.session
+        self.session["active_report"] = {}
+        self.session["active_report"]["id"] = self.report.id
+        self.session["active_report"]["title"] = self.report.title
+        self.session.save()
+
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": self.report.id, "title": self.report.title},
+        )
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.report.project)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_response_with_report_id(self):
+        self.session = self.client_mgr.session
+        self.session["active_report"] = {}
+        self.session.save()
+
+        response = self.client_mgr.post(self.uri, data={"report": self.report.id})
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_response_with_bad_session_vars(self):
+        self.session = self.client_mgr.session
+        self.session["active_report"] = {}
+        self.session["active_report"]["id"] = 999
+        self.session["active_report"]["title"] = self.report.title
+        self.session.save()
+
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": 999, "title": self.report.title},
+        )
+
+        response = self.client_mgr.post(self.uri)
+        message = (
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        )
+        data = {"result": "error", "message": message}
+
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_response_without_session_vars(self):
+        self.session = self.client_mgr.session
+        self.session["active_report"] = None
+        self.session.save()
+
+        self.assertEqual(self.session["active_report"], None)
+
+        response = self.client_mgr.post(self.uri)
+        message = (
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        )
+        data = {"result": "error", "message": message}
+
+        self.assertJSONEqual(force_str(response.content), data)
