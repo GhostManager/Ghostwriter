@@ -138,7 +138,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/node/Dockerfile
-    image: ghostwriter_frontend
+    image: ghostwriter_local_frontend
     volumes:
       - ./javascript:/app
     working_dir: /app
@@ -152,7 +152,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/node/Dockerfile
-    image: ghostwriter_collab_server
+    image: ghostwriter_local_collab_server
     depends_on:
       - graphql_engine
     volumes:

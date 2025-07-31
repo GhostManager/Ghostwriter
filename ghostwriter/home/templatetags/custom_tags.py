@@ -1,13 +1,14 @@
 """This contains the custom template tags used by the Home application."""
 
 # Standard Libraries
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # Django Imports
 from django import template
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
+from django.utils import timezone
 
 # 3rd Party Libraries
 from allauth_2fa.utils import user_has_valid_totp_device
@@ -202,3 +203,17 @@ def hide_quickstart(request):
     """
     user_profile = UserProfile.objects.get(user=request.user)
     return user_profile.hide_quickstart
+
+
+@register.filter(name="is_past")
+def is_past(value):
+    """
+    Return True if the given datetime is in the past.
+    """
+    if not value or not isinstance(value, datetime):
+        return False
+    now = timezone.now()
+    # Ensure both are timezone-aware for comparison
+    if timezone.is_naive(value):
+        value = timezone.make_aware(value, timezone.get_current_timezone())
+    return value < now

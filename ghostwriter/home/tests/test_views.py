@@ -180,6 +180,11 @@ class TemplateTagTests(TestCase):
         hide_quickstart = custom_tags.hide_quickstart(request)
         self.assertEqual(hide_quickstart, False)
 
+        past_datetime = datetime.min
+        future_datetime = datetime.max
+        self.assertTrue(custom_tags.is_past(past_datetime))
+        self.assertFalse(custom_tags.is_past(future_datetime))
+
 
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""

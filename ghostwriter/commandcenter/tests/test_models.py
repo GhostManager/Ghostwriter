@@ -7,6 +7,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    BannerConfigurationFactory,
     CloudServicesConfigurationFactory,
     CompanyInformationFactory,
     GeneralConfigurationFactory,
@@ -296,3 +297,36 @@ class GeneralConfigurationTests(TestCase):
             self.assertEqual(entry.pk, 1)
         except Exception:
             self.fail("GeneralConfiguration model `get_solo` method failed unexpectedly!")
+
+
+class BannerConfigurationTests(TestCase):
+    """Collection of tests for :model:`commandcenter.BannerConfiguration`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.BannerConfiguration = BannerConfigurationFactory._meta.model
+
+    def test_crud_finding(self):
+        # Create
+        entry = BannerConfigurationFactory(enable_banner=False)
+
+        # Read
+        self.assertEqual(entry.enable_banner, False)
+        self.assertEqual(entry.pk, 1)
+
+        # Update
+        entry.enable_banner = True
+        entry.save()
+        entry.refresh_from_db()
+        self.assertEqual(entry.enable_banner, True)
+
+        # Delete
+        entry.delete()
+        self.assertFalse(self.BannerConfiguration.objects.all().exists())
+
+    def test_get_solo_method(self):
+        try:
+            entry = self.BannerConfiguration.get_solo()
+            self.assertEqual(entry.pk, 1)
+        except Exception:
+            self.fail("BannerConfiguration model `get_solo` method failed unexpectedly!")
