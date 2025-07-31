@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added a _postgres.conf_ file for the PostgresSQL container and database
   * This file allows you to customize the PostgreSQL configuration for your Ghostwriter instance
   * The file is located in the _compose/production/postgres_ directory and can be modified as needed
+* Added the option to display a global banner at the top of any page for announcements
+  * The banner has a configurable title and message content
+  * You can optionally include a link that will appear as "Learn more" below the message
+  * There is an expiration date to make the banner stop displaying after a specified date and time
+  * There is a "public" flag to allow the banner to be displayed to unauthenticated users on the login page
+  * If a user dismisses the banner, the banner will stay hidden until the banner's content changes
+    * Ghostwrtier tracks the dismissal in the browser's local storage, so the dismissal will not persist across browsers or devices
 
 ### Changed
 
