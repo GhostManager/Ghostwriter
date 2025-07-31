@@ -1,4 +1,6 @@
-{% load static i18n compress custom_tags %}
+{% load static i18n compress custom_tags settings_tags bleach_tags %}
+
+{% get_solo "commandcenter.BannerConfiguration" as banner_config %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -404,6 +406,25 @@
       </div>
     {% endif %}
 
+    {%  comment %} MOTD Banner {% endcomment %}
+    {% if banner_config.enable_banner and not banner_config.expiry_date|is_past %}
+      {% if user.is_authenticated or banner_config.public_banner %}
+        <div id="globalBanner" class="container-fluid mb-3" expiryDate="{{ expiry_date }}">
+          <div class="alert alert-success text-center mb-0" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="position: absolute; right: 0.5rem; top: 0.5rem;">
+              <span aria-hidden="true">&times;</span>
+            </button>
+
+            {% if banner_config.banner_title %}<h4 class="alert-heading mt-0">{{ banner_config.banner_title|bleach }}</h4>{% endif %}
+            {{ banner_config.banner_message|bleach }}
+            {% if banner_config.banner_link %}
+              <p class="mt-2 mb-0"><a href="{{ banner_config.banner_link|bleach }}" class="alert-link">Learn more</a></p>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
     {%  comment %} Page Content Goes Here {% endcomment %}
     <div>
       {% block content %}{% endblock %}
@@ -691,10 +712,32 @@
       }
     });
 
-  // Toggle the clicked dropdown
-  $(targetDropdown).collapse('toggle');
-});
+    // Toggle the clicked dropdown
+    $(targetDropdown).collapse('toggle');
+  });
 
+  // Helper to get banner content as a unique key
+  function getBannerKey() {
+    const title = document.querySelector('#globalBanner .alert-heading')?.innerText || '';
+    const message = document.querySelector('#globalBanner .alert')?.innerText || '';
+    // Simple hash: base64 of title+message
+    return btoa(encodeURIComponent(title + message));
+  }
+
+  const bannerKey = getBannerKey();
+  const bannerStorageKey = 'globalBannerDismissed';
+  const bannerDismissedKey = localStorage.getItem(bannerStorageKey);
+
+  // Hide banner if dismissed and content matches
+  if (bannerDismissedKey === bannerKey) {
+    document.getElementById('globalBanner').style.display = 'none';
+  }
+
+  // Handle close button click
+  document.querySelector('#globalBanner .close')?.addEventListener('click', function() {
+    localStorage.setItem(bannerStorageKey, bannerKey);
+    document.getElementById('globalBanner').style.display = 'none';
+  });
 </script>
 
 {% comment %} Blocks used by forms that use Bootstrap tabs {% endcomment %}

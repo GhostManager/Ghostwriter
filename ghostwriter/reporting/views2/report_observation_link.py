@@ -58,10 +58,10 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     def post(self, *args, **kwargs):
         obs: Observation = self.get_object()
 
-        # Get report
+        # Get the report object
         try:
             if "report" in self.request.POST:
-                # If the POST includes an `report` value, use that
+                # If the POST includes a `report` value, use that
                 report_id = self.request.POST["report"]
                 report = Report.objects.get(pk=report_id)
             else:
@@ -77,7 +77,7 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 "message": "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
             }, status=400)
 
-        if not ReportObservationLink.user_can_create(self.request.user, report):
+        if not report.user_can_edit(self.request.user):
             return ForbiddenJsonResponse()
 
         position = (

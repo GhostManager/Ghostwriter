@@ -1,7 +1,13 @@
 import "../editor.scss";
 
 import { ChainedCommands, Editor } from "@tiptap/core";
-import { EditorProvider, useCurrentEditor } from "@tiptap/react";
+import {
+    EditorContent,
+    EditorContext,
+    EditorProvider,
+    useCurrentEditor,
+    useEditor,
+} from "@tiptap/react";
 import { faAlignCenter } from "@fortawesome/free-solid-svg-icons/faAlignCenter";
 import { faBold } from "@fortawesome/free-solid-svg-icons/faBold";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
@@ -20,7 +26,7 @@ import { faUnderline } from "@fortawesome/free-solid-svg-icons/faUnderline";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Menu, SubMenu, MenuButton, MenuItem } from "@szhsin/react-menu";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
@@ -387,13 +393,25 @@ export default function RichTextEditor(props: {
             ),
         [props.provider, props.fragment]
     );
+    const editor = useEditor({
+        extensions,
+    });
+
+    useEffect(() => {
+        editor?.setEditable(props.connected);
+    }, [editor, props.connected]);
 
     return (
-        <div className="collab-editor">
-            <EditorProvider
-                extensions={extensions}
-                slotBefore={<Toolbar extra={props.toolbarExtra} />}
-            ></EditorProvider>
+        <div
+            className={
+                "collab-editor " +
+                (props.connected ? "" : "collab-editor-disabled")
+            }
+        >
+            <EditorContext.Provider value={{ editor }}>
+                <Toolbar extra={props.toolbarExtra} />
+                <EditorContent editor={editor} />
+            </EditorContext.Provider>
         </div>
     );
 }

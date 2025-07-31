@@ -40,6 +40,7 @@
               "configuring-global-settings/introduction-to-command-center",
               "configuring-global-settings/personalizing-company-information",
               "configuring-global-settings/configuring-global-report-options",
+              "configuring-global-settings/configuring-the-announcement-banner",
               {
                 "group": "Configuring APIs",
                 "pages": [

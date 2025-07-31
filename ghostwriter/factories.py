@@ -888,6 +888,19 @@ class GeneralConfigurationFactory(factory.django.DjangoModelFactory):
     default_timezone = random.choice(TIMEZONES)
 
 
+class BannerConfigurationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.BannerConfiguration"
+
+    pk = 1
+    enable_banner = Faker("boolean")
+    banner_title = Faker("word")
+    banner_message = Faker("sentence")
+    banner_link = Faker("url")
+    public_banner = Faker("boolean")
+    expiry_date = Faker("date_time", tzinfo=timezone.utc)
+
+
 class DeconflictionStatusFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.DeconflictionStatus"

@@ -7,6 +7,7 @@ from django import forms
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ReportConfigurationForm
 from ghostwriter.commandcenter.models import (
+    BannerConfiguration,
     CloudServicesConfiguration,
     CompanyInformation,
     ExtraFieldModel,
@@ -26,6 +27,7 @@ admin.site.register(NamecheapConfiguration, SingletonModelAdmin)
 admin.site.register(SlackConfiguration, SingletonModelAdmin)
 admin.site.register(VirusTotalConfiguration, SingletonModelAdmin)
 admin.site.register(GeneralConfiguration, SingletonModelAdmin)
+admin.site.register(BannerConfiguration, SingletonModelAdmin)
 
 
 class ReportConfigurationAdmin(SingletonModelAdmin):
