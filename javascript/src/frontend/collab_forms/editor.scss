@@ -18,6 +18,10 @@
 
     text-align: left;
 
+    &.collab-editor-disabled .tiptap {
+        background-color: #eee;
+    }
+
     .control-group {
         display: flex;
         flex-direction: row;
