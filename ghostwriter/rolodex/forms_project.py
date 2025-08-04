@@ -1340,7 +1340,7 @@ class ProjectForm(forms.ModelForm):
                     css_id="invites",
                 ),
                 CustomTab(
-                    "Bloodhound Integration",
+                    "BloodHound Integration",
                     HTML("<p>Overrides the global configuration (if any)</p>"),
                     "bloodhound_api_root_url",
                     "bloodhound_api_key_id",

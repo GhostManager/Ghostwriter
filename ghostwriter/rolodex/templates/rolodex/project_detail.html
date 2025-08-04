@@ -119,12 +119,12 @@
             </td>
           </tr>
           <tr>
-            <td class="text-left bold">Bloodhound</td>
+            <td class="text-left bold">BloodHound</td>
             <td class="text-left">
               {% if project.has_bloodhound %}
-                Overwritten: {{ project.bloodhound_api_root_url }}
+                Overwritten: <em>{{ project.bloodhound_api_root_url }}</em>
               {% elif global_bloodhound_config.is_set %}
-                Global: {{ global_bloodhound_config.api_root_url }}
+                Global: <em>{{ global_bloodhound_config.api_root_url }}</em>
               {% else %}
                 Unavailable
               {% endif %}

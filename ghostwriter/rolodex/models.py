@@ -298,7 +298,7 @@ class Project(models.Model):
         #             ~models.Q(bloodhound_api_key_token="")
         #         ),
         #         name="rolodex_project_bloodhound_all_or_none_set",
-        #         #violation_error_message="Incomplete Bloodhound API Configuration",
+        #         #violation_error_message="Incomplete BloodHound API Configuration",
         #     ),
         # ]
 

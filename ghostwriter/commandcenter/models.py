@@ -103,7 +103,7 @@ class BloodHoundConfiguration(SingletonModel):
         #             ~models.Q(api_key_token="")
         #         ),
         #         name="commandcenter_bloodhoundconfiguration_all_or_none_set",
-        #         #violation_error_message="Incomplete Bloodhound API Configuration",
+        #         #violation_error_message="Incomplete BloodHound API Configuration",
         #     ),
         # ]
 
