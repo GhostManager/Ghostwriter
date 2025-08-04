@@ -724,7 +724,7 @@ class OplogSanitizeViewTests(TestCase):
             **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIn("One of the fields submitted for sanitization does not exist", force_str(response.content))
+        self.assertIn("No fields selected for sanitization", force_str(response.content))
 
     def test_view_with_empty_fields(self):
         data = {
@@ -769,6 +769,6 @@ class OplogSanitizeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
         self.entry.refresh_from_db()
-        self.assertEqual(self.entry.user_context, None)
+        self.assertEqual(self.entry.user_context, "")
         self.assertEqual(self.entry.command, "some")
-        self.assertEqual(self.entry.extra_fields, {"test_field": None, "test_field_2": "test value"})
+        self.assertEqual(self.entry.extra_fields, {"test_field": "", "test_field_2": "test value"})
