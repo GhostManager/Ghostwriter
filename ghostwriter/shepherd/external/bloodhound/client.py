@@ -1,3 +1,4 @@
+# Standard Libraries
 import base64
 import hashlib
 import hmac
@@ -6,6 +7,10 @@ import logging
 from datetime import datetime
 from typing import Optional, NamedTuple, Dict, Any, List
 
+# Django Imports
+from django.conf import settings
+
+# 3rd Party Libraries
 import requests
 
 logger = logging.getLogger(__name__)
@@ -109,7 +114,7 @@ class APIClient:
             method=method,
             url=self._format_url(uri),
             headers={
-                "User-Agent": "ghostwriter",
+                "User-Agent": f"Ghostwriter {settings.VERSION}",
                 "Authorization": f"bhesignature {self._credentials.token_id}",
                 "RequestDate": datetime_formatted,
                 "Signature": base64.b64encode(digester.digest()),
