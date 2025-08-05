@@ -25,6 +25,7 @@ from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, BloodHoundConfiguration
+from ghostwriter.modules.reportwriter.base import ReportExportError
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
@@ -60,7 +61,7 @@ from ghostwriter.shepherd.models import (
     TransientServer,
 )
 from ghostwriter.shepherd.external.bloodhound import (
-    APIClient, Credentials
+    APIClient as BHClient, Credentials as BHCredentials
 )
 from ghostwriter.users.models import User
 
@@ -948,24 +949,26 @@ class ReportDataSerializer(CustomModelSerializer):
             key_token = global_config.api_key_token
 
         bh_url = urlparse(url)
-        bh_client = APIClient(
-            scheme=bh_url.scheme,
-            host=bh_url.hostname,
-            port=bh_url.port,
-            credentials=Credentials(
-                token_id=key_id,
-                token_key=key_token,
-            ),
-        )
 
-        # This is really helpful during debug since BH versions and API revisions may drift over time
-        bh_version = bh_client.get_version()
-        logger.info(
-            f"BloodHound instance version: {bh_version.server_version} with current API version set to: {bh_version.current_api_version}")
+        try:
+            bh_client = BHClient(
+                scheme=bh_url.scheme,
+                host=bh_url.hostname,
+                port=bh_url.port,
+                credentials=BHCredentials(
+                    token_id=key_id,
+                    token_key=key_token,
+                ),
+            )
+            bh_version = bh_client.get_version()
+            logger.info(
+                f"BloodHound instance version: {bh_version.server_version} with current API version set to: {bh_version.current_api_version}")
 
-        findings_response = bh_client.get_findings()
-        logger.info(
-            f"Loaded {len(findings_response.findings)} findings from BloodHound instance {url}")
+            findings_response = bh_client.get_findings()
+            logger.info(
+                f"Loaded {len(findings_response.findings)} findings from BloodHound instance {url}")
+        except IOError as e:
+            raise ReportExportError(f"Could not fetch findings from {url}. Check the BloodHound configuration.") from e
 
         return {
             "findings": findings_response.findings,
