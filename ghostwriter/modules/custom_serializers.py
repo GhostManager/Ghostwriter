@@ -939,11 +939,7 @@ class ReportDataSerializer(CustomModelSerializer):
         else:
             global_config = BloodHoundConfiguration.get_solo()
             if global_config is None or not global_config.is_set():
-                return {
-                    "findings": [],
-                    "finding_assets": {},
-                    "fetched": False,
-                }
+                return None
             url = global_config.api_root_url
             key_id = global_config.api_key_id
             key_token = global_config.api_key_token
@@ -973,7 +969,6 @@ class ReportDataSerializer(CustomModelSerializer):
         return {
             "findings": findings_response.findings,
             "finding_assets": findings_response.finding_assets,
-            "fetched": True,
         }
 
     def get_tools(self, obj):
