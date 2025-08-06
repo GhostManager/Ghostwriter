@@ -130,6 +130,17 @@
               {% endif %}
             </td>
           </tr>
+          {% if project.has_bloodhound %}
+            <tr>
+              <td></td>
+              <td class="text-left">
+                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" style="display: contents">
+                  {% csrf_token %}
+                  <input type="submit" value="Test Bloodhound Connectivity" />
+                </form>
+              </td>
+            </tr>
+          {% endif %}
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">

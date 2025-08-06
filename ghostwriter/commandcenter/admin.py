@@ -24,7 +24,6 @@ from ghostwriter.singleton.admin import SingletonModelAdmin
 
 admin.site.register(CloudServicesConfiguration, SingletonModelAdmin)
 admin.site.register(CompanyInformation, SingletonModelAdmin)
-admin.site.register(BloodHoundConfiguration, SingletonModelAdmin)
 admin.site.register(NamecheapConfiguration, SingletonModelAdmin)
 admin.site.register(SlackConfiguration, SingletonModelAdmin)
 admin.site.register(VirusTotalConfiguration, SingletonModelAdmin)
@@ -147,6 +146,11 @@ class ExtraFieldModelAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
+
+class BloodhoundConfigurationAdmin(SingletonModelAdmin):
+    change_form_template = "bloodhound_admin_change_form.html"
+
+admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 
 class CollabAdminBase(admin.ModelAdmin):
     """

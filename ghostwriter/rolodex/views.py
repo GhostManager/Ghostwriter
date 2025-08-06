@@ -4,6 +4,7 @@
 import datetime
 import json
 import logging
+from urllib.parse import urlparse
 
 # Django Imports
 from django import forms
@@ -11,7 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
@@ -76,6 +77,7 @@ from ghostwriter.rolodex.models import (
     ProjectSubTask,
     ProjectTarget,
 )
+from ghostwriter.shepherd.external.bloodhound.client import APIClient, Credentials
 from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 
 # Using __name__ resolves to ghostwriter.rolodex.views
@@ -2173,3 +2175,62 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
+
+class BloodhoundApiTestView(RoleBasedAccessControlMixin, View):
+    object: Project | BloodHoundConfiguration
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        if "project" in request.GET:
+            try:
+                project_id = int(request.GET["project"])
+            except ValueError:
+                return self.render_result(request, messages.constants.ERROR, "Project does not exist")
+            self.object = get_object_or_404(Project, pk=project_id)
+        else:
+            self.object = BloodHoundConfiguration.get_solo()
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        if isinstance(self.object, BloodHoundConfiguration):
+            return self.request.user.is_privileged
+        else:
+            return self.object.user_can_view(self.request.user)
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        if isinstance(self.object, BloodHoundConfiguration):
+            if not self.object.is_set():
+                return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
+            url = self.object.api_root_url
+            key_id = self.object.api_key_id
+            key_token = self.object.api_key_token
+        else:
+            if not self.object.has_bloodhound():
+                return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
+            url = self.object.bloodhound_api_root_url
+            key_id = self.object.bloodhound_api_key_id
+            key_token = self.object.bloodhound_api_key_token
+
+        bh_url = urlparse(url)
+        bh_client = APIClient(
+            scheme=bh_url.scheme,
+            host=bh_url.hostname,
+            port=bh_url.port,
+            credentials=Credentials(
+                token_id=key_id,
+                token_key=key_token,
+            ),
+        )
+        try:
+            bh_version = bh_client.get_version()
+        except (IOError, json.JSONDecodeError):
+            logger.exception("BH connection test failed")
+            return self.render_result(request, messages.constants.ERROR, "Could not conect to BloodHound")
+        return self.render_result(request, messages.constants.SUCCESS, "Connected to BloodHound successfully. BloodHound version " + bh_version.server_version)
+
+    def render_result(self, request: HttpRequest, level: int, message: str) -> HttpResponse:
+        messages.add_message(request, level, message)
+        if isinstance(self.object, BloodHoundConfiguration):
+            url = reverse("admin:commandcenter_bloodhoundconfiguration_change")
+        else:
+            url = self.object.get_absolute_url()
+        return HttpResponseRedirect(url)
