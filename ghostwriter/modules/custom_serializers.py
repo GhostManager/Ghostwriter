@@ -3,6 +3,7 @@
 # IF YOU EDIT THIS FILE: also update `linting_utils.py`
 
 # Standard Libraries
+import json
 import logging
 from datetime import datetime
 from urllib.parse import urlparse
@@ -963,7 +964,7 @@ class ReportDataSerializer(CustomModelSerializer):
             findings_response = bh_client.get_findings()
             logger.info(
                 f"Loaded {len(findings_response.findings)} findings from BloodHound instance {url}")
-        except IOError as e:
+        except (IOError, json.JSONDecodeError) as e:
             raise ReportExportError(f"Could not fetch findings from {url}. Check the BloodHound configuration.") from e
 
         return {
