@@ -454,14 +454,12 @@ class SelectReportTemplateFormTests(TestCase):
     def test_blank_docx_template(self):
         form = self.form_data(instance=self.report, docx_template=None, pptx_template=self.pptx_template)
         errors = form["docx_template"].errors.as_data()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "required")
+        self.assertEqual(len(errors), 0)
 
     def test_blank_pptx_template(self):
         form = self.form_data(instance=self.report, docx_template=self.docx_template, pptx_template=None)
         errors = form["pptx_template"].errors.as_data()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "required")
+        self.assertEqual(len(errors), 0)
 
     def test_mismatch_docx_template(self):
         form = self.form_data(
