@@ -110,9 +110,9 @@ const FindingHandler = simpleModelHandler(
                 findingGuidance: yjsToHtml(
                     doc.get("findingGuidance", Y.XmlFragment)
                 ),
+                extraFields,
             },
             tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
-            extraFields,
         };
     }
 );
