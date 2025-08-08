@@ -4,7 +4,6 @@ import { ChainedCommands, Editor } from "@tiptap/core";
 import {
     EditorContent,
     EditorContext,
-    EditorProvider,
     useCurrentEditor,
     useEditor,
 } from "@tiptap/react";
@@ -33,6 +32,7 @@ import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
 import HeadingIdButton from "./heading";
+import ColorButton from "./color";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -75,6 +75,7 @@ function FormatButton(props: {
     }
     return (
         <button
+            type="button"
             onClick={(ev) => {
                 ev.preventDefault();
                 props.chain(editor.chain().focus()).run();
@@ -142,6 +143,7 @@ export function Toolbar(props: {
                 >
                     <FontAwesomeIcon icon={faSuperscript} />
                 </FormatButton>
+                <ColorButton editor={editor} />
                 <FormatButton
                     chain={(c) => c.toggleHighlight()}
                     active="highlight"

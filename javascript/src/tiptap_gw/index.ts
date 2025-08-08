@@ -23,6 +23,7 @@ import {
 } from "./bold_italic_underline";
 import { TableWithCaption, TableCaption } from "./table";
 import { HeadingWithId } from "./heading";
+import Color from "./color";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -59,6 +60,7 @@ const EXTENSIONS: Extensions = [
     Evidence,
     TableWithCaption,
     TableCaption,
+    Color,
 ];
 
 export default EXTENSIONS;
