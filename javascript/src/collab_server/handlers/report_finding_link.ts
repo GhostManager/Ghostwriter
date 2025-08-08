@@ -118,9 +118,9 @@ const ReportFindingLinkHandler = simpleModelHandler(
                 affectedEntities: yjsToHtml(
                     doc.get("affectedEntities", Y.XmlFragment)
                 ),
+                extraFields,
             },
             tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
-            extraFields,
         };
     }
 );
