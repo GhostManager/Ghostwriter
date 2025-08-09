@@ -118,6 +118,29 @@
                 Description</a>
             </td>
           </tr>
+          <tr>
+            <td class="text-left bold">BloodHound</td>
+            <td class="text-left">
+              {% if project.has_bloodhound %}
+                Overwritten: <em>{{ project.bloodhound_api_root_url }}</em>
+              {% elif global_bloodhound_config.is_set %}
+                Global: <em>{{ global_bloodhound_config.api_root_url }}</em>
+              {% else %}
+                Unavailable
+              {% endif %}
+            </td>
+          </tr>
+          {% if project.has_bloodhound %}
+            <tr>
+              <td></td>
+              <td class="text-left">
+                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" style="display: contents">
+                  {% csrf_token %}
+                  <input type="submit" value="Test Bloodhound Connectivity" />
+                </form>
+              </td>
+            </tr>
+          {% endif %}
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">

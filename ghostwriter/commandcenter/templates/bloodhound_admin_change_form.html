@@ -1,0 +1,12 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+
+    <li>
+        <form action="{% url 'rolodex:ajax_bloodhound_test' %}" method="POST" style="display: contents">
+            {% csrf_token %}
+            <input type="submit" value="Check Connectivity" style="padding: 3px 12px;background-color: var(--object-tools-bg);color: var(--object-tools-fg);border-radius: 15px;font-weight: 400;font-size: 0.6875rem;text-transform: uppercase;line-height: 1.25rem;margin: 0;" />
+        </form>
+    </li>
+{% endblock %}

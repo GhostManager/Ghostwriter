@@ -13,6 +13,7 @@ from ghostwriter.commandcenter.models import (
     ExtraFieldModel,
     ExtraFieldSpec,
     GeneralConfiguration,
+    BloodHoundConfiguration,
     NamecheapConfiguration,
     ReportConfiguration,
     SlackConfiguration,
@@ -145,6 +146,11 @@ class ExtraFieldModelAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
+
+class BloodhoundConfigurationAdmin(SingletonModelAdmin):
+    change_form_template = "bloodhound_admin_change_form.html"
+
+admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 
 class CollabAdminBase(admin.ModelAdmin):
     """
