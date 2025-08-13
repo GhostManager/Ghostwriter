@@ -20,8 +20,9 @@ from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
-from django.views.generic.edit import FormView, View
+from django.views.generic.edit import FormView
 from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
@@ -167,11 +168,15 @@ class HasuraActionView(HasuraView):
 
     input = None
     required_inputs = []
+    allow_large_input = False
 
     def setup(self, request, *args, **kwargs):
         # Load JSON data from request body and look for the Hasura ``input`` key
         try:
-            data = json.loads(request.body)
+            if self.allow_large_input:
+                data = json.load(request)
+            else:
+                data = json.loads(request.body)
             self.data = data
             if "input" in data:
                 self.input = data["input"]
@@ -791,6 +796,8 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
 
 
 class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
+    allow_large_input = True
+
     def post(self, request):
         if self.user_obj is None:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
