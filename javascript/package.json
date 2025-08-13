@@ -57,6 +57,7 @@
         "@tiptap/pm": "^2.11.5",
         "@tiptap/react": "^2.11.5",
         "@tiptap/starter-kit": "^2.11.5",
+        "@uiw/react-color": "^2.7.3",
         "@yaireo/tagify": "^4.33.1",
         "ae-cvss-calculator": "^1.0.4",
         "pino": "^9.6.0",
