@@ -20,6 +20,7 @@ type PageBreakOptions = {};
 const PageBreak = Node.create<PageBreakOptions>({
     name: "pageBreak",
     group: "block",
+    priority: 101, // before regular <br/>
     parseHTML() {
         return [
             {
@@ -27,6 +28,11 @@ const PageBreak = Node.create<PageBreakOptions>({
                 getAttrs: (node) =>
                     node.classList.contains("page-break") && null,
             },
+            {
+                tag: "br",
+                getAttrs: (node) =>
+                    node.hasAttribute("data-gw-pagebreak") && null,
+            }
         ];
     },
     renderHTML({ HTMLAttributes }) {
