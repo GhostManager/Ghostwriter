@@ -1,0 +1,7 @@
+django-environ==0.10.0  # https://github.com/joke2k/django-environ
+httpx==0.28.1
+pydantic==2.11.7
+starlette==0.47.2
+loguru==0.7.3
+pyjwt==2.10.1
+mcp==1.12.4
