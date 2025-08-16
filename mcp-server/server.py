@@ -1,5 +1,4 @@
 # Standard Libraries
-import os
 import sys
 import argparse
 

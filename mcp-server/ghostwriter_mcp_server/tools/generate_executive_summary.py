@@ -49,26 +49,21 @@ class GenerateExecutiveSummaryTool:
         }'''
         # Execute the GraphQL query
         response = await graphql_request(graphql_query, ctx, variables={"reportId": report_id})
-        if "errors" in response:
-            Exception(response)
 
         await ctx.info(f'Formatting the findings into a markdown string')
-        findings = []
-        for finding in response.get("data", {}).get("reportedFinding", []):
-            title = finding["title"]
-            severity = finding["severity"]["severity"]
-            description = finding["description"]
-            mitigation = finding["mitigation"]
-            findings.append(f"# {title} ({severity})\n## Description\n{description}\n## Recommendation\n{mitigation}\n")
-        findings_str = "\n".join(findings)
+        findings_list = response.get("data", {}).get("reportedFinding", [])
+        findings_str = "\n".join(
+            f"# {f['title']} ({f['severity']['severity']})\n## Description\n{f['description']}\n## Recommendation\n{f['mitigation']}\n"
+            for f in findings_list
+        )
 
-        if not findings:
+        if not findings_list:
             raise Exception("No findings found for the report.")
 
         await ctx.info(f'Generating the executive summary prompt')
         prompt_template = prompts['executive_summary_prompt']
         if "{findings}" not in prompt_template:
-            Exception("The `executive_summary_prompt` prompt template must contain the {findings} variable")
+            raise Exception("The `executive_summary_prompt` prompt template must contain the {findings} variable")
         prompt = prompt_template.format(findings=findings_str)
 
         return prompt
