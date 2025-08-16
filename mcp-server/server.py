@@ -1,4 +1,5 @@
 # Standard Libraries
+import os
 import sys
 import argparse
 
@@ -7,12 +8,10 @@ import environ
 from pydantic import AnyHttpUrl
 from mcp.server.fastmcp import FastMCP
 from mcp.server.auth.settings import AuthSettings
-from loguru import logger
 
 # Ghostwriter MCP Server Imports
-from ghostwriter_mcp_server.utils.auth import GhostwriterTokenVerifier
-# from ghostwriter_mcp_server.resources.report_finding import ReportFindingResource
 from ghostwriter_mcp_server.tools.generate_executive_summary import GenerateExecutiveSummaryTool
+from ghostwriter_mcp_server.utils.auth import GhostwriterTokenVerifier
 
 def main() -> int:
     """Entry point for the Ghostwriter MCP server.
@@ -21,10 +20,8 @@ def main() -> int:
         int: Exit code (0 for success, non-zero for failure)
     """
     env = environ.Env()
-    FASTMCP_LOG_LEVEL = env("FASTMCP_LOG_LEVEL", default="WARNING")
-
-    logger.remove()
-    logger.add(sys.stderr, level=FASTMCP_LOG_LEVEL)
+    GHOSTWRITER_URL = env("GHOSTWRITER_URL", default="http://localhost:8000")
+    GRAPHQL_URL = env("GRAPHQL_URL", default="http://localhost:8080/v1/graphql")
 
     parser = argparse.ArgumentParser(description='Ghostwriter MCP Server')
     parser.add_argument('--host', default='localhost', help='Host for the MCP server')
@@ -38,22 +35,20 @@ def main() -> int:
         host=args.host,
         port=args.port,
         auth=AuthSettings(
-            issuer_url=AnyHttpUrl("https://auth.example.com"),
-            resource_server_url=AnyHttpUrl("http://localhost:3001"),
+            issuer_url=AnyHttpUrl(GHOSTWRITER_URL),
+            resource_server_url=AnyHttpUrl(GRAPHQL_URL),
             required_scopes=["user"],
         ),
     )
 
-    # ReportFindingResource(mcp)
-
     GenerateExecutiveSummaryTool(mcp)
 
     try:
-        logger.info(f'Starting Ghostwriter MCP Server on {args.host}:{args.port}')
+        print(f'Starting Ghostwriter MCP Server on {args.host}:{args.port}')
         mcp.run(transport="streamable-http")
         return 0
     except Exception as e:
-        logger.error(f'Error starting Ghostwriter MCP Server: {e}')
+        print(f'Error starting Ghostwriter MCP Server: {e}')
         return 1
 
 if __name__ == '__main__':

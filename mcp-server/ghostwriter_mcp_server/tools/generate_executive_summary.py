@@ -1,9 +1,9 @@
 # 3rd Party Libraries
 from mcp.server.fastmcp import Context, FastMCP
-from mcp.types import SamplingMessage, TextContent
 
 # Ghostwriter MCP Server Imports
 from ghostwriter_mcp_server.utils.graphql import graphql_request
+from ghostwriter_mcp_server.utils.load_config import load_config
 
 class GenerateExecutiveSummaryTool:
     """Tool to generate executive summaries for reports."""
@@ -24,18 +24,20 @@ class GenerateExecutiveSummaryTool:
             report_id (int): The ID of the report to generate a summary for.
 
         Returns:
-            dict: The response from Ghostwriter containing a list of `reportedFinding` containing the title of the finding and the report name it was found on.
+            str: A system prompt to generate an executive summary
         """
-        await ctx.info(f'Getting executive summary for report {report_id}')
+        await ctx.info(f'Loading the most up to date prompt template...')
+        prompts = load_config("prompts.yaml")
 
-        # Query the findings on the current report
+        await ctx.info(f'Querying the findings for report {report_id}')
         graphql_query = '''query SearchReportFindings($reportId: bigint!) {
             reportedFinding(
                 where: {
                     reportId: {_eq: $reportId},
                     severity: {severity: {_in: ["Critical", "High", "Medium", "Low", "Informational"]}}
                 },
-                order_by: {severity: {weight: asc}}
+                order_by: {severity: {weight: asc}},
+                limit: 5
             ) {
                 title
                 severity {
@@ -45,9 +47,12 @@ class GenerateExecutiveSummaryTool:
                 mitigation
             }
         }'''
+        # Execute the GraphQL query
         response = await graphql_request(graphql_query, ctx, variables={"reportId": report_id})
+        if "errors" in response:
+            Exception(response)
 
-        # Format the response into markdown for the LLM to interpret
+        await ctx.info(f'Formatting the findings into a markdown string')
         findings = []
         for finding in response.get("data", {}).get("reportedFinding", []):
             title = finding["title"]
@@ -57,30 +62,13 @@ class GenerateExecutiveSummaryTool:
             findings.append(f"# {title} ({severity})\n## Description\n{description}\n## Recommendation\n{mitigation}\n")
         findings_str = "\n".join(findings)
 
-        # Send as a prompt to the LLM
-        prompt = f"""You are a cybersecurity analyst tasked with generating an executive summary for a penetration test report. The summary should be concise, non-technical and it should be between 1 and 2 paragraphs, do not use bullet points.
-        Use the findings provided between the <Findings> tags to:
-        1. Summarize the overall security posture.
-        2. Highlight the number and severity of findings (e.g., how many critical, high, medium, low, and informational issues were found).
-        3. Mention the general nature of the vulnerabilities discovered (e.g., misconfigurations, outdated software, weak authentication).
-        4. Emphasize the importance of remediation and outline a general prioritization strategy.
-        5. Maintain a professional tone and avoid deep technical jargon.
+        if not findings:
+            raise Exception("No findings found for the report.")
 
-        <Findings>
-        {findings_str}
-        </Findings>"""
+        await ctx.info(f'Generating the executive summary prompt')
+        prompt_template = prompts['executive_summary_prompt']
+        if "{findings}" not in prompt_template:
+            Exception("The `executive_summary_prompt` prompt template must contain the {findings} variable")
+        prompt = prompt_template.format(findings=findings_str)
 
-        result = await ctx.session.create_message(
-            messages=[
-                SamplingMessage(
-                    role="user",
-                    content=TextContent(type="text", text=prompt)
-                )
-            ],
-            max_tokens=1000,
-        )
-
-        # Return the generated executive summary
-        if result.content.type == "text":
-            return result.content.text
-        return str(result.content)
+        return prompt

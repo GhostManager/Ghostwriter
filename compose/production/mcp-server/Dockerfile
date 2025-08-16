@@ -14,8 +14,6 @@ COPY ./requirements /requirements
 RUN pip install --no-cache-dir -r /requirements/mcp_requirements.txt \
     && rm -rf /requirements
 
-COPY . /app
-
 USER mcp
 
 WORKDIR /app

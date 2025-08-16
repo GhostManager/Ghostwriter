@@ -9,10 +9,11 @@ env = environ.Env()
 JWT_SECRET_KEY = env("JWT_SECRET_KEY", default="secret")
 
 class GhostwriterTokenVerifier(TokenVerifier):
-    """Simple token verifier for demonstration."""
+    """Verify the token from Ghostwriter."""
 
     async def verify_token(self, token: str) -> AccessToken | None:
         """Verify the JWT token and return the access token."""
+        print("Validating authentication token...")
         try:
             decoded = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"], audience="Ghostwriter")
             return AccessToken(
@@ -22,4 +23,5 @@ class GhostwriterTokenVerifier(TokenVerifier):
                 expires_at=decoded.get("exp"),
             )
         except Exception as e:
+            print(e)
             return None
