@@ -4,7 +4,7 @@ import httpx
 # 3rd Party Libraries
 import environ
 from starlette.requests import Request
-from mcp.server.fastmcp import Context
+from fastmcp import Context
 
 env = environ.Env()
 GRAPHQL_URL = env("GRAPHQL_URL", default="http://localhost:8080")

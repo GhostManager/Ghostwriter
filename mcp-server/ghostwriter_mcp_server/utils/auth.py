@@ -3,7 +3,7 @@ import jwt
 
 # 3rd Party Libraries
 import environ
-from mcp.server.auth.provider import AccessToken, TokenVerifier
+from fastmcp.server.auth import AccessToken, TokenVerifier
 
 env = environ.Env()
 JWT_SECRET_KEY = env("JWT_SECRET_KEY", default="secret")

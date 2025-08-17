@@ -1,5 +1,5 @@
 # 3rd Party Libraries
-from mcp.server.fastmcp import Context, FastMCP
+from fastmcp import FastMCP, Context
 
 # Ghostwriter MCP Server Imports
 from ghostwriter_mcp_server.utils.graphql import graphql_request

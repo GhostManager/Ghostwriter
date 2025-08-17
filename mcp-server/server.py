@@ -3,10 +3,7 @@ import sys
 import argparse
 
 # 3rd Party Libraries
-import environ
-from pydantic import AnyHttpUrl
-from mcp.server.fastmcp import FastMCP
-from mcp.server.auth.settings import AuthSettings
+from fastmcp import FastMCP
 
 # Ghostwriter MCP Server Imports
 from ghostwriter_mcp_server.tools.generate_executive_summary import GenerateExecutiveSummaryTool
@@ -18,9 +15,6 @@ def main() -> int:
     Returns:
         int: Exit code (0 for success, non-zero for failure)
     """
-    env = environ.Env()
-    GHOSTWRITER_URL = env("GHOSTWRITER_URL", default="http://localhost:8000")
-    GRAPHQL_URL = env("GRAPHQL_URL", default="http://localhost:8080/v1/graphql")
 
     parser = argparse.ArgumentParser(description='Ghostwriter MCP Server')
     parser.add_argument('--host', default='localhost', help='Host for the MCP server')
@@ -30,14 +24,9 @@ def main() -> int:
 
     mcp = FastMCP(
         "Ghostwriter MCP Server",
-        token_verifier=GhostwriterTokenVerifier(),
         host=args.host,
         port=args.port,
-        auth=AuthSettings(
-            issuer_url=AnyHttpUrl(GHOSTWRITER_URL),
-            resource_server_url=AnyHttpUrl(GRAPHQL_URL),
-            required_scopes=["user"],
-        ),
+        auth=GhostwriterTokenVerifier(),
     )
 
     GenerateExecutiveSummaryTool(mcp)
