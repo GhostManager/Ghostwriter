@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.2] - 8 August 2025
+
+### Changed
+
+* Changed the Tiptap editor to disable itself when users lose their connection to the collaborative editing server
+  * This change prevents users from making changes to the document when they are not connected to the server
+
+### Fixed
+
+* Fixed the missing evidence button in the Tiptap editor when editing extra fields on reports
+* Fixed some extra fields on findings not saving correctly with collaborative editing
+* Fixed the "sanitize" action on activity logs not working well with large logs
+
 ## [6.0.1] - 31 July 2025
 
 ### Added
