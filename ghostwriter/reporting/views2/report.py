@@ -174,7 +174,7 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         form = SelectReportTemplateForm(
             instance=self.object,
-            has_bloodhound=self.object.project.has_bloodhound() or BloodHoundConfiguration.get_solo().is_set(),
+            has_bloodhound=self.object.project.has_bloodhound_api() or BloodHoundConfiguration.get_solo().has_bloodhound_api(),
         )
         form.fields["docx_template"].queryset = (
             ReportTemplate.objects.filter(

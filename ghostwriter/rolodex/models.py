@@ -305,7 +305,7 @@ class Project(models.Model):
     def get_absolute_url(self):
         return reverse("rolodex:project_detail", args=[str(self.id)])
 
-    def has_bloodhound(self) -> bool:
+    def has_bloodhound_api(self) -> bool:
         return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
 
     def __str__(self):

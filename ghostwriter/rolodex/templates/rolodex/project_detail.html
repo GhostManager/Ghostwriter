@@ -121,16 +121,16 @@
           <tr>
             <td class="text-left bold">BloodHound</td>
             <td class="text-left">
-              {% if project.has_bloodhound %}
+              {% if project.has_bloodhound_api %}
                 Overwritten: <em>{{ project.bloodhound_api_root_url }}</em>
-              {% elif global_bloodhound_config.is_set %}
+              {% elif global_bloodhound_config.has_bloodhound_api %}
                 Global: <em>{{ global_bloodhound_config.api_root_url }}</em>
               {% else %}
                 Unavailable
               {% endif %}
             </td>
           </tr>
-          {% if project.has_bloodhound %}
+          {% if project.has_bloodhound_api %}
             <tr>
               <td></td>
               <td class="text-left">

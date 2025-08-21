@@ -2198,13 +2198,13 @@ class BloodhoundApiTestView(RoleBasedAccessControlMixin, View):
 
     def post(self, request: HttpRequest, *args, **kwargs):
         if isinstance(self.object, BloodHoundConfiguration):
-            if not self.object.is_set():
+            if not self.object.has_bloodhound_api():
                 return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
-            url = self.object.api_root_url
-            key_id = self.object.api_key_id
-            key_token = self.object.api_key_token
+            url = self.object.bloodhound_api_root_url
+            key_id = self.object.bloodhound_api_key_id
+            key_token = self.object.bloodhound_api_key_token
         else:
-            if not self.object.has_bloodhound():
+            if not self.object.has_bloodhound_api():
                 return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
             url = self.object.bloodhound_api_root_url
             key_id = self.object.bloodhound_api_key_id

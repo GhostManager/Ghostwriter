@@ -17,7 +17,6 @@ from timezone_field import TimeZoneField
 # Ghostwriter Libraries
 from ghostwriter.singleton.models import SingletonModel
 
-
 def sanitize(sensitive_thing):
     """
     Sanitize the provided input and return for display in a template.
@@ -58,7 +57,7 @@ class BloodHoundConfiguration(SingletonModel):
     BloodHoundConfiguration represents a global BloodHound API integration that can be used to
     access the BloodHound API of the configured instance.
     """
-    api_root_url = models.CharField(
+    bloodhound_api_root_url = models.CharField(
         max_length=255,
         verbose_name="BloodHound API URL",
         help_text="The URL of the BloodHound instance",
@@ -67,7 +66,7 @@ class BloodHoundConfiguration(SingletonModel):
         validators=[validate_endpoint],
     )
 
-    api_key_id = models.CharField(
+    bloodhound_api_key_id = models.CharField(
         max_length=255,
         verbose_name="BloodHound API Key ID",
         help_text="The ID portion of a BloodHound API Key",
@@ -75,7 +74,7 @@ class BloodHoundConfiguration(SingletonModel):
         blank=True,
     )
 
-    api_key_token = models.CharField(
+    bloodhound_api_key_token = models.CharField(
         max_length=255,
         verbose_name="BloodHound API Key Token",
         help_text="The token portion of a BloodHound API Key",
@@ -83,8 +82,8 @@ class BloodHoundConfiguration(SingletonModel):
         blank=True,
     )
 
-    def is_set(self) -> bool:
-        return self.api_root_url != "" and self.api_key_id != "" and self.api_key_token != ""
+    def has_bloodhound_api(self) -> bool:
+        return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
 
     def __str__(self):
         return "BloodHound API Configuration"

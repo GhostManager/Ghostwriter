@@ -933,20 +933,17 @@ class ReportDataSerializer(CustomModelSerializer):
         instance
         """
 
-        if obj.project.has_bloodhound():
-            url = obj.project.bloodhound_api_root_url
-            key_id = obj.project.bloodhound_api_key_id
-            key_token = obj.project.bloodhound_api_key_token
+        if obj.project.has_bloodhound_api():
+            bloodhound_provider = obj.project
         else:
-            global_config = BloodHoundConfiguration.get_solo()
-            if global_config is None or not global_config.is_set():
+            bloodhound_provider = BloodHoundConfiguration.get_solo()
+            if bloodhound_provider is None or not bloodhound_provider.has_bloodhound_api():
                 return None
-            url = global_config.api_root_url
-            key_id = global_config.api_key_id
-            key_token = global_config.api_key_token
+        url = bloodhound_provider.bloodhound_api_root_url
+        key_id = bloodhound_provider.bloodhound_api_key_id
+        key_token = bloodhound_provider.bloodhound_api_key_token
 
         bh_url = urlparse(url)
-
         try:
             bh_client = BHClient(
                 scheme=bh_url.scheme,
