@@ -1,8 +1,11 @@
 """This contains customizations for displaying the CommandCenter application models in the admin panel."""
 
 # Django Imports
+import json
 from django.contrib import admin
 from django import forms
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ReportConfigurationForm
@@ -149,6 +152,11 @@ admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
 
 class BloodhoundConfigurationAdmin(SingletonModelAdmin):
     change_form_template = "bloodhound_admin_change_form.html"
+    readonly_fields = ["raw_data"]
+
+    @admin.display(description="Raw Fetched Info")
+    def raw_data(self, instance: BloodHoundConfiguration):
+        return format_html("<pre>{}</pre>", json.dumps(instance.bloodhound_results, indent="\t"))
 
 admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 

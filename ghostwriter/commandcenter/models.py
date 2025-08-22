@@ -82,6 +82,12 @@ class BloodHoundConfiguration(SingletonModel):
         blank=True,
     )
 
+    bloodhound_results = models.JSONField(
+        null=True,
+        verbose_name="Bloodhound Data",
+        editable=False,
+    )
+
     def has_bloodhound_api(self) -> bool:
         return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
 

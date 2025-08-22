@@ -253,6 +253,12 @@ class Project(models.Model):
         blank=True,
     )
 
+    bloodhound_results = models.JSONField(
+        null=True,
+        verbose_name="Bloodhound Data",
+        editable=False,
+    )
+
     # Foreign keys
     client = models.ForeignKey(
         "Client",

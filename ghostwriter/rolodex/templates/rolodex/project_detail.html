@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -118,29 +118,6 @@
                 Description</a>
             </td>
           </tr>
-          <tr>
-            <td class="text-left bold">BloodHound</td>
-            <td class="text-left">
-              {% if project.has_bloodhound_api %}
-                Overwritten: <em>{{ project.bloodhound_api_root_url }}</em>
-              {% elif global_bloodhound_config.has_bloodhound_api %}
-                Global: <em>{{ global_bloodhound_config.api_root_url }}</em>
-              {% else %}
-                Unavailable
-              {% endif %}
-            </td>
-          </tr>
-          {% if project.has_bloodhound_api %}
-            <tr>
-              <td></td>
-              <td class="text-left">
-                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" style="display: contents">
-                  {% csrf_token %}
-                  <input type="submit" value="Test Bloodhound Connectivity" />
-                </form>
-              </td>
-            </tr>
-          {% endif %}
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">
@@ -1097,6 +1074,51 @@
         {% endif %}
       </div>
 
+      {% comment %} BloodHound Tab {% endcomment %}
+      {% if project.has_bloodhound_api or global_bloodhound_config.has_bloodhound_api %}
+        <div id="bloodhound" class="tab-pane">
+          <h4>BloodHound</h4>
+          <hr/>
+
+          <p>
+            {% if project.has_bloodhound_api %}
+              Using Project Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
+            {% elif global_bloodhound_config.has_bloodhound_api %}
+              Using Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em>
+            {% else %}
+              Unavailable
+            {% endif %}
+          </p>
+
+          <div class="form-group">
+            <label>Raw Results</label>
+            <textarea
+              readonly
+              class="form-control no-auto-tinymce"
+              style="height:30rem"
+            >{% if project.has_bloodhound_api %}{{ project.bloodhound_results|json_enc }}{% else %}{{ global_bloodhound_config.bloodhound_results|json_enc }}{% endif %}</textarea>
+          </div>
+
+          {% if project.has_bloodhound_api %}
+            <p>
+              <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
+                {% csrf_token %}
+                <input class="btn btn-secondary" type="submit" value="Test BloodHound Connectivity" />
+              </form>
+            </p>
+
+            <p>
+              <form action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
+                {% csrf_token %}
+                <input class="btn btn-primary" type="submit" value="Fetch BloodHound Findings" />
+              </form>
+            </p>
+          {% else %}
+            <p>Configure and fetch global data in the Admin Panel</p>
+          {% endif %}
+        </div>
+      {% endif %}
+
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if project_extra_fields_spec %}
         <div id="extra_fields" class="tab-pane">
@@ -1154,10 +1176,6 @@
       </div>
     </div>
   </div>
-{% endblock %}
-
-{% block tabs %}
-  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}

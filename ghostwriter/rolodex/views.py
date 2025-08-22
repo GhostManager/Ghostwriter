@@ -2197,27 +2197,19 @@ class BloodhoundApiTestView(RoleBasedAccessControlMixin, View):
             return self.object.user_can_view(self.request.user)
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        if isinstance(self.object, BloodHoundConfiguration):
-            if not self.object.has_bloodhound_api():
-                return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
-            url = self.object.bloodhound_api_root_url
-            key_id = self.object.bloodhound_api_key_id
-            key_token = self.object.bloodhound_api_key_token
-        else:
-            if not self.object.has_bloodhound_api():
-                return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
-            url = self.object.bloodhound_api_root_url
-            key_id = self.object.bloodhound_api_key_id
-            key_token = self.object.bloodhound_api_key_token
-
-        bh_url = urlparse(url)
+        bh_api = self.object
+        if isinstance(bh_api, Project) and not bh_api.has_bloodhound_api():
+            bh_api = BloodHoundConfiguration.get_solo()
+        if not bh_api.has_bloodhound_api():
+            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
+        bh_url = urlparse(bh_api.bloodhound_api_root_url)
         bh_client = APIClient(
             scheme=bh_url.scheme,
             host=bh_url.hostname,
             port=bh_url.port,
             credentials=Credentials(
-                token_id=key_id,
-                token_key=key_token,
+                token_id=bh_api.bloodhound_api_key_id,
+                token_key=bh_api.bloodhound_api_key_token,
             ),
         )
         try:
@@ -2232,5 +2224,61 @@ class BloodhoundApiTestView(RoleBasedAccessControlMixin, View):
         if isinstance(self.object, BloodHoundConfiguration):
             url = reverse("admin:commandcenter_bloodhoundconfiguration_change")
         else:
-            url = self.object.get_absolute_url()
+            url = self.object.get_absolute_url() + "#bloodhound"
+        return HttpResponseRedirect(url)
+
+
+class BloodhoundApiFetchView(RoleBasedAccessControlMixin, View):
+    object: Project | BloodHoundConfiguration
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        if "project" in request.GET:
+            try:
+                project_id = int(request.GET["project"])
+            except ValueError:
+                return self.render_result(request, messages.constants.ERROR, "Project does not exist")
+            self.object = get_object_or_404(Project, pk=project_id)
+        else:
+            self.object = BloodHoundConfiguration.get_solo()
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        if isinstance(self.object, BloodHoundConfiguration):
+            return self.request.user.is_privileged
+        else:
+            return self.object.user_can_view(self.request.user)
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        if not self.object.has_bloodhound_api():
+            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
+        bh_url = urlparse(self.object.bloodhound_api_root_url)
+        bh_client = APIClient(
+            scheme=bh_url.scheme,
+            host=bh_url.hostname,
+            port=bh_url.port,
+            credentials=Credentials(
+                token_id=self.object.bloodhound_api_key_id,
+                token_key=self.object.bloodhound_api_key_token,
+            ),
+        )
+        try:
+            bh_version = bh_client.get_version()
+            logger.info(f"BloodHound instance version: {bh_version.server_version} with current API version set to: {bh_version.current_api_version}")
+
+            findings_response = bh_client.get_findings()
+        except (IOError, json.JSONDecodeError):
+            logger.exception("BH connection test failed")
+            return self.render_result(request, messages.constants.ERROR, "Could not conect to BloodHound")
+
+        self.object.bloodhound_results = findings_response
+        self.object.save()
+
+        return self.render_result(request, messages.constants.SUCCESS, "Findings updated from BloodHound successfully")
+
+    def render_result(self, request: HttpRequest, level: int, message: str) -> HttpResponse:
+        messages.add_message(request, level, message)
+        if isinstance(self.object, BloodHoundConfiguration):
+            url = reverse("admin:commandcenter_bloodhoundconfiguration_change")
+        else:
+            url = self.object.get_absolute_url() + "#bloodhound"
         return HttpResponseRedirect(url)

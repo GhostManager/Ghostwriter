@@ -20,12 +20,6 @@ class Credentials(NamedTuple):
     token_id: str
     token_key: str
 
-
-class FindingsResponse(NamedTuple):
-    findings: Dict[str, Any]
-    finding_assets: Dict[str, Any]
-
-
 class APIVersion(NamedTuple):
     current_api_version: str
     deprecated_api_version: str
@@ -37,7 +31,6 @@ class Domain(NamedTuple):
     sid: str
     collected: bool
 
-
 class ErrorDetails(NamedTuple):
     context: str
     message: str
@@ -48,7 +41,6 @@ class ErrorDetails(NamedTuple):
             context=json_dict["context"],
             message=json_dict["message"],
         )
-
 
 class ErrorResponse(NamedTuple):
     status: int
@@ -69,7 +61,6 @@ class ErrorResponse(NamedTuple):
             request_id=json_dict["request_id"],
             errors=errors,
         )
-
 
 class APIException(Exception):
     def __init__(self, msg: str, err_response: ErrorResponse = None) -> None:
@@ -152,9 +143,7 @@ class APIClient:
 
         return domains
 
-    def get_findings(self) -> FindingsResponse:
+    def get_findings(self) -> dict:
         response = self._request("GET", "/api/v2/attack-paths/details")
         payload = response.json()["data"]
-
-        return FindingsResponse(findings=payload["findings"],
-                                finding_assets=payload["finding_assets"])
+        return payload

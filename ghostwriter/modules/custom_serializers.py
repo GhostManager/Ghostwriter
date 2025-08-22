@@ -679,6 +679,10 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
         model = Project
         exclude = [
             "project_type",
+            "bloodhound_api_root_url",
+            "bloodhound_api_key_id",
+            "bloodhound_api_key_token",
+            "bloodhound_results",
         ]
 
     def get_name(self, obj):
@@ -928,46 +932,9 @@ class ReportDataSerializer(CustomModelSerializer):
 
     @classmethod
     def get_bloodhound_findings(cls, obj: Report):
-        """
-        bloodhound_findings returns a dict of all findings fetched from a BloodHound
-        instance
-        """
-
         if obj.project.has_bloodhound_api():
-            bloodhound_provider = obj.project
-        else:
-            bloodhound_provider = BloodHoundConfiguration.get_solo()
-            if bloodhound_provider is None or not bloodhound_provider.has_bloodhound_api():
-                return None
-        url = bloodhound_provider.bloodhound_api_root_url
-        key_id = bloodhound_provider.bloodhound_api_key_id
-        key_token = bloodhound_provider.bloodhound_api_key_token
-
-        bh_url = urlparse(url)
-        try:
-            bh_client = BHClient(
-                scheme=bh_url.scheme,
-                host=bh_url.hostname,
-                port=bh_url.port,
-                credentials=BHCredentials(
-                    token_id=key_id,
-                    token_key=key_token,
-                ),
-            )
-            bh_version = bh_client.get_version()
-            logger.info(
-                f"BloodHound instance version: {bh_version.server_version} with current API version set to: {bh_version.current_api_version}")
-
-            findings_response = bh_client.get_findings()
-            logger.info(
-                f"Loaded {len(findings_response.findings)} findings from BloodHound instance {url}")
-        except (IOError, json.JSONDecodeError) as e:
-            raise ReportExportError(f"Could not fetch findings from {url}. Check the BloodHound configuration.") from e
-
-        return {
-            "findings": findings_response.findings,
-            "finding_assets": findings_response.finding_assets,
-        }
+            return obj.project.bloodhound_results
+        return BloodHoundConfiguration.get_solo().bloodhound_results
 
     def get_tools(self, obj):
         tools = []
