@@ -16,7 +16,7 @@ const renderToolbarExtra = (editor: Editor) => (
 );
 
 function ReportObservationLinkForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "report_observation_link",
     });
 
@@ -37,6 +37,7 @@ function ReportObservationLinkForm() {
                                 connected={connected}
                                 provider={provider}
                                 mapKey="title"
+                                setEditing={setEditing}
                             />
                         </div>
                     </div>
@@ -77,6 +78,7 @@ function ReportObservationLinkForm() {
                     connected={connected}
                     provider={provider}
                     toolbarExtra={renderToolbarExtra}
+                    setEditing={setEditing}
                 />
             </div>
         </ProvidePageEvidence>

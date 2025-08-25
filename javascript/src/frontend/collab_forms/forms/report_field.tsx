@@ -12,7 +12,7 @@ const renderToolbarExtra = (editor: Editor) => (
 );
 
 function ReportExtraFieldForm(props: { field: string }) {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "report",
     });
 
@@ -32,6 +32,7 @@ function ReportExtraFieldForm(props: { field: string }) {
                     provider={provider}
                     spec={extraField}
                     toolbarExtra={renderToolbarExtra}
+                    setEditing={setEditing}
                 />
                 {extraField.description && (
                     <small className="form-text text-muted">

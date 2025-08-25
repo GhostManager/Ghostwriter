@@ -7,7 +7,7 @@ import { FindingFormFields } from "../forms_common/finding";
 import RichTextEditor from "../rich_text_editor";
 
 function FindingForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "finding",
     });
 
@@ -16,6 +16,7 @@ function FindingForm() {
             provider={provider}
             status={status}
             connected={connected}
+            setEditing={setEditing}
             extraBottom={
                 <>
                     <div className="form-group col-md-12">
