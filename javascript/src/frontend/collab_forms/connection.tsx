@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 
@@ -30,9 +30,8 @@ export function usePageConnection(settings: {
         "disconnected" | "connecting" | "connected"
     >("disconnected");
     const [synced, setSynced] = useState<boolean>(false);
-    const [hasUnsyncedChanges, setHasUnsyncedChanges] =
-        useState<boolean>(false);
-    const [editing, setEditing] = useState<boolean>(false);
+    const [allChangesSynced, setAllChangesSynced] = useDebounced(true);
+    const [editing, setEditing] = useState(false);
     const savedInstanceID = useRef<string | null>(null);
 
     // Type as `HocuspocusProvider` only, cuz it's only going to be null for a slight bit.
@@ -84,7 +83,7 @@ export function usePageConnection(settings: {
             },
         });
         provider.current.on("unsyncedChanges", () => {
-            setHasUnsyncedChanges(provider.current!.hasUnsyncedChanges);
+            setAllChangesSynced(!provider.current!.hasUnsyncedChanges);
         });
 
         provider.current.awareness!.setLocalStateField("user", {
@@ -124,7 +123,7 @@ export function usePageConnection(settings: {
     if (status === "connected") {
         if (!synced) outStatus = "syncing";
         else if (hasSaveError) outStatus = "error";
-        else if (hasUnsyncedChanges || editing) outStatus = "dirty";
+        else if (!allChangesSynced || editing) outStatus = "dirty";
         else outStatus = "idle";
     } else {
         outStatus = status;
@@ -136,6 +135,39 @@ export function usePageConnection(settings: {
         connected: outStatus === "idle" || outStatus === "dirty",
         setEditing,
     };
+}
+
+function useDebounced(initial: boolean): [boolean, (v: boolean) => void] {
+    const raw = useRef(initial);
+    const [debounced, setDebounced] = useState(initial);
+    const timerRef = useRef<null | ReturnType<typeof setTimeout>>(null);
+    useEffect(() => () => {
+        if (timerRef.current !== null) clearTimeout(timerRef.current);
+    });
+
+    const set = useCallback(
+        (v: boolean) => {
+            if (v) {
+                if (raw.current || timerRef.current !== null) return;
+                raw.current = true;
+                timerRef.current = setTimeout(() => {
+                    setDebounced(true);
+                    timerRef.current = null;
+                }, 500);
+            } else {
+                if (!raw.current) return;
+                raw.current = false;
+                setDebounced(false);
+                if (timerRef.current !== null) {
+                    clearTimeout(timerRef.current);
+                    timerRef.current = null;
+                }
+            }
+        },
+        [timerRef, raw, setDebounced]
+    );
+
+    return [debounced, set];
 }
 
 function hsv_to_rgb(h: number, s: number, v: number) {
