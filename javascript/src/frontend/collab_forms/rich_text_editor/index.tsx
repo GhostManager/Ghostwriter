@@ -195,6 +195,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("left")}
                         active={{ textAlign: "left" }}
+                        enable
                     >
                         Left
                     </FormatButton>
@@ -202,6 +203,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("center")}
                         active={{ textAlign: "center" }}
+                        enable
                     >
                         Center
                     </FormatButton>
@@ -209,6 +211,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("right")}
                         active={{ textAlign: "right" }}
+                        enable
                     >
                         Right
                     </FormatButton>
@@ -216,6 +219,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("justify")}
                         active={{ textAlign: "justify" }}
+                        enable
                     >
                         Justify
                     </FormatButton>
