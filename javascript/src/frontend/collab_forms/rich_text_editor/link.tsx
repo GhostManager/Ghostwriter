@@ -23,6 +23,7 @@ export default function LinkButton(props: { editor: Editor }) {
             <button
                 tabIndex={-1}
                 title="Link"
+                type="button"
                 disabled={!enabled}
                 className={active ? "is-active" : undefined}
                 onClick={(e) => {
