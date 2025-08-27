@@ -8,7 +8,7 @@ import ExtraFieldsSection from "../extra_fields";
 import ReactModal from "react-modal";
 
 function ObservationForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "observation",
     });
 
@@ -29,6 +29,7 @@ function ObservationForm() {
                                 connected={connected}
                                 provider={provider}
                                 mapKey="title"
+                                setEditing={setEditing}
                             />
                         </div>
                     </div>
@@ -64,7 +65,11 @@ function ObservationForm() {
                     </div>
                 </div>
 
-                <ExtraFieldsSection connected={connected} provider={provider} />
+                <ExtraFieldsSection
+                    connected={connected}
+                    provider={provider}
+                    setEditing={setEditing}
+                />
 
                 <ConnectionStatus status={status} />
             </div>

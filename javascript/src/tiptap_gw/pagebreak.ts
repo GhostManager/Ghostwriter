@@ -32,7 +32,7 @@ const PageBreak = Node.create<PageBreakOptions>({
                 tag: "br",
                 getAttrs: (node) =>
                     node.hasAttribute("data-gw-pagebreak") && null,
-            }
+            },
         ];
     },
     renderHTML({ HTMLAttributes }) {
