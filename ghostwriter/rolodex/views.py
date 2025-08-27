@@ -1604,7 +1604,17 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["export_templates"] = ReportTemplate.objects.filter(
             Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))
-        ctx["global_bloodhound_config"] = BloodHoundConfiguration.get_solo()
+
+        bhc = BloodHoundConfiguration.get_solo()
+        ctx["global_bloodhound_config"] = bhc
+
+        if object.has_bloodhound_api():
+            ctx["bhc_api"] = object
+        elif bhc.has_bloodhound_api():
+            ctx["bhc_api"] = bhc
+        else:
+            ctx["bhc_api"] = None
+
         return ctx
 
 

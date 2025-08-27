@@ -1,0 +1,25 @@
+
+{% if res %}
+<h5>Findings</h5>
+<table class="table">
+    <tbody>
+    {% for finding in res.findings %}
+        <tr>
+            <td>{{ finding.id }}</td>
+            <td>{{ finding.finding_name }}</td>
+            <td>{{ finding.target_kind}}</td>
+            <td>{{ finding.target_properties.name }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h5>Finding Assets</h5>
+<ul>
+    {% for name, asset in res.finding_assets.items %}
+        <li>{{ name }}</li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>No BloodHound findings available</p>
+{% endif %}

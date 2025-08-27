@@ -1075,7 +1075,7 @@
       </div>
 
       {% comment %} BloodHound Tab {% endcomment %}
-      {% if project.has_bloodhound_api or global_bloodhound_config.has_bloodhound_api %}
+      {% if bhc_api %}
         <div id="bloodhound" class="tab-pane">
           <h4>BloodHound</h4>
           <hr/>
@@ -1090,14 +1090,7 @@
             {% endif %}
           </p>
 
-          <div class="form-group">
-            <label>Raw Results</label>
-            <textarea
-              readonly
-              class="form-control no-auto-tinymce"
-              style="height:30rem"
-            >{% if project.has_bloodhound_api %}{{ project.bloodhound_results|json_enc }}{% else %}{{ global_bloodhound_config.bloodhound_results|json_enc }}{% endif %}</textarea>
-          </div>
+          {% include "snippets/bloodhound_findings.html" with res=bhc_api.bloodhound_results only %}
 
           {% if project.has_bloodhound_api %}
             <p>
