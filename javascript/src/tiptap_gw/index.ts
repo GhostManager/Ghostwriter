@@ -44,6 +44,7 @@ const EXTENSIONS: Extensions = [
     }),
     Link.configure({
         openOnClick: false,
+        autolink: false,
     }),
     TextAlign.configure({
         types: ["heading", "paragraph"],
