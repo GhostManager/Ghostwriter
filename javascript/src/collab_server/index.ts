@@ -22,7 +22,7 @@ import ReportFindingLinkHandler from "./handlers/report_finding_link";
 import ReportHandler from "./handlers/report";
 
 // Extend this with your model handlers. See how-to-collab.md.
-const HANDLERS: Map<string, ModelHandler> = new Map([
+const HANDLERS: Map<string, ModelHandler<any>> = new Map([
     ["observation", ObservationHandler],
     ["report_observation_link", ReportObservationLinkHandler],
     ["finding", FindingHandler],
@@ -67,6 +67,7 @@ const gqlClient = new ApolloClient({
 type Context = {
     model: string;
     id: number;
+    data: any;
     username: string;
     log: Logger;
 };
@@ -189,6 +190,7 @@ const server = new Hocuspocus({
             return {
                 model,
                 id,
+                data: undefined,
                 username,
                 log,
             } as Context; // data.context
@@ -210,7 +212,7 @@ const server = new Hocuspocus({
             context.log.info("Loading document");
 
             const handler = HANDLERS.get(context.model)!;
-            const doc = await handler.load(gqlClient, context.id);
+            const [doc, data] = await handler.load(gqlClient, context.id);
             doc.transact((tx) => {
                 const serverInfo = tx.doc.get("serverInfo", Y.Map);
                 // Embed an ID unique to this particular yjs doc, so a client working with an older version
@@ -219,6 +221,7 @@ const server = new Hocuspocus({
                 // Save error flag
                 serverInfo.set("saveError", false);
             });
+            context.data = data;
             return doc;
         } catch (e) {
             context.log.error({ msg: "Could not load document", err: e });
@@ -231,7 +234,12 @@ const server = new Hocuspocus({
         try {
             context.log.info("Saving document");
             const handler = HANDLERS.get(context.model)!;
-            await handler.save(gqlClient, context.id, data.document);
+            await handler.save(
+                gqlClient,
+                context.id,
+                data.document,
+                context.data
+            );
         } catch (e) {
             context.log.error({ msg: "Could not save document", err: e });
             data.document.transact((tx) => {

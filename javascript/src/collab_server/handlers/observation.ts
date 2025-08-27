@@ -50,10 +50,11 @@ const ObservationHandler = simpleModelHandler(
         htmlToYjs(obj.description, doc.get("description", Y.XmlFragment));
         tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
         extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
+        return res.extraFieldSpec;
     },
-    (doc, id) => {
+    (doc, id, extraFieldSpec) => {
         const plainFields = doc.get("plain_fields", Y.Map);
-        const extraFields = extraFieldsFromYdoc(doc);
+        const extraFields = extraFieldsFromYdoc(extraFieldSpec, doc);
         return {
             id,
             title: (plainFields.get("title") as string | undefined) ?? "",

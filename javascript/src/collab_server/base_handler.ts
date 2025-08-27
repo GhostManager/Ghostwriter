@@ -2,12 +2,13 @@ import * as Y from "yjs";
 import { ApolloClient, TypedDocumentNode } from "@apollo/client";
 
 /** Functions for loading, saving, and converting a type from/to YJS. */
-export type ModelHandler = {
-    load: (client: ApolloClient<unknown>, id: number) => Promise<Y.Doc>;
+export type ModelHandler<T> = {
+    load: (client: ApolloClient<unknown>, id: number) => Promise<[Y.Doc, T]>;
     save: (
         client: ApolloClient<unknown>,
         id: number,
-        doc: Y.Doc
+        doc: Y.Doc,
+        data: T
     ) => Promise<void>;
 };
 
@@ -21,12 +22,12 @@ export type IdVars = { id: number };
  * @param mkQueryVars Function to get the parameters for the `setQuery` to save the model. Called in a YJS transaction.
  * @returns The model handler.
  */
-export function simpleModelHandler<GetRes, SetRes, SetQueryVars>(
+export function simpleModelHandler<GetRes, SetRes, SetQueryVars, T>(
     getQuery: TypedDocumentNode<GetRes, IdVars>,
     setQuery: TypedDocumentNode<SetRes, SetQueryVars>,
-    fillFields: (doc: Y.Doc, res: GetRes) => void,
-    mkQueryVars: (doc: Y.Doc, id: number) => SetQueryVars
-): ModelHandler {
+    fillFields: (doc: Y.Doc, res: GetRes) => T,
+    mkQueryVars: (doc: Y.Doc, id: number, data: T) => SetQueryVars
+): ModelHandler<T> {
     return {
         load: async (client, id) => {
             const res = await client.query({
@@ -39,15 +40,16 @@ export function simpleModelHandler<GetRes, SetRes, SetQueryVars>(
                 throw res.error || res.errors;
             }
             const doc = new Y.Doc();
+            let data: T;
             doc.transact(() => {
-                fillFields(doc, res.data);
+                data = fillFields(doc, res.data);
             });
-            return doc;
+            return [doc, data!];
         },
-        async save(client, id, doc) {
+        async save(client, id, doc, data) {
             let queryVars;
             doc.transact(() => {
-                queryVars = mkQueryVars(doc, id);
+                queryVars = mkQueryVars(doc, id, data);
             });
             const res = await client.mutate({
                 mutation: setQuery,
