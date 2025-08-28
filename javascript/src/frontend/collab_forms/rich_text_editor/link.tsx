@@ -49,7 +49,16 @@ export default function LinkButton(props: { editor: Editor }) {
                     <div className="modal-header">
                         <h5 className="modal-title">Edit Link</h5>
                     </div>
-                    <div className="modal-body text-center">
+                    <form
+                        className="modal-body text-center"
+                        onSubmit={(ev) => {
+                            ev.preventDefault();
+                            if (formUrl) {
+                                editor.chain().setLink({ href: formUrl }).run();
+                            }
+                            setModalMode(null);
+                        }}
+                    >
                         <div className="form-group">
                             <label htmlFor={urlId}>URL</label>
                             <input
@@ -57,27 +66,16 @@ export default function LinkButton(props: { editor: Editor }) {
                                 type="url"
                                 className="form-control"
                                 value={formUrl}
+                                autoFocus
                                 onChange={(e) => setFormUrl(e.target.value)}
                             />
                         </div>
 
                         <div className="modal-footer">
-                            <button
-                                className="btn btn-primary"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    if (formUrl)
-                                        editor
-                                            .chain()
-                                            .setLink({ href: formUrl })
-                                            .run();
-                                    setModalMode(null);
-                                }}
-                            >
-                                Save
-                            </button>
+                            <button className="btn btn-primary">Save</button>
                             {modalMode === "edit" && (
                                 <button
+                                    type="button"
                                     className="btn btn-danger"
                                     onClick={(e) => {
                                         e.preventDefault();
@@ -89,6 +87,7 @@ export default function LinkButton(props: { editor: Editor }) {
                                 </button>
                             )}
                             <button
+                                type="button"
                                 className="btn btn-secondary"
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -98,7 +97,7 @@ export default function LinkButton(props: { editor: Editor }) {
                                 Cancel
                             </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </ReactModal>
         </>
