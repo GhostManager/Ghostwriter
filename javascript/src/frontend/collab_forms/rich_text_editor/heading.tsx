@@ -19,7 +19,7 @@ export default function HeadingIdButton() {
                 disabled={!enabled}
                 onClick={() => {
                     setBookmark(
-                        editor.getAttributes(HeadingWithId.name).id || ""
+                        editor.getAttributes(HeadingWithId.name).bookmark || ""
                     );
                     setModalOpen(true);
                 }}
@@ -36,7 +36,20 @@ export default function HeadingIdButton() {
                     <div className="modal-header">
                         <h5 className="modal-title">Edit Heading Bookmark</h5>
                     </div>
-                    <div className="modal-body text-center">
+                    <form
+                        className="modal-body text-center"
+                        onSubmit={(ev) => {
+                            ev.preventDefault();
+                            const trimmedId = bookmark.trim();
+                            editor
+                                .chain()
+                                .setHeadingBookmark(
+                                    trimmedId === "" ? undefined : trimmedId
+                                )
+                                .run();
+                            setModalOpen(false);
+                        }}
+                    >
                         <div className="form-group">
                             <label htmlFor={fieldId}>Bookmark Name</label>
                             <input
@@ -44,30 +57,15 @@ export default function HeadingIdButton() {
                                 type="text"
                                 className="form-control"
                                 value={bookmark}
+                                autoFocus
                                 onChange={(e) => setBookmark(e.target.value)}
                             />
                         </div>
 
                         <div className="modal-footer">
+                            <button className="btn btn-primary">Save</button>
                             <button
-                                className="btn btn-primary"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    const trimmedId = bookmark.trim();
-                                    editor
-                                        .chain()
-                                        .setHeadingBookmark(
-                                            trimmedId === ""
-                                                ? undefined
-                                                : trimmedId
-                                        )
-                                        .run();
-                                    setModalOpen(false);
-                                }}
-                            >
-                                Save
-                            </button>
-                            <button
+                                type="button"
                                 className="btn btn-secondary"
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -77,7 +75,7 @@ export default function HeadingIdButton() {
                                 Cancel
                             </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </ReactModal>
         </>
