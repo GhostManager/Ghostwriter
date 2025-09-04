@@ -1,5 +1,6 @@
 
 from typing import Any
+from datetime import datetime, timezone, timedelta
 
 from django.views.generic.detail import DetailView
 from django.contrib import messages
@@ -45,7 +46,10 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["model_name"] = self.model._meta.model_name
-        context["jwt"] = generate_jwt(self.request.user)[1]
+        context["jwt"] = generate_jwt(
+            self.request.user,
+            exp=datetime.now(timezone.utc) + timedelta(hours=24)
+        )[1]
         context["media_url"] = settings.MEDIA_URL
         context["collab_editing_script_path"] = self.collab_editing_script_path
         if self.has_extra_fields:
