@@ -88,6 +88,36 @@ type Mutation {
   ): LoginResponse
 }
 
+type Query {
+  oplog_oplogentry_by_tag(
+    tag: String!
+  ): [GetOplogEntryByTagsResponse!]
+}
+
+type Query {
+  reporting_finding_by_tag(
+    tag: String!
+  ): [GetFindingByTagsResponse!]
+}
+
+type Query {
+  reporting_observation_by_tag(
+    tag: String!
+  ): [GetObservationByTagsResponse!]
+}
+
+type Query {
+  reporting_reportfindinglink_by_tag(
+    tag: String!
+  ): [GetReportFindingByTagsResponse!]
+}
+
+type Query {
+  reporting_reportobservationlink_by_tag(
+    tag: String!
+  ): [GetReportObservationByTagsResponse!]
+}
+
 type Mutation {
   setTags(
     model: String!
@@ -194,5 +224,33 @@ type createUserResponse {
   email: String!
   role: String!
   result: String!
+}
+
+type GetByTagsResponse {
+  id: Int!
+}
+
+type GetByTagsObject {
+  id: Int!
+}
+
+type GetFindingByTagsResponse {
+  id: Int!
+}
+
+type GetObservationByTagsResponse {
+  id: Int!
+}
+
+type GetReportObservationByTagsResponse {
+  id: Int!
+}
+
+type GetReportFindingByTagsResponse {
+  id: Int!
+}
+
+type GetOplogEntryByTagsResponse {
+  id: Int!
 }
 
