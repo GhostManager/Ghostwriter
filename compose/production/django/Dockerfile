@@ -22,6 +22,8 @@ RUN apk --no-cache add build-base curl \
     # Rust and Cargo required by the ``cryptography`` Python package
     && apk --no-cache add rust \
     && apk --no-cache add cargo \
+    # Nmap required by the ``python-nmap`` Python package. libcap used to set the capabilities of nmap so root is not required
+    && apk --no-cache add nmap libcap \
     && addgroup -S django \
     && adduser -S -G django django \
     && pip install --no-cache-dir -U setuptools pip
@@ -50,6 +52,11 @@ COPY ./compose/production/django/queue/start /start-queue
 RUN sed -i 's/\r//' /start-queue \
     && chmod +x /start-queue \
     && chown django /start-queue
+
+RUN chown django:django /usr/bin/nmap \
+    && chmod 750 /usr/bin/nmap
+
+RUN setcap cap_net_raw,cap_net_bind_service+eip /usr/bin/nmap
 
 COPY ./compose/production/django/seed_data /seed_data
 
