@@ -1,25 +1,25 @@
 import { useId, useState } from "react";
-import { HeadingWithId } from "../../../tiptap_gw/heading";
 import ReactModal from "react-modal";
 import { useCurrentEditor } from "@tiptap/react";
 import { MenuItem } from "@szhsin/react-menu";
+import { TableCaption } from "../../../tiptap_gw/table";
 
-export default function HeadingIdButton() {
+export default function TableCaptionBookmarkButton() {
     const editor = useCurrentEditor().editor!;
     const [modalOpen, setModalOpen] = useState(false);
     const [bookmark, setBookmark] = useState("");
     const fieldId = useId();
 
-    const enabled = editor.can().setHeadingBookmark("example");
+    const enabled = editor.can().setTableCaptionBookmark("example");
 
     return (
         <>
             <MenuItem
-                title="Heading Bookmark"
+                title="Caption Bookmark"
                 disabled={!enabled}
                 onClick={() => {
                     setBookmark(
-                        editor.getAttributes(HeadingWithId.name).bookmark || ""
+                        editor.getAttributes(TableCaption.name).bookmark || ""
                     );
                     setModalOpen(true);
                 }}
@@ -56,7 +56,7 @@ export default function HeadingIdButton() {
                                     const trimmedId = bookmark.trim();
                                     editor
                                         .chain()
-                                        .setHeadingBookmark(
+                                        .setTableCaptionBookmark(
                                             trimmedId === ""
                                                 ? undefined
                                                 : trimmedId

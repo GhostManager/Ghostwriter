@@ -248,8 +248,15 @@ class BaseHtmlToOOXML:
         classes = el.attrs.get("class", [])
         if "collab-table-wrapper" in classes:
             table = el.find("table")
-            caption = el.find(class_="collab-table-caption-content")
-            self.tag_table(table, caption=caption, **kwargs)
+            caption_el = el.find(class_="collab-table-caption-content")
+            caption_bookmark_el = el.find(class_="collab-table-caption")
+            caption_bookmark = caption_bookmark_el.attrs.get("data-bookmark") if caption_bookmark_el is not None else None
+            self.tag_table(
+                table,
+                caption_el=caption_el,
+                caption_bookmark=caption_bookmark,
+                **kwargs,
+            )
         else:
             logger.warning("Don't know how to handle div: %s", el)
 

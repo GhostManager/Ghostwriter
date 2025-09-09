@@ -324,12 +324,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             super().tag_span(el, par=par, **kwargs)
 
     def tag_table(self, el, **kwargs):
-        caption = kwargs.get("caption") or el.find("caption")
+        caption_el = kwargs.get("caption_el") or el.find("caption")
+        caption_bookmark = kwargs.get("caption_bookmark")
         if self.table_caption_location == "top":
-            self._mk_table_caption(caption)
+            self._mk_table_caption(caption_el, caption_bookmark)
         super().tag_table(el, **kwargs)
         if self.table_caption_location == "bottom":
-            self._mk_table_caption(caption)
+            self._mk_table_caption(caption_el, caption_bookmark)
 
     def tag_div(self, el, **kwargs):
         if "richtext-evidence" in el.attrs.get("class", []):
@@ -344,12 +345,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         else:
             super().tag_div(el, **kwargs)
 
-    def _mk_table_caption(self, caption):
+    def _mk_table_caption(self, caption_el, caption_bookmark=None):
         par_caption = self.doc.add_paragraph()
-        self.make_caption(par_caption, self.table_label, None, styles=["Quote", "Caption"])
-        if caption is not None:
+        self.make_caption(par_caption, self.table_label, caption_bookmark, styles=["Quote", "Caption"])
+        if caption_el is not None:
             par_caption.add_run(self.table_prefix)
-            par_caption.add_run(self.title_except(caption.get_text()))
+            par_caption.add_run(self.title_except(caption_el.get_text()))
 
     def is_plural_acronym(self, word):
         """
