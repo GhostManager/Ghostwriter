@@ -6,9 +6,6 @@ import argparse
 from fastmcp import FastMCP
 
 # Ghostwriter MCP Server Imports
-from ghostwriter_mcp_server.resources.client import ClientResource
-from ghostwriter_mcp_server.resources.finding import FindingResource
-from ghostwriter_mcp_server.resources.reported_finding import ReportedFindingResource
 from ghostwriter_mcp_server.tools.generate_executive_summary import GenerateExecutiveSummaryTool
 from ghostwriter_mcp_server.utils.auth import GhostwriterTokenVerifier
 
@@ -31,11 +28,6 @@ def main() -> int:
         port=args.port,
         auth=GhostwriterTokenVerifier(),
     )
-
-    # Resources
-    ClientResource(mcp)
-    FindingResource(mcp)
-    ReportedFindingResource(mcp)
 
     # Tools
     GenerateExecutiveSummaryTool(mcp)
