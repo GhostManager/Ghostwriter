@@ -4,7 +4,6 @@ import { ChainedCommands, Editor } from "@tiptap/core";
 import {
     EditorContent,
     EditorContext,
-    EditorProvider,
     useCurrentEditor,
     useEditor,
 } from "@tiptap/react";
@@ -33,6 +32,7 @@ import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
 import HeadingIdButton from "./heading";
+import TableCaptionBookmarkButton from "./table";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -366,6 +366,7 @@ export function Toolbar(props: {
                     <FormatButton menuItem chain={(c) => c.removeCaption()}>
                         Remove Caption
                     </FormatButton>
+                    <TableCaptionBookmarkButton />
                 </Menu>
                 <FormatButton chain={(c) => c.setPageBreak()}>
                     Page Break
