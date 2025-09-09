@@ -82,11 +82,21 @@ export default function CvssCalculator(props: {
                     setTimeout(() => {
                         setDocValue(next.toString(false, undefined, true));
                         const scores = next.createJsonSchema();
-                        map.set(props.scoreKey, scores.baseScore!);
-                        map.set(
-                            props.severityKey,
-                            SEVERITY_TO_ID[scores.baseSeverity!]
-                        );
+                        let score, severity;
+                        if (scores.version === "3.1") {
+                            if (scores.environmentalScore !== undefined) {
+                                score = scores.environmentalScore;
+                                severity = scores.environmentalSeverity!;
+                            } else {
+                                score = scores.baseScore;
+                                severity = scores.baseSeverity;
+                            }
+                        } else {
+                            score = scores.baseScore!;
+                            severity = scores.baseSeverity!;
+                        }
+                        map.set(props.scoreKey, score);
+                        map.set(props.severityKey, SEVERITY_TO_ID[severity]);
                     });
                 }
                 return next;
