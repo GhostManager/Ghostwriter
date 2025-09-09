@@ -12,12 +12,14 @@ export function extraFieldsToYdoc(
             const frag = new Y.XmlFragment();
             extra_fields.set(spec.internalName, frag);
             htmlToYjs((json[spec.internalName] ?? "").toString(), frag);
+        } else if (spec.type === "json") {
+            const subjson = JSON.stringify(json[spec.internalName]);
+            extra_fields.set(spec.internalName, subjson);
         } else if (
             spec.type === "checkbox" ||
             spec.type === "single_line_text" ||
             spec.type === "integer" ||
-            spec.type === "float" ||
-            spec.type === "json"
+            spec.type === "float"
         ) {
             extra_fields.set(spec.internalName, json[spec.internalName]);
         } else {
@@ -26,14 +28,31 @@ export function extraFieldsToYdoc(
     }
 }
 
-export function extraFieldsFromYdoc(doc: Y.Doc): Record<string, any> {
+export function extraFieldsFromYdoc(
+    specs: { internalName: string; type: string }[],
+    doc: Y.Doc
+): Record<string, any> {
     const extra_fields = doc.get("extra_fields", Y.Map);
     const out: Record<string, any> = {};
-    for (const [key, value] of extra_fields.entries()) {
-        if (value instanceof Y.XmlFragment) {
-            out[key] = yjsToHtml(value);
+
+    for (const spec of specs) {
+        if (spec.type === "rich_text") {
+            out[spec.internalName] = yjsToHtml(
+                extra_fields.get(spec.internalName) as Y.XmlFragment
+            );
+        } else if (spec.type === "json") {
+            out[spec.internalName] = JSON.parse(
+                extra_fields.get(spec.internalName) as string
+            );
+        } else if (
+            spec.type === "checkbox" ||
+            spec.type === "single_line_text" ||
+            spec.type === "integer" ||
+            spec.type === "float"
+        ) {
+            out[spec.internalName] = extra_fields.get(spec.internalName) as any;
         } else {
-            out[key] = value;
+            throw new Error("Unrecognized extra field type: " + spec.type);
         }
     }
     return out;
