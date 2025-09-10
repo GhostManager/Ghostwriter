@@ -1,25 +1,25 @@
 import { useId, useState } from "react";
-import { HeadingWithId } from "../../../tiptap_gw/heading";
 import ReactModal from "react-modal";
 import { useCurrentEditor } from "@tiptap/react";
 import { MenuItem } from "@szhsin/react-menu";
+import { TableCaption } from "../../../tiptap_gw/table";
 
-export default function HeadingIdButton() {
+export default function TableCaptionBookmarkButton() {
     const editor = useCurrentEditor().editor!;
     const [modalOpen, setModalOpen] = useState(false);
     const [bookmark, setBookmark] = useState("");
     const fieldId = useId();
 
-    const enabled = editor.can().setHeadingBookmark("example");
+    const enabled = editor.can().setTableCaptionBookmark("example");
 
     return (
         <>
             <MenuItem
-                title="Heading Bookmark"
+                title="Caption Bookmark"
                 disabled={!enabled}
                 onClick={() => {
                     setBookmark(
-                        editor.getAttributes(HeadingWithId.name).bookmark || ""
+                        editor.getAttributes(TableCaption.name).bookmark || ""
                     );
                     setModalOpen(true);
                 }}
@@ -36,20 +36,7 @@ export default function HeadingIdButton() {
                     <div className="modal-header">
                         <h5 className="modal-title">Edit Heading Bookmark</h5>
                     </div>
-                    <form
-                        className="modal-body text-center"
-                        onSubmit={(ev) => {
-                            ev.preventDefault();
-                            const trimmedId = bookmark.trim();
-                            editor
-                                .chain()
-                                .setHeadingBookmark(
-                                    trimmedId === "" ? undefined : trimmedId
-                                )
-                                .run();
-                            setModalOpen(false);
-                        }}
-                    >
+                    <div className="modal-body text-center">
                         <div className="form-group">
                             <label htmlFor={fieldId}>Bookmark Name</label>
                             <input
@@ -57,15 +44,30 @@ export default function HeadingIdButton() {
                                 type="text"
                                 className="form-control"
                                 value={bookmark}
-                                autoFocus
                                 onChange={(e) => setBookmark(e.target.value)}
                             />
                         </div>
 
                         <div className="modal-footer">
-                            <button className="btn btn-primary">Save</button>
                             <button
-                                type="button"
+                                className="btn btn-primary"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    const trimmedId = bookmark.trim();
+                                    editor
+                                        .chain()
+                                        .setTableCaptionBookmark(
+                                            trimmedId === ""
+                                                ? undefined
+                                                : trimmedId
+                                        )
+                                        .run();
+                                    setModalOpen(false);
+                                }}
+                            >
+                                Save
+                            </button>
+                            <button
                                 className="btn btn-secondary"
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -75,7 +77,7 @@ export default function HeadingIdButton() {
                                 Cancel
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </ReactModal>
         </>

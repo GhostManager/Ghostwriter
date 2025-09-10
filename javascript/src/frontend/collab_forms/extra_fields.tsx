@@ -40,6 +40,7 @@ export default function ExtraFieldsSection(props: {
     provider: HocuspocusProvider;
     header?: React.ReactNode;
     toolbarExtra?: (editor: Editor) => React.ReactNode;
+    setEditing?: (editing: boolean) => void;
 }) {
     const specs = useExtraFieldSpecs();
 
@@ -66,6 +67,7 @@ export function ExtraFieldInput(props: {
     provider: HocuspocusProvider;
     spec: ExtraFieldSpec;
     toolbarExtra?: (editor: Editor) => React.ReactNode;
+    setEditing?: (editing: boolean) => void;
 }) {
     const map = useMemo(
         () => props.provider.document.getMap("extra_fields"),
@@ -91,6 +93,7 @@ export function ExtraFieldInput(props: {
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
                     defaultValue={0}
+                    setEditing={props.setEditing}
                 />
             );
         case "integer":
@@ -102,6 +105,7 @@ export function ExtraFieldInput(props: {
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
                     defaultValue={0}
+                    setEditing={props.setEditing}
                 />
             );
         case "single_line_text":
@@ -112,6 +116,7 @@ export function ExtraFieldInput(props: {
                     map={map}
                     mapKey={props.spec.internal_name}
                     inputProps={{ className: "form-control mb-3" }}
+                    setEditing={props.setEditing}
                 />
             );
         case "rich_text":

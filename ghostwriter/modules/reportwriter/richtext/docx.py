@@ -116,15 +116,16 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
-            run = heading_paragraph.runs[0]
-            tag = run._r
+            tag = heading_paragraph.runs[0]._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
             start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
-            tag.append(start)
+            start.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
+            tag.insert(0, start)
+
+            tag = heading_paragraph.runs[-1]._r
             end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
             end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), bookmark_name)
+            end.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
             tag.append(end)
             self.current_bookmark_id += 1
 
@@ -324,12 +325,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             super().tag_span(el, par=par, **kwargs)
 
     def tag_table(self, el, **kwargs):
-        caption = kwargs.get("caption") or el.find("caption")
+        caption_el = kwargs.get("caption_el") or el.find("caption")
+        caption_bookmark = kwargs.get("caption_bookmark")
         if self.table_caption_location == "top":
-            self._mk_table_caption(caption)
+            self._mk_table_caption(caption_el, caption_bookmark)
         super().tag_table(el, **kwargs)
         if self.table_caption_location == "bottom":
-            self._mk_table_caption(caption)
+            self._mk_table_caption(caption_el, caption_bookmark)
 
     def tag_div(self, el, **kwargs):
         if "richtext-evidence" in el.attrs.get("class", []):
@@ -344,12 +346,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         else:
             super().tag_div(el, **kwargs)
 
-    def _mk_table_caption(self, caption):
+    def _mk_table_caption(self, caption_el, caption_bookmark=None):
         par_caption = self.doc.add_paragraph()
-        self.make_caption(par_caption, self.table_label, None, styles=["Quote", "Caption"])
-        if caption is not None:
+        self.make_caption(par_caption, self.table_label, caption_bookmark, styles=["Quote", "Caption"])
+        if caption_el is not None:
             par_caption.add_run(self.table_prefix)
-            par_caption.add_run(self.title_except(caption.get_text()))
+            par_caption.add_run(self.title_except(caption_el.get_text()))
 
     def is_plural_acronym(self, word):
         """

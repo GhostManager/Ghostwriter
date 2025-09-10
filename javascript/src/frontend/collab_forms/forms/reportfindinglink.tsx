@@ -14,7 +14,7 @@ const renderToolbarExtra = (editor: Editor) => (
 );
 
 function ReportFindingLinkForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "report_finding_link",
     });
 
@@ -24,6 +24,7 @@ function ReportFindingLinkForm() {
             status={status}
             connected={connected}
             toolbarExtra={renderToolbarExtra}
+            setEditing={setEditing}
             extraTop={
                 <>
                     <h4 className="icon list-icon">Affected Entities</h4>

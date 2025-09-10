@@ -1277,7 +1277,6 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         return self.form_invalid(form)
 
     def form_valid(self, form):
-        form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
@@ -1316,6 +1315,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
                 codename_verified = True
         return {
             "codename": codename,
+            "extra_fields": ExtraFieldSpec.initial_json(self.model),
         }
 
 

@@ -14,6 +14,7 @@ export function BaseInput<T>(props: {
     toString: (v: T) => string;
     parse: (v: string) => T | undefined;
     defaultValue: T;
+    setEditing?: (editing: boolean) => void;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }) {
     const map = useMemo(
@@ -40,6 +41,7 @@ export function BaseInput<T>(props: {
         if (formValue === null) return;
         let parsed = props.parse(formValue);
         if (parsed === undefined || parsed === docValue) {
+            if (props.setEditing) props.setEditing(false);
             setFormValue(null);
             return;
         } else if (parsed === null) {
@@ -47,6 +49,7 @@ export function BaseInput<T>(props: {
         }
         setDocValue(parsed);
         setFormValue(null);
+        if (props.setEditing) props.setEditing(false);
     };
 
     return (
@@ -60,6 +63,7 @@ export function BaseInput<T>(props: {
                 }
                 onInput={(ev) => {
                     setFormValue((ev.target as HTMLInputElement).value);
+                    if (props.setEditing) props.setEditing(true);
                 }}
                 onFocus={onFocus}
                 onBlur={() => {
@@ -84,6 +88,7 @@ export function PlainTextInput(props: {
     mapKey: string;
     connected: boolean;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+    setEditing?: (editing: boolean) => void;
 }) {
     const inputProps = {
         type: "text",
@@ -115,6 +120,7 @@ export function NumberInput(props: {
     connected: boolean;
     inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
     defaultValue: number | null;
+    setEditing?: (editing: boolean) => void;
 }) {
     const inputProps = {
         type: "number",
@@ -146,6 +152,7 @@ export function IntegerInput(props: {
     connected: boolean;
     inputProps?: React.HTMLAttributes<HTMLInputElement>;
     defaultValue: number;
+    setEditing?: (editing: boolean) => void;
 }) {
     const inputProps = {
         type: "number",

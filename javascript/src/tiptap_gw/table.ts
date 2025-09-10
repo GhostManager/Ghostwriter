@@ -1,4 +1,4 @@
-import { Node } from "@tiptap/core";
+import { mergeAttributes, Node } from "@tiptap/core";
 import { Fragment, ResolvedPos, Slice } from "@tiptap/pm/model";
 import { ReplaceAroundStep } from "@tiptap/pm/transform";
 import mkElem from "./mkelem";
@@ -8,6 +8,7 @@ declare module "@tiptap/core" {
         tableCaption: {
             addCaption: () => ReturnType;
             removeCaption: () => ReturnType;
+            setTableCaptionBookmark: (name: string | undefined) => ReturnType;
         };
     }
 }
@@ -19,6 +20,7 @@ export const TableWithCaption = Node.create<{}>({
     isolating: true,
     // Parse before regular table
     priority: 101,
+
     parseHTML() {
         return [
             {
@@ -83,6 +85,20 @@ export const TableCaption = Node.create<{}>({
     content: "inline*",
     // Parse before regular p
     priority: 1001,
+
+    addAttributes() {
+        return {
+            bookmark: {
+                default: undefined,
+                parseHTML: (el) =>
+                    el.getAttribute("data-bookmark") || undefined,
+                renderHTML: (attr) => ({
+                    "data-bookmark": attr.bookmark || undefined,
+                }),
+            },
+        };
+    },
+
     parseHTML() {
         return [
             {
@@ -93,10 +109,11 @@ export const TableCaption = Node.create<{}>({
             },
         ];
     },
-    renderHTML() {
+
+    renderHTML({ HTMLAttributes }) {
         return [
             "p",
-            { class: "collab-table-caption" },
+            mergeAttributes(HTMLAttributes, { class: "collab-table-caption" }),
             [
                 "span",
                 {
@@ -108,6 +125,7 @@ export const TableCaption = Node.create<{}>({
             ["span", { class: "collab-table-caption-content" }, 0],
         ];
     },
+
     addCommands() {
         return {
             addCaption:
@@ -176,6 +194,15 @@ export const TableCaption = Node.create<{}>({
                         dispatch(tr);
                     }
                     return true;
+                },
+            setTableCaptionBookmark:
+                (name) =>
+                ({ commands, can }) => {
+                    // Check if we're even in a heading, and don't enable this command if so.
+                    if (!can().deleteNode(this.name)) return false;
+                    return commands.updateAttributes(this.name, {
+                        bookmark: name,
+                    });
                 },
         };
     },

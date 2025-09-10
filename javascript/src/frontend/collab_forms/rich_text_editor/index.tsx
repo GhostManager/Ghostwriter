@@ -4,7 +4,6 @@ import { ChainedCommands, Editor } from "@tiptap/core";
 import {
     EditorContent,
     EditorContext,
-    EditorProvider,
     useCurrentEditor,
     useEditor,
 } from "@tiptap/react";
@@ -33,6 +32,8 @@ import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
 import HeadingIdButton from "./heading";
+import ColorButton from "./color";
+import TableCaptionBookmarkButton from "./table";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -75,6 +76,7 @@ function FormatButton(props: {
     }
     return (
         <button
+            type="button"
             onClick={(ev) => {
                 ev.preventDefault();
                 props.chain(editor.chain().focus()).run();
@@ -142,6 +144,7 @@ export function Toolbar(props: {
                 >
                     <FontAwesomeIcon icon={faSuperscript} />
                 </FormatButton>
+                <ColorButton editor={editor} />
                 <FormatButton
                     chain={(c) => c.toggleHighlight()}
                     active="highlight"
@@ -195,6 +198,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("left")}
                         active={{ textAlign: "left" }}
+                        enable
                     >
                         Left
                     </FormatButton>
@@ -202,6 +206,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("center")}
                         active={{ textAlign: "center" }}
+                        enable
                     >
                         Center
                     </FormatButton>
@@ -209,6 +214,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("right")}
                         active={{ textAlign: "right" }}
+                        enable
                     >
                         Right
                     </FormatButton>
@@ -216,6 +222,7 @@ export function Toolbar(props: {
                         menuItem
                         chain={(c) => c.setTextAlign("justify")}
                         active={{ textAlign: "justify" }}
+                        enable
                     >
                         Justify
                     </FormatButton>
@@ -362,6 +369,7 @@ export function Toolbar(props: {
                     <FormatButton menuItem chain={(c) => c.removeCaption()}>
                         Remove Caption
                     </FormatButton>
+                    <TableCaptionBookmarkButton />
                 </Menu>
                 <FormatButton chain={(c) => c.setPageBreak()}>
                     Page Break

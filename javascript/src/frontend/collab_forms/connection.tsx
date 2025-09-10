@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 
 export type ConnectionStatus =
     | "disconnected"
     | "connecting"
-    | "initialSyncing"
     | "syncing"
     | "error"
+    | "dirty"
     | "idle";
 
 /// Gets a YJS connection from the information embedded by the `collab_editing/update.html` view.
@@ -22,12 +22,16 @@ export function usePageConnection(settings: {
     status: ConnectionStatus;
     // A simple yes-no for whether or not controls should be enabled. Derived from `status` but provided here for convenience.
     connected: boolean;
+    // A setter that can be set to `true` to return the `"dirty"` status even if nothing is actually dirty.
+    // Use if a field is being edited but not saved to the document yet.
+    setEditing: (editing: boolean) => void;
 } {
     const [status, setStatus] = useState<
         "disconnected" | "connecting" | "connected"
     >("disconnected");
     const [synced, setSynced] = useState<boolean>(false);
-    const [initialSyncDone, setInitialSyncDone] = useState<boolean>(false);
+    const [allChangesSynced, setAllChangesSynced] = useDebounced(true);
+    const [editing, setEditing] = useState(false);
     const savedInstanceID = useRef<string | null>(null);
 
     // Type as `HocuspocusProvider` only, cuz it's only going to be null for a slight bit.
@@ -60,12 +64,10 @@ export function usePageConnection(settings: {
             },
             onStatus(event) {
                 setStatus(event.status);
-                if (event.status !== "connected") setInitialSyncDone(false);
             },
             onSynced(event) {
                 const state = event.state;
                 setSynced(state);
-                if (state) setInitialSyncDone(true);
 
                 if (savedInstanceID.current === null) {
                     const doc = provider.current.document;
@@ -76,6 +78,12 @@ export function usePageConnection(settings: {
                     });
                 }
             },
+            onDisconnect() {
+                setSynced(false);
+            },
+        });
+        provider.current.on("unsyncedChanges", () => {
+            setAllChangesSynced(!provider.current!.hasUnsyncedChanges);
         });
 
         provider.current.awareness!.setLocalStateField("user", {
@@ -113,9 +121,9 @@ export function usePageConnection(settings: {
 
     let outStatus: ConnectionStatus;
     if (status === "connected") {
-        if (!initialSyncDone) outStatus = "initialSyncing";
-        else if (!synced) outStatus = "syncing";
+        if (!synced) outStatus = "syncing";
         else if (hasSaveError) outStatus = "error";
+        else if (!allChangesSynced || editing) outStatus = "dirty";
         else outStatus = "idle";
     } else {
         outStatus = status;
@@ -124,11 +132,42 @@ export function usePageConnection(settings: {
     return {
         provider: provider.current,
         status: outStatus,
-        connected:
-            outStatus === "idle" ||
-            outStatus === "syncing" ||
-            outStatus === "error",
+        connected: outStatus === "idle" || outStatus === "dirty",
+        setEditing,
     };
+}
+
+function useDebounced(initial: boolean): [boolean, (v: boolean) => void] {
+    const raw = useRef(initial);
+    const [debounced, setDebounced] = useState(initial);
+    const timerRef = useRef<null | ReturnType<typeof setTimeout>>(null);
+    useEffect(() => () => {
+        if (timerRef.current !== null) clearTimeout(timerRef.current);
+    });
+
+    const set = useCallback(
+        (v: boolean) => {
+            if (v) {
+                if (raw.current || timerRef.current !== null) return;
+                raw.current = true;
+                timerRef.current = setTimeout(() => {
+                    setDebounced(true);
+                    timerRef.current = null;
+                }, 500);
+            } else {
+                if (!raw.current) return;
+                raw.current = false;
+                setDebounced(false);
+                if (timerRef.current !== null) {
+                    clearTimeout(timerRef.current);
+                    timerRef.current = null;
+                }
+            }
+        },
+        [timerRef, raw, setDebounced]
+    );
+
+    return [debounced, set];
 }
 
 function hsv_to_rgb(h: number, s: number, v: number) {
@@ -171,9 +210,9 @@ function hsv_to_rgb(h: number, s: number, v: number) {
 const STATUS_LOOKUP: { [key in ConnectionStatus]: [string, string] } = {
     disconnected: ["Disconnected", "alert-danger"],
     connecting: ["Connecting...", "alert-warning"],
-    initialSyncing: ["Synchronizing...", "alert-warning"],
     syncing: ["Synchronizing...", "alert-warning"],
     idle: ["Connected, changes saved automatically", "alert-success"],
+    dirty: ["Connected, unsaved changes", "alert-warning"],
     error: ["Could not save data - refresh page and try again", "alert-danger"],
 };
 
