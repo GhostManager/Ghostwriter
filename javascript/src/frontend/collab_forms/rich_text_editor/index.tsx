@@ -32,6 +32,7 @@ import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
 import HeadingIdButton from "./heading";
+import ColorButton from "./color";
 import TableCaptionBookmarkButton from "./table";
 
 // For debugging
@@ -75,6 +76,7 @@ function FormatButton(props: {
     }
     return (
         <button
+            type="button"
             onClick={(ev) => {
                 ev.preventDefault();
                 props.chain(editor.chain().focus()).run();
@@ -142,6 +144,7 @@ export function Toolbar(props: {
                 >
                     <FontAwesomeIcon icon={faSuperscript} />
                 </FormatButton>
+                <ColorButton editor={editor} />
                 <FormatButton
                     chain={(c) => c.toggleHighlight()}
                     active="highlight"
