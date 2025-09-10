@@ -24,7 +24,7 @@ export default function JsonEditor(props: {
                     value={docValue}
                 />
                 <button
-                    className="btn"
+                    className="btn btn-primary mt-2 col-2"
                     onClick={(e) => {
                         e.preventDefault();
                         setFormValue(docValue);
@@ -55,7 +55,7 @@ export default function JsonEditor(props: {
             />
             <button
                 disabled={!props.connected}
-                className="btn"
+                className="btn btn-primary mt-2 col-2"
                 onClick={(e) => {
                     e.preventDefault();
                     if (error !== null) return;
