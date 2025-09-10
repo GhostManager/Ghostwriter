@@ -87,6 +87,9 @@ export default function CvssCalculator(props: {
                             if (scores.environmentalScore !== undefined) {
                                 score = scores.environmentalScore;
                                 severity = scores.environmentalSeverity!;
+                            } else if(scores.temporalScore !== undefined) {
+                                score = scores.temporalScore;
+                                severity = scores.temporalSeverity!;
                             } else {
                                 score = scores.baseScore;
                                 severity = scores.baseSeverity;
