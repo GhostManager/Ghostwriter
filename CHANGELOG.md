@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.3] - 10 September 2025
+
+### Added
+
+* Added font color options back to the collaborative editor (PR #662)
+  * You can now change the font color using the color picker
+  * The color picker supports selecting from a palette of colors or entering custom hex or RGB values
+
+### Changed
+
+* Increased session timeout for evidence uploads to 24 hours (up from 15 minutes) (PR #686)
+  * This addresses uploads expiring when users fill out the form but then do not submit the form until later
+  * This change affects evidence uploads for the collaborative editor
+* Removed some redundant buttons from the observations list view (PR #685)
+* Improved the collaborative editor's modals (PR #683)
+  * The fields now auto-focus
+  * Pressing _Enter_ will now submit the modal form
+
+### Fixed
+
+* Fixed handling of the JSON content in JSON extra fields with the collaborative editor (PR #679)
+* Fixed the temporal and environmental scores not working properly with the CVSS v3 calculator in the collaborative editor (PR #680; Fixes #670)
+* Fixed an issue with bookmark/cross-references for headers in Word documents (PR #691)
+
 ## [6.0.2] - 8 August 2025
 
 ### Changed
