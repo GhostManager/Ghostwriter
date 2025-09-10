@@ -116,15 +116,16 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
-            run = heading_paragraph.runs[0]
-            tag = run._r
+            tag = heading_paragraph.runs[0]._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
             start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
-            tag.append(start)
+            start.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
+            tag.insert(0, start)
+
+            tag = heading_paragraph.runs[-1]._r
             end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
             end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), bookmark_name)
+            end.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
             tag.append(end)
             self.current_bookmark_id += 1
 
