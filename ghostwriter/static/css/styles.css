@@ -2055,6 +2055,10 @@ th.icon {
   content: '\f0f3';
 }
 
+.bloodhound-icon:before {
+  content: '\f1b0';
+}
+
 .vt-icon:before {
   content: '\f1a0';
   font-family: 'Font Awesome 5 Brands';
