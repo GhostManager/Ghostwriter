@@ -513,7 +513,6 @@ class SelectReportTemplateForm(forms.ModelForm):
 
     include_bloodhound = forms.BooleanField(
         label="Include data from BloodHound",
-        help_text="Include data from BloodHound",
         initial=True,
         required=False,
     )
@@ -553,8 +552,8 @@ class SelectReportTemplateForm(forms.ModelForm):
             ),
             Row(
                 Column(
-                    "include_bloodhound",
-                    css_class="col-md-12",
+                    SwitchToggle("include_bloodhound"),
+                    css_class="col-md-12 mb-3",
                 ),
                 css_class="justify-content-md-center",
             ) if has_bloodhound else None,
