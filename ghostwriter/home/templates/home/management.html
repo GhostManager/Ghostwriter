@@ -262,7 +262,7 @@
 
     <!-- Notification Section -->
     <tr>
-      <th class="text-left">Bloodhound Integration</th>
+      <th class="text-left icon bloodhound-icon">Bloodhound Integration</th>
       <th></th>
     </tr>
     <tr>
@@ -272,8 +272,12 @@
     {% if bloodhound_config.has_bloodhound_api %}
       <tr>
         <tr>
-          <td class="text-left">BloodHound URL</td>
-          <td class="text-justify">{{ bloodhound_config.api_root_url }}</td>
+          <td class="text-left icon bloodhound-icon">BloodHound URL</td>
+          {% if bloodhound_config.api_root_url %}
+            <td class="text-justify">{{ bloodhound_config.api_root_url }}</td>
+          {% else %}
+            <td class="text-justify">Not Configured</td>
+          {% endif %}
         </tr>
       </td>
     {% endif %}
