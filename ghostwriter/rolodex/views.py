@@ -2216,7 +2216,7 @@ class BloodhoundApiTestView(RoleBasedAccessControlMixin, View):
             bh_version = bh_client.get_version()
         except (IOError, json.JSONDecodeError):
             logger.exception("BH connection test failed")
-            return self.render_result(request, messages.constants.ERROR, "Could not conect to BloodHound")
+            return self.render_result(request, messages.constants.ERROR, "Could not connect to BloodHound")
         return self.render_result(request, messages.constants.SUCCESS, "Connected to BloodHound successfully. BloodHound version " + bh_version.server_version)
 
     def render_result(self, request: HttpRequest, level: int, message: str) -> HttpResponse:
@@ -2268,7 +2268,7 @@ class BloodhoundApiFetchView(RoleBasedAccessControlMixin, View):
             findings_response = bh_client.get_findings()
         except (IOError, json.JSONDecodeError):
             logger.exception("BH connection test failed")
-            return self.render_result(request, messages.constants.ERROR, "Could not conect to BloodHound")
+            return self.render_result(request, messages.constants.ERROR, "Could not connect to BloodHound")
 
         self.object.bloodhound_results = findings_response
         self.object.save()
