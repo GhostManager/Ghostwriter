@@ -24,11 +24,19 @@ class ExportReportBase(ExportBase):
     Provides a `serialize_object` implementation for serializing the `Report` database object,
     and helper functions for creating Jinja contexts.
     """
+    include_bloodhound: bool
+
+    def __init__(self, *args, include_bloodhound=True, **kwargs):
+        self.include_bloodhound = include_bloodhound
+        super().__init__(*args, **kwargs)
 
     def serialize_object(self, report):
+        excludes = ["id"]
+        if not self.include_bloodhound:
+            excludes.append("bloodhound_findings")
         return ReportDataSerializer(
             report,
-            exclude=["id"],
+            exclude=excludes,
         ).data
 
     def severity_rich_text(self, text, severity_color):
