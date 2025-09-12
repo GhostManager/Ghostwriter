@@ -503,6 +503,7 @@ class ReportModelTests(TestCase):
         self.assertFalse(report.user_can_view(user))
         self.assertFalse(report.user_can_edit(user))
         self.assertFalse(report.user_can_delete(user))
+        self.assertEquals(list(Report.user_viewable(user)), [])
 
         user.role = "manager"
         user.save()
@@ -510,6 +511,7 @@ class ReportModelTests(TestCase):
         self.assertTrue(report.user_can_view(user))
         self.assertTrue(report.user_can_edit(user))
         self.assertTrue(report.user_can_delete(user))
+        self.assertEquals(list(Report.user_viewable(user)), [report])
 
         user.role = "user"
         user.save()
@@ -517,30 +519,35 @@ class ReportModelTests(TestCase):
         self.assertFalse(report.user_can_view(user))
         self.assertFalse(report.user_can_edit(user))
         self.assertFalse(report.user_can_delete(user))
+        self.assertEquals(list(Report.user_viewable(user)), [])
 
         assignment = ProjectAssignmentFactory(operator=user, project=project)
         self.assertTrue(Report.user_can_create(user, project))
         self.assertTrue(report.user_can_view(user))
         self.assertTrue(report.user_can_edit(user))
         self.assertTrue(report.user_can_delete(user))
+        self.assertEquals(list(Report.user_viewable(user)), [report])
 
         assignment.delete()
         self.assertFalse(Report.user_can_create(user, project))
         self.assertFalse(report.user_can_view(user))
         self.assertFalse(report.user_can_edit(user))
         self.assertFalse(report.user_can_delete(user))
+        self.assertEquals(list(Report.user_viewable(user)), [])
 
         client_invite = ClientInviteFactory(user=user, client=project.client)
         self.assertTrue(Report.user_can_create(user, project))
         self.assertTrue(report.user_can_view(user))
         self.assertTrue(report.user_can_edit(user))
         self.assertTrue(report.user_can_delete(user))
+        self.assertEquals(list(Report.user_viewable(user)), [report])
 
         client_invite.delete()
         self.assertFalse(Report.user_can_create(user, project))
         self.assertFalse(report.user_can_view(user))
         self.assertFalse(report.user_can_edit(user))
         self.assertFalse(report.user_can_delete(user))
+        self.assertEquals(list(Report.user_viewable(user)), [])
 
 
 class ReportFindingLinkModelTests(TestCase):
