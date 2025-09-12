@@ -41,7 +41,9 @@ export function extraFieldsFromYdoc(
                 extra_fields.get(spec.internalName) as Y.XmlFragment
             );
         } else if (spec.type === "json") {
-            let value = extra_fields.get(spec.internalName) as string | undefined;
+            let value = extra_fields.get(spec.internalName) as
+                | string
+                | undefined;
             out[spec.internalName] = JSON.parse(value ?? "undefined");
         } else if (
             spec.type === "checkbox" ||
