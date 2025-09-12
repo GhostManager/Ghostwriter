@@ -1375,3 +1375,29 @@ class SetTags(HasuraActionView):
 
         obj.tags.set(self.input["tags"])
         return JsonResponse({"tags": self.input["tags"]})
+
+class ObjectsByTag(HasuraActionView):
+    required_inputs = ["tag"]
+    available_models = {
+        # Models here need to have a `tags` field and a `user_viewable(user)` class method
+        "observation": Observation,
+        "report_observation_link": ReportObservationLink,
+        "finding": Finding,
+        "report_finding_link": ReportFindingLink,
+        "oplog_entry": OplogEntry,
+    }
+
+    def post(self, request: HttpRequest, model: str):
+        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
+        if not self.encoded_token and not is_admin:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+            )
+
+        cls = self.available_models.get(model)
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
+        objs = objs.filter(tags__name=self.input["tag"])
+        return JsonResponse([{"id": obj.pk} for obj in objs], safe=False)

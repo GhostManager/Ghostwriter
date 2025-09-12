@@ -65,6 +65,12 @@ type Mutation {
   ): deleteResponse
 }
 
+type Query {
+  finding_by_tag(
+    tag: String!
+  ): [GetFindingByTagsResponse!]
+}
+
 type Mutation {
   generateCodename: codenameResponse
 }
@@ -86,6 +92,30 @@ type Mutation {
     username: String!
     password: String!
   ): LoginResponse
+}
+
+type Query {
+  observation_by_tag(
+    tag: String!
+  ): [GetObservationByTagsResponse!]
+}
+
+type Query {
+  oplogEntry_by_tag(
+    tag: String!
+  ): [GetOplogEntryByTagsResponse!]
+}
+
+type Query {
+  reportedFinding_by_tag(
+    tag: String!
+  ): [GetReportFindingByTagsResponse!]
+}
+
+type Query {
+  reportedObservation_by_tag(
+    tag: String!
+  ): [GetReportObservationByTagsResponse!]
 }
 
 type Mutation {
@@ -194,5 +224,33 @@ type createUserResponse {
   email: String!
   role: String!
   result: String!
+}
+
+type GetByTagsResponse {
+  id: Int!
+}
+
+type GetByTagsObject {
+  id: Int!
+}
+
+type GetFindingByTagsResponse {
+  id: Int!
+}
+
+type GetObservationByTagsResponse {
+  id: Int!
+}
+
+type GetReportObservationByTagsResponse {
+  id: Int!
+}
+
+type GetReportFindingByTagsResponse {
+  id: Int!
+}
+
+type GetOplogEntryByTagsResponse {
+  id: Int!
 }
 
