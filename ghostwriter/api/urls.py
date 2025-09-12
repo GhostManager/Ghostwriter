@@ -37,6 +37,7 @@ from ghostwriter.api.views import (
     GraphqlUploadEvidenceView,
     CheckEditPermissions,
     GetTags,
+    ObjectsByTag,
     SetTags,
 )
 
@@ -127,4 +128,5 @@ urlpatterns = [
     ),
     path("tags/get", csrf_exempt(GetTags.as_view()), name="graphql_get_tags"),
     path("tags/set", csrf_exempt(SetTags.as_view()), name="graphql_set_tags"),
+    path("tags/get_by/<str:model>", csrf_exempt(ObjectsByTag.as_view()), name="graphql_objects_by_tag"),
 ]

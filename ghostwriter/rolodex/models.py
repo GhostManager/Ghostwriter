@@ -293,6 +293,10 @@ class Project(models.Model):
     def user_can_view(self, user) -> bool:
         return self in self.for_user(user)
 
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.for_user(user)
+
     def user_can_edit(self, user) -> bool:
         return self.user_can_view(user)
 
