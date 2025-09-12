@@ -251,6 +251,10 @@ const server = new Hocuspocus({
     async onDisconnect(data) {
         (data.context as Context).log.info("Disconnected");
     },
+
+    async afterUnloadDocument(data) {
+        documentData.delete(data.documentName);
+    },
 });
 
 server.listen();
