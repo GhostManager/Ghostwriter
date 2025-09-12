@@ -13,7 +13,7 @@ export function extraFieldsToYdoc(
             extra_fields.set(spec.internalName, frag);
             htmlToYjs((json[spec.internalName] ?? "").toString(), frag);
         } else if (spec.type === "json") {
-            const subjson = JSON.stringify(json[spec.internalName]);
+            const subjson = JSON.stringify(json[spec.internalName] ?? null);
             extra_fields.set(spec.internalName, subjson);
         } else if (
             spec.type === "checkbox" ||
@@ -41,9 +41,8 @@ export function extraFieldsFromYdoc(
                 extra_fields.get(spec.internalName) as Y.XmlFragment
             );
         } else if (spec.type === "json") {
-            out[spec.internalName] = JSON.parse(
-                extra_fields.get(spec.internalName) as string
-            );
+            let value = extra_fields.get(spec.internalName) as string | undefined;
+            out[spec.internalName] = JSON.parse(value ?? "undefined");
         } else if (
             spec.type === "checkbox" ||
             spec.type === "single_line_text" ||
