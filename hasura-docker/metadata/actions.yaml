@@ -80,6 +80,18 @@ actions:
       - role: user
       - role: manager
     comment: Delete the specified template file and remove the associated file from the filesystem
+  - name: finding_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/finding'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: manager
+      - role: user
+    comment: FindingsByTag
   - name: generateCodename
     definition:
       kind: synchronous
@@ -127,30 +139,7 @@ actions:
       - role: manager
       - role: user
       - role: public
-  - name: oplog_oplogentry_by_tag
-    definition:
-      kind: ""
-      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/oplog_entry'
-      forward_client_headers: true
-      headers:
-        - name: Hasura-Action-Secret
-          value_from_env: HASURA_ACTION_SECRET
-    permissions:
-      - role: user
-      - role: manager
-  - name: reporting_finding_by_tag
-    definition:
-      kind: ""
-      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/finding'
-      forward_client_headers: true
-      headers:
-        - name: Hasura-Action-Secret
-          value_from_env: HASURA_ACTION_SECRET
-    permissions:
-      - role: user
-      - role: manager
-    comment: FindingsByTag
-  - name: reporting_observation_by_tag
+  - name: observation_by_tag
     definition:
       kind: ""
       handler: '{{ACTIONS_URL_BASE}}/tags/get_by/observation'
@@ -162,7 +151,18 @@ actions:
       - role: user
       - role: manager
     comment: ObservationsByTag
-  - name: reporting_reportfindinglink_by_tag
+  - name: oplogEntry_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/oplog_entry'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+  - name: reportedFinding_by_tag
     definition:
       kind: ""
       handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report_finding_link'
@@ -173,7 +173,7 @@ actions:
     permissions:
       - role: user
       - role: manager
-  - name: reporting_reportobservationlink_by_tag
+  - name: reportedObservation_by_tag
     definition:
       kind: ""
       handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report_observation_link'
