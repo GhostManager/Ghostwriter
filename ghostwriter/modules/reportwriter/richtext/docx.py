@@ -164,7 +164,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.process_children(el, par=par, **kwargs)
 
     def tag_pre(self, el, *, par=None, **kwargs):
-        if par is None:
+        if par is not None and not any(run.text for run in par.runs):
+            # Use provided empty paragraph
+            pass
+        elif par is not None:
+            # Nested in li or some other element, copy style
+            par = self.doc.add_paragraph(style=par.style)
+        else:
             par = self.doc.add_paragraph()
 
         par.alignment = WD_ALIGN_PARAGRAPH.LEFT
