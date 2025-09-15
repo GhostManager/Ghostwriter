@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.4] - 12 September 2025
+
+### Added
+
+* Added GraphQL endpoints, `*_by_tag`, for several models that get all objects that include the tag passed in as the query's parameter (PR #693)
+  * Results are restricted to objects to which the user has access
+  * Included models are limited to OplogEntry, Finding, Observation, ReportedFinding, and ReportedObservation for now
+
+### Fixed
+
+* Fixed an error that occurred when saving the contents of a custom field in the collaborative editor when more than one person had to editor open (PR #694)
+* Fixed an issue with saving a newly added JSON field (PR #694)
+* Fixed code blocks not rendering inside Word documents if they were a part of a list item (PR #694)
+
 ## [6.0.3] - 10 September 2025
 
 ### Added

@@ -2,7 +2,7 @@
 from django.test import TestCase
 
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError, rich_text_template
 
 
 class RichTextTemplatingTests(TestCase):
@@ -26,5 +26,5 @@ class RichTextTemplatingTests(TestCase):
 
     def test_prefix_not_nested(self):
         env, _ = prepare_jinja2_env(debug=True)
-        with self.assertRaisesMessage(ReportExportError, "Jinja tag prefixed with 'li' was not a descendant of a li tag"):
+        with self.assertRaisesMessage(ReportExportTemplateError, "Jinja tag prefixed with 'li' was not a descendant of a li tag"):
             rich_text_template(env, "<ol>{%li for i in thelist %}<li>{{i}}</li><li>{%li endfor %}</li></ol>")

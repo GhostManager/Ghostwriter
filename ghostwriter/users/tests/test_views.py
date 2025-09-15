@@ -340,7 +340,7 @@ class AvatarDownloadTest(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="fake.png"')
+        self.assertRegexpMatches(response.get("Content-Disposition"), r'^attachment; filename="fake[_0-9]*\.png"$')
 
         if os.path.exists(self.user_profile.avatar.path):
             os.remove(self.user_profile.avatar.path)

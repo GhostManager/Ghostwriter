@@ -64,10 +64,10 @@ const gqlClient = new ApolloClient({
 
 // Hocuspocus collab server
 
+/// Per-user context
 type Context = {
     model: string;
     id: number;
-    data: any;
     username: string;
     log: Logger;
 };
@@ -80,6 +80,7 @@ class AuthError extends Error {
 }
 
 const BASE_LOGGER = pino({});
+const documentData = new Map<string, unknown>();
 
 const server = new Hocuspocus({
     port: 8000,
@@ -190,7 +191,6 @@ const server = new Hocuspocus({
             return {
                 model,
                 id,
-                data: undefined,
                 username,
                 log,
             } as Context; // data.context
@@ -212,7 +212,7 @@ const server = new Hocuspocus({
             context.log.info("Loading document");
 
             const handler = HANDLERS.get(context.model)!;
-            const [doc, data] = await handler.load(gqlClient, context.id);
+            const [doc, docData] = await handler.load(gqlClient, context.id);
             doc.transact((tx) => {
                 const serverInfo = tx.doc.get("serverInfo", Y.Map);
                 // Embed an ID unique to this particular yjs doc, so a client working with an older version
@@ -221,7 +221,7 @@ const server = new Hocuspocus({
                 // Save error flag
                 serverInfo.set("saveError", false);
             });
-            context.data = data;
+            documentData.set(data.documentName, docData);
             return doc;
         } catch (e) {
             context.log.error({ msg: "Could not load document", err: e });
@@ -232,14 +232,10 @@ const server = new Hocuspocus({
     async onStoreDocument(data) {
         const context = data.context as Context;
         try {
+            const docData = documentData.get(data.documentName);
             context.log.info("Saving document");
             const handler = HANDLERS.get(context.model)!;
-            await handler.save(
-                gqlClient,
-                context.id,
-                data.document,
-                context.data
-            );
+            await handler.save(gqlClient, context.id, data.document, docData);
         } catch (e) {
             context.log.error({ msg: "Could not save document", err: e });
             data.document.transact((tx) => {
@@ -254,6 +250,10 @@ const server = new Hocuspocus({
 
     async onDisconnect(data) {
         (data.context as Context).log.info("Disconnected");
+    },
+
+    async afterUnloadDocument(data) {
+        documentData.delete(data.documentName);
     },
 });
 

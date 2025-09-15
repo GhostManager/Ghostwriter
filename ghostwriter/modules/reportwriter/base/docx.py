@@ -11,7 +11,7 @@ from docx.shared import Inches, Pt
 from docx.image.exceptions import UnrecognizedImageError
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import (
     HtmlAndRich,
@@ -87,7 +87,7 @@ class ExportDocxBase(ExportBase):
             self.word_doc = DocxTemplate(template_loc)
         except PackageNotFoundError as err:
             logger.exception("Failed to load the provided template document: %s", template_loc)
-            raise ReportExportError("Template document file could not be found - try re-uploading it") from err
+            raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
         except Exception:
             logger.exception("Failed to load the provided template document: %s", template_loc)
             raise
@@ -127,20 +127,20 @@ class ExportDocxBase(ExportBase):
                 },
             )
 
-            ReportExportError.map_jinja2_render_errors(
+            ReportExportTemplateError.map_errors(
                 lambda: self.word_doc.render(docx_context, self.jinja_env, autoescape=True), "the DOCX template"
             )
-            ReportExportError.map_jinja2_render_errors(
+            ReportExportTemplateError.map_errors(
                 lambda: self.render_properties(docx_context), "the DOCX properties"
             )
         except UnrecognizedImageError as err:
-            raise ReportExportError(f"Could not load an image: {err}", "the DOCX template") from err
+            raise ReportExportTemplateError(f"Could not load an image: {err}", "the DOCX template") from err
         except PackageNotFoundError as err:
-            raise ReportExportError(
+            raise ReportExportTemplateError(
                 "The word template could not be found on the server – try uploading it again.", "the DOCX template"
             ) from err
         except FileNotFoundError as err:
-            raise ReportExportError(
+            raise ReportExportTemplateError(
                 "An evidence file was missing – try uploading it again.", "the DOCX template"
             ) from err
 
@@ -231,7 +231,7 @@ class ExportDocxBase(ExportBase):
             if not template_src:
                 continue
 
-            out = ReportExportError.map_jinja2_render_errors(
+            out = ReportExportTemplateError.map_errors(
                 lambda: self.jinja_env.from_string(template_src).render(context), f"DOCX property {attr}"
             )
             setattr(self.word_doc.core_properties, attr, out)
@@ -242,7 +242,7 @@ class ExportDocxBase(ExportBase):
         """
         def render():
             doc = self.word_doc.new_subdoc()
-            ReportExportError.map_jinja2_render_errors(
+            ReportExportTemplateError.map_errors(
                 lambda: HtmlToDocxWithEvidence.run(
                     rich_text.render_html(),
                     doc=doc,
@@ -293,7 +293,7 @@ class ExportDocxBase(ExportBase):
             )
             logger.info("Template loaded for linting")
 
-            undeclared_variables = ReportExportError.map_jinja2_render_errors(
+            undeclared_variables = ReportExportTemplateError.map_errors(
                 lambda: exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env), "the DOCX template"
             )
             for variable in undeclared_variables:
@@ -329,7 +329,7 @@ class ExportDocxBase(ExportBase):
 
             for var in exporter.jinja_undefined_variables:
                 warnings.append("Undefined variable: {!r}".format(var))
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.exception("Template failed linting: %s", error)
             errors.append(f"Linting failed: {error}")
         except Exception:

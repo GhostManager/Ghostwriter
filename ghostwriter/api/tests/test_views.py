@@ -2566,3 +2566,103 @@ class SetTagsTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.report_finding.refresh_from_db()
         self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+class ObjectsByTagTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.report_finding = ReportFindingLinkFactory()
+        cls.report_finding.tags.set({"severity:high", "att&ck:t1159"})
+        cls.report_finding.save()
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.user_with_access = UserFactory(password=PASSWORD)
+        cls.user_with_access_assignment = ProjectAssignmentFactory(
+            project=cls.report_finding.report.project,
+            operator=cls.user_with_access,
+        )
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_objects_by_tag", args=["report_finding_link"])
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        headers = {
+            "Hasura-Action-Secret": ACTION_SECRET,
+        }
+        if user is not None:
+            _, token = utils.generate_jwt(user)
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def data(self, tag, hasura_role="user"):
+        v = {
+            "input": {"tag": tag},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+        return v
+
+    def test_get_anonymous_no_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data("severity:high", hasura_role="public"),
+        )
+        self.assertEquals(response.status_code, 400)
+
+    def test_get_user_no_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [])
+
+    def test_get_user_with_access_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user_with_access),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [
+            {"id": self.report_finding.pk}
+        ])
+
+    def test_get_manager_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [
+            {"id": self.report_finding.pk}
+        ])
+
+    def test_get_manager_no_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data("thistagdoesnotexist!"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [])
+
+    def test_get_admin_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data("severity:high", hasura_role="admin"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [
+            {"id": self.report_finding.pk}
+        ])

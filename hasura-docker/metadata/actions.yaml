@@ -80,6 +80,18 @@ actions:
       - role: user
       - role: manager
     comment: Delete the specified template file and remove the associated file from the filesystem
+  - name: finding_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/finding'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: manager
+      - role: user
+    comment: FindingsByTag
   - name: generateCodename
     definition:
       kind: synchronous
@@ -127,6 +139,52 @@ actions:
       - role: manager
       - role: user
       - role: public
+  - name: observation_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/observation'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: ObservationsByTag
+  - name: oplogEntry_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/oplog_entry'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+  - name: reportedFinding_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report_finding_link'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+  - name: reportedObservation_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report_observation_link'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: ReportObservationsByTag
   - name: setTags
     definition:
       kind: synchronous
@@ -207,6 +265,67 @@ custom_types:
           name: user
           remote_table:
             name: users_user
+            schema: public
+          source: default
+          type: object
+    - name: GetByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: observation
+          remote_table:
+            name: reporting_observation
+            schema: public
+          source: default
+          type: object
+    - name: GetByTagsObject
+    - name: GetFindingByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: finding
+          remote_table:
+            name: reporting_finding
+            schema: public
+          source: default
+          type: object
+    - name: GetObservationByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: observation
+          remote_table:
+            name: reporting_observation
+            schema: public
+          source: default
+          type: object
+    - name: GetReportObservationByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: report_observation
+          remote_table:
+            name: reporting_reportobservationlink
+            schema: public
+          source: default
+          type: object
+    - name: GetReportFindingByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: report_finding
+          remote_table:
+            name: reporting_finding
+            schema: public
+          source: default
+          type: object
+    - name: GetOplogEntryByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: oplog_entry
+          remote_table:
+            name: oplog_oplogentry
             schema: public
           source: default
           type: object

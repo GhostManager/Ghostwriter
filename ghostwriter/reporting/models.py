@@ -240,6 +240,10 @@ class Finding(models.Model):
     def user_can_view(self, user) -> bool:
         return True
 
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.all()
+
     def user_can_edit(self, user) -> bool:
         return user.is_privileged or user.enable_finding_edit
 
@@ -600,6 +604,13 @@ class Report(models.Model):
     def user_can_view(self, user) -> bool:
         return self.project.user_can_view(user)
 
+    @classmethod
+    def user_viewable(cls, user):
+        from ghostwriter.rolodex.models import Project
+        if user.is_privileged:
+            return cls.objects.all()
+        return cls.objects.filter(project__in=Project.user_viewable(user))
+
     def user_can_edit(self, user) -> bool:
         return self.project.user_can_edit(user)
 
@@ -751,6 +762,10 @@ class ReportFindingLink(models.Model):
 
     def user_can_view(self, user) -> bool:
         return self.report.user_can_view(user)
+
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.filter(report__in=Report.user_viewable(user))
 
     def user_can_edit(self, user) -> bool:
         return self.report.user_can_edit(user)
@@ -999,6 +1014,10 @@ class Observation(models.Model):
     def user_can_view(self, user) -> bool:
         return True
 
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.all()
+
     def user_can_edit(self, user) -> bool:
         return user.is_privileged or user.enable_observation_edit
 
@@ -1056,6 +1075,10 @@ class ReportObservationLink(models.Model):
 
     def user_can_view(self, user) -> bool:
         return self.report.user_can_view(user)
+
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.filter(report__in=Report.user_viewable(user))
 
     def user_can_edit(self, user) -> bool:
         return self.report.user_can_edit(user)
