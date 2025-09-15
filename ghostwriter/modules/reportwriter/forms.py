@@ -2,7 +2,7 @@
 from django import forms
 
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError, rich_text_template
 
 
 class JinjaRichTextField(forms.CharField):
@@ -18,6 +18,6 @@ class JinjaRichTextField(forms.CharField):
         super().validate(value)
         env, _ = prepare_jinja2_env(debug=True)
         try:
-            ReportExportError.map_jinja2_render_errors(lambda: rich_text_template(env, value))
-        except ReportExportError as e:
+            ReportExportTemplateError.map_errors(lambda: rich_text_template(env, value))
+        except ReportExportTemplateError as e:
             raise forms.ValidationError(str(e)) from e

@@ -18,7 +18,7 @@ from docx.shared import RGBColor as DocxRgbColor
 from lxml import etree
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.extensions import (
     IMAGE_EXTENSIONS,
     TEXT_EXTENSIONS,
@@ -466,7 +466,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a UTF-8 encoded {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise ReportExportError(error_msg) from err
+                raise ReportExportTemplateError(error_msg) from err
 
             if self.figure_caption_location == "top":
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
@@ -503,7 +503,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise ReportExportError(error_msg) from e
+                raise ReportExportTemplateError(error_msg) from e
 
             if self.border_color_width is not None:
                 border_color, border_width = self.border_color_width
@@ -614,7 +614,7 @@ class ListTracking:
         try:
             numbering = doc.part.numbering_part.numbering_definitions._numbering
         except NotImplementedError as e:
-            raise ReportExportError("Tried to use a list in a template without list styles") from e
+            raise ReportExportTemplateError("Tried to use a list in a template without list styles") from e
         last_used_id = max(
             (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
             default=-1,

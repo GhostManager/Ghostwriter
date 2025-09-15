@@ -34,7 +34,7 @@ from ghostwriter.api.utils import (
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.models import ReportTemplate
@@ -293,7 +293,7 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
                 filename = exporter.render_filename(template.filename_override or report_config.project_filename)
                 out = exporter.run()
                 mime = exporter.mime_type()
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.error("Project report failed for project %s and user %s: %s", project.id, self.request.user, error)
             messages.error(
                 self.request,

@@ -3,7 +3,7 @@ from typing import Any
 import jinja2
 from markupsafe import Markup
 
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 
 def deep_copy_with_copiers(value, typ_copiers):
@@ -42,15 +42,15 @@ class LazilyRenderedTemplate:
 
     def render_html(self):
         """
-        Will throw a `ReportExportError` if the template attempted to render itself while it was
+        Will throw a `ReportExportTemplateError` if the template attempted to render itself while it was
         rendering (i.e. infinite recursion).
         """
         if self.rendered is None:
             if self.rendering:
-                raise ReportExportError(f"Circular reference to {self.location} (ensure rich text fields are not referencing each other)")
+                raise ReportExportTemplateError(f"Circular reference to {self.location} (ensure rich text fields are not referencing each other)")
             self.rendering = True
             self.rendered = Markup(
-                ReportExportError.map_jinja2_render_errors(
+                ReportExportTemplateError.map_errors(
                     lambda: self.template.render(self.context),
                     self.location,
                 )

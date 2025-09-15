@@ -16,10 +16,9 @@ import jinja2
 from markupsafe import Markup
 
 from ghostwriter.modules.exceptions import InvalidFilterValue
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 logger = logging.getLogger(__name__)
-
 
 # Custom Jinja2 filters for DOCX templates
 def filter_severity(findings, allowlist):
@@ -273,10 +272,10 @@ def mk_evidence(context: jinja2.runtime.Context, evidence_name: str) -> Markup:
     """
     evidences = context.get("_evidences")
     if evidences is None:
-        raise ReportExportError("No evidences are available in this context")
+        raise ReportExportTemplateError("No evidences are available in this context")
     evidence_id = evidences.get(evidence_name)
     if evidence_id is None:
-        raise ReportExportError(f"No such evidence with name '{evidence_name}'")
+        raise ReportExportTemplateError(f"No such evidence with name '{evidence_name}'")
     return raw_mk_evidence(evidence_id)
 
 
