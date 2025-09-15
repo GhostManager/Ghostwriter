@@ -165,10 +165,10 @@ insert_permissions:
       columns:
         - client_id
         - codename
+        - description
         - end_date
         - end_time
         - extra_fields
-        - note
         - project_type_id
         - slack_channel
         - start_date
@@ -181,11 +181,11 @@ select_permissions:
         - client_id
         - codename
         - complete
+        - description
         - end_date
         - end_time
         - extra_fields
         - id
-        - note
         - operator_id
         - project_type_id
         - slack_channel
@@ -215,10 +215,10 @@ update_permissions:
         - client_id
         - codename
         - complete
+        - description
         - end_date
         - end_time
         - extra_fields
-        - note
         - project_type_id
         - slack_channel
         - start_date

@@ -159,7 +159,7 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     # Random dates within a year of each other and at least 7 days apart
     start_date = Faker("date_between", start_date="-365d", end_date="-182d")
     end_date = Faker("date_between", start_date="-190d", end_date="+182d")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     slack_channel = "#ghostwriter"
     complete = False
     client = factory.SubFactory(ClientFactory)

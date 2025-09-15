@@ -2268,6 +2268,7 @@ class GenerateReportTests(TestCase):
 
     def test_view_docx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.docx_uri)
+        self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(
             response.get("Content-Type"),
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

@@ -121,8 +121,8 @@
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">
-          {% if project.note %}
-            {{ project.note|bleach }}
+          {% if project.description %}
+            {{ project.description|bleach }}
           {% else %}
             <p class="text-center">No one has added a description of this project. <a class="clickable"
                                                                                       href="{% url 'rolodex:project_update' project.id %}">Fix

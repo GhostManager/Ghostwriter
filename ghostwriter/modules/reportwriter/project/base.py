@@ -80,8 +80,8 @@ class ExportProjectBase(ExportBase):
         )
 
         # Project
-        base_context["project"]["note_rt"] = ex.create_lazy_template(
-            "the project note", base_context["project"]["note"], rich_text_context
+        base_context["project"]["description_rt"] = ex.create_lazy_template(
+            "the project description", base_context["project"]["description"], rich_text_context
         )
         ex.process_extra_fields("the project", base_context["project"]["extra_fields"], Project, rich_text_context)
 

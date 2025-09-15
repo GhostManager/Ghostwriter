@@ -192,8 +192,8 @@ class Project(models.Model):
     )
     start_date = models.DateField("Start Date", max_length=12, help_text="Enter the start date of this project")
     end_date = models.DateField("End Date", max_length=12, help_text="Enter the end date of this project")
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the project and planning",
