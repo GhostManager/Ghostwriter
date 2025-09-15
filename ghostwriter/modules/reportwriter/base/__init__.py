@@ -12,7 +12,12 @@ logger = logging.getLogger(__name__)
 
 class ReportExportError(Exception):
     """
-    User-facing error related to report generation
+    Error related to report generation.
+
+    Usually wraps another error (via `raise ReportExportError() from exc`), annotating where the error occured
+    during report generation.
+
+    Generally you should catch `ReportExportTemplateError` instead.
     """
 
     # Error message
@@ -50,13 +55,19 @@ class ReportExportError(Exception):
 
         return text
 
-    @classmethod
-    def map_jinja2_render_errors(cls, callback, location: str | None = None):
-        """
-        Runs `callback` with no arguments, catching any Jinja-related exceptions and translating them to `ReportSyntaxError`s
-        while noting the `location`.
+class ReportExportTemplateError(ReportExportError):
+    """
+    User-facing error related to report generation
+    """
 
-        If the callback raises a `ReportExportError` without its own `location`, this will set it to `location`.
+    @classmethod
+    def map_errors(cls, callback, location: str | None = None):
+        """
+        Runs `callback` with no arguments, translating errors to `ReportTemplateError`s.
+
+        Catches some Jinja-related errors and translates them to user-facing `ReportExportTemplateError`s.
+        Other errors are translated to `ReportExportError`. Adds `location` info to any raised `ReportExportError`s
+        that don't have it.
         """
         try:
             return callback()
@@ -65,19 +76,20 @@ class ReportExportError(Exception):
                 err.location = location
             raise
         except jinja2.TemplateSyntaxError as err:
-            raise ReportExportError(f"Template syntax error: {err}", location) from err
+            raise ReportExportTemplateError(f"Template syntax error: {err}", location) from err
         except jinja2.UndefinedError as err:
-            raise ReportExportError(f"Template syntax error: {err}", location) from err
+            raise ReportExportTemplateError(f"Template syntax error: {err}", location) from err
         except InvalidFilterValue as err:
-            raise ReportExportError(f"Invalid filter value: {err.message}", location) from err
+            raise ReportExportTemplateError(f"Invalid filter value: {err.message}", location) from err
         except jinja2.TemplateError as err:
-            raise ReportExportError(f"Template error: {err}", location) from err
+            raise ReportExportTemplateError(f"Template error: {err}", location) from err
         except ZeroDivisionError as err:
-            raise ReportExportError("Template attempted to divide by zero", location) from err
+            raise ReportExportTemplateError("Template attempted to divide by zero", location) from err
         except TypeError as err:
             logger.exception("Template TypeError, may be a bug or an issue with the template")
-            raise ReportExportError(f"Invalid template operation: {err}", location) from err
-
+            raise ReportExportTemplateError(f"Invalid template operation: {err}", location) from err
+        except Exception as err:
+            raise ReportExportError(str(err), location) from err
 
 def _process_prefix(input_str: str, soup: bs4.BeautifulSoup, prefix: str):
     """
@@ -97,7 +109,7 @@ def _process_prefix(input_str: str, soup: bs4.BeautifulSoup, prefix: str):
                 break
         if parent_tag is None:
             line = input_str.splitlines()[node.parent.sourceline - 1]
-            raise ReportExportError(f"Jinja tag prefixed with '{prefix}' was not a descendant of a {prefix} tag", code_context=line)
+            raise ReportExportTemplateError(f"Jinja tag prefixed with '{prefix}' was not a descendant of a {prefix} tag", code_context=line)
 
         capture = regex.search(node)
         parent_tag.replace_with(capture.group(1) + capture.group(2) + capture.group(3))
@@ -140,4 +152,4 @@ def rich_text_template(env: jinja2.Environment, text: str) -> jinja2.Template:
         return env.from_string(text)
     except jinja2.TemplateSyntaxError as err:
         line = text.splitlines()[err.lineno - 1]
-        raise ReportExportError(str(err), code_context=line) from err
+        raise ReportExportTemplateError(str(err), code_context=line) from err

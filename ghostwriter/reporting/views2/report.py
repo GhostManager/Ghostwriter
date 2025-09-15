@@ -30,7 +30,7 @@ from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
@@ -767,7 +767,7 @@ class GenerateReportDOCX(GenerateReportBase):
             exporter = ExportReportDocx(obj, template_loc=template_loc)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             docx = exporter.run()
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.error(
                 "DOCX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
@@ -890,7 +890,7 @@ class GenerateReportPPTX(GenerateReportBase):
             add_content_disposition_header(response, report_name)
 
             return response
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.error(
                 "PPTX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
@@ -982,7 +982,7 @@ class GenerateReportAll(GenerateReportBase):
             response.write(zip_buffer.read())
 
             return response
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.exception(
                 "All report generation failed unexpectedly for %s %s and user %s",
                 obj.__class__.__name__,

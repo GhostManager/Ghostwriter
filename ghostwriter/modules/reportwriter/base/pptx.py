@@ -16,7 +16,7 @@ from pptx.oxml.ns import nsdecls
 from pptx.enum.text import MSO_AUTO_SIZE
 
 from ghostwriter.commandcenter.models import CompanyInformation
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
@@ -59,7 +59,7 @@ class ExportBasePptx(ExportBase):
         try:
             self.ppt_presentation = Presentation(template_loc)
         except PackageNotFoundError as err:
-            raise ReportExportError("Template document file could not be found - try re-uploading it") from err
+            raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
         except Exception:
             logger.exception(
                 "Failed to load the provided template document for unknown reason: %s",
@@ -74,7 +74,7 @@ class ExportBasePptx(ExportBase):
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor and inserting it into the passed in shape and slide.
         Converts HTML from the TinyMCE rich text editor and inserts it into the passed in slide and shape
         """
-        ReportExportError.map_jinja2_render_errors(
+        ReportExportTemplateError.map_errors(
             lambda: HtmlToPptxWithEvidence.run(
                 rich_text.render_html(),
                 slide=slide,
@@ -145,7 +145,7 @@ class ExportBasePptx(ExportBase):
                 warnings.append(
                     "Template can be used, but it has slides when it should be empty (see documentation)"
                 )
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.exception("Template failed linting: %s", error)
             errors.append(f"Linting failed: {error}")
         except Exception:

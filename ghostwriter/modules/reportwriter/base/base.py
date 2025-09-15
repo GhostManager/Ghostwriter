@@ -11,7 +11,7 @@ from django.db.models import Model
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError, rich_text_template
 from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 
 
@@ -84,7 +84,7 @@ class ExportBase:
 
     def create_lazy_template(self, location: str | None, text: str, context: dict) -> LazilyRenderedTemplate:
         return LazilyRenderedTemplate(
-            ReportExportError.map_jinja2_render_errors(
+            ReportExportTemplateError.map_errors(
                 lambda: rich_text_template(self.jinja_env, text),
                 location,
             ),
@@ -151,7 +151,7 @@ class ExportBase:
         data["company_name"] = CompanyInformation.get_solo().company_name
         data["now"] = datetime.now()
 
-        report_name = ReportExportError.map_jinja2_render_errors(
+        report_name = ReportExportTemplateError.map_errors(
             lambda: self.jinja_env.from_string(filename_template).render(data),
             "the template filename"
         )
