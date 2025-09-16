@@ -1089,12 +1089,14 @@
       {% endif %}
 
       {% comment %} Notes Tab {% endcomment %}
-      <div id="notes" class="tab-pane">
-        <h4>Project Notes</h4>
+      {% if project.projectnote_set.all %}
+      <div id="legacy_comments" class="tab-pane">
+        <h4>Project Legacy Comments</h4>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a
-          Note</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">
+          Add a Comment
+        </a>
 
         {% if project.projectnote_set.all %}
           {% for note in project.projectnote_set.all reversed %}
@@ -1129,6 +1131,7 @@
           </div>
         {% endif %}
       </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

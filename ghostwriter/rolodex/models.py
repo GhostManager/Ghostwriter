@@ -643,7 +643,11 @@ class ClientNote(models.Model):
 
 
 class ProjectNote(models.Model):
-    """Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`."""
+    """
+    Stores an individual comment, related to :model:`rolodex.Project` and :model:`users.User`.
+
+    While this is named Project "Note" for legacy reasons, it functions more like a comment.
+    """
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")

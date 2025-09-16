@@ -57,8 +57,10 @@
         </a>
     </li>
 {% endif %}
-<li class="nav-item">
-    <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
-        Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
-    </a>
-</li>
+{% if project.projectnote_set.all %}
+    <li class="nav-item">
+        <a id="id_legacy_comments" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#legacy_comments">
+            Legacy Comments <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
+        </a>
+    </li>
+{% endif %}
