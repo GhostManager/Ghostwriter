@@ -90,11 +90,11 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "crispy_forms",
     "allauth",
+    "allauth.mfa",
     "allauth.account",
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
-    "allauth_2fa",
     "allauth.socialaccount",
     "rest_framework",
     "rest_framework_api_key",
@@ -126,6 +126,7 @@ LOCAL_APPS = [
     "ghostwriter.api.apps.ApiConfig",
     "ghostwriter.status.apps.StatusConfig",
 ]
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -193,8 +194,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_otp.middleware.OTPMiddleware",
-    "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
-    "ghostwriter.middleware.Require2FAMiddleware",
+    "ghostwriter.middleware.RequireMFAMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
 
@@ -320,8 +320,16 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
-# django-allauth
+# django-allauth-mfa
 # ------------------------------------------------------------------------------
+
+# settings for django-allauth MFA
+MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"
+
+# override the default django-allauth reauthentication timeout settings
+# this is necessary to avoid conflicts with the SESSION_COOKIE_AGE setting
+ACCOUNT_REAUTHENTICATION_TIMEOUT = env.int("DJANGO_ACCOUNT_REAUTHENTICATION_TIMEOUT", 32400)  # 9 hours
+
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
 SOCIAL_ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION", False)
 SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST = env("DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST", default="")
@@ -333,7 +341,7 @@ ACCOUNT_EMAIL_REQUIRED = True
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = env.bool("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_ADAPTER = "ghostwriter.users.adapters.CustomOTPAdapter"
+ACCOUNT_ADAPTER = "ghostwriter.users.adapters.AccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 SOCIALACCOUNT_ADAPTER = "ghostwriter.users.adapters.SocialAccountAdapter"
 ACCOUNT_SIGNUP_FORM_CLASS = "ghostwriter.home.forms.SignupForm"
@@ -341,14 +349,17 @@ ACCOUNT_FORMS = {
     "login": "ghostwriter.users.forms.UserLoginForm",
     "signup": "ghostwriter.users.forms.UserSignupForm",
 }
-ALLAUTH_2FA_FORMS = {
-    "authenticate": "ghostwriter.users.forms.User2FAAuthenticateForm",
-    "setup": "ghostwriter.users.forms.User2FADeviceForm",
-    "remove": "ghostwriter.users.forms.User2FADeviceRemoveForm",
+
+# django-allauth-mfa forms
+MFA_FORMS = {
+    "authenticate": "ghostwriter.users.forms.UserMFAAuthenticateForm",
+    "activate_totp": "ghostwriter.users.forms.UserMFADeviceForm",
+    "deactivate_totp": "ghostwriter.users.forms.UserMFADeviceRemoveForm",
+    "generate_recovery_codes": "allauth.mfa.recovery_codes.forms.GenerateRecoveryCodesForm",
+
 }
-ALLAUTH_2FA_ALWAYS_REVEAL_BACKUP_TOKENS = env("DJANGO_2FA_ALWAYS_REVEAL_BACKUP_TOKENS", default=False)
-ALLAUTH_2FA_SETUP_SUCCESS_URL = "users:redirect"
-ALLAUTH_2FA_REMOVE_SUCCESS_URL = "users:redirect"
+
+MFA_REVEAL_TOKENS = env.bool("DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS", False)
 
 # django-compressor
 # ------------------------------------------------------------------------------

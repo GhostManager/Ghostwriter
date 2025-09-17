@@ -14,7 +14,7 @@ from django.utils.encoding import force_str
 
 # 3rd Party Libraries
 import factory
-from django_otp.plugins.otp_static.models import StaticToken
+from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
@@ -410,11 +410,10 @@ class HasuraLoginTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
 
-        cls.user_2fa = UserFactory(password=PASSWORD)
-        cls.user_2fa_required = UserFactory(password=PASSWORD, require_2fa=True)
-        cls.user_2fa.totpdevice_set.create()
-        static_model = cls.user_2fa.staticdevice_set.create()
-        static_model.token_set.create(token=StaticToken.random_token())
+        cls.user_mfa = UserFactory(password=PASSWORD)
+        cls.user_mfa_required = UserFactory(password=PASSWORD, require_mfa=True)
+        secret = generate_totp_secret()
+        TOTP.activate(cls.user_mfa, secret)
 
         cls.uri = reverse("api:graphql_login")
 
@@ -454,15 +453,15 @@ class HasuraLoginTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), result)
 
-    def test_graphql_login_with_2fa(self):
+    def test_graphql_login_with_mfa(self):
         result = {
             "message": "Login and generate a token from your user profile",
             "extensions": {
-                "code": "2FARequired",
+                "code": "MFARequired",
             },
         }
 
-        data = {"input": {"username": f"{self.user_2fa.username}", "password": f"{PASSWORD}"}}
+        data = {"input": {"username": f"{self.user_mfa.username}", "password": f"{PASSWORD}"}}
         response = self.client.post(
             self.uri,
             data=data,
@@ -474,7 +473,7 @@ class HasuraLoginTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), result)
 
-        data = {"input": {"username": f"{self.user_2fa_required.username}", "password": f"{PASSWORD}"}}
+        data = {"input": {"username": f"{self.user_mfa_required.username}", "password": f"{PASSWORD}"}}
         response = self.client.post(
             self.uri,
             data=data,
@@ -1404,7 +1403,7 @@ class HasuraCreateUserTests(TestCase):
             content_type="application/json",
             data=self.generate_data(
                 "validuser", "validuser@specterops.io", "validuser", "user",
-                require2fa=True,
+                requiremfa=True,
                 timezone="America/New_York",
                 enableFindingCreate=False,
                 enableFindingEdit=False,
@@ -1420,7 +1419,7 @@ class HasuraCreateUserTests(TestCase):
 
         created_user = User.objects.get(username="validuser")
         self.assertEqual(created_user.email, "validuser@specterops.io")
-        self.assertEqual(created_user.require_2fa, True)
+        self.assertEqual(created_user.require_mfa, True)
 
         response = self.client.post(
             self.uri,

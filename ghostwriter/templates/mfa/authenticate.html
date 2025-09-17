@@ -4,7 +4,7 @@
 
 {% block content %}
   <h2>
-    {% trans "Two-Factor Authentication" %}
+    {% trans "Multi-Factor Authentication" %}
   </h2>
 
   <!-- Form Error Section -->
@@ -22,7 +22,7 @@
   {% endif %}
 
   <!-- Form Section -->
-  <form class="validate" method="POST" action="{% url 'two-factor-authenticate' %}" novalidate>
+  <form class="validate" method="POST" action="{% url 'mfa_authenticate'  %}" novalidate>
     {% csrf_token %}
     {% crispy form form.helper %}
     {% if redirect_field_value %}

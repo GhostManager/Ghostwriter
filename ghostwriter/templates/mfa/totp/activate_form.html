@@ -2,21 +2,21 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Set Up 2FA{% endblock %}
+{% block pagetitle %}Set Up MFA{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Set Up 2FA</li>
+      <li class="breadcrumb-item active" aria-current="page">Set Up MFA</li>
     </ul>
   </nav>
 {% endblock %}
 
 {% block content %}
   <h2>
-    {% trans "Setup Two-Factor Authentication" %}
+    {% trans "Setup Multi-Factor Authentication" %}
   </h2>
 
   <h4>
@@ -27,9 +27,9 @@
     {% trans 'Scan the QR code below with a token generator of your choice (for instance Google Authenticator).' %}
   </p>
 
-  <img src="{{ qr_code_url }}"/>
+  <img src="{{ totp_svg_data_uri }}"/>
 
-  <p> Secret: {{ secret }} </p>
+  <p> Secret: {{ form.secret }} </p>
 
   <h4>
     {% trans 'Step 2' %}:

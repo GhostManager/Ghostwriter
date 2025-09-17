@@ -8,10 +8,11 @@ tzdata==2024.1
 
 # Django
 # ------------------------------------------------------------------------------
-django==4.2  # https://www.djangoproject.com/
+django==4.2.16  # https://www.djangoproject.com/
 django-environ==0.10.0  # https://github.com/joke2k/django-environ
 django-model-utils==4.5.1  # https://github.com/jazzband/django-model-utils
-django-allauth==0.63.6  # https://github.com/pennersr/django-allauth
+django-allauth[mfa]==65.11.2  # https://github.com/pennersr/django-allauth
+django-otp==1.6.1   # https://github.com/django/django-otp
 django-crispy-forms==1.14.0  # https://github.com/django-crispy-forms/django-crispy-forms
 django-compressor==4.4  # https://github.com/django-compressor/django-compressor
 django-redis==5.4.0  # https://github.com/niwinz/django-redis
@@ -19,7 +20,6 @@ channels==4.0.0  # https://channels.readthedocs.io/en/stable/index.html
 channels-redis==4.2.0 # https://github.com/django/channels_redis/
 djangorestframework==3.15.2  # https://github.com/encode/django-rest-framework
 django-health-check==3.18.3  # https://github.com/KristianOellegaard/django-health-check
-django-allauth-2fa==0.11.1  # https://github.com/valohai/django-allauth-2fa
 
 # Ghostwriter specific
 boto3==1.35.17

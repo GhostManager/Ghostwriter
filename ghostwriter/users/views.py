@@ -16,6 +16,8 @@ from django.views.generic.detail import SingleObjectMixin
 
 # 3rd Party Libraries
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
+from allauth.mfa.recovery_codes.views import GenerateRecoveryCodesView, ViewRecoveryCodesView
+from allauth.mfa.recovery_codes.internal import flows
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import RoleBasedAccessControlMixin
@@ -266,3 +268,17 @@ class HideQuickStart(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return JsonResponse({"result": "success"})
 
 hide_quickstart = HideQuickStart.as_view()
+
+
+class RecoveryCodesView(ViewRecoveryCodesView):
+    """Hide the Recovery Codes card on the MFA page"""
+    def get_context_data(self, **kwargs):
+        ret = super().get_context_data(**kwargs)
+        ret.update({"reveal_tokens": settings.MFA_REVEAL_TOKENS})
+        return ret
+
+    def post(self, request, *args, **kwargs):
+        # Only generate codes if the button was pressed
+        flows.generate_recovery_codes(self.request)
+        return redirect(GenerateRecoveryCodesView.success_url)
+    
