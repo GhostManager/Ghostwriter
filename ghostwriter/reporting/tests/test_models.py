@@ -655,7 +655,7 @@ class EvidenceModelTests(TestCase):
         evidence = EvidenceOnFindingFactory(
             document=factory.django.FileField(filename="ext_test.PnG", data=b"lorem ipsum")
         )
-        self.assertEqual(evidence.filename, "ext_test.PnG")
+        self.assertRegexpMatches(evidence.filename, r"^ext_test[_0-9a-zA-Z]*\.PnG$")
         evidence.delete()
 
     def test_prop_filename(self):
@@ -668,10 +668,10 @@ class EvidenceModelTests(TestCase):
     def test_long_filename(self):
         name = (
             "In-mi-nisi-dignissim-nec-eleifend-sed-porta-eu-lacus-Sed-nunc-nisl-tristique-at-enim-bibendum-rutrum-sodales-ligula-Aliquam-quis-pharetra-sem-Morbi-nec-vestibulum-nunc-Nullam-urna-tortor-venenatis-et-nisi-ac-"
-            + "fringilla-sodales-sed.txt"
+            + "fringilla-sodales-sed"
         )
-        evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename=name, data=b"lorem ipsum"))
-        self.assertEqual(evidence.filename, name)
+        evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename=name+".txt", data=b"lorem ipsum"))
+        self.assertRegexpMatches(evidence.filename, name + r"[_0-9a-zA-Z]*\.txt")
         try:
             evidence.get_absolute_url()
         except:

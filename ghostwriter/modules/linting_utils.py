@@ -24,6 +24,7 @@ LINTER_CONTEXT = {
         "complete": False,
         "start_time": "09:00:00",
         "end_time": "17:00:00",
+        "collab_note": "<p>Hello, World!</p>",
         "tags": ["tag1", "tag2", "tag3"],
         "extra_fields": {},
     },
