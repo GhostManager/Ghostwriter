@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -1074,6 +1074,15 @@
         {% endif %}
       </div>
 
+      <div id="collab_notes" class="tab-pane">
+        <h4>Collaborative Nodes</h4>
+        <hr />
+
+        <div id="collab_notes_container">
+          <p>Loading...</p>
+        </div>
+      </div>
+
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if project_extra_fields_spec %}
         <div id="extra_fields" class="tab-pane">
@@ -2061,4 +2070,7 @@
   {% for vps in project.transientserver_set.all %}
     {% include "snippets/vps_detail_modal.html" with vps=vps %}
   {% endfor %}
+
+  {% include "collab_editing/attrs_snippet.html" %}
+  <script type="module" src="{% static "assets/collab_forms_project_collabnote.js" %}"></script>
 {% endblock %}

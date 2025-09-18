@@ -56,9 +56,6 @@ class ExportProjectBase(ExportBase):
         """
         Helper for processing the project-related rich text fields in both the `ProjectSerializer` and
         `ReportDataSerializer`.
-
-        Arguments are the serialized data to read and alter, the render function, and the bound `process_extra_fields`
-        method.
         """
 
         # Client
@@ -82,6 +79,9 @@ class ExportProjectBase(ExportBase):
         # Project
         base_context["project"]["description_rt"] = ex.create_lazy_template(
             "the project description", base_context["project"]["description"], rich_text_context
+        )
+        base_context["project"]["collab_note_rt"] = ex.create_lazy_template(
+            "the project collab note", base_context["project"]["collab_note"], rich_text_context
         )
         ex.process_extra_fields("the project", base_context["project"]["extra_fields"], Project, rich_text_context)
 

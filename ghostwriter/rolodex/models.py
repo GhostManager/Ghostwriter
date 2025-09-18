@@ -225,6 +225,12 @@ class Project(models.Model):
         blank=True,
         help_text="Select the end time for each day",
     )
+    collab_note = models.TextField(
+        "Collaborative Notes",
+        default="",
+        blank=True,
+        null=False,
+    )
     tags = TaggableManager(blank=True)
     # Foreign keys
     client = models.ForeignKey(

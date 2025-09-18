@@ -165,6 +165,7 @@ insert_permissions:
       columns:
         - client_id
         - codename
+        - collab_note
         - description
         - end_date
         - end_time
@@ -180,6 +181,7 @@ select_permissions:
       columns:
         - client_id
         - codename
+        - collab_note
         - complete
         - description
         - end_date
@@ -195,7 +197,22 @@ select_permissions:
       filter: {}
   - role: user
     permission:
-      columns: '*'
+      columns:
+        - client_id
+        - codename
+        - collab_note
+        - complete
+        - description
+        - end_date
+        - end_time
+        - extra_fields
+        - id
+        - operator_id
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
       filter:
         _or:
           - client:
@@ -214,6 +231,7 @@ update_permissions:
       columns:
         - client_id
         - codename
+        - collab_note
         - complete
         - description
         - end_date
