@@ -1861,7 +1861,7 @@ th.icon {
   content: '\e06e';
 }
 
-.2fa-icon:before {
+.\2fa-icon:before {
   content: '\f577';
 }
 
@@ -2550,6 +2550,10 @@ th.icon {
   content: '\f1c9';
   font-size: 2em;
   color: gray;
+}
+
+.sticky-note-icon:before {
+  content: '\f249';
 }
 
 .jump-btn {

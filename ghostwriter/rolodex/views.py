@@ -32,6 +32,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -1596,12 +1597,17 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
-    def get_context_data(self, object, **kwargs):
+    def get_context_data(self, object: Project, **kwargs):
         ctx = super().get_context_data(object=object, **kwargs)
         ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
         ctx["export_templates"] = ReportTemplate.objects.filter(
             Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))
+        ctx.update(CollabModelUpdate.context_data(
+            self.request.user,
+            object.pk,
+            None,
+        ))
         return ctx
 
 

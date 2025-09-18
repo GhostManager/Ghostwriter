@@ -1244,7 +1244,7 @@ class ProjectForm(forms.ModelForm):
             ),
         }
         field_classes = {
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -1257,7 +1257,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["start_time"].widget.input_type = "time"
         self.fields["end_time"].widget.input_type = "time"
         self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
-        self.fields["note"].widget.attrs["placeholder"] = "This project is..."
+        self.fields["description"].widget.attrs["placeholder"] = "This project is..."
         self.fields["timezone"].initial = general_config.default_timezone
         self.fields["tags"].widget.attrs["placeholder"] = "evasive, on-site, travel, ..."
         self.fields["project_type"].label = "Project Type"
@@ -1313,7 +1313,7 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     SwitchToggle("update_checkouts"),
-                    "note",
+                    "description",
                     link_css_class="project-icon",
                     css_id="project",
                 ),

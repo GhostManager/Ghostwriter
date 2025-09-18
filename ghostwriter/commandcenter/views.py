@@ -43,21 +43,34 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
     def collab_editing_script_path(self) -> str:
         return "assets/collab_forms_{}.js".format(self.model._meta.model_name)
 
+    @staticmethod
+    def context_data(user, obj_id, extra_fields=None):
+        return {
+            "collab_user": user,
+            "collab_jwt": generate_jwt(
+                user,
+                exp=datetime.now(timezone.utc) + timedelta(hours=24)
+            )[1],
+            "collab_model_id": obj_id,
+            "collab_media_url": settings.MEDIA_URL,
+            "collab_extra_fields_spec_ser":
+                ExtraFieldsSpecSerializer(extra_fields, many=True).data if extra_fields is not None else None,
+        }
+
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context["model_name"] = self.model._meta.model_name
-        context["jwt"] = generate_jwt(
-            self.request.user,
-            exp=datetime.now(timezone.utc) + timedelta(hours=24)
-        )[1]
-        context["media_url"] = settings.MEDIA_URL
-        context["collab_editing_script_path"] = self.collab_editing_script_path
+        extra_fields = None
         if self.has_extra_fields:
             if self.has_extra_fields is True:
                 extra_fields_model = self.model
             else:
                 extra_fields_model = self.has_extra_fields
-            context["extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
-                ExtraFieldSpec.for_model(extra_fields_model), many=True
-            ).data
+            extra_fields = ExtraFieldSpec.for_model(extra_fields_model)
+        context.update(self.context_data(
+            self.request.user,
+            self.object.pk,
+            extra_fields,
+        ))
+        context["model_name"] = self.model._meta.model_name
+        context["collab_editing_script_path"] = self.collab_editing_script_path
         return context
