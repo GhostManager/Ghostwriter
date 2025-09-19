@@ -2243,16 +2243,21 @@ class BloodhoundApiTestView(BloodhoundApiBaseView):
         except (IOError, json.JSONDecodeError, KeyError):
             logger.exception("BH connection test failed")
             return self.render_result(messages.constants.ERROR, "Could not connect to BloodHound")
-        return self.render_result(messages.constants.SUCCESS, "Connected to BloodHound successfully — BloodHound version " + bh_version.server_version + ".")
+        logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
+
+        message = "Connected to BloodHound successfully — BloodHound version " + bh_version.server_version + "."
+        if bh_version.edition is not None:
+            message += " " + bh_version.edition.title() + " Edition"
+        return self.render_result(messages.constants.SUCCESS, message)
 
 
 class BloodhoundApiFetchView(BloodhoundApiBaseView):
     def run(self, bh_client: APIClient):
         try:
             bh_version = bh_client.get_version()
-            logger.info(f"BloodHound instance version: {bh_version.server_version} with current API version set to: {bh_version.current_api_version}")
+            logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
 
-            findings_response = bh_client.get_findings()
+            findings_response = bh_client.get_enterprise_findings()
         except (IOError, json.JSONDecodeError, KeyError):
             logger.exception("BH connection test failed")
             return self.render_result(messages.ERROR, "Could not connect to BloodHound.")

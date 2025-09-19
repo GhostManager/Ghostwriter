@@ -5,7 +5,7 @@ import hmac
 import logging
 
 from datetime import datetime
-from typing import Optional, NamedTuple, Dict, Any, List
+from typing import Literal, Optional, NamedTuple, Dict, Any, List
 
 # Django Imports
 from django.conf import settings
@@ -24,6 +24,7 @@ class APIVersion(NamedTuple):
     current_api_version: str
     deprecated_api_version: str
     server_version: str
+    edition: Literal["community", "enterprise"] | None
 
 
 class Domain(NamedTuple):
@@ -129,9 +130,12 @@ class APIClient:
         response = self._request("GET", "/api/version")
         payload = response.json()["data"]
 
-        return APIVersion(current_api_version=payload["API"]["current_version"],
-                          deprecated_api_version=payload["API"]["deprecated_version"],
-                          server_version=payload["server_version"])
+        return APIVersion(
+            current_api_version=payload["API"]["current_version"],
+            deprecated_api_version=payload["API"]["deprecated_version"],
+            server_version=payload["server_version"],
+            edition=payload.get("product_edition"),
+        )
 
     def get_domains(self) -> list[Domain]:
         response = self._request("GET", "/api/v1/availabledomains")
@@ -143,7 +147,7 @@ class APIClient:
 
         return domains
 
-    def get_findings(self) -> dict:
+    def get_enterprise_findings(self) -> dict:
         response = self._request("GET", "/api/v2/attack-paths/details")
         payload = response.json()["data"]
         return payload
