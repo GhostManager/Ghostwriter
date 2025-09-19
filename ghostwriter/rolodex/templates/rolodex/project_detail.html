@@ -1090,33 +1090,28 @@
             {% endif %}
           </p>
 
-          <p>
-            <form
-              action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}"
-              method="POST"
-            >
-              {% csrf_token %}
-              <input class="btn btn-secondary" type="submit" value="Test BloodHound Connectivity" />
-            </form>
-          </p>
-
-          <p>
-            <form
-              action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}"
-              method="POST"
-            >
-              {% csrf_token %}
-              <input
-                class="btn btn-primary"
-                type="submit"
-                {% if project.has_bloodhound_api %}
-                value="Fetch BloodHound Findings for Project"
-                {% else %}
-                value="Fetch Global BloodHound Findings"
-                {% endif %}
-              />
-            </form>
-          </p>
+          <div class="d-flex justify-content-center mb-3" role="group" aria-label="BloodHound buttons">
+            <div class="row justify-content-center w-100">
+              <div class="col-3 pr-1">
+                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-secondary w-100" type="submit" value="Test BloodHound Connectivity" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound" />
+                </form>
+              </div>
+              <div class="col-3 pl-1">
+                <form action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-primary w-100" type="submit" value="Fetch BloodHound Data" data-toggle="tooltip"
+                    {% if project.has_bloodhound_api %}
+                    title="Fetch data from the project's configured BloodHound API"
+                    {% else %}
+                    title="Fetch data from the globally configured BloodHound API"
+                    {% endif %}
+                  />
+                </form>
+              </div>
+            </div>
+          </div>
 
           {% include "snippets/bloodhound_findings.html" with res=bhc_api.bloodhound_results only %}
         </div>
