@@ -3,7 +3,7 @@
 <h5>Findings</h5>
 <table class="table">
     <tbody>
-    {% for finding in res.findings %}
+    {% for finding in res.findings|dictsort:"id" %}
         <tr>
             <td>{{ finding.id }}</td>
             <td>{{ finding.finding_name }}</td>

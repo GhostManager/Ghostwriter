@@ -1090,25 +1090,35 @@
             {% endif %}
           </p>
 
+          <p>
+            <form
+              action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}"
+              method="POST"
+            >
+              {% csrf_token %}
+              <input class="btn btn-secondary" type="submit" value="Test BloodHound Connectivity" />
+            </form>
+          </p>
+
+          <p>
+            <form
+              action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}"
+              method="POST"
+            >
+              {% csrf_token %}
+              <input
+                class="btn btn-primary"
+                type="submit"
+                {% if project.has_bloodhound_api %}
+                value="Fetch BloodHound Findings for Project"
+                {% else %}
+                value="Fetch Global BloodHound Findings"
+                {% endif %}
+              />
+            </form>
+          </p>
+
           {% include "snippets/bloodhound_findings.html" with res=bhc_api.bloodhound_results only %}
-
-          {% if project.has_bloodhound_api %}
-            <p>
-              <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
-                {% csrf_token %}
-                <input class="btn btn-secondary" type="submit" value="Test BloodHound Connectivity" />
-              </form>
-            </p>
-
-            <p>
-              <form action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
-                {% csrf_token %}
-                <input class="btn btn-primary" type="submit" value="Fetch BloodHound Findings" />
-              </form>
-            </p>
-          {% else %}
-            <p>Configure and fetch global data in the Admin Panel</p>
-          {% endif %}
         </div>
       {% endif %}
 
