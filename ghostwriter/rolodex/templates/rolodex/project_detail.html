@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -1074,6 +1074,49 @@
         {% endif %}
       </div>
 
+      {% comment %} BloodHound Tab {% endcomment %}
+      {% if bhc_api %}
+        <div id="bloodhound" class="tab-pane">
+          <h4>BloodHound</h4>
+          <hr/>
+
+          <p>
+            {% if project.has_bloodhound_api %}
+              Using Project Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
+            {% elif global_bloodhound_config.has_bloodhound_api %}
+              Using Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em>
+            {% else %}
+              Unavailable
+            {% endif %}
+          </p>
+
+          <div class="d-flex justify-content-center mb-3" role="group" aria-label="BloodHound buttons">
+            <div class="row justify-content-center w-100">
+              <div class="col-3 pr-1">
+                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-secondary w-100" type="submit" value="Test BloodHound Connectivity" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound" />
+                </form>
+              </div>
+              <div class="col-3 pl-1">
+                <form action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-primary w-100" type="submit" value="Fetch BloodHound Data" data-toggle="tooltip"
+                    {% if project.has_bloodhound_api %}
+                    title="Fetch data from the project's configured BloodHound API"
+                    {% else %}
+                    title="Fetch data from the globally configured BloodHound API"
+                    {% endif %}
+                  />
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {% include "snippets/bloodhound_findings.html" with res=bhc_api.bloodhound_results only %}
+        </div>
+      {% endif %}
+
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if project_extra_fields_spec %}
         <div id="extra_fields" class="tab-pane">
@@ -1131,10 +1174,6 @@
       </div>
     </div>
   </div>
-{% endblock %}
-
-{% block tabs %}
-  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}

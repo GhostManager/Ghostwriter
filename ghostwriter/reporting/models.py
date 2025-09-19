@@ -407,7 +407,7 @@ class ReportTemplate(models.Model):
                 )
         return result_code
 
-    def exporter(self, object):
+    def exporter(self, object, **kwargs):
         """
         Returns an ExportBase subclass instance based on the template and the passed-in object.
         Call the `run` method to generate the corresponding report.
@@ -426,6 +426,7 @@ class ReportTemplate(models.Model):
                 template_loc=self.document.path,
                 p_style=self.p_style,
                 evidence_image_width=self.evidence_image_width,
+                **kwargs
             )
         if self.doc_type.doc_type == "project_docx":
             assert isinstance(object, Project)
@@ -437,17 +438,18 @@ class ReportTemplate(models.Model):
                 template_loc=self.document.path,
                 p_style=self.p_style,
                 evidence_image_width=self.evidence_image_width,
+                **kwargs
             )
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 
-            return ExportReportPptx(object, template_loc=self.document.path)
+            return ExportReportPptx(object, template_loc=self.document.path, **kwargs)
         if self.doc_type.doc_type == "pptx" and isinstance(object, Project):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.pptx import ExportProjectPptx
 
-            return ExportProjectPptx(object, template_loc=self.document.path)
+            return ExportProjectPptx(object, template_loc=self.document.path, **kwargs)
         raise RuntimeError(
             f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database."
         )
@@ -1024,7 +1026,6 @@ class Observation(models.Model):
 
 
 class ReportObservationLink(models.Model):
-
     title = models.CharField(
         "Title",
         max_length=255,

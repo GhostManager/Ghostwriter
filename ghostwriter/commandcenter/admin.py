@@ -3,6 +3,7 @@
 # Django Imports
 from django.contrib import admin
 from django import forms
+from django.template.loader import render_to_string
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ReportConfigurationForm
@@ -13,6 +14,7 @@ from ghostwriter.commandcenter.models import (
     ExtraFieldModel,
     ExtraFieldSpec,
     GeneralConfiguration,
+    BloodHoundConfiguration,
     NamecheapConfiguration,
     ReportConfiguration,
     SlackConfiguration,
@@ -145,6 +147,16 @@ class ExtraFieldModelAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
+
+class BloodhoundConfigurationAdmin(SingletonModelAdmin):
+    change_form_template = "bloodhound_admin_change_form.html"
+    readonly_fields = ["raw_data"]
+
+    @admin.display(description="Raw Fetched Info")
+    def raw_data(self, instance: BloodHoundConfiguration):
+        return render_to_string("snippets/bloodhound_findings.html", {"res": instance.bloodhound_results})
+
+admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 
 class CollabAdminBase(admin.ModelAdmin):
     """
