@@ -2196,7 +2196,7 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
             try:
                 project_id = int(request.GET["project"])
             except ValueError:
-                return self.render_result(request, messages.constants.ERROR, "Project does not exist")
+                return self.render_result(request, messages.constants.ERROR, "Project does not exist.")
             self.project = get_object_or_404(Project, pk=project_id)
             self.bh_api = self.project if self.project.has_bloodhound_api() else BloodHoundConfiguration.get_solo()
         else:
@@ -2211,7 +2211,7 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
 
     def post(self, request: HttpRequest, *args, **kwargs):
         if not self.bh_api.has_bloodhound_api():
-            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured")
+            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured.")
         bh_url = urlparse(self.bh_api.bloodhound_api_root_url)
         bh_client = APIClient(
             scheme=bh_url.scheme,
@@ -2243,7 +2243,7 @@ class BloodhoundApiTestView(BloodhoundApiBaseView):
         except (IOError, json.JSONDecodeError, KeyError):
             logger.exception("BH connection test failed")
             return self.render_result(messages.constants.ERROR, "Could not connect to BloodHound")
-        return self.render_result(messages.constants.SUCCESS, "Connected to BloodHound successfully. BloodHound version " + bh_version.server_version)
+        return self.render_result(messages.constants.SUCCESS, "Connected to BloodHound successfully — BloodHound version " + bh_version.server_version + ".")
 
 
 class BloodhoundApiFetchView(BloodhoundApiBaseView):
@@ -2255,9 +2255,9 @@ class BloodhoundApiFetchView(BloodhoundApiBaseView):
             findings_response = bh_client.get_findings()
         except (IOError, json.JSONDecodeError, KeyError):
             logger.exception("BH connection test failed")
-            return self.render_result(messages.ERROR, "Could not connect to BloodHound")
+            return self.render_result(messages.ERROR, "Could not connect to BloodHound.")
 
         self.bh_api.bloodhound_results = findings_response
         self.bh_api.save()
 
-        return self.render_result(messages.SUCCESS, "Findings updated from BloodHound successfully")
+        return self.render_result(messages.SUCCESS, "Findings updated from BloodHound successfully.")
