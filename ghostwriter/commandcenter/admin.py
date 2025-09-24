@@ -154,7 +154,7 @@ class BloodhoundConfigurationAdmin(SingletonModelAdmin):
 
     @admin.display(description="Raw Fetched Info")
     def raw_data(self, instance: BloodHoundConfiguration):
-        return render_to_string("snippets/bloodhound_findings.html", {"res": instance.bloodhound_results})
+        return render_to_string("snippets/bloodhound_info.html", {"res": instance.bloodhound_results})
 
 admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 

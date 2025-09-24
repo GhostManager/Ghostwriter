@@ -2,10 +2,11 @@
 import base64
 import hashlib
 import hmac
+import json
 import logging
 
 from datetime import datetime
-from typing import Literal, Optional, NamedTuple, Dict, Any, List
+from typing import Counter, Literal, Optional, NamedTuple, Dict, Any, List
 
 # Django Imports
 from django.conf import settings
@@ -44,7 +45,7 @@ class ErrorDetails(NamedTuple):
         )
 
 class ErrorResponse(NamedTuple):
-    status: int
+    status: int | None
     timestamp: str
     request_id: str
     errors: List[ErrorDetails]
@@ -57,16 +58,22 @@ class ErrorResponse(NamedTuple):
             errors.append(ErrorDetails.from_json_dict(error_details_json))
 
         return ErrorResponse(
-            status=json_dict["status"],
+            status=json_dict.get("status"),
             timestamp=json_dict["timestamp"],
             request_id=json_dict["request_id"],
             errors=errors,
         )
 
 class APIException(Exception):
-    def __init__(self, msg: str, err_response: ErrorResponse = None) -> None:
+    def __init__(self, msg: str, err_response: ErrorResponse | str | None = None, http_code: int | None = None) -> None:
+        message = msg
+        if err_response is not None:
+            message += " " + repr(err_response)
+        super().__init__(message)
+
         self.msg = msg
         self.err_response = err_response
+        self.http_code = http_code
 
 
 class APIClient:
@@ -102,6 +109,8 @@ class APIClient:
             digester.update(body)
 
         # Perform the request with the signed and expected headers
+        url = self._format_url(uri)
+        logger.info("BH API: %s %s", method, url)
         response = requests.request(
             method=method,
             url=self._format_url(uri),
@@ -116,13 +125,22 @@ class APIClient:
         )
 
         if response.status_code < 200:
-            raise APIException(msg=f"API response received with unexpected status code {response.status_code}")
+            raise APIException(
+                msg=f"API response received with unexpected status code {response.status_code}",
+                http_code=response.status_code,
+            )
 
         if response.status_code >= 400:
             # Attempt to read an error response object from the API response
-            err_response = ErrorResponse.from_json_dict(response.json())
-            raise APIException(msg=f"API request failed with status code {response.status_code}",
-                               err_response=err_response)
+            if response.headers["Content-type"] == "application/json":
+                err_response = ErrorResponse.from_json_dict(response.json())
+            else:
+                err_response = response.text
+            raise APIException(
+                msg=f"API request failed with status code {response.status_code}",
+                err_response=err_response,
+                http_code=response.status_code,
+            )
 
         return response
 
@@ -148,6 +166,75 @@ class APIClient:
         return domains
 
     def get_enterprise_findings(self) -> dict:
-        response = self._request("GET", "/api/v2/attack-paths/details")
+        try:
+            response = self._request("GET", "/api/v2/attack-paths/details")
+        except APIException as err:
+            if err.http_code == 404:
+                return None
+            raise
         payload = response.json()["data"]
         return payload
+
+    def get_community_domains(self) -> dict:
+        available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
+        domains_out = []
+        for domain in available_domains:
+            domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}").json()["data"]
+            domain_out = {
+                "name": domain_data["props"]["name"],
+                "domain": domain_data["props"].get("domain"),
+                "distinguished_name": domain_data["props"].get("distinguishedname"),
+                "functional_level": domain_data["props"].get("functionallevel"),
+                "inbound_trusts": [],
+                "outbound_trusts": [],
+            }
+            if domain_data.get("inboundTrusts", 0) > 0:
+                domain_out["inbound_trusts"] = [{
+                    "name": v["name"],
+                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/inbound-trusts").json()["data"]]
+            if domain_data.get("outboundTrusts", 0) > 0:
+                domain_out["outbound_trusts"] = [{
+                    "name": v["name"],
+                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts").json()["data"]]
+
+            try:
+                domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
+                    "query": 'MATCH (n:Computer) WHERE n.domain = "{}" RETURN n'.format(domain['name']),
+                    "include_properties": False,
+                }).encode("utf-8")).json()["data"]
+            except APIException as err:
+                if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
+                    # No results
+                    domain_computers = {"nodes": dict()}
+                else:
+                    raise
+            domain_oses = Counter(
+                value["properties"]["operatingsystem"]
+                for value in domain_computers["nodes"].values()
+                if "properties" in value and "operatingsystem" in value["properties"]
+            )
+            domain_out["computers"] = {
+                "count": len(domain_computers),
+                "operating_systems": domain_oses,
+            }
+
+            try:
+                domain_users = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
+                    "query": 'MATCH (u:User) WHERE u.pwdlastset < (datetime().epochseconds - (90 * 86400)) and NOT u.pwdlastset IN [-1.0, 0.0] and u.domain = "{}" RETURN u'.format(domain['name']),
+                    "include_properties": False,
+                }).encode("utf-8")).json()["data"]
+            except APIException as err:
+                if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
+                    # No results
+                    domain_users = {"nodes": []}
+                else:
+                    raise
+            domain_out["users"] = {
+                "old_pw_last_set": len(domain_users["nodes"]),
+            }
+
+            domains_out.append(domain_out)
+
+        return {
+            "domains": domains_out,
+        }

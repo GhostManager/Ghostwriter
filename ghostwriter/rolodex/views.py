@@ -77,7 +77,7 @@ from ghostwriter.rolodex.models import (
     ProjectSubTask,
     ProjectTarget,
 )
-from ghostwriter.shepherd.external.bloodhound.client import APIClient, Credentials
+from ghostwriter.shepherd.external.bloodhound.client import APIClient as BhAPIClient, Credentials as BhCredentials, APIException as BhAPIException
 from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 
 # Using __name__ resolves to ghostwriter.rolodex.views
@@ -2213,18 +2213,18 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
         if not self.bh_api.has_bloodhound_api():
             return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured.")
         bh_url = urlparse(self.bh_api.bloodhound_api_root_url)
-        bh_client = APIClient(
+        bh_client = BhAPIClient(
             scheme=bh_url.scheme,
             host=bh_url.hostname,
             port=bh_url.port,
-            credentials=Credentials(
+            credentials=BhCredentials(
                 token_id=self.bh_api.bloodhound_api_key_id,
                 token_key=self.bh_api.bloodhound_api_key_token,
             ),
         )
         return self.run(bh_client)
 
-    def run(self, bh_client: APIClient):
+    def run(self, bh_client: BhAPIClient):
         raise NotImplementedError("Override run")
 
     def render_result(self, level: int, message: str) -> HttpResponse:
@@ -2237,10 +2237,10 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
 
 
 class BloodhoundApiTestView(BloodhoundApiBaseView):
-    def run(self, bh_client: APIClient):
+    def run(self, bh_client: BhAPIClient):
         try:
             bh_version = bh_client.get_version()
-        except (IOError, json.JSONDecodeError, KeyError):
+        except (IOError, json.JSONDecodeError, KeyError, BhAPIException):
             logger.exception("BH connection test failed")
             return self.render_result(messages.constants.ERROR, "Could not connect to BloodHound")
         logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
@@ -2252,17 +2252,21 @@ class BloodhoundApiTestView(BloodhoundApiBaseView):
 
 
 class BloodhoundApiFetchView(BloodhoundApiBaseView):
-    def run(self, bh_client: APIClient):
+    def run(self, bh_client: BhAPIClient):
         try:
             bh_version = bh_client.get_version()
             logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
 
+            out = bh_client.get_community_domains()
+
             findings_response = bh_client.get_enterprise_findings()
-        except (IOError, json.JSONDecodeError, KeyError):
+            if findings_response is not None:
+                out.update(findings_response)
+        except (IOError, json.JSONDecodeError, KeyError, BhAPIException):
             logger.exception("BH connection test failed")
             return self.render_result(messages.ERROR, "Could not connect to BloodHound.")
 
-        self.bh_api.bloodhound_results = findings_response
+        self.bh_api.bloodhound_results = out
         self.bh_api.save()
 
         return self.render_result(messages.SUCCESS, "Findings updated from BloodHound successfully.")

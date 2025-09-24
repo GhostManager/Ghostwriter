@@ -1,0 +1,62 @@
+
+{% if res.findings or res.finding_assets or res.domains %}
+
+    {% if res.findings %}
+        <h5>Findings</h5>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Target Kind</th>
+                    <th>Target Name</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for finding in res.findings|dictsort:"id" %}
+                <tr>
+                    <td>{{ finding.id }}</td>
+                    <td>{{ finding.finding_name }}</td>
+                    <td>{{ finding.target_kind}}</td>
+                    <td>{{ finding.target_properties.name }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if res.finding_assets %}
+        <h5>Finding Assets</h5>
+        <table class="table">
+            <tbody>
+            {% for name, asset in res.finding_assets.items %}
+                <tr><td>{{ name }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if res.domains %}
+        <h5>Domains</h5>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Num. Computers</th>
+                    <th>Old Passwords</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for domain in res.domains %}
+                <tr>
+                    <td>{{ domain.name }}</td>
+                    <td>{{ domain.computers.count }}</td>
+                    <td>{{ domain.users.old_pw_last_set }}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% else %}
+<p>BloodHound Info Unavailable</p>
+{% endif %}
