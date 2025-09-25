@@ -93,5 +93,8 @@
         </div>
     {% endif %}
 {% else %}
-<p>BloodHound Info Unavailable</p>
+  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">
+    <h4 style="margin-top: 0;" class="alert-heading">BloodHound Info Unavailable</h4>
+      <p>Configure a connection to BloodHound and then fetch data to view information here.</p>
+  </div>
 {% endif %}
