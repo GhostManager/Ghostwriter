@@ -1274,7 +1274,7 @@
 
     function expandObjective(ele) {
       ele.parent().parent().toggleClass('open');
-      let accordionRow = ele.parent().parent().next('.accordion');
+      let accordionRow = ele.parent().parent().next('.hiddenAccordion');
       if (!accordionRow.is(':visible')) {
         accordionRow.show().find('.accordion-content').slideDown();
       } else {
