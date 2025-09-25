@@ -122,6 +122,7 @@ class APIClient:
                 "Content-Type": "application/json",
             },
             data=body,
+            timeout=(3, 10),
         )
 
         if response.status_code < 200:

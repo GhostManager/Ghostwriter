@@ -1,61 +1,96 @@
 
 {% if res.findings or res.finding_assets or res.domains %}
-
     {% if res.findings %}
-        <h5>Findings</h5>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Target Kind</th>
-                    <th>Target Name</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for finding in res.findings|dictsort:"id" %}
-                <tr>
-                    <td>{{ finding.id }}</td>
-                    <td>{{ finding.finding_name }}</td>
-                    <td>{{ finding.target_kind}}</td>
-                    <td>{{ finding.target_properties.name }}</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        <div id="bh_findings_accordion" class="mb-4">
+            <div class="card">
+                <div class="card-header" data-toggle="collapse" data-target="#bh_findings_contents">
+                    <a class="accordion-toggle btn btn-link">
+                        Findings
+                    </a>
+                </div>
+                <div id="bh_findings_contents" class="collapse" data-parent="#bh_findings_accordion">
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Target Kind</th>
+                                    <th>Target Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for finding in res.findings|dictsort:"id" %}
+                                <tr>
+                                    <td>{{ finding.id }}</td>
+                                    <td>{{ finding.finding_name }}</td>
+                                    <td>{{ finding.target_kind}}</td>
+                                    <td>{{ finding.target_properties.name }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endif %}
 
     {% if res.finding_assets %}
-        <h5>Finding Assets</h5>
-        <table class="table">
-            <tbody>
-            {% for name, asset in res.finding_assets.items %}
-                <tr><td>{{ name }}</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        <div id="bh_finding_assets_accordion" class="mb-4">
+            <div class="card">
+                <div class="card-header" data-toggle="collapse" data-target="#bh_finding_assets_contents">
+                    <a class="accordion-toggle btn btn-link">
+                        Finding Assets
+                    </a>
+                </div>
+                <div id="bh_finding_assets_contents" class="collapse" data-parent="#bh_finding_assets_accordion">
+                    <div class="card-body">
+                        <table class="table">
+                            <tbody>
+                            {% for name, asset in res.finding_assets.items %}
+                                <tr><td>{{ name }}</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endif %}
 
     {% if res.domains %}
-        <h5>Domains</h5>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Num. Computers</th>
-                    <th>Old Passwords</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for domain in res.domains %}
-                <tr>
-                    <td>{{ domain.name }}</td>
-                    <td>{{ domain.computers.count }}</td>
-                    <td>{{ domain.users.old_pw_last_set }}
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        <div id="bh_domains_accordion" class="mb-4">
+            <div class="card">
+                <div class="card-header" data-toggle="collapse" data-target="#bh_domains_contents">
+                    <a class="accordion-toggle btn btn-link">
+                        Domains
+                    </a>
+                </div>
+                <div id="bh_domains_contents" class="collapse" data-parent="#bh_domains_accordion">
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Num. Computers</th>
+                                    <th>Old Passwords</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for domain in res.domains %}
+                                <tr>
+                                    <td>{{ domain.name }}</td>
+                                    <td>{{ domain.computers.count }}</td>
+                                    <td>{{ domain.users.old_pw_last_set }}
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endif %}
 {% else %}
 <p>BloodHound Info Unavailable</p>

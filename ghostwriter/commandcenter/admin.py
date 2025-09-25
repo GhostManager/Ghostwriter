@@ -150,11 +150,6 @@ admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
 
 class BloodhoundConfigurationAdmin(SingletonModelAdmin):
     change_form_template = "bloodhound_admin_change_form.html"
-    readonly_fields = ["raw_data"]
-
-    @admin.display(description="Raw Fetched Info")
-    def raw_data(self, instance: BloodHoundConfiguration):
-        return render_to_string("snippets/bloodhound_info.html", {"res": instance.bloodhound_results})
 
 admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 
