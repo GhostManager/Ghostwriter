@@ -3249,7 +3249,7 @@ tr.accordion-row.open td:first-child+td+td {
   transform: rotate(90deg);
 }
 
-.accordion {
+.hiddenAccordion {
   display: none;
 }
 
