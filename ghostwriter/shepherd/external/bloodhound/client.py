@@ -230,10 +230,21 @@ class APIClient:
                     domain_users = {"nodes": dict()}
                 else:
                     raise
+
             pw_cutoff = datetime.now().timestamp() - 90*86400
+            pw_old_count = 0
+            for node in domain_users["nodes"].values():
+                if "pwdlastset" not in node["properties"]:
+                    continue
+                last_set = node["properties"]["pwdlastset"]
+                if last_set == 0 or last_set == -1:
+                    continue
+                if last_set <= pw_cutoff:
+                    pw_old_count += 1
+
             domain_out["users"] = {
                 "count": len(domain_users["nodes"]),
-                "with_old_pw": sum(1 for v in domain_users["nodes"].values() if v["properties"].get("pwdlastset", float("inf")) <= pw_cutoff)
+                "with_old_pw": pw_old_count
             }
 
             domains_out.append(domain_out)
