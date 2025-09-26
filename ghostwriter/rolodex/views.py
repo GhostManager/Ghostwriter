@@ -2228,7 +2228,7 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
         raise NotImplementedError("Override run")
 
     def render_result(self, level: int, message: str) -> HttpResponse:
-        messages.add_message(self.request, level, message)
+        messages.add_message(self.request, level, message, extra_tags="error" if level == messages.ERROR else "")
         if self.project is not None:
             url = self.project.get_absolute_url() + "#bloodhound"
         else:
@@ -2242,13 +2242,13 @@ class BloodhoundApiTestView(BloodhoundApiBaseView):
             bh_version = bh_client.get_version()
         except (IOError, json.JSONDecodeError, KeyError, BhAPIException):
             logger.exception("BH connection test failed")
-            return self.render_result(messages.constants.ERROR, "Could not connect to BloodHound")
+            return self.render_result(messages.ERROR, "Could not connect to BloodHound")
         logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
 
         message = "Connected to BloodHound successfully — BloodHound version " + bh_version.server_version + "."
         if bh_version.edition is not None:
             message += " " + bh_version.edition.title() + " Edition"
-        return self.render_result(messages.constants.SUCCESS, message)
+        return self.render_result(messages.SUCCESS, message)
 
 
 class BloodhoundApiFetchView(BloodhoundApiBaseView):
