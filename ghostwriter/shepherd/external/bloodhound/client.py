@@ -201,7 +201,7 @@ class APIClient:
             try:
                 domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
                     "query": 'MATCH (n:Computer) WHERE n.domain = "{}" RETURN n'.format(domain['name']),
-                    "include_properties": False,
+                    "include_properties": True,
                 }).encode("utf-8")).json()["data"]
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
@@ -221,17 +221,19 @@ class APIClient:
 
             try:
                 domain_users = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                    "query": 'MATCH (u:User) WHERE u.pwdlastset < (datetime().epochseconds - (90 * 86400)) and NOT u.pwdlastset IN [-1.0, 0.0] and u.domain = "{}" RETURN u'.format(domain['name']),
-                    "include_properties": False,
+                    "query": 'MATCH (u:User) WHERE u.domain = "{}" RETURN u'.format(domain['name']),
+                    "include_properties": True,
                 }).encode("utf-8")).json()["data"]
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
                     # No results
-                    domain_users = {"nodes": []}
+                    domain_users = {"nodes": dict()}
                 else:
                     raise
+            pw_cutoff = datetime.now().timestamp() - 90*86400
             domain_out["users"] = {
-                "old_pw_last_set": len(domain_users["nodes"]),
+                "count": len(domain_users["nodes"]),
+                "with_old_pw": sum(1 for v in domain_users["nodes"].values() if v["properties"].get("pwlastset", float("inf")) <= pw_cutoff)
             }
 
             domains_out.append(domain_out)

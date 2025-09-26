@@ -14,7 +14,7 @@
                                 <tr>
                                     <th class="align-middle text-left">Name</th>
                                     <th class="align-middle text-left">Num. Computers</th>
-                                    <th class="align-middle text-left">Old Passwords</th>
+                                    <th class="align-middle text-left">Num. Users</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -22,7 +22,7 @@
                                 <tr>
                                     <td class="align-middle text-left">{{ domain.name }}</td>
                                     <td class="align-middle text-left">{{ domain.computers.count }}</td>
-                                    <td class="align-middle text-left">{{ domain.users.old_pw_last_set }}
+                                    <td class="align-middle text-left">{{ domain.users.count }}
                                 </tr>
                             {% endfor %}
                             </tbody>
