@@ -233,7 +233,7 @@ class APIClient:
             pw_cutoff = datetime.now().timestamp() - 90*86400
             domain_out["users"] = {
                 "count": len(domain_users["nodes"]),
-                "with_old_pw": sum(1 for v in domain_users["nodes"].values() if v["properties"].get("pwlastset", float("inf")) <= pw_cutoff)
+                "with_old_pw": sum(1 for v in domain_users["nodes"].values() if v["properties"].get("pwdlastset", float("inf")) <= pw_cutoff)
             }
 
             domains_out.append(domain_out)
