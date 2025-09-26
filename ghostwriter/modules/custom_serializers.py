@@ -910,7 +910,7 @@ class ReportDataSerializer(CustomModelSerializer):
     company = SerializerMethodField("get_company_info")
     tools = SerializerMethodField("get_tools")
     extra_fields = ExtraFieldsSerField(Report._meta.label)
-    bloodhound_findings = SerializerMethodField("get_bloodhound_findings")
+    bloodhound = SerializerMethodField("get_bloodhound")
 
     class Meta:
         model = Report
@@ -925,7 +925,7 @@ class ReportDataSerializer(CustomModelSerializer):
         return serializer.data
 
     @classmethod
-    def get_bloodhound_findings(cls, obj: Report):
+    def get_bloodhound(cls, obj: Report):
         if obj.project.has_bloodhound_api():
             return obj.project.bloodhound_results
         return BloodHoundConfiguration.get_solo().bloodhound_results
