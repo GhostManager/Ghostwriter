@@ -12,17 +12,21 @@
                         <table class="table table-striped table-sm mt-0">
                             <thead>
                                 <tr>
-                                    <th class="align-middle text-left">Name</th>
-                                    <th class="align-middle text-left">Num. Computers</th>
-                                    <th class="align-middle text-left">Num. Users</th>
+                                  <th class="align-middle text-left">Name</th>
+                                  <th class="align-middle text-left">Num. Computers</th>
+                                  <th class="align-middle text-left">Operating Systems</th>
+                                  <th class="align-middle text-left">Num. Users</th>
+                                  <th class="align-middle text-left">Old Passwords</th>
                                 </tr>
                             </thead>
                             <tbody>
                             {% for domain in res.domains %}
                                 <tr>
-                                    <td class="align-middle text-left">{{ domain.name }}</td>
-                                    <td class="align-middle text-left">{{ domain.computers.count }}</td>
-                                    <td class="align-middle text-left">{{ domain.users.count }}
+                                  <td class="align-middle text-left">{{ domain.name }}</td>
+                                  <td class="align-middle text-left">{{ domain.computers.count }}</td>
+                                  <td class="align-middle text-left">{%  for os, count in domain.computers.operating_systems.items %}{% if os != "null"%}{{ os|title }} ({{ count }})<br/>{% endif %}{% endfor %}</td>
+                                  <td class="align-middle text-left">{{ domain.users.count }}
+                                  <td class="align-middle text-left">{{ domain.users.with_old_pw }}
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -46,19 +50,19 @@
                         <table class="table table-striped table-sm mt-0">
                             <thead>
                                 <tr>
-                                    <th class="align-middle">ID</th>
-                                    <th class="align-middle text-left">Name</th>
-                                    <th class="align-middle text-left">Target Kind</th>
-                                    <th class="align-middle text-left">Target Name</th>
+                                  <th class="align-middle">ID</th>
+                                  <th class="align-middle text-left">Name</th>
+                                  <th class="align-middle text-left">Target Kind</th>
+                                  <th class="align-middle text-left">Target Name</th>
                                 </tr>
                             </thead>
                             <tbody>
                             {% for finding in res.findings|dictsort:"id" %}
                                 <tr>
-                                    <td  class="align-middle">{{ finding.id }}</td>
-                                    <td class="align-middle text-left">{{ finding.finding_name }}</td>
-                                    <td class="align-middle text-left">{{ finding.target_kind}}</td>
-                                    <td class="align-middle text-left">{{ finding.target_properties.name }}</td>
+                                  <td  class="align-middle">{{ finding.id }}</td>
+                                  <td class="align-middle text-left">{{ finding.finding_name }}</td>
+                                  <td class="align-middle text-left">{{ finding.target_kind}}</td>
+                                  <td class="align-middle text-left">{{ finding.target_properties.name }}</td>
                                 </tr>
                             {% endfor %}
                             </tbody>
