@@ -2228,6 +2228,10 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
         raise NotImplementedError("Override run")
 
     def render_result(self, level: int, message: str) -> HttpResponse:
+        if "X-GW-Async" in self.request.headers:
+            if level == messages.SUCCESS:
+                return HttpResponse(status=200, content=message)
+            return HttpResponse(status=401, content=message)
         messages.add_message(self.request, level, message, extra_tags="error" if level == messages.ERROR else "")
         if self.project is not None:
             url = self.project.get_absolute_url() + "#bloodhound"

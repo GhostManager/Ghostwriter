@@ -1099,7 +1099,7 @@
                 </form>
               </div>
               <div class="col-3 pl-1">
-                <form action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
+                <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
                   {% csrf_token %}
                   <input class="btn btn-primary w-100" type="submit" value="Fetch BloodHound Data" data-toggle="tooltip"
                     {% if project.has_bloodhound_api %}
@@ -1990,10 +1990,30 @@
     }
 
     $(document).ready(function () {
-
       "use strict";
-
       prepareTodoList();
+    });
+
+    {% comment %} BloodHound fetch {% endcomment %}
+    $(document).ready(() => {
+      let bh_form = document.getElementById("bh-fetch-form");
+      bh_form.addEventListener("submit", e => {
+        e.preventDefault();
+
+        displayToastTop({type: "info", string: "Please wait. Fetching can take several minutes.", title: "Fetching BloodHound Info"});
+        fetch(bh_form.action, {
+          method: "POST",
+          body: new FormData(bh_form, e.submitter),
+          headers: {
+            "X-GW-Async": "True"
+          },
+        }).then(res => {
+          if(res.status === 200)
+            displayToastTop({type: "success", string: "Refresh the page to view updated results."});
+          else
+            displayToastTop({type: "error", string: "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
+        })
+      });
     });
   </script>
 
