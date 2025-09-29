@@ -193,8 +193,8 @@ class Project(models.Model):
     )
     start_date = models.DateField("Start Date", max_length=12, help_text="Enter the start date of this project")
     end_date = models.DateField("End Date", max_length=12, help_text="Enter the end date of this project")
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the project and planning",
@@ -225,6 +225,12 @@ class Project(models.Model):
         null=True,
         blank=True,
         help_text="Select the end time for each day",
+    )
+    collab_note = models.TextField(
+        "Collaborative Notes",
+        default="",
+        blank=True,
+        null=False,
     )
     tags = TaggableManager(blank=True)
 
@@ -694,7 +700,11 @@ class ClientNote(models.Model):
 
 
 class ProjectNote(models.Model):
-    """Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`."""
+    """
+    Stores an individual comment, related to :model:`rolodex.Project` and :model:`users.User`.
+
+    While this is named Project "Note" for legacy reasons, it functions more like a comment.
+    """
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
