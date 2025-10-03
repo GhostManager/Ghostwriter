@@ -176,7 +176,7 @@
                 <td class="align-middle text-left">{{ operator.role }}</td>
                 <td class="align-middle text-left">{{ operator.start_date|date:"d M Y" }} –
                   <br/> {{ operator.end_date|date:"d M Y" }}</td>
-                <td class="text-justify align-middle text-left">{{ operator.note|bleach }}</td>
+                <td class="text-justify align-middle text-left">{{ operator.description|bleach }}</td>
                 {% if request.user|is_privileged %}
                   <td class="align-middle">
                     <div class="d-flex justify-content-center">
@@ -436,7 +436,7 @@
                     {{ target.hostname }}
                   {% endif %}
                 </td>
-                <td class="text-justify align-middle text-left">{{ target.note|bleach }}</td>
+                <td class="text-justify align-middle text-left">{{ target.description|bleach }}</td>
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
                       <a class="icon burn-icon js-compromise-target clickable-link" href="javascript:void(0);"

@@ -224,7 +224,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
     activity_type = None
     start_date = None
     end_date = None
-    note = None
+    description = None
 
     def post(self, request, *args, **kwargs):
         # Get the :model:`rolodex.Project` object and verify access
@@ -284,8 +284,8 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
                     utils.generate_hasura_error_payload("End date is before start date", "InvalidDates"), status=400
                 )
             # Set the optional inputs (keys will not always exist)
-            if "note" in self.input:
-                self.note = self.input["note"]
+            if "description" in self.input:
+                self.description = self.input["description"]
         else:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
@@ -603,14 +603,14 @@ class GraphqlCheckoutDomain(HasuraCheckoutView):
             return JsonResponse(utils.generate_hasura_error_payload("Domain is expired", "DomainExpired"), status=400)
 
         try:
-            if not self.note:
-                self.note = ""
+            if not self.description:
+                self.description = ""
             History.objects.create(
                 domain=self.object,
                 activity_type=self.activity_type,
                 start_date=self.start_date,
                 end_date=self.end_date,
-                note=self.note,
+                description=self.description,
                 operator=self.user_obj,
                 project=self.project,
                 client=self.project.client,
@@ -660,15 +660,15 @@ class GraphqlCheckoutServer(HasuraCheckoutView):
             )
 
         try:
-            if not self.note:
-                self.note = ""
+            if not self.description:
+                self.description = ""
             ServerHistory.objects.create(
                 server=self.object,
                 activity_type=self.activity_type,
                 start_date=self.start_date,
                 end_date=self.end_date,
                 server_role=server_role,
-                note=self.note,
+                description=self.description,
                 operator=self.user_obj,
                 project=self.project,
                 client=self.project.client,
