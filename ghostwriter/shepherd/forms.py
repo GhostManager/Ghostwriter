@@ -70,8 +70,8 @@ class CheckoutForm(forms.ModelForm):
         self.fields["project"].queryset = Project.objects.none()
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs["placeholder"] = "This domain will be used for..."
-        self.fields["note"].label = ""
+        self.fields["description"].widget.attrs["placeholder"] = "This domain will be used for..."
+        self.fields["description"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_labels = False
@@ -103,7 +103,7 @@ class CheckoutForm(forms.ModelForm):
                 <hr>
                 """
             ),
-            "note",
+            "description",
             "domain",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
@@ -175,7 +175,7 @@ class DomainForm(forms.ModelForm):
             ),
         }
         field_classes = {
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -189,8 +189,8 @@ class DomainForm(forms.ModelForm):
         self.fields["health_status"].empty_label = "-- Select Status --"
         self.fields["creation"].widget.input_type = "date"
         self.fields["expiration"].widget.input_type = "date"
-        self.fields["note"].widget.attrs["placeholder"] = "This domain was purchased for..."
-        self.fields["note"].label = ""
+        self.fields["description"].widget.attrs["placeholder"] = "This domain was purchased for..."
+        self.fields["description"].label = ""
         self.fields["tags"].widget.attrs["placeholder"] = "phishing, categorized, ..."
         self.fields["name"].label = "Domain Name"
         self.fields["whois_status"].label = "WHOIS Status"
@@ -247,7 +247,7 @@ class DomainForm(forms.ModelForm):
                 <hr>
                 """
             ),
-            "note",
+            "description",
             HTML(
                 """
                 <h4 class="icon custom-field-icon">Extra Fields</h4>

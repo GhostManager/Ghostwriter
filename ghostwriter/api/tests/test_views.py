@@ -631,7 +631,7 @@ class HasuraCheckoutTests(TestCase):
         activity,
         start_date=date.today() - timedelta(days=1),
         end_date=date.today() + timedelta(days=1),
-        note=None,
+        description=None,
     ):
         return {
             "input": {
@@ -640,7 +640,7 @@ class HasuraCheckoutTests(TestCase):
                 "activityTypeId": activity,
                 "startDate": start_date,
                 "endDate": end_date,
-                "note": note,
+                "description": description,
             }
         }
 
@@ -652,7 +652,7 @@ class HasuraCheckoutTests(TestCase):
         server_role,
         start_date=date.today() - timedelta(days=1),
         end_date=date.today() + timedelta(days=1),
-        note=None,
+        description=None,
     ):
         return {
             "input": {
@@ -662,14 +662,14 @@ class HasuraCheckoutTests(TestCase):
                 "serverRoleId": server_role,
                 "startDate": start_date,
                 "endDate": end_date,
-                "note": note,
+                "description": description,
             }
         }
 
     def test_graphql_checkout_domain(self):
         _, token = utils.generate_jwt(self.user)
         data = self.generate_domain_data(self.project.pk, self.domain.pk, self.activity.pk)
-        del data["input"]["note"]
+        del data["input"]["description"]
         response = self.client.post(
             self.domain_uri,
             data=data,
@@ -689,7 +689,7 @@ class HasuraCheckoutTests(TestCase):
     def test_graphql_checkout_server(self):
         _, token = utils.generate_jwt(self.user)
         data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk)
-        del data["input"]["note"]
+        del data["input"]["description"]
         response = self.client.post(
             self.server_uri,
             data=data,
@@ -708,7 +708,7 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_server_with_invalid_role(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, 999, note="Test note")
+        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, 999, description="Test note")
         response = self.client.post(
             self.server_uri,
             data=data,
@@ -1525,7 +1525,7 @@ class GraphqlDomainUpdateEventTests(TestCase):
                     "new": {
                         "expired": False,
                         "registrar": "Hover",
-                        "note": "<p>The personal website and blog of Christopher Maddalena</p>",
+                        "description": "<p>The personal website and blog of Christopher Maddalena</p>",
                         "last_health_check": "",
                         "auto_renew": True,
                         "expiration": "2023-03-25",
@@ -1957,7 +1957,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "job_title": cls.other_contact.job_title,
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
-                        "note": cls.other_contact.note,
+                        "description": cls.other_contact.description,
                         "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": True,
@@ -1968,7 +1968,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "job_title": cls.other_contact.job_title,
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
-                        "note": cls.other_contact.note,
+                        "description": cls.other_contact.description,
                         "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": cls.other_contact.primary,

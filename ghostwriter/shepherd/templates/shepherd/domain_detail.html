@@ -74,10 +74,10 @@
         {% endif %}
 
 
-        {% if domain.note %}
+        {% if domain.description %}
           <div id="domainDescription" class="d-flex justify-content-center description-block">
             <div>
-              {{ domain.note|strip_empty_tags|bleach }}
+              {{ domain.description|strip_empty_tags|bleach }}
             </div>
           </div>
         {% else %}

@@ -45,8 +45,8 @@ class Client(models.Model):
         blank=True,
         help_text="Give the client a codename (might be a ticket number, CMS reference, or something else)",
     )
-    note = models.TextField(
-        "Client Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Describe the client or provide some additional information",
@@ -140,8 +140,8 @@ class ClientContact(models.Model):
         default="America/Los_Angeles",
         help_text="The contact's timezone",
     )
-    note = models.TextField(
-        "Contact Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the contact",
@@ -398,8 +398,8 @@ class ProjectAssignment(models.Model):
         blank=True,
         help_text="Enter the end date of the project",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the project role and assignment",
@@ -463,8 +463,8 @@ class ProjectContact(models.Model):
         default="America/Los_Angeles",
         help_text="The contact's timezone",
     )
-    note = models.TextField(
-        "Contact Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the contact",
@@ -800,8 +800,8 @@ class ProjectTarget(models.Model):
         blank=True,
         help_text="Provide the target's hostname, fully qualified domain name, or other identifier",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the target(s) or the environment",

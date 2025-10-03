@@ -1063,7 +1063,7 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                     return ForbiddenJsonResponse()
                 contact_dict = to_dict(contact_instance, resolve_fk=True)
                 del contact_dict["client"]
-                del contact_dict["note"]
+                del contact_dict["description"]
 
                 # Check if this contact already exists in the project
                 if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
@@ -1071,7 +1071,7 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                     data = {"result": "error", "message": message}
                 else:
                     project_contact = ProjectContact(
-                        project=self.get_object(), **contact_dict, note=contact_instance.note
+                        project=self.get_object(), **contact_dict, description=contact_instance.description
                     )
                     project_contact.save()
 

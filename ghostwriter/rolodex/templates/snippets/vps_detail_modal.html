@@ -10,10 +10,10 @@
         </button>
       </div>
       <div class="modal-body">
-        {% if vps.note %}
-          {{ vps.note|bleach|safe }}
+        {% if vps.description %}
+          {{ vps.description|bleach|safe }}
         {% else %}
-          <p>No one has added a note on this cloud host. <a class="clickable" href="{% url 'shepherd:vps_update' vps.id %}">Fix that here.</a></p>
+          <p>No one has added a description on this cloud host. <a class="clickable" href="{% url 'shepherd:vps_update' vps.id %}">Fix that here.</a></p>
         {% endif %}
       </div>
       <div class="modal-footer">

@@ -153,7 +153,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                     start_date = form.cleaned_data["start_date"]
                     end_date = form.cleaned_data["end_date"]
                     role = form.cleaned_data["role"]
-                    note = form.cleaned_data["note"]
+                    description = form.cleaned_data["description"]
 
                     # Check if the person has already been assigned to this project within the same time period
                     if operator and start_date and end_date:
@@ -221,12 +221,12 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                                 code="incomplete",
                             ),
                         )
-                    # Raise an error if a form only has a value for the note
-                    elif note and any(x is None for x in [operator, start_date, end_date, role]):
+                    # Raise an error if a form only has a value for the description
+                    elif description and any(x is None for x in [operator, start_date, end_date, role]):
                         form.add_error(
-                            "note",
+                            "description",
                             ValidationError(
-                                _("This note is part of an incomplete assignment form."),
+                                _("This description is part of an incomplete assignment form."),
                                 code="incomplete",
                             ),
                         )
@@ -323,7 +323,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                 if form.cleaned_data["DELETE"] is False:
                     hostname = form.cleaned_data["hostname"]
                     ip_address = form.cleaned_data["ip_address"]
-                    note = form.cleaned_data["note"]
+                    description = form.cleaned_data["description"]
 
                     # Check that no two names are the same
                     if hostname:
@@ -350,11 +350,11 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                                 code="duplicate",
                             ),
                         )
-                    if note and not hostname and not ip_address:
+                    if description and not hostname and not ip_address:
                         form.add_error(
-                            "note",
+                            "description",
                             ValidationError(
-                                _("You must provide a hostname or IP address with your note."),
+                                _("You must provide a hostname or IP address with your description."),
                                 code="incomplete",
                             ),
                         )
@@ -471,7 +471,7 @@ class ProjectAssignmentForm(forms.ModelForm):
             ),
         }
         field_classes = {
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -482,8 +482,8 @@ class ProjectAssignmentForm(forms.ModelForm):
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs["rows"] = 5
-        self.fields["note"].widget.attrs["placeholder"] = "This team member will be responsible for..."
+        self.fields["description"].widget.attrs["rows"] = 5
+        self.fields["description"].widget.attrs["placeholder"] = "This team member will be responsible for..."
         self.fields["operator"].empty_label = "-- Select a Team Member --"
         self.fields["role"].empty_label = "-- Select a Role --"
         self.helper = FormHelper()
@@ -545,7 +545,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                             css_class="form-group col-md-6 mb-0",
                         ),
                     ),
-                    "note",
+                    "description",
                     Row(
                         Column(
                             Button(
@@ -796,10 +796,10 @@ class ProjectTargetForm(forms.ModelForm):
         fields = (
             "ip_address",
             "hostname",
-            "note",
+            "description",
         )
         field_classes = {
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -808,8 +808,8 @@ class ProjectTargetForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "172.67.179.71"
         self.fields["hostname"].widget.attrs["placeholder"] = "ghostwriter.wiki"
-        self.fields["note"].widget.attrs["rows"] = 5
-        self.fields["note"].widget.attrs["placeholder"] = "This host is a web server related to objective ..."
+        self.fields["description"].widget.attrs["rows"] = 5
+        self.fields["description"].widget.attrs["placeholder"] = "This host is a web server related to objective ..."
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -844,7 +844,7 @@ class ProjectTargetForm(forms.ModelForm):
                         Column("ip_address", css_class="col-md-6"),
                         Column("hostname", css_class="col-md-6"),
                     ),
-                    "note",
+                    "description",
                     Row(
                         Column(
                             Button(
@@ -989,7 +989,7 @@ class ProjectContactForm(forms.ModelForm):
         self.fields["job_title"].widget.attrs["placeholder"] = "COO"
         self.fields["phone"].widget.attrs["placeholder"] = "(212) 897-1964"
         self.fields["phone"].label = "Phone Number"
-        self.fields["note"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
+        self.fields["description"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
         self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
         # Disable the <form> tags because this will be part of an instance of `ProjectForm()`
@@ -1033,7 +1033,7 @@ class ProjectContactForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     SwitchToggle("primary", onchange="cbChange(this)", css_class="js-cb-toggle"),
-                    "note",
+                    "description",
                     Row(
                         Column(
                             Button(

@@ -33,7 +33,7 @@ class ExportReportBase(ExportBase):
     def serialize_object(self, report):
         excludes = ["id"]
         if not self.include_bloodhound:
-            excludes.append("bloodhound_findings")
+            excludes.append("bloodhound")
         return ReportDataSerializer(
             report,
             exclude=excludes,
