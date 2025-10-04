@@ -14,7 +14,7 @@ class ReportExportError(Exception):
     """
     Error related to report generation.
 
-    Usually wraps another error (via `raise ReportExportError() from exc`), annotating where the error occured
+    Usually wraps another error (via `raise ReportExportError() from exc`), annotating where the error occurred
     during report generation.
 
     Generally you should catch `ReportExportTemplateError` instead.
@@ -22,7 +22,7 @@ class ReportExportError(Exception):
 
     # Error message
     display_text: str
-    # Description of the object where the error occured, such as "the finding's description", if known
+    # Description of the object where the error occurred, such as "the finding's description", if known
     location: str | None
     # The code near the source of the error, if known
     code_context: str | None
@@ -38,7 +38,7 @@ class ReportExportError(Exception):
 
         if self.location:
             if ends_with_period:
-                text += " Occured in "
+                text += " Occurred in "
             else:
                 text += " in "
             text += self.location
@@ -47,7 +47,7 @@ class ReportExportError(Exception):
             if self.location:
                 text += ", near `"
             elif ends_with_period:
-                text += " Occured near `"
+                text += " Occurred near `"
             else:
                 text += " near `"
             text += self.code_context
