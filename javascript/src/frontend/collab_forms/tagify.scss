@@ -742,7 +742,7 @@ $tagify-dd-color-primary: rgb(53, 149, 246) !default;
             }
         }
 
-        // intial state, pre-rendered
+        // initial state, pre-rendered
         &--initial {
             #{$dropdown}__wrapper {
                 max-height: 20px;
