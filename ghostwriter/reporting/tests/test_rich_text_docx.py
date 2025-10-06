@@ -667,3 +667,9 @@ class RichTextToDocxTests(TestCase):
         </w:p>
         """,
     )
+
+    test_paragraphs_with_invalid_chars = mk_test_docx(
+        "test_paragraphs_with_invalid_chars",
+        "<p>Hello&#20; World!</p><p>This is a test!</p>",
+        """<w:p><w:pPr/><w:r><w:t>Hello World!</w:t></w:r></w:p><w:p><w:pPr/><w:r><w:t>This is a test!</w:t></w:r></w:p>""",
+    )
