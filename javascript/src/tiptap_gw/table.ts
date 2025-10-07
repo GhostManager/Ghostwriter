@@ -1,6 +1,9 @@
-import { mergeAttributes, Node } from "@tiptap/core";
+// Ghostwriter extensions to the Tiptap tables
+
+import { Attributes, mergeAttributes, Node } from "@tiptap/core";
 import { Fragment, ResolvedPos, Slice } from "@tiptap/pm/model";
 import { ReplaceAroundStep } from "@tiptap/pm/transform";
+import TableCell from "@tiptap/extension-table-cell";
 import mkElem from "./mkelem";
 
 declare module "@tiptap/core" {
@@ -10,9 +13,13 @@ declare module "@tiptap/core" {
             removeCaption: () => ReturnType;
             setTableCaptionBookmark: (name: string | undefined) => ReturnType;
         };
+        tableCell: {
+            setTableCellBackgroundColor: (color: string | null) => ReturnType;
+        };
     }
 }
 
+// Wrapper for table that includes a caption
 export const TableWithCaption = Node.create<{}>({
     name: "tableWithCaption",
     group: "block",
@@ -202,6 +209,37 @@ export const TableCaption = Node.create<{}>({
                     if (!can().deleteNode(this.name)) return false;
                     return commands.updateAttributes(this.name, {
                         bookmark: name,
+                    });
+                },
+        };
+    },
+});
+
+export const GwTableCell = TableCell.extend({
+    addAttributes() {
+        const attrs: Attributes = TableCell.config.addAttributes!.call(this);
+        attrs["bgColor"] = {
+            default: undefined,
+            parseHTML: (el) => el.getAttribute("data-bg-color"),
+            renderHTML: (attributes) => {
+                if (!attributes.bgColor) return {};
+                return {
+                    style: `background-color: ${attributes.bgColor}`,
+                    "data-bg-color": attributes.bgColor,
+                };
+            },
+        };
+        return attrs;
+    },
+    addCommands() {
+        return {
+            setTableCellBackgroundColor:
+                (color) =>
+                ({ commands, can }) => {
+                    // Check if we're even in a heading, and don't enable this command if so.
+                    if (!can().deleteNode(this.name)) return false;
+                    return commands.updateAttributes(this.name, {
+                        bgColor: color || undefined,
                     });
                 },
         };

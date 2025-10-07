@@ -444,6 +444,7 @@ BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"
 # Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
 BLEACH_ALLOWED_STYLES = [
     "color",
+    "background-color",
     "font-family",
     "font-weight",
     "text-decoration",

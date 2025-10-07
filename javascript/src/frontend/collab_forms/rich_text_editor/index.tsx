@@ -33,7 +33,7 @@ import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
 import HeadingIdButton from "./heading";
 import ColorButton from "./color";
-import TableCaptionBookmarkButton from "./table";
+import { TableCaptionBookmarkButton, TableCellBackgroundColor } from "./table";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -362,6 +362,7 @@ export function Toolbar(props: {
                         <FormatButton menuItem chain={(c) => c.splitCell()}>
                             Split cell
                         </FormatButton>
+                        <TableCellBackgroundColor />
                     </SubMenu>
                     <FormatButton menuItem chain={(c) => c.addCaption()}>
                         Add Caption
