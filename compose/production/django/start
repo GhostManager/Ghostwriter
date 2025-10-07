@@ -22,5 +22,7 @@ cp -u -p "$TEMPLATE_PATH_PPTX" "$TEMPLATE_DIR"
 
 python /app/manage.py collectstatic --noinput
 python /app/manage.py migrate
+# migrate_totp_device migrates allauth-2fa otp devices to allauth-mfa totp devices
+python manage.py migrate_totp_device
 # /usr/local/bin/daphne -b 0.0.0.0 -p 8000 config.asgi:application
 uvicorn config.asgi:application --host 0.0.0.0 --port 8000
