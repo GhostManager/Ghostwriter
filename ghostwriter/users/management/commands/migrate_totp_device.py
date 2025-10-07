@@ -80,7 +80,7 @@ class Command(BaseCommand):
             except (IOError, OSError) as e:
                 # For file system errors (if any)
                 errors += 1
-                logger.error(f"I/O error for user {totp.user_id}: {str(e)}")
+                logger.exception(f"I/O error for user {totp.user_id}: {str(e)}")
 
         # Report results
         logger.info("\nMigration Summary:")
