@@ -181,6 +181,7 @@ class ReportFindingLinkAdmin(CollabAdminBase):
                     "finding_type",
                     "severity",
                     "cvss_score",
+                    "cvss_vector",
                     "tags",
                 )
             },
