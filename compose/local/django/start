@@ -22,7 +22,5 @@ cp -u -p "$TEMPLATE_PATH_PPTX" "$TEMPLATE_DIR"
 
 python manage.py makemigrations
 python manage.py migrate
-# migrate_totp_device migrates allauth-2fa otp devices to allauth-mfa totp devices
-python manage.py migrate_totp_device
 # python manage.py runserver 0.0.0.0:8000
 uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload
