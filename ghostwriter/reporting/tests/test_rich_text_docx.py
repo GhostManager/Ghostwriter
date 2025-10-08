@@ -19,7 +19,7 @@ WORD_SUFFIX = """<w:sectPr w:rsidR="00FC693F" w:rsidRPr="0006063C" w:rsidSect="0
 
 def clean_xml(xml):
     """
-    Pretty-formats XML, for comparsion and better diffs in case of test failures.
+    Pretty-formats XML, for comparison and better diffs in case of test failures.
     """
     if isinstance(xml, str):
         xml = xml.encode("utf-8")

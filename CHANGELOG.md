@@ -593,7 +593,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Only the entries that match the filter will appear until the filter is changed or cleared
 * Set a default value of `{}` for extra fields to avoid errors when creating new entries via the GraphQL API with empty extra fields
 * Modified error handling for report generation to provide more detailed error messages when a report fails to generate (e.g., which finding or field caused the error)
-* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via teh GraphQL API
+* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via the GraphQL API
 * Removed the spaces before and after the figure and table prefixes to allow for flexibility (Closes #446)
   * If spaces before or after the prefix are desired, they can be added when setting the value in the report configuration
   * Current values should be updated to add spaces (if desired) – e.g., change "–" to " – "
@@ -938,7 +938,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed an issue that would cause a server error whe uploading or editing an evidence file to a blank finding (Fixes #303)
+* Fixed an issue that would cause a server error when uploading or editing an evidence file to a blank finding (Fixes #303)
 
 ## [v3.2.5] - 31 March 2023
 
@@ -1749,7 +1749,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed evidence filenames with all uppercase extensions not appearing in reports (closes #74)
 * Fixed a recursive HTML/JavaScript escape in log entries (closes #133)
 * Fixed incorrect link in the menu for a point of contact under a client (closed #141 and #141)
-* Fixed `docker-compose` errors related to latest verison of the `crytpography` library (closes #147)
+* Fixed `docker-compose` errors related to latest version of the `cryptography` library (closes #147)
 * Fixed possible issue with assigning a name to an AWS asset in the cloud monitor task
 * Closed loophole that could allow a non-unique domain name
 
