@@ -24,6 +24,7 @@ import {
 import { TableWithCaption, TableCaption } from "./table";
 import { HeadingWithId } from "./heading";
 import Color from "./color";
+import CaseChange from "./case_change";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -62,6 +63,7 @@ const EXTENSIONS: Extensions = [
     TableWithCaption,
     TableCaption,
     Color,
+    CaseChange,
 ];
 
 export default EXTENSIONS;
