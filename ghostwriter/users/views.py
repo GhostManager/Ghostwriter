@@ -269,7 +269,6 @@ class HideQuickStart(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
 hide_quickstart = HideQuickStart.as_view()
 
-
 class RecoveryCodesView(ViewRecoveryCodesView):
     """Hide the Recovery Codes card on the MFA page"""
     def get_context_data(self, **kwargs):
@@ -281,4 +280,3 @@ class RecoveryCodesView(ViewRecoveryCodesView):
         # Only generate codes if the button was pressed
         flows.generate_recovery_codes(self.request)
         return redirect(GenerateRecoveryCodesView.success_url)
-    

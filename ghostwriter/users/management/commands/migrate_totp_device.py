@@ -68,19 +68,7 @@ class Command(BaseCommand):
             except (ValueError, TypeError) as e:
                 # For errors in data conversion or formatting
                 errors += 1
-                logger.error(f"Error in data conversion for user {totp.user_id}: {str(e)}")
-            except Authenticator.DoesNotExist as e:
-                # For database lookup errors
-                errors += 1
-                logger.error(f"Authenticator not found for user {totp.user_id}: {str(e)}")
-            except Authenticator.MultipleObjectsReturned as e:
-                # For unexpected database state
-                errors += 1
-                logger.error(f"Multiple authenticators found for user {totp.user_id}: {str(e)}")
-            except (IOError, OSError) as e:
-                # For file system errors (if any)
-                errors += 1
-                logger.exception(f"I/O error for user {totp.user_id}: {str(e)}")
+                logger.exception(f"Error in data conversion for user {totp.user_id}: {str(e)}")
 
         # Report results
         logger.info("\nMigration Summary:")
