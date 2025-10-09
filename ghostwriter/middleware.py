@@ -92,4 +92,3 @@ class RequireMFAMiddleware(MiddlewareMixin):
 
         # The request required MFA but it isn't configured!
         return self.on_require_mfa(request)
-    

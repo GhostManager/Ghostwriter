@@ -353,6 +353,7 @@ ACCOUNT_FORMS = {
 # django-allauth-mfa forms
 MFA_FORMS = {
     "authenticate": "ghostwriter.users.forms.UserMFAAuthenticateForm",
+    'reauthenticate': 'allauth.mfa.base.forms.AuthenticateForm',
     "activate_totp": "ghostwriter.users.forms.UserMFADeviceForm",
     "deactivate_totp": "ghostwriter.users.forms.UserMFADeviceRemoveForm",
     "generate_recovery_codes": "allauth.mfa.recovery_codes.forms.GenerateRecoveryCodesForm",

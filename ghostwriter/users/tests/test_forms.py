@@ -158,14 +158,61 @@ class UserMFAAuthenticateFormTests(TestCase):
     def test_valid_data(self):
         token = get_code_from_totp_device(self.secret)
         form = self.form_data(self.user, token)
-        v = form.is_valid()
-        if not v:
-            print(f"\nForm errors: {form.errors}")
-            print(f"Form data: {form.data}")
-        self.assertTrue(v)
+        self.assertTrue(form.is_valid())
 
     def test_invalid_data(self):
         form = self.form_data(self.user, "123456")
+        self.assertFalse(form.is_valid())
+
+class UserMFADeviceFormTests(TestCase):
+    """Collection of tests for :form:`users.UserMFADeviceForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory()
+        cls.secret = generate_totp_secret()
+        cls.totp_device = TOTP.activate(cls.user, cls.secret)
+
+    def setUp(self):
+        # Add patch for the rate limiting
+        self.rate_limit_patcher = patch('allauth.mfa.base.internal.flows.check_rate_limit',
+                                        return_value=mock_rate_limit_check)
+        self.mock_rate_limit = self.rate_limit_patcher.start()
+
+        # Also mock clear() to avoid the request.META access
+        self.clear_patcher = patch('allauth.core.ratelimit.clear',
+                                    return_value=None)
+        self.mock_clear = self.clear_patcher.start()
+
+        # Also patch the consume function
+        self.consume_patcher = patch('allauth.core.ratelimit.consume',
+                                     return_value=MockRateLimitUsage())
+        self.mock_consume = self.consume_patcher.start()
+
+    def tearDown(self):
+        self.rate_limit_patcher.stop()
+        self.consume_patcher.stop()
+        self.clear_patcher.stop()  # Stop the new patcher
+
+    def form_data(
+        self,
+        user=None,
+        otp_token=None,
+        **kwargs,
+    ):
+        data = {"code": otp_token} if otp_token else {}
+        return UserMFAAuthenticateForm(
+            user=user,
+            data=data,
+        )
+
+    def test_valid_data(self):
+        token = get_code_from_totp_device(self.secret)
+        form = self.form_data(self.user, token)
+        self.assertTrue(form.is_valid())
+
+    def test_invalid_data(self):
+        form = self.form_data(None, None)
         self.assertFalse(form.is_valid())
 
 
@@ -248,14 +295,14 @@ class UserSignUpFormTests(TestCase):
 
 
 # Add this helper function
-def mock_rate_limit_check():
+def mock_rate_limit_check(): # pragma: no cover
     """Mock rate limit check that always succeeds"""
     def clear_rate_limit():
         pass
     return clear_rate_limit
 
 # Create a mock RateLimitUsage class that always returns True for allowed
-class MockRateLimitUsage:
+class MockRateLimitUsage: # pragma: no cover
     def __init__(self):
         self.usage = []
 
