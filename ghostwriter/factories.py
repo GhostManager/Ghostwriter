@@ -68,7 +68,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     enable_observation_create = False
     enable_observation_edit = False
     enable_observation_delete = False
-    require_2fa = False
+    require_mfa = False
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):

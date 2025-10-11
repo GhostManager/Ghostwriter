@@ -1,21 +1,21 @@
 {% extends "account/base.html" %}
 {% load i18n %}
 
-{% block pagetitle %}2FA Backup Tokens{% endblock %}
+{% block pagetitle %}MFA Backup Tokens{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-      <li class="breadcrumb-item active" aria-current="page">2FA Backup Codes</li>
+      <li class="breadcrumb-item active" aria-current="page">MFA Backup Codes</li>
     </ul>
   </nav>
 {% endblock %}
 
 {% block content %}
   <h2>
-    {% trans "Two-Factor Authentication Backup Tokens" %}
+    {% trans "Multi-Factor Authentication Backup Tokens" %}
   </h2>
 
   {% if backup_tokens %}

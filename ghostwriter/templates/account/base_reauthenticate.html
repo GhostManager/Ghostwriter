@@ -1,0 +1,32 @@
+{% extends "account/base.html" %}
+
+{% load allauth %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}
+    {% trans "Confirm Access" %}
+{% endblock head_title %}
+{% block content %}
+    {% element h1 %}
+        {% trans "Confirm Access" %}
+    {% endelement %}
+    {% element p %}
+        {% blocktranslate %}Please reauthenticate to safeguard your account.{% endblocktranslate %}
+    {% endelement %}
+    {% block reauthenticate_content %}{% endblock %}
+    {% if reauthentication_alternatives %}
+        {% element hr %}
+        {% endelement %}
+        {% element h2 %}
+            {% translate "Alternative options" %}
+        {% endelement %}
+        {% element button_group %}
+            {% for alt in reauthentication_alternatives %}
+                {% element button href=alt.url tags="primary,outline" %}
+                    {{ alt.description }}
+                {% endelement %}
+            {% endfor %}
+        {% endelement %}
+    {% endif %}
+{% endblock content %}
