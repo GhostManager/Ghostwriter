@@ -753,7 +753,7 @@ class ProjectScopeForm(forms.ModelForm):
                         Column(
                             StrictButton(
                                 "Split Scope to Newlines",
-                                onclick="formatScope($(this).closest('div').next('div').find('textarea'))",
+                                onclick="formatScope($(this).closest('div').parent().nextAll('.form-group').first().find('textarea'))",
                                 data_toggle="tooltip",
                                 title="Split a comma-delimited scope list to newlines",
                                 css_class="btn btn-outline-secondary col-6",
