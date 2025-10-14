@@ -2,7 +2,6 @@
 // change the schema.
 
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Table from "@tiptap/extension-table";
 import TableHeader from "@tiptap/extension-table-header";
@@ -23,6 +22,7 @@ import {
 import { TableWithCaption, TableCaption, GwTableCell } from "./table";
 import { HeadingWithId } from "./heading";
 import Color from "./color";
+import Link from "./link";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -45,6 +45,8 @@ const EXTENSIONS: Extensions = [
     Link.configure({
         openOnClick: false,
         autolink: false,
+        linkOnPaste: false,
+        shouldAutoLink: () => false,
     }),
     TextAlign.configure({
         types: ["heading", "paragraph"],
