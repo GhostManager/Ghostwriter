@@ -15,6 +15,7 @@ from docx.image.exceptions import UnrecognizedImageError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt
 from docx.shared import RGBColor as DocxRgbColor
+from docx.document import Document as DocumentObject
 from lxml import etree
 
 # Ghostwriter Libraries
@@ -35,8 +36,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
     """
     Converts HTML to a word document
     """
+    doc: DocumentObject
+    p_style: str
 
-    def __init__(self, doc, p_style):
+    def __init__(self, doc: DocumentObject, p_style: str):
         super().__init__()
         self.doc = doc
         self.p_style = p_style
