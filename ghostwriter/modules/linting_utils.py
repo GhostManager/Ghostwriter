@@ -212,7 +212,7 @@ LINTER_CONTEXT = {
         {
             "issued": "2022-10-13T19:18:26Z",
             "title": "Test Card",
-            "description": "Test description",
+            "description": "<p>Test description</p>",
             "description_rt": "",
         }
     ],
