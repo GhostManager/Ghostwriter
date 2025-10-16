@@ -13,8 +13,8 @@ path = 'config/settings/base.py'
 with open(path, 'r', encoding='utf-8') as f:
     content = f.read()
 
-content = re.sub(r'__version__\s*=\s*["\'].*?["\']', f'__version__ = "{version}"', content)
-content = re.sub(r'RELEASE_DATE\s*=\s*["\'].*?["\']', f'RELEASE_DATE = "{release_date}"', content)
+content = re.sub(r'^__version__\s*=\s*["\'].*?["\']', f'__version__ = "{version}"', content, flags=re.MULTILINE)
+content = re.sub(r'^RELEASE_DATE\s*=\s*["\'].*?["\']', f'RELEASE_DATE = "{release_date}"', content, flags=re.MULTILINE)
 
 with open(path, 'w', encoding='utf-8') as f:
     f.write(content)
