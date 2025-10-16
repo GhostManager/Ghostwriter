@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed invalid CVSS vector strings from causing the finding form to not render properly (PR #710; Fixes #705)
 * Fixed the configuration values for health checks on disk usage and minimum memory not being imported in the production YAML (PR #699; thanks to @smcgu for flagging)
 * Fixed templates with references to white cards failing linting
+* Fixed the Tiptap editor automatically converting strings into hyperlinks when it thinks they are URLs (PR #720)
+  * PR #673 attempted to disable this behavior, but it was not fully effective due to Tiptap having two paths for how it handles pasted text
+  * Based on feedback, this is the preferred behavior for most users, but we understand some users may want to re-enable it
+  * We will explore making this configurable in a future release
 
 ## [6.0.4] - 12 September 2025
 
