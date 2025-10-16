@@ -1,15 +1,9 @@
 name: Update Version on Release
 
 on:
-#  push:
-#    tags:
-#      - 'v*'
   push:
-    branches:
-      - release/*
-  pull_request:
-    branches:
-      - release/*
+    tags:
+      - 'v*'
 
 jobs:
   update-version:
