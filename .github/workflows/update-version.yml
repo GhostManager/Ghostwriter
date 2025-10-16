@@ -22,15 +22,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - name: Update version and date
+      - name: Update version, commit, and push
         run: |
           TAG_NAME="${GITHUB_REF##*/}"
           RELEASE_DATE=$(date +"%d %B %Y")
           echo "TAG_NAME: $TAG_NAME"
           echo "RELEASE_DATE: $RELEASE_DATE"
           python scripts/update_version.py "$TAG_NAME" "$RELEASE_DATE"
-      - name: Commit changes
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add config/settings/base.py VERSION
