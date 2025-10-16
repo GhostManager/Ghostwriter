@@ -26,11 +26,13 @@ jobs:
         run: |
           TAG_NAME="${GITHUB_REF##*/}"
           RELEASE_DATE=$(date +"%d %B %Y")
+          echo "TAG_NAME: $TAG_NAME"
+          echo "RELEASE_DATE: $RELEASE_DATE"
           python scripts/update_version.py "$TAG_NAME" "$RELEASE_DATE"
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add config/settings/base.py VERSION
-          git commit -m "Update version to $TAG_NAME ($RELEASE_DATE)"
+          git diff --cached --quiet || git commit -m "Update version to $TAG_NAME ($RELEASE_DATE)"
           git push
