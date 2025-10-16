@@ -14,7 +14,7 @@ def deep_copy_with_copiers(value, typ_copiers):
     """
     typ = type(value)
     if typ in typ_copiers:
-        # A more advanced implementaiton would respect subclasses, but that's not needed (yet)
+        # A more advanced implementation would respect subclasses, but that's not needed (yet)
         return typ_copiers[typ](value)
     if isinstance(value, dict):
         return {k: deep_copy_with_copiers(v, typ_copiers) for k, v in value.items()}
