@@ -606,7 +606,7 @@ def scan_servers(only_active=False):
         server_queryset = StaticServer.objects.filter(server_status__server_status="Active")
     else:
         server_queryset = StaticServer.objects.all()
-    # Run a scan against each server in tbe queryset
+    # Run a scan against each server in the queryset
     for server in server_queryset:
         scanner.scan(
             server.ip_address,

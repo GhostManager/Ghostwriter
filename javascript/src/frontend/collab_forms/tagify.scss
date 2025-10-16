@@ -470,7 +470,7 @@ $tagify-dd-color-primary: rgb(53, 149, 246) !default;
         padding: var(--tag-pad);
         line-height: normal;
         position: relative;
-        white-space: pre-wrap; // #160 Line break (\n) as delimeter
+        white-space: pre-wrap; // #160 Line break (\n) as delimiter
         color: var(--input-color);
         box-sizing: inherit;
         overflow: hidden;
@@ -742,7 +742,7 @@ $tagify-dd-color-primary: rgb(53, 149, 246) !default;
             }
         }
 
-        // intial state, pre-rendered
+        // initial state, pre-rendered
         &--initial {
             #{$dropdown}__wrapper {
                 max-height: 20px;

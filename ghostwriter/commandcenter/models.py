@@ -333,7 +333,7 @@ class GeneralConfiguration(SingletonModel):
     hostname = models.CharField(
         max_length=255,
         default="ghostwriter.local",
-        help_text="Hostname or IP address for Ghostwtiter (used for links in notifications)",
+        help_text="Hostname or IP address for Ghostwriter (used for links in notifications)",
     )
 
     def __str__(self):
