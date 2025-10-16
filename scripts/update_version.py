@@ -9,7 +9,7 @@ with open('VERSION', 'w') as f:
     f.write(f"v{version}\n{release_date}\n")
 
 # Update base.py
-path = '/config/settings/base.py'
+path = 'config/settings/base.py'
 with open(path, 'r') as f:
     content = f.read()
 
