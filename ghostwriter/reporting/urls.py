@@ -31,11 +31,6 @@ urlpatterns = [
 # URLs for AJAX requests – deletion and toggle views
 urlpatterns += [
     path(
-        "ajax/report/finding/order",
-        ghostwriter.reporting.views2.report_finding_link.ajax_update_report_findings,
-        name="update_report_findings",
-    ),
-    path(
         "ajax/report/observation/order",
         ghostwriter.reporting.views2.report_observation_link.ajax_update_report_observation_order,
         name="update_report_observations",

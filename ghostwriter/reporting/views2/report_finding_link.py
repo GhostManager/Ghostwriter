@@ -1,16 +1,14 @@
 
 import logging
-import json
 from socket import gaierror
 
 from django.http import HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import UpdateView
 from django.template.loader import render_to_string
-from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -268,63 +266,6 @@ class ReportFindingStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             data = {"result": "error", "message": "Could not update finding's status!"}
 
         return JsonResponse(data)
-
-
-@login_required
-def ajax_update_report_findings(request):
-    """
-    Update the ``position`` and ``severity`` fields of all :model:`reporting.ReportFindingLink`
-    attached to an individual :model:`reporting.Report`.
-    """
-    if request.method != "POST":
-        return JsonResponse({"result": "error"}, status=405)
-
-    pos = request.POST.get("positions")
-    report_id = request.POST.get("report")
-    weight = request.POST.get("weight")
-    order = json.loads(pos)
-
-    report = get_object_or_404(Report, pk=report_id)
-    if report.user_can_edit(request.user):
-        logger.info(
-            "Received AJAX POST to update report %s's %s severity group findings in this order: %s",
-            report_id,
-            weight,
-            ", ".join(order),
-        )
-        data = {"result": "success"}
-
-        try:
-            severity = Severity.objects.get(weight=weight)
-        except Severity.DoesNotExist:
-            severity = None
-            logger.exception("Failed to get Severity object for weight %s", weight)
-
-        if severity:
-            counter = 1
-            for finding_id in order:
-                if "placeholder" not in finding_id:
-                    finding_instance = ReportFindingLink.objects.get(id=finding_id)
-                    if finding_instance:
-                        finding_instance.severity = severity
-                        finding_instance.position = counter
-                        finding_instance.save()
-                        counter += 1
-                    else:
-                        logger.error(
-                            "Received a finding ID, %s, that did not match an existing finding",
-                            finding_id,
-                        )
-        else:
-            data = {"result": "error", "message": "Specified severity weight, {}, is invalid.".format(weight)}
-    else:
-        logger.error(
-            "AJAX request submitted by user %s without access to report %s",
-            request.user,
-            report_id,
-        )
-        data = {"result": "error"}
-    return JsonResponse(data)
 
 
 class ReportFindingAssign(RoleBasedAccessControlMixin, UpdateView):
