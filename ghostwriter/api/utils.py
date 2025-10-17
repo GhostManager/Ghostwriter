@@ -16,9 +16,9 @@ from django.shortcuts import resolve_url
 
 # 3rd Party Libraries
 import jwt
+from allauth.mfa.models import Authenticator
 
 # Ghostwriter Libraries
-from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import Archive, Report, ReportTemplate
 from ghostwriter.rolodex.models import Client, Project
 
@@ -27,6 +27,22 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
+def user_has_valid_totp_device(user):
+
+    """
+    Check if the user has a valid TOTP device.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if not user.is_authenticated:
+        return False
+
+    authenticators = Authenticator.objects.filter(user=user, type=Authenticator.Type.TOTP)
+
+    return authenticators.exists()
 
 def get_jwt_from_request(request):
     """

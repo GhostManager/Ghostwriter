@@ -240,14 +240,14 @@ class UserLoginViewTests(TestCase):
         self.assertTemplateUsed(response, "account/login.html")
 
 
-class Require2FAMiddlewareTests(TestCase):
-    """Collection of tests for `Require2FAMiddleware` authentication middleware."""
+class RequireMFAMiddlewareTests(TestCase):
+    """Collection of tests for `RequireMFAMiddleware` authentication middleware."""
 
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("home:dashboard")
-        cls.setup_uri = reverse("two-factor-setup")
+        cls.setup_uri = reverse("mfa_activate_totp")
         cls.change_pwd_uri = reverse("account_change_password")
         cls.logout_uri = reverse("account_logout")
         cls.reset_pwd_uri = reverse("account_reset_password")
@@ -258,19 +258,19 @@ class Require2FAMiddlewareTests(TestCase):
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
-    def test_2fa_required(self):
+    def test_mfa_required(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-        self.user.require_2fa = True
+        self.user.require_mfa = True
         self.user.save()
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, self.setup_uri)
+        self.assertRedirects(response, self.setup_uri, fetch_redirect_response=False, target_status_code=302)
 
         response = self.client_auth.get(self.setup_uri)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
         response = self.client_auth.get(self.change_pwd_uri)
         self.assertEqual(response.status_code, 200)
         response = self.client_auth.get(self.reset_pwd_uri)
@@ -278,7 +278,7 @@ class Require2FAMiddlewareTests(TestCase):
         response = self.client_auth.get(self.logout_uri)
         self.assertEqual(response.status_code, 200)
 
-        self.user.require_2fa = False
+        self.user.require_mfa = False
         self.user.save()
 
 
