@@ -72,12 +72,7 @@ The dashboard services map to the following configuration variables:
 
 * MemoryUsage: `HEALTHCHECK_MEM_MIN` (Default is `100` [in MB])
 
-You can configure these using either:
-
-1. `.env` or with Ghostwriter CLI (this sets and reads from `.env`)
-2. Config file under `config/settings/`
-
-For changes in `.env` or using the CLI, bring containers `down` and `up`. Changes made to config files will require a `build`. Use of config files will cause `.env` and CLI values to be ignored. So, if you use config files, you must use that for all health check values. In other words, if you want to use `.env`/CLI, then you cannot use config files.
+You can configure these values manually in the `.env` file or with Ghostwriter CLI (this sets and reads from `.env`). For changes in `.env` or using the CLI, bring containers `down` and `up`.
 
 Example `.env` snippet with default values:
 
@@ -91,17 +86,6 @@ Example using the CLI to set and get the disk usage value:
 ```sh
 ./ghostwriter-cli-linux config set HEALTHCHECK_DISK_USAGE_MAX 90
 ./ghostwriter-cli-linux config get HEALTHCHECK_DISK_USAGE_MAX
-```
-
-Example config file `config/settings/production.d/10-healthchecks.py` snippet:
-
-```python
-# HEALTH_CHECKS
-# ------------------------------------------------------------------------------
-HEALTH_CHECK = {
-    "DISK_USAGE_MAX": 90,   # percentage
-    "MEMORY_MIN": 100,      # in MB
-}
 ```
 
 ## Automated Monitoring

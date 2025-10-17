@@ -4,6 +4,20 @@ sidebarTitle: "Overview"
 description: "How to use Ghostwriter CLI to monitor and manage your Ghostwriter installation"
 ---
 
+<Warning>
+Ghostwriter CLI reads and writes to the `.env` file and tries to establish an outbound network connection when you run
+    the `update` and `version` commands. The CLI only writes to Ghostwriter's `.env` file and only reads Ghostwriter's
+    `.env` and `VERSION` files. For network connectivity, it only connects to GitHub's REST API to pull the version information
+    for Ghostwriter and Ghostwriter CLI's latest tagged releases. However, these actions taken by a downloaded binary
+    will cause some anti-malware and EDR solutions to flag Ghostwriter CLI as malware. If you encounter an issue with
+    such a solution blocking Ghostwriter CLI from executing, please add the binary to your allowlist or exclusions list.
+
+    We are working to try to get Ghostwriter CLI to be trusted, as it once was, but these issues come and go.
+
+    If you have concerns about this behavior, you can build Ghostwriter CLI from source. See the [GitHub repository](https://github.com/GhostManager/Ghostwriter_CLI).
+    Further, you can inspect the source code to verify its behavior and check the build hashes against the [releases page](https://github.com/GhostManager/Ghostwriter_CLI/releases).
+</Warning>
+
 ## Using Ghostwriter CLI to Manage the Server
 
 Ghostwriter CLI can handle just about anything you might need or want to do with your Ghostwriter installation. Running the tool with the `help` command–or no command–will print the latest usage information.
@@ -67,6 +81,7 @@ $ ./ghostwriter-cli running
 <Check>
 The `Status` column shows the uptime and health of the service. If you see an `unhealthy` status that the service failed a health check and may not work properly. Learn more about health checks here: [Health Monitoring](/features/health-monitoring)
 </Check>
+
 You can use the `logs` command to view a particular container's recent log events. The command requires the name of a running container. Valid container names are:
 
 * all

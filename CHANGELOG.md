@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.5] - 16 October 2025
+
+### Added
+
+* Added the option to color the background of table cells (PR #717)
+  * This applies to cells in rows not flagged as header rows
+
+### Changed
+
+* Changed the finding form in the admin panel to include the CVSS vector field (PR #715; Fixes #704)
+
+### Fixed
+
+* Fixed certain invalid characters that could break report generation if copied and pasted into the editor (PR #711; Fixes #709)
+* Fixed some HTML `span` elements being styled with a red font color (PR #714; Fixes #703)
+* Fixed invalid CVSS vector strings from causing the finding form to not render properly (PR #710; Fixes #705)
+* Fixed the configuration values for health checks on disk usage and minimum memory not being imported in the production YAML (PR #699; thanks to @smcgu for flagging)
+* Fixed templates with references to white cards failing linting
+* Fixed the Tiptap editor automatically converting strings into hyperlinks when it thinks they are URLs (PR #720)
+  * PR #673 attempted to disable this behavior, but it was not fully effective due to Tiptap having two paths for how it handles pasted text
+  * Based on feedback, this is the preferred behavior for most users, but we understand some users may want to re-enable it
+  * We will explore making this configurable in a future release
+
 ## [6.0.4] - 12 September 2025
 
 ### Added
