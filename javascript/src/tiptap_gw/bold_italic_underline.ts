@@ -8,7 +8,7 @@ import Highlight from "@tiptap/extension-highlight";
 import mkElem from "./mkelem";
 
 // TinyMCE uses one span with multiple classes to represent combined bold/italic/underline/etc., but
-// Tiptap assumse one element per mark. So fake it with this `contentElement` function that strips
+// Tiptap assumes one element per mark. So fake it with this `contentElement` function that strips
 // the class off and resubmits the span.
 function unwrapClass(node: Node, cls: string): HTMLElement {
     const n = node as HTMLElement;

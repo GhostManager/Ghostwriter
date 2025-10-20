@@ -416,7 +416,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
         self.fields["evidence_image_width"].label = "Evidence Image Width"
-        self.fields["evidence_image_width"].inital = "6.5"
+        self.fields["evidence_image_width"].initial = "6.5"
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -671,7 +671,7 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
     individual :model:`reporting.Report`.
     """
 
-    # Note: since ReportObservationLinks are essentialy an observation bound to a report, it uses
+    # Note: since ReportObservationLinks are essentially an observation bound to a report, it uses
     # the observation's extra field specifications, rather than having its own.
     extra_fields = ExtraFieldsField(Observation._meta.label)
 
