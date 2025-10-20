@@ -1,15 +1,15 @@
 from collections import ChainMap
 import copy
 import html
-
 from markupsafe import Markup
+from docxtpl import RichText as DocxRichText
 
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
 from ghostwriter.modules.reportwriter.base.base import ExportBase
-from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlAndRich
+from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlAndObject
 from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Finding, Observation, Report
@@ -33,13 +33,13 @@ class ExportReportBase(ExportBase):
     def serialize_object(self, report):
         excludes = ["id"]
         if not self.include_bloodhound:
-            excludes.append("bloodhound_findings")
+            excludes.append("bloodhound")
         return ReportDataSerializer(
             report,
             exclude=excludes,
         ).data
 
-    def severity_rich_text(self, text, severity_color):
+    def severity_rich_text(self, text: str, severity_color: str) -> str | DocxRichText:
         """
         Creates an exporter specific rich text object for some text related to finding severity.
         This should be text colored by `severity_color`, if possible.
@@ -57,7 +57,7 @@ class ExportReportBase(ExportBase):
             )
         )
         exporter_rich = self.severity_rich_text(text, severity_color)
-        return HtmlAndRich(rich_html, exporter_rich)
+        return HtmlAndObject(rich_html, exporter_rich)
 
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)

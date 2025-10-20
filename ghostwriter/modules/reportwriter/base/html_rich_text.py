@@ -1,31 +1,56 @@
 
-from typing import Any
+from typing import Any, Callable
 import jinja2
 from markupsafe import Markup
+from abc import ABC, abstractmethod
 
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
-
-def deep_copy_with_copiers(value, typ_copiers):
+class RichTextBase(ABC):
     """
-    Deep copies a value with custom handlers.
-
-    `class_copiers` is a dict with class keys and
+    Base class for a value that can produce some rich text, represented as HTML.
     """
-    typ = type(value)
-    if typ in typ_copiers:
-        # A more advanced implementaiton would respect subclasses, but that's not needed (yet)
-        return typ_copiers[typ](value)
-    if isinstance(value, dict):
-        return {k: deep_copy_with_copiers(v, typ_copiers) for k, v in value.items()}
-    if isinstance(value, list):
-        return [deep_copy_with_copiers(v, typ_copiers) for v in value]
-    return value
 
+    # User-friendly descriptor of where the rich text was produced
+    location: str | None
 
-class LazilyRenderedTemplate:
+    @abstractmethod
+    def __html__(self) -> Markup | str:
+        """
+        Gets/renders the HTML rich text.
+        """
+        pass
+
+    @staticmethod
+    def deep_copy_process_html(value: Any, process_html: Callable[["RichTextBase"], Any]):
+        """
+        Deep copies a value, mapping any `RichTextBase` subclasses through `process_html`.
+        """
+        if isinstance(value, RichTextBase):
+            return process_html(value)
+        if isinstance(value, dict):
+            return {k: RichTextBase.deep_copy_process_html(v, process_html) for k,v in value.items()}
+        if isinstance(value, list):
+            return [RichTextBase.deep_copy_process_html(v, process_html) for v in value]
+        return value
+
+class HtmlRichText(RichTextBase):
     """
-    Renders a template lazily
+    An HTML string, with no templating.
+    """
+    html: str
+
+    def __init__(self, html: str, location: str | None=None):
+        super().__init__()
+        self.html = html
+        self.location = location
+
+    def __html__(self):
+        return self.html
+
+class LazilyRenderedTemplate(RichTextBase):
+    """
+    Renders a Jinja template lazily
     """
     template: jinja2.Template
     context: dict
@@ -61,23 +86,28 @@ class LazilyRenderedTemplate:
     def __html__(self):
         return self.render_html()
 
-
-class HtmlAndRich:
+class HtmlAndObject(RichTextBase):
     """
-    Object containing some rich-text HTML and an exporter-specific rich-text object.
-    """
-    html: Markup
-    rich: Any
+    HTML rich text and an exporter-specific object (ex. a docx `RichText`).
 
-    def __init__(self, html: Markup, rich: Any):
+    The object isn't used by this class at all - exporters will need to use it themselves.
+    """
+
+    html: str
+    obj: Any
+
+    def __init__(self, html: str, obj, location: str | None = None):
         self.html = html
-        self.rich = rich
+        self.obj = obj
+        self.location = location
 
     def __html__(self):
         return self.html
 
-
 class LazySubdocRender:
+    """
+    Renders a subdocument via a render function lazily
+    """
     def __init__(self, render):
         self._render = render
         self._rendered = None

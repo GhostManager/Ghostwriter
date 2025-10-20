@@ -6,6 +6,7 @@ from ghostwriter.modules.custom_serializers import FullProjectSerializer
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
 from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlRichText
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Client, Project
@@ -176,6 +177,24 @@ class ExportProjectBase(ExportBase):
                     OplogEntry,
                     rich_text_context,
                 )
+
+        # BloodHound findings
+        if base_context.get("bloodhound"):
+            for finding in base_context["bloodhound"]["findings"]:
+                if finding.get("assets"):
+                    id = finding.get("id")
+                    finding["assets"]["references"] = HtmlRichText(
+                        finding["assets"]["references"],
+                        f"references of BloodHound finding {id}"
+                    )
+                    finding["assets"]["short_description"] = HtmlRichText(
+                        finding["assets"]["short_description"],
+                        f"short_description of BloodHound finding {id}"
+                    )
+                    finding["assets"]["long_description"] = HtmlRichText(
+                        finding["assets"]["long_description"],
+                        f"long_description of BloodHound finding {id}"
+                    )
 
     @classmethod
     def generate_lint_data(cls):

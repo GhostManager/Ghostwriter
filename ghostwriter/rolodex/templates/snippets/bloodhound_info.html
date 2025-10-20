@@ -50,43 +50,26 @@
                         <table class="table table-striped table-sm mt-0">
                             <thead>
                                 <tr>
-                                  <th class="align-middle">ID</th>
-                                  <th class="align-middle text-left">Name</th>
-                                  <th class="align-middle text-left">Target Kind</th>
-                                  <th class="align-middle text-left">Target Name</th>
+                                    <th class="align-middle">ID</th>
+                                    <th class="align-middle text-left">Name</th>
+                                    <th class="align-middle text-left">Target Kind</th>
+                                    <th class="align-middle text-left">Target Name</th>
                                 </tr>
                             </thead>
                             <tbody>
                             {% for finding in res.findings|dictsort:"id" %}
                                 <tr>
-                                  <td  class="align-middle">{{ finding.id }}</td>
-                                  <td class="align-middle text-left">{{ finding.finding_name }}</td>
-                                  <td class="align-middle text-left">{{ finding.target_kind}}</td>
-                                  <td class="align-middle text-left">{{ finding.target_properties.name }}</td>
+                                    <td class="align-middle">{{ finding.id }}</td>
+                                    <td class="align-middle text-left">
+                                        {% if finding.assets.title %}
+                                            {{ finding.assets.title|striptags }}
+                                        {% else %}
+                                            {{ finding.finding_name }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-left">{{ finding.target_kind}}</td>
+                                    <td class="align-middle text-left">{{ finding.target_properties.name }}</td>
                                 </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endif %}
-
-    {% if res.finding_assets %}
-        <div id="bh_finding_assets_accordion" class="finding-accordion">
-            <div class="card">
-                <div class="card-header" data-toggle="collapse" data-target="#bh_finding_assets_contents">
-                    <a class="accordion-toggle btn btn-link">
-                        Finding Assets
-                    </a>
-                </div>
-                <div id="bh_finding_assets_contents" class="collapse" data-parent="#bh_finding_assets_accordion">
-                    <div class="card-body">
-                        <table class="table table-striped table-sm mt-0">
-                            <tbody>
-                            {% for name, asset in res.finding_assets.items %}
-                                <tr><td class="text-left">{{ name }}</td></tr>
                             {% endfor %}
                             </tbody>
                         </table>

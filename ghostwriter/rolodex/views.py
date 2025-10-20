@@ -2261,11 +2261,7 @@ class BloodhoundApiFetchView(BloodhoundApiBaseView):
             bh_version = bh_client.get_version()
             logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
 
-            out = bh_client.get_community_domains()
-
-            findings_response = bh_client.get_enterprise_findings()
-            if findings_response is not None:
-                out.update(findings_response)
+            out = bh_client.get_all()
         except (IOError, json.JSONDecodeError, KeyError, BhAPIException):
             logger.exception("BH connection test failed")
             return self.render_result(messages.ERROR, "Could not connect to BloodHound.")

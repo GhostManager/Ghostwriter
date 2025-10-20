@@ -4,7 +4,6 @@ import hashlib
 import hmac
 import json
 import logging
-
 from datetime import datetime
 from typing import Counter, Literal, Optional, NamedTuple, Dict, Any, List
 
@@ -13,6 +12,7 @@ from django.conf import settings
 
 # 3rd Party Libraries
 import requests
+from markdown import markdown
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,18 @@ class APIClient:
 
         return domains
 
+    def get_all(self) -> dict:
+        findings = self.get_enterprise_findings()
+        domains = self.get_community_domains()
+        return {
+            "findings": findings,
+            "domains": domains,
+        }
+
     def get_enterprise_findings(self) -> dict:
+        """
+        Gets findings from BHEE
+        """
         try:
             response = self._request("GET", "/api/v2/attack-paths/details")
         except APIException as err:
@@ -174,9 +185,70 @@ class APIClient:
                 return None
             raise
         payload = response.json()["data"]
-        return payload
 
-    def get_community_domains(self) -> dict:
+        # Some finding assets have different fields for "tier zero" (tz) targets, so build
+        # two dicts - one for tz and one for others (tx).
+        tzassets = {}
+        txassets = {}
+        for assetKey, asset in payload["finding_assets"].items():
+            tzfields = {}
+            txfields = {}
+            for term in ["title", "type", "references", "short_description", "long_description"]:
+                tzkey = term + ".md"
+                txkey = "tx-" + tzkey
+                tzvalue = asset[tzkey]
+                txvalue = asset.get(txkey, tzvalue)
+                tzvalue = base64.b64decode(tzvalue).decode("utf-8")
+                txvalue = base64.b64decode(txvalue).decode("utf-8")
+                if term == "title" or term == "type":
+                    tzvalue = tzvalue.strip()
+                    txvalue = txvalue.strip()
+                else:
+                    tzvalue = markdown(tzvalue)
+                    txvalue = markdown(txvalue)
+                tzfields[term] = tzvalue
+                txfields[term] = txvalue
+            tzassets[assetKey] = tzfields
+            txassets[assetKey] = txfields
+
+        # Find the group name for tier zero targets
+        features = self.get_features()
+        if features.get("tier_management_engine"):
+            tzgroup = self._get_tier_zero_group()
+        else:
+            tzgroup == None
+
+        # Add assets to each finding based on name and tier
+        findings = payload["findings"]
+        for finding in findings:
+            if tzgroup is not None and finding["asset_group"] == tzgroup and finding["finding_name"] in txassets:
+                finding["assets"] = txassets[finding["finding_name"]]
+            else:
+                finding["assets"] = tzassets.get(finding["finding_name"])
+        return findings
+
+    def get_features(self) -> dict[str, bool]:
+        features_list = self._request("GET", "/api/v2/features").json()["data"]
+        return dict((v["key"], v["enabled"]) for v in features_list)
+
+    def _get_tier_zero_group(self):
+        try:
+            response = self._request("GET", "/api/v2/asset-group-tags")
+        except APIException as e:
+            if e.http_code == 404:
+                # PZ is off, use default
+                return "admin_tier_0"
+            raise
+        # The tier zero tag is the one with type=1 and position=1
+        for tag in response.json()["data"]["tags"]:
+            if tag["type"] == 1 and tag["position"] == 1:
+                return tag["name"]
+        return None
+
+    def get_community_domains(self) -> list:
+        """
+        Gets domain info from BHCE/EE.
+        """
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
         for domain in available_domains:
@@ -249,6 +321,4 @@ class APIClient:
 
             domains_out.append(domain_out)
 
-        return {
-            "domains": domains_out,
-        }
+        return domains_out
