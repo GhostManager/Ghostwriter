@@ -435,21 +435,19 @@ class ReportTemplate(models.Model):
 
             return ExportProjectDocx(
                 object,
-                template_loc=self.document.path,
-                p_style=self.p_style,
-                evidence_image_width=self.evidence_image_width,
+                report_template=self,
                 **kwargs
             )
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 
-            return ExportReportPptx(object, template_loc=self.document.path, **kwargs)
+            return ExportReportPptx(object, report_template=self, **kwargs)
         if self.doc_type.doc_type == "pptx" and isinstance(object, Project):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.pptx import ExportProjectPptx
 
-            return ExportProjectPptx(object, template_loc=self.document.path, **kwargs)
+            return ExportProjectPptx(object, report_template=self, **kwargs)
         raise RuntimeError(
             f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database."
         )
@@ -494,12 +492,12 @@ class ReportTemplate(models.Model):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 
-            return ExportReportDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+            return ExportReportDocx.lint(report_template=self)
         if self.doc_type.doc_type == "project_docx":
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 
-            return ExportProjectDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+            return ExportProjectDocx.lint(report_template=self)
         if self.doc_type.doc_type == "pptx":
             # Report PPTX exporter exports more content, so use it to lint
             # Ghostwriter Libraries

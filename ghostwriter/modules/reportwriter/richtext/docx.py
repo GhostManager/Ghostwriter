@@ -18,6 +18,7 @@ from docx.shared import RGBColor as DocxRgbColor
 from lxml import etree
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.extensions import (
     IMAGE_EXTENSIONS,
@@ -27,6 +28,7 @@ from ghostwriter.modules.reportwriter.richtext.ooxml import (
     BaseHtmlToOOXML,
     parse_styles,
 )
+from ghostwriter.reporting.models import ReportTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -275,37 +277,24 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     and references.
     """
 
+    report_template: ReportTemplate
+    global_report_config: ReportConfiguration
+
     def __init__(
         self,
         doc,
         *,
-        p_style,
-        evidence_image_width,
         evidences,
-        figure_label: str,
-        figure_prefix: str,
-        figure_caption_location: str,
-        table_label: str,
-        table_prefix: str,
-        table_caption_location: str,
-        title_case_captions: bool,
-        title_case_exceptions: list[str],
-        border_color_width: tuple[str, float] | None,
+        report_template: ReportTemplate,
+        global_report_config: ReportConfiguration,
     ):
-        super().__init__(doc, p_style)
+        super().__init__(doc, report_template.p_style)
         self.evidences = evidences
-        self.figure_label = figure_label
-        self.figure_prefix = figure_prefix
-        self.figure_caption_location = figure_caption_location
-        self.table_label = table_label
-        self.table_prefix = table_prefix
-        self.table_caption_location = table_caption_location
-        self.title_case_captions = title_case_captions
-        self.title_case_exceptions = title_case_exceptions
-        self.border_color_width = border_color_width
-        self.evidence_image_width = evidence_image_width
+        self.report_template = report_template
+        self.global_report_config = global_report_config
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
         self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
+        self.title_case_exceptions = self.global_report_config.title_case_exceptions.split(",")
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -321,8 +310,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
-            self.make_caption(par, self.figure_label, ref_name or None)
-            par.add_run(self.figure_prefix)
+            self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
+            par.add_run(self.global_report_config.prefix_figure)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
@@ -333,10 +322,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     def tag_table(self, el, **kwargs):
         caption_el = kwargs.get("caption_el") or el.find("caption")
         caption_bookmark = kwargs.get("caption_bookmark")
-        if self.table_caption_location == "top":
+        if self.global_report_config.table_caption_location == "top":
             self._mk_table_caption(caption_el, caption_bookmark)
         super().tag_table(el, **kwargs)
-        if self.table_caption_location == "bottom":
+        if self.global_report_config.table_caption_location == "bottom":
             self._mk_table_caption(caption_el, caption_bookmark)
 
     def tag_div(self, el, **kwargs):
@@ -354,9 +343,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
     def _mk_table_caption(self, caption_el, caption_bookmark=None):
         par_caption = self.doc.add_paragraph()
-        self.make_caption(par_caption, self.table_label, caption_bookmark, styles=["Quote", "Caption"])
+        self.make_caption(par_caption, self.global_report_config.label_table, caption_bookmark, styles=["Quote", "Caption"])
         if caption_el is not None:
-            par_caption.add_run(self.table_prefix)
+            par_caption.add_run(self.global_report_config.prefix_figure)
             par_caption.add_run(self.title_except(caption_el.get_text()))
 
     def is_plural_acronym(self, word):
@@ -371,7 +360,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         Ref: https://stackoverflow.com/a/3729957
         """
-        if self.title_case_captions:
+        if self.global_report_config.title_case_captions:
             word_list = re.split(" ", s)  # re.split behaves as expected
             final = []
             for word in word_list:
@@ -468,7 +457,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 )
                 raise ReportExportTemplateError(error_msg) from err
 
-            if self.figure_caption_location == "top":
+            if self.global_report_config.figure_caption_location == "top":
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
                 par = self.doc.add_paragraph()
 
@@ -479,19 +468,19 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             except KeyError:
                 pass
 
-            if self.figure_caption_location == "bottom":
+            if self.global_report_config.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
 
         elif extension in IMAGE_EXTENSIONS:
-            if self.figure_caption_location == "top":
+            if self.global_report_config.figure_caption_location == "top":
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
                 par = self.doc.add_paragraph()
 
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = par.add_run()
             try:
-                run.add_picture(file_path, width=Inches(self.evidence_image_width))
+                run.add_picture(file_path, width=Inches(self.report_template.evidence_image_width))
             except UnrecognizedImageError as e:
                 logger.exception(
                     "Evidence file known as %s (%s) was not recognized as a %s file.",
@@ -505,8 +494,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 )
                 raise ReportExportTemplateError(error_msg) from e
 
-            if self.border_color_width is not None:
-                border_color, border_width = self.border_color_width
+            if self.global_report_config.enable_borders is not None:
+                border_color = self.global_report_config.border_color
+                border_width = self.global_report_config.border_weight
                 # Add the border – see Ghostwriter Wiki for documentation
                 inline_class = run._r.xpath("//wp:inline")[-1]
                 inline_class.attrib["distT"] = "0"
@@ -535,13 +525,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 ln_xml.append(solidfill_xml)
                 pic_data.append(ln_xml)
 
-            if self.figure_caption_location == "bottom":
+            if self.global_report_config.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
 
     def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
-        self.make_caption(par_caption, self.figure_label, ref)
-        par_caption.add_run(self.figure_prefix)
+        self.make_caption(par_caption, self.global_report_config.label_figure, ref)
+        par_caption.add_run(self.global_report_config.prefix_figure)
         par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
@@ -567,7 +557,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         r.append(fldChar)
 
         # Add runs for the figure label and number
-        run = par.add_run(self.figure_label)
+        run = par.add_run(self.global_report_config.label_figure)
         # This ``#`` is a placeholder Word will replace with the figure's number
         run = par.add_run("#")
 

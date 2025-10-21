@@ -754,7 +754,6 @@ class GenerateReportDOCX(GenerateReportBase):
                     extra_tags="alert-danger",
                 )
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
-        template_loc = report_template.document.path
 
         # Check template's linting status
         template_status = report_template.get_status()
@@ -769,7 +768,7 @@ class GenerateReportDOCX(GenerateReportBase):
         # Template available and passes linting checks, so proceed with generation
 
         try:
-            exporter = ExportReportDocx(obj, template_loc=template_loc, include_bloodhound=self.include_bloodhound)
+            exporter = ExportReportDocx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             docx = exporter.run()
         except ReportExportTemplateError as error:
@@ -872,7 +871,6 @@ class GenerateReportPPTX(GenerateReportBase):
                 report_template = report_config.default_pptx_template
                 if not report_template:
                     raise MissingTemplate
-            template_loc = report_template.document.path
 
             # Check template's linting status
             template_status = report_template.get_status()
@@ -885,7 +883,7 @@ class GenerateReportPPTX(GenerateReportBase):
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
             # Template available and passes linting checks, so proceed with generation
-            exporter = ExportReportPptx(obj, template_loc=template_loc, include_bloodhound=self.include_bloodhound)
+            exporter = ExportReportPptx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             pptx = exporter.run()
             response = HttpResponse(
@@ -957,11 +955,11 @@ class GenerateReportAll(GenerateReportBase):
 
             exporters_and_filename_templates = [
                 (
-                    ExportReportDocx(obj, template_loc=docx_template.document.path, include_bloodhound=self.include_bloodhound),
+                    ExportReportDocx(obj, report_template=docx_template, include_bloodhound=self.include_bloodhound),
                     docx_template.filename_override or report_config.report_filename,
                 ),
                 (
-                    ExportReportPptx(obj, template_loc=pptx_template.document.path, include_bloodhound=self.include_bloodhound),
+                    ExportReportPptx(obj, report_template=pptx_template, include_bloodhound=self.include_bloodhound),
                     pptx_template.filename_override or report_config.report_filename,
                 ),
                 (ExportReportXlsx(obj, include_bloodhound=self.include_bloodhound), report_config.report_filename),

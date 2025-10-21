@@ -20,6 +20,7 @@ from ghostwriter.modules.reportwriter.base.html_rich_text import (
     LazySubdocRender,
 )
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
+from ghostwriter.reporting.models import ReportTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +53,10 @@ class ExportDocxBase(ExportBase):
     """
 
     word_doc: DocxTemplate
+    report_template: ReportTemplate
+    global_report_config: ReportConfiguration
     company_config: CompanyInformation
     linting: bool
-    p_style: str | None
-    evidence_image_width: float | None
 
     @classmethod
     def mime_type(cls) -> str:
@@ -69,50 +70,28 @@ class ExportDocxBase(ExportBase):
         self,
         object,
         *,
-        template_loc: str,
-        p_style: str | None,
+        report_template: ReportTemplate,
         linting: bool = False,
-        evidence_image_width: float | None,
         **kwargs,
     ):
         if "jinja_debug" not in kwargs:
             kwargs["jinja_debug"] = linting
         super().__init__(object, **kwargs)
         self.linting = linting
-        self.p_style = p_style
-        self.evidence_image_width = evidence_image_width
+        self.report_template = report_template
 
         # Create Word document writer using the specified template file
         try:
-            self.word_doc = DocxTemplate(template_loc)
+            self.word_doc = DocxTemplate(report_template.document.path)
         except PackageNotFoundError as err:
-            logger.exception("Failed to load the provided template document: %s", template_loc)
+            logger.exception("Failed to load the provided template document: %s", report_template.document.path)
             raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
         except Exception:
-            logger.exception("Failed to load the provided template document: %s", template_loc)
+            logger.exception("Failed to load the provided template document: %s", report_template.document.path)
             raise
 
-        global_report_config = ReportConfiguration.get_solo()
+        self.global_report_config = ReportConfiguration.get_solo()
         self.company_config = CompanyInformation.get_solo()
-
-        # Picture border settings for Word
-        self.enable_borders = global_report_config.enable_borders
-        self.border_color = global_report_config.border_color
-        self.border_weight = global_report_config.border_weight
-
-        # Caption options
-        prefix_figure = global_report_config.prefix_figure
-        self.prefix_figure = f"{prefix_figure}"
-        label_figure = global_report_config.label_figure
-        self.label_figure = f"{label_figure}"
-        prefix_table = global_report_config.prefix_table
-        self.prefix_table = f"{prefix_table}"
-        self.figure_caption_location = global_report_config.figure_caption_location
-        label_table = global_report_config.label_table
-        self.label_table = f"{label_table}"
-        self.table_caption_location = global_report_config.table_caption_location
-        self.title_case_captions = global_report_config.title_case_captions
-        self.title_case_exceptions = global_report_config.title_case_exceptions.split(",")
 
     def run(self) -> io.BytesIO:
         try:
@@ -246,18 +225,9 @@ class ExportDocxBase(ExportBase):
                 lambda: HtmlToDocxWithEvidence.run(
                     rich_text.__html__(),
                     doc=doc,
-                    p_style=self.p_style,
-                    evidence_image_width=self.evidence_image_width,
                     evidences=self.evidences_by_id,
-                    figure_label=self.label_figure,
-                    figure_prefix=self.prefix_figure,
-                    figure_caption_location=self.figure_caption_location,
-                    table_label=self.label_table,
-                    table_prefix=self.prefix_table,
-                    table_caption_location=self.table_caption_location,
-                    title_case_captions=self.title_case_captions,
-                    title_case_exceptions=self.title_case_exceptions,
-                    border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                    report_template=self.report_template,
+                    global_report_config=self.global_report_config,
                 ),
                 getattr(rich_text, "location", None),
             )
@@ -265,7 +235,7 @@ class ExportDocxBase(ExportBase):
         return LazySubdocRender(render)
 
     @classmethod
-    def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
+    def lint(cls, report_template: ReportTemplate) -> Tuple[List[str], List[str]]:
         """
         Checks a Word template to help ensure that it will export properly.
 
@@ -275,10 +245,10 @@ class ExportDocxBase(ExportBase):
         warnings = []
         errors = []
 
-        logger.info("Linting docx file %r", template_loc)
+        logger.info("Linting docx file %r", report_template.document.path)
         try:
-            if not os.path.exists(template_loc):
-                logger.error("Template file path did not exist: %r", template_loc)
+            if not os.path.exists(report_template.document.path):
+                logger.error("Template file path did not exist: %r", report_template.document.path)
                 errors.append("Template file does not exist – upload it again")
                 return warnings, errors
 
@@ -287,9 +257,7 @@ class ExportDocxBase(ExportBase):
                 lint_data,
                 is_raw=True,
                 linting=True,
-                template_loc=template_loc,
-                p_style=p_style,
-                evidence_image_width=6.5,  # Value doesn't matter for linting
+                report_template=report_template,
             )
             logger.info("Template loaded for linting")
 
@@ -322,8 +290,8 @@ class ExportDocxBase(ExportBase):
                             warnings.append("List Paragraph style is not a paragraph style (see documentation)")
             if "Table Grid" not in document_styles:
                 errors.append("Template is missing a required style (see documentation): Table Grid")
-            if p_style and p_style not in document_styles:
-                warnings.append("Template is missing your configured default paragraph style: " + p_style)
+            if report_template.p_style and report_template.p_style not in document_styles:
+                warnings.append("Template is missing your configured default paragraph style: " + report_template.p_style)
 
             exporter.run()
 
