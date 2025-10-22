@@ -20,6 +20,7 @@ from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
+from ghostwriter.reporting.models import ReportTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class ExportBasePptx(ExportBase):
     Subclasses should override `run` to add slides to the `ppt_presentation` field, using `process_rich_text_pptx`
     to template and convert rich text fields, then return `super().run()` to save and return the presentation.
     """
+    report_template: ReportTemplate
     ppt_presentation: PresentationPart
     company_config: CompanyInformation
     linting: bool
@@ -47,7 +49,7 @@ class ExportBasePptx(ExportBase):
         self,
         object,
         *,
-        template_loc: str = None,
+        report_template: ReportTemplate,
         linting: bool = False,
         **kwargs
     ):
@@ -55,15 +57,16 @@ class ExportBasePptx(ExportBase):
             kwargs["jinja_debug"] = linting
         super().__init__(object, **kwargs)
         self.linting = linting
+        self.report_template = report_template
 
         try:
-            self.ppt_presentation = Presentation(template_loc)
+            self.ppt_presentation = Presentation(report_template.document.path)
         except PackageNotFoundError as err:
             raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
         except Exception:
             logger.exception(
                 "Failed to load the provided template document for unknown reason: %s",
-                template_loc,
+                report_template.document.path,
             )
             raise
 

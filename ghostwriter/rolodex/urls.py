@@ -158,6 +158,16 @@ urlpatterns += [
         views.GenerateProjectReport.as_view(),
         name="ajax_project_generate_report",
     ),
+    path(
+        "ajax/bloodhound-test",
+        views.BloodhoundApiTestView.as_view(),
+        name="ajax_bloodhound_test",
+    ),
+    path(
+        "ajax/bloodhound-fetch",
+        views.BloodhoundApiFetchView.as_view(),
+        name="ajax_bloodhound_fetch",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views

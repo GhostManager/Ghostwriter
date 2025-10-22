@@ -45,6 +45,7 @@
                 "group": "Configuring APIs",
                 "pages": [
                   "configuring-global-settings/configuring-apis",
+                  "configuring-global-settings/configuring-apis/configuring-bloodhound",
                   "configuring-global-settings/configuring-apis/configuring-slack",
                   "configuring-global-settings/configuring-apis/configuring-virustotal",
                   "configuring-global-settings/configuring-apis/configuring-namecheap",
