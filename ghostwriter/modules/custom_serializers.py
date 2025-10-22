@@ -90,6 +90,9 @@ class CustomModelSerializer(serializers.ModelSerializer):
             try:
                 if value is None:
                     data[key] = ""
+                # Convert empty paragraph HTML to empty string
+                elif isinstance(value, str) and value.strip() in ("<p></p>", "<p> </p>"):
+                    data[key] = ""
             except KeyError:
                 pass
         return data
