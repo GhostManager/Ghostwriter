@@ -753,7 +753,7 @@ class ProjectScopeForm(forms.ModelForm):
                         Column(
                             StrictButton(
                                 "Split Scope to Newlines",
-                                onclick="formatScope($(this).closest('div').next('div').find('textarea'))",
+                                onclick="formatScope($(this).closest('div').parent().nextAll('.form-group').first().find('textarea'))",
                                 data_toggle="tooltip",
                                 title="Split a comma-delimited scope list to newlines",
                                 css_class="btn btn-outline-secondary col-6",
@@ -1338,6 +1338,15 @@ class ProjectForm(forms.ModelForm):
                     ),
                     link_css_class="tab-icon users-icon",
                     css_id="invites",
+                ),
+                CustomTab(
+                    "BloodHound Integration",
+                    HTML("<p>Overrides the global configuration (if any)</p>"),
+                    "bloodhound_api_root_url",
+                    "bloodhound_api_key_id",
+                    "bloodhound_api_key_token",
+                    link_css_class="tab-icon users-icon",
+                    css_id="bloodhound",
                 ),
                 template="tab.html",
                 css_class="nav-justified",

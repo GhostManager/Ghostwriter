@@ -22,6 +22,7 @@
   {% get_solo "commandcenter.SlackConfiguration" as slack_config %}
   {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
   {% get_solo "commandcenter.GeneralConfiguration" as general_config %}
+  {% get_solo "commandcenter.BloodHoundConfiguration" as bloodhound_config %}
 
   <h2>API & Notification Configurations</h2>
   <p>These settings are managed in the Django administration panel under the <em>Command Center</em> application.</p>
@@ -252,6 +253,34 @@
         <td class="text-justify">No Default Configured</td>
       {% endif %}
     </tr>
+
+    <!-- Spacer -->
+    <tr>
+      <td class="text-justify">&nbsp;</td>
+      <td class="text-justify">&nbsp;</td>
+    </tr>
+
+    <!-- Notification Section -->
+    <tr>
+      <th class="text-left icon bloodhound-dark-icon">Bloodhound Integration</th>
+      <th></th>
+    </tr>
+    <tr>
+      <td class="text-left icon toggle-on-icon">BloodHound Integration Enabled</td>
+      <td class="text-justify">{{ bloodhound_config.has_bloodhound_api }}</td>
+    </tr>
+    {% if bloodhound_config.has_bloodhound_api %}
+      <tr>
+        <tr>
+          <td class="text-left icon link-icon">BloodHound URL</td>
+          {% if bloodhound_config.bloodhound_api_root_url %}
+            <td class="text-justify">{{ bloodhound_config.bloodhound_api_root_url }}</td>
+          {% else %}
+            <td class="text-justify">Not Configured</td>
+          {% endif %}
+        </tr>
+      </td>
+    {% endif %}
 
     <!-- Spacer -->
     <tr>

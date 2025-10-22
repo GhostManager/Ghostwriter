@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.5] - 16 October 2025
+
+### Added
+
+* Added the option to color the background of table cells (PR #717)
+  * This applies to cells in rows not flagged as header rows
+
+### Changed
+
+* Changed the finding form in the admin panel to include the CVSS vector field (PR #715; Fixes #704)
+
+### Fixed
+
+* Fixed certain invalid characters that could break report generation if copied and pasted into the editor (PR #711; Fixes #709)
+* Fixed some HTML `span` elements being styled with a red font color (PR #714; Fixes #703)
+* Fixed invalid CVSS vector strings from causing the finding form to not render properly (PR #710; Fixes #705)
+* Fixed the configuration values for health checks on disk usage and minimum memory not being imported in the production YAML (PR #699; thanks to @smcgu for flagging)
+* Fixed templates with references to white cards failing linting
+* Fixed the Tiptap editor automatically converting strings into hyperlinks when it thinks they are URLs (PR #720)
+  * PR #673 attempted to disable this behavior, but it was not fully effective due to Tiptap having two paths for how it handles pasted text
+  * Based on feedback, this is the preferred behavior for most users, but we understand some users may want to re-enable it
+  * We will explore making this configurable in a future release
+
 ## [6.0.4] - 12 September 2025
 
 ### Added
@@ -593,7 +616,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Only the entries that match the filter will appear until the filter is changed or cleared
 * Set a default value of `{}` for extra fields to avoid errors when creating new entries via the GraphQL API with empty extra fields
 * Modified error handling for report generation to provide more detailed error messages when a report fails to generate (e.g., which finding or field caused the error)
-* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via teh GraphQL API
+* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via the GraphQL API
 * Removed the spaces before and after the figure and table prefixes to allow for flexibility (Closes #446)
   * If spaces before or after the prefix are desired, they can be added when setting the value in the report configuration
   * Current values should be updated to add spaces (if desired) – e.g., change "–" to " – "
@@ -938,7 +961,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed an issue that would cause a server error whe uploading or editing an evidence file to a blank finding (Fixes #303)
+* Fixed an issue that would cause a server error when uploading or editing an evidence file to a blank finding (Fixes #303)
 
 ## [v3.2.5] - 31 March 2023
 
@@ -1749,7 +1772,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed evidence filenames with all uppercase extensions not appearing in reports (closes #74)
 * Fixed a recursive HTML/JavaScript escape in log entries (closes #133)
 * Fixed incorrect link in the menu for a point of contact under a client (closed #141 and #141)
-* Fixed `docker-compose` errors related to latest verison of the `crytpography` library (closes #147)
+* Fixed `docker-compose` errors related to latest version of the `cryptography` library (closes #147)
 * Fixed possible issue with assigning a name to an AWS asset in the cloud monitor task
 * Closed loophole that could allow a non-unique domain name
 
