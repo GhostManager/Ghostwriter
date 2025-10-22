@@ -3,13 +3,12 @@ import io
 import logging
 import os
 
-from docxtpl import DocxTemplate
+from docxtpl import DocxTemplate, RichText as DocxRichText
 from docx.opc.exceptions import PackageNotFoundError
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt
 from docx.image.exceptions import UnrecognizedImageError
-from docxtpl import RichText as DocxRichText
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError

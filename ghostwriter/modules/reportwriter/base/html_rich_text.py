@@ -91,7 +91,6 @@ class RichTextBase(ABC):
         """
         Gets/renders the HTML rich text.
         """
-        pass
 
     @staticmethod
     def deep_copy_process_html(value: Any, process_html: Callable[["RichTextBase"], Any]):

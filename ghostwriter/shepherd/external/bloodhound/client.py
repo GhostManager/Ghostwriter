@@ -200,7 +200,7 @@ class APIClient:
                 txvalue = asset.get(txkey, tzvalue)
                 tzvalue = base64.b64decode(tzvalue).decode("utf-8")
                 txvalue = base64.b64decode(txvalue).decode("utf-8")
-                if term == "title" or term == "type":
+                if term in ("title", "type"):
                     tzvalue = tzvalue.strip()
                     txvalue = txvalue.strip()
                 else:
@@ -216,7 +216,7 @@ class APIClient:
         if features.get("tier_management_engine"):
             tzgroup = self._get_tier_zero_group()
         else:
-            tzgroup == None
+            tzgroup = None
 
         # Add assets to each finding based on name and tier
         findings = payload["findings"]
@@ -278,7 +278,7 @@ class APIClient:
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
                     # No results
-                    domain_computers = {"nodes": dict()}
+                    domain_computers = {"nodes": {}}
                 else:
                     raise
             domain_oses = Counter(
@@ -309,7 +309,7 @@ class APIClient:
                 if "pwdlastset" not in node["properties"]:
                     continue
                 last_set = node["properties"]["pwdlastset"]
-                if last_set == 0 or last_set == -1:
+                if last_set in (0, -1):
                     continue
                 if last_set <= pw_cutoff:
                     pw_old_count += 1
