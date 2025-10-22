@@ -161,29 +161,6 @@ class ExportBase:
             ext = self.extension()
         return report_name.strip() + "." + ext
 
-
-def _valid_xml_char_ordinal(c):
-    """
-    Checks if the character is valid to include in XML.
-
-    Source:
-        https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
-
-    **Parameters**
-
-    ``c`` : string
-        String of characters to validate
-    """
-    codepoint = ord(c)
-    # Conditions ordered by presumed frequency
-    return (
-        0x20 <= codepoint <= 0xD7FF
-        or codepoint in (0x9, 0xA, 0xD)
-        or 0xE000 <= codepoint <= 0xFFFD
-        or 0x10000 <= codepoint <= 0x10FFFF
-    )
-
-
 def _replace_filename_chars(name):
     """Remove illegal characters from the report name."""
     name = name.replace("–", "-")

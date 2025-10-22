@@ -19,7 +19,7 @@ WORD_SUFFIX = """<w:sectPr w:rsidR="00FC693F" w:rsidRPr="0006063C" w:rsidSect="0
 
 def clean_xml(xml):
     """
-    Pretty-formats XML, for comparsion and better diffs in case of test failures.
+    Pretty-formats XML, for comparison and better diffs in case of test failures.
     """
     if isinstance(xml, str):
         xml = xml.encode("utf-8")
@@ -666,4 +666,10 @@ class RichTextToDocxTests(TestCase):
             <w:r><w:t>Paragraph with a class</w:t></w:r>
         </w:p>
         """,
+    )
+
+    test_paragraphs_with_invalid_chars = mk_test_docx(
+        "test_paragraphs_with_invalid_chars",
+        "<p>Hello&#20; World!</p><p>This is a test!</p>",
+        """<w:p><w:pPr/><w:r><w:t>Hello World!</w:t></w:r></w:p><w:p><w:pPr/><w:r><w:t>This is a test!</w:t></w:r></w:p>""",
     )

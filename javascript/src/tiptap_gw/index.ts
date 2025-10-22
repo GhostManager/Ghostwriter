@@ -2,10 +2,8 @@
 // change the schema.
 
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Table from "@tiptap/extension-table";
-import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import Subscript from "@tiptap/extension-subscript";
@@ -21,9 +19,10 @@ import {
     ItalicCompat,
     UnderlineCompat,
 } from "./bold_italic_underline";
-import { TableWithCaption, TableCaption } from "./table";
+import { TableWithCaption, TableCaption, GwTableCell } from "./table";
 import { HeadingWithId } from "./heading";
 import Color from "./color";
+import Link from "./link";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -54,7 +53,7 @@ const EXTENSIONS: Extensions = [
     Table,
     TableRow,
     TableHeader,
-    TableCell,
+    GwTableCell,
     PageBreak,
     Subscript,
     Superscript,

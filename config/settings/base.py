@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "6.0.4"
+__version__ = "6.0.5"
 VERSION = __version__
-RELEASE_DATE = "12 September 2025"
+RELEASE_DATE = "16 October 2025"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -444,6 +444,7 @@ BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"
 # Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
 BLEACH_ALLOWED_STYLES = [
     "color",
+    "background-color",
     "font-family",
     "font-weight",
     "text-decoration",
