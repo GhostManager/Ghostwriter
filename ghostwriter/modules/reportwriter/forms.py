@@ -2,7 +2,8 @@
 from django import forms
 
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportTemplateError, rich_text_template
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base.html_rich_text import rich_text_template
 
 
 class JinjaRichTextField(forms.CharField):
