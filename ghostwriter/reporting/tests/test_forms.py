@@ -380,6 +380,7 @@ class ReportTemplateFormTests(TestCase):
         p_type=None,
         evidence_image_width=None,
         user=None,
+        bloodhound_heading_offset=None,
         **kwargs,
     ):
         return ReportTemplateForm(
@@ -393,6 +394,7 @@ class ReportTemplateFormTests(TestCase):
                 "doc_type": doc_type,
                 "p_type": p_type,
                 "evidence_image_width": evidence_image_width,
+                "bloodhound_heading_offset": bloodhound_heading_offset,
             },
             user=user,
             files={

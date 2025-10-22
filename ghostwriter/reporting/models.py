@@ -346,6 +346,12 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Jinja2 template. All template variables are available, plus {{now}} and {{company_name}}. The file extension is added to this. If blank, the admin-provided default will be used.",
     )
+    bloodhound_heading_offset = models.SmallIntegerField(
+        "BloodHound Heading Offset",
+        default=0,
+        blank=True,
+        help_text="Headings in BloodHound finding descriptions will have their level offset by this amount"
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)

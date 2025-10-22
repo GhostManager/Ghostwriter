@@ -306,3 +306,6 @@ class ExportDocxBase(ExportBase):
 
         logger.info("Linting finished: %d warnings, %d errors", len(warnings), len(errors))
         return warnings, errors
+
+    def bloodhound_heading_offset(self) -> int:
+        return self.report_template.bloodhound_heading_offset

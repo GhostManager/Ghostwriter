@@ -6,7 +6,7 @@ from ghostwriter.modules.custom_serializers import FullProjectSerializer
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
 from ghostwriter.modules.reportwriter.base.base import ExportBase
-from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlRichText
+from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlRichText, offset_headings
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Client, Project
@@ -24,12 +24,20 @@ class ExportProjectBase(ExportBase):
     def serialize_object(self, object):
         return FullProjectSerializer(object).data
 
+    def bloodhound_heading_offset(self) -> int:
+        return 0
+
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)
         rich_text_context = ChainMap(ExportProjectBase.rich_text_jinja_overlay(self.data), base_context)
 
         # Fields on Project
-        ExportProjectBase.process_projects_richtext(self, base_context, rich_text_context)
+        ExportProjectBase.process_projects_richtext(
+            self,
+            base_context,
+            rich_text_context,
+            self.bloodhound_heading_offset()
+        )
 
         return base_context
 
@@ -53,6 +61,7 @@ class ExportProjectBase(ExportBase):
         ex: ExportBase,
         base_context: dict,
         rich_text_context: dict,
+        bloodhound_heading_offset: int,
     ):
         """
         Helper for processing the project-related rich text fields in both the `ProjectSerializer` and
@@ -184,15 +193,15 @@ class ExportProjectBase(ExportBase):
                 if finding.get("assets"):
                     id = finding.get("id")
                     finding["assets"]["references"] = HtmlRichText(
-                        finding["assets"]["references"],
+                        offset_headings(finding["assets"]["references"], bloodhound_heading_offset),
                         f"references of BloodHound finding {id}"
                     )
                     finding["assets"]["short_description"] = HtmlRichText(
-                        finding["assets"]["short_description"],
+                        offset_headings(finding["assets"]["short_description"], bloodhound_heading_offset),
                         f"short_description of BloodHound finding {id}"
                     )
                     finding["assets"]["long_description"] = HtmlRichText(
-                        finding["assets"]["long_description"],
+                        offset_headings(finding["assets"]["long_description"], bloodhound_heading_offset),
                         f"long_description of BloodHound finding {id}"
                     )
 

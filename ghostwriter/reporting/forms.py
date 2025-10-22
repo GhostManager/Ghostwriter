@@ -481,6 +481,7 @@ class ReportTemplateForm(forms.ModelForm):
                 ),
                 css_class="custom-file",
             ),
+            "bloodhound_heading_offset",
             "changelog",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
