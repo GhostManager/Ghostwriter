@@ -22,6 +22,7 @@ import { faTable } from "@fortawesome/free-solid-svg-icons/faTable";
 import { faTerminal } from "@fortawesome/free-solid-svg-icons/faTerminal";
 import { faTextSlash } from "@fortawesome/free-solid-svg-icons/faTextSlash";
 import { faUnderline } from "@fortawesome/free-solid-svg-icons/faUnderline";
+import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Menu, SubMenu, MenuButton, MenuItem } from "@szhsin/react-menu";
@@ -375,6 +376,22 @@ export function Toolbar(props: {
                 <FormatButton chain={(c) => c.setPageBreak()}>
                     Page Break
                 </FormatButton>
+                <Menu
+                    portal
+                    menuClassName="collab-edit-toolbar-menu"
+                    menuButton={
+                        <MenuButton tabIndex={-1} title="Misc">
+                            <FontAwesomeIcon icon={faBars} />
+                        </MenuButton>
+                    }
+                >
+                    <FormatButton menuItem chain={(c) => c.changeCase("lower")}>
+                        Lowercase Text
+                    </FormatButton>
+                    <FormatButton menuItem chain={(c) => c.changeCase("upper")}>
+                        Uppercase Text
+                    </FormatButton>
+                </Menu>
             </div>
             {props.extra && <div className="separator" />}
             {props.extra && props.extra(editor)}

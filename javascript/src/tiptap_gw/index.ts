@@ -22,6 +22,7 @@ import {
 import { TableWithCaption, TableCaption, GwTableCell } from "./table";
 import { HeadingWithId } from "./heading";
 import Color from "./color";
+import CaseChange from "./case_change";
 import Link from "./link";
 
 const EXTENSIONS: Extensions = [
@@ -63,6 +64,7 @@ const EXTENSIONS: Extensions = [
     TableWithCaption,
     TableCaption,
     Color,
+    CaseChange,
 ];
 
 export default EXTENSIONS;
