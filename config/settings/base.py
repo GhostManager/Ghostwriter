@@ -336,9 +336,10 @@ SOCIAL_ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_SOCIAL_ACCOUNT_ALLOW_REGIST
 SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST = env("DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST", default="")
 SOCIALACCOUNT_LOGIN_ON_GET = env.bool("DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET", False)
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_LOGIN_METHODS = {"username"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = env.bool("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
