@@ -158,8 +158,11 @@ function stringToVector(s: string): Vector | null {
         if (s.startsWith("CVSS:3.1/")) return new Cvss3P1(s);
         else if (s.startsWith("CVSS:4.0/")) return new Cvss4P0(s);
         return null;
-    } catch(e) {
-        console.error("Could not parse CVSS vector (might be a bug or bad input): ", e);
+    } catch (e) {
+        console.error(
+            "Could not parse CVSS vector (might be a bug or bad input): ",
+            e
+        );
         return null;
     }
 }

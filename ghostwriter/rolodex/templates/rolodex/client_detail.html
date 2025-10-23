@@ -55,6 +55,10 @@
     <!-- Info Tab -->
     <div class="tab-content">
       <div id="general" class="tab-pane in active">
+        {% if client.logo %}
+        <img src="{{ client.logo.url }}" width="{{ client.logo.width }}" height="{{ client.logo.height }}" />
+        {% endif %}
+
         <h4>Client Details</h4>
         <hr/>
 

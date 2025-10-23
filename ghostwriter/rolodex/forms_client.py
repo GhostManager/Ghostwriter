@@ -341,6 +341,7 @@ class ClientForm(forms.ModelForm):
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                     ),
                     "address",
+                    Field("logo", wrapper_class="file-field"),
                     "note",
                     HTML(
                         """

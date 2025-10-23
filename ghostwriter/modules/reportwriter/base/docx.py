@@ -2,13 +2,16 @@ from typing import Tuple, List
 import io
 import logging
 import os
+import re
 
+from django.conf import settings
 from docxtpl import DocxTemplate, RichText as DocxRichText
 from docx.opc.exceptions import PackageNotFoundError
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt
 from docx.image.exceptions import UnrecognizedImageError
+from docx.drawing import Drawing
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -33,6 +36,7 @@ EXPECTED_STYLES = [
     "Blockquote",
 ] + [f"Heading {i}" for i in range(1, 7)]
 
+_img_desc_replace_re = re.compile(r"^\s*\[\s*([a-zA-Z0-9_]+)\s*\]\s*(.*)$")
 
 class ExportDocxBase(ExportBase):
     """
@@ -56,6 +60,7 @@ class ExportDocxBase(ExportBase):
     global_report_config: ReportConfiguration
     company_config: CompanyInformation
     linting: bool
+    image_replacements: dict[str, str]
 
     @classmethod
     def mime_type(cls) -> str:
@@ -71,6 +76,7 @@ class ExportDocxBase(ExportBase):
         *,
         report_template: ReportTemplate,
         linting: bool = False,
+        image_replacements: dict[str, str] | None,
         **kwargs,
     ):
         if "jinja_debug" not in kwargs:
@@ -78,6 +84,7 @@ class ExportDocxBase(ExportBase):
         super().__init__(object, **kwargs)
         self.linting = linting
         self.report_template = report_template
+        self.image_replacements = image_replacements or {}
 
         # Create Word document writer using the specified template file
         try:
@@ -95,6 +102,7 @@ class ExportDocxBase(ExportBase):
     def run(self) -> io.BytesIO:
         try:
             self.create_styles()
+            self.replace_images()
 
             rich_text_context = self.map_rich_texts()
             docx_context = RichTextBase.deep_copy_process_html(
@@ -115,6 +123,7 @@ class ExportDocxBase(ExportBase):
                 "The word template could not be found on the server – try uploading it again.", "the DOCX template"
             ) from err
         except FileNotFoundError as err:
+            logger.exception("Missing file")
             raise ReportExportTemplateError(
                 "An evidence file was missing – try uploading it again.", "the DOCX template"
             ) from err
@@ -227,11 +236,56 @@ class ExportDocxBase(ExportBase):
                     evidences=self.evidences_by_id,
                     report_template=self.report_template,
                     global_report_config=self.global_report_config,
+                    images=self.image_replacements,
                 ),
                 getattr(rich_text, "location", None),
             )
             return doc
         return LazySubdocRender(render)
+
+    def replace_images(self):
+        if not self.image_replacements:
+            return
+
+        image_rids_and_objs = {}
+        for paragraph in self.word_doc.docx.paragraphs:
+            for run in paragraph.runs:
+                for item in run.iter_inner_content():
+                    if not isinstance(item, Drawing):
+                        continue
+
+                    docpr = next(iter(item._element.xpath(".//wp:docPr")), None)
+                    if docpr is None:
+                        continue
+
+                    blip = next(iter(item._element.xpath(".//pic:pic//a:blip")), None)
+                    if blip is None:
+                        continue
+                    if "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed" not in blip.attrib:
+                        continue
+
+                    # Get image name from alt text
+                    descr = docpr.attrib.get("descr")
+                    if not descr:
+                        continue
+                    match = _img_desc_replace_re.search(descr)
+                    if match is None:
+                        continue
+                    img_name = match[1]
+                    if img_name not in self.image_replacements:
+                        continue
+                    docpr.attrib["descr"] = match[2]
+
+                    # Add image to oc
+                    if img_name in image_rids_and_objs:
+                        rid = image_rids_and_objs[img_name]
+                    else:
+                        rid, _ = paragraph.part.get_or_add_image(self.image_replacements[img_name])
+                        image_rids_and_objs[img_name] = rid
+
+                    # Replace image
+                    blip.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"] = rid
+
 
     @classmethod
     def lint(cls, report_template: ReportTemplate) -> Tuple[List[str], List[str]]:
