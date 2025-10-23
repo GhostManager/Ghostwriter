@@ -10,10 +10,10 @@
         </button>
       </div>
       <div class="modal-body">
-        {% if checkout.note %}
-          {{ checkout.note|bleach|safe }}
+        {% if checkout.description %}
+          {{ checkout.description|bleach|safe }}
         {% else %}
-          <p>No one has added a note on this checkout. <a class="clickable" href="{% url 'shepherd:history_update' checkout.id %}">Fix that here.</a></p>
+          <p>No one has added a description on this checkout. <a class="clickable" href="{% url 'shepherd:history_update' checkout.id %}">Fix that here.</a></p>
         {% endif %}
       </div>
       <div class="modal-footer">

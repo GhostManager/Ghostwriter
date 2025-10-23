@@ -89,8 +89,8 @@
         </table>
 
         <div id="clientDescription" class="description-block offset-md-2 col-8">
-          {% if client.note %}
-            {{ client.note|bleach }}
+          {% if client.description %}
+            {{ client.description|bleach }}
           {% else %}
             <p class="text-center">No additional information provided for this client. <a class="clickable"
                                                                                           href="{% url 'rolodex:client_update' client.id %}">Fix

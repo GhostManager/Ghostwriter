@@ -203,7 +203,7 @@ class DomainFormTests(TestCase):
         expiration=None,
         last_health_check=None,
         vt_permalink=None,
-        note=None,
+        description=None,
         burned_explanation=None,
         auto_renew=None,
         reset_dns=None,
@@ -220,7 +220,7 @@ class DomainFormTests(TestCase):
                 "expiration": expiration,
                 "last_health_check": last_health_check,
                 "vt_permalink": vt_permalink,
-                "note": note,
+                "description": description,
                 "burned_explanation": burned_explanation,
                 "auto_renew": auto_renew,
                 "reset_dns": reset_dns,
@@ -538,7 +538,7 @@ class ServerFormTests(TestCase):
         name=None,
         server_status_id=None,
         server_provider_id=None,
-        note=None,
+        description=None,
         **kwargs,
     ):
         return ServerForm(
@@ -547,7 +547,7 @@ class ServerFormTests(TestCase):
                 "name": name,
                 "server_status": server_status_id,
                 "server_provider": server_provider_id,
-                "note": note,
+                "description": description,
             },
         )
 
@@ -663,7 +663,7 @@ class TransientServerFormTests(TestCase):
         activity_type_id=None,
         server_role_id=None,
         server_provider_id=None,
-        note=None,
+        description=None,
         **kwargs,
     ):
         return TransientServerForm(
@@ -677,7 +677,7 @@ class TransientServerFormTests(TestCase):
                 "activity_type": activity_type_id,
                 "server_role": server_role_id,
                 "server_provider": server_provider_id,
-                "note": note,
+                "description": description,
             },
         )
 

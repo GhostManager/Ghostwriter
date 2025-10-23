@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags json_enc %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -121,8 +121,8 @@
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">
-          {% if project.note %}
-            {{ project.note|bleach }}
+          {% if project.description %}
+            {{ project.description|bleach }}
           {% else %}
             <p class="text-center">No one has added a description of this project. <a class="clickable"
                                                                                       href="{% url 'rolodex:project_update' project.id %}">Fix
@@ -176,7 +176,7 @@
                 <td class="align-middle text-left">{{ operator.role }}</td>
                 <td class="align-middle text-left">{{ operator.start_date|date:"d M Y" }} –
                   <br/> {{ operator.end_date|date:"d M Y" }}</td>
-                <td class="text-justify align-middle text-left">{{ operator.note|bleach }}</td>
+                <td class="text-justify align-middle text-left">{{ operator.description|bleach }}</td>
                 {% if request.user|is_privileged %}
                   <td class="align-middle">
                     <div class="d-flex justify-content-center">
@@ -436,7 +436,7 @@
                     {{ target.hostname }}
                   {% endif %}
                 </td>
-                <td class="text-justify align-middle text-left">{{ target.note|bleach }}</td>
+                <td class="text-justify align-middle text-left">{{ target.description|bleach }}</td>
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
                       <a class="icon burn-icon js-compromise-target clickable-link" href="javascript:void(0);"
@@ -1117,6 +1117,15 @@
         </div>
       {% endif %}
 
+      <div id="collab_notes" class="tab-pane">
+        <h4>Collaborative Nodes</h4>
+        <hr />
+
+        <div id="collab_notes_container">
+          <p>Loading...</p>
+        </div>
+      </div>
+
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if project_extra_fields_spec %}
         <div id="extra_fields" class="tab-pane">
@@ -1132,12 +1141,14 @@
       {% endif %}
 
       {% comment %} Notes Tab {% endcomment %}
-      <div id="notes" class="tab-pane">
-        <h4>Project Notes</h4>
+      {% if project.projectnote_set.all %}
+      <div id="legacy_comments" class="tab-pane">
+        <h4>Project Legacy Comments</h4>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a
-          Note</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">
+          Add a Comment
+        </a>
 
         {% if project.projectnote_set.all %}
           {% for note in project.projectnote_set.all reversed %}
@@ -1172,6 +1183,7 @@
           </div>
         {% endif %}
       </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
@@ -2117,4 +2129,7 @@
   {% for vps in project.transientserver_set.all %}
     {% include "snippets/vps_detail_modal.html" with vps=vps %}
   {% endfor %}
+
+  {% include "collab_editing/attrs_snippet.html" %}
+  <script type="module" src="{% static "assets/collab_forms_project_collabnote.js" %}"></script>
 {% endblock %}

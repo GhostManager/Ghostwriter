@@ -2,25 +2,25 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Remove 2FA{% endblock %}
+{% block pagetitle %}Remove MFA{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-      <li class="breadcrumb-item active" aria-current="page">2FA Backup Codes</li>
+      <li class="breadcrumb-item active" aria-current="page">MFA Backup Codes</li>
     </ul>
   </nav>
 {% endblock %}
 
 {% block content %}
   <h2>
-  {% trans "Disable Two-Factor Authentication" %}
+  {% trans "Disable Multi-Factor Authentication" %}
   </h2>
 
-  {% if form.otp_token %}
-    <p>{% trans "Please enter a valid authentication token to disable two-factor authentication:" %}</p>
+  {% if form.code %}
+    <p>{% trans "Please enter a valid authentication token to disable multi-factor authentication:" %}</p>
   {% endif %}
 
   <!-- Form Error Section -->

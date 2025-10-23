@@ -11,7 +11,11 @@ from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
 from allauth.account.forms import LoginForm, SignupForm
-from allauth_2fa.forms import TOTPAuthenticateForm, TOTPDeviceForm, TOTPDeviceRemoveForm
+from allauth.mfa.base.internal.flows import check_rate_limit
+from allauth.mfa.models import Authenticator
+from allauth.mfa.adapter import get_adapter
+from allauth.mfa.base.forms import AuthenticateForm
+from allauth.mfa.totp.forms import ActivateTOTPForm, DeactivateTOTPForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
@@ -200,24 +204,24 @@ class UserSignupForm(SignupForm):
         )
 
 
-class User2FAAuthenticateForm(TOTPAuthenticateForm):
+class UserMFAAuthenticateForm(AuthenticateForm):
     """
     Authenticate an individual :model:`users.User` with their TOTP. This is customized
     to make adjustments like disabling autocomplete on the token field.
     """
 
-    def __init__(self, user, *args, **kwargs):
-        super().__init__(user, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["otp_token"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].widget.attrs["placeholder"] = "421 984"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_tag = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("otp_token", css_class="form-group col-4 offset-4 mb-0"),
+                Column("code", css_class="form-group col-4 offset-4 mb-0"),
                 css_class="form-row mt-4",
             ),
             ButtonHolder(
@@ -225,24 +229,38 @@ class User2FAAuthenticateForm(TOTPAuthenticateForm):
             ),
         )
 
+    def clean_code(self):
+        clear_rl = check_rate_limit(self.user)
+        code = self.cleaned_data["code"]
+        for auth in Authenticator.objects.filter(user=self.user).exclude(
+            # WebAuthn cannot validate manual codes.
+            type=Authenticator.Type.WEBAUTHN
+        ):
+            if auth.wrap().validate_code(code):
+                self.authenticator = auth
+                clear_rl()
+                return code
 
-class User2FADeviceForm(TOTPDeviceForm):
+        raise get_adapter().validation_error("incorrect_code")
+
+
+class UserMFADeviceForm(ActivateTOTPForm):
     """
-    Enroll an 2FA device for an individual :model:`users.User`. This is customized
+    Enroll an MFA device for an individual :model:`users.User`. This is customized
     to make adjustments like disabling autocomplete on the token field.
     """
 
-    def __init__(self, user, *args, **kwargs):
-        super().__init__(user, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["otp_token"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].widget.attrs["placeholder"] = "421 984"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("otp_token", css_class="form-group col-4 offset-4 mb-0"),
+                Column("code", css_class="form-group col-4 offset-4 mb-0"),
                 css_class="form-row mt-4",
             ),
             ButtonHolder(
@@ -251,26 +269,31 @@ class User2FADeviceForm(TOTPDeviceForm):
         )
 
 
-class User2FADeviceRemoveForm(TOTPDeviceRemoveForm):
+class UserMFADeviceRemoveForm(DeactivateTOTPForm):
     """
-    Remove an 2FA device enrolled for an individual :model:`users.User`. This is customized
+    Remove an MFA device enrolled for an individual :model:`users.User`. This is customized
     to make adjustments like disabling autocomplete on the password field.
     """
 
-    def __init__(self, user, *args, **kwargs):
-        super().__init__(user, *args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["otp_token"].widget.attrs["placeholder"] = "421 984"
+    def __init__(self, *args, **kwargs):
+        self.authenticator = kwargs.get("authenticator")
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
-            Row(
-                Column("otp_token", css_class="form-group col-4 offset-4 mb-0"),
-                css_class="form-row mt-4",
-            ),
             ButtonHolder(
-                Submit("submit", "Disable Two-Factor", css_class="col-4"),
+                Submit("submit", "Disable multi-factor", css_class="col-4"),
             ),
         )
+
+    def clean(self):
+        """
+        Ensure authenticator is present before proceeding.
+        """
+        cleaned_data = super().clean()
+
+        if not self.authenticator:
+            raise ValidationError("No authenticator device found.")
+
+        return cleaned_data

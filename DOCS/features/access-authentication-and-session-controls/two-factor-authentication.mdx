@@ -1,17 +1,17 @@
 ---
 title: "Two-Factor Authentication"
-description: "Using Ghostwriter's support for TOTP 2FA"
+description: "Using Ghostwriter's support for TOTP MFA"
 ---
 
 Ghostwriter v4+ supports the use of time-based, one-time passwords (TOTP) for two-factor authentication.
 
-To enroll a device, visit your account profile and click the new _Set Up 2FA_ button. Ghostwriter will provide you with a QR code to scan with 1Password, Google Authenticator, or any other TOTP app you prefer. The setup page also provides a secret if you want to configure an app manually.
+To enroll a device, visit your account profile and click the new _Set Up MFA_ button. Ghostwriter will provide you with a QR code to scan with 1Password, Google Authenticator, or any other TOTP app you prefer. The setup page also provides a secret if you want to configure an app manually.
 
 <Frame>
   <img src="/images/features/image-2.avif" alt=""/>
 </Frame>
 
-Administrators can configure accounts to require 2FA before the user can access Ghostwriter. Requiring 2FA is configurable on a per-user basis. With this option enabled, accounts without a valid TOTP device can only log in, log out, change their password, and access the 2FA setup page.
+Administrators can configure accounts to require MFA before the user can access Ghostwriter. Requiring MFA is configurable on a per-user basis. With this option enabled, accounts without a valid TOTP device can only log in, log out, change their password, and access the MFA setup page.
 
-Ghostwriter’s 2FA also supports backup codes. You can generate and retrieve your backup codes from your profile page at any time after configuring 2FA.
+Ghostwriter’s MFA also supports backup codes. You can generate and retrieve your backup codes from your profile page at any time after configuring MFA.
 
