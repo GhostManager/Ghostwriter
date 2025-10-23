@@ -1,0 +1,48 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block pagetitle %}MFA Backup Tokens{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item active" aria-current="page">MFA Backup Codes</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <h2>
+    {% trans "Multi-Factor Authentication Backup Tokens" %}
+  </h2>
+
+  {% if unused_codes %}
+    {% if reveal_tokens %}
+      <div class="row justify-content-center">
+        <table id="token-table" class="table table-striped col-4">
+          {% for code in unused_codes %}
+            <tr>
+              <td>{{ code }}</td>
+            </tr>
+          {% endfor %}
+        </table>
+      </div>
+    {% else %}
+      {% trans 'Backup tokens have been generated, but are not revealed here for security reasons. Press the button below to generate new ones.' %}
+    {% endif %}
+  {% else %}
+    {% trans 'No tokens. Press the button below to generate some.' %}
+  {% endif %}
+
+  <form class="mt-3" method="post">
+    {% csrf_token %}
+    <div>
+      <button class="btn btn-primary col-2" type="submit">
+        {% trans 'Generate Backup Tokens' %}
+      </button>
+    </div>
+  </form>
+
+{% endblock %}

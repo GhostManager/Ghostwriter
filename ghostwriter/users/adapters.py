@@ -8,26 +8,19 @@ from typing import Any
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.core.validators import validate_email
 from django.http import HttpRequest
 from django.shortcuts import redirect
 
 # 3rd Party Libraries
-from allauth_2fa.adapter import OTPAdapter
 from allauth.account.adapter import DefaultAccountAdapter
-from allauth.account.utils import user_email, user_field, user_username
+from allauth.account.utils import user_email, user_field, user_username, valid_email_or_none
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from allauth.utils import valid_email_or_none
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
-
-
-class CustomOTPAdapter(OTPAdapter):  # pragma: no cover
-    def is_open_for_signup(self, request: HttpRequest):
-        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
-
 
 class AccountAdapter(DefaultAccountAdapter):  # pragma: no cover
     def is_open_for_signup(self, request: HttpRequest):
@@ -69,7 +62,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
             exception,
             extra_context,
         )
-        super().authentication_error(
+        super().on_authentication_error(
             request, provider_id, error, exception, extra_context
         )
 

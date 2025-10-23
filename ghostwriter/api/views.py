@@ -26,7 +26,6 @@ from django.views.generic.edit import FormView
 from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
-from allauth_2fa.utils import user_has_valid_totp_device
 from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
@@ -40,7 +39,7 @@ from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Finding,
     Observation,
@@ -443,11 +442,11 @@ class GraphqlLoginAction(HasuraActionView):
         user = authenticate(**self.input)
         # A successful auth will return a ``User`` object
         if user:
-            # User's required to use 2FA or with 2FA enabled will not be able to log in via the mutation
-            if user_has_valid_totp_device(user) or user.require_2fa:
+            # User's required to use MFA or with MFA enabled will not be able to log in via the mutation
+            if utils.user_has_valid_totp_device(user) or user.require_mfa:
                 self.status = 401
                 data = utils.generate_hasura_error_payload(
-                    "Login and generate a token from your user profile", "2FARequired"
+                    "Login and generate a token from your user profile", "MFARequired"
                 )
             else:
                 payload, jwt_token = utils.generate_jwt(user)
@@ -918,9 +917,9 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
                 enable_observation_delete = self.input["enableObservationDelete"]
                 user.enable_observation_delete = enable_observation_delete
 
-            if "require2fa" in self.input:
-                require_2fa = self.input["require2fa"]
-                user.require_2fa = require_2fa
+            if "requiremfa" in self.input:
+                require_mfa = self.input["requiremfa"]
+                user.require_mfa = require_mfa
 
             if "phone" in self.input:
                 phone = self.input["phone"]
