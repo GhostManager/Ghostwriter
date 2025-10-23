@@ -352,6 +352,7 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
+    bloodhound_heading_offset = 0
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 

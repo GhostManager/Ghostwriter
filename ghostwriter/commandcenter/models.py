@@ -2,10 +2,13 @@
 
 import json
 from typing import Any, Callable, NamedTuple
-from django import forms
+from urllib.parse import urlparse
 
 # Django Imports
 from django.db import models
+from django import forms
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
@@ -13,7 +16,6 @@ from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.singleton.models import SingletonModel
-
 
 def sanitize(sensitive_thing):
     """
@@ -40,6 +42,75 @@ def sanitize(sensitive_thing):
         elif length > 15:
             sanitized_string = sensitive_thing[0:4] + "\u2717" * (length - 8) + sensitive_thing[length - 5 : length - 1]
     return sanitized_string
+
+def validate_endpoint(value: str):
+    url = urlparse(value)
+    if not url.scheme:
+        raise ValidationError(_("Missing scheme on URL"))
+    if not url.hostname:
+        raise ValidationError(_("Missing hostname on URL"))
+    if url.path:
+        raise ValidationError(_("Paths on endpoint URL are not supported"))
+
+class BloodHoundConfiguration(SingletonModel):
+    """
+    BloodHoundConfiguration represents a global BloodHound API integration that can be used to
+    access the BloodHound API of the configured instance.
+    """
+    bloodhound_api_root_url = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API URL",
+        help_text="The URL of the BloodHound instance",
+        default="",
+        blank=True,
+        validators=[validate_endpoint],
+    )
+
+    bloodhound_api_key_id = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API Key ID",
+        help_text="The ID portion of a BloodHound API Key",
+        default="",
+        blank=True,
+    )
+
+    bloodhound_api_key_token = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API Key Token",
+        help_text="The token portion of a BloodHound API Key",
+        default="",
+        blank=True,
+    )
+
+    bloodhound_results = models.JSONField(
+        null=True,
+        verbose_name="Bloodhound Data",
+        editable=False,
+    )
+
+    def has_bloodhound_api(self) -> bool:
+        return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
+
+    def __str__(self):
+        return "BloodHound API Configuration"
+
+    class Meta:
+        verbose_name = "BloodHound API Configuration"
+        # constraints = [
+        #     models.CheckConstraint(
+        #         check=models.Q(
+        #             api_root_url="",
+        #             api_key_id="",
+        #             api_key_token=""
+        #         ) | models.Q(
+        #             ~models.Q(api_root_url="") &
+        #             ~models.Q(api_key_id="") &
+        #             ~models.Q(api_key_token="")
+        #         ),
+        #         name="commandcenter_bloodhoundconfiguration_all_or_none_set",
+        #         #violation_error_message="Incomplete BloodHound API Configuration",
+        #     ),
+        # ]
 
 
 class NamecheapConfiguration(SingletonModel):
@@ -333,7 +404,7 @@ class GeneralConfiguration(SingletonModel):
     hostname = models.CharField(
         max_length=255,
         default="ghostwriter.local",
-        help_text="Hostname or IP address for Ghostwtiter (used for links in notifications)",
+        help_text="Hostname or IP address for Ghostwriter (used for links in notifications)",
     )
 
     def __str__(self):
@@ -394,10 +465,12 @@ class ExtraFieldType(NamedTuple):
     # Returns an "empty" value
     empty_value: Callable[[], Any]
 
+
 def float_widget(*args, **kwargs):
     widget = forms.widgets.NumberInput(*args, **kwargs)
     widget.attrs.setdefault("step", "any")
     return widget
+
 
 # Also edit frontend/src/extra_fields.tsx
 EXTRA_FIELD_TYPES = {

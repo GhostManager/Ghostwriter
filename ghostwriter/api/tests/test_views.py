@@ -2176,7 +2176,7 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         )
         cls.deleted_evidence = EvidenceOnFindingFactory(finding=cls.finding, friendly_name="Deleted Evidence")
 
-        # Add a blank finding to teh report for regression testing updates on findings with blank fields
+        # Add a blank finding to the report for regression testing updates on findings with blank fields
         BlankReportFindingLinkFactory(report=cls.report_evidence.report)
         EvidenceOnReportFactory(report=cls.report_evidence.report, friendly_name="Blank Test")
 

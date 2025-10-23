@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -1074,6 +1074,49 @@
         {% endif %}
       </div>
 
+      {% comment %} BloodHound Tab {% endcomment %}
+      {% if bhc_api %}
+        <div id="bloodhound" class="tab-pane">
+          <h4>BloodHound</h4>
+          <hr/>
+
+          <p>
+            {% if project.has_bloodhound_api %}
+              Using Project Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
+            {% elif global_bloodhound_config.has_bloodhound_api %}
+              Using Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em>
+            {% else %}
+              Unavailable
+            {% endif %}
+          </p>
+
+          <div class="d-flex justify-content-center mb-3" role="group" aria-label="BloodHound buttons">
+            <div class="row justify-content-center w-100">
+              <div class="col-3 pr-1">
+                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-secondary w-100" type="submit" value="Test BloodHound Connectivity" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound" />
+                </form>
+              </div>
+              <div class="col-3 pl-1">
+                <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-primary w-100" type="submit" value="Fetch BloodHound Data" data-toggle="tooltip"
+                    {% if project.has_bloodhound_api %}
+                    title="Fetch data from the project's configured BloodHound API"
+                    {% else %}
+                    title="Fetch data from the globally configured BloodHound API"
+                    {% endif %}
+                  />
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {% include "snippets/bloodhound_info.html" with res=bhc_api.bloodhound_results only %}
+        </div>
+      {% endif %}
+
       <div id="collab_notes" class="tab-pane">
         <h4>Collaborative Nodes</h4>
         <hr />
@@ -1143,10 +1186,6 @@
       {% endif %}
     </div>
   </div>
-{% endblock %}
-
-{% block tabs %}
-  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
@@ -1232,7 +1271,7 @@
       $('.tablesorter').trigger('update');
     });
 
-    {% comment %} Show/hide the project descirption block {% endcomment %}
+    {% comment %} Show/hide the project description block {% endcomment %}
     $('div.description-block').each(function () {
       $(this).css('height', $(this).height() + 'px');
       $(this).hide();
@@ -1247,7 +1286,7 @@
 
     function expandObjective(ele) {
       ele.parent().parent().toggleClass('open');
-      let accordionRow = ele.parent().parent().next('.accordion');
+      let accordionRow = ele.parent().parent().next('.hiddenAccordion');
       if (!accordionRow.is(':visible')) {
         accordionRow.show().find('.accordion-content').slideDown();
       } else {
@@ -1963,10 +2002,30 @@
     }
 
     $(document).ready(function () {
-
       "use strict";
-
       prepareTodoList();
+    });
+
+    {% comment %} BloodHound fetch {% endcomment %}
+    $(document).ready(() => {
+      let bh_form = document.getElementById("bh-fetch-form");
+      bh_form.addEventListener("submit", e => {
+        e.preventDefault();
+
+        displayToastTop({type: "info", string: "Please wait. Fetching can take several minutes.", title: "Fetching BloodHound Info"});
+        fetch(bh_form.action, {
+          method: "POST",
+          body: new FormData(bh_form, e.submitter),
+          headers: {
+            "X-GW-Async": "True"
+          },
+        }).then(res => {
+          if(res.status === 200)
+            displayToastTop({type: "success", string: "Refresh the page to view updated results."});
+          else
+            displayToastTop({type: "error", string: "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
+        })
+      });
     });
   </script>
 

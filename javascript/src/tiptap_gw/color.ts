@@ -32,14 +32,17 @@ const ColorMark = Mark.create({
             {
                 tag: "span",
                 getAttrs: (node) => {
-                    console.log(
-                        "DEBUG",
-                        node.hasAttribute("data-color"),
-                        node.style.color
-                    );
-                    if (node.hasAttribute("data-color")) return null;
+                    if (node.hasAttribute("data-color")) {
+                        // Has data-color from this mark, apply
+                        return null;
+                    }
                     const color = node.style.color;
-                    if (color !== "") return null;
+                    if (color !== undefined && color !== "") {
+                        // Has a color style from tinymce, apply
+                        return null;
+                    }
+
+                    // Has neither, don't apply
                     return false;
                 },
             },

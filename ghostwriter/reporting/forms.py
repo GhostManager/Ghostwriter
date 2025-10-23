@@ -416,7 +416,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
         self.fields["evidence_image_width"].label = "Evidence Image Width"
-        self.fields["evidence_image_width"].inital = "6.5"
+        self.fields["evidence_image_width"].initial = "6.5"
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -481,6 +481,7 @@ class ReportTemplateForm(forms.ModelForm):
                 ),
                 css_class="custom-file",
             ),
+            "bloodhound_heading_offset",
             "changelog",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
@@ -511,14 +512,23 @@ class SelectReportTemplateForm(forms.ModelForm):
     :model:`reporting.Report`.
     """
 
+    include_bloodhound = forms.BooleanField(
+        label="Include data from BloodHound",
+        initial=True,
+        required=False,
+    )
+
     class Meta:
         model = Report
         fields = ("docx_template", "pptx_template")
 
     def __init__(self, *args, **kwargs):
+        has_bloodhound = kwargs.pop("has_bloodhound", False)
         super().__init__(*args, **kwargs)
         self.fields["docx_template"].help_text = None
+        self.fields["docx_template"].required = False
         self.fields["pptx_template"].help_text = None
+        self.fields["pptx_template"].required = False
         self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"
         self.fields["pptx_template"].empty_label = "-- Select a PPTX Template --"
         # Design form layout with Crispy FormHelper
@@ -533,6 +543,25 @@ class SelectReportTemplateForm(forms.ModelForm):
                 Column(
                     HTML(
                         """
+                        <p>For Word (docx) and PowerPoint (pptx), select a template to determine the type and style of your document:</p>
+                        <p>Click the icon of the type of document you want to generate.</p>
+                        """
+                    ),
+                    css_class="col-md-12",
+                ),
+                css_class="justify-content-md-center",
+            ),
+            Row(
+                Column(
+                    SwitchToggle("include_bloodhound"),
+                    css_class="col-md-12 mb-3",
+                ),
+                css_class="justify-content-md-center",
+            ) if has_bloodhound else None,
+            Row(
+                Column(
+                    HTML(
+                        """
                         <p class="text-left mt-1">Template for DOCX</p>
                         """
                     ),
@@ -543,15 +572,16 @@ class SelectReportTemplateForm(forms.ModelForm):
                         "docx_template",
                         HTML(
                             """
-                            <a
+                            <button
                                 class="btn btn-default word-btn js-generate-report"
-                                type="button"
-                                href="{% url 'reporting:generate_docx' report.id %}"
+                                type="submit"
+                                formaction="{% url 'reporting:generate_docx' report.id %}"
+                                formmethod="get"
                                 data-toggle="tooltip"
                                 data-placement="top"
                                 title="Generate a DOCX report"
                             >
-                            </a>
+                            </button>
                             """
                         ),
                         HTML(
@@ -587,15 +617,16 @@ class SelectReportTemplateForm(forms.ModelForm):
                         "pptx_template",
                         HTML(
                             """
-                            <a
+                            <button
                                 class="btn btn-default pptx-btn"
-                                type="button"
-                                href="{% url 'reporting:generate_pptx' report.id %}"
+                                type="submit"
+                                formaction="{% url 'reporting:generate_pptx' report.id %}"
+                                formmethod="get"
                                 data-toggle="tooltip"
                                 data-placement="top"
                                 title="Generate a PPTX report"
                             >
-                            </a>
+                            </button>
                             """
                         ),
                         HTML(
@@ -621,13 +652,33 @@ class SelectReportTemplateForm(forms.ModelForm):
                 """
                 <p class="mb-2">Other report types do not use templates:</p>
                 <div class="btn-group">
-                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}"
-                    data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i></a>
-                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}"
-                    data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"></a>
-                    <a class="btn btn-default archive-btn-icon js-generate-report"
-                    href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top"
-                    title="Generate and package all report types and evidence in a Zip"></a>
+                    <button
+                        class="btn btn-default excel-btn-icon"
+                        type="submit"
+                        formaction="{% url 'reporting:generate_xlsx' report.id %}"
+                        formmethod="get"
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="Generate an XLSX report"
+                    ></button>
+                    <button
+                        class="btn btn-default json-btn-icon"
+                        type="submit"
+                        formaction="{% url 'reporting:generate_json' report.id %}"
+                        formmethod="get"
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="Generate exportable JSON"
+                    ></button>
+                    <button
+                        class="btn btn-default archive-btn-icon js-generate-report"
+                        type="submit"
+                        formaction="{% url 'reporting:generate_all' report.id %}"
+                        formmethod="get"
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="Generate and package all report types and evidence in a Zip"
+                    ></button>
                 </div>
                 """
             ),
@@ -671,7 +722,7 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
     individual :model:`reporting.Report`.
     """
 
-    # Note: since ReportObservationLinks are essentialy an observation bound to a report, it uses
+    # Note: since ReportObservationLinks are essentially an observation bound to a report, it uses
     # the observation's extra field specifications, rather than having its own.
     extra_fields = ExtraFieldsField(Observation._meta.label)
 

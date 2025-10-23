@@ -50,6 +50,14 @@
         Reporting
     </a>
 </li>
+{% if project.has_bloodhound_api or global_bloodhound_config.has_bloodhound_api %}
+    {# TODO BH icon #}
+    <li class="nav-item">
+        <a id="id_bloodhound" class="nav-link tab-icon bloodhound-icon" data-toggle="tab" href="#bloodhound">
+            BloodHound
+        </a>
+    </li>
+{% endif %}
 <li class="nav-item">
     <a id="id_collab_notes" class="nav-link tab-icon sticky-note-icon" data-toggle="tab" href="#collab_notes">
         Collab Notes
