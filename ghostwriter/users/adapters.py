@@ -14,7 +14,7 @@ from django.shortcuts import redirect
 
 # 3rd Party Libraries
 from allauth.account.adapter import DefaultAccountAdapter
-from allauth.account.utils import user_email, user_field, user_username
+from allauth.account.utils import user_email, user_field, user_username, valid_email_or_none
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 
@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-#
 class AccountAdapter(DefaultAccountAdapter):  # pragma: no cover
     def is_open_for_signup(self, request: HttpRequest):
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
@@ -83,7 +82,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):  # pragma: no cover
 
         user = sociallogin.user
         user_username(user, username or "")
-        user_email(user, validate_email(email) or "")
+        user_email(user, valid_email_or_none(email) or "")
 
         name_parts = (name or "").partition(" ")
         user_field(user, "first_name", first_name or name_parts[0])

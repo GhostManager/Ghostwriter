@@ -279,4 +279,4 @@ class RecoveryCodesView(ViewRecoveryCodesView):
     def post(self, request, *args, **kwargs):
         # Only generate codes if the button was pressed
         flows.generate_recovery_codes(self.request)
-        return redirect(GenerateRecoveryCodesView.success_url)
+        return redirect(reverse("mfa_recovery_codes"))

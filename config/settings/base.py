@@ -327,6 +327,7 @@ LOGGING = {
 MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"
 
 # override the default django-allauth reauthentication timeout settings
+# Set to 9 hours (32400 seconds) to align with SESSION_COOKIE_AGE and avoid session timeout conflicts.
 # this is necessary to avoid conflicts with the SESSION_COOKIE_AGE setting
 ACCOUNT_REAUTHENTICATION_TIMEOUT = env.int("DJANGO_ACCOUNT_REAUTHENTICATION_TIMEOUT", 32400)  # 9 hours
 
@@ -353,7 +354,7 @@ ACCOUNT_FORMS = {
 # django-allauth-mfa forms
 MFA_FORMS = {
     "authenticate": "ghostwriter.users.forms.UserMFAAuthenticateForm",
-    'reauthenticate': 'allauth.mfa.base.forms.AuthenticateForm',
+    "reauthenticate": "allauth.mfa.base.forms.AuthenticateForm",
     "activate_totp": "ghostwriter.users.forms.UserMFADeviceForm",
     "deactivate_totp": "ghostwriter.users.forms.UserMFADeviceRemoveForm",
     "generate_recovery_codes": "allauth.mfa.recovery_codes.forms.GenerateRecoveryCodesForm",

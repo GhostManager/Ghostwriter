@@ -33,7 +33,7 @@ class CommandMigrate2FAtoMFATests(TestCase):
         StaticToken.objects.create(device=self.static, token="recovery1")
         StaticToken.objects.create(device=self.static, token="recovery2")
 
-    def testearDown(self):
+    def tearDown(self):
         Authenticator.objects.all().delete()
 
     def test_2fa_migration(self):

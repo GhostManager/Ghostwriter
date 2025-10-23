@@ -14,7 +14,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         adapter = get_adapter()
-        authenticators = []
 
         # Statistics
         users_total = TOTPDevice.objects.filter(confirmed=True).values('user_id').distinct().count()
@@ -22,7 +21,7 @@ class Command(BaseCommand):
         users_skipped = 0
         errors = 0
 
-        logger.info(f"found {users_total} users with TOTP devices to migrate.")
+        logger.info(f"Found {users_total} users with TOTP devices to migrate.")
 
         for totp in TOTPDevice.objects.filter(confirmed=True).iterator():
             try:
@@ -32,7 +31,6 @@ class Command(BaseCommand):
 
                 if user_exists:
                     users_skipped += 1
-                    logger.info(f"Skipping user {totp.user_id}, already has TOTP authenticator.")
                     continue
 
                 # Collect recovery codes for this user

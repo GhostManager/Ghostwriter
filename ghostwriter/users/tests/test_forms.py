@@ -25,6 +25,28 @@ logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 
+# Helper function: returns a mock rate limit check that always succeeds
+def mock_rate_limit_check(): # pragma: no cover
+    """Mock rate limit check that always succeeds"""
+    def clear_rate_limit():
+        pass
+    return clear_rate_limit
+
+# Helper function: Generate a valid TOTP code from a secret
+def get_code_from_totp_device(secret) -> str:
+    # To generate a valid code for the form:
+    counter = next(yield_hotp_counters_from_time())
+    code = format_hotp_value(hotp_value(secret, counter))
+    return code
+
+# Helper Class: Create a mock RateLimitUsage class that always returns True for allowed
+class MockRateLimitUsage: # pragma: no cover
+    def __init__(self):
+        self.usage = []
+
+    def rollback(self):
+        pass
+
 
 class GroupAdminFormTests(TestCase):
     """Collection of tests for :form:`users.GroupAdminForm`."""
@@ -101,12 +123,6 @@ class UserChangeFormTests(TestCase):
     def test_valid_data(self):
         form = self.form_data(**self.user.__dict__)
         self.assertTrue(form.is_valid())
-
-def get_code_from_totp_device(secret) -> str:
-    # To generate a valid code for the form:
-    counter = next(yield_hotp_counters_from_time())
-    code = format_hotp_value(hotp_value(secret, counter))
-    return code
 
 class UserMFAAuthenticateFormTests(TestCase):
     """Collection of tests for :form:`users.UserMFAAuthenticateForm`."""
@@ -290,22 +306,3 @@ class UserSignUpFormTests(TestCase):
             PASSWORD,
         )
         self.assertTrue(form.is_valid())
-
-
-
-
-# Add this helper function
-def mock_rate_limit_check(): # pragma: no cover
-    """Mock rate limit check that always succeeds"""
-    def clear_rate_limit():
-        pass
-    return clear_rate_limit
-
-# Create a mock RateLimitUsage class that always returns True for allowed
-class MockRateLimitUsage: # pragma: no cover
-    def __init__(self):
-        self.usage = []
-
-    def rollback(self):
-        pass
-
