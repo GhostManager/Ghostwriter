@@ -33,6 +33,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -1062,7 +1063,7 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                     return ForbiddenJsonResponse()
                 contact_dict = to_dict(contact_instance, resolve_fk=True)
                 del contact_dict["client"]
-                del contact_dict["note"]
+                del contact_dict["description"]
 
                 # Check if this contact already exists in the project
                 if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
@@ -1070,7 +1071,7 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                     data = {"result": "error", "message": message}
                 else:
                     project_contact = ProjectContact(
-                        project=self.get_object(), **contact_dict, note=contact_instance.note
+                        project=self.get_object(), **contact_dict, description=contact_instance.description
                     )
                     project_contact.save()
 
@@ -1598,12 +1599,17 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
-    def get_context_data(self, object, **kwargs):
+    def get_context_data(self, object: Project, **kwargs):
         ctx = super().get_context_data(object=object, **kwargs)
         ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
         ctx["export_templates"] = ReportTemplate.objects.filter(
             Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))
+        ctx.update(CollabModelUpdate.context_data(
+            self.request.user,
+            object.pk,
+            None,
+        ))
 
         bhc = BloodHoundConfiguration.get_solo()
         ctx["global_bloodhound_config"] = bhc

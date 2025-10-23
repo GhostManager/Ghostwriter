@@ -167,8 +167,8 @@ class Domain(models.Model):
         blank=True,
         help_text="Categories applied to this domain in JSON format - e.g., `{'source': 'category',}`",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Use this area to provide notes and thoughts behind its purchase and intended use",
@@ -297,8 +297,8 @@ class History(models.Model):
 
     start_date = models.DateField("Start Date", help_text="Select the start date of the project")
     end_date = models.DateField("End Date", help_text="Select the end date of the project")
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Use this area to provide project-related notes, such as how the domain will be used/how it worked out",
@@ -422,8 +422,8 @@ class StaticServer(models.Model):
         unique=True,
         help_text="Enter the server's static IP address",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Use this area to provide server-related notes, such as its designated use or how it can be used",
@@ -493,8 +493,8 @@ class ServerHistory(models.Model):
 
     start_date = models.DateField("Start Date", help_text="Select the start date of the project")
     end_date = models.DateField("End Date", help_text="Select the end date of the project")
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Use this area to provide project-related notes, such as how the server/IP will be used",
@@ -608,8 +608,8 @@ class TransientServer(models.Model):
         blank=True,
         help_text="Enter the server's name (typically hostname)",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Use this area to provide project-related notes, such as how the server will be used",

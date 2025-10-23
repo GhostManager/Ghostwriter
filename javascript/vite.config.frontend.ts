@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { resolve } from "path";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -9,20 +8,18 @@ export default defineConfig(({ mode }) => {
         build: {
             rollupOptions: {
                 input: {
-                    collab_forms_observation: resolve(
-                        __dirname,
-                        "./src/frontend/collab_forms/forms/observation.tsx"
-                    ),
-                    collab_forms_reportobservationlink: resolve(
-                        __dirname,
-                        "./src/frontend/collab_forms/forms/reportobservationlink.tsx"
-                    ),
+                    collab_forms_observation:
+                        "./src/frontend/collab_forms/forms/observation.tsx",
+                    collab_forms_reportobservationlink:
+                        "./src/frontend/collab_forms/forms/reportobservationlink.tsx",
                     collab_forms_finding:
                         "./src/frontend/collab_forms/forms/finding.tsx",
                     collab_forms_reportfindinglink:
                         "./src/frontend/collab_forms/forms/reportfindinglink.tsx",
                     collab_forms_report_field:
                         "./src/frontend/collab_forms/forms/report_field.tsx",
+                    collab_forms_project_collabnote:
+                        "./src/frontend/collab_forms/forms/project_collabnote.tsx",
                     admin_tiptap: "./src/frontend/admin_tiptap.tsx",
                 },
                 output: {

@@ -45,8 +45,8 @@ class Client(models.Model):
         blank=True,
         help_text="Give the client a codename (might be a ticket number, CMS reference, or something else)",
     )
-    note = models.TextField(
-        "Client Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Describe the client or provide some additional information",
@@ -140,8 +140,8 @@ class ClientContact(models.Model):
         default="America/Los_Angeles",
         help_text="The contact's timezone",
     )
-    note = models.TextField(
-        "Contact Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the contact",
@@ -193,8 +193,8 @@ class Project(models.Model):
     )
     start_date = models.DateField("Start Date", max_length=12, help_text="Enter the start date of this project")
     end_date = models.DateField("End Date", max_length=12, help_text="Enter the end date of this project")
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the project and planning",
@@ -225,6 +225,12 @@ class Project(models.Model):
         null=True,
         blank=True,
         help_text="Select the end time for each day",
+    )
+    collab_note = models.TextField(
+        "Collaborative Notes",
+        default="",
+        blank=True,
+        null=False,
     )
     tags = TaggableManager(blank=True)
 
@@ -392,8 +398,8 @@ class ProjectAssignment(models.Model):
         blank=True,
         help_text="Enter the end date of the project",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the project role and assignment",
@@ -457,8 +463,8 @@ class ProjectContact(models.Model):
         default="America/Los_Angeles",
         help_text="The contact's timezone",
     )
-    note = models.TextField(
-        "Contact Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the contact",
@@ -694,7 +700,11 @@ class ClientNote(models.Model):
 
 
 class ProjectNote(models.Model):
-    """Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`."""
+    """
+    Stores an individual comment, related to :model:`rolodex.Project` and :model:`users.User`.
+
+    While this is named Project "Note" for legacy reasons, it functions more like a comment.
+    """
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
@@ -790,8 +800,8 @@ class ProjectTarget(models.Model):
         blank=True,
         help_text="Provide the target's hostname, fully qualified domain name, or other identifier",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the target(s) or the environment",
