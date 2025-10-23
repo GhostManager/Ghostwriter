@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("rolodex", "0052_projectobjective_result"),
+        ("rolodex", "0054_project_bloodhound_results"),
     ]
 
     operations = [
