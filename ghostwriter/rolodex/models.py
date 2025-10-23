@@ -62,6 +62,26 @@ class Client(models.Model):
         blank=True,
         help_text="An address to be used for reports or shipping",
     )
+    logo_width = models.IntegerField(
+        "Logo Width",
+        blank=True,
+        null=True,
+        editable=False,
+    )
+    logo_height = models.IntegerField(
+        "Logo Height",
+        blank=True,
+        null=True,
+        editable=False,
+    )
+    logo = models.ImageField(
+        "Client Logo",
+        blank=True,
+        null=True,
+        width_field="logo_width",
+        height_field="logo_height",
+        help_text="Image to use for reporting",
+    )
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
 

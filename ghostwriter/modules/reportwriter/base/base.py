@@ -83,6 +83,12 @@ class ExportBase:
         return out
 
     def create_lazy_template(self, location: str | None, text: str, context: dict, **kwargs) -> LazilyRenderedTemplate:
+        """
+        Creates a `LazilyRenderedTemplate` that will `text` as a jinja template when needed.
+
+        Implementations of `map_rich_texts` should call this on rich text fields, replacing the rich text field
+        with its return value.
+        """
         return LazilyRenderedTemplate(
             ReportExportTemplateError.map_errors(
                 lambda: rich_text_template(self.jinja_env, text, **kwargs),
@@ -109,6 +115,9 @@ class ExportBase:
                 )
 
     def map_rich_texts(self):
+        """
+        Replaces rich text entries in `self.data` with `LazilyRenderedTemplate` or `HtmlAndRich` instances.
+        """
         raise NotImplementedError()
 
     def run(self) -> io.BytesIO:
@@ -116,18 +125,22 @@ class ExportBase:
 
     @classmethod
     def mime_type(cls) -> str:
+        """Gets the mime type of the result from `run`"""
         raise NotImplementedError()
 
     @classmethod
     def extension(cls) -> str:
+        """Gets the file extension of the result from `run`, without the dot"""
         raise NotImplementedError()
 
     @classmethod
     def generate_lint_data(cls):
+        """Gets the data to use for linting"""
         raise NotImplementedError()
 
     @classmethod
     def check_filename_template(cls, filename_template: str):
+        """Checks if the filename Jinja template string can be formatted OK"""
         exporter = cls(
             cls.generate_lint_data(),
             is_raw=True,

@@ -391,6 +391,12 @@ export function Toolbar(props: {
                     <FormatButton menuItem chain={(c) => c.changeCase("upper")}>
                         Uppercase Text
                     </FormatButton>
+                    <FormatButton
+                        menuItem
+                        chain={(c) => c.insertGwImage("CLIENT_LOGO")}
+                    >
+                        Insert Client Logo
+                    </FormatButton>
                 </Menu>
             </div>
             {props.extra && <div className="separator" />}
