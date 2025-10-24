@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.0] - TBD
+
+### Added
+
+* Added support for uploading a logo for a client
+* Added a menu to the editor with new options
+  * Added options to convert selected text to lowercase or uppercase
+  * Added a command to insert the logo of the project's client
+* Added a new collaborative notes field on the project dashboard
+  * This field allows project members to take shared notes about the project
+  * The notes are saved automatically and can be edited by multiple users simultaneously
+  * Find this field under the "Collab Notes" tab
+* Added an all-new integration with BloodHound
+  * This integration allows you to import data and findings from BloodHound into Ghostwriter
+  * The integration supports both Community Edition and Enterprise versions of BloodHound
+  * You can find the integration under the "BloodHound" tab in the project dashboard
+  * Ghostwriter supports a global BloodHound configuration for your instance and per-project configurations
+    * Configure a BloodHound instance globally or use a different instance for each project
+  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/bloodhound-integration](https://www.ghostwriter.wiki/features/bloodhound-integration)
+
+### Changed
+
+* Upgraded `allauth` to provide the latest support for SSO providers and 
+* Changed the `note` fields on most models to `description` to better reflect their purpose
+  * This includes models like Domain, Server, Finding, Observation, Project, Client, and others
+  * These fields were ment to be used as descriptions of the object, but the `note` naming caused confusion with other note-taking features added to Ghostwriter over time
+  * This is a breaking change for any references to these in existing report templates or scripts
+* We have hidden the legacy "Notes" sections in the dashboards
+  * Like the change to the old `note` fields, this change is to reduce confusion with the new collaborative notes feature
+  * The feature was not widely used, and the collaborative notes feature provides a better experience
+  * The sections will remain visible for any existing projects with content in the notes
+  * New projects will not see the notes section
+
+### Fixed
+
+* 
+
 ## [6.0.5] - 16 October 2025
 
 ### Added
