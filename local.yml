@@ -160,14 +160,15 @@ services:
       - ./javascript:/app
       - local_node_modules:/app/node_modules
     working_dir: /app
-    command: sh -c 'npm install && npm run build-collab-server-dev && exec npm run run-collab-server'
+    command: sh -c 'npm install && npm run build-collab-server-dev && exec npm run run-collab-server-dev'
     labels:
       name: ghostwriter_collab
     environment:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
     ports:
-      - "8001:8000"
+      - "8001:8000" # HTTP. Also reverse-proxied through nginx
+      - "9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
 
   graphql_engine:
     build:

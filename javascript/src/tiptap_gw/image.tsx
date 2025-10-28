@@ -41,7 +41,6 @@ const Image = Node.create<{}>({
         return node.attrs.imgName;
     },
     renderHTML({ HTMLAttributes }) {
-        console.log("DEBUG renderHtml", HTMLAttributes);
         return ["div", HTMLAttributes];
     },
     addNodeView() {

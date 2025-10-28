@@ -39,7 +39,7 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
         );
     }
 
-    const editorEl = editor.options.element;
+    const editorEl = editor.view.dom;
     useEffect(() => {
         const evl = () => setModalInitial("new");
         editorEl.addEventListener("openevidencemodal", evl);

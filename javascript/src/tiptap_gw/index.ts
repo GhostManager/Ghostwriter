@@ -3,9 +3,7 @@
 
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
-import Table from "@tiptap/extension-table";
-import TableHeader from "@tiptap/extension-table-header";
-import TableRow from "@tiptap/extension-table-row";
+import { Table, TableHeader, TableRow } from "@tiptap/extension-table";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import { type Extensions } from "@tiptap/core";
@@ -28,9 +26,11 @@ import Image from "./image";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
+        undoRedo: false,
         heading: false,
-        history: false,
         codeBlock: false,
+        link: false,
+        underline: false,
         bold: false,
         italic: false,
         horizontalRule: false,
