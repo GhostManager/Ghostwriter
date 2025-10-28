@@ -326,6 +326,14 @@ LOGGING = {
 # settings for django-allauth MFA
 MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"
 
+# Make sure "webauthn" is included.
+# https://docs.allauth.org/en/dev/mfa/webauthn.html
+MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
+
+# Enable support for logging in using a (WebAuthn) passkey.
+# https://docs.allauth.org/en/dev/mfa/webauthn.html
+MFA_PASSKEY_LOGIN_ENABLED = True
+
 # override the default django-allauth reauthentication timeout settings
 # Set to 9 hours (32400 seconds) to align with SESSION_COOKIE_AGE and avoid session timeout conflicts.
 # this is necessary to avoid conflicts with the SESSION_COOKIE_AGE setting
@@ -338,7 +346,6 @@ SOCIALACCOUNT_LOGIN_ON_GET = env.bool("DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET", Fals
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_LOGIN_METHODS = {"username"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-# ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = env.bool("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")

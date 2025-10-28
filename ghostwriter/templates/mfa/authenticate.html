@@ -15,6 +15,7 @@
           displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
         {% endfor %}
       {% endfor %}
+
       {% for error in form.non_field_errors %}
         displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
       {% endfor %}
@@ -25,8 +26,35 @@
   <form class="validate" method="POST" action="{% url 'mfa_authenticate'  %}" novalidate>
     {% csrf_token %}
     {% crispy form form.helper %}
+
     {% if redirect_field_value %}
       <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
     {% endif %}
   </form>
+
+  <br>
+
+  <h3>{% trans "Alternate Methods" %}</h3>
+
+  <button type="submit" form="webauthn_form" id="mfa_webauthn_authenticate" class="btn btn-outline-primary prominent login">
+    {% trans "Use security passkey" %}
+  </button>
+
+  <form id="webauthn_form" method="post" action="{% url 'mfa_authenticate' %}">
+    {% csrf_token %}
+    {{ webauthn_form.as_p }}
+  </form>
+
+  {{ js_data|json_script:"js_data" }}
+
+  {% include "mfa/webauthn/snippets/scripts.html" %}
+
+  <script data-allauth-onload="allauth.webauthn.forms.authenticateForm" type="application/json">{
+    "ids": {
+      "authenticate": "mfa_webauthn_authenticate",
+      "credential": "{{ webauthn_form.credential.auto_id }}",
+      "data": "js_data"
+    }
+  }
+  </script>
 {% endblock %}
