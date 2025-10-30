@@ -1651,7 +1651,6 @@ td p {
 }
 
 .dropdown-info {
-  background-color: var(--dropdown-button-main-color);
   color: #fff;
   cursor: help;
 }
