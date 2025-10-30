@@ -14,5 +14,14 @@
                 }
             ],
         },
+        {
+            "name": "Attach to Collab Server",
+            "type": "node",
+            "request": "attach",
+            "address": "127.0.0.1",
+            "port": 9229,
+            "remoteRoot": "/app",
+            "localRoot": "${workspaceFolder}/javascript",
+        },
     ]
 }

@@ -1225,7 +1225,7 @@ class TransientServerCreateViewTests(TestCase):
         activity_type_id=None,
         server_role_id=None,
         server_provider_id=None,
-        note=None,
+        description=None,
         **kwargs,
     ):
         return TransientServerForm(
@@ -1239,7 +1239,7 @@ class TransientServerCreateViewTests(TestCase):
                 "activity_type": activity_type_id,
                 "server_role": server_role_id,
                 "server_provider": server_provider_id,
-                "note": note,
+                "description": description,
             },
         )
 

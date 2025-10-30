@@ -26,7 +26,6 @@ from django.views.generic.edit import FormView
 from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
-from allauth_2fa.utils import user_has_valid_totp_device
 from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
@@ -40,7 +39,7 @@ from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Finding,
     Observation,
@@ -224,7 +223,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
     activity_type = None
     start_date = None
     end_date = None
-    note = None
+    description = None
 
     def post(self, request, *args, **kwargs):
         # Get the :model:`rolodex.Project` object and verify access
@@ -284,8 +283,8 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
                     utils.generate_hasura_error_payload("End date is before start date", "InvalidDates"), status=400
                 )
             # Set the optional inputs (keys will not always exist)
-            if "note" in self.input:
-                self.note = self.input["note"]
+            if "description" in self.input:
+                self.description = self.input["description"]
         else:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
@@ -443,11 +442,11 @@ class GraphqlLoginAction(HasuraActionView):
         user = authenticate(**self.input)
         # A successful auth will return a ``User`` object
         if user:
-            # User's required to use 2FA or with 2FA enabled will not be able to log in via the mutation
-            if user_has_valid_totp_device(user) or user.require_2fa:
+            # User's required to use MFA or with MFA enabled will not be able to log in via the mutation
+            if utils.user_has_valid_totp_device(user) or user.require_mfa:
                 self.status = 401
                 data = utils.generate_hasura_error_payload(
-                    "Login and generate a token from your user profile", "2FARequired"
+                    "Login and generate a token from your user profile", "MFARequired"
                 )
             else:
                 payload, jwt_token = utils.generate_jwt(user)
@@ -603,14 +602,14 @@ class GraphqlCheckoutDomain(HasuraCheckoutView):
             return JsonResponse(utils.generate_hasura_error_payload("Domain is expired", "DomainExpired"), status=400)
 
         try:
-            if not self.note:
-                self.note = ""
+            if not self.description:
+                self.description = ""
             History.objects.create(
                 domain=self.object,
                 activity_type=self.activity_type,
                 start_date=self.start_date,
                 end_date=self.end_date,
-                note=self.note,
+                description=self.description,
                 operator=self.user_obj,
                 project=self.project,
                 client=self.project.client,
@@ -660,15 +659,15 @@ class GraphqlCheckoutServer(HasuraCheckoutView):
             )
 
         try:
-            if not self.note:
-                self.note = ""
+            if not self.description:
+                self.description = ""
             ServerHistory.objects.create(
                 server=self.object,
                 activity_type=self.activity_type,
                 start_date=self.start_date,
                 end_date=self.end_date,
                 server_role=server_role,
-                note=self.note,
+                description=self.description,
                 operator=self.user_obj,
                 project=self.project,
                 client=self.project.client,
@@ -918,9 +917,9 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
                 enable_observation_delete = self.input["enableObservationDelete"]
                 user.enable_observation_delete = enable_observation_delete
 
-            if "require2fa" in self.input:
-                require_2fa = self.input["require2fa"]
-                user.require_2fa = require_2fa
+            if "requiremfa" in self.input:
+                require_mfa = self.input["requiremfa"]
+                user.require_mfa = require_mfa
 
             if "phone" in self.input:
                 phone = self.input["phone"]
@@ -1294,6 +1293,7 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
         "report": Report,
+        "project": Project,
     }
 
     def post(self, request):

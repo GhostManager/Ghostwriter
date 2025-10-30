@@ -14,7 +14,7 @@ from django.utils.encoding import force_str
 
 # 3rd Party Libraries
 import factory
-from django_otp.plugins.otp_static.models import StaticToken
+from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
@@ -410,11 +410,10 @@ class HasuraLoginTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
 
-        cls.user_2fa = UserFactory(password=PASSWORD)
-        cls.user_2fa_required = UserFactory(password=PASSWORD, require_2fa=True)
-        cls.user_2fa.totpdevice_set.create()
-        static_model = cls.user_2fa.staticdevice_set.create()
-        static_model.token_set.create(token=StaticToken.random_token())
+        cls.user_mfa = UserFactory(password=PASSWORD)
+        cls.user_mfa_required = UserFactory(password=PASSWORD, require_mfa=True)
+        secret = generate_totp_secret()
+        TOTP.activate(cls.user_mfa, secret)
 
         cls.uri = reverse("api:graphql_login")
 
@@ -454,15 +453,15 @@ class HasuraLoginTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), result)
 
-    def test_graphql_login_with_2fa(self):
+    def test_graphql_login_with_mfa(self):
         result = {
             "message": "Login and generate a token from your user profile",
             "extensions": {
-                "code": "2FARequired",
+                "code": "MFARequired",
             },
         }
 
-        data = {"input": {"username": f"{self.user_2fa.username}", "password": f"{PASSWORD}"}}
+        data = {"input": {"username": f"{self.user_mfa.username}", "password": f"{PASSWORD}"}}
         response = self.client.post(
             self.uri,
             data=data,
@@ -474,7 +473,7 @@ class HasuraLoginTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), result)
 
-        data = {"input": {"username": f"{self.user_2fa_required.username}", "password": f"{PASSWORD}"}}
+        data = {"input": {"username": f"{self.user_mfa_required.username}", "password": f"{PASSWORD}"}}
         response = self.client.post(
             self.uri,
             data=data,
@@ -631,7 +630,7 @@ class HasuraCheckoutTests(TestCase):
         activity,
         start_date=date.today() - timedelta(days=1),
         end_date=date.today() + timedelta(days=1),
-        note=None,
+        description=None,
     ):
         return {
             "input": {
@@ -640,7 +639,7 @@ class HasuraCheckoutTests(TestCase):
                 "activityTypeId": activity,
                 "startDate": start_date,
                 "endDate": end_date,
-                "note": note,
+                "description": description,
             }
         }
 
@@ -652,7 +651,7 @@ class HasuraCheckoutTests(TestCase):
         server_role,
         start_date=date.today() - timedelta(days=1),
         end_date=date.today() + timedelta(days=1),
-        note=None,
+        description=None,
     ):
         return {
             "input": {
@@ -662,14 +661,14 @@ class HasuraCheckoutTests(TestCase):
                 "serverRoleId": server_role,
                 "startDate": start_date,
                 "endDate": end_date,
-                "note": note,
+                "description": description,
             }
         }
 
     def test_graphql_checkout_domain(self):
         _, token = utils.generate_jwt(self.user)
         data = self.generate_domain_data(self.project.pk, self.domain.pk, self.activity.pk)
-        del data["input"]["note"]
+        del data["input"]["description"]
         response = self.client.post(
             self.domain_uri,
             data=data,
@@ -689,7 +688,7 @@ class HasuraCheckoutTests(TestCase):
     def test_graphql_checkout_server(self):
         _, token = utils.generate_jwt(self.user)
         data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk)
-        del data["input"]["note"]
+        del data["input"]["description"]
         response = self.client.post(
             self.server_uri,
             data=data,
@@ -708,7 +707,7 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_server_with_invalid_role(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, 999, note="Test note")
+        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, 999, description="Test note")
         response = self.client.post(
             self.server_uri,
             data=data,
@@ -1404,7 +1403,7 @@ class HasuraCreateUserTests(TestCase):
             content_type="application/json",
             data=self.generate_data(
                 "validuser", "validuser@specterops.io", "validuser", "user",
-                require2fa=True,
+                requiremfa=True,
                 timezone="America/New_York",
                 enableFindingCreate=False,
                 enableFindingEdit=False,
@@ -1420,7 +1419,7 @@ class HasuraCreateUserTests(TestCase):
 
         created_user = User.objects.get(username="validuser")
         self.assertEqual(created_user.email, "validuser@specterops.io")
-        self.assertEqual(created_user.require_2fa, True)
+        self.assertEqual(created_user.require_mfa, True)
 
         response = self.client.post(
             self.uri,
@@ -1525,7 +1524,7 @@ class GraphqlDomainUpdateEventTests(TestCase):
                     "new": {
                         "expired": False,
                         "registrar": "Hover",
-                        "note": "<p>The personal website and blog of Christopher Maddalena</p>",
+                        "description": "<p>The personal website and blog of Christopher Maddalena</p>",
                         "last_health_check": "",
                         "auto_renew": True,
                         "expiration": "2023-03-25",
@@ -1957,7 +1956,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "job_title": cls.other_contact.job_title,
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
-                        "note": cls.other_contact.note,
+                        "description": cls.other_contact.description,
                         "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": True,
@@ -1968,7 +1967,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "job_title": cls.other_contact.job_title,
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
-                        "note": cls.other_contact.note,
+                        "description": cls.other_contact.description,
                         "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": cls.other_contact.primary,

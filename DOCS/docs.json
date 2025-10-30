@@ -35,26 +35,6 @@
             ]
           },
           {
-            "group": "Configuring Global Settings",
-            "pages": [
-              "configuring-global-settings/introduction-to-command-center",
-              "configuring-global-settings/personalizing-company-information",
-              "configuring-global-settings/configuring-global-report-options",
-              "configuring-global-settings/configuring-the-announcement-banner",
-              {
-                "group": "Configuring APIs",
-                "pages": [
-                  "configuring-global-settings/configuring-apis",
-                  "configuring-global-settings/configuring-apis/configuring-slack",
-                  "configuring-global-settings/configuring-apis/configuring-virustotal",
-                  "configuring-global-settings/configuring-apis/configuring-namecheap",
-                  "configuring-global-settings/configuring-apis/configuring-cloud-services"
-                ]
-              },
-              "configuring-global-settings/configuring-extra-fields"
-            ]
-          },
-          {
             "group": "Features",
             "pages": [
               {
@@ -156,6 +136,12 @@
                 ]
               },
               {
+                "group": "BloodHound Integration",
+                "pages": [
+                  "features/bloodhound-integration"
+                ]
+              },
+              {
                 "group": "Background Tasks",
                 "pages": [
                   "features/background-tasks",
@@ -164,6 +150,27 @@
                 ]
               },
               "features/health-monitoring"
+            ]
+          },
+          {
+            "group": "Configuring Global Settings",
+            "pages": [
+              "configuring-global-settings/introduction-to-command-center",
+              "configuring-global-settings/personalizing-company-information",
+              "configuring-global-settings/configuring-global-report-options",
+              "configuring-global-settings/configuring-the-announcement-banner",
+              {
+                "group": "Configuring APIs",
+                "pages": [
+                  "configuring-global-settings/configuring-apis",
+                  "configuring-global-settings/configuring-apis/configuring-bloodhound",
+                  "configuring-global-settings/configuring-apis/configuring-slack",
+                  "configuring-global-settings/configuring-apis/configuring-virustotal",
+                  "configuring-global-settings/configuring-apis/configuring-namecheap",
+                  "configuring-global-settings/configuring-apis/configuring-cloud-services"
+                ]
+              },
+              "configuring-global-settings/configuring-extra-fields"
             ]
           },
           {

@@ -11,13 +11,12 @@ from django.db.models import Q
 from django.utils import timezone
 
 # 3rd Party Libraries
-from allauth_2fa.utils import user_has_valid_totp_device
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_user_is_privileged
+from ghostwriter.api.utils import verify_user_is_privileged, user_has_valid_totp_device
 from ghostwriter.home.models import UserProfile
 from ghostwriter.reporting.models import Finding, Observation, Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -147,7 +146,7 @@ def is_privileged(user):
 
 
 @register.filter
-def has_2fa(user):
+def has_mfa(user):
     """Check if the user has a valid TOTP method configured."""
     return user_has_valid_totp_device(user)
 

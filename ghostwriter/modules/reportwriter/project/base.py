@@ -6,6 +6,7 @@ from ghostwriter.modules.custom_serializers import FullProjectSerializer
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
 from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlRichText, offset_headings
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Client, Project
@@ -23,12 +24,20 @@ class ExportProjectBase(ExportBase):
     def serialize_object(self, object):
         return FullProjectSerializer(object).data
 
+    def bloodhound_heading_offset(self) -> int:
+        return 0
+
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)
         rich_text_context = ChainMap(ExportProjectBase.rich_text_jinja_overlay(self.data), base_context)
 
         # Fields on Project
-        ExportProjectBase.process_projects_richtext(self, base_context, rich_text_context)
+        ExportProjectBase.process_projects_richtext(
+            self,
+            base_context,
+            rich_text_context,
+            self.bloodhound_heading_offset()
+        )
 
         return base_context
 
@@ -52,19 +61,17 @@ class ExportProjectBase(ExportBase):
         ex: ExportBase,
         base_context: dict,
         rich_text_context: dict,
+        bloodhound_heading_offset: int,
     ):
         """
         Helper for processing the project-related rich text fields in both the `ProjectSerializer` and
         `ReportDataSerializer`.
-
-        Arguments are the serialized data to read and alter, the render function, and the bound `process_extra_fields`
-        method.
         """
 
         # Client
-        base_context["client"]["note_rt"] = ex.create_lazy_template(
-            f"the note of client {base_context['client']['name']}",
-            base_context["client"]["note"],
+        base_context["client"]["description_rt"] = ex.create_lazy_template(
+            f"the description of client {base_context['client']['name']}",
+            base_context["client"]["description"],
             rich_text_context,
         )
         base_context["client"]["address_rt"] = ex.create_lazy_template(
@@ -80,25 +87,28 @@ class ExportProjectBase(ExportBase):
         )
 
         # Project
-        base_context["project"]["note_rt"] = ex.create_lazy_template(
-            "the project note", base_context["project"]["note"], rich_text_context
+        base_context["project"]["description_rt"] = ex.create_lazy_template(
+            "the project description", base_context["project"]["description"], rich_text_context
+        )
+        base_context["project"]["collab_note_rt"] = ex.create_lazy_template(
+            "the project collab note", base_context["project"]["collab_note"], rich_text_context
         )
         ex.process_extra_fields("the project", base_context["project"]["extra_fields"], Project, rich_text_context)
 
         # Assignments
         for assignment in base_context["team"]:
             if isinstance(assignment, dict):
-                if assignment["note"]:
-                    assignment["note_rt"] = ex.create_lazy_template(
-                        f"the note of person {assignment['name']}", assignment["note"], rich_text_context
+                if assignment["description"]:
+                    assignment["description_rt"] = ex.create_lazy_template(
+                        f"the description of person {assignment['name']}", assignment["description"], rich_text_context
                     )
 
         # Contacts
         for contact in base_context["client"]["contacts"]:
             if isinstance(contact, dict):
-                if contact["note"]:
-                    contact["note_rt"] = ex.create_lazy_template(
-                        f"the note of contact {contact['name']}", contact["note"], rich_text_context
+                if contact["description"]:
+                    contact["description_rt"] = ex.create_lazy_template(
+                        f"the description of contact {contact['name']}", contact["description"], rich_text_context
                     )
 
         # Objectives
@@ -128,9 +138,9 @@ class ExportProjectBase(ExportBase):
         # Targets
         for target in base_context["targets"]:
             if isinstance(target, dict):
-                if target["note"]:
-                    target["note_rt"] = ex.create_lazy_template(
-                        f"the note of target {target['ip_address']}", target["note"], rich_text_context
+                if target["description"]:
+                    target["description_rt"] = ex.create_lazy_template(
+                        f"the description of target {target['ip_address']}", target["description"], rich_text_context
                     )
 
         # Deconfliction Events
@@ -152,20 +162,29 @@ class ExportProjectBase(ExportBase):
                     )
 
         # Infrastructure
-        for asset_type in base_context["infrastructure"]:
-            for asset in base_context["infrastructure"][asset_type]:
-                if isinstance(asset, dict):
-                    if asset["note"]:
-                        asset["note_rt"] = ex.create_lazy_template(
-                            f"the note of {asset_type} {asset.get('name') or asset.get('domain') or asset['ip_address']}",
-                            asset["note"],
-                            rich_text_context,
-                        )
-
-        for asset in base_context["infrastructure"]["domains"]:
-            ex.process_extra_fields(f"domain {asset['domain']}", asset["extra_fields"], Domain, rich_text_context)
-        for asset in base_context["infrastructure"]["servers"]:
-            ex.process_extra_fields(f"server {asset['name']}", asset["extra_fields"], StaticServer, rich_text_context)
+        for domain in base_context["infrastructure"]["domains"]:
+            if domain["description"]:
+                domain["description_rt"] = ex.create_lazy_template(
+                    f"the description of domain {domain.get('domain')}",
+                    domain["description"],
+                    rich_text_context,
+                )
+            ex.process_extra_fields(f"domain {domain['domain']}", domain["extra_fields"], Domain, rich_text_context)
+        for server in base_context["infrastructure"]["cloud"]:
+            if server["description"]:
+                server["description_rt"] = ex.create_lazy_template(
+                    f"the description of cloud server {server.get('name')}",
+                    domain["description"],
+                    rich_text_context,
+                )
+        for server in base_context["infrastructure"]["servers"]:
+            if server["description"]:
+                server["description_rt"] = ex.create_lazy_template(
+                    f"the description of domain {server.get('name')}",
+                    server["description"],
+                    rich_text_context,
+                )
+            ex.process_extra_fields(f"server {server['name']}", server["extra_fields"], StaticServer, rich_text_context)
 
         # Logs
         for log in base_context["logs"]:
@@ -176,6 +195,24 @@ class ExportProjectBase(ExportBase):
                     OplogEntry,
                     rich_text_context,
                 )
+
+        # BloodHound findings
+        if base_context.get("bloodhound"):
+            for finding in base_context["bloodhound"]["findings"]:
+                if finding.get("assets"):
+                    id = finding.get("id")
+                    finding["assets"]["references"] = HtmlRichText(
+                        offset_headings(finding["assets"]["references"], bloodhound_heading_offset),
+                        f"references of BloodHound finding {id}"
+                    )
+                    finding["assets"]["short_description"] = HtmlRichText(
+                        offset_headings(finding["assets"]["short_description"], bloodhound_heading_offset),
+                        f"short_description of BloodHound finding {id}"
+                    )
+                    finding["assets"]["long_description"] = HtmlRichText(
+                        offset_headings(finding["assets"]["long_description"], bloodhound_heading_offset),
+                        f"long_description of BloodHound finding {id}"
+                    )
 
     @classmethod
     def generate_lint_data(cls):

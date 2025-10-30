@@ -4,6 +4,7 @@
 import datetime
 import json
 import logging
+from urllib.parse import urlparse
 
 # Django Imports
 from django import forms
@@ -11,7 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
@@ -31,7 +32,8 @@ from ghostwriter.api.utils import (
     get_project_list,
     verify_user_is_privileged,
 )
-from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -76,6 +78,7 @@ from ghostwriter.rolodex.models import (
     ProjectSubTask,
     ProjectTarget,
 )
+from ghostwriter.shepherd.external.bloodhound.client import APIClient as BhAPIClient, Credentials as BhCredentials, APIException as BhAPIException
 from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 
 # Using __name__ resolves to ghostwriter.rolodex.views
@@ -1060,7 +1063,7 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                     return ForbiddenJsonResponse()
                 contact_dict = to_dict(contact_instance, resolve_fk=True)
                 del contact_dict["client"]
-                del contact_dict["note"]
+                del contact_dict["description"]
 
                 # Check if this contact already exists in the project
                 if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
@@ -1068,7 +1071,7 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                     data = {"result": "error", "message": message}
                 else:
                     project_contact = ProjectContact(
-                        project=self.get_object(), **contact_dict, note=contact_instance.note
+                        project=self.get_object(), **contact_dict, description=contact_instance.description
                     )
                     project_contact.save()
 
@@ -1596,12 +1599,28 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
-    def get_context_data(self, object, **kwargs):
+    def get_context_data(self, object: Project, **kwargs):
         ctx = super().get_context_data(object=object, **kwargs)
         ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
         ctx["export_templates"] = ReportTemplate.objects.filter(
             Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))
+        ctx.update(CollabModelUpdate.context_data(
+            self.request.user,
+            object.pk,
+            None,
+        ))
+
+        bhc = BloodHoundConfiguration.get_solo()
+        ctx["global_bloodhound_config"] = bhc
+
+        if object.has_bloodhound_api():
+            ctx["bhc_api"] = object
+        elif bhc.has_bloodhound_api():
+            ctx["bhc_api"] = bhc
+        else:
+            ctx["bhc_api"] = None
+
         return ctx
 
 
@@ -2172,3 +2191,88 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
+
+
+class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
+    project: Project | None
+    bh_api: Project | BloodHoundConfiguration
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        if "project" in request.GET:
+            try:
+                project_id = int(request.GET["project"])
+            except ValueError:
+                return self.render_result(request, messages.constants.ERROR, "Project does not exist.")
+            self.project = get_object_or_404(Project, pk=project_id)
+            self.bh_api = self.project if self.project.has_bloodhound_api() else BloodHoundConfiguration.get_solo()
+        else:
+            self.project = None
+            self.bh_api = BloodHoundConfiguration.get_solo()
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        if self.project is not None:
+            return self.project.user_can_view(self.request.user)
+        return self.request.user.is_authenticated
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        if not self.bh_api.has_bloodhound_api():
+            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured.")
+        bh_url = urlparse(self.bh_api.bloodhound_api_root_url)
+        bh_client = BhAPIClient(
+            scheme=bh_url.scheme,
+            host=bh_url.hostname,
+            port=bh_url.port,
+            credentials=BhCredentials(
+                token_id=self.bh_api.bloodhound_api_key_id,
+                token_key=self.bh_api.bloodhound_api_key_token,
+            ),
+        )
+        return self.run(bh_client)
+
+    def run(self, bh_client: BhAPIClient):
+        raise NotImplementedError("Override run")
+
+    def render_result(self, level: int, message: str) -> HttpResponse:
+        if "X-GW-Async" in self.request.headers:
+            if level == messages.SUCCESS:
+                return HttpResponse(status=200, content=message)
+            return HttpResponse(status=401, content=message)
+        messages.add_message(self.request, level, message, extra_tags="error" if level == messages.ERROR else "")
+        if self.project is not None:
+            url = self.project.get_absolute_url() + "#bloodhound"
+        else:
+            url = reverse("admin:commandcenter_bloodhoundconfiguration_change")
+        return HttpResponseRedirect(url)
+
+
+class BloodhoundApiTestView(BloodhoundApiBaseView):
+    def run(self, bh_client: BhAPIClient):
+        try:
+            bh_version = bh_client.get_version()
+        except (IOError, json.JSONDecodeError, KeyError, BhAPIException):
+            logger.exception("BH connection test failed")
+            return self.render_result(messages.ERROR, "Could not connect to BloodHound")
+        logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
+
+        message = "Connected to BloodHound successfully — BloodHound version " + bh_version.server_version + "."
+        if bh_version.edition is not None:
+            message += " " + bh_version.edition.title() + " Edition"
+        return self.render_result(messages.SUCCESS, message)
+
+
+class BloodhoundApiFetchView(BloodhoundApiBaseView):
+    def run(self, bh_client: BhAPIClient):
+        try:
+            bh_version = bh_client.get_version()
+            logger.info(f"BloodHound instance version: {bh_version.server_version}, API version {bh_version.current_api_version}, edition: {bh_version.edition}")
+
+            out = bh_client.get_all()
+        except (IOError, json.JSONDecodeError, KeyError, BhAPIException):
+            logger.exception("BH connection test failed")
+            return self.render_result(messages.ERROR, "Could not connect to BloodHound.")
+
+        self.bh_api.bloodhound_results = out
+        self.bh_api.save()
+
+        return self.render_result(messages.SUCCESS, "Findings updated from BloodHound successfully.")

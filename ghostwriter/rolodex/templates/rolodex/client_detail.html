@@ -55,6 +55,10 @@
     <!-- Info Tab -->
     <div class="tab-content">
       <div id="general" class="tab-pane in active">
+        {% if client.logo %}
+        <img src="{{ client.logo.url }}" width="{{ client.logo.width }}" height="{{ client.logo.height }}" />
+        {% endif %}
+
         <h4>Client Details</h4>
         <hr/>
 
@@ -85,8 +89,8 @@
         </table>
 
         <div id="clientDescription" class="description-block offset-md-2 col-8">
-          {% if client.note %}
-            {{ client.note|bleach }}
+          {% if client.description %}
+            {{ client.description|bleach }}
           {% else %}
             <p class="text-center">No additional information provided for this client. <a class="clickable"
                                                                                           href="{% url 'rolodex:client_update' client.id %}">Fix

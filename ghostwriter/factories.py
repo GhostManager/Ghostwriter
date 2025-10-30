@@ -68,7 +68,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     enable_observation_create = False
     enable_observation_edit = False
     enable_observation_delete = False
-    require_2fa = False
+    require_mfa = False
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):
@@ -110,7 +110,7 @@ class ClientFactory(factory.django.DjangoModelFactory):
     name = Faker("company")
     short_name = Faker("name")
     codename = Faker("name")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     timezone = random.choice(TIMEZONES)
     address = Faker("address")
 
@@ -132,7 +132,7 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     job_title = Faker("job")
     email = Faker("email")
     phone = Faker("phone_number")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     timezone = random.choice(TIMEZONES)
     client = factory.SubFactory(ClientFactory)
 
@@ -159,7 +159,7 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     # Random dates within a year of each other and at least 7 days apart
     start_date = Faker("date_between", start_date="-365d", end_date="-182d")
     end_date = Faker("date_between", start_date="-190d", end_date="+182d")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     slack_channel = "#ghostwriter"
     complete = False
     client = factory.SubFactory(ClientFactory)
@@ -190,7 +190,7 @@ class ProjectAssignmentFactory(factory.django.DjangoModelFactory):
     )
     start_date = factory.SelfAttribute("project.start_date")
     end_date = factory.SelfAttribute("project.end_date")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     operator = factory.SubFactory(UserFactory)
     role = factory.SubFactory(ProjectRoleFactory)
 
@@ -253,7 +253,7 @@ class ProjectTargetFactory(factory.django.DjangoModelFactory):
 
     ip_address = Faker("ipv4_private")
     hostname = Faker("hostname")
-    note = Faker("sentence")
+    description = Faker("sentence")
     compromised = Faker("boolean")
     project = factory.SubFactory(ProjectFactory)
 
@@ -266,7 +266,7 @@ class ProjectContactFactory(factory.django.DjangoModelFactory):
     job_title = Faker("job")
     email = Faker("email")
     phone = Faker("phone_number")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     primary = False
     timezone = random.choice(TIMEZONES)
     project = factory.SubFactory(ProjectFactory)
@@ -352,6 +352,7 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
+    bloodhound_heading_offset = 0
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 
@@ -670,7 +671,7 @@ class DomainFactory(factory.django.DjangoModelFactory):
     expiration = Faker("future_date")
     vt_permalink = Faker("url")
     categorization = Faker("pydict", value_types=(str,))
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     burned_explanation = Faker("rich_text")
     auto_renew = Faker("boolean")
     expired = Faker("boolean")
@@ -696,7 +697,7 @@ class HistoryFactory(factory.django.DjangoModelFactory):
 
     start_date = Faker("past_date")
     end_date = Faker("future_date")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     domain = factory.SubFactory(DomainFactory)
     client = factory.SubFactory(ClientFactory)
     project = factory.SubFactory(ProjectFactory)
@@ -730,7 +731,7 @@ class StaticServerFactory(factory.django.DjangoModelFactory):
         model = "shepherd.StaticServer"
 
     ip_address = Faker("ipv4")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     name = Faker("hostname")
     server_status = factory.SubFactory(ServerStatusFactory)
     server_provider = factory.SubFactory(ServerProviderFactory)
@@ -743,7 +744,7 @@ class ServerHistoryFactory(factory.django.DjangoModelFactory):
 
     start_date = Faker("past_date")
     end_date = Faker("future_date")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     server = factory.SubFactory(StaticServerFactory)
     client = factory.SubFactory(ClientFactory)
     project = factory.SubFactory(ProjectFactory)
@@ -759,7 +760,7 @@ class TransientServerFactory(factory.django.DjangoModelFactory):
     ip_address = Faker("ipv4")
     aux_address = factory.List([Faker("ipv4") for _ in range(3)])
     name = Faker("hostname")
-    note = Faker("rich_text")
+    description = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)
     operator = factory.SubFactory(UserFactory)
     server_provider = factory.SubFactory(ServerProviderFactory)
