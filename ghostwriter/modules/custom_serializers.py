@@ -3,6 +3,7 @@
 # IF YOU EDIT THIS FILE: also update `linting_utils.py`
 
 # Standard Libraries
+import logging
 from datetime import datetime
 import zoneinfo
 
@@ -22,7 +23,7 @@ from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, BloodHoundConfiguration
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
@@ -58,6 +59,8 @@ from ghostwriter.shepherd.models import (
     TransientServer,
 )
 from ghostwriter.users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 def strip_html(value):
@@ -673,6 +676,10 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
         model = Project
         exclude = [
             "project_type",
+            "bloodhound_api_root_url",
+            "bloodhound_api_key_id",
+            "bloodhound_api_key_token",
+            "bloodhound_results",
         ]
 
     def get_name(self, obj):
@@ -906,6 +913,7 @@ class ReportDataSerializer(CustomModelSerializer):
     company = SerializerMethodField("get_company_info")
     tools = SerializerMethodField("get_tools")
     extra_fields = ExtraFieldsSerField(Report._meta.label)
+    bloodhound = SerializerMethodField("get_bloodhound")
 
     class Meta:
         model = Report
@@ -918,6 +926,12 @@ class ReportDataSerializer(CustomModelSerializer):
     def get_company_info(self, obj):
         serializer = CompanyInfoSerializer(CompanyInformation.get_solo())
         return serializer.data
+
+    @classmethod
+    def get_bloodhound(cls, obj: Report):
+        if obj.project.has_bloodhound_api():
+            return obj.project.bloodhound_results
+        return BloodHoundConfiguration.get_solo().bloodhound_results
 
     def get_tools(self, obj):
         tools = []
