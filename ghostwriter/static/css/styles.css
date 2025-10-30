@@ -3918,3 +3918,71 @@ input[type="color"]:focus,
   border-color: #333;
   color: #666;
 }
+
+/* FullCalendar dark mode fixes */
+[data-theme="dark"] .fc-scroller-harness,
+[data-theme="dark"] .fc-col-header,
+[data-theme="dark"] .fc-scrollgrid {
+  background-color: var(--main-bg-color);
+}
+
+[data-theme="dark"] .fc-toolbar-title {
+  color: var(--main-txt-color);
+}
+
+/* Sidebar dropdown toggle active state */
+[data-theme="dark"] .sidebar-dropdown-toggle[aria-expanded="true"] {
+  background-color: var(--sidebar-hover-background-color);
+}
+
+/* Bootstrap tabs - inactive tabs styling */
+[data-theme="dark"] .nav-tabs .nav-link:not(.active) {
+  background-color: var(--neutral-color);
+  color: var(--main-bg-color);
+}
+
+/* jQuery autocomplete dropdown */
+[data-theme="dark"] .ui-autocomplete {
+  background-color: var(--sidebar-background-color);
+  border-color: var(--search-box-shadow);
+  color: var(--main-txt-color);
+}
+
+[data-theme="dark"] .ui-autocomplete .ui-menu-item {
+  color: var(--main-txt-color);
+}
+
+[data-theme="dark"] .ui-autocomplete .ui-state-active,
+[data-theme="dark"] .ui-autocomplete .ui-state-focus {
+  background-color: var(--sidebar-hover-background-color);
+  border-color: var(--search-box-shadow);
+  color: #fff;
+}
+
+/* Remove box shadow from search inputs in dark mode */
+[data-theme="dark"] .search input {
+  box-shadow: none;
+}
+
+/* File inputs and form controls background fix */
+[data-theme="dark"] input[type="file"],
+[data-theme="dark"] .custom-file-input,
+[data-theme="dark"] .custom-file-label {
+  background-color: var(--search-input-background-color);
+  border-color: var(--search-box-shadow);
+  color: var(--main-txt-color);
+}
+
+[data-theme="dark"] .custom-file-label::after {
+  background-color: var(--sidebar-background-color);
+  color: var(--main-txt-color);
+}
+
+/* Accordion pseudo-elements color fix */
+[data-theme="dark"] h5 a:after {
+  color: var(--main-txt-color);
+}
+
+[data-theme="dark"] .finding-accordion .card-header:after {
+  color: var(--main-txt-color);
+}

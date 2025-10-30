@@ -379,6 +379,7 @@
           {% endif %}
 
           <!-- Theme Toggle -->
+          {% comment %}
           <div class="mt-2 col-9 mx-auto">
             <label for="theme-toggle" class="d-block mb-1" style="font-size: 14px; color: var(--sidebar-text-color);">Theme</label>
             <select id="theme-toggle" class="form-control form-control-sm" style="font-size: 14px;">
@@ -386,6 +387,110 @@
               <option value="dark">Dark</option>
               <option value="auto">Auto</option>
             </select>
+          </div>
+          {% endcomment %}
+          
+          <!-- Animated Theme Toggle -->
+          <div class="mt-2 col-9 mx-auto theme-toggle-container">
+            <style>
+              .theme-toggle-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+              }
+              
+              .theme-toggle-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 8px;
+              }
+              
+              .theme-switch {
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 30px;
+              }
+              
+              .theme-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+              }
+              
+              .theme-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(to right, #FFB84D 0%, #F77A52 100%);
+                transition: .4s;
+                border-radius: 30px;
+              }
+              
+              .theme-slider:before {
+                position: absolute;
+                content: "☀";
+                height: 24px;
+                width: 24px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                line-height: 24px;
+              }
+              
+              input:checked + .theme-slider {
+                background: linear-gradient(to right, #4B4BFF 0%, #8E44AD 100%);
+              }
+              
+              input:checked + .theme-slider:before {
+                content: "☾";
+                transform: translateX(30px);
+              }
+              
+              .auto-checkbox-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 12px;
+                color: var(--sidebar-text-color);
+              }
+              
+              .auto-checkbox-wrapper input[type="checkbox"] {
+                cursor: pointer;
+              }
+              
+              .auto-checkbox-wrapper label {
+                cursor: pointer;
+                margin: 0;
+              }
+              
+              input:checked + .theme-slider:before,
+              input:not(:checked) + .theme-slider:before {
+                transition: transform .4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+              }
+            </style>
+            
+            <div class="theme-toggle-wrapper">
+              <label class="theme-switch">
+                <input type="checkbox" id="theme-toggle-switch">
+                <span class="theme-slider"></span>
+              </label>
+            </div>
+            
+            <div class="auto-checkbox-wrapper">
+              <input type="checkbox" id="theme-auto-checkbox">
+              <label for="theme-auto-checkbox">Auto (follow system)</label>
+            </div>
           </div>
 
           <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
@@ -577,7 +682,8 @@
   {% comment %} Theme Toggle Functionality {% endcomment %}
   (function() {
     const THEME_STORAGE_KEY = 'ghostwriter-theme';
-    const themeToggle = document.getElementById('theme-toggle');
+    const themeToggleSwitch = document.getElementById('theme-toggle-switch');
+    const themeAutoCheckbox = document.getElementById('theme-auto-checkbox');
 
     // Function to get the system theme preference
     function getSystemTheme() {
@@ -589,10 +695,42 @@
 
     // Function to apply the theme
     function applyTheme(theme) {
+      let actualTheme = theme;
       if (theme === 'auto') {
-        theme = getSystemTheme();
+        actualTheme = getSystemTheme();
       }
-      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-theme', actualTheme);
+      
+      // Swap images for dark mode
+      const sidebarHeaderImg = document.querySelector('.sidebar-header img');
+      const sidebarFooterImg = document.querySelector('a[href="https://www.specterops.io"] img');
+      
+      if (actualTheme === 'dark') {
+        // Switch to dark mode images (when they exist)
+        if (sidebarHeaderImg) {
+          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt.png', 'inverted_header_alt_dark.png');
+        }
+        if (sidebarFooterImg) {
+          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain.png', 'domain_dark.png');
+        }
+      } else {
+        // Switch back to light mode images
+        if (sidebarHeaderImg) {
+          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt_dark.png', 'inverted_header_alt.png');
+        }
+        if (sidebarFooterImg) {
+          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain_dark.png', 'domain.png');
+        }
+      }
+      
+      // Update toggle UI based on theme
+      if (theme === 'auto') {
+        themeToggleSwitch.checked = actualTheme === 'dark';
+        themeToggleSwitch.disabled = true;
+      } else {
+        themeToggleSwitch.disabled = false;
+        themeToggleSwitch.checked = theme === 'dark';
+      }
     }
 
     // Function to get current theme preference
@@ -600,19 +738,38 @@
       return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
     }
 
-    // Initialize theme on page load
-    const savedTheme = getCurrentTheme();
-    applyTheme(savedTheme);
-    if (themeToggle) {
-      themeToggle.value = savedTheme;
+    // Function to save and apply theme
+    function saveAndApplyTheme(theme) {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      applyTheme(theme);
     }
 
-    // Handle theme toggle change
-    if (themeToggle) {
-      themeToggle.addEventListener('change', function() {
-        const selectedTheme = this.value;
-        localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
-        applyTheme(selectedTheme);
+    // Initialize theme on page load
+    const savedTheme = getCurrentTheme();
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.checked = savedTheme === 'auto';
+    }
+    applyTheme(savedTheme);
+
+    // Handle toggle switch change
+    if (themeToggleSwitch) {
+      themeToggleSwitch.addEventListener('change', function() {
+        if (!this.disabled) {
+          const selectedTheme = this.checked ? 'dark' : 'light';
+          saveAndApplyTheme(selectedTheme);
+        }
+      });
+    }
+
+    // Handle auto checkbox change
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          saveAndApplyTheme('auto');
+        } else {
+          const manualTheme = themeToggleSwitch.checked ? 'dark' : 'light';
+          saveAndApplyTheme(manualTheme);
+        }
       });
     }
 
