@@ -73,7 +73,7 @@ const Evidence = Node.create<EvidenceOptions>({
     addKeyboardShortcuts() {
         return {
             "Mod-Shift-d": () =>
-                this.editor.options.element.dispatchEvent(
+                this.editor.view.dom.dispatchEvent(
                     new CustomEvent("openevidencemodal")
                 ),
         };

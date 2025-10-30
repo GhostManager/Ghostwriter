@@ -82,7 +82,8 @@ export default function CvssCalculator(props: {
                     setTimeout(() => {
                         setDocValue(next.toString(false, undefined, true));
                         const scores = next.createJsonSchema();
-                        let score, severity;
+                        let score: number;
+                        let severity: keyof typeof SEVERITY_TO_ID;
                         if (scores.version === "3.1") {
                             if (scores.environmentalScore !== undefined) {
                                 score = scores.environmentalScore;

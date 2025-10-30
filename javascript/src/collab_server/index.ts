@@ -7,7 +7,7 @@ import * as apollo from "@apollo/client/core";
 const { ApolloClient, createHttpLink, InMemoryCache } = apollo;
 
 import { randomUUID } from "node:crypto";
-import { Hocuspocus } from "@hocuspocus/server";
+import { Server } from "@hocuspocus/server";
 import { setContext } from "@apollo/client/link/context";
 import { env } from "node:process";
 import * as Y from "yjs";
@@ -85,7 +85,7 @@ class AuthError extends Error {
 const BASE_LOGGER = pino({});
 const documentData = new Map<string, unknown>();
 
-const server = new Hocuspocus({
+const server = new Server({
     port: 8000,
 
     async onConnect(data) {
