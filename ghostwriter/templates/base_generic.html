@@ -389,7 +389,7 @@
             </select>
           </div>
           {% endcomment %}
-          
+
           <!-- Animated Theme Toggle -->
           <div class="mt-2 col-9 mx-auto theme-toggle-container">
             <style>
@@ -398,27 +398,27 @@
                 flex-direction: column;
                 align-items: center;
               }
-              
+
               .theme-toggle-wrapper {
                 display: flex;
                 align-items: center;
                 gap: 10px;
                 margin-bottom: 8px;
               }
-              
+
               .theme-switch {
                 position: relative;
                 display: inline-block;
                 width: 60px;
                 height: 30px;
               }
-              
+
               .theme-switch input {
                 opacity: 0;
                 width: 0;
                 height: 0;
               }
-              
+
               .theme-slider {
                 position: absolute;
                 cursor: pointer;
@@ -430,7 +430,7 @@
                 transition: .4s;
                 border-radius: 30px;
               }
-              
+
               .theme-slider:before {
                 position: absolute;
                 content: "☀";
@@ -447,16 +447,16 @@
                 font-size: 16px;
                 line-height: 24px;
               }
-              
+
               input:checked + .theme-slider {
                 background: linear-gradient(to right, #4B4BFF 0%, #8E44AD 100%);
               }
-              
+
               input:checked + .theme-slider:before {
                 content: "☾";
                 transform: translateX(30px);
               }
-              
+
               .auto-checkbox-wrapper {
                 display: flex;
                 align-items: center;
@@ -464,29 +464,29 @@
                 font-size: 12px;
                 color: var(--sidebar-text-color);
               }
-              
+
               .auto-checkbox-wrapper input[type="checkbox"] {
                 cursor: pointer;
               }
-              
+
               .auto-checkbox-wrapper label {
                 cursor: pointer;
                 margin: 0;
               }
-              
+
               input:checked + .theme-slider:before,
               input:not(:checked) + .theme-slider:before {
                 transition: transform .4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
               }
             </style>
-            
+
             <div class="theme-toggle-wrapper">
               <label class="theme-switch">
                 <input type="checkbox" id="theme-toggle-switch">
                 <span class="theme-slider"></span>
               </label>
             </div>
-            
+
             <div class="auto-checkbox-wrapper">
               <input type="checkbox" id="theme-auto-checkbox">
               <label for="theme-auto-checkbox">Auto (follow system)</label>
@@ -507,7 +507,7 @@
   <!-- Page Content Holder -->
   <div id="content">
     {% if user.is_authenticated %}
-      <div class="top-bar container-fluid align-middle">
+      <div class="top-bar container-fluid align-middle mb-3">
         <!-- Breadcrumb Links -->
         {% block breadcrumbs %}{% endblock %}
 
@@ -700,11 +700,11 @@
         actualTheme = getSystemTheme();
       }
       document.documentElement.setAttribute('data-theme', actualTheme);
-      
+
       // Swap images for dark mode
       const sidebarHeaderImg = document.querySelector('.sidebar-header img');
       const sidebarFooterImg = document.querySelector('a[href="https://www.specterops.io"] img');
-      
+
       if (actualTheme === 'dark') {
         // Switch to dark mode images (when they exist)
         if (sidebarHeaderImg) {
@@ -722,7 +722,7 @@
           sidebarFooterImg.src = sidebarFooterImg.src.replace('domain_dark.png', 'domain.png');
         }
       }
-      
+
       // Update toggle UI based on theme
       if (theme === 'auto') {
         themeToggleSwitch.checked = actualTheme === 'dark';
