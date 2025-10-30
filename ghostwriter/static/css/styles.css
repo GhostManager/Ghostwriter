@@ -3987,6 +3987,75 @@ input[type="color"]:focus,
   color: var(--main-txt-color);
 }
 
+/* Table header span highlighting fix */
+[data-theme="dark"] thead th span,
+[data-theme="dark"] .table thead th span {
+  background-color: transparent;
+  color: inherit;
+}
+
+/* Icon button contrast fix for dark mode */
+[data-theme="dark"] .icon:before,
+[data-theme="dark"] .icon:after {
+  color: var(--main-txt-color);
+}
+
+[data-theme="dark"] button.icon {
+  color: var(--main-txt-color);
+}
+
+/* Tiptap / ProseMirror editor dark mode */
+[data-theme="dark"] .ProseMirror,
+[data-theme="dark"] .tiptap {
+  background-color: var(--search-input-background-color);
+  color: var(--main-txt-color);
+}
+
+[data-theme="dark"] .tiptap-menubar,
+[data-theme="dark"] .editor-menubar {
+  background-color: var(--sidebar-background-color);
+  border-color: var(--search-box-shadow);
+}
+
+[data-theme="dark"] .tiptap-menubar button,
+[data-theme="dark"] .editor-menubar button {
+  color: var(--main-txt-color);
+  background-color: transparent;
+}
+
+[data-theme="dark"] .tiptap-menubar button:hover,
+[data-theme="dark"] .editor-menubar button:hover {
+  background-color: var(--sidebar-hover-background-color);
+}
+
+[data-theme="dark"] .tiptap-menubar button.is-active,
+[data-theme="dark"] .editor-menubar button.is-active {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+/* Additional input types for dark mode */
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="datetime-local"],
+[data-theme="dark"] input[type="time"],
+[data-theme="dark"] input[type="week"],
+[data-theme="dark"] input[type="month"],
+[data-theme="dark"] input[type="url"],
+[data-theme="dark"] input[type="tel"],
+[data-theme="dark"] input[type="color"] {
+  background-color: var(--search-input-background-color);
+  border-color: var(--search-box-shadow);
+  color: var(--main-txt-color);
+}
+
+/* Select boxes in dark mode */
+[data-theme="dark"] select:not(.form-control-sm):not(#theme-toggle) {
+  background-color: var(--search-input-background-color);
+  border-color: var(--search-box-shadow);
+  color: var(--main-txt-color);
+}
+
 /* File input overlap fix */
 .custom-file {
   position: relative;
@@ -3997,12 +4066,18 @@ input[type="color"]:focus,
 }
 
 .custom-file-input {
-  position: relative;
+  position: absolute;
   z-index: 2;
   width: 100%;
-  height: calc(1.5em + 0.75rem + 2px);
+  height: 100%;
   margin: 0;
   opacity: 0;
+  cursor: pointer;
+}
+
+.custom-file-input:focus ~ .custom-file-label {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(80, 176, 113, 0.25);
 }
 
 .custom-file-label {
@@ -4011,7 +4086,7 @@ input[type="color"]:focus,
   right: 0;
   left: 0;
   z-index: 1;
-  height: calc(1.5em + 0.75rem + 2px);
+  height: 100%;
   padding: 0.375rem 0.75rem;
   font-weight: 400;
   line-height: 1.5;
@@ -4020,6 +4095,8 @@ input[type="color"]:focus,
   border: 1px solid #ced4da;
   border-radius: 0.25rem;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 
 .custom-file-label::after {
@@ -4028,13 +4105,13 @@ input[type="color"]:focus,
   right: 0;
   bottom: 0;
   z-index: 3;
-  display: block;
-  height: calc(1.5em + 0.75rem);
+  display: flex;
+  align-items: center;
   padding: 0.375rem 0.75rem;
   line-height: 1.5;
   color: #495057;
   content: "Browse";
   background-color: #e9ecef;
-  border-left: inherit;
+  border-left: 1px solid #ced4da;
   border-radius: 0 0.25rem 0.25rem 0;
 }

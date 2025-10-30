@@ -726,9 +726,7 @@
       // Update toggle UI based on theme
       if (theme === 'auto') {
         themeToggleSwitch.checked = actualTheme === 'dark';
-        themeToggleSwitch.disabled = true;
       } else {
-        themeToggleSwitch.disabled = false;
         themeToggleSwitch.checked = theme === 'dark';
       }
     }
@@ -754,10 +752,12 @@
     // Handle toggle switch change
     if (themeToggleSwitch) {
       themeToggleSwitch.addEventListener('change', function() {
-        if (!this.disabled) {
-          const selectedTheme = this.checked ? 'dark' : 'light';
-          saveAndApplyTheme(selectedTheme);
+        // If auto mode is enabled, disable it when user manually toggles
+        if (themeAutoCheckbox && themeAutoCheckbox.checked) {
+          themeAutoCheckbox.checked = false;
         }
+        const selectedTheme = this.checked ? 'dark' : 'light';
+        saveAndApplyTheme(selectedTheme);
       });
     }
 
