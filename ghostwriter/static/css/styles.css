@@ -8,6 +8,7 @@
 
 html {
   overflow-y: scroll;
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 body {
@@ -15,6 +16,14 @@ body {
   background: var(--main-bg-color);
   color: var(--main-txt-color);
   font-weight: 300;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* Smooth theme transitions for all elements */
+*, *::before, *::after {
+  transition-property: background-color, color, border-color, box-shadow;
+  transition-duration: 0.5s;
+  transition-timing-function: ease;
 }
 
 p {
