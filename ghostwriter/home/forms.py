@@ -62,6 +62,7 @@ class UserProfileForm(forms.ModelForm):
                     class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
+                css_class="mt-3"
             ),
         )
 
