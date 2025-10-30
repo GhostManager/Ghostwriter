@@ -4004,6 +4004,16 @@ input[type="color"]:focus,
   color: var(--main-txt-color);
 }
 
+/* Make icon and text turn white on hover for buttons and links styled as buttons */
+[data-theme="dark"] button.icon:hover,
+[data-theme="dark"] button.icon:hover:before,
+[data-theme="dark"] a.icon:hover,
+[data-theme="dark"] a.icon:hover:before,
+[data-theme="dark"] .btn:hover.icon:before,
+[data-theme="dark"] .btn.icon:hover:before {
+  color: #fff;
+}
+
 /* Tiptap / ProseMirror editor dark mode */
 [data-theme="dark"] .ProseMirror,
 [data-theme="dark"] .tiptap {
@@ -4071,22 +4081,7 @@ input[type="color"]:focus,
   color: #fff;
 }
 
-/* Form label alignment fix */
-.row .col-2 label,
-.row .col-3 label,
-.form-row .col-2 label,
-.form-row .col-3 label {
-  margin-top: 0.5rem;
-  padding-top: 0.375rem;
-}
 
-/* Ensure select2 and other form controls in rows align properly */
-.row > [class*="col-"] > .form-control,
-.row > [class*="col-"] > .select2,
-.form-row > [class*="col-"] > .form-control,
-.form-row > [class*="col-"] > .select2 {
-  margin-top: 0.5rem;
-}
 
 /* File input overlap fix */
 .custom-file {
