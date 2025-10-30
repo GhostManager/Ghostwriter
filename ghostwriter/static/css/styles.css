@@ -4130,6 +4130,7 @@ label + .custom-file {
   overflow: hidden;
   display: flex;
   align-items: center;
+  margin-top: 0;
 }
 
 .custom-file-label::after {
