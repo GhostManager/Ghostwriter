@@ -378,6 +378,16 @@
             <a href="{% url 'account_login' %}" class="btn btn-primary col-9 icon login-icon">Login</a>
           {% endif %}
 
+          <!-- Theme Toggle -->
+          <div class="mt-2 col-9 mx-auto">
+            <label for="theme-toggle" class="d-block mb-1" style="font-size: 14px; color: var(--sidebar-text-color);">Theme</label>
+            <select id="theme-toggle" class="form-control form-control-sm" style="font-size: 14px;">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto</option>
+            </select>
+          </div>
+
           <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
                                                    alt="SpecterOps"></a>
         </div>
@@ -563,6 +573,59 @@
   $(document).ready(function () {
     $('[data-toggle="tooltip"]').tooltip({boundary: "window"});
   });
+
+  {% comment %} Theme Toggle Functionality {% endcomment %}
+  (function() {
+    const THEME_STORAGE_KEY = 'ghostwriter-theme';
+    const themeToggle = document.getElementById('theme-toggle');
+
+    // Function to get the system theme preference
+    function getSystemTheme() {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
+    }
+
+    // Function to apply the theme
+    function applyTheme(theme) {
+      if (theme === 'auto') {
+        theme = getSystemTheme();
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+
+    // Function to get current theme preference
+    function getCurrentTheme() {
+      return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+    }
+
+    // Initialize theme on page load
+    const savedTheme = getCurrentTheme();
+    applyTheme(savedTheme);
+    if (themeToggle) {
+      themeToggle.value = savedTheme;
+    }
+
+    // Handle theme toggle change
+    if (themeToggle) {
+      themeToggle.addEventListener('change', function() {
+        const selectedTheme = this.value;
+        localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+        applyTheme(selectedTheme);
+      });
+    }
+
+    // Listen for system theme changes when in auto mode
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        const currentTheme = getCurrentTheme();
+        if (currentTheme === 'auto') {
+          applyTheme('auto');
+        }
+      });
+    }
+  })();
 
   {% comment %} All of the Toastr JavaScript {% endcomment %}
   $(document).ready(function () {
