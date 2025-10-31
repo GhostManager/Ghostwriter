@@ -94,3 +94,108 @@
   --pptx-color: #c43f1d;
   --excel-color: #107a40;
 }
+
+/* ---------------------------------------------------
+    DARK MODE STYLES
+----------------------------------------------------- */
+
+[data-theme="dark"] {
+  --main-font-size: 16px;
+  --secondary-font-size: 14px;
+  --primary-color: #50B071;
+  --secondary-color: #8E91D1;
+  --secondary-color-fade: #9AA5E8;
+  --secondary-color-med: #A893E0;
+  --secondary-color-light: #3A3D5E;
+  --neutral-color: #9a9a9a;
+  --blocked-color: #FF7E79;
+  --warning-color: #F4B083;
+  --ghost-white: #2A2B3D;
+  --ghost-grey: #9CAAB6;
+
+  /* TEXT */
+  --h1-font-color: #9AA5E8;
+  --h2-font-color: #5FC587;
+  --h3-font-color: #5FC587;
+  --main-txt-color: #c9c9c9;
+  --main-bg-color: #1a1a1a;
+
+  /* BUTTONS */
+  --button-primary-color: #50B071;
+  --button-hover-color: #8E91D1;
+  --button-warning-color: #FF7E79;
+  --button-border-radius: 4px;
+
+  /* LINKS */
+  --active-link-color: #5FC587;
+  --clickable-underline-color: #5FC587;
+
+  /* SIDEBAR */
+  --sidebar-text-color: #c9c9c9;
+  --sidebar-active-text-color: #9AA5E8;
+  --sidebar-header-text-color: #fff;
+  --sidebar-link-text-color: #9CAAB6;
+
+  --sidebar-background-color: #252525;
+  --sidebar-header-background-color: #6D70A7;
+  --sidebar-hover-background-color: #333333;
+  --sidebar-link-background-color: #9CAAB6;
+
+  /* SIDEBAR BUTTON */
+  --sidebar-collapse-button-color: #50B071;
+  --sidebar-collapse-button-text: #fff;
+
+  /* NAVBAR */
+  --navbar-background-color: #2a2a2a;
+  --navbar-breadcrumb-active-color: #9AA5E8;
+  --navbar-breadcrumb-background-color: #2a2a2a;
+  --navbar-breadcrumb-active-background-color: #2a2a2a;
+  --navbar-report-selected-font-color: #5FC587;
+  --navbar-report-selected-background-color: #2d4a33;
+  --navbar-report-empty-font-color: #FF7E79;
+  --navbar-report-empty-background-color: #4a2d2d;
+
+  /* ACCORDIONS, COLLAPSIBLES, & DROPDOWNS */
+  --accordion-primary-color: #8E91D1;
+  --accordion-expanded-color: #5FC587;
+
+  --collapsible-main-color: #8E91D1;
+  --collapsible-hover-color: #5FC587;
+
+  --dropdown-button-main-color: #6D70A7;
+  --dropdown-button-hover-color: #9AA5E8;
+
+  /* SEARCH BOXES */
+  --search-text-color: #999;
+  --search-box-shadow: #444;
+  --search-input-background-color: #2a2a2a;
+
+  /* TABLES */
+  --table-header-color: #8E91D1;
+  --secondary-table-header-color: rgba(100, 100, 100, 0.3);
+
+  /* CUSTOM TEXT ELEMENTS */
+  --burned-color: #FF7E79;
+  --healthy-color: #A8D08D;
+  --info-rating-color: #8EAADB;
+  --low-rating-color: #A8D08D;
+  --med-rating-color: #F4B083;
+  --high-rating-color: #FF7E79;
+  --crit-rating-color: #A893E0;
+  --neutral-rating-color: #9a9a9a;
+
+  /* BRANDS */
+  --word-color: #4A8AE5;
+  --pptx-color: #E56747;
+  --excel-color: #3FA860;
+}
+
+/* Reduce image brightness in dark mode */
+[data-theme="dark"] img:not(.navbar-avatar):not([src*="inverted_header"]) {
+  filter: brightness(0.8);
+}
+
+/* Adjust text weight in dark mode for better readability */
+[data-theme="dark"] body {
+  font-weight: 400;
+}

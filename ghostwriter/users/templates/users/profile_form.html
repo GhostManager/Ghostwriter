@@ -15,7 +15,7 @@
 
 {% block content %}
   <!-- Current Avatar -->
-  <img class="avatar" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="User Image">
+  <img class="avatar mt-3" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="User Image">
 
   <!-- Form Error Section -->
   {% if form.errors %}
