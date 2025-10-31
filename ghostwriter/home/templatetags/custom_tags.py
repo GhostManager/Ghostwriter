@@ -156,6 +156,7 @@ def has_webauthn(user):
     """Check if the user has a valid WebAuthn authenticator configured."""
     return user_has_valid_webauthn_device(user)
 
+
 @register.filter
 def add_days(date, days):
     """Add business days to a date. Days can be negative to subtract."""

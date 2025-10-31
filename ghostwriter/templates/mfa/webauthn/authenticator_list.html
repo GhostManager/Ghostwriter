@@ -45,7 +45,7 @@
                     </form>
                     <form method="post" action="{% url 'mfa_remove_webauthn' authenticator.pk %}" class="d-inline">
                         {% csrf_token %}
-                        <button class="btn btn-sm btn-danger ">{% trans "Delete" %}</button>
+                        <button class="btn btn-sm btn-danger">{% trans "Delete" %}</button>
                     </form>
                 </td>
             </tr>
