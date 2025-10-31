@@ -16,7 +16,7 @@ from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_user_is_privileged, user_has_valid_totp_device
+from ghostwriter.api.utils import verify_user_is_privileged, user_has_valid_totp_device, user_has_valid_webauthn_device
 from ghostwriter.home.models import UserProfile
 from ghostwriter.reporting.models import Finding, Observation, Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -149,6 +149,12 @@ def is_privileged(user):
 def has_mfa(user):
     """Check if the user has a valid TOTP method configured."""
     return user_has_valid_totp_device(user)
+
+
+@register.filter
+def has_webauthn(user):
+    """Check if the user has a valid WebAuthn authenticator configured."""
+    return user_has_valid_webauthn_device(user)
 
 
 @register.filter

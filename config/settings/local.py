@@ -19,6 +19,11 @@ STATICFILES_DIRS += [
     "/app/javascript/dist_frontend/"
 ]
 
+# MFA SETTINGS
+# Optional -- use for local development only
+# https://docs.allauth.org/en/dev/mfa/webauthn.html
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = True
+
 # CACHES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#caches

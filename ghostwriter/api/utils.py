@@ -44,6 +44,24 @@ def user_has_valid_totp_device(user):
 
     return authenticators.exists()
 
+
+def user_has_valid_webauthn_device(user):
+    """
+    Check if the user has a valid WebAuthn device.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if not user.is_authenticated:
+        return False
+
+    authenticators = Authenticator.objects.filter(user=user, type=Authenticator.Type.WEBAUTHN)
+
+    return authenticators.exists()
+
+
 def get_jwt_from_request(request):
     """
     Fetch the JSON Web Token from a ``request`` object's ``META`` attribute. The
