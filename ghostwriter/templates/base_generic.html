@@ -409,8 +409,8 @@
               .theme-switch {
                 position: relative;
                 display: inline-block;
-                width: 60px;
-                height: 30px;
+                width: 80px;
+                height: 40px;
               }
 
               .theme-switch input {
@@ -426,35 +426,171 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: linear-gradient(to right, #f46036 0%, #FF6B4D 100%);
-                transition: .4s cubic-bezier(0.4, 0.0, 0.2, 1);
-                border-radius: 30px;
+                background: linear-gradient(135deg, #87CEEB 0%, #f46036 100%);
+                transition: background 0.5s ease;
+                border-radius: 40px;
+                overflow: hidden;
               }
 
-              .theme-slider:before {
+              /* Sun */
+              .theme-slider .sun {
                 position: absolute;
-                content: "☀";
-                height: 24px;
-                width: 24px;
-                left: 3px;
-                bottom: 3px;
-                background-color: white;
-                transition: .4s;
+                width: 28px;
+                height: 28px;
+                background: #FABC1C;
                 border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 16px;
-                line-height: 24px;
+                top: 6px;
+                left: 8px;
+                transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
+                box-shadow: 0 0 10px rgba(250, 188, 28, 0.5);
               }
 
+              /* Moon */
+              .theme-slider .moon {
+                position: absolute;
+                width: 24px;
+                height: 24px;
+                background: #FFFDF2;
+                border-radius: 50%;
+                top: 8px;
+                right: 10px;
+                transform: translateX(80px);
+                transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
+                box-shadow: 0 0 10px rgba(255, 253, 242, 0.6);
+              }
+
+              /* Moon crater */
+              .theme-slider .moon::before {
+                content: '';
+                position: absolute;
+                width: 8px;
+                height: 8px;
+                background: #E6E4D5;
+                border-radius: 50%;
+                top: 6px;
+                left: 5px;
+              }
+
+              .theme-slider .moon::after {
+                content: '';
+                position: absolute;
+                width: 5px;
+                height: 5px;
+                background: #E6E4D5;
+                border-radius: 50%;
+                top: 12px;
+                left: 12px;
+              }
+
+              /* Cloud */
+              .theme-slider .cloud {
+                position: absolute;
+                width: 20px;
+                height: 8px;
+                background: white;
+                border-radius: 10px;
+                top: 12px;
+                left: 25px;
+                opacity: 1;
+                transition: transform 0.5s ease, opacity 0.3s ease;
+              }
+
+              .theme-slider .cloud::before {
+                content: '';
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                background: white;
+                border-radius: 50%;
+                top: -6px;
+                left: 3px;
+              }
+
+              .theme-slider .cloud::after {
+                content: '';
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                background: white;
+                border-radius: 50%;
+                top: -5px;
+                right: 3px;
+              }
+
+              /* Stars */
+              .theme-slider .star {
+                position: absolute;
+                width: 2px;
+                height: 2px;
+                background: white;
+                opacity: 0;
+                transition: opacity 0.5s ease;
+                border-radius: 50%;
+                box-shadow: 0 0 3px white;
+              }
+
+              .theme-slider .star:nth-child(1) {
+                top: 10px;
+                left: 15px;
+                animation-delay: 0s;
+              }
+
+              .theme-slider .star:nth-child(2) {
+                top: 20px;
+                left: 25px;
+                animation-delay: 0.1s;
+              }
+
+              .theme-slider .star:nth-child(3) {
+                top: 15px;
+                left: 35px;
+                animation-delay: 0.2s;
+              }
+
+              .theme-slider .star:nth-child(4) {
+                top: 25px;
+                left: 20px;
+                animation-delay: 0.15s;
+              }
+
+              .theme-slider .star:nth-child(5) {
+                top: 30px;
+                left: 30px;
+                animation-delay: 0.25s;
+              }
+
+              /* Checked state (Dark mode) */
               input:checked + .theme-slider {
-                background: linear-gradient(to right, #5B5EBF 0%, #6D70A7 100%);
+                background: linear-gradient(135deg, #1c2135 0%, #2c3150 100%);
               }
 
-              input:checked + .theme-slider:before {
-                content: "☾";
-                transform: translateX(30px);
+              input:checked + .theme-slider .sun {
+                transform: translateX(-80px);
+                opacity: 0;
+              }
+
+              input:checked + .theme-slider .moon {
+                transform: translateX(0);
+                opacity: 1;
+              }
+
+              input:checked + .theme-slider .cloud {
+                transform: translateX(-80px);
+                opacity: 0;
+              }
+
+              input:checked + .theme-slider .star {
+                opacity: 1;
+              }
+
+              /* Twinkle animation for stars */
+              @keyframes twinkle {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 1; }
+              }
+
+              input:checked + .theme-slider .star {
+                animation: twinkle 2s infinite;
               }
 
               .auto-checkbox-wrapper {
@@ -473,17 +609,21 @@
                 cursor: pointer;
                 margin: 0;
               }
-
-              input:checked + .theme-slider:before,
-              input:not(:checked) + .theme-slider:before {
-                transition: transform .4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-              }
             </style>
 
             <div class="theme-toggle-wrapper">
               <label class="theme-switch">
                 <input type="checkbox" id="theme-toggle-switch">
-                <span class="theme-slider"></span>
+                <span class="theme-slider">
+                  <div class="sun"></div>
+                  <div class="cloud"></div>
+                  <div class="moon"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                </span>
               </label>
             </div>
 
