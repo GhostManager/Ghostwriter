@@ -334,6 +334,18 @@ MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
 # https://docs.allauth.org/en/dev/mfa/webauthn.html
 MFA_PASSKEY_LOGIN_ENABLED = True
 
+# django-allauth-mfa forms
+MFA_FORMS = {
+    "authenticate": "ghostwriter.users.forms.UserMFAAuthenticateForm",
+    "reauthenticate": "allauth.mfa.base.forms.AuthenticateForm",
+    "activate_totp": "ghostwriter.users.forms.UserMFADeviceForm",
+    "deactivate_totp": "ghostwriter.users.forms.UserMFADeviceRemoveForm",
+    "generate_recovery_codes": "allauth.mfa.recovery_codes.forms.GenerateRecoveryCodesForm",
+
+}
+
+MFA_REVEAL_TOKENS = env.bool("DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS", False)
+
 # override the default django-allauth reauthentication timeout settings
 # Set to 9 hours (32400 seconds) to align with SESSION_COOKIE_AGE and avoid session timeout conflicts.
 # this is necessary to avoid conflicts with the SESSION_COOKIE_AGE setting
@@ -358,18 +370,6 @@ ACCOUNT_FORMS = {
     "login": "ghostwriter.users.forms.UserLoginForm",
     "signup": "ghostwriter.users.forms.UserSignupForm",
 }
-
-# django-allauth-mfa forms
-MFA_FORMS = {
-    "authenticate": "ghostwriter.users.forms.UserMFAAuthenticateForm",
-    "reauthenticate": "allauth.mfa.base.forms.AuthenticateForm",
-    "activate_totp": "ghostwriter.users.forms.UserMFADeviceForm",
-    "deactivate_totp": "ghostwriter.users.forms.UserMFADeviceRemoveForm",
-    "generate_recovery_codes": "allauth.mfa.recovery_codes.forms.GenerateRecoveryCodesForm",
-
-}
-
-MFA_REVEAL_TOKENS = env.bool("DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS", False)
 
 # django-compressor
 # ------------------------------------------------------------------------------
