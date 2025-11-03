@@ -66,6 +66,18 @@
   <!-- JSONView -->
   <script src="{% static 'js/jsonview.js' %}"></script>
   <link rel="stylesheet" type="text/css" href="{% static 'css/jsonview.css' %}">
+
+  <script>
+  (function() {
+    try {
+      var theme = localStorage.getItem('ghostwriter-theme') || 'light';
+      if (theme === 'auto') {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch(e) {}
+  })();
+  </script>
 </head>
 
 <body>

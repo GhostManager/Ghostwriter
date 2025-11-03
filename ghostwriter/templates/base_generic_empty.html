@@ -59,6 +59,18 @@
 
   <!-- Textarea Autoresize -->
   <script src="{% static 'js/jquery.textarea_autosize.js' %}"></script>
+
+  <script>
+  (function() {
+    try {
+      var theme = localStorage.getItem('ghostwriter-theme') || 'light';
+      if (theme === 'auto') {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch(e) {}
+  })();
+  </script>
 </head>
 
 <body>
@@ -353,6 +365,80 @@
       console.error('Global notification WebSocket closed unexpectedly');
     };
   {% endif %}
+
+  // Theme Toggle Functionality
+  (function() {
+    const THEME_STORAGE_KEY = 'ghostwriter-theme';
+    const themeToggleSwitch = document.getElementById('theme-toggle-switch');
+    const themeAutoCheckbox = document.getElementById('theme-auto-checkbox');
+
+    function getSystemTheme() {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
+    }
+
+    function applyTheme(theme) {
+      let actualTheme = theme;
+      if (theme === 'auto') {
+        actualTheme = getSystemTheme();
+      }
+      document.documentElement.setAttribute('data-theme', actualTheme);
+      if (themeToggleSwitch) {
+        if (theme === 'auto') {
+          themeToggleSwitch.checked = actualTheme === 'dark';
+        } else {
+          themeToggleSwitch.checked = theme === 'dark';
+        }
+      }
+    }
+
+    function getCurrentTheme() {
+      return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+    }
+
+    function saveAndApplyTheme(theme) {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      applyTheme(theme);
+    }
+
+    const savedTheme = getCurrentTheme();
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.checked = savedTheme === 'auto';
+    }
+    applyTheme(savedTheme);
+
+    if (themeToggleSwitch) {
+      themeToggleSwitch.addEventListener('change', function() {
+        if (themeAutoCheckbox && themeAutoCheckbox.checked) {
+          themeAutoCheckbox.checked = false;
+        }
+        const selectedTheme = this.checked ? 'dark' : 'light';
+        saveAndApplyTheme(selectedTheme);
+      });
+    }
+
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          saveAndApplyTheme('auto');
+        } else {
+          const manualTheme = themeToggleSwitch && themeToggleSwitch.checked ? 'dark' : 'light';
+          saveAndApplyTheme(manualTheme);
+        }
+      });
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        const currentTheme = getCurrentTheme();
+        if (currentTheme === 'auto') {
+          applyTheme('auto');
+        }
+      });
+    }
+  })();
 </script>
 
 {% comment %} Blocks used by forms that use Bootstrap tabs {% endcomment %}
