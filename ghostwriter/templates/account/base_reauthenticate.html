@@ -19,14 +19,14 @@
         {% element hr %}
         {% endelement %}
         {% element h2 %}
-            {% translate "Alternative options" %}
+            {% translate "Alternative Methods" %}
         {% endelement %}
-        {% element button_group %}
+        <div class="d-grid gap-3">
             {% for alt in reauthentication_alternatives %}
-                {% element button href=alt.url tags="primary,outline" %}
-                    {{ alt.description }}
-                {% endelement %}
+            <a href="{{ alt.url }}" class="btn btn-outline-primary">
+            {{ alt.description }}
+            </a>
             {% endfor %}
-        {% endelement %}
+        </div>
     {% endif %}
 {% endblock content %}
