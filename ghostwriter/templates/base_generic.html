@@ -413,14 +413,15 @@
               <label for="theme-auto-checkbox">Auto (follow system)</label>
             </div>
           </div>
-
-          <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
-                                                   alt="SpecterOps"></a>
         </div>
       </div>
 
-      <div class="sidebar-footer col d-flex align-items-center justify-content-center mb-2">
+      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2">
         <span>v{{ VERSION }}, released {{ RELEASE_DATE }}</span>
+      </div>
+
+      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2"><a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
+                                                   alt="SpecterOps"></a>
       </div>
     </nav>
   {% endif %}
