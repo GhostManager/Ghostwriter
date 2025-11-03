@@ -4265,6 +4265,16 @@ label + .custom-file {
   left: 25px;
   opacity: 1;
   transition: transform 0.5s ease, opacity 0.3s ease;
+  animation: cloudDrift 3s ease-in-out infinite;
+}
+
+@keyframes cloudDrift {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateX(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateX(4px);
+  }
 }
 
 .theme-slider .cloud::before {
