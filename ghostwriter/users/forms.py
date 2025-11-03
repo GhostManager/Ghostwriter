@@ -283,7 +283,7 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             ButtonHolder(
-                Submit("submit", "Disable multi-factor", css_class="col-4"),
+                Submit("submit", "Disable Multi-Factor", css_class="col-4"),
             ),
         )
 
