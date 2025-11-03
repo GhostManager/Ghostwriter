@@ -646,10 +646,12 @@
       }
 
       // Update toggle UI based on theme
-      if (theme === 'auto') {
-        themeToggleSwitch.checked = actualTheme === 'dark';
-      } else {
-        themeToggleSwitch.checked = theme === 'dark';
+      if (themeToggleSwitch) {
+        if (theme === 'auto') {
+          themeToggleSwitch.checked = actualTheme === 'dark';
+        } else {
+          themeToggleSwitch.checked = theme === 'dark';
+        }
       }
     }
 
@@ -689,7 +691,7 @@
         if (this.checked) {
           saveAndApplyTheme('auto');
         } else {
-          const manualTheme = themeToggleSwitch.checked ? 'dark' : 'light';
+          const manualTheme = themeToggleSwitch && themeToggleSwitch.checked ? 'dark' : 'light';
           saveAndApplyTheme(manualTheme);
         }
       });
