@@ -42,7 +42,7 @@
                 "pages": [
                   "features/access-authentication-and-session-controls",
                   "features/access-authentication-and-session-controls/single-sign-on",
-                  "features/access-authentication-and-session-controls/two-factor-authentication",
+                  "features/access-authentication-and-session-controls/multi-factor-authentication",
                   "features/access-authentication-and-session-controls/role-based-access-controls",
                   "features/access-authentication-and-session-controls/session-management"
                 ]
