@@ -4200,7 +4200,8 @@ label + .custom-file {
   transition: background 0.5s ease, border-color 0.5s ease;
   border-radius: 40px;
   overflow: hidden;
-  border: 2px solid rgba(96, 38, 21, 0.45);
+  border: 2px solid rgba(96, 38, 21, 0.3);
+  background-clip: padding-box; /* Clips background to padding box, not border */
 }
 
 /* Sun */
