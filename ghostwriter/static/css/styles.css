@@ -4180,7 +4180,7 @@ label + .custom-file {
   position: relative;
   display: inline-block;
   width: 80px;
-  height: 40px;
+  height: 30px;
 }
 
 .theme-switch input {
@@ -4200,17 +4200,17 @@ label + .custom-file {
   transition: background 0.5s ease, border-color 0.5s ease;
   border-radius: 40px;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(96, 38, 21, 0.45);
 }
 
 /* Sun */
 .theme-slider .sun {
   position: absolute;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: #FABC1C;
   border-radius: 50%;
-  top: 6px;
+  top: 1px;
   left: 8px;
   transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
   box-shadow: 0 0 10px rgba(250, 188, 28, 0.5);
@@ -4223,8 +4223,8 @@ label + .custom-file {
   height: 24px;
   background: #FFFDF2;
   border-radius: 50%;
-  top: 8px;
-  right: 10px;
+  top: 1px;
+  right: 8px;
   transform: translateX(80px);
   transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
   box-shadow: 0 0 10px rgba(255, 253, 242, 0.6);
@@ -4300,34 +4300,34 @@ label + .custom-file {
   box-shadow: 0 0 3px white;
 }
 
-.theme-slider .star:nth-child(1) {
+.theme-slider .star:nth-of-type(4) {
   top: 10px;
-  left: 15px;
-  animation-delay: 0s;
-}
-
-.theme-slider .star:nth-child(2) {
-  top: 20px;
   left: 25px;
-  animation-delay: 0.1s;
-}
-
-.theme-slider .star:nth-child(3) {
-  top: 15px;
-  left: 35px;
-  animation-delay: 0.2s;
-}
-
-.theme-slider .star:nth-child(4) {
-  top: 25px;
-  left: 20px;
   animation-delay: 0.15s;
 }
 
-.theme-slider .star:nth-child(5) {
-  top: 30px;
+.theme-slider .star:nth-of-type(5) {
+  top:18px;
   left: 30px;
   animation-delay: 0.25s;
+}
+
+.theme-slider .star:nth-of-type(6) {
+  top: 5px;
+  left: 10px;
+  animation-delay: 0s;
+}
+
+.theme-slider .star:nth-of-type(7) {
+  top: 15px;
+  left: 12px;
+  animation-delay: 0.1s;
+}
+
+.theme-slider .star:nth-of-type(8) {
+  top: 7px;
+  left: 35px;
+  animation-delay: 0.2s;
 }
 
 /* Checked state (Dark mode) */
