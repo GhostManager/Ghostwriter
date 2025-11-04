@@ -155,9 +155,6 @@
       {% else %}
         <a class="btn btn-primary" href="{% url 'mfa_activate_totp' %}">Set Up Authenticator App</a>
       {% endif %}
-    </div>
-
-    <div class="btn-group" role="group" aria-label="profile-mgmt">
       {% if request.user|has_webauthn %}
         <a class="btn btn-danger" href="{% url 'mfa_list_webauthn' %}">Remove Security Key</a>
       {% else %}
