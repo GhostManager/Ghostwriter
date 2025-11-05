@@ -251,9 +251,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         table.autofit = True
         table.allow_autofit = True
-        table._tblPr.xpath("./w:tblW")[0].attrib[
+        tblw = table._tblPr.xpath("./w:tblW")[0]
+        tblw.attrib[
             "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
-        ] = "auto"
+        ] = "pct"
+        tblw.attrib[
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}w"
+        ] = "5000"
         for row_idx, _ in enumerate(table.rows):
             for cell_idx, _ in enumerate(table.rows[row_idx].cells):
                 table.rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
