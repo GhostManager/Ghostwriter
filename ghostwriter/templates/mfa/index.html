@@ -1,0 +1,124 @@
+{% extends "base_generic.html" %}
+{% load i18n %}
+{% load allauth %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}
+    {% trans "Multi-Factor Authentication" %}
+{% endblock pagetitle %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Multi-Factor Authentication</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <h1 class="mt-4 mb-4">{% trans "Multi-Factor Authentication" %}</h1>
+
+    {% if "totp" in MFA_SUPPORTED_TYPES %}
+        <div class="d-flex justify-content-center">
+            <div class="col-5">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title mb-2">{% translate "Authenticator App" %}</h5>
+                        {% if authenticators.totp %}
+                            <p>{% translate "Authentication using an authenticator app is active." %}</p>
+                        {% else %}
+                            <p>{% translate "An authenticator app is not active." %}</p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        {% if authenticators.totp %}
+                            <a href="{% url 'mfa_deactivate_totp' %}" class="btn btn-danger">
+                                {% translate "Deactivate" %}
+                            </a>
+                        {% else %}
+                            <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary">
+                                {% translate "Activate" %}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if "webauthn" in MFA_SUPPORTED_TYPES %}
+        <div class="d-flex justify-content-center">
+            <div class="col-5">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title mb-2">{% translate "Security Keys" %}</h5>
+                        {% if authenticators.webauthn|length %}
+                            <p>
+                                {% blocktranslate count count=authenticators.webauthn|length %}
+                                    You have added {{ count }} security key.
+                                {% plural %}
+                                    You have added {{ count }} security keys.
+                                {% endblocktranslate %}
+                            </p>
+                        {% else %}
+                            <p>{% translate "No security keys have been added." %}</p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        {% if authenticators.webauthn|length %}
+                            <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-primary">
+                                {% translate "Manage" %}
+                            </a>
+                        {% else %}
+                            <a href="{% url 'mfa_add_webauthn' %}" class="btn btn-primary">
+                                {% translate "Add" %}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
+        {% with total_count=authenticators.recovery_codes.generate_codes|length unused_count=authenticators.recovery_codes.get_unused_codes|length %}
+            <div class="d-flex justify-content-center">
+                <div class="col-5">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title mb-2">{% translate "Recovery Codes" %}</h5>
+                            {% if authenticators.recovery_codes %}
+                                <p>
+                                    {% blocktranslate count unused_count=unused_count %}
+                                        There is {{ unused_count }} out of {{ total_count }} recovery codes available.
+                                    {% plural %}
+                                        There are {{ unused_count }} out of {{ total_count }} recovery codes available.
+                                    {% endblocktranslate %}
+                                </p>
+                            {% else %}
+                                <p>{% translate "No recovery codes set up." %}</p>
+                            {% endif %}
+                        </div>
+                        {% if is_mfa_enabled %}
+                            <div class="card-footer">
+                                {% if authenticators.recovery_codes and unused_count > 0 %}
+                                    <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-primary me-2">
+                                        {% translate "View" %}
+                                    </a>
+                                    <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-secondary me-2">
+                                        {% translate "Download" %}
+                                    </a>
+                                {% endif %}
+                                <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-secondary">
+                                    {% translate "Generate" %}
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endwith %}
+    {% endif %}
+{% endblock content %}

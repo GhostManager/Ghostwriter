@@ -4,6 +4,19 @@
 {% load crispy_forms_tags %}
 {% load allauth %}
 
+{% block pagetitle %}Edit Security Key Name{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_list_webauthn' %}">Security Keys</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Edit Security Key</li>
+    </ul>
+  </nav>
+{% endblock %}
 
 {% block content %}
     <div class="container">
