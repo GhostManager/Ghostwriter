@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.6] - 6 November 2025
+
+### Fixed
+
+* Fixed tables not using the full width in Word documents (PR #742)
+  * Adjusted table width from `auto` to `pct` (percentage) and 100%
+* Fixed text alignment set in content edited with the old TinyMCE editor not being applied in Word documents (PR #743)
+
 ## [6.0.5] - 16 October 2025
 
 ### Added
