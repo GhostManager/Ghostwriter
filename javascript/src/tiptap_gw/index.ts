@@ -2,7 +2,6 @@
 // change the schema.
 
 import StarterKit from "@tiptap/starter-kit";
-import TextAlign from "@tiptap/extension-text-align";
 import { Table, TableHeader, TableRow } from "@tiptap/extension-table";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
@@ -23,6 +22,7 @@ import Color from "./color";
 import CaseChange from "./case_change";
 import Link from "./link";
 import Image from "./image";
+import TextAlign from "./text_align";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
