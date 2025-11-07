@@ -807,6 +807,21 @@ class ProjectListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
 
+    def test_date_sort_attribute_in_template(self):
+        """Test that execution window cells have data-sort attribute for locale-independent sorting."""
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        
+        # Check that the response contains data-sort attribute with ISO date format
+        content = response.content.decode('utf-8')
+        self.assertIn('data-sort="', content, "data-sort attribute should be present in the template")
+        
+        # Verify each project in the queryset has its start_date in the data-sort attribute
+        for project in response.context["filter"].qs:
+            expected_sort_value = project.start_date.strftime("%Y-%m-%d")
+            self.assertIn(f'data-sort="{expected_sort_value}"', content,
+                         f"Project {project.codename} should have data-sort attribute with ISO date {expected_sort_value}")
+
 
 class AssignProjectContactViewTests(TestCase):
     """Collection of tests for :view:`rolodex.AssignProjectContact`."""

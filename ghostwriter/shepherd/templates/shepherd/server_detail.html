@@ -155,7 +155,7 @@
                 </td>
                 <td class="align-middle text-left">{{ checkout.activity_type }}</td>
                 <td class="align-middle text-left">{{ checkout.server_role }}</td>
-                <td class="align-middle text-left">{{ checkout.start_date|date:"d M Y" }}
+                <td class="align-middle text-left" data-sort="{{ checkout.start_date|date:"Y-m-d" }}">{{ checkout.start_date|date:"d M Y" }}
                   - {{ checkout.end_date|date:"d M Y" }}</td>
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
