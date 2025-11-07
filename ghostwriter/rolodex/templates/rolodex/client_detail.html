@@ -258,7 +258,7 @@
                     <td class="align-middle text-left"><span class="blurry">REDACTED</span></td>
                   {% endif %}
                   <td class="align-middle text-left">{{ project.project_type }}</td>
-                  <td class="align-middle text-left" data-sort="{{ project.start_date|date:"Y-m-d" }}">{{ project.start_date|date:"d M Y" }}
+                  <td class="align-middle text-left" data-text="{{ project.start_date|date:"Y-m-d" }}">{{ project.start_date|date:"d M Y" }}
                     – {{ project.end_date|date:"d M Y" }}</td>
 
                   <td class="align-middle">
