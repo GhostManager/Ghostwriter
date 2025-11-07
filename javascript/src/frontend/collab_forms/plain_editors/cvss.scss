@@ -1,0 +1,113 @@
+.cvss-calculator {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .cvss-buttons {
+        display: grid;
+        // 5 = max number of values for one metric
+        grid-template-columns: auto repeat(5, 1fr);
+        row-gap: 0.2rem;
+
+        .cvss-category-header,
+        .cvss-subcategory-header {
+            // Take the entire row
+            grid-column-start: 1;
+            grid-column-end: -1;
+            text-align: left;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .cvss-subcategory-header {
+            font-size: 1.5em;
+        }
+
+        .cvss-metric-name {
+            // Ensure start of new row
+            grid-column-start: 1;
+
+            margin-bottom: 0;
+            text-align: left;
+            align-self: center;
+            font-size: 1rem;
+        }
+
+        .cvss-button {
+            margin-left: 0.3rem;
+        }
+    }
+
+    .cvss-score-ratings {
+        position: absolute;
+        top: 5px;
+        right: -10px;
+        font-size: 11px;
+        line-height: 150%;
+        text-align: center;
+
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+
+        & > div {
+            padding: 0 0.4em;
+            margin: 0 15px;
+            border: 2px solid #666666;
+            background: #dddddd;
+
+            border-radius: 10px;
+            width: 100px;
+            height: auto;
+
+            display: flex;
+            flex-direction: column;
+
+            h4 {
+                margin-top: 0.2rem;
+                margin-bottom: 0;
+            }
+
+            .cvss-rating-score {
+                font-size: 1.5rem;
+                font-weight: bold;
+                margin-top: 1rem;
+            }
+            .cvss-rating-severity {
+                margin-top: 1rem;
+                margin-bottom: 0.2rem;
+                font-size: 1.2rem;
+                &.cvss-no-severity {
+                    font-size: 1rem;
+                }
+            }
+
+            &.cvss-severity-CRITICAL {
+                color: #fff;
+                background: #cc0500;
+                border: 2px solid #cc0500;
+            }
+            &.cvss-severity-HIGH {
+                color: #fff;
+                background: #df3d03;
+                border-color: #df3d03;
+            }
+            &.cvss-severity-MEDIUM {
+                color: #fff;
+                background: #f9a009;
+                border-color: #f9a009;
+            }
+            &.cvss-severity-LOW {
+                color: #000;
+                background: #ffcb0d;
+                border-color: #ffcb0d;
+            }
+            &.cvss-severity-NONE {
+                color: #000;
+                background: #53aa33;
+                border-color: #53aa33;
+            }
+        }
+    }
+}

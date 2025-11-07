@@ -1,4 +1,6 @@
-{% load static i18n compress custom_tags %}
+{% load static i18n compress custom_tags settings_tags bleach_tags %}
+
+{% get_solo "commandcenter.BannerConfiguration" as banner_config %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -90,15 +92,10 @@
           <p class="sideheader icon icon home-icon">Project Shortcuts</p>
 
           <a
-            {% if request.session.active_report.id and request.session.active_report.title %}
-              class="btn btn-primary mb-3 col-10 active-report-shortcut icon ext-link-icon"
-              href="{% url 'reporting:report_detail' request.session.active_report.id %}"
-              >Jump to Report
-            {% else %}
-              class="btn btn-primary mb-3 col-10 active-report-shortcut icon ext-link-icon btn-disabled"
-              href="#"
-              >Select Report Below
-            {% endif %}
+            class="btn btn-primary mb-3 col-9 active-report-shortcut icon ext-link-icon {% if not request.session.active_report.id and not request.session.active_report.title %}btn-disabled{% endif %}"
+            href={% if request.session.active_report.id and request.session.active_report.title %}"{% url 'reporting:report_detail' request.session.active_report.id %}{% else %}"#"{% endif %}"
+            data-toggle="tooltip" data-placement="right" title="Open your active report after selecting one below"
+            >Jump to Report
           </a>
 
           <!-- Menu Section -->
@@ -188,7 +185,12 @@
               {% comment %} Findings Submenu Items {% endcomment %}
               <li><a class="icon list-icon" href="{% url 'reporting:findings' %}">Finding Library</a></li>
               {% if request.user|can_create_finding %}
-                <li><a class="icon plus-icon" href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
+                <li>
+                  <form action="{% url 'reporting:finding_create' %}" method="POST" style="display:contents">
+                    {% csrf_token %}
+                    <button class="icon plus-icon">Add New Finding</button>
+                  </form>
+                </li>
               {% endif %}
             </ul>
           </li>
@@ -199,12 +201,16 @@
               {% comment %} Search for observations {% endcomment %}
               <form class="px-6 py-2" action="{% url 'reporting:observations' %}" method="GET">
                 <input type="search" autocomplete="off" class="form-control" id="observation-search" name="title"
-                       placeholder="Search observations..." autofocus="autofocus">
+                       placeholder="Search Observations..." autofocus="autofocus">
               </form>
               {% comment %} observations Submenu Items {% endcomment %}
               <li><a class="icon list-icon" href="{% url 'reporting:observations' %}">Observation Library</a></li>
               {% if request.user|can_create_observation %}
-                <li><a class="icon plus-icon" href="{% url 'reporting:observation_create' %}">Add New Observation</a>
+                <li>
+                  <form action="{% url 'reporting:observation_create' %}" method="POST" style="display:contents">
+                    {% csrf_token %}
+                    <button class="icon plus-icon">Add New Observation</button>
+                  </form>
                 </li>
               {% endif %}
             </ul>
@@ -367,9 +373,9 @@
         <!-- Sidebar Buttons -->
         <div class="align-middle text-center">
           {% if user.is_authenticated %}
-            <a href="{% url 'account_logout' %}" class="btn btn-primary col-10 icon logout-icon">Logout</a>
+            <a href="{% url 'account_logout' %}" class="btn btn-primary col-9 icon logout-icon">Logout</a>
           {% else %}
-            <a href="{% url 'account_login' %}" class="btn btn-primary col-10 icon login-icon">Login</a>
+            <a href="{% url 'account_login' %}" class="btn btn-primary col-9 icon login-icon">Login</a>
           {% endif %}
 
           <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
@@ -400,6 +406,25 @@
       </div>
     {% endif %}
 
+    {%  comment %} MOTD Banner {% endcomment %}
+    {% if banner_config.enable_banner and not banner_config.expiry_date|is_past %}
+      {% if user.is_authenticated or banner_config.public_banner %}
+        <div id="globalBanner" class="container-fluid mb-3" expiryDate="{{ expiry_date }}">
+          <div class="alert alert-success text-center mb-0" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="position: absolute; right: 0.5rem; top: 0.5rem;">
+              <span aria-hidden="true">&times;</span>
+            </button>
+
+            {% if banner_config.banner_title %}<h4 class="alert-heading mt-0">{{ banner_config.banner_title|bleach }}</h4>{% endif %}
+            {{ banner_config.banner_message|bleach }}
+            {% if banner_config.banner_link %}
+              <p class="mt-2 mb-0"><a href="{{ banner_config.banner_link|bleach }}" class="alert-link">Learn more</a></p>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
     {%  comment %} Page Content Goes Here {% endcomment %}
     <div>
       {% block content %}{% endblock %}
@@ -411,6 +436,15 @@
 
 {% comment %} Scripts included on ALL pages {% endcomment %}
 <script>
+  {% comment %} Open a modal by ID {% endcomment %}
+  function openModal(modalId) {
+    // Add # prefix if not present for jQuery selector
+    const selector = modalId.startsWith('#') ? modalId : '#' + modalId;
+
+    // Show the modal
+    $(selector).modal('show');
+  }
+
   {% comment %} Handle AJAX errors {% endcomment %}
   (function ($) {
     $(document).on('ajaxError', function (event, xhr) {
@@ -474,7 +508,7 @@
               $(this).toggleClass('selected-report');
             }
           });
-          $('.js-activate-report').each(function () {
+          $('a.js-activate-report').each(function () {
             if (reportId === $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
               $(this).toggleClass('selected-report');
               $(this).addClass('toggle-on-icon');
@@ -497,9 +531,6 @@
         }
         if (data['message']) {
           displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
-          setTimeout(function () {
-            window.location.href = shortcut_url;
-          }, 5000);
         }
       }
     });
@@ -573,6 +604,37 @@
     {% endif %}
   {% endfor %}
 
+  // Handle library-filter accordion clicks
+  $(document).ready(function() {
+    // Listen for clicks on library-filter accordions or their toggle controls
+    $(document).on('click', '.library-filter, [data-target*=".library-filter"], [href*=".library-filter"]', function(e) {
+      // Get the accordion ID if available
+      let accordionId = $(this).attr('id') ||
+                        $(this).data('target') ||
+                        $(this).attr('href') ||
+                        'unknown';
+
+      // If this is just an ID string, clean it up
+      if (typeof accordionId === 'string') {
+        accordionId = accordionId.replace(/^[#.]/, '');
+      }
+
+      $.ajax({
+        url: '/home/ajax/session/update',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'session_data': 'filter',
+        },
+        success: function(response) {
+          if (response && response.message) {
+            console.log('Library filter state updated:', response.message);
+          }
+        }
+      });
+    });
+  });
+
   {% if user.is_authenticated %}
     {% comment %} Configure WebSockets protocol – HTTP for dev and HTTPS for prod {% endcomment %}
     let ws_proto = 'ws://'
@@ -633,6 +695,49 @@
       console.error('Global notification WebSocket closed unexpectedly');
     };
   {% endif %}
+
+  // Make sidebar dropdowns behave like an accordion
+  $(document).on('click', '.sidebar-dropdown-toggle', function(e) {
+    // Don't interfere with default Bootstrap collapse behavior
+    e.preventDefault();
+
+    // Get the target dropdown from data-target or href attribute
+    const targetDropdown = $(this).data('target') || $(this).attr('href');
+
+    // Close all other dropdowns except the one that was clicked
+    $('.sidebar-dropdown-toggle').not(this).each(function() {
+      const otherDropdown = $(this).data('target') || $(this).attr('href');
+      if ($(otherDropdown).hasClass('show')) {
+        $(otherDropdown).collapse('hide');
+      }
+    });
+
+    // Toggle the clicked dropdown
+    $(targetDropdown).collapse('toggle');
+  });
+
+  // Helper to get banner content as a unique key
+  function getBannerKey() {
+    const title = document.querySelector('#globalBanner .alert-heading')?.innerText || '';
+    const message = document.querySelector('#globalBanner .alert')?.innerText || '';
+    // Simple hash: base64 of title+message
+    return btoa(encodeURIComponent(title + message));
+  }
+
+  const bannerKey = getBannerKey();
+  const bannerStorageKey = 'globalBannerDismissed';
+  const bannerDismissedKey = localStorage.getItem(bannerStorageKey);
+
+  // Hide banner if dismissed and content matches
+  if (bannerDismissedKey === bannerKey) {
+    document.getElementById('globalBanner').style.display = 'none';
+  }
+
+  // Handle close button click
+  document.querySelector('#globalBanner .close')?.addEventListener('click', function() {
+    localStorage.setItem(bannerStorageKey, bannerKey);
+    document.getElementById('globalBanner').style.display = 'none';
+  });
 </script>
 
 {% comment %} Blocks used by forms that use Bootstrap tabs {% endcomment %}

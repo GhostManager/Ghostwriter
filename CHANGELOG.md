@@ -1,10 +1,386 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# CHANGELOG
+## [6.0.5] - 16 October 2025
+
+### Added
+
+* Added the option to color the background of table cells (PR #717)
+  * This applies to cells in rows not flagged as header rows
+
+### Changed
+
+* Changed the finding form in the admin panel to include the CVSS vector field (PR #715; Fixes #704)
+
+### Fixed
+
+* Fixed certain invalid characters that could break report generation if copied and pasted into the editor (PR #711; Fixes #709)
+* Fixed some HTML `span` elements being styled with a red font color (PR #714; Fixes #703)
+* Fixed invalid CVSS vector strings from causing the finding form to not render properly (PR #710; Fixes #705)
+* Fixed the configuration values for health checks on disk usage and minimum memory not being imported in the production YAML (PR #699; thanks to @smcgu for flagging)
+* Fixed templates with references to white cards failing linting
+* Fixed the Tiptap editor automatically converting strings into hyperlinks when it thinks they are URLs (PR #720)
+  * PR #673 attempted to disable this behavior, but it was not fully effective due to Tiptap having two paths for how it handles pasted text
+  * Based on feedback, this is the preferred behavior for most users, but we understand some users may want to re-enable it
+  * We will explore making this configurable in a future release
+
+## [6.0.4] - 12 September 2025
+
+### Added
+
+* Added GraphQL endpoints, `*_by_tag`, for several models that get all objects that include the tag passed in as the query's parameter (PR #693)
+  * Results are restricted to objects to which the user has access
+  * Included models are limited to OplogEntry, Finding, Observation, ReportedFinding, and ReportedObservation for now
+
+### Fixed
+
+* Fixed an error that occurred when saving the contents of a custom field in the collaborative editor when more than one person had to editor open (PR #694)
+* Fixed an issue with saving a newly added JSON field (PR #694)
+* Fixed code blocks not rendering inside Word documents if they were a part of a list item (PR #694)
+
+## [6.0.3] - 10 September 2025
+
+### Added
+
+* Added font color options back to the collaborative editor (PR #662)
+  * You can now change the font color using the color picker
+  * The color picker supports selecting from a palette of colors or entering custom hex or RGB values
+
+### Changed
+
+* Increased session timeout for evidence uploads to 24 hours (up from 15 minutes) (PR #686)
+  * This addresses uploads expiring when users fill out the form but then do not submit the form until later
+  * This change affects evidence uploads for the collaborative editor
+* Removed some redundant buttons from the observations list view (PR #685)
+* Improved the collaborative editor's modals (PR #683)
+  * The fields now auto-focus
+  * Pressing _Enter_ will now submit the modal form
+
+### Fixed
+
+* Fixed handling of the JSON content in JSON extra fields with the collaborative editor (PR #679)
+* Fixed the temporal and environmental scores not working properly with the CVSS v3 calculator in the collaborative editor (PR #680; Fixes #670)
+* Fixed an issue with bookmark/cross-references for headers in Word documents (PR #691)
+
+## [6.0.2] - 8 August 2025
+
+### Changed
+
+* Changed the Tiptap editor to disable itself when users lose their connection to the collaborative editing server
+  * This change prevents users from making changes to the document when they are not connected to the server
+
+### Fixed
+
+* Fixed the missing evidence button in the Tiptap editor when editing extra fields on reports
+* Fixed some extra fields on findings not saving correctly with collaborative editing
+* Fixed the "sanitize" action on activity logs not working well with large logs
+
+## [6.0.1] - 31 July 2025
+
+### Added
+
+* Added a _postgres.conf_ file for the PostgresSQL container and database
+  * This file allows you to customize the PostgreSQL configuration for your Ghostwriter instance
+  * The file is located in the _compose/production/postgres_ directory and can be modified as needed
+* Added the option to display a global banner at the top of any page for announcements
+  * The banner has a configurable title and message content
+  * You can optionally include a link that will appear as "Learn more" below the message
+  * There is an expiration date to make the banner stop displaying after a specified date and time
+  * There is a "public" flag to allow the banner to be displayed to unauthenticated users on the login page
+  * If a user dismisses the banner, the banner will stay hidden until the banner's content changes
+    * Ghostwrtier tracks the dismissal in the browser's local storage, so the dismissal will not persist across browsers or devices
+  * Added a documentation page for the banner configuration
+
+### Changed
+
+* Changed the default `MAX_CONN_AGE` value to `0` per Django's recommendations for ASGI applications
+* The `MAX_CONN_AGE` value is now controlled by a `POSTGRES_CONN_MAX_AGE` environment variable
+* Increased PostgreSQL's `max_connections` to `150` (up from `100`) to help accommodate increased concurrent connections
+  * This may help with the increased connections that came with the new collaborative editing feature in Ghostwriter v6.0.0
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.27
+    * This update adds a `POSTGRES_CONN_MAX_AGE` value to the _.env_ file to control the maximum age of PostgreSQL connections
+* Updated the Ghostwriter CLI binaries to v0.2.28
+  * This update adds the collaborative editing and development frontend servers to the `running` and `logs` commands
+
+### Fixed
+
+* Fixed a permissions issue with the `uploadEvidence` GraphQL mutation that prevented users from uploading evidence files unless they were a `manager` or `admin`
+* Fixed collaborative editing not working for boolean custom fields
+* Fixed permission errors that could occur when trying to add an observation from a search result without permission
+
+## [6.0.0] - 23 July 2025
+
+### Added
+
+* Introduced collaborative editing server and client-side components for real-time form collaboration
+  * This feature allows multiple users to edit the same form or field simultaneously
+  * The collaborative editing experience applies to report fields, findings, and observations for now
+  * We will expand this feature to other areas of Ghostwriter in future releases
+* Added new JavaScript/TypeScript frontend infrastructure with React components and GraphQL integration
+* Updated software dependencies to the latest versions, including Django and PostgreSQL
+  * **Important**: Upgrading an existing Ghostwriter v5 installation will require upgrading the database to v16
+    * Make a backup of your database before upgrading (`./ghostwriter-cli backup` or a server snapshot)
+    * Run `./ghostwriter-cli down`
+    * Update your release (e.g., `git pull`)
+    * Run`./ghostwriter-cli pg-upgrade`
+    * Run `./ghostwriter-cli containers build`
+
+### Changed
+
+* Replaced the TinyMCE WYSIWYG editor with the new Tiptap editor for collaborative writing
+  * TinyMCE is still used in some parts of Ghostwriter that are outside the collaborative editing experience
+  * This new editor looks different, but it offers all the same formatting features
+  * The new editor supports collaborative editing, allowing multiple users to edit the same document simultaneously
+  * You will no longer see a "Save" or "Submit" button as your work is saved automatically as part of the collaborative editing experience
+  * You can now insert image evidence and see a preview of it inline with your text as you work
+* Updated the Ghostwriter CLI binaries to v0.2.26
+  * These binaries include a new `tagcleanup` command to help you clean up unused or duplicated tags in your Ghostwriter instance
+
+## [5.0.12] - 18 July 2025
+
+### Added
+
+* Added a `createUser` mutation to the GraphQL API to allow creating new users
+  * This mutation is useful for creating new users without needing to use the web interface
+  * The mutation requires the `email`, `username`, `password`, `name`, and `role` fields
+  * Only admins can create new users via this mutation
+  * If you choose to allow managers to create users, the mutation will not allow them to create users with the manager or admin roles
+
+## [5.0.11] - 3 July 2025
+
+### Fixed
+
+* Fixed an issue that prevented a new user from configuring a TOTP device on login when `Require 2FA` was checked for their account
+
+## [5.0.10] - 18 June 2025
+
+### Changed
+
+* Changed the findings library filter for findings on reports to clear up confusion (Fixes #622)
+  * The "Return only findings on reports that started as blank findings" used to attempt to filter findings based on the `title` field
+  * That filtering was incorrect and led to results that did not align with the filters intent and tooltip
+  * The filter will now further filter the results to show only findings that started as blank templates
+
+### Fixed
+
+* Fixed disallowing signups not working for the general signup form (i.e., not the SSO signup)
+
+## [5.0.9] - 3 June 2025
+
+### Added
+
+* Added an option to exclude archived reports in the report library when viewing completed reports
+* Added observation and report evidence relationships for reports in the GraphQL schema 
+
+### Changed
+
+* The archive task will now use the selected default templates when generating archived reports
+* The archive report action will now display a confirmation prompt to confirm the action
+
+### Fixed
+
+* Fix archive task selecting reports to archive incorrectly
+  * It should now properly archive reports of completed projects that are 90 days (default) past the project end date
+  * It will now catch and log errors in the archive task and continue with other reports (Fixes #617)
+* The archiving task now stops on the first exception
+* Fixed the archive task not deleting evidence files (Fixes #618)
+
+
+## [5.0.8] - 30 May 2025
+
+### Added
+
+* Added options to show and hide columns in the findings and domains libraries
+  * This change allows you to customize the columns displayed in the libraries to suit your needs
+  * Selections are preserved in your browser's local storage, so they will not persist across browsers or devices
+
+### Changed
+
+* Table sorting will now be preserved between page loads and visits
+  * This change allows you to sort a table and have the sorting remain when you navigate away from the page and return
+  * The sorting is stored in your browser's local storage, so it will not persist across browsers or devices
+
+## [5.0.7] - 23 April 2025
+
+### Changed
+
+* Added auto-complete for tags in filter forms (e.g., domain and finding libraries)
+* Added the Tags column back to the tables for the domain and finding libraries
+* Made changes to optimize Word document generation
+  * This is part of an ongoing effort to optimize these workflows to reduce the time it takes to generate reports, especially those with large tables (Issue #585) 
+
+### Fixed
+
+* Fixed default values not populating for extra fields on observations (PR #604 by @rteatea)
+
+## [5.0.6] - 04 April 2025
+
+### Added
+
+* Added a new "Quickstart" card to the homepage dashboard to help guide new users
+  * The card includes general information tog et started, links to the wiki, and a link to the Ghostwriter community
+  * Users can hide the card with the button on the card
+
+### Changed
+
+* Numerous user interface and user experience (UI/UX) enhancements
+* Reduced table sizes to improve readability
+  * Some table columns (e.g., notes and additional information unneeded for sorting) have moved into informational modals
+  * You can open the modals by clicking the "i" icon in the table row
+* Library filters are now inside collapsible sections to reduce clutter
+  * If you prefer the filters always be accessible, their collapsed status is now tracked in your browser's local storage
+  * If you open a filter, all filters will be open by default until you close them
+* Selecting a report to edit from the sidebar will no longer redirect you to the report
+  * We added the redirect to remove a click long ago, but this made it difficult to manage multiple reports
+  * Now, selecting a report will swap reports and allow you to continue selecting findings in the library without a redirect
+* Modified the homepage dashboard to show more relevant information and provide user guidance
+  * We will continue to improve the homepage dashboard in future releases based on feedback
+
+### Fixed
+
+* Fixed report template "Upload Date" changing whenever the template was updated without changing the template file
+
+## [5.0.5] - 14 March 2025
+
+### Added
+
+* Added a setting on report templates to control the width of evidence files for Microsoft Word reports (PR #597)
+  * The default is still Word's standard 6.5" width
+  * The setting allows you to adjust the width to fit your needs
+
+## [5.0.4] - 13 March 2025
+
+### Added
+
+* Added a filter to the findings library to show only findings on reports that have not been created in or cloned to the library
+  * While filtering with "Search findings on reports" you can select "Return only findings on reports & not in the library"
+
+### Fixed
+
+* Fixed table sorting on activity logs
+
+## [5.0.3] - 28 February 2025
+
+### Added
+
+* Added objective result fields to the GraphQL schema and reporting engine
+  * Objectives now have `result` and `result_rt` fields that can be used in report templates
+  * The `result` field can now be updated via the GraphQL API
+
+## [5.0.2] - 24 February 2025
+
+### Fixed
+
+* Fixed an issue with creating clients and projects when providing optional form data (e.g., invites, contacts, assignments)
+
+## [5.0.1] - 13 February 2025
+
+### Added
+
+* Added a finding type label below the finding's title on the finding details page
+* Added links to profile pages for users from the project library
+* Added a table of active project assignments to the user profile page
+  * This table is viewable by the user and managers
+
+### Fixed
+
+* Fixed an error that could occur when trying to edit an observation without permissions
+
+## [5.0.0] - 7 February 2025
+
+### Added
+
+* Managers now have the ability to invite users to view a client or project from the client and project dashboards
+* Added the `DATABASE_URL` variable to the Django container's environment (Fixes #578)
+
+### Changed
+
+* This release changes role-based access controls in the web UI to match the GraphQL API's stricter controls
+  * Users with the standard `user` role will no longer be able to see or access projects to which they are not assigned
+  * These users will be able to see a client has other past or current projects, but will be unable to see the details of those projects
+  * Admins and managers can grant a user access to a client or project by inviting them from the client or project dashboards
+* Fixed the WYSIWYG editor not working for custom Rich Text fields added to the log entry model
+* Added tags to the autocomplete results when searching for findings and observations (Closes #582)
+* Added autocomplete to client and project filters
+
+## [4.3.11] - 8 January 2025
+
+### Changed
+
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.22
+
+## [4.3.10] - 3 January 2025
+
+### Added
+
+* Added a `HASURA_GRAPHQL_SERVER_HOSTNAME` for the DotEnv file to allow for setting the Hasura server hostname (Fixes #566)
+  * This is available for Kubernetes deployments (see issue #566)
+  * For all other deployments, the Hasura server hostname should be left set to `graphql_engine` by default
+
+### Changed
+
+* The linter now checks if the list styles are of type `PARAGRAPH` in the Word template
+* The archived reports page now displays the project name for each report to help with identification
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.21
+
+## [4.3.9] - 10 December 2024
+
+### Changed
+
+* Evidence previews for custom fields and evidence detail pages now display evidence at 6.5" wide to mimic the standard full-width seen in a Word document
+
+### Fixed
+
+* Fixed an issue that could cause improper casing for the first word in a caption
+
+## [4.3.8] - 6 December 2024
+
+### Added
+
+* Added buttons to jump to a selected template from the report dashboard
+
+### Changed
+
+* Enabled pasting with formatting in the WYSIWYG editor
+  * This change allows you to paste formatted text from other sources (e.g., Word documents) into the editor
+  * This caused issues in the past when pasting from Word, some terminals, and some websites, but the reporting engine seems to handle the formatting well now
+  * **Note:** Pasting with formatting may not work as expected in all cases, so please check your pasted content in the editor before generating a report
+* Increased the auto-complete list's maximum items from 10 to 20 to show more evidence files
+* Using the "Upload Evidence" button in the editor now pushes a `ref` version of the auto-complete entry to the auto-complete list upon successful upload
+
+### Fixed
+
+* Fixed activity log filtering not working correctly when very large log entries were present (PR #558)
+
+## [4.3.7] - 25 November 2024
+
+### Fixed
+
+* Fixed forms not accepting decimal values for extra fields (PR #554)
+* Fixed cross-references not working when the reference name contained spaces (PR #556)
+
+## [4.3.6] - 14 November 2024
+
+### Added
+
+* Added support for table captions in the WYSIWYG editor (PR #547)
+  * Caption text can be customized by right-clicking on the table > Table Properties > General > Show caption
+* Added report configuration options for figure and table caption placement (above or below) for Word
+
+### Changed
+
+* Production deployments now default to only exposing PostgreSQL and Hasura ports to internal services (PR #551)
+  * This change is to improve security by limiting the number of exposed ports on the server
+  * If you need direct access to PostgreSQL or Hasura, you can adjust the Docker Compose file to expose the ports on the host system or run a utility like `psql` inside the container
+
+### Fixed
+
+* Fixed observations not being cloned when cloning a report (PR #548)
+* Fixed lists being styled as _List Paragraph_ in Word instead of with user-defined _Bullet List_ or _Number List_ styles (PR #550)
 
 ## [4.3.5] - 30 October 2024
 
@@ -240,7 +616,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Only the entries that match the filter will appear until the filter is changed or cleared
 * Set a default value of `{}` for extra fields to avoid errors when creating new entries via the GraphQL API with empty extra fields
 * Modified error handling for report generation to provide more detailed error messages when a report fails to generate (e.g., which finding or field caused the error)
-* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via teh GraphQL API
+* Changed nullable database fields to no longer be nullable to prevent errors when creating new entries via the GraphQL API
 * Removed the spaces before and after the figure and table prefixes to allow for flexibility (Closes #446)
   * If spaces before or after the prefix are desired, they can be added when setting the value in the report configuration
   * Current values should be updated to add spaces (if desired) – e.g., change "–" to " – "
@@ -585,7 +961,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed an issue that would cause a server error whe uploading or editing an evidence file to a blank finding (Fixes #303)
+* Fixed an issue that would cause a server error when uploading or editing an evidence file to a blank finding (Fixes #303)
 
 ## [v3.2.5] - 31 March 2023
 
@@ -1396,7 +1772,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed evidence filenames with all uppercase extensions not appearing in reports (closes #74)
 * Fixed a recursive HTML/JavaScript escape in log entries (closes #133)
 * Fixed incorrect link in the menu for a point of contact under a client (closed #141 and #141)
-* Fixed `docker-compose` errors related to latest verison of the `crytpography` library (closes #147)
+* Fixed `docker-compose` errors related to latest version of the `cryptography` library (closes #147)
 * Fixed possible issue with assigning a name to an AWS asset in the cloud monitor task
 * Closed loophole that could allow a non-unique domain name
 

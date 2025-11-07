@@ -5,6 +5,7 @@ from base64 import b64decode
 from io import BytesIO
 
 # Django Imports
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.test import Client, TestCase
@@ -339,7 +340,7 @@ class AvatarDownloadTest(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="fake.png"')
+        self.assertRegexpMatches(response.get("Content-Disposition"), r'^attachment; filename="fake[_0-9]*\.png"$')
 
         if os.path.exists(self.user_profile.avatar.path):
             os.remove(self.user_profile.avatar.path)
@@ -354,3 +355,62 @@ class AvatarDownloadTest(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+
+
+class HideQuickStartViewTests(TestCase):
+    """Collection of tests for :view:`users.HideQuickStart`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.other_user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("users:hide_quickstart", kwargs={"slug": cls.user.username})
+        cls.other_user_uri = reverse("users:hide_quickstart", kwargs={"slug": cls.other_user.username})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        user_profile = UserProfile.objects.get(user=self.user)
+        user_profile.hide_quickstart = False
+        user_profile.save()
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(self.other_user_uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        user_profile.refresh_from_db()
+        self.assertTrue(user_profile.hide_quickstart)
+
+
+class SignupViewTests(TestCase):
+    """Collection of tests for :view:`allauth.account_signup`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.uri = reverse("account_signup")
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        settings.ACCOUNT_ALLOW_REGISTRATION = True
+        self.assertTrue(settings.ACCOUNT_ALLOW_REGISTRATION)
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/signup.html")
+
+        settings.ACCOUNT_ALLOW_REGISTRATION = False
+        self.assertFalse(settings.ACCOUNT_ALLOW_REGISTRATION)
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/signup_closed.html")

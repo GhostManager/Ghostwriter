@@ -39,3 +39,9 @@ Support for pasting evidence from the clipboard:
 
 Reported issues and feedback:
     @dbuentello
+
+Support for configuring evidence image width:
+    @reesercollins
+
+Reported issues and submitted pull requests:
+    @smcgu

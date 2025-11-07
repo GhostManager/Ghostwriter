@@ -1,0 +1,45 @@
+---
+title: "Session Management"
+description: "Managing user web sessions"
+---
+
+Ghostwriter v4+ provide options for managing user sessions. The previous Ghostwriter releases used Django’s defaults for session management and while these defaults aren’t inherently bad, they permissive for applications storing sensitive information.
+
+There are several options an administrator can change to secure user sessions to their liking.
+
+## Managing Session Expiry & Cookies
+
+The default Django sessions expire after two weeks. To tighten up session management, administrators have control over three essential values:
+
+* `DJANGO_SESSION_COOKIE_AGE`
+
+  * Sets the number of seconds a session cookie will last before expiring (default: *32400* seconds or nine hours)
+
+* `DJANGO_SESSION_SAVE_EVERY_REQUEST`
+
+  * Sets whether the session cookie will refresh on every request (default: *true*)
+
+* `DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE`
+
+  * Sets whether the session cookie will expire when the browser is closed (default: *true*)
+
+These defaults are a good starting point. Still, you should consider how your team uses Ghostwriter and adjust accordingly. Ghostwriter uses nine hours for the default expiration so a login session can last an entire workday — just in case someone is in the middle of something and has to walk away for an extended period. You may want to reduce this value to one or two hours.
+
+With `DJANGO_SESSION_SAVE_EVERY_REQUEST` set to `true`, the server will update the session with each request. Updates reset the expiration, so a short expiry period won’t log out anyone actively using Ghostwriter but will allow inactive sessions to expire.
+
+If set to `true`, the last option will expire sessions after the browser quits. However, whether the session ends when you close the browser window depends on the browser. Some browsers, like Chrome, will keep sessions active, so you may need to quit or exit the browser to end the session versus just closing the browser window.
+
+You can manage these values via the Ghostwriter command-line interface (CLI) tool.
+
+### Cleaning Up Expired Sessions
+
+Finally, administrators can view sessions in the admin panel under the *Sessions* section. This section records every session currently known to Ghostwriter, including expired sessions. If a user does not log out (e.g., lets their session expire) their session will remain logged in the database.
+
+It is recommended you clear these expired sessions on a regular basis to keep the sessions table tidy. You can do this with a scheduled task. The task should call `django.core.management.call_command` and pass `"clearsessions"` as its only argument. Set up a task like this one that runs daily with the cron scheduler. For example, `0 5 * * *` will run it every day at 5:00 AM.
+
+<Frame>
+  <img src="/images/features/image-3.avif" alt=""/>
+</Frame>
+
+<CardGroup cols={1}> <Card title="Scheduling Tasks" icon="calendar" iconType="solid" href="/features/background-tasks/scheduled-tasks" /> </CardGroup>
+

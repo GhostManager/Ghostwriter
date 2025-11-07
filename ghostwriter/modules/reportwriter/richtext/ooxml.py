@@ -23,7 +23,6 @@ def set_style_method(tag_name, style_key, style_value=True):
     tag_style.__name__ = "tag_" + tag_name
     return tag_style
 
-
 class TextTracking:
     """
     Processes raw text nodes, stripping whitespaces and keeping track of segment breaks (runs of whitespace in the source
@@ -59,7 +58,7 @@ class TextTracking:
         may need to append a space if later text contains non-space characters.
         """
         if self.in_pre:
-            run.text = run.text + text
+            run.text = run.text + remove_invalid_xml_chars(text)
             return
 
         while text:
@@ -72,7 +71,7 @@ class TextTracking:
                 # Non-space text
                 self.is_block_start = False
                 self.force_emit_pending_segment_break()
-                run.text = run.text + match[0]
+                run.text = run.text + remove_invalid_xml_chars(match[0])
             text = text[match.end() :]
 
     def force_emit_pending_segment_break(self):
@@ -200,7 +199,13 @@ class BaseHtmlToOOXML:
 
         self.process_children(el.children, style=style, **kwargs)
 
+    def tag_mark(self, el, *, style={}, **kwargs):
+        style = style.copy()
+        style["highlight"] = True
+        self.process_children(el.children, style=style, **kwargs)
+
     def tag_table(self, el, **kwargs):
+        self.text_tracking.new_block()
         table_width, table_height = self._table_size(el)
         ooxml_table = self.create_table(rows=table_height, cols=table_width, **kwargs)
 
@@ -238,13 +243,28 @@ class BaseHtmlToOOXML:
                 par = self.paragraph_for_table_cell(cell, cell_el)
                 self.process_children(cell_el.children, par=par, **kwargs)
 
+    def tag_div(self, el, **kwargs):
+        classes = el.attrs.get("class", [])
+        if "collab-table-wrapper" in classes:
+            table = el.find("table")
+            caption_el = el.find(class_="collab-table-caption-content")
+            caption_bookmark_el = el.find(class_="collab-table-caption")
+            caption_bookmark = caption_bookmark_el.attrs.get("data-bookmark") if caption_bookmark_el is not None else None
+            self.tag_table(
+                table,
+                caption_el=caption_el,
+                caption_bookmark=caption_bookmark,
+                **kwargs,
+            )
+        else:
+            logger.warning("Don't know how to handle div: %s", el)
+
     @staticmethod
     def _table_rows(table_el):
         for item in table_el.children:
             if item.name == "tr":
                 yield item
-            elif item.name is not None:
-                # thead, tbody, tfoot
+            elif item.name in ("thead", "tbody", "tfoot"):
                 for subitem in item:
                     if subitem.name == "tr":
                         yield subitem
@@ -282,7 +302,7 @@ class BaseHtmlToOOXML:
         raise NotImplementedError()
 
 
-def strip_text_whitespace(text):
+def strip_text_whitespace(text: str):
     """
     Consolidates adjacent whitespace into one space, similar to how browsers display it
     """
@@ -308,3 +328,27 @@ def parse_styles(style: str, handle):
         except ValueError:
             # Invalid input
             pass
+
+def remove_invalid_xml_chars(text: str) -> str:
+    return "".join(c for c in text if _valid_xml_char_ordinal(c))
+
+def _valid_xml_char_ordinal(c: str):
+    """
+    Checks if the character is valid to include in XML.
+
+    Source:
+        https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+
+    **Parameters**
+
+    ``c`` : string
+        String of characters to validate
+    """
+    codepoint = ord(c)
+    # Conditions ordered by presumed frequency
+    return (
+        0x20 <= codepoint <= 0xD7FF
+        or codepoint in (0x9, 0xA, 0xD)
+        or 0xE000 <= codepoint <= 0xFFFD
+        or 0x10000 <= codepoint <= 0x10FFFF
+    )

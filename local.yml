@@ -2,6 +2,7 @@ volumes:
   local_postgres_data: {}
   local_postgres_data_backups: {}
   local_data: {}
+  local_node_modules: {}
 
 services:
   django: &django
@@ -11,6 +12,8 @@ services:
     image: ghostwriter_local_django
     depends_on:
       - postgres
+      - redis
+      - frontend
     volumes:
       - .:/app
       - local_data:/app/ghostwriter/media
@@ -19,6 +22,7 @@ services:
     environment:
       - USE_DOCKER=${USE_DOCKER}
       - IPYTHONDIR=${IPYTHONDIR}
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - DJANGO_2FA_ALWAYS_REVEAL_BACKUP_TOKENS=${DJANGO_2FA_ALWAYS_REVEAL_BACKUP_TOKENS}
       - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION}
       - DJANGO_ACCOUNT_EMAIL_VERIFICATION=${DJANGO_ACCOUNT_EMAIL_VERIFICATION}
@@ -41,6 +45,7 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
       - HEALTHCHECK_DISK_USAGE_MAX=${HEALTHCHECK_DISK_USAGE_MAX}
       - HEALTHCHECK_MEM_MIN=${HEALTHCHECK_MEM_MIN}
       - POSTGRES_DB=${POSTGRES_DB}
@@ -56,8 +61,6 @@ services:
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
-    ports:
-      - "8000:8000"
     command: /start
 
   postgres:
@@ -86,6 +89,26 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
 
+  nginx:
+    build:
+      context: .
+      dockerfile: ./compose/production/nginx/Dockerfile
+    image: ghostwriter_local_nginx
+    depends_on:
+      # Nginx needs the hosts to be resolvable so that the `upstream` directives will work
+      - django
+      - graphql_engine
+      - collab-server
+    volumes:
+      - ./compose/local/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
+    labels:
+      name: ghostwriter_nginx
+    ports:
+      - "8000:80"
+    environment:
+      - NO_PROXY=django,graphql_engine
+
   redis:
     build:
       context: .
@@ -111,6 +134,40 @@ services:
     ports: []
     command: /start-queue
 
+  frontend:
+    build:
+      context: .
+      dockerfile: ./compose/local/node/Dockerfile
+    image: ghostwriter_local_frontend
+    volumes:
+      - ./javascript:/app
+    working_dir: /app
+    command: sh -c 'npm install && exec npm run watch-frontend-dev'
+    labels:
+      name: ghostwriter_frontend
+    environment:
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+
+  collab-server:
+    build:
+      context: .
+      dockerfile: ./compose/local/node/Dockerfile
+    image: ghostwriter_local_collab_server
+    depends_on:
+      - graphql_engine
+    volumes:
+      - ./javascript:/app
+      - local_node_modules:/app/node_modules
+    working_dir: /app
+    command: sh -c 'npm install && npm run build-collab-server-dev && exec npm run run-collab-server'
+    labels:
+      name: ghostwriter_collab
+    environment:
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+    ports:
+      - "8001:8000"
+
   graphql_engine:
     build:
       context: .
@@ -119,7 +176,6 @@ services:
     depends_on:
       - postgres
       - django
-    restart: unless-stopped
     ports:
       - "${HASURA_GRAPHQL_SERVER_PORT}:8080"
       - "9691:9691"

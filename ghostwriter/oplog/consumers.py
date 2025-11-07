@@ -9,7 +9,7 @@ from functools import reduce
 
 # Django Imports
 from django.db.models import TextField, Func, Subquery, OuterRef, Value, F
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Left
 from django.db.models.expressions import CombinedExpression
 from django.utils.timezone import make_aware
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, SearchVectorField
@@ -21,7 +21,6 @@ from rest_framework.utils.serializer_helpers import ReturnList
 from taggit.models import TaggedItem
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_access
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -53,7 +52,7 @@ def create_oplog_entry(oplog_id, user):
         logger.warning("Failed to create log entry for log ID %s because that log ID does not exist.", oplog_id)
         return
 
-    if verify_access(user, oplog.project):
+    if oplog.project.user_can_edit(user):
         OplogEntry.objects.create(
             oplog_id_id=oplog_id, operator_name=user.username, extra_fields=ExtraFieldSpec.initial_json(OplogEntry)
         )
@@ -68,7 +67,7 @@ def delete_oplog_entry(entry_id, user):
     """Attempt to delete the log entry with the given entry ID."""
     try:
         entry = OplogEntry.objects.get(pk=entry_id)
-        if verify_access(user, entry.oplog_id.project):
+        if entry.oplog_id.project.user_can_edit(user):
             entry.delete()
         else:
             logger.warning(
@@ -91,7 +90,7 @@ def copy_oplog_entry(entry_id, user):
         logger.warning("Failed to copy log entry %s because that entry ID does not exist.", entry_id)
         return
 
-    if verify_access(user, entry.oplog_id.project):
+    if entry.oplog_id.project.user_can_edit(user):
         copy = deepcopy(entry)
         copy.pk = None
         copy.start_date = make_aware(datetime.utcnow())
@@ -118,7 +117,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             logger.warning("Failed to get log entries for log ID %s because that log ID does not exist.", oplog_id)
             return OplogEntrySerializer([], many=True).data
 
-        if not verify_access(user, oplog.project):
+        if not oplog.project.user_can_view(user):
             return OplogEntrySerializer([], many=True).data
 
         entries = OplogEntry.objects.filter(oplog_id=oplog_id)
@@ -164,20 +163,20 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
                 if spec.type == "json":
                     continue
 
-                field = Cast(CombinedExpression(
+                field = CombinedExpression(
                     F("extra_fields"),
                     "->>",
                     Value(spec.internal_name),
-                ), TextField())
+                )
                 simple_vector_args.append(field)
                 if spec.type == "rich_text":
                     english_vector_args.append(field)
 
-            # Combine search vector
-            vector = TsVectorConcat(
-                SearchVector(*english_vector_args, config="english"),
-                SearchVector(*simple_vector_args, config="simple"),
-            )
+            # Create and combine search vectors.
+            # Limit inputs since PostgreSQL will abort the query if attempting to make a tsvector out of a huge string
+            vectors = [SearchVector(Left(Cast(va, TextField()), 100000), config="english") for va in english_vector_args] + \
+                [SearchVector(Left(Cast(va, TextField()), 100000), config="simple") for va in simple_vector_args]
+            vector = TsVectorConcat(*vectors)
 
             # Build filter.
             # Search using both english and simple configs, to help match both types of vectors. Also use prefix

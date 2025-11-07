@@ -205,8 +205,16 @@
       <td class="text-justify">{{ report_config.label_figure }}{{ report_config.prefix_figure }}</td>
     </tr>
     <tr>
+      <td class="text-left icon tag-icon">Figure Caption Location</td>
+      <td class="text-justify">{{ report_config.get_figure_caption_location_display }}</td>
+    </tr>
+    <tr>
       <td class="text-left icon tag-icon">Table Label & Prefix</td>
       <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon tag-icon">Table Caption Location</td>
+      <td class="text-justify">{{ report_config.get_table_caption_location_display }}</td>
     </tr>
     <tr>
       <td class="text-left icon tag-icon">Title Case Captions</td>

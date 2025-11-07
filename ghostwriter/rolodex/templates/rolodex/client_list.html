@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags custom_tags %}
 
 {% load bleach_tags %}
 
@@ -21,23 +21,26 @@
         {% crispy filter.form filter.helper %}
     </div>
 
+    <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'rolodex:client_create' %}">Create Client</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
+
     {% if filter.qs|length == 0 %}
         <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no clients to see here yet, or your search returned no results. Create a client above or adjust your filters.</div>
     {% else %}
         <table id="clientTable" class="tablesorter table table-sm table-hover">
             <thead>
                 <tr>
-                    <th class="align-middle">Client</th>
-                    <th class="align-middle">Short Name</th>
-                    <th class="align-middle">Codename</th>
+                    <th class="align-middle text-left">Client</th>
+                    <th class="align-middle text-left">Short Name</th>
+                    <th class="align-middle text-left">Codename</th>
                     <th class="align-middle">Projects to Date</th>
                 </tr>
             </thead>
             {% for client in filter.qs %}
                 <tr>
-                    <td class="align-middle"><a class="clickable" href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
-                    <td class="align-middle">{{ client.short_name }}</td>
-                    <td class="align-middle">{{ client.codename }}</td>
+                    <td class="align-middle text-left"><a class="clickable" href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
+                    <td class="align-middle text-left">{{ client.short_name }}</td>
+                    <td class="align-middle text-left">{{ client.codename }}</td>
                     <td class="align-middle">{{ client.project_set.all.count }}</td>
                 </tr>
             {% endfor %}
@@ -49,15 +52,53 @@
     <!-- jQuery Tablesorter Script -->
     <script>
         $(document).ready(function()  {
-            $("#clientTable").tablesorter(
+            $('#clientTable').tablesorter(
                             {
                                 cssAsc: 'down',
                                 cssDesc: 'up',
                                 cssNone: 'none',
+                                widgets: ['saveSort'],
+                                widgetOptions: {
+                                  saveSort: true,
+                                  storage_page: 'clientLibraryTable'
+                                }
                             }
                         );
+
             $('.tablesorter').trigger('update');
+
+            $('#resetSortBtn').click(function() {
+              $('#clientTable')
+                .trigger('saveSortReset')
+                .trigger('sortReset');
+              return false;
+            });
         });
+    </script>
+
+    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
+    <script>
+      $(function () {
+        let availableNames = [
+          {% for entry in autocomplete %}
+            '{{ entry.name|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+          {% endfor %}
+        ];
+        $('#id_name').autocomplete({
+          source: availableNames
+        });
+      });
+
+      $(function () {
+        let availableTags = [
+          {% for tag in tags %}
+            '{{ tag.name|escapejs }}',
+          {% endfor %}
+        ];
+        $('#id_tags').autocomplete({
+          source: availableTags
+        });
+      });
     </script>
 
     <!-- Submit Filter when Clicking Bootstrap Icon -->

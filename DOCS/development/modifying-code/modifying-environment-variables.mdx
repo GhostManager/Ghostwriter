@@ -1,0 +1,50 @@
+---
+title: "Modifying Environment Variables"
+description: "Making changes to the environment variables inside the containers"
+---
+
+## Introduction to the Environment Variables
+
+Ghostwriter CLI manages a DotEnv (`.env`) file inside the *Ghostwriter* directory. Docker sees this file and reads it when building and bringing containers up. Docker will import and set the environment variables inside the containers. The variables must first be declared in the Docker Compose files (e.g., `production.yml`).
+
+Some of the variables influence the Docker builds. The majority of the variables affect configurations of the services like Django and Hasura. Most variables have a service name as their prefix to make it easy to determine which variable affects which services.
+
+For example, the `DJANGO_SUPERUSER_PASSWORD` variable has the `DJANGO_` prefix to signify it is tied to the Django service and container. It is declared in the YAML files like this:
+
+```yaml
+- DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+```
+
+When you run the `install` command, Ghostwriter CLI executes `manage.py createsuperuser --no-input` to tell Django to create a new superuser. The `--no-input` flag tells Django to look at environment variables for username and password input.
+
+### Variables Aliases
+
+Some of the variables have aliases. These are special variables that users are more likely to interact with via Ghostwriter CLI. Generally, the aliases are the same as the full variable name but drop the service prefix. The Ghostwriter CLI code sets these aliases so new aliases cannot be created without modifying the code and rebuilding the CLI.
+
+For example, `DATE_FORMAT` is an alias for `DJANGO_DATE_FORMAT` to make it easy for a user to change their desired date format. Docker only uses `DJANGO_DATE_FORMAT`. When a user changes `DATE_FORMAT`, Ghostwriter CLI also updates `DJANGO_DATE_FORMAT`.
+
+## Adding New Variables
+
+There are two things you must do when adding a new variable to any container:
+
+1. Add the variable to the DotEnv file
+
+2. Edit the YAML files to add your environment variable under the `environment` key for the container that needs the variable
+
+You may need to do one additional thing if adding a new variable to the Django container. Open the *Ghostwriter/config/settings* directory and edit *base.py* (if adding a variable for dev and production), *local.py* for dev environments, or *production.py* for production environments.
+
+Add your new variable in the same manner as the other variables already in these files. Looking at `DJANGO_DATE_FORMAT` again, add the variable like this with `env()`:
+
+```python
+DATE_FORMAT = env(
+    "DJANGO_DATE_FORMAT",
+    default="d M Y"
+)
+```
+
+<Check>
+It's a good idea to provide a default value if your custom variable is missing from your DotEnv file.
+</Check>
+
+Finally, you can also modify Ghostwriter CLI to include your new variable. After building a new binary, you can set the value via Ghostwriter CLI's commands.
+

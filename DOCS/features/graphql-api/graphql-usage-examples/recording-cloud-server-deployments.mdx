@@ -1,0 +1,81 @@
+---
+title: "Recording Cloud Server Deployments"
+description: "Recording cloud server deployments in Ghostwriter with GraphQL"
+---
+
+You may have a tool, platform, or script that deploys servers for you. You can automatically record these deployments under your Ghostwriter project with a GraphQL query like this:
+
+```
+from datetime import datetime
+from typing import Any, Union,
+
+def record_server(
+    activity_type_id: int,
+    ip: str,
+    name: str,
+    project_id: int,
+    role_id: int,
+    provider_id: int,
+) -> str:
+
+    track_server_mutation = gql(
+        """
+        mutation InsertCloudServer($activityTypeId: bigint, $auxAddress: [inet], $ipAddress: inet, $name: String, $note: String, $projectId: bigint, $serverRoleId: bigint, $serverProviderId: bigint) {
+            insert_cloudServer_one(object: { activityTypeId: $activityTypeId, auxAddress: $auxAddress, ipAddress: $ipAddress, name: $name, note: $note, projectId: $projectId, serverRoleId: $serverRoleId, serverProviderId: $serverProviderId }) {
+                id
+            }
+        }
+        """
+    )
+
+    variables: dict[str, Union[int, str]] = {
+        "activityTypeId": activity_type_id,
+        "auxAddress": f"{{{ip}}}",
+        "ipAddress": ip,
+        "name": name,
+        "note": f"Deployed at {datetime.utcnow().strftime('%F %H:%M:%S')} UTC",
+        "projectId": project_id,
+        "serverRoleId": role_id,
+        "serverProviderId": provider_id,
+    }
+
+    res = authenticated_client.execute(track_server_mutation, variable_values=variables)
+    return res
+```
+
+To get the correct ID values for activity, role, and provider, you can map those in your script or pull them at run-time using a GraphQL query. The easiest option is mapping the values, which are unlikely to change.
+
+```
+# Map values to IDs
+ACTIVITY_TYPE_ID_MAP: dict[str, int] = {
+    "C2": 1,
+    "Phishing": 2,
+}
+
+PROVIDER_ID_MAP: dict[str, int] = {
+    "AWS": 1,
+    "Azure": 2,
+    "Digital Ocean": 3,
+    "Google Compute Engine": 4,
+    "Linode": 5,
+    "Rackspace": 6,
+}
+
+ROLE_ID_MAP: dict[str, int] = {
+    "C2": 1,
+    "Redirector": 2,
+    "Payload Hosting": 3,
+    "SMTP": 4,
+    "Burner Workstation": 5,
+}
+
+# Use the mapped values for the arguments
+ghostwriter_response: dict[str, Any] = record_server(
+    activity_type_id=ACTIVITY_TYPE_ID_MAP.get("C2", 1),
+    ip=ip,
+    name=hostname,
+    project_id=100,
+    role_id=ROLE_ID_MAP.get("C2", 1),
+    provider_id=PROVIDER_ID_MAP.get("AWS", 1),
+)
+```

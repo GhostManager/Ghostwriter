@@ -1,0 +1,46 @@
+---
+title: "Jinja2 Tips & Tricks"
+description: "Examples of simple and advanced Jinja2 code for reporting"
+---
+
+This page includes some examples of Jinja2 code that might be useful for report templates. We will expand this page with simple and advanced examples based on community feedback.
+
+The code may or may not be ready to be dropped into a Word document. The examples may contain indents, newlines, placeholders, and comments to improve readability. You may wish to remove some of these elements before using the examples in your templates.
+
+## Set a Unique ID for Each Finding
+
+This example sets up ID values for each severity category, loops over each finding, and sets a unique ID value based on the finding's severity. Jinja2 does not support indexing in the destination of a `set`block, so this particular use case requires some additional code.
+
+The code uses a namespace to track separate ID values for each severity category. As it loops over each finding, it increments the ID value by one for its severity and creates a finding ID string. The string is the finding's first tag, the first character of the severity, and the number value (e.g., `TAG-C-1`for the first critical finding).
+
+You can customize this example to change the ID string or start ID values at zero instead of one.
+
+```
+{% set ns = namespace(crit_id=0, high_id=0, med_id=0, low_id=0, info_id=0, finding_tag=0) %}
+{% for f in findings %}
+    {% if f.severity == 'Critical' %}
+        {% set ns.crit_id = ns.crit_id + 1 %}
+        {% set ns.finding_tag = ns.crit_id %}
+    {% endif %}
+    {% if f.severity == 'High' %}
+        {% set ns.high_id = ns.high_id + 1 %}
+        {% set ns.finding_tag = ns.high_id %}
+    {% endif %}
+    {% if f.severity == 'Medium' %}
+        {% set ns.med_id = ns.med_id + 1 %}
+        {% set ns.finding_tag = ns.med_id %}
+    {% endif %}
+    {% if f.severity == 'Low' %}
+        {% set ns.low_id = ns.low_id + 1 %}
+        {% set ns.finding_tag = ns.low_id %}
+    {% endif %}
+    {% if f.severity == 'Info' %}
+        {% set ns.info_id = ns.info_id + 1 %}
+        {% set ns.finding_tag = ns.info_id %}
+    {% endif %}
+    {% set tag = tags|first() %}
+    {% set sev = f.severity|first() %}
+    {% set finding_id = "%s-%s-%s" % (tag,sev,ns.finding_tag) %}
+    {{ finding_id }}
+{% endfor %}
+```

@@ -21,6 +21,9 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:server_create' %}">Create Server</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
+
   {% if filter.qs|length == 0 %}
     <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no servers to see here yet, or
       your search returned no results. Create a server above or adjust your filters.
@@ -31,48 +34,48 @@
       <table id="serverTable" class="tablesorter table table-sm table-hover">
         <thead>
         <tr>
-          <th id="server" class="align-middle pr-4">IP Address</th>
-          <th id="server" class="align-middle pr-4">Aux Address</th>
-          <th class="align-middle pr-4">Name</ht>
-          <th class="align-middle pr-4">Status</th>
-          <th class="align-middle pr-4">Provider</th>
-          <th class="align-middle pr-4">Tags</th>
-          <th class="align-middle sorter-false">Check-out</th>
+          <th id="server" class="align-middle pr-4 text-left">IP Address</th>
+          <th class="align-middle pr-4 text-left">Name</th>
+          <th class="align-middle pr-4 text-left">Status</th>
+          <th class="align-middle pr-4 text-left">Provider</th>
+          <th class="align-middle pr-4 text-left sorter-false">Tags</th>
+          <th class="align-middle sorter-false">Options</th>
         </tr>
         </thead>
         <tbody>
         {% for server in filter.qs %}
           <tr>
-            <td class="align-middle"><a href="{{ server.get_absolute_url }}"
+            <td class="align-middle text-left"><a href="{{ server.get_absolute_url }}"
                                         class="clickable">{{ server.ip_address }}</a></td>
 
-            {% if server.auxserveraddress_set %}
-              <td class="align-middle">
-                {% for aux in server.auxserveraddress_set.all %}
-                  {{ aux }}{% if not forloop.last %},&nbsp;{% endif %}
-                {% endfor %}
-              </td>
-            {% else %}
-              <td class="align-middle">No Other Addresses</td>
-            {% endif %}
-
-            <td class="align-middle">{% if server.name %}{{ server.name|bleach }}{% else %}No Hostname{% endif %}</td>
+            <td class="align-middle text-left">{% if server.name %}{{ server.name|bleach }}{% else %}No Hostname{% endif %}</td>
 
             {% if server.server_status.server_status == "Available" %}
-              <td class="align-middle healthy">{{ server.server_status }}</td>
+              <td class="align-middle healthy text-left">{{ server.server_status }}</td>
             {% else %}
-              <td class="align-middle burned">{{ server.server_status }}</td>
+              <td class="align-middle burned text-left">{{ server.server_status }}</td>
             {% endif %}
 
-            <td class="align-middle">{{ server.server_provider }}</td>
-            <td class="text-justify align-middle">{%  for tag in server.tags.all %}<span class="badge badge-secondary">{{ tag.name }}</span>{% endfor %}</td>
-            {% if server.server_status.server_status == "Available" %}
-              <td class="align-middle">
-                <a class="icon checkout-icon" href="{% url 'shepherd:server_checkout' server.id %}"></a>
-              </td>
-            {% else %}
-              <td class="align-middle icon block-icon"></td>
-            {% endif %}
+            <td class="align-middle text-left">{{ server.server_provider }}</td>
+
+            <td class="align-middle text-left">
+              {%  for tag in server.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+            </td>
+
+            <td class="align-middle">
+              <div class="d-flex justify-content-center">
+                <span
+                  class="icon preview-icon clickable-link"
+                  title="View additional information"
+                  onclick="openModal('#server_detail_{{ server.id }}')"
+                ></span>
+                {% if server.server_status.server_status == "Available" %}
+                  <a class="icon checkout-icon" href="{% url 'shepherd:server_checkout' server.id %}"></a>
+                {% else %}
+                  <a class="icon block-icon" href="#"></a>
+                {% endif %}
+              </div>
+            </td>
           </tr>
         {% endfor %}
         </tbody>
@@ -85,14 +88,27 @@
   {% comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
-      $("#serverTable").tablesorter(
+      $('#serverTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'serverLibraryTable'
+          }
         }
       );
+
       $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#serverTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
+      });
     });
 
     {% comment %} Submit Filter when Clicking Bootstrap Icon {% endcomment %}
@@ -111,5 +127,21 @@
         source: availableServers
       });
     });
+
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
+      });
+    });
   </script>
+
+  {% comment %} Insert modals for additional server details {% endcomment %}
+  {% for server in filter.qs %}
+    {% include "snippets/server_detail_modal.html" with server=server %}
+  {% endfor %}
 {% endblock %}

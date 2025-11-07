@@ -1,0 +1,62 @@
+---
+title: "Overview"
+description: "Modifying and then deploying code changes"
+---
+
+## Local Development
+
+While running Ghostwriter using `local.yml`, you can make changes on the fly without needing to run any Docker commands. Django smartly restarts the server when it detects a file change. Also, the local deployment mounts Ghostwriter's directory on your host, so changes to the code (Python or templates) will be live once the file is saved.
+
+The `build, stop, rm, up -d` commands need to be run only if you add a new library or if you add a new task to **tasks.py**  **(only after initially adding the new function, not each time you change the function).
+
+`docker-compose -f local.yml stop; docker-compose -f local.yml rm -f; docker-compose -f local.yml build; docker-compose -f local.yml up -d`
+
+In some cases, a code change that causes an error at startup may persist even after you fix the problem. If the container appears "stuck" and isn't responding, issue the`up -d` command.
+
+### Modifying Models
+
+If a model is added, updated, or deleted, the model changes must be migrated before they will go live in the application. This is accomplished using the Docker `run` command to execute the usual Django migration commands with **manage.py**:
+
+`docker-compose -f local.yml run --rm django python manage.py makemigrations`
+
+`docker-compose -f local.yml run --rm django python manage.py migrate`
+
+<Check>
+No additional work is required. Once a migration is successful, your model changes will be live.
+</Check>
+### Troubleshooting
+
+Most errors will be displayed in your web browser thanks to the verbose error output configured for local deployments.
+
+Of course, there will be no visible output in your browser if an error prevents Django from starting the server. To view logging output from Redis, PostgreSQL, and Django, use the Docker `logs` command:
+
+```log
+docker-compose -f local.yml logs
+docker-compose -f local.yml logs django
+docker-compose -f local.yml logs queue
+docker-compose -f local.yml logs redis
+docker-compose -f local.yml logs postgres
+```
+
+<Check>
+Logs are handy for performing dry runs of scheduled tasks. Anything you \`print\` will be output to the logs.
+</Check>
+
+Add the name of the container after \`logs\` to get logs just from that service.
+
+### Cleaning Up Containers
+
+If you break something or want to start from scratch, stop all of your containers and run these two commands:
+
+<Warning>
+The following assumes only Ghostwriter container and volumes are present on your system. Proceed with caution if you use Docker for other things on your development system.
+</Warning>
+
+```log
+docker system prune -a
+docker volume rm -f $(docker volume ls)
+```
+
+The first command will remove all stopped containers. If you only need to re-build, you can stop there and build your containers again.
+
+The second command deletes all volumes. The volumes hold your data (e.g., the database and files). If you leave them intact, your new container will launch ready to use with your existing data. You'll need to delete the volumes to get a true fresh start.

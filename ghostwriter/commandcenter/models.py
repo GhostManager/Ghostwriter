@@ -87,7 +87,7 @@ class ReportConfiguration(SingletonModel):
         "Character Before Figure Captions",
         max_length=255,
         default=" \u2013 ",
-        help_text="Unicode character to place between the label and your figure caption in Word reports",
+        help_text="Unicode characters to place between the label and your figure caption in Word reports (include any desired spaces before and after)",
     )
     label_figure = models.CharField(
         "Label Used for Figures",
@@ -95,17 +95,31 @@ class ReportConfiguration(SingletonModel):
         default="Figure",
         help_text="The label that comes before the figure number and caption in Word reports",
     )
+    figure_caption_location = models.CharField(
+        "Figure Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="bottom",
+        help_text="Where to place figure captions relative to the figure",
+    )
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
         default=" \u2013 ",
-        help_text="Unicode character to place between the label and your table caption in Word reports",
+        help_text="Unicode characters to place between the label and your table caption in Word reports (include any desired spaces before and after)",
     )
     label_table = models.CharField(
         "Label Used for Tables",
         max_length=255,
         default="Table",
         help_text="The label that comes before the table number and caption in Word reports",
+    )
+    table_caption_location = models.CharField(
+        "Table Caption Location",
+        max_length=10,
+        choices=[("top", "Top"), ("bottom", "Bottom")],
+        default="top",
+        help_text="Where to place table captions relative to the table",
     )
     report_filename = models.CharField(
         "Default Name for Report Downloads",
@@ -231,17 +245,20 @@ class CompanyInformation(SingletonModel):
     company_address = models.TextField(
         default="14 N Moore St, New York, NY 10013",
         help_text="Company address to reference in reports",
+        blank=True,
     )
     company_twitter = models.CharField(
         "Twitter Handle",
         max_length=255,
         default="@specterops",
         help_text="Twitter handle to reference in reports",
+        blank=True,
     )
     company_email = models.CharField(
         max_length=255,
         default="info@specterops.io",
         help_text="Email address to reference in reports",
+        blank=True,
     )
 
     def __str__(self):
@@ -311,11 +328,12 @@ class GeneralConfiguration(SingletonModel):
         "Default Timezone",
         default="America/Los_Angeles",
         help_text="Select a default timezone for clients and projects",
+        use_pytz=False,
     )
     hostname = models.CharField(
         max_length=255,
         default="ghostwriter.local",
-        help_text="Hostname or IP address for Ghostwtiter (used for links in notifications)",
+        help_text="Hostname or IP address for Ghostwriter (used for links in notifications)",
     )
 
     def __str__(self):
@@ -323,6 +341,39 @@ class GeneralConfiguration(SingletonModel):
 
     class Meta:
         verbose_name = "General Settings"
+
+
+class BannerConfiguration(SingletonModel):
+    enable_banner = models.BooleanField(default=False, help_text="Enable the homepage banner to display for all users")
+    banner_title = models.CharField(
+        max_length=255,
+        default="",
+        help_text="Title to display in the banner",
+        blank=True,
+    )
+    banner_message = models.CharField(
+        max_length=255,
+        default="",
+        help_text="Message to display in the banner",
+        blank=True,
+    )
+    banner_link = models.CharField(
+        max_length=255,
+        default="",
+        help_text="URL to link the banner to (leave blank for no link)",
+        blank=True,
+    )
+    public_banner = models.BooleanField(
+        default=False,
+        help_text="Display the banner to all users, including unauthenticated users on the login page",
+    )
+    expiry_date = models.DateTimeField("Display Until", help_text="Select the date when the banner should stop displaying (leave blank if it should not expire)", blank=True, null=True)
+
+    def __str__(self):
+        return "Banner Settings"
+
+    class Meta:
+        verbose_name = "Banner Configuration"
 
 
 class IndentingJsonEncoder(json.JSONEncoder):
@@ -343,7 +394,12 @@ class ExtraFieldType(NamedTuple):
     # Returns an "empty" value
     empty_value: Callable[[], Any]
 
+def float_widget(*args, **kwargs):
+    widget = forms.widgets.NumberInput(*args, **kwargs)
+    widget.attrs.setdefault("step", "any")
+    return widget
 
+# Also edit frontend/src/extra_fields.tsx
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
         display_name="Checkbox",
@@ -376,7 +432,7 @@ EXTRA_FIELD_TYPES = {
     "float": ExtraFieldType(
         display_name="Number",
         form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
-        form_widget=forms.widgets.NumberInput,
+        form_widget=float_widget,
         from_str=float,
         empty_value=lambda: 0.0,
     ),
@@ -393,6 +449,7 @@ EXTRA_FIELD_TYPES = {
 class ExtraFieldModel(models.Model):
     model_internal_name = models.CharField(max_length=255, primary_key=True)
     model_display_name = models.CharField(max_length=255)
+    is_collab_editable = models.BooleanField(default=False)
 
     def __str__(self):
         return "Extra fields for {}".format(self.model_display_name)
@@ -414,6 +471,18 @@ class ExtraFieldSpec(models.Model):
         blank=True,
         default="",
     )
+
+    @classmethod
+    def for_model(cls, model):
+        return cls.objects.filter(target_model=model._meta.label)
+
+    @classmethod
+    def for_instance(cls, instance):
+        return cls.objects.filter(target_model=type(instance)._meta.label)
+
+    @classmethod
+    def initial_json(cls, model):
+        return {v.internal_name: v.initial_value() for v in cls.for_model(model)}
 
     def __str__(self):
         return "Extra Field"
@@ -445,13 +514,6 @@ class ExtraFieldSpec(models.Model):
 
     def empty_value(self):
         return self.field_type_spec().empty_value()
-
-    @classmethod
-    def initial_json(cls, model):
-        obj = {}
-        for spec in cls.objects.filter(target_model=model._meta.label):
-            obj[spec.internal_name] = spec.initial_value()
-        return obj
 
     class Meta:
         verbose_name = "Extra Field"

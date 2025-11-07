@@ -5,8 +5,8 @@
          findings-update-url="{% url 'reporting:update_report_findings' %}">
     <tr>
       <th class="icon ol-list-icon text-center"></th>
-      <th class="align-middle">Finding</th>
-      <th>CVSS Score</th>
+      <th class="align-middle text-left">Finding</th>
+      <th class="align-middle">CVSS Score</th>
       <th class="align-middle">
         <div class="dropdown dropleft">
           <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
@@ -19,7 +19,7 @@
           </div>
         </div>
       </th>
-      <th class="align-middle">
+      <th class="align-middle text-left">
         <div class="dropdown dropleft">
           <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                 aria-expanded="false">Owner</span>
@@ -59,9 +59,9 @@
               class="holdme align-middle"
               data-toggle="tooltip"
               data-placement="top"
-              title="Click-n-drag to reposition or categorize"
+              title="Click-n-drag to reposition within the severity category"
             ></td>
-            <td class="align-middle">
+            <td class="align-middle text-left">
               <a id="delete-target-content-finding-{{ finding.id }}"
                 {% if finding.added_as_blank %}
                  class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
@@ -151,7 +151,7 @@
               </td>
             {% endif %}
             {% if finding.assigned_to == request.user %}
-              <td class="align-middle">
+              <td class="align-middle text-left">
                 <span id="assignee-status-{{ finding.id }}" class="
                   {% if finding.complete %}
                     healthy">
@@ -163,9 +163,9 @@
               </td>
             {% else %}
               {% if finding.assigned_to %}
-                <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+                <td class="neutral align-middle text-left">{{ finding.assigned_to }}</td>
               {% else %}
-                <td class="medium align-middle">TBD</td>
+                <td class="medium align-middle text-left">TBD</td>
               {% endif %}
             {% endif %}
             <td class="align-middle">
@@ -188,6 +188,8 @@
                     Evidence</a>
                   <a class="dropdown-item icon edit-icon"
                      href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
+                  <a class="dropdown-item icon user-icon"
+                     href="{% url 'reporting:local_assign' finding.id %}">Re-Assign</a>
                   <a class="dropdown-item icon toggle-off-icon js-set-finding-status" href="javascript:void(0);"
                      set-finding-status-csrftoken="{{ csrf_token }}"
                      set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"
@@ -196,9 +198,10 @@
                      set-finding-status-csrftoken="{{ csrf_token }}"
                      set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
                      set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
-                  <a class="dropdown-item icon clone-icon"
-                     href="{% url 'reporting:convert_finding' finding.id %}">Clone
-                    to Library</a>
+                  <form style="display:contents" action="{% url 'reporting:convert_finding' finding.id %}" method="post">
+                    {% csrf_token %}
+                    <button class="dropdown-item icon clone-icon">Clone to Library</button>
+                  </form>
                   <a id="finding-delete-button-{{ finding.id }}"
                      class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
                      data-target="#confirm-delete-modal" href="javascript:void(0);"
@@ -213,17 +216,14 @@
       {% else %}
         <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder"
             class="severity-row-placeholder">
-          <td colspan="7" scope="colgroup">Add {{ group }} findings or drag-and-drop a finding here to update
-            its
-            severity.
-          </td>
+          <td colspan="7" scope="colgroup">No findings with this severity</td>
         </tr>
       {% endif %}
     {% endfor %}
     </tbody>
   </table>
 {% else %}
-  <p>No findings have been added to this report yet.</p>
+  <p class="mt-3">No findings have been added to this report yet.</p>
 {% endif %}
 
 <script>
@@ -234,13 +234,13 @@
   });
 
   {% comment %} Configure table sorting by severity groups {% endcomment %}
-  {% if report.reportfindinglink_set.all %}
+  {% if report.reportfindinglink_set %}
     var update_url = $('#findings-table').attr('findings-update-url');
     {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
     {% for group, values in severity_groups.items %}
       var {{ values.tpl_name }}_sortable = Sortable.create({{ values.tpl_name }}_severity, {
         items: 'tbody > tr',
-        group: 'severity',
+        group: 'severity.{{values.tpl_name}}',
         animation: 150,
         filter: '.severity-row-placeholder',
         ghostClass: 'sortable-ghost',
@@ -263,42 +263,6 @@
         // Element dragging started
         onStart: function (event) {
           event.oldIndex;
-        },
-
-        // Element is dropped into the list from another list
-        onAdd: function (event) {
-          // Get the placeholder `tr` if it exists
-          let weight = event.to.getAttribute('severity-weight')
-          let placeholder = event.to.getElementsByClassName('severity-row-placeholder')[0];
-          let positions = {{ values.tpl_name }}_sortable.toArray();
-          // Prep AJAX request with CSRF token
-          $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader('X-CSRFToken', csrftoken);
-              }
-            }
-          });
-          // Send AJAX POST request
-          $.ajax(update_url, {
-            type: 'POST',
-            data: {
-              'report': report_id,
-              'severity': event.to.id,
-              'positions': JSON.stringify(positions),
-              'weight': weight
-            },
-            success: function (data) {
-              console.log(data)
-            }
-          });
-          // An "empty" group will have one row, the placeholder row
-          if (event.to.rows.length > 0) {
-            if (placeholder !== undefined) {
-              // Group contains at least one finding, delete the placeholder
-              placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-            }
-          }
         },
 
         // Called by any change to the list (add / update / remove)
@@ -334,72 +298,6 @@
               console.log(data);
             }
           });
-        },
-
-        // Element is removed from the list into another list
-        onRemove: function (event) {
-          // Get the placeholder `tr` if it exists
-          let placeholder = event.from.getElementsByClassName('severity-row-placeholder')[0];
-          let positions = {{ values.tpl_name }}_sortable.toArray();
-          let weight = event.from.getAttribute('severity-weight')
-          $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader('X-CSRFToken', csrftoken);
-              }
-            }
-          });
-          $.ajax(update_url, {
-            type: 'POST',
-            data: {
-              'report': report_id,
-              'severity': event.from.id,
-              'positions': JSON.stringify(positions),
-              'weight': weight
-            },
-            success: function (data) {
-              console.log(data);
-            }
-          });
-          // An "empty" group will have one row, the placeholder row
-          if (event.from.rows.length === 0) {
-            // Just one row, add a placeholder row
-            let placeholder_row = event.from.insertRow(0)
-            placeholder_row.id = '{{ values.tpl_name }}_placeholder'
-            placeholder_row.className = 'severity-row-placeholder'
-            placeholder_row.setAttribute('data-id', '{{ values.tpl_name }}_placeholder')
-            let cell = placeholder_row.insertCell(0);
-            cell.colSpan = 7
-            cell.innerHTML = 'Add {{ group }} findings or drag-and-drop a finding here to update its severity.'
-          } else {
-            if (placeholder !== undefined) {
-              // Otherwise, delete the placeholder
-              placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-            }
-          }
-        },
-
-        // Event when you move an item in the list or between lists
-        onMove: function (event, originalEvent) {
-          // Code here triggers with every drag to a new position
-        },
-
-        // Attempt to drag a filtered element
-        onFilter: function (event) {
-        },
-
-        // Called when creating a clone of element
-        onClone: function (event) {
-        },
-
-        // Called when dragging element changes position
-        onChange: function (event) {
-          // Code here triggers with every move while drag is in progress
-        },
-
-        // Element dragging ended
-        onEnd: function (event) {
-          // Code here triggers when element is dropped
         },
       });
     {% endfor %}

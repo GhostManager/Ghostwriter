@@ -44,20 +44,34 @@ insert_permissions:
   - role: user
     permission:
       check:
-        finding:
-          report:
-            project:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - assignments:
-                    operator_id:
-                      _eq: X-Hasura-User-Id
-                - client:
-                    invites:
+        _or:
+          - finding:
+              report:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+          - report:
+              project:
+                _or:
+                  - invites:
                       user_id:
                         _eq: X-Hasura-User-Id
+                  - assignments:
+                      operator_id:
+                        _eq: X-Hasura-User-Id
+                  - client:
+                      invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
       set:
         uploaded_by_id: x-hasura-User-Id
       columns:
@@ -85,20 +99,34 @@ select_permissions:
     permission:
       columns: '*'
       filter:
-        finding:
-          report:
-            project:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - assignments:
-                    operator_id:
-                      _eq: X-Hasura-User-Id
-                - client:
-                    invites:
+        _or:
+          - finding:
+              report:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+          - report:
+              project:
+                _or:
+                  - invites:
                       user_id:
                         _eq: X-Hasura-User-Id
+                  - assignments:
+                      operator_id:
+                        _eq: X-Hasura-User-Id
+                  - client:
+                      invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
 update_permissions:
   - role: manager
     permission:
@@ -119,35 +147,63 @@ update_permissions:
         - friendly_name
         - report_id
       filter:
-        finding:
-          report:
-            project:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - assignments:
-                    operator_id:
-                      _eq: X-Hasura-User-Id
-                - client:
-                    invites:
+        _or:
+          - finding:
+              report:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+          - report:
+              project:
+                _or:
+                  - invites:
                       user_id:
                         _eq: X-Hasura-User-Id
+                  - assignments:
+                      operator_id:
+                        _eq: X-Hasura-User-Id
+                  - client:
+                      invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
       check:
-        finding:
-          report:
-            project:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - assignments:
-                    operator_id:
-                      _eq: X-Hasura-User-Id
-                - client:
-                    invites:
+        _or:
+          - finding:
+              report:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+          - report:
+              project:
+                _or:
+                  - invites:
                       user_id:
                         _eq: X-Hasura-User-Id
+                  - assignments:
+                      operator_id:
+                        _eq: X-Hasura-User-Id
+                  - client:
+                      invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
 delete_permissions:
   - role: manager
     permission:
@@ -155,20 +211,34 @@ delete_permissions:
   - role: user
     permission:
       filter:
-        finding:
-          report:
-            project:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - assignments:
-                    operator_id:
-                      _eq: X-Hasura-User-Id
-                - client:
-                    invites:
+        _or:
+          - finding:
+              report:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+          - report:
+              project:
+                _or:
+                  - invites:
                       user_id:
                         _eq: X-Hasura-User-Id
+                  - assignments:
+                      operator_id:
+                        _eq: X-Hasura-User-Id
+                  - client:
+                      invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
 event_triggers:
   - name: EvidenceUpdate
     definition:

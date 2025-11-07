@@ -1,13 +1,14 @@
 """This contains the custom template tags used by the Home application."""
 
 # Standard Libraries
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # Django Imports
 from django import template
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
+from django.utils import timezone
 
 # 3rd Party Libraries
 from allauth_2fa.utils import user_has_valid_totp_device
@@ -16,13 +17,9 @@ from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import (
-    verify_access,
-    verify_finding_access,
-    verify_observation_access,
-    verify_user_is_privileged,
-)
-from ghostwriter.reporting.models import Report, ReportFindingLink
+from ghostwriter.api.utils import verify_user_is_privileged
+from ghostwriter.home.models import UserProfile
+from ghostwriter.reporting.models import Finding, Observation, Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
 register = template.Library()
@@ -128,19 +125,19 @@ def divide(value, arg):
 @register.filter
 def has_access(project, user):
     """Check if the user has access to the project."""
-    return verify_access(user, project)
+    return project.user_can_view(user)
 
 
 @register.filter
 def can_create_finding(user):
     """Check if the user has the permission to create a finding."""
-    return verify_finding_access(user, "create")
+    return Finding.user_can_create(user)
 
 
 @register.filter
 def can_create_observation(user):
     """Check if the user has the permission to create a finding."""
-    return verify_observation_access(user, "create")
+    return Observation.user_can_create(user)
 
 
 @register.filter
@@ -191,3 +188,32 @@ def add_days(date, days):
 def split_and_join(value, delimiter):
     """Split a string with the delimiter and return a comma-separated string."""
     return ", ".join(value.split(delimiter))
+
+
+@register.filter
+def get_tags_list(value):
+    """Return a list of tags from an object's `tags.names` value."""
+    return ", ".join(value)
+
+
+@register.simple_tag
+def hide_quickstart(request):
+    """
+    Return a boolean value indicating if the quickstart card should be hidden.
+    """
+    user_profile = UserProfile.objects.get(user=request.user)
+    return user_profile.hide_quickstart
+
+
+@register.filter(name="is_past")
+def is_past(value):
+    """
+    Return True if the given datetime is in the past.
+    """
+    if not value or not isinstance(value, datetime):
+        return False
+    now = timezone.now()
+    # Ensure both are timezone-aware for comparison
+    if timezone.is_naive(value):
+        value = timezone.make_aware(value, timezone.get_current_timezone())
+    return value < now

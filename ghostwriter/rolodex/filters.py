@@ -2,13 +2,12 @@
 
 # Django Imports
 from django import forms
-from django.db import ProgrammingError
 from django.db.models import Q
 from django.forms.widgets import TextInput
 
 # 3rd Party Libraries
 import django_filters
-from crispy_forms.bootstrap import PrependedText
+from crispy_forms.bootstrap import Accordion, AccordionGroup, PrependedText
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
@@ -55,32 +54,43 @@ class ClientFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Div(
-                Row(
-                    Column(
-                        PrependedText("name", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-6 mb-0",
+            Accordion(
+                AccordionGroup(
+                    "Client Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("name", '<i class="fas fa-filter"></i>'),
+                                css_class="form-group col-md-6 mb-0",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="form-group col-md-6 mb-0",
+                            ),
+                            css_class="form-row",
+                        ),
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'rolodex:clients' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
+                        ),
                     ),
-                    Column(
-                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="form-group col-md-6 mb-0",
-                    ),
-                    css_class="form-row",
-                ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'rolodex:client_create' %}">Create</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'rolodex:clients' %}">Reset</a>
-                        """
-                    ),
+                    active=is_active,
+                    template="accordion_group.html",
+                    css_class="library-filter"
                 ),
                 css_class="justify-content-center",
             ),
@@ -173,16 +183,8 @@ class ProjectFilter(django_filters.FilterSet):
 
     complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label="All Projects", label="Project Status")
 
-    PROJECT_TYPE_CHOICES = []
-    try:
-        for p_type in ProjectType.objects.all():
-            PROJECT_TYPE_CHOICES.append((p_type.pk, p_type))
-    # New installs will not have the ``ProjectType`` table yet and throw a ``ProgrammingError`` exception here
-    except ProgrammingError:
-        pass
-
-    project_type = django_filters.ChoiceFilter(
-        choices=PROJECT_TYPE_CHOICES,
+    project_type = django_filters.ModelChoiceFilter(
+        queryset=lambda _: ProjectType.objects.all(),
         label="Project Type",
         field_name="project_type",
         empty_label="-- Project Type --",
@@ -198,75 +200,84 @@ class ProjectFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
+
+        # Determine active state from session (default to False if not available)
+        is_active = False
+        if self.request and hasattr(self.request, "session"):
+            filter_data = self.request.session.get("filter", {})
+            is_active = filter_data.get("sticky", False)
+
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Div(
-                Row(
-                    Column(
-                        PrependedText("client", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-6 mb-0",
-                    ),
-                    Column(
-                        PrependedText("codename", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-6 mb-0",
-                    ),
-                ),
-                Row(
-                    Column(
-                        PrependedText(
-                            "project_type",
-                            '<i class="fas fa-filter"></i>',
+            Accordion(
+                AccordionGroup(
+                    "Project Filters",
+                    Div(
+                        Row(
+                            Column(
+                                PrependedText("client", '<i class="fas fa-filter"></i>'),
+                                css_class="form-group col-md-6 mb-0",
+                            ),
+                            Column(
+                                PrependedText("codename", '<i class="fas fa-filter"></i>'),
+                                css_class="form-group col-md-6 mb-0",
+                            ),
                         ),
-                        css_class="form-group col-md-4 mb-0",
-                    ),
-                    Column(
-                        PrependedText(
-                            "complete",
-                            '<i class="fas fa-toggle-on"></i>',
+                        Row(
+                            Column(
+                                PrependedText(
+                                    "project_type",
+                                    '<i class="fas fa-filter"></i>',
+                                ),
+                                css_class="form-group col-md-4 mb-0",
+                            ),
+                            Column(
+                                PrependedText(
+                                    "complete",
+                                    '<i class="fas fa-toggle-on"></i>',
+                                ),
+                                css_class="form-group col-md-4 mb-0",
+                            ),
+                            Column(
+                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                css_class="form-group col-md-4 mb-0",
+                            ),
+                            css_class="form-row",
                         ),
-                        css_class="form-group col-md-4 mb-0",
-                    ),
-                    Column(
-                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="form-group col-md-4 mb-0",
-                    ),
-                    css_class="form-row",
-                ),
-                Row(
-                    Column(
-                        PrependedText(
-                            "start_date_range",
-                            '<i class="far fa-calendar"></i>',
+                        Row(
+                            Column(
+                                PrependedText(
+                                    "start_date_range",
+                                    '<i class="far fa-calendar"></i>',
+                                ),
+                                css_class="form-group col-md-4 mb-0",
+                            ),
+                            Column(
+                                PrependedText("start_date", '<i class="fas fa-hourglass-start"></i>'),
+                                css_class="form-group col-md-4 mb-0",
+                            ),
+                            Column(
+                                PrependedText(
+                                    "end_date",
+                                    '<i class="fas fa-hourglass-end"></i>',
+                                ),
+                                css_class="form-group col-md-4 mb-0",
+                            ),
+                            css_class="form-row",
                         ),
-                        css_class="form-group col-md-4 mb-0",
-                    ),
-                    Column(
-                        PrependedText("start_date", '<i class="fas fa-hourglass-start"></i>'),
-                        css_class="form-group col-md-4 mb-0",
-                    ),
-                    Column(
-                        PrependedText(
-                            "end_date",
-                            '<i class="fas fa-hourglass-end"></i>',
+                        ButtonHolder(
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            HTML(
+                                """
+                                <a class="btn btn-outline-secondary col-1" role="button"
+                                href="{%  url 'rolodex:projects' %}">Reset</a>
+                                """
+                            ),
+                            css_class="mt-3",
                         ),
-                        css_class="form-group col-md-4 mb-0",
                     ),
-                    css_class="form-row",
-                ),
-                ButtonHolder(
-                    HTML(
-                        """
-                        <a class="btn btn-info col-md-2" role="button"
-                        href="{%  url 'rolodex:project_create_no_client' %}">Create</a>
-                        """
-                    ),
-                    Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
-                    HTML(
-                        """
-                        <a class="btn btn-outline-secondary col-md-2" role="button"
-                        href="{%  url 'rolodex:projects' %}">Reset</a>
-                        """
-                    ),
+                    active=is_active,
+                    template="accordion_group.html",
                 ),
                 css_class="justify-content-center",
             ),

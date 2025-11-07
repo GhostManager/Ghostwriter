@@ -16,17 +16,21 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.http import JsonResponse
+from django.db.utils import IntegrityError
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
-from django.views.generic.edit import FormView, View
+from django.views.generic.edit import FormView
+from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
 from allauth_2fa.utils import user_has_valid_totp_device
 from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
+import pytz
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
@@ -36,14 +40,16 @@ from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.oplog.models import OplogEntry
+from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Finding,
+    Observation,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
 )
-from ghostwriter.reporting.views import get_position
+from ghostwriter.reporting.views2.report_finding_link import get_position
 from ghostwriter.rolodex.models import (
     Project,
     ProjectContact,
@@ -162,11 +168,16 @@ class HasuraActionView(HasuraView):
 
     input = None
     required_inputs = []
+    allow_large_input = False
 
     def setup(self, request, *args, **kwargs):
         # Load JSON data from request body and look for the Hasura ``input`` key
         try:
-            data = json.loads(request.body)
+            if self.allow_large_input:
+                data = json.load(request)
+            else:
+                data = json.loads(request.body)
+            self.data = data
             if "input" in data:
                 self.input = data["input"]
         except JSONDecodeError:
@@ -222,7 +233,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
             self.project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
-        if utils.verify_access(self.user_obj, self.project):
+        if self.project.user_can_edit(self.user_obj):
             # Get the target object – :model:`shepherd.Domain` or :model:`shepherd.StaticServer``
             if "domainId" in self.input:
                 object_id = self.input["domainId"]
@@ -299,7 +310,7 @@ class HasuraCheckoutDeleteView(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Checkout does not exist", f"{self.model.__name__}DoesNotExist"),
                 status=400,
             )
-        if utils.verify_access(self.user_obj, instance.project):
+        if instance.project.user_can_edit(self.user_obj):
             # Delete the checkout which triggers the ``pre_delete`` signal
             instance.delete()
             data = {
@@ -552,7 +563,7 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
         except Report.DoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
-        if utils.verify_access(self.user_obj, report.project):
+        if report.user_can_view(self.user_obj):
             report_bytes = ExportReportJson(report).run().getvalue()
             base64_bytes = b64encode(report_bytes)
             base64_string = base64_bytes.decode("utf-8")
@@ -723,7 +734,7 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
                 )
 
         if template.client:
-            if not utils.verify_access(self.user_obj, template.client):
+            if not template.client.user_can_edit(self.user_obj):
                 return JsonResponse(
                     utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
                 )
@@ -762,7 +773,7 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Finding does not exist", "FindingDoesNotExist"), status=400
             )
 
-        if utils.verify_access(self.user_obj, report.project):
+        if report.user_can_edit(self.user_obj):
             finding_dict = to_dict(finding, resolve_fk=True)
             # Remove the tags from the finding dict to add them later with the ``taggit`` API
             del finding_dict["tags"]
@@ -785,8 +796,10 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
 
 
 class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
+    allow_large_input = True
+
     def post(self, request):
-        if self.user_obj is None or not utils.verify_user_is_privileged(self.user_obj):
+        if self.user_obj is None:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
         form = ApiEvidenceForm(
@@ -834,6 +847,98 @@ class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):
                 codename_verified = True
         data = {
             "codename": codename,
+        }
+        return JsonResponse(data, status=self.status)
+
+
+class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for creating a user object with the ``createUser`` action."""
+
+    def post(self, request, *args, **kwargs):
+        logger.info(self.input)
+        if not utils.verify_user_is_privileged(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        try:
+            # Check if the provided role is one of the active roles
+            role = self.input["role"].lower()
+            if role not in ["user", "manager", "admin"]:
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Invalid user role", "InvalidUserRole"), status=400
+                )
+
+            # If the user is not an admin, they cannot create users with higher privileges than user
+            if self.user_obj.role != "admin" and role in ["manager", "admin"]:
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Unauthorized to create user with this role", "Unauthorized"), status=401
+                )
+
+            timezone = None
+            if "timezone" in self.input:
+                timezone = self.input["timezone"]
+
+                if timezone not in pytz.all_timezones:
+                    return JsonResponse(
+                        utils.generate_hasura_error_payload("Invalid timezone", "InvalidTimezone"), status=400
+                    )
+
+            user_data = {
+                "username": self.input["username"],
+                "email": self.input["email"],
+                "password": self.input["password"],
+                "name": self.input["name"],
+                "role": role,
+            }
+            user = User.objects.create_user(**user_data)
+
+            if timezone:
+                user.timezone = pytz.timezone(timezone)
+
+            if "enableFindingCreate" in self.input:
+                enable_finding_create = self.input["enableFindingCreate"]
+                user.enable_finding_create = enable_finding_create
+
+            if "enableFindingEdit" in self.input:
+                enable_finding_edit = self.input["enableFindingEdit"]
+                user.enable_finding_edit = enable_finding_edit
+
+            if "enableFindingDelete" in self.input:
+                enable_finding_delete = self.input["enableFindingDelete"]
+                user.enable_finding_delete = enable_finding_delete
+
+            if "enableObservationCreate" in self.input:
+                enable_observation_create = self.input["enableObservationCreate"]
+                user.enable_observation_create = enable_observation_create
+
+            if "enableObservationEdit" in self.input:
+                enable_observation_edit = self.input["enableObservationEdit"]
+                user.enable_observation_edit = enable_observation_edit
+
+            if "enableObservationDelete" in self.input:
+                enable_observation_delete = self.input["enableObservationDelete"]
+                user.enable_observation_delete = enable_observation_delete
+
+            if "require2fa" in self.input:
+                require_2fa = self.input["require2fa"]
+                user.require_2fa = require_2fa
+
+            if "phone" in self.input:
+                phone = self.input["phone"]
+                user.phone = phone
+
+            user.save()
+        except IntegrityError:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("A user with that username already exists", "UserAlreadyExists"), status=400
+            )
+
+        data = {
+            "id": user.pk,
+            "name": user.name,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "result": "success",
         }
         return JsonResponse(data, status=self.status)
 
@@ -1172,3 +1277,127 @@ class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
                 extra_tags="alert-danger",
             )
         return super().form_valid(form)
+
+
+class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
+    """
+    Checks if the given API token or JWT authorizes edit accesses to an object.
+
+    Used by the collab editing server for authentication. Not used by Hasura.
+    """
+
+    required_inputs = ["model", "id"]
+    available_models = {
+        # Models here need to have a `user_can_edit(user)` method.
+        "observation": Observation,
+        "report_observation_link": ReportObservationLink,
+        "finding": Finding,
+        "report_finding_link": ReportFindingLink,
+        "report": Report,
+    }
+
+    def post(self, request):
+        cls = self.available_models.get(self.input["model"])
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        try:
+            obj = cls.objects.get(id=self.input["id"])
+        except ObjectDoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+
+        if not obj.user_can_edit(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to edit", "Unauthorized"), status=403)
+        return JsonResponse(self.user_obj.username, status=200, safe=False)
+
+
+class GetTags(HasuraActionView):
+    required_inputs = ["model", "id"]
+    available_models = {
+        # Models here need to have a `tags` field, and optionally a `user_can_view(user)` method.
+        "observation": Observation,
+        "report_observation_link": ReportObservationLink,
+        "finding": Finding,
+        "report_finding_link": ReportFindingLink,
+        "oplog_entry": OplogEntry,
+    }
+
+    def post(self, request: HttpRequest):
+        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
+        if not self.encoded_token and not is_admin:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+            )
+
+        cls = self.available_models.get(self.input["model"])
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        try:
+            obj = cls.objects.get(id=self.input["id"])
+        except ObjectDoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+
+        if not is_admin and hasattr(obj, "user_can_view") and not obj.user_can_view(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to view", "Unauthorized"), status=403)
+
+        return JsonResponse({"tags": list(obj.tags.names())})
+
+class SetTags(HasuraActionView):
+    required_inputs = ["model", "id", "tags"]
+    available_models = {
+        # Models here need to have a `tags` field and a `user_can_edit(user)` method.
+        "observation": Observation,
+        "report_observation_link": ReportObservationLink,
+        "finding": Finding,
+        "report_finding_link": ReportFindingLink,
+        "oplog_entry": OplogEntry,
+    }
+
+    def post(self, request: HttpRequest):
+        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
+        if not self.encoded_token and not is_admin:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+            )
+
+        cls = self.available_models.get(self.input["model"])
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        try:
+            obj = cls.objects.get(id=self.input["id"])
+        except ObjectDoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+
+        if not is_admin and not obj.user_can_edit(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to edit", "Unauthorized"), status=403)
+
+        obj.tags.set(self.input["tags"])
+        return JsonResponse({"tags": self.input["tags"]})
+
+class ObjectsByTag(HasuraActionView):
+    required_inputs = ["tag"]
+    available_models = {
+        # Models here need to have a `tags` field and a `user_viewable(user)` class method
+        "observation": Observation,
+        "report_observation_link": ReportObservationLink,
+        "finding": Finding,
+        "report_finding_link": ReportFindingLink,
+        "oplog_entry": OplogEntry,
+    }
+
+    def post(self, request: HttpRequest, model: str):
+        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
+        if not self.encoded_token and not is_admin:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+            )
+
+        cls = self.available_models.get(model)
+        if cls is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+
+        objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
+        objs = objs.filter(tags__name=self.input["tag"])
+        return JsonResponse([{"id": obj.pk} for obj in objs], safe=False)

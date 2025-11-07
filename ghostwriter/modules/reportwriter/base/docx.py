@@ -11,11 +11,12 @@ from docx.shared import Inches, Pt
 from docx.image.exceptions import UnrecognizedImageError
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import (
     HtmlAndRich,
     LazilyRenderedTemplate,
+    LazySubdocRender,
     deep_copy_with_copiers,
 )
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
@@ -54,6 +55,7 @@ class ExportDocxBase(ExportBase):
     company_config: CompanyInformation
     linting: bool
     p_style: str | None
+    evidence_image_width: float | None
 
     @classmethod
     def mime_type(cls) -> str:
@@ -63,19 +65,29 @@ class ExportDocxBase(ExportBase):
     def extension(cls) -> str:
         return "docx"
 
-    def __init__(self, object, *, template_loc: str, p_style: str | None, linting: bool = False, **kwargs):
+    def __init__(
+        self,
+        object,
+        *,
+        template_loc: str,
+        p_style: str | None,
+        linting: bool = False,
+        evidence_image_width: float | None,
+        **kwargs,
+    ):
         if "jinja_debug" not in kwargs:
             kwargs["jinja_debug"] = linting
         super().__init__(object, **kwargs)
         self.linting = linting
         self.p_style = p_style
+        self.evidence_image_width = evidence_image_width
 
         # Create Word document writer using the specified template file
         try:
             self.word_doc = DocxTemplate(template_loc)
         except PackageNotFoundError as err:
             logger.exception("Failed to load the provided template document: %s", template_loc)
-            raise ReportExportError("Template document file could not be found - try re-uploading it") from err
+            raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
         except Exception:
             logger.exception("Failed to load the provided template document: %s", template_loc)
             raise
@@ -93,36 +105,42 @@ class ExportDocxBase(ExportBase):
         self.prefix_figure = f"{prefix_figure}"
         label_figure = global_report_config.label_figure
         self.label_figure = f"{label_figure}"
+        prefix_table = global_report_config.prefix_table
+        self.prefix_table = f"{prefix_table}"
+        self.figure_caption_location = global_report_config.figure_caption_location
+        label_table = global_report_config.label_table
+        self.label_table = f"{label_table}"
+        self.table_caption_location = global_report_config.table_caption_location
         self.title_case_captions = global_report_config.title_case_captions
         self.title_case_exceptions = global_report_config.title_case_exceptions.split(",")
 
     def run(self) -> io.BytesIO:
-        self.create_styles()
-
-        rich_text_context = self.map_rich_texts()
-        docx_context = deep_copy_with_copiers(
-            rich_text_context,
-            {
-                LazilyRenderedTemplate: self.render_rich_text_docx,
-                HtmlAndRich: lambda v: v.rich,
-            },
-        )
-
         try:
-            ReportExportError.map_jinja2_render_errors(
+            self.create_styles()
+
+            rich_text_context = self.map_rich_texts()
+            docx_context = deep_copy_with_copiers(
+                rich_text_context,
+                {
+                    LazilyRenderedTemplate: self.render_rich_text_docx,
+                    HtmlAndRich: lambda v: v.rich,
+                },
+            )
+
+            ReportExportTemplateError.map_errors(
                 lambda: self.word_doc.render(docx_context, self.jinja_env, autoescape=True), "the DOCX template"
             )
-            ReportExportError.map_jinja2_render_errors(
+            ReportExportTemplateError.map_errors(
                 lambda: self.render_properties(docx_context), "the DOCX properties"
             )
         except UnrecognizedImageError as err:
-            raise ReportExportError(f"Could not load an image: {err}", "the DOCX template") from err
+            raise ReportExportTemplateError(f"Could not load an image: {err}", "the DOCX template") from err
         except PackageNotFoundError as err:
-            raise ReportExportError(
+            raise ReportExportTemplateError(
                 "The word template could not be found on the server – try uploading it again.", "the DOCX template"
             ) from err
         except FileNotFoundError as err:
-            raise ReportExportError(
+            raise ReportExportTemplateError(
                 "An evidence file was missing – try uploading it again.", "the DOCX template"
             ) from err
 
@@ -134,7 +152,7 @@ class ExportDocxBase(ExportBase):
         """
         Creates default styles
         """
-        styles = self.word_doc.styles
+        styles = self.word_doc.get_docx().styles
         if "CodeBlock" not in styles:
             codeblock_style = styles.add_style("CodeBlock", WD_STYLE_TYPE.PARAGRAPH)
             codeblock_style.base_style = styles["Normal"]
@@ -213,7 +231,7 @@ class ExportDocxBase(ExportBase):
             if not template_src:
                 continue
 
-            out = ReportExportError.map_jinja2_render_errors(
+            out = ReportExportTemplateError.map_errors(
                 lambda: self.jinja_env.from_string(template_src).render(context), f"DOCX property {attr}"
             )
             setattr(self.word_doc.core_properties, attr, out)
@@ -222,22 +240,29 @@ class ExportDocxBase(ExportBase):
         """
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
         """
-        doc = self.word_doc.new_subdoc()
-        ReportExportError.map_jinja2_render_errors(
-            lambda: HtmlToDocxWithEvidence.run(
-                rich_text.render_html(),
-                doc=doc,
-                p_style=self.p_style,
-                evidences=self.evidences_by_id,
-                figure_label=self.label_figure,
-                figure_prefix=self.prefix_figure,
-                title_case_captions=self.title_case_captions,
-                title_case_exceptions=self.title_case_exceptions,
-                border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
-            ),
-            getattr(rich_text, "location", None),
-        )
-        return doc
+        def render():
+            doc = self.word_doc.new_subdoc()
+            ReportExportTemplateError.map_errors(
+                lambda: HtmlToDocxWithEvidence.run(
+                    rich_text.render_html(),
+                    doc=doc,
+                    p_style=self.p_style,
+                    evidence_image_width=self.evidence_image_width,
+                    evidences=self.evidences_by_id,
+                    figure_label=self.label_figure,
+                    figure_prefix=self.prefix_figure,
+                    figure_caption_location=self.figure_caption_location,
+                    table_label=self.label_table,
+                    table_prefix=self.prefix_table,
+                    table_caption_location=self.table_caption_location,
+                    title_case_captions=self.title_case_captions,
+                    title_case_exceptions=self.title_case_exceptions,
+                    border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                ),
+                getattr(rich_text, "location", None),
+            )
+            return doc
+        return LazySubdocRender(render)
 
     @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
@@ -264,10 +289,11 @@ class ExportDocxBase(ExportBase):
                 linting=True,
                 template_loc=template_loc,
                 p_style=p_style,
+                evidence_image_width=6.5,  # Value doesn't matter for linting
             )
             logger.info("Template loaded for linting")
 
-            undeclared_variables = ReportExportError.map_jinja2_render_errors(
+            undeclared_variables = ReportExportTemplateError.map_errors(
                 lambda: exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env), "the DOCX template"
             )
             for variable in undeclared_variables:
@@ -285,6 +311,15 @@ class ExportDocxBase(ExportBase):
                     if style == "CodeBlock":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
                             warnings.append("CodeBlock style is not a paragraph style (see documentation)")
+                    if style == "Bullet List":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("Bullet List style is not a paragraph style (see documentation)")
+                    if style == "Number List":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("Number List style is not a paragraph style (see documentation)")
+                    if style == "List Paragraph":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("List Paragraph style is not a paragraph style (see documentation)")
             if "Table Grid" not in document_styles:
                 errors.append("Template is missing a required style (see documentation): Table Grid")
             if p_style and p_style not in document_styles:
@@ -294,7 +329,7 @@ class ExportDocxBase(ExportBase):
 
             for var in exporter.jinja_undefined_variables:
                 warnings.append("Undefined variable: {!r}".format(var))
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.exception("Template failed linting: %s", error)
             errors.append(f"Linting failed: {error}")
         except Exception:

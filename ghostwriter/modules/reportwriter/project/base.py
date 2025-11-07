@@ -110,6 +110,12 @@ class ExportProjectBase(ExportBase):
                         objective["description"],
                         rich_text_context,
                     )
+                if objective["result"]:
+                    objective["result_rt"] = ex.create_lazy_template(
+                        f"the result of objective {objective['objective']}",
+                        objective["result"],
+                        rich_text_context,
+                    )
 
         # Scope Lists
         for scope_list in base_context["scope"]:
@@ -142,7 +148,7 @@ class ExportProjectBase(ExportBase):
             if isinstance(card, dict):
                 if card["description"]:
                     card["description_rt"] = ex.create_lazy_template(
-                        f"the descriptio of whitecard {card['title']}", card["description"], rich_text_context
+                        f"the description of whitecard {card['title']}", card["description"], rich_text_context
                     )
 
         # Infrastructure

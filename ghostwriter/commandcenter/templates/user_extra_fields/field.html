@@ -8,7 +8,7 @@
       <span class="align-middle burned"><i class="fas fa-times"></i></span>
     {% endif %}
   {% elif field_spec.type == "rich_text" %}
-    {{ field_value|bleach }}
+    <div class="rich-text-field-preview">{{ field_value|bleach }}</div>
   {% elif field_spec.type == "json" %}
     <pre><code id="jsonPreview"></code></pre>
     <script>

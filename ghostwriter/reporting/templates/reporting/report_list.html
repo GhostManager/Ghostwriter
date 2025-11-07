@@ -18,6 +18,9 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'reporting:report_create_no_project' %}">Create Report</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
+
   {% if filter.qs|length == 0 %}
     <p class="mt-3">There are no reports to see here yet, or your search returned no results. Start a new report up
       above or from a project page.</p>
@@ -26,13 +29,13 @@
     <table id="reportTable" class="tablesorter table table-sm table-hover">
       <thead>
       <tr>
-        <th class="align-middle pr-4">Creation Date</th>
-        <th class="align-middle pr-4">Title</th>
-        <th class="sorter-sugar align-middle pr-4">Last Update</th>
-        <th class="align-middle pr-4">Status</th>
-        <th class="align-middle pr-4">Owner</th>
+        <th class="sorter-sugar align-middle pr-4 text-left">Created</th>
+        <th class="align-middle pr-4 text-left">Title</th>
+        <th class="sorter-sugar align-middle pr-4 text-left">Updated</th>
+        <th class="align-middle pr-4 text-left">Status</th>
+        <th class="align-middle pr-4 text-left">Owner</th>
         <th class="sorter-false align-middle">
-          <div class="dropdown dropleft">
+          <div class="dropdown dropleft mr-3">
             <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                   aria-expanded="false">Start Editing</span>
             <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
@@ -46,25 +49,29 @@
       </thead>
       {% for report in filter.qs %}
         <tr>
-          <td class="align-middle">{{ report.creation|naturalday:"DATE_FORMAT" }}</td>
-          <td class="align-middle"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-          <td class="align-middle">{{ report.last_update|naturalday:"DATE_FORMAT" }}</td>
-          {% if report.complete %}
-            {% if report.delivered %}
-              <td class="align-middle"><span class="badge badge-success">Delivered</span></td>
-            {% else %}
-              <td class="align-middle"><span class="badge badge-warning">Awaiting Delivery</span></td>
-            {% endif %}
+          <td class="align-middle text-left">{{ report.creation|naturalday:"DATE_FORMAT" }}</td>
+          <td class="align-middle text-left"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+          <td class="align-middle text-left">{{ report.last_update|naturalday:"DATE_FORMAT" }}</td>
+          {%  if report.archived %}
+            <td class="align-middle text-left"><span class="badge badge-secondary">Archived</span></td>
           {% else %}
-            <td class="align-middle"><span class="badge badge-primary">In Progress</span></td>
+            {% if report.complete %}
+              {% if report.delivered %}
+                <td class="align-middle text-left"><span class="badge badge-success">Delivered</span></td>
+              {% else %}
+                <td class="align-middle text-left"><span class="badge badge-warning">Awaiting Delivery</span></td>
+              {% endif %}
+            {% else %}
+              <td class="align-middle text-left"><span class="badge badge-primary">In Progress</span></td>
+            {% endif %}
           {% endif %}
-          <td class="align-middle">{{ report.created_by }}</td>
-          <td class="align-middle">
-            <a title="Set this report as your active report" href="javascript:void(0)"
+          <td class="align-middle text-left">{{ report.created_by }}</td>
+          <td class="align-middle align-middle">
+            <button title="Set this report as your active report" href="javascript:void(0)"
                class="clickable-link js-activate-report btn btn-secondary"
                activate-report-csrftoken="{{ csrf_token }}"
                activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
-               activate-report-id="{{ report.id }}">Select Report</a>
+               activate-report-id="{{ report.id }}">Select Report</button>
           </td>
         </tr>
       {% endfor %}
@@ -76,14 +83,27 @@
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {
-      $("#reportTable").tablesorter(
+      $('#reportTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'reportLibraryTable'
+          }
         }
       );
+
       $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#reportTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
+      });
     });
   </script>
 
@@ -91,6 +111,19 @@
   <script>
     $('.input-group-text').on('click', function (event) {
       $('.input-group-text').closest('form').submit();
+    });
+  </script>
+
+  <script>
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
+      });
     });
   </script>
 {% endblock %}

@@ -1,0 +1,73 @@
+---
+title: "The Workflow"
+sidebarTitle: Overview
+description: "Understanding the basic workflow of Ghostwriter"
+---
+
+## The Mission Statement
+
+Ghostwriter's primary goal is bringing all of your operational data together in one place and create relationships. A starting point is needed to accomplish this goal. For Ghostwriter that starting point is a client.
+
+### Basic Workflow
+
+The basic workflow looks like this:
+
+1. Create a new client, or open an existing client
+
+2. Review points of contact for the client and add/edit as needed
+
+3. Create a project under the client
+
+4. Checkout servers and domain names for the new project
+
+5. Create the links between domain names, subdomains, and servers
+
+6. Create an oplog for the project and configure [automatic syncing](/features/operation-logs/setting-up-automated-logging) (if C2 is used)
+
+At this stage your project proceeds until it's time to begin noting observations:
+
+1. Create one or more reports for the new project
+
+2. Browse the database of findings/observations and applicable entries to the report
+
+3. Add affected hosts/users, add evidence files, and customize the finding as needed
+
+4. Return to step 2
+
+5. Perform peer review/QA of all findings and project details prior to report generation
+
+6. Upload a report template (optional)
+
+7. Generate a reporting document (docx, pptx, xlsx, json, etc)
+
+That's all there is to the basic procedures and their required order of precedence.
+
+### End of Project Workflow
+
+At the end of a project a project manager or assessment lead should mark a project as complete. This is done by clicking the *In Progress* toggle below the project's name on the project's detail page.
+
+Marking a project as complete begins a 90-day countdown to archiving. If the archive task has been configured (see [Background Tasks](/features/background-tasks)), Ghostwriter will perform a daily check to see if any complete projects are 90 days old (or older) and archive them.
+
+<Info>
+The default is 90 days, but this can be adjusted in the `tasks.py` file.
+</Info>
+Archiving involves the following actions:
+
+* Mark all reports under the project to **Complete** (if they were not marked as such already)
+
+* Mark all reports under the project as Archived
+
+* Generate all report types
+
+* Bundle all reports and evidence files into a zip file
+
+* Add a record to the `Archive` model for the client and project with the report archive file
+
+* Mark the project as archived
+
+* Delete all report data
+
+The archive file are available for download under `/reporting/reports/archive`. You can leave them or perform any actions required by your company's data retention policies (e.g. download the archive and then delete it from Ghostwriter).
+
+Once archived, the project and reports can no longer be edited, so they now exist only as a historical record.
+

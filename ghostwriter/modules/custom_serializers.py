@@ -4,13 +4,13 @@
 
 # Standard Libraries
 from datetime import datetime
+import zoneinfo
 
 # Django Imports
 from django.conf import settings
 from django.utils import dateformat
 
 # 3rd Party Libraries
-import pytz
 from bs4 import BeautifulSoup
 from rest_framework import serializers
 from rest_framework.serializers import (
@@ -89,6 +89,9 @@ class CustomModelSerializer(serializers.ModelSerializer):
         for key, value in data.items():
             try:
                 if value is None:
+                    data[key] = ""
+                # Convert empty paragraph HTML to empty string
+                elif isinstance(value, str) and value.strip() in ("<p></p>", "<p> </p>"):
                     data[key] = ""
             except KeyError:
                 pass
@@ -417,8 +420,8 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
         return obj.operator.phone
 
     def get_timezone(self, obj):
-        tz = pytz.timezone(str(obj.operator.timezone))
-        return tz.zone
+        tz = zoneinfo.ZoneInfo(str(obj.operator.timezone))
+        return str(tz)
 
 
 class ProjectSubTaskSerializer(CustomModelSerializer):

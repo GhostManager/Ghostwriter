@@ -29,6 +29,25 @@ type Mutation {
 }
 
 type Mutation {
+  createUser(
+    name: String!
+    email: String!
+    username: String!
+    password: String!
+    role: String!
+    timezone: String
+    phone: String
+    enableFindingCreate: Boolean
+    enableFindingEdit: Boolean
+    enableFindingDelete: Boolean
+    enableObservationCreate: Boolean
+    enableObservationEdit: Boolean
+    enableObservationDelete: Boolean
+    require2fa: Boolean
+  ): createUserResponse
+}
+
+type Mutation {
   deleteDomainCheckout(
     checkoutId: Int!
   ): checkoutResponse
@@ -44,6 +63,12 @@ type Mutation {
   deleteTemplate(
     templateId: Int!
   ): deleteResponse
+}
+
+type Query {
+  finding_by_tag(
+    tag: String!
+  ): [GetFindingByTagsResponse!]
 }
 
 type Mutation {
@@ -67,6 +92,45 @@ type Mutation {
     username: String!
     password: String!
   ): LoginResponse
+}
+
+type Query {
+  observation_by_tag(
+    tag: String!
+  ): [GetObservationByTagsResponse!]
+}
+
+type Query {
+  oplogEntry_by_tag(
+    tag: String!
+  ): [GetOplogEntryByTagsResponse!]
+}
+
+type Query {
+  reportedFinding_by_tag(
+    tag: String!
+  ): [GetReportFindingByTagsResponse!]
+}
+
+type Query {
+  reportedObservation_by_tag(
+    tag: String!
+  ): [GetReportObservationByTagsResponse!]
+}
+
+type Mutation {
+  setTags(
+    model: String!
+    id: bigint!
+    tags: [String!]!
+  ): TagsResult!
+}
+
+type Query {
+  tags(
+    model: String!
+    id: bigint!
+  ): TagsResult!
 }
 
 type Mutation {
@@ -148,3 +212,45 @@ type UploadEvidenceResult {
 type UploadReportTemplateResult {
   id: Int!
 }
+
+type TagsResult {
+  tags: [String!]!
+}
+
+type createUserResponse {
+  id: Int!
+  name: String!
+  username: String!
+  email: String!
+  role: String!
+  result: String!
+}
+
+type GetByTagsResponse {
+  id: Int!
+}
+
+type GetByTagsObject {
+  id: Int!
+}
+
+type GetFindingByTagsResponse {
+  id: Int!
+}
+
+type GetObservationByTagsResponse {
+  id: Int!
+}
+
+type GetReportObservationByTagsResponse {
+  id: Int!
+}
+
+type GetReportFindingByTagsResponse {
+  id: Int!
+}
+
+type GetOplogEntryByTagsResponse {
+  id: Int!
+}
+

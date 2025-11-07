@@ -52,10 +52,10 @@
 
     <!-- Template Information Section -->
     <div class="table-responsive" >
-        <table class="table-sm table-borderless table-centered">
+        <table class="table table-borderless project-details-table offset-2 col-8">
             <tr>
                 <td class="text-left bold">Uploaded By</td>
-                <td class="text-center">
+                <td class="text-left">
                     {% if reporttemplate.uploaded_by %}
                         {{ reporttemplate.uploaded_by }}
                     {% else %}
@@ -65,15 +65,15 @@
             </tr>
             <tr>
                 <td class="text-left bold">Upload Date</td>
-                <td class="text-center">{{ reporttemplate.upload_date|naturalday:"DATE_FORMAT" }}</td>
+                <td class="text-left">{{ reporttemplate.upload_date|naturalday:"DATE_FORMAT" }}</td>
             </tr>
             <tr>
                 <td class="text-left bold">Last Update</td>
-                <td class="text-center">{{ reporttemplate.last_update|naturalday:"DATE_FORMAT" }}</td>
+                <td class="text-left">{{ reporttemplate.last_update|naturalday:"DATE_FORMAT" }}</td>
             </tr>
             <tr>
                 <td class="text-left bold">Client</td>
-                <td class="text-center">
+                <td class="text-left">
                     {% if reporttemplate.client %}
                         {{ reporttemplate.client }}
                     {% else %}
@@ -83,18 +83,25 @@
             </tr>
             <tr>
                 <td class="text-left bold">Orientation</td>
-                <td class="text-center">{% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}</td>
+                <td class="text-left">{% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}</td>
             </tr>
             {% if reporttemplate.doc_type.extension == "docx" %}
               <tr>
                   <td class="text-left bold">New Paragraph Style</td>
-                  <td class="text-center">{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</td>
+                  <td class="text-left">{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</td>
               </tr>
             {% endif %}
+			<tr>
+                <td class="text-left bold">Evidence Image Width</td>
+                <td class="text-left">{{ reporttemplate.evidence_image_width }} inches</td>
+            </tr>
         </table>
     </div>
 
-    <div>
+    <h3 class="icon info-icon">Description</h3>
+    <hr>
+
+    <div class="offset-2 col-8 centered-container">
         {% if reporttemplate.description %}
             {{ reporttemplate.description|bleach }}
         {% endif %}

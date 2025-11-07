@@ -131,6 +131,7 @@
       "last_update": "2023-09-19",
       "doc_type": 1,
       "p_style": "Normal",
+      "evidence_image_width": 6.5,
       "lint_result": "{\"result\": \"success\", \"warnings\": [], \"errors\": []}"
     }
   },

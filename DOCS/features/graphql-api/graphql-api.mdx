@@ -1,0 +1,203 @@
+---
+title: "Overview"
+---
+
+## Introduction
+
+Starting in v3.0.0, Ghostwriter includes a GraphQL API powered by the [Hasura GraphQL Engine](https://hasura.io/). You can use the API to perform all the same tasks available via the web interface. It's a powerful tool for automation, pushing and pulling data, and integrating external tools with Ghostwriter.
+
+## Interacting with the API
+
+With the default configuration, the GraphQL endpoints are:
+
+* Local: [http://127.0.0.1:8080/v1/graphql](http://127.0.0.1:8000/graphql)
+
+* Production: [https://\<HOST>/v1/graphql](http://127.0.0.1:8000/graphql)
+
+Unlike a REST API, a GraphQL API does not have specific endpoints you must query with a particular HTTP request type to receive a predetermined set of results. You submit queries with POST requests to one of the above endpoints as JSON. The JSON includes your personalized query and the data you selected to get back. You can get precisely what you need without making multiple requests or parsing extra data.
+
+A standard query is submitted with `Content-Type: application/json` in the headers and a body like this:
+
+```json SampleQuery.json
+{
+    "query": "...",
+    "operationName": "...",
+    "variables": { "foo": "bar", ... }
+}
+```
+
+The `query` and `operationName` keys are required. The `operationName` tells GraphQL which action should be executed. This can be helpful if you stack multiple queries and mutations in the `query` key and want to execute them selectively (see the example at the bottom of the page).
+
+The response will always come back in this form:
+
+```json SampleResponse.json
+{
+  "data": { ... },
+  "errors": [ ... ]
+}
+```
+
+For more information, review the GraphQL documentation on queries:
+
+<CardGroup cols={1}> <Card title="Queries and Mutations | GraphQL" icon="code" iconType="solid" href="https://graphql.org/learn/queries" > <img src="https://graphql.org/favicon.ico" className="w-5 h-5 mr-2" alt="Logo" /> <span className="text-xs text-dark/7 dark:text-light/6">graphql</span> </Card> </CardGroup>
+
+<Check>
+Some basic GraphQL knowledge, such as the difference between a query and a mutation, will make the following sections easier to understand. You will also be better prepared to write your custom queries.
+</Check>
+### Basic Queries
+
+A basic query looks like this:
+
+```json SampleClientQuery.json
+query MyQuery {
+  client {
+    id
+  }
+}
+```
+
+It identifies itself as a query with an arbitrary name, states which table it wants to query, and what fields it wants to be returned. This query would return the `id` field of all client records accessible to the requesting user.
+
+The query can be modified to return additional data, like the `codename` and `note` fields:
+
+```json SampleClientQuery.json
+query MyQuery {
+  client {
+    id
+    codename
+    note
+  }
+}
+```
+<Check>
+Field names are often placed on separate lines in GraphQL examples and the Hasura Console, but this is not required. You can separate field names with spaces, too. This option is easier to use when preparing queries for web requests because it removes the need to convert newlines to `\n`.
+</Check>
+Queries can also request related data. For a client, you might request the contact information for all related points of contact:
+
+```json SampleClientQuery.json
+query MyQuery {
+  clients {
+    id
+    codename
+    note
+    contacts {
+      email
+    }
+  }
+}
+```
+
+You can include multiple queries in a single request. Here we add a query to fetch the `id` and `title` of every finding in the database to get all our data back in a single request:
+
+```json SampleClientQuery.json
+query MyQuery {
+  clients {
+    id
+    codename
+    note
+    contacts {
+      email
+    }
+  }
+  finding {
+    id
+    title
+  }
+}
+```
+
+Finally, you might want to try to take the result of one query and use it as a variable for a subsequent query. When GraphQL receives multiple queries, like in the above example, GraphQL resolves all queries **simultaneously**, so the results of one cannot feed into another.
+
+In most cases, you can accomplish your goal with a single query. Always remember, you can leverage relationships.
+
+For this final example, assume you want to get the title and severity of every finding ever associated with a particular client's projects where the `title` contains `SMB`. This can be accomplished with nested database relationships and the addition of a condition:
+
+```json SampleClientQueryWithFilter.json
+query MyQuery {
+  clients {
+    projects {
+      reports {
+        reportedFindings(where: {title: {_like: "%SMB%"}}) {
+          title
+          severity {
+            severity
+          }
+        }
+      }
+    }
+  }
+}
+```
+<Check>
+Note how the above example references the `severity` relationship, instead of returning the findings `severityId` field. The `severityId` is just the foreign key, an integer. The query uses the relationship to return the string value set to represent that severity (e.g., High).
+</Check>
+### Interacting via Automation
+
+Queries are simple until you need to pack them into the nested JSON for a web request. It would be best if you used a script to craft the proper payloads and make them repeatable.
+
+You can write your query in a human-readable format and then use something like JavaScript's `JSON.stringify()` or Python's `json.dumps()` to create the properly formatted payload for the POST request. However, this can lead to accidental double-encoding which will cause issues down the line. The simplest option is using a library built for handling GraphQL requests, like `gql` for Python.
+
+Here is an example query request in Python using the `gql` library. For more examples and ideas, see this section:
+
+<CardGroup cols={2}>
+  <Card title="GraphQL Usage Examples" icon="chevron-right" href="/features/graphql-api/graphql-usage-examples">
+    Learn about GraphQL usage examples
+  </Card>
+</CardGroup>
+
+```python SampleAPI.py
+from gql import Client, gql
+from gql.transport.aiohttp import AIOHTTPTransport
+from gql.transport.exceptions import TransportQueryError
+from graphql.error.graphql_error import GraphQLError
+from asyncio.exceptions import TimeoutError
+
+try:
+	# Define our queries and mutations as `gql()` objects
+	login_query = gql(
+		"""
+		mutation Login {
+			login(password:"sp3ct3rops", username:"benny") {
+				token expires
+			}
+		}
+		"""
+	)
+	whoami_query = gql(
+		"""
+		query Whoami {
+			whoami {
+				username role expires
+			}
+		}
+		"""
+	)
+
+	# Prepare our initial unauthenticated GraphQL client
+	transport = AIOHTTPTransport(url="http://127.0.0.1:8080/v1/graphql")
+	client = Client(transport=transport, fetch_schema_from_transport=True)
+
+	# Login and get our token
+	result = client.execute(login_query)
+	token = result["login"]["token"]
+
+	# Setup future requests to use token
+	headers = {"Authorization": f"Bearer {token}"}
+	transport = AIOHTTPTransport(url="http://127.0.0.1:8080/v1/graphql", headers=headers)
+	authenticated_client = Client(transport=transport, fetch_schema_from_transport=True)
+
+	# Test the token with a `whois` query
+	result = authenticated_client.execute(whoami_query)
+
+	# Print our user information
+	print(result)
+except TimeoutError:
+	# Do something...
+	pass
+except TransportQueryError as e:
+	# Do something...
+	pass
+except GraphQLError as e:
+	# Do something...
+	pass
+```

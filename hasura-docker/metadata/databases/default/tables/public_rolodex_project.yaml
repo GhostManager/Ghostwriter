@@ -72,6 +72,13 @@ array_relationships:
         table:
           name: rolodex_projectnote
           schema: public
+  - name: contacts
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          name: rolodex_projectcontact
+          schema: public
   - name: deconflictions
     using:
       foreign_key_constraint_on:

@@ -11,7 +11,7 @@ from django.db.models import Model
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError, rich_text_template
 from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 
 
@@ -84,7 +84,7 @@ class ExportBase:
 
     def create_lazy_template(self, location: str | None, text: str, context: dict) -> LazilyRenderedTemplate:
         return LazilyRenderedTemplate(
-            ReportExportError.map_jinja2_render_errors(
+            ReportExportTemplateError.map_errors(
                 lambda: rich_text_template(self.jinja_env, text),
                 location,
             ),
@@ -151,7 +151,7 @@ class ExportBase:
         data["company_name"] = CompanyInformation.get_solo().company_name
         data["now"] = datetime.now()
 
-        report_name = ReportExportError.map_jinja2_render_errors(
+        report_name = ReportExportTemplateError.map_errors(
             lambda: self.jinja_env.from_string(filename_template).render(data),
             "the template filename"
         )
@@ -160,29 +160,6 @@ class ExportBase:
         if ext is None:
             ext = self.extension()
         return report_name.strip() + "." + ext
-
-
-def _valid_xml_char_ordinal(c):
-    """
-    Checks if the character is valid to include in XML.
-
-    Source:
-        https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
-
-    **Parameters**
-
-    ``c`` : string
-        String of characters to validate
-    """
-    codepoint = ord(c)
-    # Conditions ordered by presumed frequency
-    return (
-        0x20 <= codepoint <= 0xD7FF
-        or codepoint in (0x9, 0xA, 0xD)
-        or 0xE000 <= codepoint <= 0xFFFD
-        or 0x10000 <= codepoint <= 0x10FFFF
-    )
-
 
 def _replace_filename_chars(name):
     """Remove illegal characters from the report name."""

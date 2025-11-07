@@ -1,0 +1,349 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Ghostwriter Documentation",
+  "colors": {
+    "primary": "#6D70A7",
+    "light": "#50B071",
+    "dark": "#6D70A7"
+  },
+  "favicon": "/favicon.png",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Home",
+        "groups": [
+          {
+            "group": "Home",
+            "pages": [
+              "home"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/quickstart",
+              "getting-started/updating-ghostwriter",
+              {
+                "group": "Managing the Server with Ghostwriter CLI",
+                "pages": [
+                  "getting-started/managing-the-server-with-ghostwriter-cli",
+                  "getting-started/managing-the-server-with-ghostwriter-cli/managing-logon-sessions",
+                  "getting-started/managing-the-server-with-ghostwriter-cli/creating-and-managing-backups"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Configuring Global Settings",
+            "pages": [
+              "configuring-global-settings/introduction-to-command-center",
+              "configuring-global-settings/personalizing-company-information",
+              "configuring-global-settings/configuring-global-report-options",
+              "configuring-global-settings/configuring-the-announcement-banner",
+              {
+                "group": "Configuring APIs",
+                "pages": [
+                  "configuring-global-settings/configuring-apis",
+                  "configuring-global-settings/configuring-apis/configuring-slack",
+                  "configuring-global-settings/configuring-apis/configuring-virustotal",
+                  "configuring-global-settings/configuring-apis/configuring-namecheap",
+                  "configuring-global-settings/configuring-apis/configuring-cloud-services"
+                ]
+              },
+              "configuring-global-settings/configuring-extra-fields"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              {
+                "group": "Access, Authentication, & Session Controls",
+                "pages": [
+                  "features/access-authentication-and-session-controls",
+                  "features/access-authentication-and-session-controls/single-sign-on",
+                  "features/access-authentication-and-session-controls/two-factor-authentication",
+                  "features/access-authentication-and-session-controls/role-based-access-controls",
+                  "features/access-authentication-and-session-controls/session-management"
+                ]
+              },
+              {
+                "group": "Client & Project Management",
+                "pages": [
+                  "features/client-and-project-management",
+                  "features/client-and-project-management/client-dashboard",
+                  {
+                    "group": "Project Dashboard",
+                    "pages": [
+                      "features/client-and-project-management/project-dashboard",
+                      "features/client-and-project-management/project-dashboard/project-points-of-contact-and-assignments",
+                      "features/client-and-project-management/project-dashboard/scope-tracking",
+                      "features/client-and-project-management/project-dashboard/objective-tracking",
+                      "features/client-and-project-management/project-dashboard/deconfliction-tracking",
+                      "features/client-and-project-management/project-dashboard/white-card-tracking"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Findings Library",
+                "pages": [
+                  "features/findings-library",
+                  "features/findings-library/populating-the-findings-library",
+                  "features/findings-library/finding-keywords"
+                ]
+              },
+              "features/observations-library",
+              {
+                "group": "Infrastructure Management",
+                "pages": [
+                  "features/infrastructure-management",
+                  {
+                    "group": "Server Management",
+                    "pages": [
+                      "features/infrastructure-management/server-management",
+                      "features/infrastructure-management/server-management/populating-the-server-library",
+                      "features/infrastructure-management/server-management/server-management",
+                      "features/infrastructure-management/server-management/monitoring-servers"
+                    ]
+                  },
+                  {
+                    "group": "Domains Management",
+                    "pages": [
+                      "features/infrastructure-management/domains-management",
+                      "features/infrastructure-management/domains-management/populating-the-domain-library",
+                      "features/infrastructure-management/domains-management/domain-checkout-1",
+                      "features/infrastructure-management/domains-management/monitoring-domains"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Operation Logs",
+                "pages": [
+                  "features/operation-logs",
+                  "features/operation-logs/creating-a-new-oplog",
+                  "features/operation-logs/create-a-new-entry",
+                  "features/operation-logs/setting-up-automated-logging",
+                  "features/operation-logs/exporting-importing-oplogs"
+                ]
+              },
+              {
+                "group": "Reporting",
+                "pages": [
+                  "features/reporting",
+                  {
+                    "group": "Report Types",
+                    "pages": [
+                      "features/reporting/report-types",
+                      "features/reporting/report-types/word-document-customization",
+                      "features/reporting/report-types/powerpoint-deck-customization",
+                      "features/reporting/report-types/excel-spreadsheet-customization"
+                    ]
+                  },
+                  {
+                    "group": "Report Templates",
+                    "pages": [
+                      "features/reporting/report-templates",
+                      "features/reporting/report-templates/report-template-linting",
+                      "features/reporting/report-templates/word-template-variables",
+                      "features/reporting/report-templates/word-template-styles",
+                      "features/reporting/report-templates/troubleshooting-word-templates"
+                    ]
+                  },
+                  "features/reporting/templating-and-rich-text-fields",
+                  "features/reporting/jinja2-tips-and-tricks"
+                ]
+              },
+              {
+                "group": "Background Tasks",
+                "pages": [
+                  "features/background-tasks",
+                  "features/background-tasks/scheduled-tasks",
+                  "features/background-tasks/prebuilt-tasks"
+                ]
+              },
+              "features/health-monitoring"
+            ]
+          },
+          {
+            "group": "Getting Help",
+            "pages": [
+              "getting-help/faq",
+              "getting-help/getting-help-with-a-problem",
+              "getting-help/reporting-a-security-issue"
+            ]
+          },
+          {
+            "group": "Workflow & Usage",
+            "pages": [
+              "workflow/basic-usage",
+              {
+                "group": "The Workflow",
+                "pages": [
+                  "workflow/basic-usage",
+                  "workflow/basic-usage/finding-review-workflow"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Coding Style Guide",
+            "pages": [
+              "coding-style-guide/style-guide",
+              {
+                "group": "Form Layouts & Design",
+                "pages": [
+                  "coding-style-guide/form-layouts-and-design",
+                  "coding-style-guide/form-layouts-and-design/formset-layout-and-design",
+                  "coding-style-guide/form-layouts-and-design/custom-layout-objects"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/stack-overview",
+              {
+                "group": "Stack Overview",
+                "pages": [
+                  "development/stack-overview",
+                  "development/stack-overview/behind-the-scenes"
+                ]
+              },
+              {
+                "group": "Modifying Code",
+                "pages": [
+                  "development/modifying-code",
+                  "development/modifying-code/modifying-environment-variables"
+                ]
+              },
+              "development/testing-code",
+              {
+                "group": "Contributing to the Project",
+                "pages": [
+                  "development/contributing-to-the-project",
+                  "development/contributing-to-the-project/pre-release-checklist"
+                ]
+              },
+              {
+                "group": "Database Models",
+                "pages": [
+                  "development/database-models",
+                  "development/database-models/api-models",
+                  "development/database-models/rolodex-models",
+                  "development/database-models/configuration-models",
+                  "development/database-models/home-models",
+                  "development/database-models/infrastructure-models",
+                  "development/database-models/oplog-models",
+                  "development/database-models/reporting-models"
+                ]
+              },
+              "development/expected-services-and-processes"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "GraphQL API",
+        "groups": [
+          {
+            "group": "Features",
+            "pages": [
+              {
+                "group": "GraphQL API",
+                "pages": [
+                  "features/graphql-api/graphql-api",
+                  "features/graphql-api/authentication",
+                  "features/graphql-api/common-api-actions",
+                  "features/graphql-api/using-the-hasura-console",
+                  {
+                    "group": "GraphQL Usage Examples",
+                    "pages": [
+                      "features/graphql-api/graphql-usage-examples",
+                      "features/graphql-api/graphql-usage-examples/recording-cloud-server-deployments",
+                      "features/graphql-api/graphql-usage-examples/integrating-with-bloodhound-for-reporting"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/GhostManager/Ghostwriter",
+          "icon": "github"
+        },
+        {
+          "anchor": "Community",
+          "href": "https://join.slack.com/t/bloodhoundhq/shared_invite/zt-1tgq6ojd2-ixpx5nz9Wjtbhc3i8AVAWw",
+          "icon": "slack"
+        }
+      ]
+    }
+  },
+  "styling": {
+    "codeblocks": "system"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://specterops.io/"
+  },
+  "appearance": {
+    "default": "light",
+    "strict": false
+  },
+  "background": {
+    "decoration": "gradient"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Learn More",
+        "href": "https://blog.getghostwriter.io/"
+      },
+      {
+        "label": "Get the Code",
+        "href": "https://code.getghostwriter.io/"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Support",
+      "href": "https://github.com/GhostManager/Ghostwriter/issues"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://twitter.com/specterops",
+      "github": "https://github.com/GhostManager/Ghostwriter",
+      "linkedin": "https://www.linkedin.com/company/specterops",
+      "slack": "https://slack.specterops.io",
+      "instagram": "https://www.instagram.com/specterops.io/",
+      "youtube": "https://www.youtube.com/channel/UCWMKKqCCQkUjU8dIyiL1yhQ"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Nunito Sans",
+      "weight": 900,
+      "format": "woff2",
+      "source": "https://fonts.gstatic.com/s/nunitosans/v15/pe0TMImSLYBIv1o4X1M8ce2xCx3yop4tQpF_MeTm0lfGWVpNn64CL7U8upHZIbMV51Q42ptCp7t1R-s.woff2"
+    }
+  },
+  "integrations": {
+   "plausible": {
+     "domain": "ghostwriter.wiki"
+    }
+  },
+  "thumbnails": {
+    "background": "images/thumbnail.png"
+  }
+}

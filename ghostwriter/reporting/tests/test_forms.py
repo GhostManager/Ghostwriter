@@ -24,11 +24,8 @@ from ghostwriter.factories import (
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.reporting.forms import (
     EvidenceForm,
-    FindingForm,
     FindingNoteForm,
     LocalFindingNoteForm,
-    ObservationForm,
-    ReportFindingLinkUpdateForm,
     ReportForm,
     ReportObservationLinkUpdateForm,
     ReportTemplateForm,
@@ -39,83 +36,6 @@ from ghostwriter.reporting.forms import (
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
-
-
-class FindingFormTests(TestCase):
-    """Collection of tests for :form:`reporting.FindingForm`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.finding = FindingFactory()
-
-    def setUp(self):
-        pass
-
-    def form_data(
-        self,
-        title=None,
-        finding_type_id=None,
-        severity_id=None,
-        cvss_score=None,
-        cvss_vector=None,
-        description=None,
-        impact=None,
-        mitigation=None,
-        replication_steps=None,
-        host_detection_techniques=None,
-        network_detection_techniques=None,
-        references=None,
-        finding_guidance=None,
-        **kwargs,
-    ):
-        return FindingForm(
-            data={
-                "title": title,
-                "finding_type": finding_type_id,
-                "severity": severity_id,
-                "cvss_score": cvss_score,
-                "cvss_vector": cvss_vector,
-                "description": description,
-                "impact": impact,
-                "mitigation": mitigation,
-                "replication_steps": replication_steps,
-                "host_detection_techniques": host_detection_techniques,
-                "network_detection_techniques": network_detection_techniques,
-                "references": references,
-                "finding_guidance": finding_guidance,
-            },
-        )
-
-    def test_valid_data(self):
-        self.finding.title = "New Title"
-
-        form = self.form_data(**self.finding.__dict__)
-        self.assertTrue(form.is_valid())
-
-    def test_duplicate_title(self):
-        form = self.form_data(**self.finding.__dict__)
-        errors = form["title"].errors.as_data()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "unique")
-
-
-class ObservationFormTest(TestCase):
-    """Collection of tests for :form:`reporting.ObservationForm`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.observation = ObservationFactory()
-
-    def test_valid_data(self):
-        self.observation.title = "New Title"
-        form = ObservationForm(data=self.observation.__dict__)
-        self.assertTrue(form.is_valid())
-
-    def test_duplicate_title(self):
-        form = ObservationForm(data=self.observation.__dict__)
-        errors = form["title"].errors.as_data()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "unique")
 
 
 class ReportFormTests(TestCase):
@@ -185,86 +105,6 @@ class ReportFormTests(TestCase):
         errors = form["pptx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid_choice")
-
-
-class ReportFindingLinkUpdateFormTests(TestCase):
-    """Collection of tests for :form:`reporting.ReportFindingLinkForm`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.finding = ReportFindingLinkFactory()
-        cls.blank_finding = ReportFindingLinkFactory(added_as_blank=True)
-        cls.complete_finding = ReportFindingLinkFactory(complete=True)
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def form_data(
-        self,
-        instance,
-        assigned_to_id=None,
-        title=None,
-        affected_entities=None,
-        finding_type_id=None,
-        severity_id=None,
-        cvss_score=None,
-        cvss_vector=None,
-        description=None,
-        impact=None,
-        mitigation=None,
-        replication_steps=None,
-        host_detection_techniques=None,
-        network_detection_techniques=None,
-        references=None,
-        finding_guidance=None,
-        complete=None,
-        **kwargs,
-    ):
-        return ReportFindingLinkUpdateForm(
-            data={
-                "title": title,
-                "assigned_to": assigned_to_id,
-                "finding_type": finding_type_id,
-                "severity": severity_id,
-                "cvss_score": cvss_score,
-                "cvss_vector": cvss_vector,
-                "affected_entities": affected_entities,
-                "description": description,
-                "impact": impact,
-                "mitigation": mitigation,
-                "replication_steps": replication_steps,
-                "host_detection_techniques": host_detection_techniques,
-                "network_detection_techniques": network_detection_techniques,
-                "references": references,
-                "finding_guidance": finding_guidance,
-                "complete": complete,
-            },
-            instance=instance,
-        )
-
-    def test_valid_data(self):
-        form = self.form_data(instance=self.finding, **self.finding.__dict__)
-        self.assertTrue(form.is_valid())
-
-    def test_blank_assigned_to(self):
-        self.finding.assigned_to = None
-        form = self.form_data(instance=self.finding, **self.finding.__dict__)
-        self.assertTrue(form.is_valid())
-
-    def test_added_as_blank_field(self):
-        form = self.form_data(instance=self.blank_finding, **self.blank_finding.__dict__)
-        self.assertTrue(form.is_valid())
-        form.save()
-        self.assertTrue(self.blank_finding.added_as_blank)
-
-    def test_complete_field(self):
-        form = self.form_data(instance=self.complete_finding, **self.complete_finding.__dict__)
-        self.assertTrue(form.is_valid())
-        form.save()
-        self.assertTrue(self.complete_finding.complete)
 
 
 class ReportObservationLinkUpdateFormTests(TestCase):
@@ -538,6 +378,7 @@ class ReportTemplateFormTests(TestCase):
         client_id=None,
         doc_type=None,
         p_type=None,
+        evidence_image_width=None,
         user=None,
         **kwargs,
     ):
@@ -551,6 +392,7 @@ class ReportTemplateFormTests(TestCase):
                 "client": client_id,
                 "doc_type": doc_type,
                 "p_type": p_type,
+                "evidence_image_width": evidence_image_width,
             },
             user=user,
             files={

@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
 # 3rd Party Libraries
-from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
+from crispy_forms.bootstrap import FieldWithButtons
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -34,7 +34,6 @@ from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import (
     Evidence,
-    Finding,
     FindingNote,
     LocalFindingNote,
     Observation,
@@ -46,133 +45,26 @@ from ghostwriter.reporting.models import (
 )
 from ghostwriter.rolodex.models import Project
 
-
-class FindingForm(forms.ModelForm):
-    """Save an individual :model:`reporting.Finding`."""
-
-    extra_fields = ExtraFieldsField(Finding._meta.label)
-
+class AssignReportFindingForm(forms.ModelForm):
     class Meta:
-        model = Finding
-        fields = "__all__"
-        field_classes = {
-            "description": JinjaRichTextField,
-            "impact": JinjaRichTextField,
-            "mitigation": JinjaRichTextField,
-            "replication_steps": JinjaRichTextField,
-            "host_detection_techniques": JinjaRichTextField,
-            "references": JinjaRichTextField,
-            "finding_guidance": JinjaRichTextField,
-        }
+        model = ReportFindingLink
+        fields = ("assigned_to",)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
-        self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
-        self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
 
-        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
-        self.fields["replication_steps"].widget.attrs["placeholder"] = "How to reproduce/find this issue ..."
-        self.fields["host_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on an endpoint ..."
-        self.fields["network_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on a network ..."
-        self.fields["references"].widget.attrs["placeholder"] = "Some useful links and references ..."
-        self.fields["finding_guidance"].widget.attrs[
-            "placeholder"
-        ] = "When using this finding in a report be sure to include ..."
-        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
-        self.fields["finding_type"].label = "Finding Type"
-        self.fields["extra_fields"].label = ""
-
-        has_extra_fields = bool(self.fields["extra_fields"].specs)
-
-        # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
         self.helper.layout = Layout(
-            HTML(
-                """
-                <h4 class="icon search-icon">Categorization</h4>
-                <hr />
-                """
-            ),
-            Row(
-                Column("title", css_class="form-group col-md-6 mb-0"),
-                Column(
-                    "tags",
-                    css_class="form-group col-md-6 mb-0",
-                ),
-                css_class="form-row",
-            ),
-            Row(
-                Column("finding_type", css_class="form-group col-md-6 mb-0"),
-                Column("severity", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("cvss_score", css_class="form-group col-md-6 mb-0"),
-                Column("cvss_vector", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Accordion(
-                AccordionGroup(
-                    "CVSS Calculator",
-                    Div(template="snippets/cvss_ui.html"),
-                    active=False,
-                    template="accordion_group.html",
-                ),
-            ),
-            HTML(
-                """
-                <h4 class="icon pencil-icon">General Information</h4>
-                <hr />
-                """
-            ),
-            Field("description"),
-            Field("impact"),
-            HTML(
-                """
-                <h4 class="icon shield-icon">Defense</h4>
-                <hr />
-                """
-            ),
-            Field("mitigation"),
-            Field("replication_steps"),
-            Field("host_detection_techniques"),
-            Field(
-                "network_detection_techniques",
-            ),
-            HTML(
-                """
-                <h4 class="icon link-icon">Reference Links</h4>
-                <hr />
-                """
-            ),
-            "references",
-            "finding_guidance",
-            HTML(
-                """
-                <h4 class="icon custom-field-icon">Extra Fields</h4>
-                <hr />
-                """
-            )
-            if has_extra_fields
-            else None,
-            Field("extra_fields") if has_extra_fields else None,
+            Field("assigned_to"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
-                ),
-            ),
+                HTML("""
+                    <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
+                """)
+            )
         )
-
 
 class ReportForm(forms.ModelForm):
     """
@@ -263,163 +155,6 @@ class ReportForm(forms.ModelForm):
                     """
                     <button onclick="window.location.href='{{ cancel_link }}'"
                     class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
-                ),
-            ),
-        )
-
-
-class ReportFindingLinkUpdateForm(forms.ModelForm):
-    """
-    Update an individual :model:`reporting.ReportFindingLink` associated with an
-    individual :model:`reporting.Report`.
-    """
-
-    # Note: since ReportFindingLinks are essentially a finding bound to a report, it uses
-    # the finding's extra field specifications, rather than having its own.
-    extra_fields = ExtraFieldsField(Finding._meta.label)
-
-    class Meta:
-        model = ReportFindingLink
-        exclude = (
-            "report",
-            "position",
-            "finding_guidance",
-            "added_as_blank",
-        )
-        field_classes = {
-            "description": JinjaRichTextField,
-            "impact": JinjaRichTextField,
-            "mitigation": JinjaRichTextField,
-            "replication_steps": JinjaRichTextField,
-            "host_detection_techniques": JinjaRichTextField,
-            "references": JinjaRichTextField,
-            "finding_guidance": JinjaRichTextField,
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        evidence_upload_url = reverse(
-            "reporting:upload_evidence_modal",
-            kwargs={"parent_type": "finding", "pk": self.instance.id, "modal": "modal"},
-        )
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["affected_entities"].widget.attrs["placeholder"] = "List of Hostnames or IP Addresses"
-        self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
-        self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
-        self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
-        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
-        self.fields["replication_steps"].widget.attrs["placeholder"] = "How to reproduce/find this issue ..."
-        self.fields["host_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on an endpoint ..."
-        self.fields["network_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on a network ..."
-        self.fields["references"].widget.attrs["placeholder"] = "Some useful links and references ..."
-        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
-        self.fields["finding_type"].label = "Finding Type"
-        self.fields["assigned_to"].label = "Assigned Editor"
-        self.fields["extra_fields"].label = ""
-        self.fields["complete"].help_text = ""
-
-        has_extra_fields = bool(self.fields["extra_fields"].specs)
-
-        # Design form layout with Crispy FormHelper
-        self.helper = FormHelper()
-        self.helper.form_show_labels = True
-        self.helper.form_method = "post"
-        self.helper.form_id = "report-finding-form"
-        self.helper.attrs = {"evidence-upload-modal-url": evidence_upload_url}
-        self.helper.layout = Layout(
-            Column(
-                SwitchToggle(
-                    "complete",
-                ),
-                css_class="form-group offset-3 col-md-6 mb-0",
-            ),
-            HTML(
-                """
-                <h4 class="icon search-icon">Categorization</h4>
-                <hr />
-                """
-            ),
-            Row(
-                Column("title", css_class="form-group col-md-12 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("assigned_to", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("finding_type", css_class="form-group col-md-6 mb-0"),
-                Column("severity", css_class="form-group col-md-6 mb-0"),
-            ),
-            Row(
-                Column("cvss_score", css_class="form-group col-md-6 mb-0"),
-                Column("cvss_vector", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Accordion(
-                AccordionGroup(
-                    "CVSS Calculator",
-                    Div(template="snippets/cvss_ui.html"),
-                    active=False,
-                    template="accordion_group.html",
-                ),
-            ),
-            HTML(
-                """
-                <h4 class="icon list-icon">Affected Entities</h4>
-                <hr />
-                """
-            ),
-            Field("affected_entities", css_class="enable-evidence-upload"),
-            HTML(
-                """
-                <h4 class="icon pencil-icon">General Information</h4>
-                <hr />
-                """
-            ),
-            Field("description", css_class="enable-evidence-upload"),
-            Field("impact", css_class="enable-evidence-upload"),
-            HTML(
-                """
-                <h4 class="icon shield-icon">Defense</h4>
-                <hr />
-                """
-            ),
-            Field("mitigation", css_class="enable-evidence-upload"),
-            Field("replication_steps", css_class="enable-evidence-upload"),
-            Field("host_detection_techniques", css_class="enable-evidence-upload"),
-            Field(
-                "network_detection_techniques",
-                css_class="enable-evidence-upload",
-            ),
-            HTML(
-                """
-                <h4 class="icon link-icon">Reference Links</h4>
-                <hr />
-                """
-            ),
-            Field("references", css_class="enable-evidence-upload"),
-            HTML(
-                """
-                <h4 class="icon custom-field-icon">Extra Fields</h4>
-                <hr />
-                """
-            )
-            if has_extra_fields
-            else None,
-            Field("extra_fields", css_class="enable-evidence-upload") if has_extra_fields else None,
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
-                    </button>
                     """
                 ),
             ),
@@ -680,6 +415,8 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
+        self.fields["evidence_image_width"].label = "Evidence Image Width"
+        self.fields["evidence_image_width"].initial = "6.5"
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -707,7 +444,8 @@ class ReportTemplateForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Row(
-                Column("tags", css_class="form-group col-md-12 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
+                Column("evidence_image_width", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
@@ -816,6 +554,20 @@ class SelectReportTemplateForm(forms.ModelForm):
                             </a>
                             """
                         ),
+                        HTML(
+                            """
+                            <a
+                                class="btn btn-default jump-btn js-jump-to-word-template"
+                                type="button"
+                                href="#"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Jump to Word template details"
+                                target="_blank"
+                            >
+                            </a>
+                            """
+                        ),
                     ),
                     css_class="col-md-4",
                 ),
@@ -842,6 +594,20 @@ class SelectReportTemplateForm(forms.ModelForm):
                                 data-toggle="tooltip"
                                 data-placement="top"
                                 title="Generate a PPTX report"
+                            >
+                            </a>
+                            """
+                        ),
+                        HTML(
+                            """
+                            <a
+                                class="btn btn-default jump-btn js-jump-to-pptx-template"
+                                type="button"
+                                href="#"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Jump to PowerPoint template details"
+                                target="_blank"
                             >
                             </a>
                             """
@@ -899,59 +665,13 @@ class SeverityForm(forms.ModelForm):
         return color
 
 
-class ObservationForm(forms.ModelForm):
-    """Save an individual :model:`reporting.Observation`."""
-
-    extra_fields = ExtraFieldsField(Observation._meta.label)
-
-    class Meta:
-        model = Observation
-        fields = "__all__"
-        field_classes = {
-            "description": JinjaRichTextField,
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["title"].widget.attrs["placeholder"] = "Observation Title"
-        self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
-        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
-        self.fields["extra_fields"].label = ""
-
-        self.helper = FormHelper()
-        self.helper.form_show_labels = True
-        self.helper.form_method = "post"
-        self.helper.layout = Layout(
-            Row(
-                Column("title", css_class="form-group col-md-6 mb-0"),
-                Column(
-                    "tags",
-                    css_class="form-group col-md-6 mb-0",
-                ),
-                css_class="form-row",
-            ),
-            Field("description"),
-            Field("extra_fields"),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
-                ),
-            ),
-        )
-
-
 class ReportObservationLinkUpdateForm(forms.ModelForm):
     """
     Update an individual :model:`reporting.ReportObservationLink` associated with an
     individual :model:`reporting.Report`.
     """
 
-    # Note: since ReportObservationLinks are essentialy an observation bound to a report, it uses
+    # Note: since ReportObservationLinks are essentially an observation bound to a report, it uses
     # the observation's extra field specifications, rather than having its own.
     extra_fields = ExtraFieldsField(Observation._meta.label)
 

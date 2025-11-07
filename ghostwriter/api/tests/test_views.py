@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 
 # Django Imports
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -53,6 +54,8 @@ logging.disable(logging.CRITICAL)
 PASSWORD = "SuperNaturalReporting!"
 
 ACTION_SECRET = settings.HASURA_ACTION_SECRET
+
+User = get_user_model()
 
 
 # Tests related to authentication in custom CBVs
@@ -249,6 +252,32 @@ class HasuraViewTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {self.revoked_token}"},
         )
         self.assertEqual(response.status_code, 401)
+
+    def test_action_with_incomplete_header(self):
+        result = {
+            "message": "No ``Authorization`` header found",
+            "extensions": {
+                "code": "JWTMissing",
+            },
+        }
+
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": ""},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(force_str(response.content), result)
+
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(force_str(response.content), result)
 
 
 class HasuraEventViewTests(TestCase):
@@ -1152,7 +1181,8 @@ class GraphqlUploadEvidenceViewTests(TestCase):
     """Collection of tests for :view:`api:GraphqlUploadEvidenceView`."""
     @classmethod
     def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(password=PASSWORD)
+        cls.disallowed_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("api:graphql_upload_evidence")
         cls.project = ProjectFactory()
         cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
@@ -1186,6 +1216,25 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
         self.assertEqual(evidence.pk, self.report.evidence_set.all().get().pk)
 
+    def test_upload_report_forbidden(self):
+        _, token = utils.generate_jwt(self.disallowed_user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "report": str(self.report.pk),
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertNotEqual(response.status_code, 201, response.content)
+
     def test_upload_finding(self):
         _, token = utils.generate_jwt(self.user)
         data = {
@@ -1209,6 +1258,25 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.caption, data["caption"])
         self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
         self.assertEqual(evidence.pk, self.finding.evidence_set.all().get().pk)
+
+    def test_upload_finding_forbidden(self):
+        _, token = utils.generate_jwt(self.disallowed_user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "finding": str(self.finding.pk),
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertNotEqual(response.status_code, 201, response.content)
 
 
 class GraphqlGenerateCodenameActionTests(TestCase):
@@ -1300,6 +1368,142 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["message"], "Model does not exist")
+
+
+class HasuraCreateUserTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlUserCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="admin")
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.unprivileged_user = UserFactory(password=PASSWORD, role="user")
+        cls.uri = reverse("api:graphql_create_user")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def generate_data(self, name, email, username, role, **kwargs):
+        return {
+            "input": {
+                "name": name,
+                "email": email,
+                "username": username,
+                "role": role,
+                "password": PASSWORD,
+                **kwargs
+            }
+        }
+
+    def test_graphql_create_user(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data(
+                "validuser", "validuser@specterops.io", "validuser", "user",
+                require2fa=True,
+                timezone="America/New_York",
+                enableFindingCreate=False,
+                enableFindingEdit=False,
+                enableFindingDelete=False,
+                enableObservationCreate=False,
+                enableObservationEdit=False,
+                enableObservationDelete=False,
+                phone="123-456-7890",
+            ),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        created_user = User.objects.get(username="validuser")
+        self.assertEqual(created_user.email, "validuser@specterops.io")
+        self.assertEqual(created_user.require_2fa, True)
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("validuser", "validuser@specterops.io", "validuser", "user"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "A user with that username already exists",
+            "extensions": {
+                "code": "UserAlreadyExists",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_create_user_with_bad_timezone(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("badtimezone", "badtimezone@specterops.io", "badtimezone", "user", timezone="PST"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "Invalid timezone",
+            "extensions": {
+                "code": "InvalidTimezone",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_create_user_with_bad_role(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("badrole", "badrole@specterops.io", "badrole", "invalid"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "Invalid user role",
+            "extensions": {
+                "code": "InvalidUserRole",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_create_user_with_manager_user(self):
+        _, token = utils.generate_jwt(self.mgr_user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("mgruser", "mgruser@specterops.io", "mgruser", "manager"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+        result = {
+            "message": "Unauthorized to create user with this role",
+            "extensions": {
+                "code": "Unauthorized",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_create_user_with_unprivileged_user(self):
+        _, token = utils.generate_jwt(self.unprivileged_user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.generate_data("unprivileged", "unprivileged@specterops.io", "unprivileged", "manager"),
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+        result = {
+            "message": "Unauthorized access",
+            "extensions": {
+                "code": "Unauthorized",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
 
 
 # Tests related to Hasura Event Triggers
@@ -1754,7 +1958,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
                         "note": cls.other_contact.note,
-                        "timezone": cls.other_contact.timezone,
+                        "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": True,
                     },
@@ -1765,7 +1969,7 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
                         "email": cls.other_contact.email,
                         "phone": cls.other_contact.phone,
                         "note": cls.other_contact.note,
-                        "timezone": cls.other_contact.timezone,
+                        "timezone": cls.other_contact.timezone.key,
                         "project": cls.project.id,
                         "primary": cls.other_contact.primary,
                     },
@@ -1972,7 +2176,7 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         )
         cls.deleted_evidence = EvidenceOnFindingFactory(finding=cls.finding, friendly_name="Deleted Evidence")
 
-        # Add a blank finding to teh report for regression testing updates on findings with blank fields
+        # Add a blank finding to the report for regression testing updates on findings with blank fields
         BlankReportFindingLinkFactory(report=cls.report_evidence.report)
         EvidenceOnReportFactory(report=cls.report_evidence.report, friendly_name="Blank Test")
 
@@ -2175,3 +2379,290 @@ class ApiKeyCreateTests(TestCase):
         self.assertRedirects(response, self.redirect_uri)
         obj = APIKey.objects.get(name="CreateView Test")
         self.assertEqual(obj.user, self.user)
+
+
+class CheckEditPermissionsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.finding = FindingFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:check_permissions")
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        _, token = utils.generate_jwt(user)
+        return {
+            "Hasura-Action-Secret": ACTION_SECRET,
+            "Authorization": f"Bearer {token}"
+        }
+
+    def data(self, hasura_role="user"):
+        return {
+            "input": {"model": "finding", "id": self.finding.id},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+
+    def test_no_access_without_action_secret(self):
+        headers = self.headers(self.manager)
+        del headers["Hasura-Action-Secret"]
+        response = self.client.post(self.uri, content_type="application/json", headers=headers, data=self.data())
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(self.uri, content_type="application/json", headers=headers, data=self.data("admin"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_access_finding_disallowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 403, response.content)
+
+    def test_access_finding_allowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 200, response.content)
+
+    def test_access_finding_not_found(self):
+        data = self.data()
+        data["input"]["id"] += 1024
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=data,
+        )
+        self.assertEquals(response.status_code, 404, response.content)
+
+
+class GetTagsTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.tags = {"severity:high", "att&ck:t1159"}
+        cls.report_finding = ReportFindingLinkFactory(tags=list(cls.tags))
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_get_tags")
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        headers = {
+            "Hasura-Action-Secret": ACTION_SECRET,
+        }
+        if user is not None:
+            _, token = utils.generate_jwt(user)
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def data(self, hasura_role="user"):
+        return {
+            "input": {"model": "report_finding_link", "id": self.report_finding.id},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+
+    def test_get_report_finding_tags_allowed_manager(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
+    def test_get_report_finding_tags_not_allowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(),
+        )
+        self.assertFalse(self.report_finding.user_can_view(self.user))
+        self.assertEquals(response.status_code, 403, response.content)
+        body = response.json()
+        self.assertFalse("tags" in body, body)
+
+    def test_get_report_finding_tags_allowed_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data("admin"),
+        )
+        self.assertEquals(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
+
+class SetTagsTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.tags = {"severity:high", "att&ck:t1159"}
+        cls.report_finding = ReportFindingLinkFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_set_tags")
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        headers = {
+            "Hasura-Action-Secret": ACTION_SECRET,
+        }
+        if user is not None:
+            _, token = utils.generate_jwt(user)
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def data(self, tags, hasura_role="user"):
+        v = {
+            "input": {"model": "report_finding_link", "id": self.report_finding.id, "tags": list(tags)},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+        return v
+
+    def test_set_report_finding_tags_allowed_manager(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data(self.tags),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags, response.content)
+
+    def test_set_report_finding_tags_not_allowed(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(self.tags),
+        )
+        self.assertEquals(response.status_code, 403, response.content)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), set())
+
+    def test_set_report_finding_tags_allowed_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data(self.tags, "admin"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+class ObjectsByTagTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.report_finding = ReportFindingLinkFactory()
+        cls.report_finding.tags.set({"severity:high", "att&ck:t1159"})
+        cls.report_finding.save()
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.user_with_access = UserFactory(password=PASSWORD)
+        cls.user_with_access_assignment = ProjectAssignmentFactory(
+            project=cls.report_finding.report.project,
+            operator=cls.user_with_access,
+        )
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_objects_by_tag", args=["report_finding_link"])
+
+    def setUp(self):
+        self.client = Client()
+
+    def headers(self, user):
+        headers = {
+            "Hasura-Action-Secret": ACTION_SECRET,
+        }
+        if user is not None:
+            _, token = utils.generate_jwt(user)
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def data(self, tag, hasura_role="user"):
+        v = {
+            "input": {"tag": tag},
+            "session_variables": {"x-hasura-role": hasura_role}
+        }
+        return v
+
+    def test_get_anonymous_no_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data("severity:high", hasura_role="public"),
+        )
+        self.assertEquals(response.status_code, 400)
+
+    def test_get_user_no_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [])
+
+    def test_get_user_with_access_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user_with_access),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [
+            {"id": self.report_finding.pk}
+        ])
+
+    def test_get_manager_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [
+            {"id": self.report_finding.pk}
+        ])
+
+    def test_get_manager_no_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager),
+            data=self.data("thistagdoesnotexist!"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [])
+
+    def test_get_admin_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(None),
+            data=self.data("severity:high", hasura_role="admin"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [
+            {"id": self.report_finding.pk}
+        ])

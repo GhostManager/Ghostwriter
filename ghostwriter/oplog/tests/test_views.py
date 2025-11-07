@@ -27,6 +27,10 @@ logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 
+def messages_in_response(response):
+    messages = get_messages(response.wsgi_request)
+    return ", ".join(str(msg) for msg in messages)
+
 
 # Tests related to report modification actions
 
@@ -367,7 +371,7 @@ class OplogEntriesImportTests(TestCase):
         with open(self.filename, "r") as csvfile:
             response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
-            self.assertRedirects(response, self.redirect_uri)
+            self.assertRedirects(response, self.redirect_uri, msg_prefix=messages_in_response(response))
             self.assertEqual(self.OplogEntry.objects.filter(oplog_id=self.oplog).count(), starting_entries + 1)
 
     def test_naive_timestamp(self):
@@ -720,7 +724,7 @@ class OplogSanitizeViewTests(TestCase):
             **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIn("One of the fields submitted for sanitization does not exist", force_str(response.content))
+        self.assertIn("No fields selected for sanitization", force_str(response.content))
 
     def test_view_with_empty_fields(self):
         data = {
@@ -765,6 +769,6 @@ class OplogSanitizeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
         self.entry.refresh_from_db()
-        self.assertEqual(self.entry.user_context, None)
+        self.assertEqual(self.entry.user_context, "")
         self.assertEqual(self.entry.command, "some")
-        self.assertEqual(self.entry.extra_fields, {"test_field": None, "test_field_2": "test value"})
+        self.assertEqual(self.entry.extra_fields, {"test_field": "", "test_field_2": "test value"})

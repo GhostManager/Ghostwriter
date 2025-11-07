@@ -15,10 +15,11 @@ from docx.image.exceptions import UnrecognizedImageError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt
 from docx.shared import RGBColor as DocxRgbColor
+from docx.document import Document as DocumentObject
 from lxml import etree
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.extensions import (
     IMAGE_EXTENSIONS,
     TEXT_EXTENSIONS,
@@ -35,8 +36,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
     """
     Converts HTML to a word document
     """
+    doc: DocumentObject
+    p_style: str
 
-    def __init__(self, doc, p_style):
+    def __init__(self, doc: DocumentObject, p_style: str):
         super().__init__()
         self.doc = doc
         self.p_style = p_style
@@ -105,7 +108,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.text_tracking.new_block()
         if "data-gw-pagebreak" in el.attrs:
             self.doc.add_page_break()
-        else:
+        elif par is not None:
             run = par.add_run()
             run.add_break()
 
@@ -113,17 +116,21 @@ class HtmlToDocx(BaseHtmlToOOXML):
         heading_num = int(el.name[1:])
         self.text_tracking.new_block()
         heading_paragraph = self.doc.add_heading(el.text, heading_num)
-        if "id" in el.attrs:
-            run = heading_paragraph.runs[0]
-            tag = run._r
+
+        bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
+        if bookmark_name and heading_paragraph.runs:
+            tag = heading_paragraph.runs[0]._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
-            start.set(docx.oxml.ns.qn("w:id"), "0")
-            start.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
-            tag.append(start)
+            start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+            start.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
+            tag.insert(0, start)
+
+            tag = heading_paragraph.runs[-1]._r
             end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
-            end.set(docx.oxml.ns.qn("w:id"), "0")
-            end.set(docx.oxml.ns.qn("w:name"), el.attrs["id"])
+            end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+            end.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
             tag.append(end)
+            self.current_bookmark_id += 1
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
@@ -160,7 +167,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.process_children(el, par=par, **kwargs)
 
     def tag_pre(self, el, *, par=None, **kwargs):
-        if par is None:
+        if par is not None and not any(run.text for run in par.runs):
+            # Use provided empty paragraph
+            pass
+        elif par is not None:
+            # Nested in li or some other element, copy style
+            par = self.doc.add_paragraph(style=par.style)
+        else:
             par = self.doc.add_paragraph()
 
         par.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -227,10 +240,28 @@ class HtmlToDocx(BaseHtmlToOOXML):
             pass
         self.process_children(el.children, par=par, **kwargs)
 
+    def tag_div(self, el, **kwargs):
+        if "page-break" in el.attrs.get("class", []):
+            self.text_tracking.new_block()
+            self.doc.add_page_break()
+        else:
+            super().tag_div(el, **kwargs)
+
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
-        self.set_autofit()
-
+        table.autofit = True
+        table.allow_autofit = True
+        tblw = table._tblPr.xpath("./w:tblW")[0]
+        tblw.attrib[
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
+        ] = "pct"
+        tblw.attrib[
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}w"
+        ] = "5000"
+        for row_idx, _ in enumerate(table.rows):
+            for cell_idx, _ in enumerate(table.rows[row_idx].cells):
+                table.rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
+                table.rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.w = 0
         return table
 
     def paragraph_for_table_cell(self, cell, td_el):
@@ -244,24 +275,6 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         return next(iter(cell.paragraphs))
 
-    def set_autofit(self):
-        """
-        Hotfix for lack of full autofit support for tables in `python-docx`.
-
-        Ref: https://github.com/python-openxml/python-docx/issues/209
-        """
-        for t_idx, _ in enumerate(self.doc.tables):
-            self.doc.tables[t_idx].autofit = True
-            self.doc.tables[t_idx].allow_autofit = True
-            self.doc.tables[t_idx]._tblPr.xpath("./w:tblW")[0].attrib[
-                "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
-            ] = "auto"
-            for row_idx, _ in enumerate(self.doc.tables[t_idx].rows):
-                for cell_idx, _ in enumerate(self.doc.tables[t_idx].rows[row_idx].cells):
-                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
-                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.w = 0
-        return self.doc
-
 
 class HtmlToDocxWithEvidence(HtmlToDocx):
     """
@@ -272,10 +285,16 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     def __init__(
         self,
         doc,
+        *,
         p_style,
+        evidence_image_width,
         evidences,
         figure_label: str,
         figure_prefix: str,
+        figure_caption_location: str,
+        table_label: str,
+        table_prefix: str,
+        table_caption_location: str,
         title_case_captions: bool,
         title_case_exceptions: list[str],
         border_color_width: tuple[str, float] | None,
@@ -284,10 +303,16 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.evidences = evidences
         self.figure_label = figure_label
         self.figure_prefix = figure_prefix
+        self.figure_caption_location = figure_caption_location
+        self.table_label = table_label
+        self.table_prefix = table_prefix
+        self.table_caption_location = table_caption_location
         self.title_case_captions = title_case_captions
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
+        self.evidence_image_width = evidence_image_width
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
+        self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -303,18 +328,43 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
-            try:
-                par.style = "Caption"
-            except KeyError:
-                pass
-            par._gw_is_caption = True
-            self.make_figure(par, ref_name or None)
+            self.make_caption(par, self.figure_label, ref_name or None)
+            par.add_run(self.figure_prefix)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
         else:
             super().tag_span(el, par=par, **kwargs)
+
+    def tag_table(self, el, **kwargs):
+        caption_el = kwargs.get("caption_el") or el.find("caption")
+        caption_bookmark = kwargs.get("caption_bookmark")
+        if self.table_caption_location == "top":
+            self._mk_table_caption(caption_el, caption_bookmark)
+        super().tag_table(el, **kwargs)
+        if self.table_caption_location == "bottom":
+            self._mk_table_caption(caption_el, caption_bookmark)
+
+    def tag_div(self, el, **kwargs):
+        if "richtext-evidence" in el.attrs.get("class", []):
+            try:
+                evidence = self.evidences[int(el.attrs["data-evidence-id"])]
+            except (KeyError, ValueError):
+                logger.exception("Could not get evidence")
+                return
+
+            par = self.doc.add_paragraph()
+            self.make_evidence(par, evidence)
+        else:
+            super().tag_div(el, **kwargs)
+
+    def _mk_table_caption(self, caption_el, caption_bookmark=None):
+        par_caption = self.doc.add_paragraph()
+        self.make_caption(par_caption, self.table_label, caption_bookmark, styles=["Quote", "Caption"])
+        if caption_el is not None:
+            par_caption.add_run(self.table_prefix)
+            par_caption.add_run(self.title_except(caption_el.get_text()))
 
     def is_plural_acronym(self, word):
         """
@@ -330,8 +380,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         """
         if self.title_case_captions:
             word_list = re.split(" ", s)  # re.split behaves as expected
-            final = [word_list[0].capitalize()]
-            for word in word_list[1:]:
+            final = []
+            for word in word_list:
                 final.append(
                     word
                     if word in self.title_case_exceptions or word.isupper() or self.is_plural_acronym(word)
@@ -340,7 +390,15 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             s = " ".join(final)
         return s
 
-    def make_figure(self, par, ref: str | None = None):
+    def make_caption(self, par, label: str, ref: str | None = None, styles = ["Caption"]):
+        par._gw_is_caption = True
+        for style in styles:
+            try:
+                par.style = style
+                break
+            except KeyError:
+                continue
+
         if ref:
             ref = f"_Ref{ref}"
         else:
@@ -349,12 +407,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         # Start a bookmark run with the figure label
         p = par._p
         bookmark_start = OxmlElement("w:bookmarkStart")
-        bookmark_start.set(qn("w:name"), ref)
-        bookmark_start.set(qn("w:id"), "0")
+        bookmark_start.set(qn("w:name"), ref.replace(" ", "_"))
+        bookmark_start.set(qn("w:id"), str(self.current_bookmark_id))
         p.append(bookmark_start)
 
         # Add the figure label
-        run = par.add_run(self.figure_label)
+        par.add_run(label)
 
         # Append XML for a new field character run
         run = par.add_run()
@@ -368,7 +426,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         r = run._r
         instrText = OxmlElement("w:instrText")
         # Sequential figure with arabic numbers
-        instrText.text = " SEQ Figure \\* ARABIC"
+        instrText.text = f" SEQ {label} \\* ARABIC"
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -389,11 +447,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         # End the bookmark after the number
         p = par._p
         bookmark_end = OxmlElement("w:bookmarkEnd")
-        bookmark_end.set(qn("w:id"), "0")
+        bookmark_end.set(qn("w:id"), str(self.current_bookmark_id))
         p.append(bookmark_end)
 
-        # Add prefix
-        par.add_run(self.figure_prefix)
+        self.current_bookmark_id += 1
 
     def make_evidence(self, par, evidence):
         file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
@@ -416,21 +473,32 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a UTF-8 encoded {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise ReportExportError(error_msg) from err
+                raise ReportExportTemplateError(error_msg) from err
+
+            if self.figure_caption_location == "top":
+                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
+                par = self.doc.add_paragraph()
+
             par.text = evidence_text
             par.alignment = WD_ALIGN_PARAGRAPH.LEFT
             try:
                 par.style = "CodeBlock"
             except KeyError:
                 pass
-            par_caption = self.doc.add_paragraph(style="Caption")
-            self.make_figure(par_caption, evidence["friendly_name"])
-            par_caption.add_run(self.title_except(evidence["caption"]))
+
+            if self.figure_caption_location == "bottom":
+                par_caption = self.doc.add_paragraph()
+                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+
         elif extension in IMAGE_EXTENSIONS:
+            if self.figure_caption_location == "top":
+                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
+                par = self.doc.add_paragraph()
+
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = par.add_run()
             try:
-                run.add_picture(file_path, width=Inches(6.5))
+                run.add_picture(file_path, width=Inches(self.evidence_image_width))
             except UnrecognizedImageError as e:
                 logger.exception(
                     "Evidence file known as %s (%s) was not recognized as a %s file.",
@@ -442,7 +510,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise ReportExportError(error_msg) from e
+                raise ReportExportTemplateError(error_msg) from e
 
             if self.border_color_width is not None:
                 border_color, border_width = self.border_color_width
@@ -474,10 +542,14 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 ln_xml.append(solidfill_xml)
                 pic_data.append(ln_xml)
 
-            # Create the caption for the image
-            p = self.doc.add_paragraph(style="Caption")
-            self.make_figure(p, evidence["friendly_name"])
-            run = p.add_run(self.title_except(evidence["caption"]))
+            if self.figure_caption_location == "bottom":
+                par_caption = self.doc.add_paragraph()
+                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+
+    def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
+        self.make_caption(par_caption, self.figure_label, ref)
+        par_caption.add_run(self.figure_prefix)
+        par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
         # Start the field character run for the label and number
@@ -491,7 +563,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"'))
+        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"').replace(" ", "_"))
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -537,7 +609,7 @@ class ListTracking:
             )
         if level == len(self.level_list_is_ordered):
             self.level_list_is_ordered.append(is_ordered)
-        self.paragraphs.append((pg, level))
+        self.paragraphs.append((pg, level, is_ordered))
 
     def create(self, doc):
         """
@@ -549,7 +621,7 @@ class ListTracking:
         try:
             numbering = doc.part.numbering_part.numbering_definitions._numbering
         except NotImplementedError as e:
-            raise ReportExportError("Tried to use a list in a template without list styles") from e
+            raise ReportExportTemplateError("Tried to use a list in a template without list styles") from e
         last_used_id = max(
             (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
             default=-1,
@@ -605,10 +677,13 @@ class ListTracking:
         numbering.insert(0, abstract_numbering)
         numbering_id = numbering.add_num(abstract_numbering_id).numId
 
-        for par, level in self.paragraphs:
+        for par, level, is_ordered in self.paragraphs:
             try:
-                par.style = "ListParagraph"
+                par.style = "Number List" if is_ordered else "Bullet List"
             except KeyError:
-                pass
+                try:
+                    par.style = "ListParagraph"
+                except KeyError:
+                    pass
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level

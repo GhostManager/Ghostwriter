@@ -91,6 +91,15 @@
 
 {% comment %} Scripts included on ALL pages {% endcomment %}
 <script>
+  {% comment %} Open a modal by ID {% endcomment %}
+  function openModal(modalId) {
+    // Add # prefix if not present for jQuery selector
+    const selector = modalId.startsWith('#') ? modalId : '#' + modalId;
+
+    // Show the modal
+    $(selector).modal('show');
+  }
+
   {% comment %} Handle AJAX errors {% endcomment %}
   (function($){
     $(document).on('ajaxError', function(event, xhr) {
@@ -252,6 +261,37 @@
       {% endif %}
     {% endif %}
   {% endfor %}
+
+  // Handle library-filter accordion clicks
+  $(document).ready(function() {
+    // Listen for clicks on library-filter accordions or their toggle controls
+    $(document).on('click', '.library-filter, [data-target*=".library-filter"], [href*=".library-filter"]', function(e) {
+      // Get the accordion ID if available
+      let accordionId = $(this).attr('id') ||
+                        $(this).data('target') ||
+                        $(this).attr('href') ||
+                        'unknown';
+
+      // If this is just an ID string, clean it up
+      if (typeof accordionId === 'string') {
+        accordionId = accordionId.replace(/^[#.]/, '');
+      }
+
+      $.ajax({
+        url: '/home/ajax/session/update',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'session_data': 'filter',
+        },
+        success: function(response) {
+          if (response && response.message) {
+            console.log('Library filter state updated:', response.message);
+          }
+        }
+      });
+    });
+  });
 
   {% if user.is_authenticated %}
     {% comment %} Configure WebSockets protocol – HTTP for dev and HTTPS for prod {% endcomment %}

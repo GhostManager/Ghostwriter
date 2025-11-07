@@ -9,7 +9,6 @@ import logging
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -23,8 +22,6 @@ from tablib import Dataset
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
-    get_logs_list,
-    verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec
@@ -37,7 +34,6 @@ from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.views
 logger = logging.getLogger(__name__)
-
 
 def escape_message(message):
     """
@@ -111,30 +107,6 @@ class OplogMuteToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
         return JsonResponse(data)
 
-
-def parse_fields(data: dict, entry_field_specs: dict) -> tuple:
-    """
-    Parse a dictionary of fields and return a list of fields and extra fields.
-
-    **Parameters**
-
-    ``data`` (dict)
-        Dictionary of fields
-    ``entry_field_specs`` (dict)
-        Dictionary of field specifications
-    """
-    fields = [field["name"] for field in data]
-    extra_fields = []
-    # Remove any extra fields from the list of fields
-    for field_spec in entry_field_specs:
-        if field_spec["internal_name"] in fields:
-            fields.pop(fields.index(field_spec["internal_name"]))
-            extra_fields.append(field_spec["internal_name"])
-    if extra_fields:
-        fields.append("extra_fields")
-    return fields, extra_fields
-
-
 class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Sanitize all :model:`oplog.OplogEntry` objects associated with an individual :model:`oplog.Oplog`.
@@ -145,6 +117,20 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
 
     model = Oplog
+
+    clearable_fields = {
+        "identifier",
+        "start_date",
+        "end_date",
+        "source_ip",
+        "dest_ip",
+        "tool",
+        "user_context",
+        "description",
+        "output",
+        "comments",
+        "operator_name",
+    }
 
     def test_func(self):
         return verify_user_is_privileged(self.request.user)
@@ -157,17 +143,32 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         obj = self.get_object()
         data = self.request.POST.get("fields", None)
         try:
-            json_data = json.loads(data)
+            fields_json = json.loads(data)
         except (json.JSONDecodeError, TypeError):
-            json_data = None
+            fields_json = []
 
-        if json_data and len(json_data) > 0:
+        entry_field_specs = {spec.internal_name: spec for spec in ExtraFieldSpec.for_model(OplogEntry)}
+        fields = [
+            field["name"]
+            for field in fields_json
+            if field["name"] == "command"
+                or field["name"] == "tags"
+                or field["name"] in self.clearable_fields
+                or field["name"] in entry_field_specs
+        ]
+
+        bulk_update_fields = [
+            field["name"]
+            for field in fields_json
+            if field["name"] == "command"
+                or field["name"] == "tags"
+                or field["name"] in self.clearable_fields
+        ]
+        if any(field["name"] in entry_field_specs for field in fields_json):
+            bulk_update_fields.append("extra_fields")
+
+        if fields:
             entries = obj.entries.all()
-            entry_field_specs = ExtraFieldsSpecSerializer(
-                ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
-            ).data
-            fields, _ = parse_fields(json_data, entry_field_specs)
-
             logger.info(
                 "Sanitizing log entries for %s %s by request of %s", obj.__class__.__name__, obj.id, self.request.user
             )
@@ -178,29 +179,22 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             try:
                 for entry in entries:
                     extra_fields_data = entry.extra_fields
-                    for field in json_data:
-                        for field_spec in entry_field_specs:
-                            if field_spec["internal_name"] == field["name"]:
-                                extra_fields_data[field["name"]] = None
-                            else:
-                                if field["name"] == "command":
-                                    if entry.command:
-                                        setattr(entry, field["name"], entry.command.split(" ")[0])
-                                else:
-                                    setattr(entry, field["name"], None)
+                    for field in fields:
+                        if field == "command":
+                            if entry.command:
+                                setattr(entry, field, entry.command.split(" ")[0])
+                        elif field == "tags":
+                            entry.tags.clear()
+                        elif field in self.clearable_fields:
+                            setattr(entry, field, "")
+                        elif field in entry_field_specs:
+                            extra_fields_data[field] = entry_field_specs[field].empty_value()
                     entry.extra_fields = extra_fields_data
-                try:
-                    OplogEntry.objects.bulk_update(entries, fields)
-                except FieldDoesNotExist as exception:
-                    logger.error("One of the fields submitted for sanitization does not exist: %s", exception)
-                    data = {
-                        "result": "failed",
-                        "message": "One of the fields submitted for sanitization does not exist.",
-                    }
+                OplogEntry.objects.bulk_update(entries, bulk_update_fields, batch_size=100)
             except Exception as exception:  # pragma: no cover
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 log_message = template.format(type(exception).__name__, exception.args)
-                logger.error(log_message)
+                logger.exception(log_message)
                 data = {
                     "result": "failed",
                     "message": "An error occurred while sanitizing log entries.",
@@ -249,7 +243,7 @@ def validate_log_selection(user, oplog_id):
     if oplog_id and isinstance(oplog_id, int):
         try:
             oplog = Oplog.objects.get(id=oplog_id)
-            if not verify_access(user, oplog.project):
+            if not oplog.user_can_view(user):
                 bad_selection = True
         except Oplog.DoesNotExist:
             bad_selection = True
@@ -265,8 +259,8 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
     oplog_entry_resource = OplogEntryResource()
     try:
         imported_data = dataset.load(new_entries, format="csv")
-    except csv.Error as exception:  # pragma: no cover
-        logger.error("An error occurred while loading the CSV file for log import: %s", exception)
+    except csv.Error:  # pragma: no cover
+        logger.exception("An error occurred while loading the CSV file for log import")
         messages.error(
             request,
             "Your log file could not be loaded. There may be cells that exceed the 128KB text size limit for CSVs.",
@@ -293,9 +287,10 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
 def handle_errors(request, result):
     """Handle errors from a dry run of an activity log import."""
     row_errors = result.row_errors()
-    for exc in row_errors:
-        error_message = escape_message(f"There was an error in row {exc[0]}: {exc[1][0].error}")
-        logger.error(error_message)
+    for (row, errors) in row_errors:
+        error_message = escape_message(f"There was an error in row {row}: {errors[0].error}")
+        for err in errors:
+            logger.error("Could not import row %d", row, exc_info=err.error)
         messages.error(
             request,
             error_message,
@@ -325,7 +320,7 @@ def oplog_entries_import(request):
     :template:`oplog/oplog_import.html`
     """
 
-    logs = get_logs_list(request.user)
+    logs = Oplog.for_user(request.user)
     if request.method == "POST":
         oplog_id = request.POST.get("oplog_id")
         new_entries = request.FILES["csv_file"].read().decode("iso-8859-1")
@@ -377,8 +372,7 @@ class OplogListView(RoleBasedAccessControlMixin, ListView):
     template_name = "oplog/oplog_list.html"
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = get_logs_list(user)
+        queryset = Oplog.for_user(self.request.user)
         return queryset
 
 
@@ -399,7 +393,7 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
     model = Oplog
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -443,7 +437,7 @@ class OplogCreate(RoleBasedAccessControlMixin, CreateView):
             if pk:
                 try:
                     project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-                    if verify_access(self.request.user, project):
+                    if project.user_can_edit(self.request.user):
                         self.project = project
                 except Project.DoesNotExist:
                     logger.info(
@@ -503,7 +497,7 @@ class OplogUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = OplogForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -533,7 +527,8 @@ class AjaxTemplateMixin:
             split[-1] = "_inner"
             split.append(".html")
             self.ajax_template_name = "".join(split)
-        if request.is_ajax():
+        # NOTE: this is JQuery specific
+        if request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
             self.template_name = self.ajax_template_name
         return super().dispatch(request, *args, **kwargs)
 
@@ -553,7 +548,7 @@ class OplogEntryCreate(RoleBasedAccessControlMixin, AjaxTemplateMixin, CreateVie
     ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().oplog_id.project)
+        return OplogEntry.user_can_create(self.request.user, self.get_object())
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -562,10 +557,10 @@ class OplogEntryCreate(RoleBasedAccessControlMixin, AjaxTemplateMixin, CreateVie
     def get_success_url(self):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
 
-    def form_valid(self, form):
-        # Add defaults for extra fields
-        form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
-        return super().form_valid(self, form)
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["extra_fields"] = ExtraFieldSpec.initial_json(self.model)
+        return initial
 
 
 class OplogEntryUpdate(RoleBasedAccessControlMixin, AjaxTemplateMixin, UpdateView):
@@ -583,7 +578,7 @@ class OplogEntryUpdate(RoleBasedAccessControlMixin, AjaxTemplateMixin, UpdateVie
     ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().oplog_id.project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -602,7 +597,7 @@ class OplogEntryDelete(RoleBasedAccessControlMixin, DeleteView):
     fields = "__all__"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().oplog_id.project)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -618,7 +613,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Oplog
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

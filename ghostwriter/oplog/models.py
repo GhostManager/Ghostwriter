@@ -13,6 +13,8 @@ from django.urls import reverse
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
 
+from ghostwriter.rolodex.models import Project
+
 # Using __name__ resolves to ghostwriter.oplog.models
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,29 @@ class Oplog(models.Model):
 
     def get_absolute_url(self):
         return reverse("oplog:oplog_entries", args=[str(self.id)])
+
+    @classmethod
+    def user_can_create(cls, user, project: Project) -> bool:
+        return project.user_can_edit(user)
+
+    def user_can_view(self, user) -> bool:
+        return self.project.user_can_view(user)
+
+    @classmethod
+    def user_viewable(cls, user):
+        if user.is_privileged:
+            return cls.objects.all()
+        return cls.objects.filter(project__in=Project.user_viewable(user))
+
+    def user_can_edit(self, user) -> bool:
+        return self.project.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.project.user_can_edit(user)
+
+    @classmethod
+    def for_user(cls, user):
+        return cls.user_viewable(user)
 
 
 class OplogEntry(models.Model):
@@ -152,6 +177,25 @@ class OplogEntry(models.Model):
         indexes = [
             models.Index(fields=["oplog_id", "entry_identifier"]),
         ]
+
+    @classmethod
+    def user_can_create(cls, user, log: Oplog) -> bool:
+        return log.user_can_edit(user)
+
+    def user_can_view(self, user) -> bool:
+        return self.oplog_id.user_can_view(user)
+
+    @classmethod
+    def user_viewable(cls, user):
+        if user.is_privileged:
+            return cls.objects.all()
+        return cls.objects.filter(oplog_id__in=Oplog.user_viewable(user))
+
+    def user_can_edit(self, user) -> bool:
+        return self.oplog_id.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.oplog_id.user_can_edit(user)
 
     def clean(self, *args, **kwargs):
         if isinstance(self.start_date, str):

@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load crispy_forms_tags humanize bleach_tags %}
+{% load crispy_forms_tags humanize bleach_tags static %}
 
 {% block pagetitle %}Domain Catalog{% endblock %}
 
@@ -19,6 +19,11 @@
     {% crispy filter.form filter.helper %}
   </div>
 
+  {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
+
+  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create Entry</a>
+  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
+
   {% if filter.qs|length == 0 %}
     <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains to see here yet, or
       your search returned no results. Create a domain above or adjust your filters.
@@ -26,68 +31,87 @@
   {% else %}
     <!-- Domain Table Section -->
     <div id="domains_table">
-      <table id="domainTable" class="tablesorter table table-sm table-hover">
+      <table
+        id="domainTable"
+        class="tablesorter table table-sm table-hover column-show-hide-table"
+        data-table-name="domains"
+        data-controls-el="column-show-hide-ui"
+      >
         <thead>
         <tr>
-          <th id="domain" class="align-middle pr-4">Domain</th>
-          <th class="align-middle pr-4">Status</th>
-          <th class="align-middle pr-4">Health</th>
-          <th class="align-middle pr-4">Age (Days)</th>
-          <th class="sorter-sugar align-middle pr-4">Expiry</th>
-          <th class="align-middle pr-4">Categories</th>
-          <th class="align-middle pr-4">Tags</th>
-          <th class="sorter-false align-middle">Check-out</th>
+          <th id="domain" class="align-middle pr-4 text-left" data-no-hide>Domain</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="status">Status</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="creation" data-hide-default>Purchase Date</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="expiration" data-hide-default>Expiration Date</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="age">Age (Days)</th>
+          <th class="align-middle pr-4 sorter-sugar text-left" data-internal-name="expiry">Expiry</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="registrar" data-hide-default>Registrar</th>
+          <th class="align-middle pr-4 text-left" data-internal-name="note" data-hide-default>Details</th>
+          <th class="align-middle text-left sorter-false" data-hide-default data-internal-name="tags">Tags</th>
+          <th class="align-middle sorter-false" data-no-hide>Options</th>
         </tr>
         </thead>
         <tbody>
         {% for domain in filter.qs %}
           <tr>
-            <td class="align-middle"><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a>
-            </td>
+            <td class="align-middle text-left"><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
 
             {% if domain.domain_status.domain_status == "Available" %}
-              <td class="align-middle healthy">{{ domain.domain_status }}</td>
+              <td class="align-middle healthy text-left">{{ domain.domain_status }}</td>
             {% elif domain.domain_status.domain_status == "Unavailable" %}
-              <td class="align-middle burned">Checked Out</td>
+              <td class="align-middle burned text-left">Checked Out</td>
             {% else %}
-              <td class="align-middle burned">{{ domain.domain_status }}</td>
+              <td class="align-middle burned text-left">{{ domain.domain_status }}</td>
             {% endif %}
 
-            {% if domain.health_status.health_status == "Healthy" %}
-              <td class="align-middle healthy">{{ domain.health_status }}</td>
-            {% else %}
-              <td class="align-middle burned">{{ domain.health_status }}</td>
-            {% endif %}
+            <td class="align-middle text-left">
+              {{ domain.creation }}
+            </td>
 
-            <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
+            <td class="align-middle text-left">
+              {{ domain.expiration }}
+            </td>
 
-            {% if domain.is_expired %}
-              <td class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</td>
-            {% else %}
-              <td class="align-middle healthy">{{ domain.expiration|date:"d M Y" }}</td>
-            {% endif %}
+            <td class="align-middle text-left">{{ domain.get_domain_age|intcomma }}</td>
 
-            {% if domain.categorization.items %}
-              <td class="align-middle">
-                {% for source, cat in domain.categorization.items %}
-                  {{ cat|bleach|title }}{% if not forloop.last %},&nbsp;{% endif %}
-                {% endfor %}
-              </td>
-            {% else %}
-              <td class="align-middle">No Results</td>
-            {% endif %}
+            <td class="align-middle text-left">
+              {% if domain.is_expired %}
+                <span class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</span>
+              {% elif domain.may_expire_soon %}
+                <span class="align-middle warning">{{ domain.expiration|date:"d M Y" }}</span>
+              {% else %}
+                <span class="align-middle healthy">{{ domain.expiration|date:"d M Y" }}</span>
+              {% endif %}
+            </td>
 
-            <td class="text-justify align-middle">{%  for tag in domain.tags.all %}<span class="badge badge-secondary">{{ tag.name }}</span>{% endfor %}</td>
+            <td class="align-middle text-left">
+              {{ domain.registrar }}
+            </td>
 
-            {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
-              <td class="align-middle">
-                <a class="icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}"></a>
-              </td>
-            {% else %}
-              <td class="align-middle">
-                <a class="icon block-icon" href="#"></a>
-              </td>
-            {% endif %}
+            <td class="align-middle text-left">
+              {{ domain.note|bleach }}
+            </td>
+
+            <td class="align-middle text-left">
+              {% for tag in domain.tags.names %}
+                <span class="badge badge-secondary mb-3">{{ tag }}</span>
+              {% endfor %}
+            </td>
+
+            <td class="align-middle">
+              <div class="d-flex justify-content-center">
+                <span
+                  class="icon preview-icon clickable-link"
+                  title="View additional information"
+                  onclick="openModal('#domain_detail_{{ domain.id }}')"
+                ></span>
+                {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
+                  <a class="icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}"></a>
+                {% else %}
+                  <a class="icon block-icon" href="#"></a>
+                {% endif %}
+              </div>
+            </td>
           </tr>
         {% endfor %}
         </tbody>
@@ -97,21 +121,36 @@
 {% endblock %}
 
 {% block morescripts %}
+  <script type="application/javascript" src="{% static 'js/table-columns.js' %}"></script>
+
   {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
-      $("#domainTable").tablesorter(
+      $('#domainTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'domainLibraryTable'
+          },
           headers: {
-            3: {sorter: 'digit'},
-            4: {sorter: 'sugar'},
+            2: {sorter: 'digit'},
+            3: {sorter: 'sugar'},
+            4: {sorter: false}
           }
         }
       );
       $('.tablesorter').trigger('update');
+    });
+
+    $('#resetSortBtn').click(function() {
+      $('#domainTable')
+        .trigger('saveSortReset')
+        .trigger('sortReset');
+      return false;
     });
 
     {%  comment %} Fix for Accordion Markers {% endcomment %}
@@ -136,5 +175,21 @@
         source: availableDomains
       });
     });
+
+    $(function () {
+      let availableTags = [
+        {% for tag in tags %}
+          '{{ tag.name|escapejs }}',
+        {% endfor %}
+      ];
+      $('#id_tags').autocomplete({
+        source: availableTags
+      });
+    });
   </script>
+
+  {% comment %} Insert modals for additional project details {% endcomment %}
+  {% for domain in filter.qs %}
+    {% include "snippets/domain_detail_modal.html" with domain=domain %}
+  {% endfor %}
 {% endblock %}

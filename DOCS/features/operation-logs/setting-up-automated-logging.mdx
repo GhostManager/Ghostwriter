@@ -1,0 +1,39 @@
+---
+title: "Setting up Automated Logging"
+description: "Configuring the API endpoint for automatic activity logging"
+---
+
+Currently, two different C2 frameworks can easily integrate with Ghostwriter's GraphQL API: Mythic and Cobalt Strike. These utilities automatically create and update log entries.
+
+You can also write scripts to integrate other frameworks and tools. All you need to get started if an API token.
+
+## Obtaining an API Token
+
+
+To get started logging you need an API token. To use the utilities mentioned below you will want to generate an API token with an expiration date. For custom logging tools, you can consider using the `login` action with the API.
+
+Read more about this process here:
+
+<CardGroup cols={1}> <Card title="Authentication" icon="key" iconType="solid" href="/features/graphql-api/authentication" /> </CardGroup>
+
+## Setting up Syncing with Cobalt Strike
+
+
+<CardGroup cols={1}> <Card title="GitHub - GhostManager/cobalt_sync" icon="github" iconType="brands" href="https://github.com/GhostManager/cobalt_sync" > <img src="https://github.com/fluidicon.png" className="w-5 h-5 mr-2" alt="Logo" /> <span className="text-xs text-dark/7 dark:text-light/6">Standalone Cobalt Strike operation logging Aggressor script for Ghostwriter 2.0+</span> </Card> </CardGroup>
+
+Clone the [cobalt_sync project](https://github.com/GhostManager/cobalt_sync) to your Cobalt Strike team server and follow the instructions contained in the [README](https://github.com/GhostManager/cobalt_sync/blob/main/README.md) to enable syncing for each Cobalt Strike team server you deploy.
+
+<Info>
+**Note**: Cobalt Strike does not associate console output with the original command. Therefore, _cobalt_sync_ cannot automatically complete the output fields for log entries. Job IDs may be available for CObalt Strike in the future.
+</Info>
+
+## Setting up Syncing with Mythic
+
+
+<CardGroup cols={1}> <Card title="GitHub - GhostManager/mythic_sync" icon="github" iconType="brands" href="https://github.com/GhostManager/mythic_sync" > <img src="https://github.com/fluidicon.png" className="w-5 h-5 mr-2" alt="Logo" /> <span className="text-xs text-dark/7 dark:text-light/6">Standalone Mythic C2 operation logging script for Ghostwriter v2.0+</span> </Card> </CardGroup>
+
+Clone the [mythic_sync project](https://github.com/GhostManager/mythic_sync) to your Mythic C2 server and follow the instructions contained in the README to enable syncing for each Mythic server you deploy.
+
+<Info>
+**Note**: Since Mythic associates output with the original command, the _mythic_sync_ project will retroactively update previous log entries when output is received. _This will overwrite any additional context added to the original entry within Ghostwriter before the new output was received._
+</Info>

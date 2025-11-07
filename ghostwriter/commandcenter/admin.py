@@ -7,6 +7,7 @@ from django import forms
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ReportConfigurationForm
 from ghostwriter.commandcenter.models import (
+    BannerConfiguration,
     CloudServicesConfiguration,
     CompanyInformation,
     ExtraFieldModel,
@@ -26,6 +27,7 @@ admin.site.register(NamecheapConfiguration, SingletonModelAdmin)
 admin.site.register(SlackConfiguration, SingletonModelAdmin)
 admin.site.register(VirusTotalConfiguration, SingletonModelAdmin)
 admin.site.register(GeneralConfiguration, SingletonModelAdmin)
+admin.site.register(BannerConfiguration, SingletonModelAdmin)
 
 
 class ReportConfigurationAdmin(SingletonModelAdmin):
@@ -56,6 +58,7 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                 "fields": (
                     "prefix_figure",
                     "label_figure",
+                    "figure_caption_location",
                 )
             },
         ),
@@ -65,6 +68,7 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                 "fields": (
                     "prefix_table",
                     "label_table",
+                    "table_caption_location",
                 )
             },
         ),
@@ -141,3 +145,10 @@ class ExtraFieldModelAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
+
+class CollabAdminBase(admin.ModelAdmin):
+    """
+    Model Admin for collab-editor-enabled models.
+    """
+    change_form_template = "collab_editing/admin/change_form.html"
+    change_list_template = "collab_editing/admin/change_list.html"

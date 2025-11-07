@@ -3,7 +3,7 @@ from typing import Any
 import jinja2
 from markupsafe import Markup
 
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 
 def deep_copy_with_copiers(value, typ_copiers):
@@ -14,7 +14,7 @@ def deep_copy_with_copiers(value, typ_copiers):
     """
     typ = type(value)
     if typ in typ_copiers:
-        # A more advanced implementaiton would respect subclasses, but that's not needed (yet)
+        # A more advanced implementation would respect subclasses, but that's not needed (yet)
         return typ_copiers[typ](value)
     if isinstance(value, dict):
         return {k: deep_copy_with_copiers(v, typ_copiers) for k, v in value.items()}
@@ -42,15 +42,15 @@ class LazilyRenderedTemplate:
 
     def render_html(self):
         """
-        Will throw a `ReportExportError` if the template attempted to render itself while it was
+        Will throw a `ReportExportTemplateError` if the template attempted to render itself while it was
         rendering (i.e. infinite recursion).
         """
         if self.rendered is None:
             if self.rendering:
-                raise ReportExportError(f"Circular reference to {self.location} (ensure rich text fields are not referencing each other)")
+                raise ReportExportTemplateError(f"Circular reference to {self.location} (ensure rich text fields are not referencing each other)")
             self.rendering = True
             self.rendered = Markup(
-                ReportExportError.map_jinja2_render_errors(
+                ReportExportTemplateError.map_errors(
                     lambda: self.template.render(self.context),
                     self.location,
                 )
@@ -75,3 +75,19 @@ class HtmlAndRich:
 
     def __html__(self):
         return self.html
+
+
+class LazySubdocRender:
+    def __init__(self, render):
+        self._render = render
+        self._rendered = None
+
+    def __str__(self):
+        if not self._rendered:
+            self._rendered = self._render()
+        return self._rendered.__str__()
+
+    def __html__(self):
+        if not self._rendered:
+            self._rendered = self._render()
+        return self._rendered.__html__()

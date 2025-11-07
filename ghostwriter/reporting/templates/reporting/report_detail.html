@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags report_tags bleach_tags custom_tags extra_fields determine_primary %}
+{% load crispy_forms_tags report_tags bleach_tags custom_tags extra_fields determine_primary settings_tags %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
@@ -39,15 +39,16 @@
         Project</a>
       <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' report.project.client.id %}">Jump
         to Client</a>
+      <a class="dropdown-item icon archive-icon" href="{% url 'reporting:archive' report.id %}">Archive</a>
       <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
     </div>
   </div>
 
-  <div class="container">
+  <div class="container offset-col-1 col-10">
     <h2>{{ report.title }}</h2>
   </div>
   {% for tag in report.tags.names %}
-    <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    <span class="badge badge-secondary">{{ tag }}</span>
   {% endfor %}
   <hr>
 
@@ -127,14 +128,22 @@
         <h4>Report Configuration</h4>
         <hr>
 
-        <table class="table table-responsive-lg table-borderless table-config center">
+        <table class="table table-responsive-lg table-borderless table-config">
           <tr>
             <td class="text-left icon tag-icon">Figure Label & Prefix</td>
             <td class="text-justify">{{ report_config.label_figure }}{{ report_config.prefix_figure }}</td>
           </tr>
           <tr>
+            <td class="text-left icon tag-icon">Figure Caption Location</td>
+            <td class="text-justify">{{ report_config.get_figure_caption_location_display }}</td>
+          </tr>
+          <tr>
             <td class="text-left icon tag-icon">Table Label & Prefix</td>
             <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
+          </tr>
+          <tr>
+            <td class="text-left icon tag-icon">Table Caption Location</td>
+            <td class="text-justify">{{ report_config.get_table_caption_location_display }}</td>
           </tr>
           <tr>
             <td class="text-left icon tag-icon">Title Case Captions</td>
@@ -213,7 +222,10 @@
           clicking the <span class="p-1 add-icon"></span> button in the results, or
           by clicking an autocomplete result above.</p>
 
-        <button class="btn btn-primary icon add-icon col-md-4"
+        <p class="mt-3">Drag and drop findings within a severity category to change its ordering. Edit
+          a finding to change its severity.</p>
+
+        <button class="btn btn-primary icon add-icon col-3"
           onclick="attachBlankFinding()"
           data-toggle="tooltip"
           data-placement="top"
@@ -254,7 +266,7 @@
           clicking the <span class="p-1 add-icon"></span> button in the results, or
           by clicking an autocomplete result above.</p>
 
-          <button class="btn btn-primary icon add-icon col-md-4"
+          <button class="btn btn-primary icon add-icon col-3"
                   onclick="attachBlankObservation()"
                   data-toggle="tooltip"
                   data-placement="top"
@@ -275,7 +287,7 @@
 
         <p>Upload evidence here to make it accessible to all findings and report sections.</p>
 
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
+        <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
                            href="{% url 'reporting:upload_evidence' 'report' report.id %}" data-toggle="tooltip"
                            data-placement="top" title="Upload evidence, attaching to a report">Upload Evidence</a></p>
 
@@ -283,8 +295,8 @@
           <table id="evidences-table" class="table table-sm table-hover tablesorter">
             <thead>
             <tr>
-              <th class="align-middle">Name</th>
-              <th class="align-middle">Filename</th>
+              <th class="align-middle text-left">Name</th>
+              <th class="align-middle text-left">Filename</th>
               <th class="align-middle sorter-false">Options</th>
             </tr>
             </thead>
@@ -292,42 +304,38 @@
             {% for evidence_file in report.evidence_set.all %}
               <tr data-id="{{ evidence_file.id }}">
                 <td
-                  class="pl-3 text-left align-middle icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
+                  class="pl-3 text-left align-middle text-left icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
                   <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{ evidence_file.friendly_name|bleach }}
+                    {{ evidence_file.friendly_name }}
                   </a>
                 </td>
-                <td class="align-middle">
+                <td class="align-middle text-left">
                   <em>{{ evidence_file.filename|truncate_filename:50 }}</em>
                 </td>
+
                 <td class="align-middle">
-                  <div class="dropdown dropleft">
-                    <button
-                      id="evidence-dropdown-btn-{{ evidence_file.id }}"
-                      class="dropdown-menu-btn-table"
-                      data-toggle="dropdown"
-                      aria-haspopup="true"
-                      aria-expanded="false"
-                    ></button>
-                    <div
-                      id="evidence-dropdown-menu-{{ evidence_file.id }}"
-                      class="dropdown-menu"
-                      aria-labelledby="evidence-dropdown-btn_{{ evidence_file.id }}"
-                    >
-                      <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"
-                         class="dropdown-item icon view-icon">View</a>
-                      <a href="{% url 'reporting:evidence_update' evidence_file.id %}"
-                         class="dropdown-item icon edit-icon">Edit</a>
-                      <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"
-                         class="dropdown-item icon trash-icon">Delete</a>
-                    </div>
+                  <div class="d-flex justify-content-center">
+                    <span
+                      class="icon preview-icon clickable-link"
+                      title="View additional information"
+                      onclick="openModal('#evidence_detail_{{ evidence_file.id }}')"
+                    ></span>
+                    <a class="icon download-icon" href="javascript:void(0)"
+                       onclick="downloadEvidence({{ evidence_file.id }}, '{{ evidence_file.filename }}')" title="Download this evidence file"></a>
+                    <a href="{% url 'reporting:evidence_update' evidence_file.id %}"
+                       title="Edit this evidence file"
+                       class="icon edit-icon"></a>
+                    <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"
+                       title="Delete this evidence file"
+                       class="icon trash-icon"></a>
+                  </div>
                 </td>
               </tr>
             {% endfor %}
             </tbody>
           </table>
         {% else %}
-          <p>No evidence has been added to this report yet.</p>
+          <p class="mt-3">No evidence has been added to this report yet.</p>
         {% endif %}
       </div>
 
@@ -361,7 +369,7 @@
                      class="icon edit-icon-right">{{ field_spec.display_name }}</a>
                 </h6>
                 <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
+                        data-target="#field_spec_{{ field_spec.internal_name }}">Preview
                 </button>
                 {% if not forloop.last %}
                   <hr>{% endif %}
@@ -377,7 +385,7 @@
                      class="icon edit-icon-right">{{ field_spec.display_name }}</a>
                 </h6>
                 <button type="button" class="btn btn-primary col-3 offset-2 icon code-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">View JSON
+                        data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
                 </button>
               </div>
             {% endif %}
@@ -556,6 +564,16 @@
         localStorage.setItem('reportDefaultTab', hash);
       }
 
+      // Manage the URLs for the template link buttons
+      let templateBaseUrl = '/reporting/templates/';
+      let selectedWordTemplate = document.getElementById('id_docx_template').value
+      let selectedPowerPointTemplate = document.getElementById('id_pptx_template').value
+      let $jumpWordBtn = $('.js-jump-to-word-template')
+      let $jumpPptxBtn = $('.js-jump-to-pptx-template')
+
+      $jumpWordBtn.attr('href', templateBaseUrl + selectedWordTemplate);
+      $jumpPptxBtn.attr('href', templateBaseUrl + selectedPowerPointTemplate);
+
       // Display whatever tab was last selected or default – if null, default to the Findings tab
       let defaultTab = (localStorage.getItem('reportDefaultTab') !== null ? localStorage.getItem('reportDefaultTab') : 'findings');
       $('[href="' + defaultTab + '"]').tab('show');
@@ -609,6 +627,8 @@
                 delay: 10
               });
             }
+            $jumpWordBtn.attr('href', templateBaseUrl + docxTemplateId);
+            $jumpPptxBtn.attr('href', templateBaseUrl + pptxTemplateId);
           }
         });
       });
@@ -619,7 +639,7 @@
       let availableFindingTitles = [
         {% for entry in finding_autocomplete %}
           {
-            value: '{{  entry.severity }} : {{ entry.title|escapejs }}',
+            value: '{{  entry.severity }} : {{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
             id: '{{ entry.id }}',
             url: '{% url 'reporting:ajax_assign_finding' entry.id %}',
             csrftoken: '{{ csrf_token }}'
@@ -674,7 +694,7 @@
       let availableObservationTitles = [
         {% for entry in observation_autocomplete %}
           {
-            value: '{{ entry.title|escapejs }}',
+            value: '{{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
             id: '{{ entry.id }}',
             url: '{% url 'reporting:ajax_assign_observation' entry.id %}',
             csrftoken: '{{ csrf_token }}'
@@ -804,6 +824,41 @@
         }
       });
     }
+
+    function downloadEvidence(evidenceId, filename) {
+      fetch("{% url 'reporting:evidence_download' 0 %}".replace('0', evidenceId), {
+        method: 'GET',
+      })
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 404) {
+              displayToastTop({
+                type: 'error',
+                string: 'Evidence file not found. The file may have been deleted or moved.'
+              });
+            } else {
+              displayToastTop({type: 'error', string: 'Error downloading evidence file: ' + response.statusText});
+            }
+            throw new Error('Network response was not ok');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          displayToastTop({type: 'success', string: 'Download started...'});
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    }
   </script>
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
@@ -868,4 +923,10 @@
       });
     </script>
   {% endif %}
+
+  {% comment %} Insert modals for additional evidence details {% endcomment %}
+  {% get_solo "commandcenter.ReportConfiguration" as report_config %}
+  {% for evidence in report.evidence_set.all %}
+    {% include "snippets/evidence_detail_modal.html" with evidence=evidence %}
+  {% endfor %}
 {% endblock %}

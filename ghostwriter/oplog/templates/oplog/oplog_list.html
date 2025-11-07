@@ -25,19 +25,19 @@
     {% endfor %}
 
     <!-- Oplog Table Section -->
-    <p>
-        <a class="icon add-icon" href="{% url 'oplog:oplog_create_no_project' %}">Start New Operation Log</a>
-        <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-        <a class="icon upload-icon" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
-    </p>
+    <div class="buttonHolder">
+      <a class="btn btn-primary icon add-icon col-2" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
+      <a class="btn btn-info icon upload-icon col-2" href="{% url 'oplog:oplog_import' %}">Import Log</a>
+      <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
+    </div>
     {% if oplog_list %}
         <table id="oplogTable" class="tablesorter table table-hover table-striped table-sm">
             <thead>
                 <tr>
                     <th class="align-middle">ID</th>
-                    <th class="align-middle">Name</th>
-                    <th class="align-middle">Project</th>
-                    <th class="align-middle">
+                    <th class="align-middle text-left">Name</th>
+                    <th class="align-middle text-left">Project</th>
+                    <th class="align-middle text-left sorter-false">
                         <div class="dropdown dropleft">
                             <span id="notification-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Notifications</span>
                                 <div id="notification-info" class="dropdown-menu dropdown-info-content" aria-labelledby="notification-info-btn">
@@ -45,22 +45,22 @@
                             </div>
                         </div>
                     </th>
-                    <th class="sorter-false align-middle">Export CSV</th>
+                    <th class="sorter-false align-middle text-left">Export</th>
                 </tr>
             </thead>
             {% for log in oplog_list %}
                 <tr>
                     <td class="align-middle">{{ log.id }}</td>
-                    <td class="align-middle"><a class="clickable" href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
-                    <td class="align-middle">{{ log.project.client }} {{ log.project.project_type }} ({{ log.project.start_date }})</td>
-                    <td class="align-middle pr-3">
+                    <td class="align-middle text-left"><a class="clickable" href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
+                    <td class="align-middle text-left">{{ log.project.client.short_name }} {{ log.project.project_type }} ({{ log.project.start_date }})</td>
+                    <td class="align-middle pr-3 text-left">
                         {% if log.mute_notifications %}
                             <span class="icon silenced-notification-icon">Silenced</span>
                         {% else %}
                             <span class="icon notification-bell-icon">Active</span>
                         {% endif %}
                     </td>
-                    <td class="align-middle js-export-oplog" oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}" export_url="{% url 'oplog:oplog_export' log.id %}"><a href="javascript:void(0);" class="btn btn-secondary col-md-12">Export</a></td>
+                    <td class="align-middle js-export-oplog" oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}" export_url="{% url 'oplog:oplog_export' log.id %}"><a href="javascript:void(0);" class="icon export-icon"></a></td>
                 </tr>
             {% endfor %}
         </table>
@@ -76,7 +76,21 @@
             $("#oplogTable").tablesorter(
                 {
                     cssAsc: ' down', cssDesc: 'up', cssNone: 'none',
-                }); $('.tablesorter').trigger('update');
+                    widgets: ['saveSort'],
+                    widgetOptions: {
+                      saveSort: true,
+                      storage_page: 'oplogLibraryTable'
+                    }
+                });
+
+            $('.tablesorter').trigger('update');
+
+            $('#resetSortBtn').click(function() {
+              $('#oplogTable')
+                .trigger('saveSortReset')
+                .trigger('sortReset');
+              return false;
+            });
         });
     </script>
 

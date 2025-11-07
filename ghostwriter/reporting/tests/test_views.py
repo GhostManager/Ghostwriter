@@ -187,6 +187,7 @@ class AssignBlankFindingTests(TestCase):
     def test_view_requires_login_and_permissions(self):
         response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next="+self.uri)
 
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 403)
@@ -223,30 +224,22 @@ class ConvertFindingTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
-    def test_view_uri_exists_at_desired_location(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next="+self.uri)
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, self.failure_redirect_uri)
 
-        response = self.client_mgr.get(self.uri)
-        self.assertEqual(response.status_code, 200)
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 302)
 
         self.user.enable_finding_create = True
         self.user.save()
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_uses_correct_template(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "reporting/finding_form.html")
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 302)
 
 
 class AssignFindingTests(TestCase):
@@ -267,10 +260,6 @@ class AssignFindingTests(TestCase):
         self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
-
-    def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
-        self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
@@ -318,7 +307,7 @@ class AssignFindingTests(TestCase):
 
         response = self.client_mgr.post(self.uri)
         message = (
-            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
         )
         data = {"result": "error", "message": message}
 
@@ -333,7 +322,7 @@ class AssignFindingTests(TestCase):
 
         response = self.client_mgr.post(self.uri)
         message = (
-            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
         )
         data = {"result": "error", "message": message}
 
@@ -348,6 +337,7 @@ class ReportCloneTests(TestCase):
         cls.report = ReportFactory()
         cls.Report = ReportFactory._meta.model
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        cls.ReportObservationLink = ReportObservationLinkFactory._meta.model
         cls.Evidence = EvidenceOnFindingFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
@@ -357,6 +347,10 @@ class ReportCloneTests(TestCase):
         for finding_id in range(cls.num_of_findings):
             title = f"Finding {finding_id}"
             cls.findings.append(ReportFindingLinkFactory(title=title, report=cls.report))
+        cls.observations = []
+        for observation_id in range(cls.num_of_findings):
+            title = f"Observation {observation_id}"
+            cls.observations.append(ReportObservationLinkFactory(title=title, report=cls.report))
 
         cls.uri = reverse("reporting:report_clone", kwargs={"pk": cls.report.pk})
 
@@ -380,8 +374,9 @@ class ReportCloneTests(TestCase):
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 404)
 
-    def test_clone_with_zero_findings(self):
+    def test_clone_with_zero_findings_and_observations(self):
         self.ReportFindingLink.objects.all().delete()
+        self.ReportObservationLink.objects.all().delete()
         response = self.client_mgr.get(self.uri)
         self.assertIn("reporting/reports/", response.url)
 
@@ -391,7 +386,7 @@ class ReportCloneTests(TestCase):
         copied_findings = self.ReportFindingLink.objects.filter(report=report_copy)
         self.assertEqual(len(copied_findings), 0)
 
-    def test_clone_with_findings(self):
+    def test_clone_with_findings_and_observations(self):
         response = self.client_mgr.get(self.uri)
         self.assertIn("reporting/reports/", response.url)
 
@@ -400,6 +395,9 @@ class ReportCloneTests(TestCase):
 
         copied_findings = self.ReportFindingLink.objects.filter(report=report_copy)
         self.assertEqual(len(copied_findings), self.num_of_findings)
+
+        copied_observations = self.ReportObservationLink.objects.filter(report=report_copy)
+        self.assertEqual(len(copied_observations), self.num_of_findings)
 
     def test_clone_with_finding_evidence_files(self):
         self.Evidence.objects.all().delete()
@@ -491,6 +489,7 @@ class FindingsListViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.Finding = FindingFactory._meta.model
+        cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
 
         cls.num_of_findings = 10
@@ -503,9 +502,13 @@ class FindingsListViewTests(TestCase):
         cls.accessibleReport = ReportFactory(project=cls.project)
         _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
         cls.accessibleReportFindings = [
-            ReportFindingLinkFactory(title=f"Report Finding {i}", report=cls.accessibleReport)
+            ReportFindingLinkFactory(title=f"Report Finding {i}", report=cls.accessibleReport, added_as_blank=False)
             for i in range(cls.num_of_findings)
         ]
+        cls.blankReportFinding = ReportFindingLinkFactory(
+            title=f"Report Finding {cls.num_of_findings + 1}", added_as_blank=True, report=cls.accessibleReport
+        )
+        cls.accessibleReportFindings.append(cls.blankReportFinding)
 
         cls.inaccessibleReport = ReportFactory()
         cls.inaccessibleReportFindings = [
@@ -559,6 +562,12 @@ class FindingsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == len(self.accessibleReportFindings))
 
+        response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == 1)
+        blank_findings = self.ReportFindingLink.objects.filter(added_as_blank=True, report=self.accessibleReport)
+        self.assertQuerysetEqual(response.context["filter"].qs, list(blank_findings))
+
 
 class FindingDetailViewTests(TestCase):
     """Collection of tests for :view:`reporting.FindingDetailView`."""
@@ -595,8 +604,10 @@ class FindingCreateViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.finding = FindingFactory()
-        cls.Finding = FindingFactory._meta.model
+        # Create page assumes that these exist with these IDs
+        cls.type = FindingTypeFactory(id=1)
+        cls.severity = SeverityFactory(id=1)
+
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:finding_create")
@@ -609,32 +620,19 @@ class FindingCreateViewTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
-    def test_view_uri_exists_at_desired_location(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
     def test_view_requires_login_and_permissions(self):
-        response = self.client.get(self.uri)
+        response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next="+self.uri)
 
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, self.failure_redirect_uri)
 
         self.user.enable_finding_create = True
         self.user.save()
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_uses_correct_template(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "reporting/finding_form.html")
-
-    def test_custom_context_exists(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertIn("cancel_link", response.context)
-        self.assertEqual(response.context["cancel_link"], reverse("reporting:findings"))
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 302)
 
 
 class FindingUpdateViewTests(TestCase):
@@ -646,7 +644,7 @@ class FindingUpdateViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:finding_update", kwargs={"pk": cls.finding.pk})
-        cls.failure_redirect_uri = reverse("reporting:finding_detail", kwargs={"pk": cls.finding.pk})
+        cls.failure_redirect_uri = reverse("reporting:findings")
 
     def setUp(self):
         self.client = Client()
@@ -675,15 +673,7 @@ class FindingUpdateViewTests(TestCase):
     def test_view_uses_correct_template(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "reporting/finding_form.html")
-
-    def test_custom_context_exists(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertIn("cancel_link", response.context)
-        self.assertEqual(
-            response.context["cancel_link"],
-            reverse("reporting:finding_detail", kwargs={"pk": self.finding.pk}),
-        )
+        self.assertTemplateUsed(response, "reporting/finding_update.html")
 
 
 class FindingDeleteViewTests(TestCase):
@@ -1354,15 +1344,7 @@ class ReportFindingLinkUpdateViewTests(TestCase):
     def test_view_uses_correct_template(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "reporting/local_edit.html")
-
-    def test_custom_context_exists(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertIn("cancel_link", response.context)
-        self.assertEqual(
-            response.context["cancel_link"],
-            f"{reverse('reporting:report_detail', kwargs={'pk': self.report.pk})}#findings",
-        )
+        self.assertTemplateUsed(response, "reporting/report_finding_link_update.html")
 
 
 # Tests related to :model:`reporting.ReportFindingLink`
@@ -1414,15 +1396,7 @@ class ReportObservationLinkUpdateViewTests(TestCase):
     def test_view_uses_correct_template(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "reporting/local_observation_edit.html")
-
-    def test_custom_context_exists(self):
-        response = self.client_mgr.get(self.uri)
-        self.assertIn("cancel_link", response.context)
-        self.assertEqual(
-            response.context["cancel_link"],
-            f"{reverse('reporting:report_detail', kwargs={'pk': self.report.pk})}#observations",
-        )
+        self.assertTemplateUsed(response, "reporting/report_observation_link_update.html")
 
 
 # Tests related to :model:`reporting.Evidence`
@@ -1691,7 +1665,7 @@ class EvidenceDeleteViewTests(TestCase):
         self.assertIn("object_to_be_deleted", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            f"{reverse('reporting:evidence_detail', kwargs={'pk': self.evidence.pk})}#evidence",
+            f"{reverse('reporting:report_detail', kwargs={'pk': self.evidence.finding.report.pk})}#findings",
         )
         self.assertEqual(
             response.context["object_type"],
@@ -2391,7 +2365,7 @@ class GenerateReportTests(TestCase):
 
         response = self.client_mgr.get(self.docx_uri)
         messages = list(get_messages(response.wsgi_request))
-        self.assertEqual(str(messages[0]), "Error: Template document file could not be found - try re-uploading it")
+        self.assertEqual(str(messages[0]), "Error: The word template could not be found on the server – try uploading it again. Occurred in the DOCX template")
 
         self.report.docx_template = good_template
         self.report.save()
@@ -2802,3 +2776,224 @@ class EvidencePreviewTests(TestCase):
         response = self.client_mgr.get(self.unknown_uri)
         self.assertEqual(response.status_code, 200)
         self.assertInHTML("<p>Evidence file type cannot be displayed.</p>", response.content.decode())
+
+
+# Tests related to :model:`reporting.Observation`
+
+
+class ObservationCreateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.observation = ObservationFactory()
+        cls.Observation = ObservationFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_create")
+        cls.failure_redirect_uri = reverse("reporting:observations")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next="+self.uri)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.failure_redirect_uri)
+
+        self.user.enable_observation_create = True
+        self.user.save()
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ObservationUpdateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.observation = ObservationFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_update", kwargs={"pk": cls.observation.pk})
+        cls.failure_redirect_uri = reverse("reporting:observations")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.failure_redirect_uri)
+
+        self.user.enable_observation_edit = True
+        self.user.save()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/observation_update.html")
+
+
+class ObservationDeleteViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.observation = ObservationFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_delete", kwargs={"pk": cls.observation.pk})
+        cls.failure_redirect_uri = reverse("reporting:observation_detail", kwargs={"pk": cls.observation.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.failure_redirect_uri)
+
+        self.user.enable_observation_delete = True
+        self.user.save()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "confirm_delete.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertIn("object_type", response.context)
+        self.assertIn("object_to_be_deleted", response.context)
+        self.assertEqual(
+            response.context["cancel_link"],
+            reverse("reporting:observations"),
+        )
+        self.assertEqual(
+            response.context["object_type"],
+            "observation",
+        )
+        self.assertEqual(response.context["object_to_be_deleted"], self.observation.title)
+
+
+class AssignObservationViewTests(TestCase):
+    """Collection of tests for :view:`reporting.AssignObservation`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.observation = ObservationFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+
+        cls.uri = reverse("reporting:ajax_assign_observation", kwargs={"pk": cls.observation.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_response_with_session_vars_with_permissions(self):
+        self.session = self.client_auth.session
+        self.session["active_report"] = {}
+        self.session["active_report"]["id"] = self.report.id
+        self.session["active_report"]["title"] = self.report.title
+        self.session.save()
+
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": self.report.id, "title": self.report.title},
+        )
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.report.project)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_response_with_report_id(self):
+        self.session = self.client_mgr.session
+        self.session["active_report"] = {}
+        self.session.save()
+
+        response = self.client_mgr.post(self.uri, data={"report": self.report.id})
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_response_with_bad_session_vars(self):
+        self.session = self.client_mgr.session
+        self.session["active_report"] = {}
+        self.session["active_report"]["id"] = 999
+        self.session["active_report"]["title"] = self.report.title
+        self.session.save()
+
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": 999, "title": self.report.title},
+        )
+
+        response = self.client_mgr.post(self.uri)
+        message = (
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        )
+        data = {"result": "error", "message": message}
+
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_response_without_session_vars(self):
+        self.session = self.client_mgr.session
+        self.session["active_report"] = None
+        self.session.save()
+
+        self.assertEqual(self.session["active_report"], None)
+
+        response = self.client_mgr.post(self.uri)
+        message = (
+            "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        )
+        data = {"result": "error", "message": message}
+
+        self.assertJSONEqual(force_str(response.content), data)
