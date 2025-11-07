@@ -483,7 +483,7 @@ class RichTextToDocxTests(TestCase):
             <w:tbl>
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
-                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblW w:type="pct" w:w="5000"/>
                     <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
@@ -547,7 +547,7 @@ class RichTextToDocxTests(TestCase):
             <w:tbl>
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
-                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblW w:type="pct" w:w="5000"/>
                     <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
@@ -617,7 +617,7 @@ class RichTextToDocxTests(TestCase):
             <w:tbl>
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
-                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblW w:type="pct" w:w="5000"/>
                     <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
