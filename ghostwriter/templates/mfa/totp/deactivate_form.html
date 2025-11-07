@@ -20,12 +20,12 @@
   {% trans "Disable Multi-Factor Authentication" %}
   </h2>
 
-  {% if form.code %}
+  {% if request.method == 'POST' and form.code %}
     <p>{% trans "Please enter a valid authentication token to disable multi-factor authentication:" %}</p>
   {% endif %}
 
   <!-- Form Error Section -->
-  {% if form.errors %}
+  {% if request.method == 'POST' and form.errors %}
     <script>
       {% for field in form %}
         {% for error in field.errors %}

@@ -16,8 +16,9 @@ from django.views.generic.detail import SingleObjectMixin
 
 # 3rd Party Libraries
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
-from allauth.mfa.recovery_codes.views import GenerateRecoveryCodesView, ViewRecoveryCodesView
 from allauth.mfa.recovery_codes.internal import flows
+from allauth.mfa.recovery_codes.views import ViewRecoveryCodesView
+from allauth.mfa.totp.views import DeactivateTOTPView
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import RoleBasedAccessControlMixin
@@ -269,6 +270,7 @@ class HideQuickStart(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
 hide_quickstart = HideQuickStart.as_view()
 
+
 class RecoveryCodesView(ViewRecoveryCodesView):
     """Hide the Recovery Codes card on the MFA page"""
     def get_context_data(self, **kwargs):
@@ -280,3 +282,16 @@ class RecoveryCodesView(ViewRecoveryCodesView):
         # Only generate codes if the button was pressed
         flows.generate_recovery_codes(self.request)
         return redirect(reverse("mfa_view_recovery_codes"))
+
+recovery_codes_view = RecoveryCodesView.as_view()
+
+class RemoveDeviceTOTPView(DeactivateTOTPView):
+    def get_form_kwargs(self):
+        """Add user and authenticator to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        # The authenticator is already provided by the parent class
+        return kwargs
+
+remove_device_totp_view = RemoveDeviceTOTPView.as_view()
+
