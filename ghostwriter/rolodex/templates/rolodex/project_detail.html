@@ -708,6 +708,7 @@
             <th class="align-middle text-left">Domain Name</th>
             <th class="align-middle text-left">Purpose</th>
             <th class="sorter-date-range-dMMMyyyy align-middle text-left">Date Range</th>
+            <th class="align-middle text-left">Checked Out By</th>
             <th class="sorter-false align-middle">Options</th>
             </thead>
             {% for domain in project.history_set.all %}
@@ -722,6 +723,7 @@
                 <td class="align-middle text-left">{{ domain.activity_type }}</td>
                 <td class="align-middle text-left">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}
                 </td>
+                <td class="align-middle text-left">{{ domain.operator }}</td>
 
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
@@ -791,6 +793,7 @@
                 <th class="align-middle pr-4 text-left">Purpose</th>
                 <th class="align-middle pr-4 text-left">Role</th>
                 <th class="align-middle pr-4 text-left">Provider</th>
+                <th class="align-middle pr-4 text-left">Checked Out By</th>
                 <th class="sorter-false align-middle">Options</th>
               </tr>
             </thead>
@@ -820,6 +823,7 @@
                 <td class="align-middle text-left">{{ server.activity_type }}</td>
                 <td class="align-middle text-left">{{ server.server_role }}</td>
                 <td class="align-middle text-left">{{ server.server.server_provider }}</td>
+                <td class="align-middle text-left">{{ server.operator }}</td>
 
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">

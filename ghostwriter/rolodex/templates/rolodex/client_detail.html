@@ -311,6 +311,7 @@
                 <th class="align-middle pr-4 text-left">Domain</th>
                 <th class="align-middle pr-4 text-left">Activity Type</th>
                 <th class="align-middle pr-4 text-left">End Date</th>
+                <th class="align-middle pr-4 text-left">Checked Out By</th>
               </tr>
               </thead>
               {% for domain in domains %}
@@ -327,6 +328,7 @@
                   </td>
                   <td class="align-middle text-left">{{ domain.activity_type }}</td>
                   <td class="align-middle text-left">{{ domain.end_date|date:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-left">{{ domain.operator }}</td>
                 </tr>
               {% endfor %}
             </table>
@@ -354,6 +356,7 @@
                 <th class="align-middle pr-4 text-left">Server</th>
                 <th class="align-middle pr-4 text-left">Activity Type</th>
                 <th class="align-middle pr-4 text-left">End Date</th>
+                <th class="align-middle text-left">Checked Out By</th>
               </tr>
               </thead>
               {% for server in servers %}
@@ -370,6 +373,7 @@
                   </td>
                   <td class="align-middle text-left">{{ server.activity_type }}</td>
                   <td class="align-middle text-left">{{ server.end_date|date:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-left">{{ server.operator }}</td>
                 </tr>
               {% endfor %}
 

@@ -140,6 +140,7 @@
               <th class="align-middle pr-4 text-left">Activity Type</th>
               <th class="align-middle pr-4 text-left">Server Role</th>
               <th class="align-middle sorter-date-range-dMMMyyyy pr-4 text-left">Execution Window</th>
+              <th class="align-middle pr-4 text-left">Checked Out By</th>
               <th class="align-middle sorter-false">Options</th>
             </tr>
             </thead>
@@ -157,6 +158,7 @@
                 <td class="align-middle text-left">{{ checkout.server_role }}</td>
                 <td class="align-middle text-left">{{ checkout.start_date|date:"d M Y" }}
                   - {{ checkout.end_date|date:"d M Y" }}</td>
+                <td class="align-middle text-left">{{ checkout.operator }}</td>
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
                     <div class="d-flex justify-content-center">
