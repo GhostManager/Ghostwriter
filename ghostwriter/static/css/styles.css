@@ -3758,7 +3758,6 @@ input[type="color"]:focus,
 /* TOTP QR Code */
 [data-theme="dark"] .totp-qr-code {
   background-color: white;
-  padding: 10px;
   border-radius: 5px;
 }
 

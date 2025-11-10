@@ -6,15 +6,15 @@ from django.contrib.auth import forms, get_user_model
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.forms import ModelForm, ModelMultipleChoiceField, TextInput, CharField
+from django.forms import CharField, ModelForm, ModelMultipleChoiceField, TextInput
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
 from allauth.account.forms import LoginForm, SignupForm
-from allauth.mfa.base.internal.flows import check_rate_limit
-from allauth.mfa.models import Authenticator
 from allauth.mfa.adapter import get_adapter
 from allauth.mfa.base.forms import AuthenticateForm
+from allauth.mfa.base.internal.flows import check_rate_limit
+from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.forms import ActivateTOTPForm, DeactivateTOTPForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
@@ -275,7 +275,7 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
     to make adjustments like disabling autocomplete on the password field.
     """
     code = CharField(
-        label=_("Current authenticator code"),
+        label=_("Current Authenticator Code"),
         max_length=6,
         min_length=6,
         required=True,
