@@ -8,6 +8,7 @@
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
       <li class="breadcrumb-item active" aria-current="page">MFA Backup Codes</li>
     </ul>
   </nav>
@@ -31,7 +32,8 @@
       </div>
     {% else %}
       <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
-        {% trans 'Backup tokens have been generated, but are not revealed here for security reasons. Press the button below to generate new ones. Ask your administrator to enabling revealing tokens.' %}
+        <p class="mb-0">{% trans 'Backup tokens are available; however, your administrator has turned off the display of the codes here for security reasons.' %}</p>
+        <p class="mb-0">{% trans 'Download the codes to view them, or press the button below to generate new ones.' %}</p>
       </div>
     {% endif %}
   {% else %}
@@ -42,10 +44,13 @@
 
   <form class="mt-3" method="post">
     {% csrf_token %}
-    <div>
-      <button class="btn btn-primary col-2" type="submit">
+    <div class="btn-group d-flex offset-3 col-6" role="group" aria-label="Basic example">
+      <button class="btn btn-primary col-6 d-flex align-items-center justify-content-center" type="submit">
         {% trans 'Generate Backup Tokens' %}
       </button>
+      <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-secondary col-6 d-flex align-items-center justify-content-center">
+          {% translate "Download" %}
+      </a>
     </div>
   </form>
 
