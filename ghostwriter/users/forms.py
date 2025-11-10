@@ -6,7 +6,7 @@ from django.contrib.auth import forms, get_user_model
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.forms import ModelForm, ModelMultipleChoiceField
+from django.forms import ModelForm, ModelMultipleChoiceField, TextInput, CharField
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
@@ -274,18 +274,56 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
     Remove an MFA device enrolled for an individual :model:`users.User`. This is customized
     to make adjustments like disabling autocomplete on the password field.
     """
+    code = CharField(
+        label=_("Current authenticator code"),
+        max_length=6,
+        min_length=6,
+        required=True,
+        widget=TextInput(
+            attrs={
+                "placeholder": "Enter 6-digit code",
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "pattern": "[0-9]{6}",
+            }
+        ),
+        help_text="Enter the current 6-digit code from your authenticator app to confirm deactivation.",
+    )
 
     def __init__(self, *args, **kwargs):
         self.authenticator = kwargs.get("authenticator")
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
+            Row(
+                Column("code", css_class="form-group col-4 offset-4 mb-0"),
+                css_class="form-row mt-4",
+            ),
             ButtonHolder(
                 Submit("submit", "Disable Multi-Factor", css_class="col-4"),
             ),
         )
+
+    def clean_code(self):
+        """
+        Validate the TOTP code against the authenticator.
+        """
+
+        if not self.user:
+            raise ValidationError("User context is required for rate limiting.")
+
+        clear_rl = check_rate_limit(self.user)
+        code = self.cleaned_data.get("code")
+
+        # Validate the TOTP code
+        if self.authenticator.wrap().validate_code(code):
+            clear_rl()
+            return code
+
+        raise get_adapter().validation_error("incorrect_code")
 
     def clean(self):
         """

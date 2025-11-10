@@ -14,7 +14,8 @@ from ghostwriter.home.views import protected_serve
 from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
-    RecoveryCodesView,
+    recovery_codes_view,
+    remove_device_totp_view,
 )
 
 # Ensure users go through the allauth workflow when logging into admin
@@ -39,7 +40,8 @@ urlpatterns = [
         account_reset_password_from_key,
         name="account_reset_password_from_key",
     ),
-    path('accounts/2fa/recovery-codes/', RecoveryCodesView.as_view(), name='mfa_view_recovery_codes'),
+    path('accounts/2fa/recovery-codes/', recovery_codes_view, name='mfa_view_recovery_codes'),
+    path('accounts/2fa/totp/deactivate/', remove_device_totp_view, name='mfa_view_remove_device_totp'),
     path("accounts/", include("allauth.urls")),
     # path("accounts/", include("django.contrib.auth.urls")),
     path("rolodex/", include("ghostwriter.rolodex.urls", namespace="rolodex")),
