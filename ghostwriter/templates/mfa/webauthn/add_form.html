@@ -41,7 +41,7 @@
         <form method="post" action="{% url 'mfa_add_webauthn' %}">
             {% csrf_token %}
             {% crispy form %}
-            <button id="mfa_webauthn_add" type="button" class="btn btn-primary">
+            <button id="mfa_webauthn_add" type="button" class="btn btn-primary col-3">
                 {% trans "Add" %}
             </button>
         </form>

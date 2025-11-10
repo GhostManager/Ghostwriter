@@ -42,11 +42,11 @@
                 <td class="text-end">
                     <form method="post" action="{% url 'mfa_edit_webauthn' authenticator.pk %}" class="d-inline">
                         {% csrf_token %}
-                        <button class="btn btn-sm btn-primary">{% trans "Edit" %}</button>
+                        <button class="btn btn-sm btn-primary col-3">{% trans "Edit" %}</button>
                     </form>
                     <form method="post" action="{% url 'mfa_remove_webauthn' authenticator.pk %}" class="d-inline">
                         {% csrf_token %}
-                        <button class="btn btn-sm btn-danger">{% trans "Delete" %}</button>
+                        <button class="btn btn-sm btn-danger col-3">{% trans "Delete" %}</button>
                     </form>
                 </td>
             </tr>

@@ -65,7 +65,7 @@
   <!-- WebAuthn/Passkey Login Section -->
   {% if PASSKEY_LOGIN_ENABLED %}
   <div class="mt-3">
-    <button form="mfa_login" type="button" id="passkey_login" class="btn btn-outline-primary">
+    <button form="mfa_login" type="button" id="passkey_login" class="btn btn-outline-primary col-md-4">
       {% trans "Sign in with a Passkey" %}
     </button>
     {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}

@@ -34,11 +34,11 @@
                     </div>
                     <div class="card-footer">
                         {% if authenticators.totp %}
-                            <a href="{% url 'mfa_deactivate_totp' %}" class="btn btn-danger">
+                            <a href="{% url 'mfa_deactivate_totp' %}" class="btn btn-danger col-3">
                                 {% translate "Deactivate" %}
                             </a>
                         {% else %}
-                            <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary">
+                            <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary col-3">
                                 {% translate "Activate" %}
                             </a>
                         {% endif %}
@@ -68,11 +68,11 @@
                     </div>
                     <div class="card-footer">
                         {% if authenticators.webauthn|length %}
-                            <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-primary">
+                            <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-primary col-3">
                                 {% translate "Manage" %}
                             </a>
                         {% else %}
-                            <a href="{% url 'mfa_add_webauthn' %}" class="btn btn-primary">
+                            <a href="{% url 'mfa_add_webauthn' %}" class="btn btn-primary col-3">
                                 {% translate "Add" %}
                             </a>
                         {% endif %}
@@ -104,14 +104,14 @@
                         {% if is_mfa_enabled %}
                             <div class="card-footer">
                                 {% if authenticators.recovery_codes and unused_count > 0 %}
-                                    <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-primary me-2">
+                                    <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-primary me-2 col-3">
                                         {% translate "View" %}
                                     </a>
-                                    <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-secondary me-2">
+                                    <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-secondary me-2 col-3">
                                         {% translate "Download" %}
                                     </a>
                                 {% endif %}
-                                <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-secondary">
+                                <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-secondary col-3">
                                     {% translate "Generate" %}
                                 </a>
                             </div>
