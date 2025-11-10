@@ -294,7 +294,6 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
         self.authenticator = kwargs.get("authenticator")
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        self.fields["code"].widget.attrs["placeholder"] = "421 984"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
@@ -312,8 +311,6 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
         """
         Validate the TOTP code against the authenticator.
         """
-        if not self.authenticator:
-            raise ValidationError("No authenticator device found.")
 
         if not self.user:
             raise ValidationError("User context is required for rate limiting.")
