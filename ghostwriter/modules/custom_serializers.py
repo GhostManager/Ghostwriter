@@ -278,7 +278,7 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
 
     def get_cvss_score(self, obj):
         # If the score is empty, return `0.0` to ensure the value is always a float value
-        if obj.cvss_score is "" or obj.cvss_score is None:
+        if obj.cvss_score in ("", None):
             return 0.0
         return obj.cvss_score
 
