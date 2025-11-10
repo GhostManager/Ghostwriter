@@ -3755,6 +3755,13 @@ input[type="color"]:focus,
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* TOTP QR Code */
+[data-theme="dark"] .totp-qr-code {
+  background-color: white;
+  padding: 10px;
+  border-radius: 5px;
+}
+
 /* Cards and panels */
 [data-theme="dark"] .card {
   background-color: var(--sidebar-background-color);
