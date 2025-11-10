@@ -48,7 +48,7 @@
         </div>
     {% endif %}
 
-    {% if "webauthn" in MFA_SUPPORTED_TYPES %}
+    {% if "webauthn" in MFA_SUPPORTED_TYPES and PASSKEY_LOGIN_ENABLED %}
         <div class="d-flex justify-content-center">
             <div class="col-5">
                 <div class="card mb-3">
