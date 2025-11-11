@@ -582,4 +582,8 @@ LINTER_CONTEXT = {
         "primary": True,
     },
     "extra_fields": {},
+    "bloodhound": {
+        "domains": [],
+        "findings": [],
+    }
 }
