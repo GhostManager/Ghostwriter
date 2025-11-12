@@ -248,43 +248,38 @@ class ExportDocxBase(ExportBase):
             return
 
         image_rids_and_objs = {}
-        for paragraph in self.word_doc.docx.paragraphs:
-            for run in paragraph.runs:
-                for item in run.iter_inner_content():
-                    if not isinstance(item, Drawing):
-                        continue
+        for item in self.word_doc.docx._element.xpath(".//w:drawing"):
+            docpr = next(iter(item.xpath(".//wp:docPr")), None)
+            if docpr is None:
+                continue
 
-                    docpr = next(iter(item._element.xpath(".//wp:docPr")), None)
-                    if docpr is None:
-                        continue
+            blip = next(iter(item.xpath(".//pic:pic//a:blip")), None)
+            if blip is None:
+                continue
+            if "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed" not in blip.attrib:
+                continue
 
-                    blip = next(iter(item._element.xpath(".//pic:pic//a:blip")), None)
-                    if blip is None:
-                        continue
-                    if "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed" not in blip.attrib:
-                        continue
+            # Get image name from alt text
+            descr = docpr.attrib.get("descr")
+            if not descr:
+                continue
+            match = _img_desc_replace_re.search(descr)
+            if match is None:
+                continue
+            img_name = match[1]
+            if img_name not in self.image_replacements:
+                continue
+            docpr.attrib["descr"] = match[2]
 
-                    # Get image name from alt text
-                    descr = docpr.attrib.get("descr")
-                    if not descr:
-                        continue
-                    match = _img_desc_replace_re.search(descr)
-                    if match is None:
-                        continue
-                    img_name = match[1]
-                    if img_name not in self.image_replacements:
-                        continue
-                    docpr.attrib["descr"] = match[2]
+            # Add image to oc
+            if img_name in image_rids_and_objs:
+                rid = image_rids_and_objs[img_name]
+            else:
+                rid, _ = self.word_doc.docx._part.get_or_add_image(self.image_replacements[img_name])
+                image_rids_and_objs[img_name] = rid
 
-                    # Add image to oc
-                    if img_name in image_rids_and_objs:
-                        rid = image_rids_and_objs[img_name]
-                    else:
-                        rid, _ = paragraph.part.get_or_add_image(self.image_replacements[img_name])
-                        image_rids_and_objs[img_name] = rid
-
-                    # Replace image
-                    blip.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"] = rid
+            # Replace image
+            blip.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"] = rid
 
 
     @classmethod
