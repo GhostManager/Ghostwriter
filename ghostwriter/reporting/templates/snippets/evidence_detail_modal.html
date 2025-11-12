@@ -1,29 +1,4 @@
-{% load bleach_tags report_tags%}
-
-{% comment %} <div id="evidence_detail_{{ evidence.id }}" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Preview for {{ evidence.friendly_name }}</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p>This is a preview of what your evidence file will look like in a report. It may not look exactly like this (depending on your template's styles), but it will give you an idea of what to expect.</p>
-
-        <p>If you have borders enabled for reports, images will include a border with your configured color and width.</p>
-
-        <p>Previews also show you what captions will look like with your caption and configured labelling for figures.</p>
-
-        {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config %}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div> {% endcomment %}
+{% load bleach_tags report_tags %}
 
 <div class="modal fade" id="evidence_detail_{{ evidence.id }}" tabindex="-1" role="dialog"
      aria-labelledby="evidence_detail_{{ evidence.id }}_label" aria-hidden="true">
@@ -44,9 +19,12 @@
               <img
                 src="{% url 'reporting:evidence_download' evidence.id %}"
                 alt="{{ evidence.friendly_name }}"
-                class="img-fluid evidence-preview-clickable"
+                class="img-fluid evidence-preview-clickable js-open-lightbox"
                 style="max-height: 400px; cursor: pointer;"
-                onclick="$('#evidence_detail_{{ evidence.id }}').modal('hide'); setTimeout(() => openEvidenceLightbox({{ evidence.id }}, '{{ evidence.friendly_name|escapejs }}', '{% url 'reporting:evidence_download' evidence.id %}', 'image'), 300);"
+                data-evidence-name="{{ evidence.friendly_name }}"
+                data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+                data-evidence-type="image"
+                data-modal-id="evidence_detail_{{ evidence.id }}"
                 title="Click to view full size"
               >
               <p class="text-muted mt-2 small">
@@ -56,9 +34,12 @@
           {% else %}
             <div class="text-center mb-3">
               <div
-                class="border rounded p-4 bg-light evidence-preview-clickable"
+                class="border rounded p-4 bg-light evidence-preview-clickable js-open-lightbox"
                 style="cursor: pointer; min-height: 150px; display: flex; align-items: center; justify-content: center;"
-                onclick="$('#evidence_detail_{{ evidence.id }}').modal('hide'); setTimeout(() => openEvidenceLightbox({{ evidence.id }}, '{{ evidence.filename|escapejs }}', '{% url 'reporting:evidence_download' evidence.id %}', 'text'), 300);"
+                data-evidence-name="{{ evidence.friendly_name }}"
+                data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+                data-evidence-type="text"
+                data-modal-id="evidence_detail_{{ evidence.id }}"
                 title="Click to view full content"
               >
                 <div>

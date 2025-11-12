@@ -4405,6 +4405,7 @@ input:checked + .theme-slider .star {
     Evidence lightbox modal styles
 ----------------------------------------------------- */
 
+/* !important is required to override Bootstrap's inline modal-content background styles */
 #evidence-lightbox-modal .modal-content {
   background-color: rgba(0, 0, 0, 0.95) !important;
 }

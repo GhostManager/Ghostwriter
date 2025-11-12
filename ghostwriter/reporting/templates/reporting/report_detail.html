@@ -926,7 +926,6 @@
   {% comment %} Include evidence lightbox JavaScript {% endcomment %}
   <script src="{% static 'js/evidence-lightbox.js' %}"></script>
 
-
   {% comment %} Insert modals for additional evidence details {% endcomment %}
   {% get_solo "commandcenter.ReportConfiguration" as report_config %}
   {% for evidence in report.evidence_set.all %}
