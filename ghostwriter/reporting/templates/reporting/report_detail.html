@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags report_tags bleach_tags custom_tags extra_fields determine_primary settings_tags %}
+{% load crispy_forms_tags report_tags bleach_tags custom_tags extra_fields determine_primary settings_tags static %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
@@ -919,6 +919,13 @@
       });
     </script>
   {% endif %}
+
+  {% comment %} Include the evidence lightbox modal {% endcomment %}
+  {% include "snippets/evidence_lightbox_modal.html" %}
+
+  {% comment %} Include evidence lightbox JavaScript {% endcomment %}
+  <script src="{% static 'js/evidence-lightbox.js' %}"></script>
+
 
   {% comment %} Insert modals for additional evidence details {% endcomment %}
   {% get_solo "commandcenter.ReportConfiguration" as report_config %}

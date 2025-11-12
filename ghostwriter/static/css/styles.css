@@ -4400,3 +4400,51 @@ input:checked + .theme-slider .star {
   cursor: pointer;
   margin: 0;
 }
+
+/* ---------------------------------------------------
+    Evidence lightbox modal styles
+----------------------------------------------------- */
+
+#evidence-lightbox-modal .modal-content {
+  background-color: rgba(0, 0, 0, 0.95) !important;
+}
+
+#evidence-lightbox-modal .modal-header {
+  padding: 1rem 1rem 0.5rem;
+}
+
+#evidence-lightbox-modal .modal-body {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+#evidence-lightbox-modal .close {
+  font-size: 2rem;
+  font-weight: 300;
+  opacity: 0.8;
+}
+
+#evidence-lightbox-modal .close:hover {
+  opacity: 1;
+}
+
+#evidence-lightbox-modal .modal-footer {
+  padding: 0.5rem 1rem 1rem;
+}
+
+.evidence-preview-clickable {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.evidence-preview-clickable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Text file preview styling */
+#evidence-lightbox-text pre {
+  text-align: left;
+  max-width: 100%;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+}

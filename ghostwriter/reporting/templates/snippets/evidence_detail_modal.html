@@ -1,6 +1,6 @@
-{% load bleach_tags %}
+{% load bleach_tags report_tags%}
 
-<div id="evidence_detail_{{ evidence.id }}" class="modal fade" tabindex="-1" role="dialog">
+{% comment %} <div id="evidence_detail_{{ evidence.id }}" class="modal fade" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -20,6 +20,84 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div> {% endcomment %}
+
+<div class="modal fade" id="evidence_detail_{{ evidence.id }}" tabindex="-1" role="dialog"
+     aria-labelledby="evidence_detail_{{ evidence.id }}_label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="evidence_detail_{{ evidence.id }}_label">
+          {{ evidence.friendly_name }}
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="container">
+          {% if evidence|get_file_type == "image" %}
+            <div class="text-center mb-3">
+              <img
+                src="{% url 'reporting:evidence_download' evidence.id %}"
+                alt="{{ evidence.friendly_name }}"
+                class="img-fluid evidence-preview-clickable"
+                style="max-height: 400px; cursor: pointer;"
+                onclick="$('#evidence_detail_{{ evidence.id }}').modal('hide'); setTimeout(() => openEvidenceLightbox({{ evidence.id }}, '{{ evidence.friendly_name|escapejs }}', '{% url 'reporting:evidence_download' evidence.id %}', 'image'), 300);"
+                title="Click to view full size"
+              >
+              <p class="text-muted mt-2 small">
+                <i class="fas fa-search-plus"></i> Click image to view full size
+              </p>
+            </div>
+          {% else %}
+            <div class="text-center mb-3">
+              <div
+                class="border rounded p-4 bg-light evidence-preview-clickable"
+                style="cursor: pointer; min-height: 150px; display: flex; align-items: center; justify-content: center;"
+                onclick="$('#evidence_detail_{{ evidence.id }}').modal('hide'); setTimeout(() => openEvidenceLightbox({{ evidence.id }}, '{{ evidence.filename|escapejs }}', '{% url 'reporting:evidence_download' evidence.id %}', 'text'), 300);"
+                title="Click to view full content"
+              >
+                <div>
+                  <i class="fas fa-file-code fa-3x text-muted mb-2"></i>
+                  <p class="text-muted mb-0 small">
+                    <i class="fas fa-search-plus"></i> Click to view full file content
+                  </p>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <table class="table table-borderless table-sm">
+            <tr>
+              <td class="text-left font-weight-bold" style="width: 30%;">Filename:</td>
+              <td class="text-left">{{ evidence.filename }}</td>
+            </tr>
+            <tr>
+              <td class="text-left font-weight-bold">Upload Date:</td>
+              <td class="text-left">{{ evidence.upload_date|date:"DATE_FORMAT" }}</td>
+            </tr>
+            <tr>
+              <td class="text-left font-weight-bold">Uploaded By:</td>
+              <td class="text-left">{{ evidence.uploaded_by }}</td>
+            </tr>
+            {% if evidence.description %}
+              <tr>
+                <td class="text-left font-weight-bold align-top">Description:</td>
+                <td class="text-left">{{ evidence.description|bleach }}</td>
+              </tr>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <a href="javascript:void(0)"
+           onclick="downloadEvidence({{ evidence.id }}, '{{ evidence.filename|escapejs }}')"
+           class="btn btn-primary icon download-icon">Download</a>
       </div>
     </div>
   </div>
