@@ -11,8 +11,8 @@ from django.db.models import Model
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportTemplateError, rich_text_template
-from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate, rich_text_template
 
 
 class ExportBase:
@@ -82,10 +82,10 @@ class ExportBase:
             self.evidences_by_id[evi["id"]] = evi
         return out
 
-    def create_lazy_template(self, location: str | None, text: str, context: dict) -> LazilyRenderedTemplate:
+    def create_lazy_template(self, location: str | None, text: str, context: dict, **kwargs) -> LazilyRenderedTemplate:
         return LazilyRenderedTemplate(
             ReportExportTemplateError.map_errors(
-                lambda: rich_text_template(self.jinja_env, text),
+                lambda: rich_text_template(self.jinja_env, text, **kwargs),
                 location,
             ),
             location,

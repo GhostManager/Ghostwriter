@@ -1,0 +1,86 @@
+{% if res.findings or res.finding_assets or res.domains %}
+    {% if res.domains %}
+        <div id="bh_domains_accordion" class="finding-accordion">
+            <div class="card">
+                <div class="card-header" data-toggle="collapse" data-target="#bh_domains_contents">
+                    <a class="accordion-toggle btn btn-link">
+                        Domains
+                    </a>
+                </div>
+                <div id="bh_domains_contents" class="collapse" data-parent="#bh_domains_accordion">
+                    <div class="card-body">
+                        <table class="table table-striped table-sm mt-0">
+                            <thead>
+                                <tr>
+                                  <th class="align-middle text-left">Name</th>
+                                  <th class="align-middle text-left">Num. Computers</th>
+                                  <th class="align-middle text-left">Operating Systems</th>
+                                  <th class="align-middle text-left">Num. Users</th>
+                                  <th class="align-middle text-left">Old Passwords</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for domain in res.domains %}
+                                <tr>
+                                  <td class="align-middle text-left">{{ domain.name }}</td>
+                                  <td class="align-middle text-left">{{ domain.computers.count }}</td>
+                                  <td class="align-middle text-left">{%  for os, count in domain.computers.operating_systems.items %}{% if os != "null"%}{{ os|title }} ({{ count }})<br/>{% endif %}{% endfor %}</td>
+                                  <td class="align-middle text-left">{{ domain.users.count }}
+                                  <td class="align-middle text-left">{{ domain.users.with_old_pw }}
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if res.findings %}
+        <div id="bh_findings_accordion" class="finding-accordion">
+            <div class="card">
+                <div class="card-header" data-toggle="collapse" data-target="#bh_findings_contents">
+                    <a class="accordion-toggle btn btn-link">
+                        Findings
+                    </a>
+                </div>
+                <div id="bh_findings_contents" class="collapse" data-parent="#bh_findings_accordion">
+                    <div class="card-body">
+                        <table class="table table-striped table-sm mt-0">
+                            <thead>
+                                <tr>
+                                    <th class="align-middle">ID</th>
+                                    <th class="align-middle text-left">Name</th>
+                                    <th class="align-middle text-left">Target Kind</th>
+                                    <th class="align-middle text-left">Target Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for finding in res.findings|dictsort:"id" %}
+                                <tr>
+                                    <td class="align-middle">{{ finding.id }}</td>
+                                    <td class="align-middle text-left">
+                                        {% if finding.assets.title %}
+                                            {{ finding.assets.title|striptags }}
+                                        {% else %}
+                                            {{ finding.finding_name }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-left">{{ finding.target_kind}}</td>
+                                    <td class="align-middle text-left">{{ finding.target_properties.name }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% else %}
+  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">
+    <h4 style="margin-top: 0;" class="alert-heading">BloodHound Info Unavailable</h4>
+      <p>Configure a connection to BloodHound and then fetch data to view information here.</p>
+  </div>
+{% endif %}
