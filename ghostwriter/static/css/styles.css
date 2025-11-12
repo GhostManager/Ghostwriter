@@ -3398,6 +3398,10 @@ input:checked+.slider:before {
   content: "Hide Expired";
 }
 
+.custom-control-label {
+  margin-top: 0;
+}
+
 .custom-control-input:focus~.custom-control-label::before {
   border-color: var(--secondary-color);
   box-shadow: 0 0 0 0.2rem var(--primary-color) !important;
@@ -4166,6 +4170,21 @@ label + .custom-file {
   border-left: 1px solid #ced4da;
   border-radius: 0 0.25rem 0.25rem 0;
 }
+
+/* File field input group text labels (Currently/Change) */
+.file-field .input-group-text {
+  max-width: 90px;
+  justify-content: center;
+}
+
+/* File field label and small text alignment */
+.file-field label,
+.file-field small {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
 
 /* ---------------------------------------------------
     LIGHT/DARK MODE TOGGLE STYLES
