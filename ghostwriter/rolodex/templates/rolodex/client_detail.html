@@ -34,8 +34,14 @@
     </div>
   {% endif %}
 
-  <div class="container">
-    <h2>{{ client.name }}</h2>
+  <div class="container d-flex align-items-center justify-content-center">
+    {% if client.logo %}
+      <img src="{{ client.logo.url }}"
+           alt="{{ client.name }} logo"
+           class="mr-3"
+           style="max-height: 2.5rem; width: auto; object-fit: contain;" />
+    {% endif %}
+    <h2 class="mb-0">{{ client.name }}</h2>
   </div>
   {% if client.tags.names %}
     {% for tag in client.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
@@ -55,10 +61,6 @@
     <!-- Info Tab -->
     <div class="tab-content">
       <div id="general" class="tab-pane in active">
-        {% if client.logo %}
-        <img src="{{ client.logo.url }}" width="{{ client.logo.width }}" height="{{ client.logo.height }}" />
-        {% endif %}
-
         <h4>Client Details</h4>
         <hr/>
 

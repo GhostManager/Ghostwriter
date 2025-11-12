@@ -244,47 +244,68 @@ class ExportDocxBase(ExportBase):
         return LazySubdocRender(render)
 
     def replace_images(self):
+        """
+        Replaces images whose alt text contains an item from `self.image_replacements`.
+        """
         if not self.image_replacements:
             return
 
+        # Collect elements to search in, including the main body and any defined headers/footers
+        toplevels = [(self.word_doc.docx.part, self.word_doc.docx._element)]
+        for section in self.word_doc.docx.sections:
+            headers_and_footers = [
+                section.header,
+                section.footer,
+                section.first_page_header,
+                section.first_page_footer,
+                section.even_page_header,
+                section.even_page_footer,
+            ]
+
+            for hp in headers_and_footers:
+                if not hp._has_definition:
+                    continue
+                toplevels.append((
+                    hp.part,
+                    hp.part._element,
+                ))
+
+        # Go through each part and replace matcing drawings
         image_rids_and_objs = {}
-        for paragraph in self.word_doc.docx.paragraphs:
-            for run in paragraph.runs:
-                for item in run.iter_inner_content():
-                    if not isinstance(item, Drawing):
-                        continue
+        for (part, element) in toplevels:
+            for drawing in element.xpath(".//w:drawing"):
+                docpr = next(iter(drawing.xpath(".//wp:docPr")), None)
+                if docpr is None:
+                    continue
 
-                    docpr = next(iter(item._element.xpath(".//wp:docPr")), None)
-                    if docpr is None:
-                        continue
+                blip = next(iter(drawing.xpath(".//pic:pic//a:blip")), None)
+                if blip is None:
+                    continue
+                if "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed" not in blip.attrib:
+                    continue
 
-                    blip = next(iter(item._element.xpath(".//pic:pic//a:blip")), None)
-                    if blip is None:
-                        continue
-                    if "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed" not in blip.attrib:
-                        continue
+                # Get image name from alt text
+                descr = docpr.attrib.get("descr")
+                if not descr:
+                    continue
+                match = _img_desc_replace_re.search(descr)
+                if match is None:
+                    continue
+                img_name = match[1]
+                if img_name not in self.image_replacements:
+                    continue
+                docpr.attrib["descr"] = match[2]
 
-                    # Get image name from alt text
-                    descr = docpr.attrib.get("descr")
-                    if not descr:
-                        continue
-                    match = _img_desc_replace_re.search(descr)
-                    if match is None:
-                        continue
-                    img_name = match[1]
-                    if img_name not in self.image_replacements:
-                        continue
-                    docpr.attrib["descr"] = match[2]
+                # Add image to oc
+                key = (id(part), img_name)
+                if key in image_rids_and_objs:
+                    rid = image_rids_and_objs[key]
+                else:
+                    rid, _ = part.get_or_add_image(self.image_replacements[img_name])
+                    image_rids_and_objs[key] = rid
 
-                    # Add image to oc
-                    if img_name in image_rids_and_objs:
-                        rid = image_rids_and_objs[img_name]
-                    else:
-                        rid, _ = paragraph.part.get_or_add_image(self.image_replacements[img_name])
-                        image_rids_and_objs[img_name] = rid
-
-                    # Replace image
-                    blip.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"] = rid
+                # Replace image
+                blip.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"] = rid
 
 
     @classmethod

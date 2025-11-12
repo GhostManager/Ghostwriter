@@ -450,6 +450,17 @@ class ReportTemplateForm(forms.ModelForm):
             ),
             Row(
                 Column(
+                    "filename_override",
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                Column(
+                    "bloodhound_heading_offset",
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row pb-2",
+            ),
+            Row(
+                Column(
                     SwitchToggle(
                         "protected",
                     ),
@@ -463,7 +474,6 @@ class ReportTemplateForm(forms.ModelForm):
                 ),
                 css_class="form-row pb-2",
             ),
-            "filename_override",
             "description",
             HTML(
                 """
@@ -481,7 +491,6 @@ class ReportTemplateForm(forms.ModelForm):
                 ),
                 css_class="custom-file",
             ),
-            "bloodhound_heading_offset",
             "changelog",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
