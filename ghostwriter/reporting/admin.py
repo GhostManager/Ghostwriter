@@ -151,7 +151,7 @@ class ReportAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Report Details", {"fields": ("project", "title", "created_by", "tags")}),
         ("Current Status", {"fields": ("complete", "delivered", "archived")}),
-        ("Templates", {"fields": ("docx_template", "pptx_template")}),
+        ("Templates", {"fields": ("docx_template", "pptx_template", "include_bloodhound_data")}),
     )
 
     def get_queryset(self, request):

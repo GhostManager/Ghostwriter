@@ -521,15 +521,9 @@ class SelectReportTemplateForm(forms.ModelForm):
     :model:`reporting.Report`.
     """
 
-    include_bloodhound = forms.BooleanField(
-        label="Include data from BloodHound",
-        initial=True,
-        required=False,
-    )
-
     class Meta:
         model = Report
-        fields = ("docx_template", "pptx_template")
+        fields = ("docx_template", "pptx_template", "include_bloodhound_data")
 
     def __init__(self, *args, **kwargs):
         has_bloodhound = kwargs.pop("has_bloodhound", False)
@@ -540,6 +534,7 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.fields["pptx_template"].required = False
         self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"
         self.fields["pptx_template"].empty_label = "-- Select a PPTX Template --"
+        self.fields["include_bloodhound_data"].required = False
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = False
@@ -562,7 +557,7 @@ class SelectReportTemplateForm(forms.ModelForm):
             ),
             Row(
                 Column(
-                    SwitchToggle("include_bloodhound"),
+                    SwitchToggle("include_bloodhound_data"),
                     css_class="col-md-12 mb-3",
                 ),
                 css_class="justify-content-md-center",

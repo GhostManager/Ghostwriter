@@ -557,6 +557,7 @@ class Report(models.Model):
     )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     delivered = models.BooleanField("Delivered", default=False, help_text="Delivery status of the report")
+    include_bloodhound_data = models.BooleanField(default=False, help_text="Include data from BloodHound in the report context")
 
     class Meta:
         ordering = ["-creation", "-last_update", "project"]
