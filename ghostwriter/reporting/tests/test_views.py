@@ -2115,34 +2115,25 @@ class ReportTemplateSwapViewTests(TestCase):
     def test_valid_templates(self):
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "success",
             "pptx_lint_result": "success",
         }
         response = self.client_mgr.post(
-            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk, "include_bloodhound_data": "true"}
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
-        self.report.refresh_from_db()
-        self.assertTrue(self.report.include_bloodhound_data)
 
         # Test a negative value indicating no template is selected
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "pptx_lint_result": "success",
         }
-        response = self.client_mgr.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk, "include_bloodhound_data": "false"})
+        response = self.client_mgr.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
-        self.report.refresh_from_db()
-        self.assertFalse(self.report.include_bloodhound_data)
-
-        # Test without include_bloodhound_data field (when BloodHound is not configured)
-        response = self.client_mgr.post(self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk})
-        self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", "message": "Templates successfully updated.", "docx_lint_result": "success", "pptx_lint_result": "success"})
 
     def test_invalid_templates(self):
         data = {
@@ -2175,16 +2166,14 @@ class ReportTemplateSwapViewTests(TestCase):
 
         ProjectAssignmentFactory(operator=self.user, project=self.report.project)
         response = self.client_auth.post(
-            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk, "include_bloodhound_data": "false"}
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
         )
         self.assertEqual(response.status_code, 200)
-        self.report.refresh_from_db()
-        self.assertFalse(self.report.include_bloodhound_data)
 
     def test_templates_with_linting_errors(self):
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "warning",
             "docx_lint_message": "Selected Word template has warnings from linter. Check the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_warning.pk}",
@@ -2200,7 +2189,7 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "error",
             "docx_lint_message": "Selected Word template has linting errors and cannot be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_error.pk}",
@@ -2216,7 +2205,7 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "failed",
             "docx_lint_message": "Selected Word template failed basic linter checks and can't be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_failed.pk}",
@@ -2232,7 +2221,7 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "unknown",
             "docx_lint_message": "Selected Word template has an unknown linter status. Check and lint the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_unknown.pk}",

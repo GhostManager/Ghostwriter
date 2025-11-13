@@ -311,7 +311,7 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                     report.include_bloodhound_data = include_bloodhound_data.lower() == "true"
                 data = {
                     "result": "success",
-                    "message": "Templates successfully updated.",
+                    "message": "Template configuraton successfully updated.",
                 }
                 report.save()
 
