@@ -4407,11 +4407,12 @@ input:checked + .theme-slider .star {
 
 /* !important is required to override Bootstrap's inline modal-content background styles */
 #evidence-lightbox-modal .modal-content {
-  background-color: rgba(0, 0, 0, 0.95) !important;
+  background-color: rgba(255, 255, 255, 0.98) !important;
 }
 
 #evidence-lightbox-modal .modal-header {
   padding: 1rem 1rem 0.5rem;
+  border-bottom: 1px solid #dee2e6;
 }
 
 #evidence-lightbox-modal .modal-body {
@@ -4423,14 +4424,21 @@ input:checked + .theme-slider .star {
   font-size: 2rem;
   font-weight: 300;
   opacity: 0.8;
+  color: #000;
 }
 
 #evidence-lightbox-modal .close:hover {
   opacity: 1;
+  color: #000;
+}
+
+#evidence-lightbox-modal .modal-title {
+  color: inherit;
 }
 
 #evidence-lightbox-modal .modal-footer {
   padding: 0.5rem 1rem 1rem;
+  border-top: 1px solid #dee2e6;
 }
 
 .evidence-preview-clickable {
@@ -4443,9 +4451,20 @@ input:checked + .theme-slider .star {
 }
 
 /* Text file preview styling */
+#evidence-lightbox-text {
+  background-color: #f8f9fa !important;
+  color: #212529;
+}
+
 #evidence-lightbox-text pre {
   text-align: left;
   max-width: 100%;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.9rem;
+  color: #212529;
+}
+
+/* Loading indicator styling */
+#evidence-lightbox-loading {
+  color: #212529;
 }

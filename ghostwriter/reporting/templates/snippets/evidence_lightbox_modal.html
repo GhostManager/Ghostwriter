@@ -6,20 +6,20 @@ Supports both images and text files.
 
 <div id="evidence-lightbox-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl" role="document" aria-labelledby="evidence-lightbox-title">
-    <div class="modal-content bg-transparent border-0">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title text-white" id="evidence-lightbox-title"></h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="evidence-lightbox-title"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <div class="modal-body text-center p-2">
         <img id="evidence-lightbox-image" src="" alt="Evidence preview" class="img-fluid" style="max-height: 80vh; width: auto; display: none;">
-        <div id="evidence-lightbox-text" class="text-white bg-dark p-3 rounded" style="display: none; max-height: 80vh; overflow-y: auto;">
-          <pre class="text-white mb-0" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
+        <div id="evidence-lightbox-text" class="p-3 rounded" style="display: none; max-height: 80vh; overflow-y: auto;">
+          <pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
         </div>
       </div>
-      <div class="modal-footer border-0 pt-0 justify-content-center">
+      <div class="modal-footer justify-content-center">
         <a id="evidence-lightbox-download" href="#" class="btn btn-primary icon download-icon" download>Download</a>
       </div>
     </div>

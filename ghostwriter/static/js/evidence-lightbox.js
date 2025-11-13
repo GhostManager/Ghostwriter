@@ -27,7 +27,7 @@ function openEvidenceLightbox(evidenceName, evidenceUrl, evidenceType) {
   // Create loading indicator if it doesn't exist
   let $loadingIndicator = $('#evidence-lightbox-loading');
   if ($loadingIndicator.length === 0) {
-    $loadingIndicator = $('<div id="evidence-lightbox-loading" class="text-center text-white" style="padding: 3rem;"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-3">Loading...</p></div>');
+    $loadingIndicator = $('<div id="evidence-lightbox-loading" class="text-center" style="padding: 3rem;"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-3">Loading...</p></div>');
     $modalBody.prepend($loadingIndicator);
   }
 
