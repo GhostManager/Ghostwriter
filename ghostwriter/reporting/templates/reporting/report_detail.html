@@ -578,6 +578,7 @@
         let url = $(this).attr('action');
         let $docxTemplate = $('#id_docx_template')
         let $pptxTemplate = $('#id_pptx_template')
+        let $includeBloodhound = $('#id_include_bloodhound_data')
         let docxTemplateId = $docxTemplate.val();
         let pptxTemplateId = $pptxTemplate.val();
         let csrftoken = $('input[name=csrfmiddlewaretoken]').val();
@@ -594,15 +595,20 @@
             }
           }
         });
+        // Build data payload - only include bloodhound field if it exists
+        let ajaxData = {
+          'docx_template': docxTemplateId,
+          'pptx_template': pptxTemplateId,
+          'csrfmiddlewaretoken': csrftoken,
+        };
+        if ($includeBloodhound.length) {
+          ajaxData['include_bloodhound_data'] = $includeBloodhound.is(':checked');
+        }
         $.ajax({
           url: url,
           type: 'POST',
           dataType: 'json',
-          data: {
-            'docx_template': docxTemplateId,
-            'pptx_template': pptxTemplateId,
-            'csrfmiddlewaretoken': csrftoken,
-          },
+          data: ajaxData,
           success: function (data) {
             if (data['message']) {
               displayToastTop({type: data['result'], string: data['message'], title: 'Template Update'});
