@@ -95,6 +95,10 @@
                 <td class="text-left bold">Evidence Image Width</td>
                 <td class="text-left">{{ reporttemplate.evidence_image_width }} inches</td>
             </tr>
+			<tr>
+                <td class="text-left bold">References BloodHound Data</td>
+                <td class="text-left">{{ reporttemplate.contains_bloodhound_data }}</td>
+            </tr>
         </table>
     </div>
 
@@ -104,6 +108,8 @@
     <div class="offset-2 col-8 centered-container">
         {% if reporttemplate.description %}
             {{ reporttemplate.description|bleach }}
+        {% else %}
+            <p class="text-center">No description provided.</p>
         {% endif %}
     </div>
 

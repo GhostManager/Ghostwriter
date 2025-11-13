@@ -353,6 +353,7 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     protected = False
     client = None
     bloodhound_heading_offset = 0
+    contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 
@@ -387,6 +388,8 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
+    bloodhound_heading_offset = 0
+    contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 
@@ -402,6 +405,8 @@ class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     lint_result = ""
     protected = False
     client = None
+    bloodhound_heading_offset = 0
+    contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx")
     uploaded_by = factory.SubFactory(UserFactory)
 
@@ -417,6 +422,7 @@ class ReportFactory(factory.django.DjangoModelFactory):
     docx_template = factory.SubFactory(ReportDocxTemplateFactory)
     pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
     delivered = False
+    include_bloodhound_data = False
     created_by = factory.SubFactory(UserFactory)
 
     @factory.post_generation
