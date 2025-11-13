@@ -629,6 +629,16 @@
                 delay: 10
               });
             }
+            if (data['warnings'] && Array.isArray(data['warnings'])) {
+              data['warnings'].forEach(function(warning) {
+                displayToastTop({
+                  type: 'warning',
+                  string: warning,
+                  title: 'BloodHound Template Warning',
+                  delay: 10
+                });
+              });
+            }
             $jumpWordBtn.attr('href', templateBaseUrl + docxTemplateId);
             $jumpPptxBtn.attr('href', templateBaseUrl + pptxTemplateId);
           }

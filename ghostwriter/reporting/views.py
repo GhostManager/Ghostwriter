@@ -378,6 +378,23 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                     report.id,
                     self.request.user,
                 )
+                # BloodHound warning logic
+                warnings = []
+                # Only check if include_bloodhound_data is explicitly False
+                if (
+                    hasattr(report, "include_bloodhound_data")
+                    and report.include_bloodhound_data is False
+                ):
+                    if docx_template_query and getattr(docx_template_query, "contains_bloodhound_data", False):
+                        warnings.append(
+                            "The selected Word template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence."
+                        )
+                    if pptx_template_query and getattr(pptx_template_query, "contains_bloodhound_data", False):
+                        warnings.append(
+                            "The selected PowerPoint template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence."
+                        )
+                data["warnings"] = warnings
+
             except ValueError:
                 data = {
                     "result": "error",

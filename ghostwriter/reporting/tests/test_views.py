@@ -2118,6 +2118,7 @@ class ReportTemplateSwapViewTests(TestCase):
             "message": "Template configuraton successfully updated.",
             "docx_lint_result": "success",
             "pptx_lint_result": "success",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
@@ -2130,6 +2131,7 @@ class ReportTemplateSwapViewTests(TestCase):
             "result": "success",
             "message": "Template configuraton successfully updated.",
             "pptx_lint_result": "success",
+            "warnings": [],
         }
         response = self.client_mgr.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
@@ -2180,6 +2182,7 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_lint_result": "warning",
             "pptx_lint_message": "Selected PowerPoint template has warnings from linter. Check the template before generating a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_warning.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_warning.pk, "pptx_template": self.pptx_template_warning.pk}
@@ -2196,6 +2199,7 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_lint_result": "error",
             "pptx_lint_message": "Selected PowerPoint template has linting errors and cannot be used to generate a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_error.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_error.pk, "pptx_template": self.pptx_template_error.pk}
@@ -2212,6 +2216,7 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_lint_result": "failed",
             "pptx_lint_message": "Selected PowerPoint template failed basic linter checks and can't be used to generate a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_failed.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_failed.pk, "pptx_template": self.pptx_template_failed.pk}
@@ -2228,9 +2233,31 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_lint_result": "unknown",
             "pptx_lint_message": "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_unknown.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_unknown.pk, "pptx_template": self.pptx_template_unknown.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_bloodhound_data_checks(self):
+        self.docx_template.contains_bloodhound_data = True
+        self.docx_template.save()
+        self.pptx_template.contains_bloodhound_data = True
+        self.pptx_template.save()
+        self.report.project.include_bloodhound_data = False
+        self.report.project.save()
+
+        data = {
+            "result": "success",
+            "message": "Template configuraton successfully updated.",
+            "docx_lint_result": "success",
+            "pptx_lint_result": "success",
+            "warnings": ["The selected Word template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence.", "The selected PowerPoint template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence."],
+        }
+        response = self.client_mgr.post(
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
