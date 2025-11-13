@@ -4,7 +4,7 @@ Displays evidence files at full size in a modal overlay.
 Supports both images and text files.
 {% endcomment %}
 
-<div id="evidence-lightbox-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+<div id="evidence-lightbox-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="true" data-keyboard="true">
   <div class="modal-dialog modal-dialog-centered modal-xl" role="document" aria-labelledby="evidence-lightbox-title">
     <div class="modal-content">
       <div class="modal-header">
@@ -20,7 +20,7 @@ Supports both images and text files.
         </div>
       </div>
       <div class="modal-footer justify-content-center">
-        <a id="evidence-lightbox-download" href="#" class="btn btn-primary icon download-icon" download>Download</a>
+        <button id="evidence-lightbox-download" type="button" class="btn btn-primary icon download-icon" download>Download</a>
       </div>
     </div>
   </div>

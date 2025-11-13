@@ -4411,7 +4411,6 @@ input:checked + .theme-slider .star {
 
 #evidence-lightbox-modal .modal-body {
   padding: 0.5rem;
-  cursor: pointer;
 }
 
 #evidence-lightbox-modal .close,

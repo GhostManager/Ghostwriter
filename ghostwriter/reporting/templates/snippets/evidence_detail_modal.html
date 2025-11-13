@@ -41,6 +41,8 @@
                 data-evidence-type="text"
                 data-modal-id="evidence_detail_{{ evidence.id }}"
                 title="Click to view full content"
+                tabindex="0" role="button"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
               >
                 <div>
                   <i class="fas fa-file-code fa-3x text-muted mb-2"></i>
