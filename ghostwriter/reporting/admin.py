@@ -247,6 +247,8 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                     "doc_type",
                     "p_style",
                     "evidence_image_width",
+                    "contains_bloodhound_data",
+                    "tags",
                 )
             },
         ),
