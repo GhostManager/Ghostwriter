@@ -2120,10 +2120,12 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_lint_result": "success",
         }
         response = self.client_mgr.post(
-            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk, "include_bloodhound_data": "true"}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+        self.report.refresh_from_db()
+        self.assertTrue(self.report.include_bloodhound_data)
 
         # Test a negative value indicating no template is selected
         data = {
@@ -2131,9 +2133,16 @@ class ReportTemplateSwapViewTests(TestCase):
             "message": "Templates successfully updated.",
             "pptx_lint_result": "success",
         }
-        response = self.client_mgr.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk})
+        response = self.client_mgr.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk, "include_bloodhound_data": "false"})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+        self.report.refresh_from_db()
+        self.assertFalse(self.report.include_bloodhound_data)
+
+        # Test without include_bloodhound_data field (when BloodHound is not configured)
+        response = self.client_mgr.post(self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), {"result": "success", "message": "Templates successfully updated.", "docx_lint_result": "success", "pptx_lint_result": "success"})
 
     def test_invalid_templates(self):
         data = {
@@ -2166,9 +2175,11 @@ class ReportTemplateSwapViewTests(TestCase):
 
         ProjectAssignmentFactory(operator=self.user, project=self.report.project)
         response = self.client_auth.post(
-            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk, "include_bloodhound_data": "false"}
         )
         self.assertEqual(response.status_code, 200)
+        self.report.refresh_from_db()
+        self.assertFalse(self.report.include_bloodhound_data)
 
     def test_templates_with_linting_errors(self):
         data = {
