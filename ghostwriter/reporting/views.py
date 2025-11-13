@@ -288,6 +288,7 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         report = self.get_object()
         docx_template_id = self.request.POST.get("docx_template", None)
         pptx_template_id = self.request.POST.get("pptx_template", None)
+        include_bloodhound_data = self.request.POST.get("include_bloodhound_data", None)
         if docx_template_id and pptx_template_id:
             docx_template_query = None
             pptx_template_query = None
@@ -305,6 +306,9 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 if pptx_template_id >= 0:
                     pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
                     report.pptx_template = pptx_template_query
+                # Only update include_bloodhound_data if it was provided (field may not be present)
+                if include_bloodhound_data is not None:
+                    report.include_bloodhound_data = include_bloodhound_data.lower() == "true"
                 data = {
                     "result": "success",
                     "message": "Templates successfully updated.",
