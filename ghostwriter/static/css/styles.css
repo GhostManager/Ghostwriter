@@ -4405,14 +4405,8 @@ input:checked + .theme-slider .star {
     Evidence lightbox modal styles
 ----------------------------------------------------- */
 
-/* !important is required to override Bootstrap's inline modal-content background styles */
-#evidence-lightbox-modal .modal-content {
-  background-color: rgba(255, 255, 255, 0.98) !important;
-}
-
 #evidence-lightbox-modal .modal-header {
   padding: 1rem 1rem 0.5rem;
-  border-bottom: 1px solid #dee2e6;
 }
 
 #evidence-lightbox-modal .modal-body {
@@ -4420,25 +4414,38 @@ input:checked + .theme-slider .star {
   cursor: pointer;
 }
 
-#evidence-lightbox-modal .close {
-  font-size: 2rem;
-  font-weight: 300;
+#evidence-lightbox-modal .close,
+.modal .close {
+  font-size: 1.5rem;
   opacity: 0.8;
-  color: #000;
+  color: #000; /* Dark/black for light mode */
 }
 
-#evidence-lightbox-modal .close:hover {
+#evidence-lightbox-modal .close:hover,
+.modal .close:hover {
   opacity: 1;
-  color: #000;
 }
 
-#evidence-lightbox-modal .modal-title {
-  color: inherit;
+/* Dark mode - make close icon light grey/white */
+  #evidence-lightbox-modal .close, [data-theme="light"]
+  .modal .close {
+    color: #000000; /* Light grey for dark mode */
+  }
+
+/* If the app uses a dark mode class */
+.dark-mode #evidence-lightbox-modal .close,
+[data-theme="dark"] #evidence-lightbox-modal .close,
+body.dark #evidence-lightbox-modal .close,
+html[data-bs-theme="dark"] #evidence-lightbox-modal .close,
+.dark-mode .modal .close,
+[data-theme="dark"] .modal .close,
+body.dark .modal .close,
+html[data-bs-theme="dark"] .modal .close {
+  color: #dee2e6; /* Light grey for dark mode */
 }
 
 #evidence-lightbox-modal .modal-footer {
   padding: 0.5rem 1rem 1rem;
-  border-top: 1px solid #dee2e6;
 }
 
 .evidence-preview-clickable {
@@ -4450,10 +4457,9 @@ input:checked + .theme-slider .star {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Text file preview styling */
+/* Text file preview styling with inverted background for contrast */
 #evidence-lightbox-text {
-  background-color: #f8f9fa !important;
-  color: #212529;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 #evidence-lightbox-text pre {
@@ -4461,10 +4467,4 @@ input:checked + .theme-slider .star {
   max-width: 100%;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.9rem;
-  color: #212529;
-}
-
-/* Loading indicator styling */
-#evidence-lightbox-loading {
-  color: #212529;
 }
