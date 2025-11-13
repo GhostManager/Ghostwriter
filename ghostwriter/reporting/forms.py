@@ -464,13 +464,19 @@ class ReportTemplateForm(forms.ModelForm):
                     SwitchToggle(
                         "protected",
                     ),
-                    css_class="form-group col-md-6 mb-0",
+                    css_class="form-group col-md-4 mb-0",
                 ),
                 Column(
                     SwitchToggle(
                         "landscape",
                     ),
-                    css_class="form-group col-md-6 mb-0",
+                    css_class="form-group col-md-4 mb-0",
+                ),
+                Column(
+                    SwitchToggle(
+                        "contains_bloodhound_data",
+                    ),
+                    css_class="form-group col-md-4 mb-0",
                 ),
                 css_class="form-row pb-2",
             ),

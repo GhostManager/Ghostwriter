@@ -352,6 +352,11 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Headings in BloodHound finding descriptions will have their level offset by this amount"
     )
+    contains_bloodhound_data = models.BooleanField(
+        "Contains BloodHound Data",
+        default=False,
+        help_text="Set to true if this template is designed to include data from BloodHound",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
