@@ -2,11 +2,39 @@
 
 {% with evidence|get_file_type as file_type %}
   {% if file_type == "image" %}
-    <img class="img-evidence" {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}src="{% url 'reporting:evidence_download' evidence.id %}"/>
+    <img class="img-evidence {% if clickable %}evidence-preview-clickable js-open-lightbox{% endif %}"
+      {% if report_config.enable_borders %}
+        style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }}; {% if clickable %}cursor: pointer;{% endif %}"
+      {% else %}
+        {% if clickable %}style="cursor: pointer;"{% endif %}
+      {% endif %}
+      src="{% url 'reporting:evidence_download' evidence.id %}"
+      alt="{{ evidence.friendly_name }}"
+      {% if clickable %}
+        data-evidence-name="{{ evidence.friendly_name }}"
+        data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+        data-evidence-type="image"
+        title="Click to view full size"
+      {% endif %}
+      />
   {% elif evidence|get_file_type == "text" %}
     {% with evidence|get_file_content as file_content %}
       {% if file_content %}
-        <pre class="text-evidence" {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}><code>{{ file_content|bleach }}</code></pre>
+        <pre class="text-evidence {% if clickable %}evidence-preview-clickable js-open-lightbox{% endif %}"
+          {% if report_config.enable_borders %}
+            style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }}; {% if clickable %}cursor: pointer;{% endif %}"
+          {% else %}
+            {% if clickable %}style="cursor: pointer;"{% endif %}
+          {% endif %}
+          {% if clickable %}
+            data-evidence-name="{{ evidence.friendly_name }}"
+            data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+            data-evidence-type="text"
+            title="Click to view full content"
+            tabindex="0" role="button"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+          {% endif %}
+        ><code>{{ file_content|bleach }}</code></pre>
       {% else %}
         <p>No file content to display.</p>
       {% endif %}
