@@ -25,7 +25,13 @@ import { faUnderline } from "@fortawesome/free-solid-svg-icons/faUnderline";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import { Menu, SubMenu, MenuButton, MenuItem } from "@szhsin/react-menu";
+import {
+    Menu,
+    SubMenu,
+    MenuButton,
+    MenuItem,
+    MenuDivider,
+} from "@szhsin/react-menu";
 import { useEffect, useMemo } from "react";
 import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
@@ -35,6 +41,7 @@ import LinkButton from "./link";
 import HeadingIdButton from "./heading";
 import ColorButton from "./color";
 import { TableCaptionBookmarkButton, TableCellBackgroundColor } from "./table";
+import CaptionButton from "./caption";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -391,6 +398,8 @@ export function Toolbar(props: {
                     <FormatButton menuItem chain={(c) => c.changeCase("upper")}>
                         Uppercase Text
                     </FormatButton>
+                    <MenuDivider />
+                    <CaptionButton />
                     <FormatButton
                         menuItem
                         chain={(c) => c.insertGwImage("CLIENT_LOGO")}

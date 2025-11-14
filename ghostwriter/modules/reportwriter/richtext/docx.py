@@ -355,6 +355,11 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
             par = self.doc.add_paragraph()
             self.make_image(par, name, self.images[name])
+        elif "data-gw-caption" in el.attrs:
+            ref_name = el.attrs["data-gw-caption"]
+            par = self.doc.add_paragraph()
+            self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
+            par.add_run(self.global_report_config.prefix_figure)
         else:
             super().tag_div(el, **kwargs)
 
