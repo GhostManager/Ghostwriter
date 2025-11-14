@@ -4411,6 +4411,19 @@ input:checked + .theme-slider .star {
 
 #evidence-lightbox-modal .modal-body {
   padding: 0.5rem;
+  overflow: auto;
+}
+
+#evidence-lightbox-modal #evidence-lightbox-image {
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Text container keeps the max-height constraint */
+#evidence-lightbox-modal #evidence-lightbox-text {
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 #evidence-lightbox-modal .close,

@@ -5,7 +5,7 @@ Supports both images and text files.
 {% endcomment %}
 
 <div id="evidence-lightbox-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="true" data-keyboard="true">
-  <div class="modal-dialog modal-dialog-centered modal-xl" role="document" aria-labelledby="evidence-lightbox-title">
+  <div class="modal-dialog modal-dialog-centered" role="document" aria-labelledby="evidence-lightbox-title">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="evidence-lightbox-title"></h5>
@@ -14,13 +14,13 @@ Supports both images and text files.
         </button>
       </div>
       <div class="modal-body text-center p-2">
-        <img id="evidence-lightbox-image" src="" alt="Evidence preview" class="img-fluid" style="max-height: 80vh; width: auto; display: none;">
-        <div id="evidence-lightbox-text" class="p-3 rounded border" style="display: none; max-height: 80vh; overflow-y: auto;">
+        <img id="evidence-lightbox-image" src="" alt="Evidence preview" class="img-fluid" style="display: none;">
+        <div id="evidence-lightbox-text" class="p-3 rounded border" style="display: none;">
           <pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
         </div>
       </div>
       <div class="modal-footer justify-content-center">
-        <button id="evidence-lightbox-download" type="button" class="btn btn-primary icon download-icon" download>Download</a>
+        <a id="evidence-lightbox-download" href="" class="btn btn-primary icon download-icon" download>Download</a>
       </div>
     </div>
   </div>
