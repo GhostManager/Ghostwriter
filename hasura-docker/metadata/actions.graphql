@@ -254,3 +254,21 @@ type GetOplogEntryByTagsResponse {
   id: Int!
 }
 
+type DownloadEvidenceOutput {
+  id: Int!
+  filename: String!
+  friendlyName: String!
+  downloadUrl: String
+  fileBase64: String
+  contentType: String
+}
+
+input DownloadEvidenceInput {
+  id: Int!
+  returnBase64: Boolean
+}
+
+type Mutation {
+  downloadEvidence(input: DownloadEvidenceInput!): DownloadEvidenceOutput
+}
+
