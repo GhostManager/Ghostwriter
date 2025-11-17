@@ -221,7 +221,7 @@ class APIClient:
         # Add assets to each finding based on name and tier
         findings = payload["findings"]
         for finding in findings:
-            if tzgroup is not None and finding["asset_group"] == tzgroup and finding["finding_name"] in txassets:
+            if tzgroup is not None and finding.get("asset_group") == tzgroup and finding["finding_name"] in txassets:
                 finding["assets"] = txassets[finding["finding_name"]]
             else:
                 finding["assets"] = tzassets.get(finding["finding_name"])
@@ -245,6 +245,26 @@ class APIClient:
                 return tag["name"]
         return None
 
+    def get_data_quality(self, domain: Domain) -> dict:
+        """
+        Gets data quality stats for a domain from BHCE/EE.
+
+        **Parameters:**
+
+        ``domain: Domain``
+            The domain to get data quality stats for from `/api/v2/available-domains`.
+        """
+        response = self._request("GET", "/api/v2/{idp_subdir}/{domain_id}/data-quality-stats?limit=1"
+                                 .format(domain_id = domain["id"],
+                                         idp_subdir = "ad-domains" if domain["type"] == "active-directory" else "azure-tenants"))
+        payload = response.json()['data'][0]
+
+        if domain["type"] == "active-directory":
+            payload["session_completeness"] *= 100
+            payload["local_group_completeness"] *= 100
+
+        return payload
+
     def get_community_domains(self) -> list:
         """
         Gets domain info from BHCE/EE.
@@ -258,6 +278,7 @@ class APIClient:
                 "domain": domain_data["props"].get("domain"),
                 "distinguished_name": domain_data["props"].get("distinguishedname"),
                 "functional_level": domain_data["props"].get("functionallevel"),
+                "data_quality": self.get_data_quality(domain),
                 "inbound_trusts": [],
                 "outbound_trusts": [],
             }
