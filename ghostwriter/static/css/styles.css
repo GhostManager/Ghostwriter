@@ -4419,3 +4419,83 @@ input:checked + .theme-slider .star {
   cursor: pointer;
   margin: 0;
 }
+
+/* ---------------------------------------------------
+    Evidence lightbox modal styles
+----------------------------------------------------- */
+
+#evidence-lightbox-modal .modal-header {
+  padding: 1rem 1rem 0.5rem;
+}
+
+#evidence-lightbox-modal .modal-body {
+  padding: 0.5rem;
+  overflow: auto;
+}
+
+#evidence-lightbox-modal #evidence-lightbox-image {
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Text container keeps the max-height constraint */
+#evidence-lightbox-modal #evidence-lightbox-text {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+#evidence-lightbox-modal .close,
+.modal .close {
+  font-size: 1.5rem;
+  opacity: 0.8;
+  color: #000; /* Dark/black for light mode */
+}
+
+#evidence-lightbox-modal .close:hover,
+.modal .close:hover {
+  opacity: 1;
+}
+
+/* Dark mode - make close icon light grey/white */
+  #evidence-lightbox-modal .close, [data-theme="light"]
+  .modal .close {
+    color: #000000; /* Light grey for dark mode */
+  }
+
+/* If the app uses a dark mode class */
+.dark-mode #evidence-lightbox-modal .close,
+[data-theme="dark"] #evidence-lightbox-modal .close,
+body.dark #evidence-lightbox-modal .close,
+html[data-bs-theme="dark"] #evidence-lightbox-modal .close,
+.dark-mode .modal .close,
+[data-theme="dark"] .modal .close,
+body.dark .modal .close,
+html[data-bs-theme="dark"] .modal .close {
+  color: #dee2e6; /* Light grey for dark mode */
+}
+
+#evidence-lightbox-modal .modal-footer {
+  padding: 0.5rem 1rem 1rem;
+}
+
+.evidence-preview-clickable {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.evidence-preview-clickable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Text file preview styling with inverted background for contrast */
+#evidence-lightbox-text {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+#evidence-lightbox-text pre {
+  text-align: left;
+  max-width: 100%;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+}
