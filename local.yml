@@ -179,7 +179,7 @@ services:
   graphql_engine:
     build:
       context: .
-      dockerfile: ./compose/production/hasura/Dockerfile
+      dockerfile: ./compose/local/hasura/Dockerfile
     image: ghostwriter_local_graphql
     depends_on:
       postgres:
