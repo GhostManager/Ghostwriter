@@ -147,6 +147,7 @@ services:
     image: ghostwriter_local_frontend
     volumes:
       - ./javascript:/app
+      - local_node_modules:/app/node_modules
     working_dir: /app
     command: sh -c 'npm install && exec npm run watch-frontend-dev'
     labels:
