@@ -94,8 +94,6 @@ services:
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
-    expose:
-      - "${POSTGRES_PORT}:5432"
 
   nginx:
     build:
@@ -149,7 +147,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    ports: []
     labels:
       name: ghostwriter_queue
     command: /start-queue
@@ -165,9 +162,6 @@ services:
       django:
         condition: service_started
     restart: unless-stopped
-    expose:
-      - "${HASURA_GRAPHQL_SERVER_PORT}:8080"
-      - "9691:9691"
     volumes:
       - ./ssl:/etc/ssl/certs
     logging:
