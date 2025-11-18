@@ -3,7 +3,6 @@ import base64
 import json
 import logging
 import os
-import tempfile
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
 
@@ -2894,7 +2893,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
 
         result = response.json()
         self.assertEqual(result["id"], self.evidence_with_finding.id)
-        self.assertEqual(result["filename"], self.evidence_with_finding.document.name.split("/")[-1])
+        self.assertEqual(result["filename"], self.evidence_with_finding.filename)
         self.assertEqual(result["friendlyName"], self.evidence_with_finding.friendly_name)
         self.assertIn("downloadUrl", result)
         self.assertIn(str(self.evidence_with_finding.id), result["downloadUrl"])
@@ -2953,37 +2952,31 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
             save=True
         )
 
-        try:
-            data = {
-                "input": {
-                    "id": self.evidence_with_finding.id,
-                    "returnBase64": True
-                }
+        data = {
+            "input": {
+                "id": self.evidence_with_finding.id,
+                "returnBase64": True
             }
+        }
 
-            response = self.client.post(
-                self.uri,
-                json.dumps(data),
-                content_type="application/json",
-                HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
-                HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
-            )
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
 
-            self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
-            result = response.json()
-            self.assertEqual(result["id"], self.evidence_with_finding.id)
-            self.assertIn("fileBase64", result)
-            self.assertIn("contentType", result)
+        result = response.json()
+        self.assertEqual(result["id"], self.evidence_with_finding.id)
+        self.assertIn("fileBase64", result)
 
-            # Verify base64 content
-            decoded_content = base64.b64decode(result["fileBase64"])
-            self.assertEqual(decoded_content, test_content)
+        # Verify base64 content
+        decoded_content = base64.b64decode(result["fileBase64"])
+        self.assertEqual(decoded_content, test_content)
 
-        finally:
-            # Clean up: delete the file
-            if self.evidence_with_finding.document:
-                self.evidence_with_finding.document.delete(save=False)
 
     def test_download_evidence_base64_file_not_found(self):
         """Test that missing file returns 404 when requesting base64."""

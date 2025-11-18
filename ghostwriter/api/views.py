@@ -32,7 +32,6 @@ from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
 import pytz
-from urllib3 import request
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
@@ -614,44 +613,42 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
                 status=HTTPStatus.NOT_FOUND
             )
 
-        # Get the associated project for permission checking
+        # Check if user has permission to view the evidence
         project = evidence.finding.report.project if evidence.finding else evidence.report.project
-
-        # Managers can access all evidence, others need project assignment
-        if self.user_obj.role != "manager":
-            # Check if user has access to the project
-            if not ProjectAssignment.objects.filter(project=project, operator=self.user_obj).exists():
-                return JsonResponse(
-                    utils.generate_hasura_error_payload("Forbidden - no access to project", "Unauthorized"),
-                    status=HTTPStatus.FORBIDDEN
-                )
-
-        # Check if file exists
-        if not os.path.exists(evidence.document.path):
-            logger.error("Evidence file not found: %s", evidence.document.path)
+        if not project.user_can_view(self.user_obj):
             return JsonResponse(
-                utils.generate_hasura_error_payload("Evidence file not found on server", "EvidenceFileNotFound"),
-                status=HTTPStatus.NOT_FOUND
+            utils.generate_hasura_error_payload("Forbidden - no access to project", "Unauthorized"),
+            status=HTTPStatus.FORBIDDEN
             )
 
         # Return response based on request type
         if return_base64:
             try:
-                with open(evidence.document.path, 'rb') as f:
-                    file_data = f.read()
-                    encoded_data = b64encode(file_data).decode('utf-8')
+                file_data = evidence.document.read()
+                encoded_data = b64encode(file_data).decode('utf-8')
 
                 return JsonResponse({
                     "id": evidence.id,
                     "filename": evidence.filename,
                     "friendlyName": evidence.friendly_name,
                     "fileBase64": encoded_data,
-                    "contentType": mimetypes.guess_type(evidence.document.path)[0] or "application/octet-stream"
                 })
-            except Exception as e:
-                logger.exception("Failed to encode evidence file: %s", e)
+            except FileNotFoundError:
+                logger.error("Evidence file not found during read: %s", evidence.document.path)
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Evidence file not found on server", "EvidenceFileNotFound"),
+                    status=HTTPStatus.NOT_FOUND
+                )
+            except (IOError, OSError) as e:
+                logger.exception("Failed to read evidence file: %s", e)
                 return JsonResponse(
                     utils.generate_hasura_error_payload("Failed to read evidence file", "FileReadError"),
+                    status=HTTPStatus.INTERNAL_SERVER_ERROR
+                )
+            except Exception as e:
+                logger.exception("Unexpected error encoding evidence file: %s", e)
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Failed to encode evidence file", "FileEncodeError"),
                     status=HTTPStatus.INTERNAL_SERVER_ERROR
                 )
         else:

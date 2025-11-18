@@ -260,7 +260,6 @@ type DownloadEvidenceOutput {
   friendlyName: String!
   downloadUrl: String
   fileBase64: String
-  contentType: String
 }
 
 input DownloadEvidenceInput {
