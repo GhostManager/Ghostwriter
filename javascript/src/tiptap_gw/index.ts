@@ -23,6 +23,7 @@ import CaseChange from "./case_change";
 import Link from "./link";
 import Image from "./image";
 import TextAlign from "./text_align";
+import Caption from "./caption";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -67,6 +68,7 @@ const EXTENSIONS: Extensions = [
     Color,
     Image,
     CaseChange,
+    Caption,
 ];
 
 export default EXTENSIONS;
