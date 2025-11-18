@@ -273,6 +273,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        text-align: center;
 
         padding: 1rem;
         margin-left: 1rem;
@@ -289,6 +290,9 @@
         .richtext-evidence-missing {
             font-size: larger;
             color: #f77;
+        }
+        .richtext-evidence-prefix {
+            color: #33c;
         }
     }
 

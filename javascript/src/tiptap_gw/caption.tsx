@@ -1,5 +1,9 @@
 import { Node, NodeViewProps } from "@tiptap/core";
-import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import {
+    NodeViewContent,
+    NodeViewWrapper,
+    ReactNodeViewRenderer,
+} from "@tiptap/react";
 
 declare module "@tiptap/core" {
     interface Commands<ReturnType> {
@@ -12,6 +16,7 @@ declare module "@tiptap/core" {
 const Caption = Node.create<{}>({
     name: "caption",
     group: "block",
+    content: "text*",
     draggable: true,
 
     addAttributes() {
@@ -41,7 +46,7 @@ const Caption = Node.create<{}>({
     },
 
     renderHTML({ HTMLAttributes }) {
-        return ["div", HTMLAttributes];
+        return ["div", HTMLAttributes, 0];
     },
 
     addNodeView() {
@@ -56,6 +61,12 @@ const Caption = Node.create<{}>({
                     commands.insertContent({
                         type: this.name,
                         attrs: { ref },
+                        content: [
+                            {
+                                type: "text",
+                                text: "Caption",
+                            },
+                        ],
                     }),
         };
     },
@@ -65,13 +76,17 @@ function CaptionView(props: NodeViewProps) {
     return (
         <NodeViewWrapper className="richtext-evidence">
             <span className="richtext-evidence-caption">
-                Figure #
-                {props.node.attrs.ref ? (
-                    <>
-                        {" "}
-                        (<code>{props.node.attrs.ref}</code>)
-                    </>
-                ) : null}
+                <span className="richtext-evidence-prefix">
+                    Figure #
+                    {props.node.attrs.ref ? (
+                        <>
+                            {" "}
+                            (<code>{props.node.attrs.ref}</code>)
+                        </>
+                    ) : null}
+                    :
+                </span>
+                <NodeViewContent />
             </span>
         </NodeViewWrapper>
     );
