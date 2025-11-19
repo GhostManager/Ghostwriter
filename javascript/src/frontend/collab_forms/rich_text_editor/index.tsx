@@ -4,8 +4,8 @@ import { ChainedCommands, Editor } from "@tiptap/core";
 import {
     EditorContent,
     EditorContext,
-    useCurrentEditor,
     useEditor,
+    useEditorState,
 } from "@tiptap/react";
 import { faAlignCenter } from "@fortawesome/free-solid-svg-icons/faAlignCenter";
 import { faBold } from "@fortawesome/free-solid-svg-icons/faBold";
@@ -47,6 +47,7 @@ import CaptionButton from "./caption";
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
 
 function FormatButton(props: {
+    editor: Editor;
     chain: (ch: ChainedCommands) => ChainedCommands;
     tooltip?: string;
     active?: boolean | string | {} | ((e: Editor) => boolean);
@@ -54,19 +55,26 @@ function FormatButton(props: {
     menuItem?: boolean;
     children: React.ReactNode;
 }) {
-    const { editor } = useCurrentEditor();
-    if (!editor) return null;
+    const editor = props.editor;
+    const { enabled, active } = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            let enabled = false;
+            if (typeof props.enable === "function")
+                enabled = props.enable(editor);
+            else if (typeof props.enable === "boolean") enabled = props.enable;
+            else enabled = props.chain(editor.can().chain().focus()).run();
 
-    let enabled = false;
-    if (typeof props.enable === "function") enabled = props.enable(editor);
-    else if (typeof props.enable === "boolean") enabled = props.enable;
-    else enabled = props.chain(editor.can().chain().focus()).run();
+            let active = false;
+            if (props.active === undefined) active = false;
+            else if (typeof props.active === "function")
+                active = props.active(editor);
+            else if (typeof props.active === "boolean") active = props.active;
+            else active = editor.isActive(props.active);
 
-    let active = false;
-    if (props.active === undefined) active = false;
-    else if (typeof props.active === "function") active = props.active(editor);
-    else if (typeof props.active === "boolean") active = props.active;
-    else active = editor.isActive(props.active);
+            return { enabled, active };
+        },
+    });
 
     if (props.menuItem === true) {
         return (
@@ -100,16 +108,16 @@ function FormatButton(props: {
 }
 
 export function Toolbar(props: {
-    editor?: Editor | null;
+    editor: Editor | null;
     extra?: (editor: Editor) => React.ReactNode;
 }) {
-    const ce = useCurrentEditor();
-    const editor = props.editor ?? ce.editor;
+    const editor = props.editor;
     if (!editor) return null;
     return (
         <div className="control-group">
             <div className="button-group">
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleBold()}
                     active="bold"
                     tooltip="Bold"
@@ -117,6 +125,7 @@ export function Toolbar(props: {
                     <FontAwesomeIcon icon={faBold} />
                 </FormatButton>
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleItalic()}
                     active="italic"
                     tooltip="Italic"
@@ -124,6 +133,7 @@ export function Toolbar(props: {
                     <FontAwesomeIcon icon={faItalic} />
                 </FormatButton>
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleUnderline()}
                     active="underline"
                     tooltip="Underline"
@@ -131,6 +141,7 @@ export function Toolbar(props: {
                     <FontAwesomeIcon icon={faUnderline} />
                 </FormatButton>
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleCode()}
                     active="code"
                     tooltip="Code Segment"
@@ -139,6 +150,7 @@ export function Toolbar(props: {
                 </FormatButton>
                 <LinkButton editor={editor} />
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleSubscript()}
                     active="sub"
                     tooltip="Subscript"
@@ -146,6 +158,7 @@ export function Toolbar(props: {
                     <FontAwesomeIcon icon={faSubscript} />
                 </FormatButton>
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleSuperscript()}
                     active="sup"
                     tooltip="Superscript"
@@ -154,6 +167,7 @@ export function Toolbar(props: {
                 </FormatButton>
                 <ColorButton editor={editor} />
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleHighlight()}
                     active="highlight"
                     tooltip="Highlight"
@@ -161,6 +175,7 @@ export function Toolbar(props: {
                     <FontAwesomeIcon icon={faHighlighter} />
                 </FormatButton>
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.unsetAllMarks()}
                     tooltip="Clear Formatting"
                 >
@@ -183,6 +198,7 @@ export function Toolbar(props: {
                         <FormatButton
                             key={level}
                             menuItem
+                            editor={editor}
                             chain={(c) => c.toggleHeading({ level })}
                             active={(e) => e.isActive("heading", { level })}
                         >
@@ -190,7 +206,7 @@ export function Toolbar(props: {
                         </FormatButton>
                     ))}
 
-                    <HeadingIdButton />
+                    <HeadingIdButton editor={editor} />
                 </Menu>
                 <Menu
                     portal
@@ -204,6 +220,7 @@ export function Toolbar(props: {
                 >
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) => c.setTextAlign("left")}
                         active={{ textAlign: "left" }}
                         enable
@@ -212,6 +229,7 @@ export function Toolbar(props: {
                     </FormatButton>
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) => c.setTextAlign("center")}
                         active={{ textAlign: "center" }}
                         enable
@@ -220,6 +238,7 @@ export function Toolbar(props: {
                     </FormatButton>
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) => c.setTextAlign("right")}
                         active={{ textAlign: "right" }}
                         enable
@@ -228,6 +247,7 @@ export function Toolbar(props: {
                     </FormatButton>
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) => c.setTextAlign("justify")}
                         active={{ textAlign: "justify" }}
                         enable
@@ -236,6 +256,7 @@ export function Toolbar(props: {
                     </FormatButton>
                 </Menu>
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleCodeBlock()}
                     active="codeBlock"
                     tooltip="Code Block"
@@ -243,6 +264,7 @@ export function Toolbar(props: {
                     <FontAwesomeIcon icon={faTerminal} />
                 </FormatButton>
                 <FormatButton
+                    editor={editor}
                     chain={(c) => c.toggleBlockquote()}
                     active="blockquote"
                     tooltip="Blockquote"
@@ -264,6 +286,7 @@ export function Toolbar(props: {
                 >
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) => c.toggleBulletList()}
                         active="bulletList"
                     >
@@ -271,6 +294,7 @@ export function Toolbar(props: {
                     </FormatButton>
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) => c.toggleOrderedList()}
                         active="orderedList"
                     >
@@ -289,6 +313,7 @@ export function Toolbar(props: {
                 >
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) =>
                             c.insertTable({
                                 rows: 3,
@@ -299,7 +324,11 @@ export function Toolbar(props: {
                     >
                         Insert
                     </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.deleteTable()}>
+                    <FormatButton
+                        menuItem
+                        editor={editor}
+                        chain={(c) => c.deleteTable()}
+                    >
                         Delete
                     </FormatButton>
                     <SubMenu
@@ -312,23 +341,30 @@ export function Toolbar(props: {
                     >
                         <FormatButton
                             menuItem
+                            editor={editor}
                             chain={(c) => c.toggleHeaderColumn()}
                         >
                             Toggle header column
                         </FormatButton>
                         <FormatButton
                             menuItem
+                            editor={editor}
                             chain={(c) => c.addColumnBefore()}
                         >
                             Add column before
                         </FormatButton>
                         <FormatButton
                             menuItem
+                            editor={editor}
                             chain={(c) => c.addColumnAfter()}
                         >
                             Add column after
                         </FormatButton>
-                        <FormatButton menuItem chain={(c) => c.deleteColumn()}>
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.deleteColumn()}
+                        >
                             Delete column
                         </FormatButton>
                     </SubMenu>
@@ -342,17 +378,30 @@ export function Toolbar(props: {
                     >
                         <FormatButton
                             menuItem
+                            editor={editor}
                             chain={(c) => c.toggleHeaderRow()}
                         >
                             Toggle header row
                         </FormatButton>
-                        <FormatButton menuItem chain={(c) => c.addRowBefore()}>
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.addRowBefore()}
+                        >
                             Add row before
                         </FormatButton>
-                        <FormatButton menuItem chain={(c) => c.addRowAfter()}>
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.addRowAfter()}
+                        >
                             Add row after
                         </FormatButton>
-                        <FormatButton menuItem chain={(c) => c.deleteRow()}>
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.deleteRow()}
+                        >
                             Delete row
                         </FormatButton>
                     </SubMenu>
@@ -364,23 +413,39 @@ export function Toolbar(props: {
                             </span>
                         }
                     >
-                        <FormatButton menuItem chain={(c) => c.mergeCells()}>
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.mergeCells()}
+                        >
                             Merge cells
                         </FormatButton>
-                        <FormatButton menuItem chain={(c) => c.splitCell()}>
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.splitCell()}
+                        >
                             Split cell
                         </FormatButton>
-                        <TableCellBackgroundColor />
+                        <TableCellBackgroundColor editor={editor} />
                     </SubMenu>
-                    <FormatButton menuItem chain={(c) => c.addCaption()}>
+                    <FormatButton
+                        menuItem
+                        editor={editor}
+                        chain={(c) => c.addCaption()}
+                    >
                         Add Caption
                     </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.removeCaption()}>
+                    <FormatButton
+                        menuItem
+                        editor={editor}
+                        chain={(c) => c.removeCaption()}
+                    >
                         Remove Caption
                     </FormatButton>
-                    <TableCaptionBookmarkButton />
+                    <TableCaptionBookmarkButton editor={editor} />
                 </Menu>
-                <FormatButton chain={(c) => c.setPageBreak()}>
+                <FormatButton editor={editor} chain={(c) => c.setPageBreak()}>
                     Page Break
                 </FormatButton>
                 <Menu
@@ -392,16 +457,25 @@ export function Toolbar(props: {
                         </MenuButton>
                     }
                 >
-                    <FormatButton menuItem chain={(c) => c.changeCase("lower")}>
+                    <FormatButton
+                        menuItem
+                        editor={editor}
+                        chain={(c) => c.changeCase("lower")}
+                    >
                         Lowercase Text
                     </FormatButton>
-                    <FormatButton menuItem chain={(c) => c.changeCase("upper")}>
+                    <FormatButton
+                        menuItem
+                        editor={editor}
+                        chain={(c) => c.changeCase("upper")}
+                    >
                         Uppercase Text
                     </FormatButton>
                     <MenuDivider />
-                    <CaptionButton />
+                    <CaptionButton editor={editor} />
                     <FormatButton
                         menuItem
+                        editor={editor}
                         chain={(c) => c.insertGwImage("CLIENT_LOGO")}
                     >
                         Insert Client Logo
@@ -450,7 +524,7 @@ export default function RichTextEditor(props: {
             }
         >
             <EditorContext.Provider value={{ editor }}>
-                <Toolbar extra={props.toolbarExtra} />
+                <Toolbar editor={editor} extra={props.toolbarExtra} />
                 <EditorContent editor={editor} />
             </EditorContext.Provider>
         </div>

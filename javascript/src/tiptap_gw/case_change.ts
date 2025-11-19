@@ -57,7 +57,9 @@ const CaseChange = Extension.create({
                         );
                     }
 
-                    if (inserts.length === 0) return false;
+                    if (inserts.length === 0) {
+                        return false;
+                    }
 
                     for (const [oldText, from, to] of inserts) {
                         let newText;
