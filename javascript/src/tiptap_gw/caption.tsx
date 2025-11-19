@@ -86,7 +86,7 @@ function CaptionView(props: NodeViewProps) {
                     ) : null}
                     :
                 </span>
-                <NodeViewContent />
+                <NodeViewContent className="richtext-evidence-text-field" />
             </span>
         </NodeViewWrapper>
     );
