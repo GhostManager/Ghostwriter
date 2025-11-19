@@ -1,22 +1,28 @@
 import { faLink } from "@fortawesome/free-solid-svg-icons/faLink";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Editor } from "@tiptap/core";
+import { useEditorState } from "@tiptap/react";
 import { useId, useState } from "react";
 import ReactModal from "react-modal";
 
-export default function LinkButton(props: { editor: Editor }) {
-    const { editor } = props;
+export default function LinkButton({ editor }: { editor: Editor }) {
     const [modalMode, setModalMode] = useState<null | "new" | "edit">(null);
     const [formUrl, setFormUrl] = useState("");
     const urlId = useId();
 
-    const enabled = editor
-        .can()
-        .chain()
-        .focus()
-        .setLink({ href: "https://example.com" })
-        .run();
-    const active = editor.isActive("link");
+    const { enabled, active } = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            const enabled = editor
+                .can()
+                .chain()
+                .focus()
+                .setLink({ href: "https://example.com" })
+                .run();
+            const active = editor.isActive("link");
+            return { enabled, active };
+        },
+    });
 
     return (
         <>

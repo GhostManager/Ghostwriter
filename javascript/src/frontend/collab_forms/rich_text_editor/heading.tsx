@@ -1,16 +1,18 @@
 import { useId, useState } from "react";
 import { HeadingWithId } from "../../../tiptap_gw/heading";
 import ReactModal from "react-modal";
-import { useCurrentEditor } from "@tiptap/react";
+import { Editor, useEditorState } from "@tiptap/react";
 import { MenuItem } from "@szhsin/react-menu";
 
-export default function HeadingIdButton() {
-    const editor = useCurrentEditor().editor!;
+export default function HeadingIdButton({ editor }: { editor: Editor }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [bookmark, setBookmark] = useState("");
     const fieldId = useId();
 
-    const enabled = editor.can().setHeadingBookmark("example");
+    const enabled = useEditorState({
+        editor,
+        selector: ({ editor }) => editor.can().setHeadingBookmark("example"),
+    });
 
     return (
         <>

@@ -1,15 +1,17 @@
 import { useId, useState } from "react";
 import ReactModal from "react-modal";
-import { useCurrentEditor } from "@tiptap/react";
+import { Editor, useEditorState } from "@tiptap/react";
 import { MenuItem } from "@szhsin/react-menu";
 
-export default function CaptionButton() {
-    const editor = useCurrentEditor().editor!;
+export default function CaptionButton({ editor }: { editor: Editor }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [refName, setRefName] = useState("");
     const fieldId = useId();
 
-    const enabled = editor.can().setCaption("refname");
+    const enabled = useEditorState({
+        editor,
+        selector: ({ editor }) => editor.can().setCaption("refname"),
+    });
 
     return (
         <>
