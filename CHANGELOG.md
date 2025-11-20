@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.0.6] - 6 November 2025
+## [6.0.6] - 20 November 2025
+
+### Changed
+
+* Updated the pre-built Ghostwriter CLI binaries to v0.3.0
 
 ### Fixed
 
@@ -182,7 +186,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added an option to exclude archived reports in the report library when viewing completed reports
-* Added observation and report evidence relationships for reports in the GraphQL schema 
+* Added observation and report evidence relationships for reports in the GraphQL schema
 
 ### Changed
 
@@ -219,7 +223,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added auto-complete for tags in filter forms (e.g., domain and finding libraries)
 * Added the Tags column back to the tables for the domain and finding libraries
 * Made changes to optimize Word document generation
-  * This is part of an ongoing effort to optimize these workflows to reduce the time it takes to generate reports, especially those with large tables (Issue #585) 
+  * This is part of an ongoing effort to optimize these workflows to reduce the time it takes to generate reports, especially those with large tables (Issue #585)
 
 ### Fixed
 
@@ -502,7 +506,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Changed filtered activity logs to sort by the start date instead of relevancy rank 
+* Changed filtered activity logs to sort by the start date instead of relevancy rank
 
 ### Fixed
 
@@ -536,7 +540,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Applied `ListParagraph` to the lists in Word reports to ensure proper paragraph styling (PR #482; thanks to @smcgu)
 * The autocomplete list for keywords in reports now includes entries for `{{.ref <Evidence File Name>}}` for evidence references alongside the evidence file (e.g., `{{.<Evidence File name>}}`) (Closes #479)
-* Custom fields for observations and findings now support autocomplete and have the "Upload Evidence" button (Closes #485) 
+* Custom fields for observations and findings now support autocomplete and have the "Upload Evidence" button (Closes #485)
 
 ### Fixed
 
@@ -657,9 +661,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added the ability to preview formatted text fields in the interface
   * Formatted text fields can be previewed with the new "Preview" button that appears next to them in the interface
   * Any evidence referenced in the formatted text field will also be displayed in the preview (rather than just the reference text)
-  * Jinja2 statements and expressions will appear as text in the preview as these must be evaluated in the report template 
+  * Jinja2 statements and expressions will appear as text in the preview as these must be evaluated in the report template
 * Added support for tables in the WYSIWYG editor (Closes #355)
-  * Tables use the _Table Grid_ style in the Microsoft Word templates 
+  * Tables use the _Table Grid_ style in the Microsoft Word templates
   * Thank you for the contribution, [@domwhewell](https://github.com/domwhewell)!
 * Added support for inserting page breaks in the WYSIWYG editor
   * Page breaks carry over to the Microsoft Word templates
@@ -697,11 +701,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Border width + color and figure label come from the global report configuration in the admin panel
 * PowerPoint slide decks now include "Assessment Timeline" and "Observations" slides
   * The "Assessment Timeline" slide includes a table pre-populated with the project's start date, end date, and target report delivery date
-  * The "Observations" slide(s) are similar to the findings slides but for the new observations 
+  * The "Observations" slide(s) are similar to the findings slides but for the new observations
 * Reworked the reporting engine to reduce complexity and pave the way for future enhancements
   * This is mentioned here primarily for developers and integrators who may be working with the reporting engine
 * Clicking the toast notification after adding a finding to a report will now take you to the report's findings tab
-* Default values for extra fields are now set when creating a new entry with empty extra fields 
+* Default values for extra fields are now set when creating a new entry with empty extra fields
   * Default values now appear in the edit forms for the entries
   * The default value must be set before creating the entry for it to appear in the form or be set as the default value
 * Updated the pre-built Ghostwriter CLI binaries to v0.2.19
@@ -856,7 +860,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Supports creating project-specific contacts and adding contacts from the client
   * Project contacts appear under the new `contacts` key in the report data
   * A project contact can be flagged as the primary contact and mark the contact as the report recipient
-  * The primary contact appears under the new `recipient` key in the report data 
+  * The primary contact appears under the new `recipient` key in the report data
 * Added autocomplete options to filter forms for the finding, domain, and server libraries
 * Added an option to copy an activity log entry to your clipboard as JSON for easier sharing
 * Added an option to the `review_cloud_infrastructure()` task to only report Digital Ocean droplets that are currently running
@@ -1069,14 +1073,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * All new log view page with improved editing functionality
   * Selections for showing/hiding a column are now persistent between page visits and refreshes
-  * Editing table rows now use a modal and allows all fields to be edited and saved at once 
+  * Editing table rows now use a modal and allows all fields to be edited and saved at once
 * The web UI now supports customizing the severity category titles
 * Changed project assignments to allow the same person to be assigned more than once as long as the date ranges do not overlap
 * You can clear the docx or pptx template selected for a report
   * If you clear the template, the default template will be used instead
   * If you do not have a default template configured, the report will not be able to be generated
 * A domain's "reset DNS" flag will now default to true when creating a new domain
-* Moved all CSS and JavaScript files to local hosting for instances where Ghostwriter is running on a system without any internet access 
+* Moved all CSS and JavaScript files to local hosting for instances where Ghostwriter is running on a system without any internet access
 * The IP address field for project targets now accepts individual IP addresses and CIDR ranges (Closes [#211](https://github.com/GhostManager/Ghostwriter/issues/211))
 * Report templates can now be flagged as landscape for tracking (Reference [#281](https://github.com/GhostManager/Ghostwriter/issues/281))
 * Various web UI and scripting improvements for better performance, usability, and accessibility
