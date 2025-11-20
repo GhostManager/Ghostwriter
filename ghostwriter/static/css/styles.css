@@ -4065,6 +4065,17 @@ input[type="color"]:focus,
   color: #fff;
 }
 
+[data-theme="dark"] .richtext-evidence-name,
+[data-theme="dark"] .richtext-evidence-caption,
+[data-theme="dark"] .tiptap blockquote p,
+[data-theme="dark"] .collab-edit-toolbar-menu {
+  color: black;
+}
+
+[data-theme="dark"] .richtext-evidence-caption code {
+  background-color: transparent;
+}
+
 /* Additional input types for dark mode */
 [data-theme="dark"] input[type="number"],
 [data-theme="dark"] input[type="date"],
