@@ -75,19 +75,20 @@ const Caption = Node.create<{}>({
 function CaptionView(props: NodeViewProps) {
     return (
         <NodeViewWrapper className="richtext-evidence">
-            <span className="richtext-evidence-caption">
-                <span className="richtext-evidence-prefix">
-                    Figure #
-                    {props.node.attrs.ref ? (
-                        <>
-                            {" "}
-                            (<code>{props.node.attrs.ref}</code>)
-                        </>
-                    ) : null}
-                    :
-                </span>
-                <NodeViewContent className="richtext-evidence-text-field" />
-            </span>
+            <div className="richtext-evidence-prefix">
+                Figure #
+                {props.node.attrs.ref ? (
+                    <>
+                        {" "}
+                        (<code>{props.node.attrs.ref}</code>)
+                    </>
+                ) : null}
+                :
+            </div>
+            <NodeViewContent className="richtext-evidence-text-field" />
+            <div className="richtext-evidence-help small text-muted">
+                Enter caption text above
+            </div>
         </NodeViewWrapper>
     );
 }

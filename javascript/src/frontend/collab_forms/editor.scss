@@ -300,6 +300,13 @@
             border-radius: 0.5rem;
             padding-left: 1rem;
             padding-right: 1rem;
+            min-width: 20rem;
+
+            &:empty:before {
+                content: "Insert text here...";
+                pointer-events: none;
+                display: block;
+            }
         }
     }
 
