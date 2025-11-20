@@ -273,12 +273,17 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        text-align: center;
 
         padding: 1rem;
         margin-left: 1rem;
         margin-right: 1rem;
         border-radius: 0.9rem;
         background-color: #ddd;
+
+        &:has(.richtext-evidence-prefix) {
+            padding: 0.25rem;
+        }
 
         img {
             width: 300px;
@@ -289,6 +294,28 @@
         .richtext-evidence-missing {
             font-size: larger;
             color: #f77;
+        }
+        .richtext-evidence-prefix {
+            color: #6D70A7;
+        }
+        .richtext-evidence-text-field {
+            border: 1px solid #aaa;
+            background-color: #fafafa;
+            border-radius: 0.5rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            margin-top: 0.5rem;
+            min-width: 20rem;
+            max-width: 90%;
+
+            &:empty:before {
+                content: "Insert text here...";
+                pointer-events: none;
+                display: block;
+            }
+        }
+        .richtext-evidence-help {
+            margin-top: 0.5rem;
         }
     }
 

@@ -1,5 +1,9 @@
 import { Node, NodeViewProps } from "@tiptap/core";
-import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import {
+    NodeViewContent,
+    NodeViewWrapper,
+    ReactNodeViewRenderer,
+} from "@tiptap/react";
 
 declare module "@tiptap/core" {
     interface Commands<ReturnType> {
@@ -12,6 +16,7 @@ declare module "@tiptap/core" {
 const Caption = Node.create<{}>({
     name: "caption",
     group: "block",
+    content: "text*",
     draggable: true,
 
     addAttributes() {
@@ -41,7 +46,7 @@ const Caption = Node.create<{}>({
     },
 
     renderHTML({ HTMLAttributes }) {
-        return ["div", HTMLAttributes];
+        return ["div", HTMLAttributes, 0];
     },
 
     addNodeView() {
@@ -56,6 +61,12 @@ const Caption = Node.create<{}>({
                     commands.insertContent({
                         type: this.name,
                         attrs: { ref },
+                        content: [
+                            {
+                                type: "text",
+                                text: "Caption",
+                            },
+                        ],
                     }),
         };
     },
@@ -64,7 +75,7 @@ const Caption = Node.create<{}>({
 function CaptionView(props: NodeViewProps) {
     return (
         <NodeViewWrapper className="richtext-evidence">
-            <span className="richtext-evidence-caption">
+            <div className="richtext-evidence-prefix">
                 Figure #
                 {props.node.attrs.ref ? (
                     <>
@@ -72,7 +83,12 @@ function CaptionView(props: NodeViewProps) {
                         (<code>{props.node.attrs.ref}</code>)
                     </>
                 ) : null}
-            </span>
+                :
+            </div>
+            <NodeViewContent className="richtext-evidence-text-field" />
+            <div className="richtext-evidence-help small text-muted">
+                Enter caption text above
+            </div>
         </NodeViewWrapper>
     );
 }

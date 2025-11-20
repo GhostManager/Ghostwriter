@@ -360,6 +360,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             par = self.doc.add_paragraph()
             self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
             par.add_run(self.global_report_config.prefix_figure)
+            par.add_run(el.get_text())
         else:
             super().tag_div(el, **kwargs)
 
