@@ -4072,7 +4072,7 @@ input[type="color"]:focus,
   color: black;
 }
 
-[data-theme="dark"] .richtext-evidence-caption code {
+[data-theme="dark"] .richtext-evidence-prefix code {
   background-color: transparent;
 }
 

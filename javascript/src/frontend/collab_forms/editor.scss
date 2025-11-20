@@ -281,6 +281,10 @@
         border-radius: 0.9rem;
         background-color: #ddd;
 
+        &:has(.richtext-evidence-prefix) {
+            padding: 0.25rem;
+        }
+
         img {
             width: 300px;
         }
@@ -292,7 +296,7 @@
             color: #f77;
         }
         .richtext-evidence-prefix {
-            color: #33c;
+            color: #6D70A7;
         }
         .richtext-evidence-text-field {
             border: 1px solid #aaa;
@@ -300,6 +304,7 @@
             border-radius: 0.5rem;
             padding-left: 1rem;
             padding-right: 1rem;
+            margin-top: 0.5rem;
             min-width: 20rem;
 
             &:empty:before {
@@ -307,6 +312,9 @@
                 pointer-events: none;
                 display: block;
             }
+        }
+        .richtext-evidence-help {
+            margin-top: 0.5rem;
         }
     }
 
