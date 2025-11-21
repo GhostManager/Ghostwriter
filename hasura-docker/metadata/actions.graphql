@@ -255,19 +255,14 @@ type GetOplogEntryByTagsResponse {
 }
 
 type DownloadEvidenceOutput {
-  id: Int!
+  evidenceId: Int!
   filename: String!
   friendlyName: String!
-  downloadUrl: String
-  fileBase64: String
-}
-
-input DownloadEvidenceInput {
-  id: Int!
-  returnBase64: Boolean
+  downloadUrl: String!
+  fileBase64: String!
 }
 
 type Mutation {
-  downloadEvidence(input: DownloadEvidenceInput!): DownloadEvidenceOutput
+  downloadEvidence(evidenceId:Int!): DownloadEvidenceOutput
 }
 

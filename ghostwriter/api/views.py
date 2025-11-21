@@ -37,7 +37,7 @@ import pytz
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiEvidenceForm, ApiKeyForm, ApiReportTemplateForm
 from ghostwriter.api.models import APIKey
-from ghostwriter.commandcenter.models import ExtraFieldModel
+from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
@@ -197,6 +197,9 @@ class HasuraActionView(HasuraView):
                 )
             # Hasura checks for required values, but we check here in case of a discrepancy between the GraphQL schema and the view
             for required_input in self.required_inputs:
+                print(f"input: {self.input}")
+                print(f"required_inputs: {self.required_inputs}")
+                print(f"data: {self.data}")
                 if required_input not in self.input:
                     return JsonResponse(
                         utils.generate_hasura_error_payload(
@@ -587,29 +590,32 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
 
     **Parameters**
 
-    ``input``
-        Dictionary containing the evidence ID and optional returnBase64 flag
+    ``evidenceId``
+        The ID of the evidence to download
     """
 
     required_inputs = [
-        "id",
+        "evidenceId",
     ]
 
     def post(self, request, *args, **kwargs):
-        logger.info(
-            "Received evidence download request from %s",
-            request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", None)),
-        )
+         # Log what we're receiving to debug
+        print("Input received: %s", self.input)
+        print("Full data: %s", self.data)
 
-        evidence_id = self.input["id"]
-        return_base64 = self.input.get("returnBase64", False)
+        evidence_id = self.input.get("evidenceId")
 
-        # Get evidence object
+        if not evidence_id:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Evidence ID is required", "InvalidInput"),
+                status=HTTPStatus.BAD_REQUEST
+            )
+
         try:
-            evidence = Evidence.objects.select_related('finding__report__project', 'report__project').get(pk=evidence_id)
+            evidence = Evidence.objects.get(id=evidence_id)
         except Evidence.DoesNotExist:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Evidence not found", "EvidenceDoesNotExist"),
+                utils.generate_hasura_error_payload("Evidence not found", "EvidenceNotFound"),
                 status=HTTPStatus.NOT_FOUND
             )
 
@@ -621,47 +627,48 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
             status=HTTPStatus.FORBIDDEN
             )
 
-        # Return response based on request type
-        if return_base64:
-            try:
-                file_data = evidence.document.read()
-                encoded_data = b64encode(file_data).decode('utf-8')
+        # Get the configured hostname from GeneralConfiguration
+        config = GeneralConfiguration.get_solo()
 
-                return JsonResponse({
-                    "id": evidence.id,
-                    "filename": evidence.filename,
-                    "friendlyName": evidence.friendly_name,
-                    "fileBase64": encoded_data,
-                })
-            except FileNotFoundError:
-                logger.error("Evidence file not found during read: %s", evidence.document.path)
-                return JsonResponse(
-                    utils.generate_hasura_error_payload("Evidence file not found on server", "EvidenceFileNotFound"),
-                    status=HTTPStatus.NOT_FOUND
-                )
-            except (IOError, OSError) as e:
-                logger.exception("Failed to read evidence file: %s", e)
-                return JsonResponse(
-                    utils.generate_hasura_error_payload("Failed to read evidence file", "FileReadError"),
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR
-                )
-            except Exception as e:
-                logger.exception("Unexpected error encoding evidence file: %s", e)
-                return JsonResponse(
-                    utils.generate_hasura_error_payload("Failed to encode evidence file", "FileEncodeError"),
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR
-                )
-        else:
-            # Return download URL
-            download_url = request.build_absolute_uri(
-                reverse('reporting:evidence_download', kwargs={'pk': evidence.id})
+        # Determine protocol based on request.is_secure() which respects SECURE_PROXY_SSL_HEADER
+        protocol = "https" if request.is_secure() else "http"
+        base_url = f"{protocol}://{config.hostname}"
+        
+        # Generate download URL using configured hostname
+        evidence_path = reverse("reporting:evidence_download", kwargs={"pk": evidence.id})
+        download_url = f"{base_url}{evidence_path}"
+
+        # Read and encode file content
+        try:
+            file_data = evidence.document.read()
+            encoded_data = b64encode(file_data).decode('utf-8')
+        except FileNotFoundError:
+            logger.error("Evidence file not found during read: %s", evidence.document.path)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Evidence file not found on server", "EvidenceFileNotFound"),
+                status=HTTPStatus.NOT_FOUND
             )
-            return JsonResponse({
-                "id": evidence.id,
-                "filename": evidence.filename,
-                "friendlyName": evidence.friendly_name,
-                "downloadUrl": download_url
-            })
+        except (IOError, OSError) as e:
+            logger.exception("Failed to read evidence file: %s", e)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Failed to read evidence file", "FileReadError"),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            logger.exception("Unexpected error encoding evidence file: %s", e)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Failed to encode evidence file", "FileEncodeError"),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR
+            )
+
+        # Return both download URL and base64 content
+        return JsonResponse({
+            "evidenceId": evidence.id,
+            "filename": evidence.filename,
+            "friendlyName": evidence.friendly_name,
+            "downloadUrl": download_url,
+            "fileBase64": encoded_data,
+        })
 
 
 class GraphqlCheckoutDomain(HasuraCheckoutView):
