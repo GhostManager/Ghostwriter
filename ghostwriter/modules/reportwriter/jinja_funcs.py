@@ -190,6 +190,17 @@ def format_datetime(date, new_format=None):
     return formatted_date
 
 
+def to_datetime(date, format=None):
+    """
+    Convert a date string to a datetime object using the given format.
+    """
+    try:
+        return datetime.strptime(date, format if format is not None else settings.DATE_FORMAT)
+    except ValueError as e:
+        logger.exception("Error parsing ``date`` with the provided format: %s", date)
+        raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format}") passed into the `to_datetime()` filter') from e
+
+
 def get_item(lst, index):
     """
     Get the item at the specified index in a list.

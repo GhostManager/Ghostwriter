@@ -50,6 +50,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     filter_tags,
     filter_type,
     format_datetime,
+    to_datetime,
     get_item,
     regex_search,
     strip_html,
@@ -2446,6 +2447,17 @@ class ReportTemplateFilterTests(TestCase):
 
         new_date = add_days(test_date, -5)
         self.assertEqual(new_date, past_date)
+
+    def test_to_datetime(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date, "%d %b %Y")
+        self.assertEqual(parsed_date, self.test_date)
+
+    def test_to_datetime_with_invalid_string(self):
+        test_date = "Not a Date"
+        with self.assertRaises(InvalidFilterValue):
+            to_datetime(test_date, "%d %b %Y")
 
     def test_add_days_with_invalid_string(self):
         test_date = "Not a Date"
