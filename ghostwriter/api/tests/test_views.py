@@ -2706,7 +2706,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         """Test that request without action secret is rejected."""
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -2730,7 +2730,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         """Test that request with wrong action secret is rejected."""
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -2755,7 +2755,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         """Test that request without JWT token is rejected."""
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -2779,7 +2779,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         """Test that request with invalid JWT token is rejected."""
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -2827,7 +2827,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         """Test that request for non-existent evidence returns 404."""
         data = {
             "input": {
-                "id": 99999
+                "evidenceId": 99999
             }
         }
 
@@ -2843,7 +2843,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         result = {
             "message": "Evidence not found",
             "extensions": {
-                "code": "EvidenceDoesNotExist",
+                "code": "EvidenceNotFound",
             },
         }
         self.assertJSONEqual(force_str(response.content), result)
@@ -2852,7 +2852,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         """Test that user without project access cannot download evidence."""
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -2873,11 +2873,19 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         }
         self.assertJSONEqual(force_str(response.content), result)
 
-    def test_download_evidence_success_with_finding(self):
-        """Test successful evidence download URL for evidence with finding."""
+    def test_download_evidence_success_returns_both_url_and_base64(self):
+        """Test successful evidence download returns both URL and base64."""
+        test_content = b"Test evidence content"
+
+        self.evidence_with_finding.document.save(
+            'test_evidence.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -2892,17 +2900,30 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
         result = response.json()
-        self.assertEqual(result["id"], self.evidence_with_finding.id)
+        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
         self.assertEqual(result["filename"], self.evidence_with_finding.filename)
         self.assertEqual(result["friendlyName"], self.evidence_with_finding.friendly_name)
         self.assertIn("downloadUrl", result)
         self.assertIn(str(self.evidence_with_finding.id), result["downloadUrl"])
+        self.assertIn("fileBase64", result)
+
+        # Verify base64 content
+        decoded_content = base64.b64decode(result["fileBase64"])
+        self.assertEqual(decoded_content, test_content)
 
     def test_download_evidence_success_with_report(self):
-        """Test successful evidence download URL for evidence with report only."""
+        """Test successful evidence download for evidence with report only."""
+        test_content = b"Report evidence content"
+
+        self.evidence_with_report.document.save(
+            'report_evidence.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
         data = {
             "input": {
-                "id": self.evidence_with_report.id
+                "evidenceId": self.evidence_with_report.id
             }
         }
 
@@ -2917,14 +2938,23 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
         result = response.json()
-        self.assertEqual(result["id"], self.evidence_with_report.id)
+        self.assertEqual(result["evidenceId"], self.evidence_with_report.id)
         self.assertIn("downloadUrl", result)
+        self.assertIn("fileBase64", result)
 
     def test_download_evidence_manager_access(self):
         """Test that manager can download evidence from any project."""
+        test_content = b"Manager test content"
+
+        self.evidence_with_finding.document.save(
+            'manager_test.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -2938,48 +2968,12 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         result = response.json()
-        self.assertEqual(result["id"], self.evidence_with_finding.id)
-
-    def test_download_evidence_base64_success(self):
-        """Test successful evidence download as base64."""
-        # Create test content
-        test_content = b"Test evidence content"
-
-        # Save the file properly through Django's file field
-        self.evidence_with_finding.document.save(
-            'test_evidence.txt',
-            ContentFile(test_content),
-            save=True
-        )
-
-        data = {
-            "input": {
-                "id": self.evidence_with_finding.id,
-                "returnBase64": True
-            }
-        }
-
-        response = self.client.post(
-            self.uri,
-            json.dumps(data),
-            content_type="application/json",
-            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
-            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
-        )
-
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-
-        result = response.json()
-        self.assertEqual(result["id"], self.evidence_with_finding.id)
+        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
+        self.assertIn("downloadUrl", result)
         self.assertIn("fileBase64", result)
 
-        # Verify base64 content
-        decoded_content = base64.b64decode(result["fileBase64"])
-        self.assertEqual(decoded_content, test_content)
-
-
-    def test_download_evidence_base64_file_not_found(self):
-        """Test that missing file returns 404 when requesting base64."""
+    def test_download_evidence_file_not_found(self):
+        """Test that missing file returns 404."""
         # Create evidence with a file that we'll delete
         evidence = EvidenceOnFindingFactory(finding=self.finding)
         evidence.document.save(
@@ -2995,8 +2989,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
 
         data = {
             "input": {
-                "id": evidence.id,
-                "returnBase64": True
+                "evidenceId": evidence.id
             }
         }
 
@@ -3019,9 +3012,17 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
 
     def test_download_evidence_with_forwarded_ip(self):
         """Test that request with forwarded IP header is handled correctly."""
+        test_content = b"Forwarded IP test content"
+
+        self.evidence_with_finding.document.save(
+            'forwarded_test.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
         data = {
             "input": {
-                "id": self.evidence_with_finding.id
+                "evidenceId": self.evidence_with_finding.id
             }
         }
 
@@ -3036,4 +3037,6 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         result = response.json()
-        self.assertEqual(result["id"], self.evidence_with_finding.id)
+        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
+        self.assertIn("downloadUrl", result)
+        self.assertIn("fileBase64", result)

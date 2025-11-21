@@ -269,6 +269,7 @@ custom_types:
     - name: UploadEvidenceResult
     - name: UploadReportTemplateResult
     - name: TagsResult
+    - name: DownloadEvidenceOutput
     - name: createUserResponse
       relationships:
         - field_mapping:
