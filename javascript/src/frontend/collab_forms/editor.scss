@@ -282,6 +282,7 @@
 
         img {
             width: 300px;
+            cursor: pointer;
         }
         .richtext-evidence-no-preview {
             font-size: larger;
@@ -381,4 +382,18 @@ ul.collab-focused-users {
 
 .ReactModal__Overlay {
     z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .ReactModal__Content.modal-dialog {
+        // Bootstrap CSS applies margin+height to center, but the overlay does this for us,
+        // and should be clickable to close, so unset bootstrap's stuff.
+        min-height: unset;
+        margin: unset;
+    }
+}
+
+.rich-text-lightbox img {
+    max-width: 95vw;
 }
