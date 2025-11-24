@@ -3,7 +3,6 @@
 # Standard Libraries
 import json
 import logging
-import mimetypes
 import os
 from asgiref.sync import async_to_sync
 from base64 import b64encode
