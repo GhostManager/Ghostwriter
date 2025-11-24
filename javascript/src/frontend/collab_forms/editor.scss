@@ -92,12 +92,14 @@
     }
 }
 
-.tiptap {
-    min-height: 100px;
-    font-family: sans-serif;
-    color: #000;
-    overflow-wrap: break-word;
-    padding: 0.3rem;
+    .tiptap {
+        min-height: 100px;
+        font-family: sans-serif;
+        color: #000;
+        overflow-wrap: break-word;
+        padding: 0.3rem;
+        overflow-x: hidden;
+        position: relative;
 
     &,
     blockquote {
@@ -263,7 +265,7 @@
     }
 
     .node-evidence {
-        width: fit-content;
+        width: 100%;
     }
     .node-evidence.ProseMirror-selectednode .richtext-evidence {
         color: #fff;
@@ -275,9 +277,8 @@
         align-items: center;
         text-align: center;
 
-        padding: 1rem;
-        margin-left: 1rem;
-        margin-right: 1rem;
+        width: 100%;
+        padding: 1rem 1rem;
         border-radius: 0.9rem;
         background-color: #ddd;
 
@@ -305,8 +306,11 @@
             padding-left: 1rem;
             padding-right: 1rem;
             margin-top: 0.5rem;
-            min-width: 20rem;
-            max-width: 90%;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-break: break-word;
 
             &:empty:before {
                 content: "Insert text here...";
@@ -315,6 +319,12 @@
             }
         }
         .richtext-evidence-help {
+            margin-top: 0.5rem;
+        }
+        .richtext-evidence-name {
+            margin-bottom: 0.5rem;
+        }
+        .richtext-evidence-caption {
             margin-top: 0.5rem;
         }
     }
