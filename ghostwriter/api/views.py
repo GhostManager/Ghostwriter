@@ -196,9 +196,6 @@ class HasuraActionView(HasuraView):
                 )
             # Hasura checks for required values, but we check here in case of a discrepancy between the GraphQL schema and the view
             for required_input in self.required_inputs:
-                logger.debug(f"input: {self.input}")
-                logger.debug(f"required_inputs: {self.required_inputs}")
-                logger.debug(f"data: {self.data}")
                 if required_input not in self.input:
                     return JsonResponse(
                         utils.generate_hasura_error_payload(
