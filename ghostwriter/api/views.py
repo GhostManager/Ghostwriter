@@ -53,7 +53,6 @@ from ghostwriter.reporting.models import (
 from ghostwriter.reporting.views2.report_finding_link import get_position
 from ghostwriter.rolodex.models import (
     Project,
-    ProjectAssignment,
     ProjectContact,
     ProjectObjective,
     ProjectSubTask,
