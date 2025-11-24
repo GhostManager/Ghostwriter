@@ -282,6 +282,8 @@
 
         img {
             width: 300px;
+            max-height: 500px;
+            object-fit: contain;
             cursor: pointer;
         }
         .richtext-evidence-no-preview {
@@ -396,4 +398,5 @@ ul.collab-focused-users {
 
 .rich-text-lightbox img {
     max-width: 95vw;
+    max-height: 95vh;
 }
