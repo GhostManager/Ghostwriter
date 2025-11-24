@@ -599,10 +599,6 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
     ]
 
     def post(self, request, *args, **kwargs):
-         # Log what we're receiving to debug
-        print("Input received: %s", self.input)
-        print("Full data: %s", self.data)
-
         evidence_id = self.input.get("evidenceId")
 
         if not evidence_id:
@@ -633,7 +629,7 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
         # Determine protocol based on request.is_secure() which respects SECURE_PROXY_SSL_HEADER
         protocol = "https" if request.is_secure() else "http"
         base_url = f"{protocol}://{config.hostname}"
-        
+
         # Generate download URL using configured hostname
         evidence_path = reverse("reporting:evidence_download", kwargs={"pk": evidence.id})
         download_url = f"{base_url}{evidence_path}"
