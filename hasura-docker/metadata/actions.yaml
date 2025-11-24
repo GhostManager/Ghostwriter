@@ -91,6 +91,7 @@ actions:
     permissions:
       - role: user
       - role: manager
+    comment: Request the specified evidence file to receive a download URL or base64-encoded blob
   - name: finding_by_tag
     definition:
       kind: ""

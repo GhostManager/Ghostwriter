@@ -68,7 +68,7 @@ type Mutation {
 type Query {
   downloadEvidence(
     evidenceId: Int!
-  ): DownloadEvidenceOutput
+  ): DownloadEvidenceResponse
 }
 
 type Query {
