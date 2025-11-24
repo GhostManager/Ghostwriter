@@ -606,7 +606,7 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
             )
 
         # Check if user has permission to view the evidence
-        project = evidence.finding.report.project if evidence.finding else evidence.report.project
+        project = evidence.associated_report.project
         if not project.user_can_view(self.user_obj):
             return JsonResponse(
             utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
