@@ -600,12 +600,6 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
     def post(self, request, *args, **kwargs):
         evidence_id = self.input.get("evidenceId")
 
-        if not evidence_id:
-            return JsonResponse(
-                utils.generate_hasura_error_payload("Evidence ID is required", "InvalidInput"),
-                status=HTTPStatus.BAD_REQUEST
-            )
-
         try:
             evidence = Evidence.objects.get(id=evidence_id)
         except Evidence.DoesNotExist:
