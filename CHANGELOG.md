@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * This field allows project members to take shared notes about the project
   * The notes are saved automatically and can be edited by multiple users simultaneously
   * Find this field under the "Collab Notes" tab
+* Added a `downloadEvidence` query to the GraphQL API
+  * This provides a mechanism for programmatically pulling down an evidence file
+  * The query can return a download URL or a base64-encoded blob
+  * You can visit the download URL with a valid login session or decode the base64
 * Added an all-new integration with BloodHound
   * Thank you [@zinic](https://github.com/zinic) for the initial implementation of the BloodHound client!
   * This integration allows you to import data and findings from BloodHound into Ghostwriter
