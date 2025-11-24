@@ -66,6 +66,12 @@ type Mutation {
 }
 
 type Query {
+  downloadEvidence(
+    evidenceId: Int!
+  ): DownloadEvidenceOutput
+}
+
+type Query {
   finding_by_tag(
     tag: String!
   ): [GetFindingByTagsResponse!]
@@ -262,7 +268,11 @@ type DownloadEvidenceOutput {
   fileBase64: String!
 }
 
-type Mutation {
-  downloadEvidence(evidenceId:Int!): DownloadEvidenceOutput
+type DownloadEvidenceResponse {
+  evidenceId: Int!
+  filename: String!
+  friendlyName: String!
+  downloadUrl: String!
+  fileBase64: String!
 }
 

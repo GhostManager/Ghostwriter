@@ -2670,7 +2670,7 @@ class ObjectsByTagTests(TestCase):
         ])
 
 
-class GraphqlDownloadEvidenceViewTestCase(TestCase):
+class GraphqlDownloadEvidenceViewTests(TestCase):
     """Collection of tests for :view:`api.GraphqlDownloadEvidence`."""
 
     @classmethod
@@ -2866,7 +2866,7 @@ class GraphqlDownloadEvidenceViewTestCase(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
         result = {
-            "message": "Forbidden - no access to project",
+            "message": "Unauthorized access",
             "extensions": {
                 "code": "Unauthorized",
             },

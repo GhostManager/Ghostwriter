@@ -197,9 +197,9 @@ class HasuraActionView(HasuraView):
                 )
             # Hasura checks for required values, but we check here in case of a discrepancy between the GraphQL schema and the view
             for required_input in self.required_inputs:
-                print(f"input: {self.input}")
-                print(f"required_inputs: {self.required_inputs}")
-                print(f"data: {self.data}")
+                logger.debug(f"input: {self.input}")
+                logger.debug(f"required_inputs: {self.required_inputs}")
+                logger.debug(f"data: {self.data}")
                 if required_input not in self.input:
                     return JsonResponse(
                         utils.generate_hasura_error_payload(
@@ -619,7 +619,7 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
         project = evidence.finding.report.project if evidence.finding else evidence.report.project
         if not project.user_can_view(self.user_obj):
             return JsonResponse(
-            utils.generate_hasura_error_payload("Forbidden - no access to project", "Unauthorized"),
+            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
             status=HTTPStatus.FORBIDDEN
             )
 

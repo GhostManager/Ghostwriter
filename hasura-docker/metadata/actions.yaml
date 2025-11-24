@@ -82,7 +82,7 @@ actions:
     comment: Delete the specified template file and remove the associated file from the filesystem
   - name: downloadEvidence
     definition:
-      kind: synchronous
+      kind: ""
       handler: '{{ACTIONS_URL_BASE}}/downloadEvidence'
       forward_client_headers: true
       headers:
@@ -269,7 +269,6 @@ custom_types:
     - name: UploadEvidenceResult
     - name: UploadReportTemplateResult
     - name: TagsResult
-    - name: DownloadEvidenceOutput
     - name: createUserResponse
       relationships:
         - field_mapping:
@@ -341,4 +340,6 @@ custom_types:
             schema: public
           source: default
           type: object
+    - name: DownloadEvidenceOutput
+    - name: DownloadEvidenceResponse
   scalars: []
