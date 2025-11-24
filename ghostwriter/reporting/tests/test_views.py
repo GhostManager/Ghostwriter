@@ -46,6 +46,7 @@ from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.reportwriter.jinja_funcs import (
     add_days,
     compromised,
+    filter_bhe_findings_by_domain,
     filter_severity,
     filter_tags,
     filter_type,
@@ -2551,6 +2552,18 @@ class ReportTemplateFilterTests(TestCase):
         )
         with self.assertRaises(InvalidFilterValue):
             replace_blanks("Not a list", "BLANK")
+
+    def test_filter_bhe_findings_by_domain(self):
+        findings = [
+            {"domain": "example.com"},
+            {"domain": "test.com"},
+            {"domain": "example.com"},
+        ]
+        filtered = filter_bhe_findings_by_domain(findings, "example.com")
+        self.assertEqual(len(filtered), 2)
+
+        with self.assertRaises(InvalidFilterValue):
+            filter_bhe_findings_by_domain("Not a list", "example.com")
 
 
 class LocalFindingNoteUpdateTests(TestCase):

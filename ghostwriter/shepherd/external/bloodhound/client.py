@@ -277,6 +277,7 @@ class APIClient:
                 "name": domain_data["props"]["name"],
                 "domain": domain_data["props"].get("domain"),
                 "distinguished_name": domain_data["props"].get("distinguishedname"),
+                "domain_sid": domain_data["props"].get("domainsid"),
                 "functional_level": domain_data["props"].get("functionallevel"),
                 "data_quality": self.get_data_quality(domain),
                 "inbound_trusts": [],
