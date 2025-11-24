@@ -260,13 +260,6 @@ type GetOplogEntryByTagsResponse {
   id: Int!
 }
 
-type DownloadEvidenceOutput {
-  evidenceId: Int!
-  filename: String!
-  friendlyName: String!
-  downloadUrl: String!
-  fileBase64: String!
-}
 
 type DownloadEvidenceResponse {
   evidenceId: Int!

@@ -341,6 +341,5 @@ custom_types:
             schema: public
           source: default
           type: object
-    - name: DownloadEvidenceOutput
     - name: DownloadEvidenceResponse
   scalars: []
