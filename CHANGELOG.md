@@ -42,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * This includes models like Domain, Server, Finding, Observation, Project, Client, and others
   * These fields were meant to be used as descriptions of the object, but the `note` naming was confused with other note-taking features added to Ghostwriter over time
   * This is a breaking change for any references to these in existing report templates or scripts
+* Converted the `{{.caption}}` keyword to a new editor object to make it easier to use and see in the collaborative editor
+  * This continues what we started with evidence previews as objects in the editor
+  * You can now set the caption text and a custom reference ID for bookmarks in the object
+  * This replaces the need to use a line like `{{.caption REF_ID}} Caption text`
 * We have hidden the legacy "Notes" sections in the dashboards
   * Like the change to the old `note` fields, this change is to reduce confusion with the new collaborative notes feature
   * The feature was not widely used, and the collaborative notes feature provides a better experience
