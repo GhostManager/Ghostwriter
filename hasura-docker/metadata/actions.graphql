@@ -66,6 +66,12 @@ type Mutation {
 }
 
 type Query {
+  downloadEvidence(
+    evidenceId: Int!
+  ): DownloadEvidenceResponse
+}
+
+type Query {
   finding_by_tag(
     tag: String!
   ): [GetFindingByTagsResponse!]
@@ -252,5 +258,14 @@ type GetReportFindingByTagsResponse {
 
 type GetOplogEntryByTagsResponse {
   id: Int!
+}
+
+
+type DownloadEvidenceResponse {
+  evidenceId: Int!
+  filename: String!
+  friendlyName: String!
+  downloadUrl: String!
+  fileBase64: String!
 }
 

@@ -1,12 +1,15 @@
 # Standard Libraries
 import base64
+import json
 import logging
 import os
 from datetime import date, datetime, timedelta
+from http import HTTPStatus
 
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -2665,3 +2668,375 @@ class ObjectsByTagTests(TestCase):
         self.assertJSONEqual(response.content, [
             {"id": self.report_finding.pk}
         ])
+
+
+class GraphqlDownloadEvidenceViewTests(TestCase):
+    """Collection of tests for :view:`api.GraphqlDownloadEvidence`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="user", is_active=True)
+        cls.manager = UserFactory(password=PASSWORD, role="manager", is_active=True)
+        cls.other_user = UserFactory(password=PASSWORD, role="user", is_active=True)
+
+        cls.project = ProjectFactory()
+        cls.report = ReportFactory(project=cls.project)
+        cls.finding = ReportFindingLinkFactory(report=cls.report)
+
+        # Create evidence with finding
+        cls.evidence_with_finding = EvidenceOnFindingFactory(finding=cls.finding)
+
+        # Create evidence without finding but with report
+        cls.evidence_with_report = EvidenceOnReportFactory(report=cls.report)
+
+        # Create project assignment for user (not for manager - they don't need it)
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+
+        cls.uri = reverse("api:graphql_download_evidence")
+
+    def setUp(self):
+        self.client = Client()
+
+        # Generate JWT tokens using utils.generate_jwt
+        _, self.user_token = utils.generate_jwt(self.user)
+        _, self.manager_token = utils.generate_jwt(self.manager)
+        _, self.other_user_token = utils.generate_jwt(self.other_user)
+
+    def test_download_evidence_unauthorized_no_secret(self):
+        """Test that request without action secret is rejected."""
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {
+                "code": "Unauthorized",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_unauthorized_wrong_secret(self):
+        """Test that request with wrong action secret is rejected."""
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET="wrong_secret",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {
+                "code": "Unauthorized",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_no_token(self):
+        """Test that request without JWT token is rejected."""
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        result = {
+            "message": "No ``Authorization`` header found",
+            "extensions": {
+                "code": "JWTMissing",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_invalid_token(self):
+        """Test that request with invalid JWT token is rejected."""
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer invalid_token",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+        result = {
+            "message": "Received invalid API token",
+            "extensions": {
+                "code": "JWTInvalid",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_missing_id(self):
+        """Test that request without evidence ID is rejected."""
+        data = {
+            "input": {}
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        result = {
+            "message": "Missing all required inputs",
+            "extensions": {
+                "code": "InvalidRequestBody",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_not_found(self):
+        """Test that request for non-existent evidence returns 404."""
+        data = {
+            "input": {
+                "evidenceId": 99999
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        result = {
+            "message": "Evidence not found",
+            "extensions": {
+                "code": "EvidenceNotFound",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_forbidden_no_project_access(self):
+        """Test that user without project access cannot download evidence."""
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.other_user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+        result = {
+            "message": "Unauthorized access",
+            "extensions": {
+                "code": "Unauthorized",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_success_returns_both_url_and_base64(self):
+        """Test successful evidence download returns both URL and base64."""
+        test_content = b"Test evidence content"
+
+        self.evidence_with_finding.document.save(
+            'test_evidence.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        result = response.json()
+        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
+        self.assertEqual(result["filename"], self.evidence_with_finding.filename)
+        self.assertEqual(result["friendlyName"], self.evidence_with_finding.friendly_name)
+        self.assertIn("downloadUrl", result)
+        self.assertIn(str(self.evidence_with_finding.id), result["downloadUrl"])
+        self.assertIn("fileBase64", result)
+
+        # Verify base64 content
+        decoded_content = base64.b64decode(result["fileBase64"])
+        self.assertEqual(decoded_content, test_content)
+
+    def test_download_evidence_success_with_report(self):
+        """Test successful evidence download for evidence with report only."""
+        test_content = b"Report evidence content"
+
+        self.evidence_with_report.document.save(
+            'report_evidence.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_report.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        result = response.json()
+        self.assertEqual(result["evidenceId"], self.evidence_with_report.id)
+        self.assertIn("downloadUrl", result)
+        self.assertIn("fileBase64", result)
+
+    def test_download_evidence_manager_access(self):
+        """Test that manager can download evidence from any project."""
+        test_content = b"Manager test content"
+
+        self.evidence_with_finding.document.save(
+            'manager_test.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.manager_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        result = response.json()
+        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
+        self.assertIn("downloadUrl", result)
+        self.assertIn("fileBase64", result)
+
+    def test_download_evidence_file_not_found(self):
+        """Test that missing file returns 404."""
+        # Create evidence with a file that we'll delete
+        evidence = EvidenceOnFindingFactory(finding=self.finding)
+        evidence.document.save(
+            'temp_file.txt',
+            ContentFile(b"temporary content"),
+            save=True
+        )
+
+        # Get the file path and delete the physical file (but keep the DB record)
+        file_path = evidence.document.path
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        data = {
+            "input": {
+                "evidenceId": evidence.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        result = {
+            "message": "Evidence file not found on server",
+            "extensions": {
+                "code": "EvidenceFileNotFound",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_download_evidence_with_forwarded_ip(self):
+        """Test that request with forwarded IP header is handled correctly."""
+        test_content = b"Forwarded IP test content"
+
+        self.evidence_with_finding.document.save(
+            'forwarded_test.txt',
+            ContentFile(test_content),
+            save=True
+        )
+
+        data = {
+            "input": {
+                "evidenceId": self.evidence_with_finding.id
+            }
+        }
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+            HTTP_X_FORWARDED_FOR="192.168.1.1",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        result = response.json()
+        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
+        self.assertIn("downloadUrl", result)
+        self.assertIn("fileBase64", result)

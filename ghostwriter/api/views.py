@@ -7,6 +7,7 @@ import os
 from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
+from http import HTTPStatus
 from json import JSONDecodeError
 from socket import gaierror
 
@@ -35,12 +36,13 @@ import pytz
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiEvidenceForm, ApiKeyForm, ApiReportTemplateForm
 from ghostwriter.api.models import APIKey
-from ghostwriter.commandcenter.models import ExtraFieldModel
+from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
+    Evidence,
     Finding,
     Observation,
     Report,
@@ -575,6 +577,83 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
             return JsonResponse(data, status=self.status)
 
         return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+
+class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
+    """
+    Return a download URL or base64-encoded evidence file for authenticated users with proper permissions.
+
+    **Parameters**
+
+    ``evidenceId``
+        The ID of the evidence to download
+    """
+
+    required_inputs = [
+        "evidenceId",
+    ]
+
+    def post(self, request, *args, **kwargs):
+        evidence_id = self.input.get("evidenceId")
+
+        try:
+            evidence = Evidence.objects.get(id=evidence_id)
+        except Evidence.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Evidence not found", "EvidenceNotFound"),
+                status=HTTPStatus.NOT_FOUND
+            )
+
+        # Check if user has permission to view the evidence
+        project = evidence.associated_report.project
+        if not project.user_can_view(self.user_obj):
+            return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+            status=HTTPStatus.FORBIDDEN
+            )
+
+        # Get the configured hostname from GeneralConfiguration
+        config = GeneralConfiguration.get_solo()
+
+        # Determine protocol based on request.is_secure() which respects SECURE_PROXY_SSL_HEADER
+        protocol = "https" if request.is_secure() else "http"
+        base_url = f"{protocol}://{config.hostname}"
+
+        # Generate download URL using configured hostname
+        evidence_path = reverse("reporting:evidence_download", kwargs={"pk": evidence.id})
+        download_url = f"{base_url}{evidence_path}"
+
+        # Read and encode file content
+        try:
+            file_data = evidence.document.read()
+            encoded_data = b64encode(file_data).decode('utf-8')
+        except FileNotFoundError:
+            logger.error("Evidence file not found during read: %s", evidence.document.path)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Evidence file not found on server", "EvidenceFileNotFound"),
+                status=HTTPStatus.NOT_FOUND
+            )
+        except (IOError, OSError) as e:
+            logger.exception("Failed to read evidence file: %s", e)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Failed to read evidence file", "FileReadError"),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            logger.exception("Unexpected error encoding evidence file: %s", e)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Failed to encode evidence file", "FileEncodeError"),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR
+            )
+
+        # Return both download URL and base64 content
+        return JsonResponse({
+            "evidenceId": evidence.id,
+            "filename": evidence.filename,
+            "friendlyName": evidence.friendly_name,
+            "downloadUrl": download_url,
+            "fileBase64": encoded_data,
+        })
 
 
 class GraphqlCheckoutDomain(HasuraCheckoutView):
