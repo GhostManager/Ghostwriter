@@ -138,7 +138,10 @@
               {
                 "group": "BloodHound Integration",
                 "pages": [
-                  "features/bloodhound-integration"
+                  "features/bloodhound-integration-overview",
+                  "features/bloodhound-integration/configuring-bloodhound",
+                  "features/bloodhound-integration/differences-between-bhce-and-bhe",
+                  "features/bloodhound-integration/bloodhound-data-in-reports"
                 ]
               },
               {
@@ -163,7 +166,6 @@
                 "group": "Configuring APIs",
                 "pages": [
                   "configuring-global-settings/configuring-apis",
-                  "configuring-global-settings/configuring-apis/configuring-bloodhound",
                   "configuring-global-settings/configuring-apis/configuring-slack",
                   "configuring-global-settings/configuring-apis/configuring-virustotal",
                   "configuring-global-settings/configuring-apis/configuring-namecheap",
