@@ -12,7 +12,7 @@ type Mutation {
     startDate: date!
     endDate: date!
     activityTypeId: Int!
-    note: String
+    description: String
   ): checkoutResponse
 }
 
@@ -24,7 +24,7 @@ type Mutation {
     endDate: date!
     activityTypeId: Int!
     serverRoleId: Int!
-    note: String
+    description: String
   ): checkoutResponse
 }
 
@@ -259,7 +259,6 @@ type GetReportFindingByTagsResponse {
 type GetOplogEntryByTagsResponse {
   id: Int!
 }
-
 
 type DownloadEvidenceResponse {
   evidenceId: Int!
