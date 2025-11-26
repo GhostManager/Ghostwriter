@@ -335,6 +335,7 @@ MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
 MFA_PASSKEY_LOGIN_ENABLED = False
 
 # django-allauth-mfa forms
+# https://docs.allauth.org/en/dev/mfa/configuration.html
 MFA_FORMS = {
     "authenticate": "ghostwriter.users.forms.UserMFAAuthenticateForm",
     "reauthenticate": "allauth.mfa.base.forms.AuthenticateForm",
@@ -349,21 +350,22 @@ MFA_REVEAL_TOKENS = env.bool("DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS", False)
 # override the default django-allauth reauthentication timeout settings
 # Set to 9 hours (32400 seconds) to align with SESSION_COOKIE_AGE and avoid session timeout conflicts.
 # this is necessary to avoid conflicts with the SESSION_COOKIE_AGE setting
+# https://docs.allauth.org/en/dev/account/configuration.html
 ACCOUNT_REAUTHENTICATION_TIMEOUT = env.int("DJANGO_ACCOUNT_REAUTHENTICATION_TIMEOUT", 32400)  # 9 hours
 
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
 SOCIAL_ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION", False)
 SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST = env("DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST", default="")
 SOCIALACCOUNT_LOGIN_ON_GET = env.bool("DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET", False)
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/dev/account/configuration.html
 ACCOUNT_LOGIN_METHODS = {"username"}
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/dev/account/configuration.html
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/dev/account/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = env.bool("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/dev/account/configuration.html
 ACCOUNT_ADAPTER = "ghostwriter.users.adapters.AccountAdapter"
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/dev/account/configuration.html
 SOCIALACCOUNT_ADAPTER = "ghostwriter.users.adapters.SocialAccountAdapter"
 ACCOUNT_SIGNUP_FORM_CLASS = "ghostwriter.home.forms.SignupForm"
 ACCOUNT_FORMS = {
