@@ -2251,7 +2251,7 @@
             const hasMetrics = hasContent(normalized);
             const lowerDomain = domainName.toLowerCase();
             const isPlaceholder = Boolean(domain.__ad_placeholder) && adDomainSet.has(lowerDomain);
-            if (isPlaceholder && !domain.__metrics_opened && !hasMetrics) {
+            if (isPlaceholder && !hasMetrics) {
               return null;
             }
 
@@ -4212,6 +4212,30 @@
               }
             };
 
+            const hasDomainMetrics = function(domain) {
+              const metrics = [
+                domain.total_computers,
+                domain.audited_computers,
+                domain.systems_ood,
+                domain.open_wifi,
+              ];
+              if (metrics.some(function(value) { return value !== null && typeof value !== 'undefined'; })) {
+                return true;
+              }
+              return Boolean(domain.usb_control_indication);
+            };
+
+            const removeDomain = function(domain, index) {
+              const name = (domain.domain || '').toString().trim().toLowerCase();
+              if (name && adDomainSet.has(name)) {
+                removedSet.add(name);
+                endpointState.removed_ad_domains = Array.from(removedSet);
+              }
+              domains.splice(index, 1);
+              renderEndpointDomains(target, areaKey, modalId);
+              updateWorkbookCardProgress(areaKey);
+            };
+
             domains.forEach(function(domain, index) {
               const wrapper = document.createElement('div');
               wrapper.className = 'border rounded p-3 mb-3';
@@ -4253,6 +4277,54 @@
               logUploadButton.addEventListener('click', function() { logUploadInput.click(); });
               headingActions.appendChild(logUploadButton);
               headingActions.appendChild(logUploadInput);
+
+              const showCollapsedPlaceholder = domain.__ad_placeholder
+                && !domain.__metrics_opened
+                && !hasDomainMetrics(domain);
+
+              if (showCollapsedPlaceholder) {
+                const placeholderRow = document.createElement('div');
+                placeholderRow.className = 'd-flex justify-content-between align-items-center w-100 flex-wrap';
+
+                const domainInfo = document.createElement('div');
+                domainInfo.className = 'mb-2 mb-md-0';
+                domainInfo.innerHTML = '<strong>Domain:</strong> ' + (domain.domain || '');
+                placeholderRow.appendChild(domainInfo);
+
+                const placeholderActions = document.createElement('div');
+                placeholderActions.className = 'd-flex align-items-center flex-wrap';
+
+                const updateMetricsButton = document.createElement('button');
+                updateMetricsButton.type = 'button';
+                updateMetricsButton.className = 'btn btn-outline-primary btn-sm mr-2';
+                updateMetricsButton.textContent = 'Update Metrics';
+                updateMetricsButton.addEventListener('click', function() {
+                  domain.__metrics_opened = true;
+                  renderEndpointDomains(target, areaKey, modalId);
+                  updateWorkbookCardProgress(areaKey);
+                });
+                placeholderActions.appendChild(updateMetricsButton);
+
+                const removePlaceholderButton = document.createElement('button');
+                removePlaceholderButton.type = 'button';
+                removePlaceholderButton.className = 'btn btn-outline-danger btn-sm';
+                removePlaceholderButton.textContent = 'Remove Domain';
+                removePlaceholderButton.addEventListener('click', function() { removeDomain(domain, index); });
+                placeholderActions.appendChild(removePlaceholderButton);
+
+                placeholderRow.appendChild(placeholderActions);
+                heading.appendChild(placeholderRow);
+                wrapper.appendChild(heading);
+
+                const placeholderNote = document.createElement('p');
+                placeholderNote.className = 'text-muted mb-0';
+                placeholderNote.textContent = 'Domain imported from IAM. Click "Update Metrics" to enter endpoint details before saving.';
+                wrapper.appendChild(placeholderNote);
+                wrapper.appendChild(document.createElement('hr'));
+                domainsContainer.appendChild(wrapper);
+                return;
+              }
+
               heading.appendChild(headingActions);
               wrapper.appendChild(heading);
 
@@ -4366,16 +4438,7 @@
               removeButton.type = 'button';
               removeButton.className = 'btn btn-outline-danger';
               removeButton.textContent = 'Remove Domain';
-              removeButton.addEventListener('click', function() {
-                const name = (domain.domain || '').toString().trim().toLowerCase();
-                if (name && adDomainSet.has(name)) {
-                  removedSet.add(name);
-                  endpointState.removed_ad_domains = Array.from(removedSet);
-                }
-                domains.splice(index, 1);
-                renderEndpointDomains(target, areaKey, modalId);
-                updateWorkbookCardProgress(areaKey);
-              });
+              removeButton.addEventListener('click', function() { removeDomain(domain, index); });
               wrapper.appendChild(removeButton);
 
               domainsContainer.appendChild(wrapper);
