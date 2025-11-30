@@ -1972,7 +1972,7 @@
               fgpp: fgppEntries(policy.fgpp),
             };
 
-            const allowPlaceholder = policy.__metrics_opened || passwordPolicyHasContent(policy);
+            const allowPlaceholder = policy.__metrics_opened && passwordPolicyHasContent(policy);
             if (!policy.__ad_placeholder || allowPlaceholder) {
               policies.push(serializedPolicy);
             }
