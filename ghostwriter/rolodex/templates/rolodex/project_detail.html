@@ -4773,6 +4773,19 @@
               removeButton.textContent = 'Remove Domain';
               removeButton.addEventListener('click', function() {
                 const domainName = (domainInput.value || domain.domain || '').trim();
+                if (domainName) {
+                  const endpointState = ensureEndpointState();
+                  const removedSet = new Set(
+                    (Array.isArray(endpointState.removed_ad_domains) ? endpointState.removed_ad_domains : [])
+                      .map(function(name) { return (name || '').toString().trim().toLowerCase(); })
+                      .filter(function(name) { return name; }),
+                  );
+                  const lower = domainName.toLowerCase();
+                  if (removedSet.has(lower)) {
+                    removedSet.delete(lower);
+                    endpointState.removed_ad_domains = Array.from(removedSet);
+                  }
+                }
                 domains.splice(index, 1);
                 renderAdDomains(target, areaKey, modalId);
                 refreshPasswordPlaceholderCard();
