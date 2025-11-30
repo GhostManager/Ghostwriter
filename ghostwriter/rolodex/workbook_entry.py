@@ -660,6 +660,47 @@ def build_workbook_entry_payload(
 
             normalized_workbook.setdefault(area_key, {}).update(normalized_area)
 
+    ad_domains: set[str] = set()
+    ad_state = (
+        normalized_workbook.get("ad")
+        if isinstance(normalized_workbook.get("ad"), Mapping)
+        else {}
+    )
+    if isinstance(ad_state, Mapping):
+        domain_entries = (
+            ad_state.get("domains") if isinstance(ad_state.get("domains"), list) else []
+        )
+        if isinstance(domain_entries, list):
+            for entry in domain_entries:
+                if not isinstance(entry, Mapping):
+                    continue
+                domain_name = (entry.get("domain") or entry.get("name") or "").strip()
+                if domain_name:
+                    ad_domains.add(domain_name.lower())
+
+    password_state = (
+        normalized_workbook.get("password")
+        if isinstance(normalized_workbook.get("password"), Mapping)
+        else None
+    )
+    if isinstance(password_state, Mapping):
+        removed_domains = password_state.get("removed_ad_domains")
+        if isinstance(removed_domains, list):
+            filtered_removed: list[str] = []
+            seen_removed: set[str] = set()
+            for entry in removed_domains:
+                name = (entry or "").strip()
+                lowered = name.lower()
+                if not name or lowered in seen_removed:
+                    continue
+                seen_removed.add(lowered)
+                if lowered in ad_domains:
+                    filtered_removed.append(name)
+            if filtered_removed:
+                password_state["removed_ad_domains"] = filtered_removed
+            elif "removed_ad_domains" in password_state:
+                password_state.pop("removed_ad_domains", None)
+
     score_updates: MutableMapping[str, MutableMapping[str, Any]] = {}
     category_scores: Dict[str, Optional[Decimal]] = {}
     if isinstance(scores, Mapping):
