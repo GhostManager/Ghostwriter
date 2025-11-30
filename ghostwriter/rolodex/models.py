@@ -1235,29 +1235,77 @@ class Project(models.Model):
         (
             workbook_password_response,
             workbook_password_domain_values,
-            _,
+            workbook_password_domains,
         ) = build_workbook_password_response(workbook_payload)
-        if workbook_password_response:
-            existing_password_section = existing_responses.get("password")
-            if isinstance(existing_password_section, dict):
-                combined_password_section = dict(existing_password_section)
-            elif isinstance(existing_password_section, list):
-                combined_password_section = {"entries": list(existing_password_section)}
+        existing_password_section = (
+            existing_responses.get("password")
+            if isinstance(existing_responses.get("password"), dict)
+            else {}
+        )
+        existing_responses.pop("password", None)
+        existing_cap.pop("password", None)
+
+        if workbook_password_domain_values and workbook_password_domains:
+
+            combined_password_section: Dict[str, Any] = dict(existing_password_section)
+
+            if isinstance(workbook_password_response, dict):
+                combined_password_section.update(workbook_password_response)
+
+            existing_additional_controls = existing_password_section.get(
+                "password_additional_controls"
+            )
+            existing_enforce_mfa = existing_password_section.get(
+                "password_enforce_mfa_all_accounts"
+            )
+
+            existing_entries = existing_password_section.get("entries")
+            existing_entry_map: Dict[str, Dict[str, Any]] = {}
+            if isinstance(existing_entries, list):
+                for entry in existing_entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    domain_value = entry.get("domain") or entry.get("name")
+                    domain_text = str(domain_value).strip() if domain_value else ""
+                    if not domain_text:
+                        continue
+                    existing_entry_map[domain_text] = dict(entry)
+
+            workbook_password_entries: List[Dict[str, Any]] = []
+            if isinstance(workbook_password_domain_values, dict):
+                for domain, values in workbook_password_domain_values.items():
+                    if not isinstance(values, dict):
+                        continue
+                    domain_text = str(domain).strip()
+                    if not domain_text:
+                        continue
+
+                    entry_payload: Dict[str, Any] = dict(
+                        existing_entry_map.get(domain_text, {})
+                    )
+                    entry_payload["domain"] = domain_text
+
+                    for key in (
+                        "policy_cap_values",
+                        "policy_cap_fields",
+                        "fgpp_cap_fields",
+                        "fgpp_cap_values",
+                    ):
+                        value = values.get(key)
+                        if isinstance(value, dict) and value:
+                            entry_payload[key] = dict(value)
+                        elif isinstance(value, list) and value:
+                            entry_payload[key] = list(value)
+                        else:
+                            entry_payload.pop(key, None)
+
+                    workbook_password_entries.append(entry_payload)
+
+            if workbook_password_entries:
+                combined_password_section["entries"] = workbook_password_entries
             else:
-                combined_password_section = {}
+                combined_password_section.pop("entries", None)
 
-            existing_additional_controls = (
-                existing_password_section.get("password_additional_controls")
-                if isinstance(existing_password_section, dict)
-                else None
-            )
-            existing_enforce_mfa = (
-                existing_password_section.get("password_enforce_mfa_all_accounts")
-                if isinstance(existing_password_section, dict)
-                else None
-            )
-
-            combined_password_section.update(workbook_password_response)
             existing_responses["password"] = combined_password_section
 
             password_cap_section = existing_cap.get("password")
@@ -1309,6 +1357,7 @@ class Project(models.Model):
             }
 
             password_entries = combined_password_section.get("entries")
+            current_password_domains: Set[str] = set()
             if isinstance(password_entries, list):
                 for entry in password_entries:
                     if not isinstance(entry, dict):
@@ -1317,6 +1366,7 @@ class Project(models.Model):
                     domain = str(domain_value).strip() if domain_value else ""
                     if not domain:
                         continue
+                    current_password_domains.add(domain)
                     policy_values = entry.get("policy_cap_values")
                     if not isinstance(policy_values, dict) or not policy_values:
                         # fall back to workbook derived values when missing from entry
@@ -1334,6 +1384,11 @@ class Project(models.Model):
                         stored_entry = {"domain": domain}
                         entry_index[domain] = stored_entry
                     stored_entry["policy_cap_values"] = dict(policy_values)
+
+            if entry_index:
+                stale_domains = set(entry_index.keys()) - current_password_domains
+                for domain in stale_domains:
+                    entry_index.pop(domain, None)
 
             if entry_index:
                 password_cap_section["entries"] = [entry_index[key] for key in sorted(entry_index.keys())]
@@ -1356,10 +1411,17 @@ class Project(models.Model):
                     return primary
                 return secondary
 
-            additional_controls_missing = not _is_truthy(
+            def _is_no(value: Any) -> bool:
+                if isinstance(value, str):
+                    return value.strip().lower() == "no"
+                if isinstance(value, bool):
+                    return value is False
+                return False
+
+            additional_controls_missing = _is_no(
                 _coalesce_flag(existing_additional_controls, workbook_additional_controls)
             )
-            enforce_mfa_missing = not _is_truthy(
+            enforce_mfa_missing = _is_no(
                 _coalesce_flag(existing_enforce_mfa, workbook_enforce_mfa)
             )
 

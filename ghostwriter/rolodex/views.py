@@ -3221,6 +3221,17 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 if not isinstance(policy, dict)
                 or (policy.get("domain_name") or "").strip().lower() != domain_lower
             ]
+            removed_domains = password_state.get("removed_ad_domains")
+            if isinstance(removed_domains, list):
+                removed_domains = [
+                    entry
+                    for entry in removed_domains
+                    if (entry or "").strip().lower() != domain_lower
+                ]
+                if removed_domains:
+                    password_state["removed_ad_domains"] = removed_domains
+                else:
+                    password_state.pop("removed_ad_domains", None)
             password_state["policies"] = password_policies
 
             ad_state["domains"] = domain_records
@@ -3230,9 +3241,15 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             )
             project.workbook_data = workbook_payload
             project.data_artifacts = artifacts
-            project.save(update_fields=["workbook_data", "data_artifacts"])
+            project.rebuild_data_artifacts()
+            project.refresh_from_db(
+                fields=["workbook_data", "data_artifacts", "data_responses", "cap"]
+            )
             return JsonResponse(
-                {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
+                {
+                    "workbook_data": project.workbook_data,
+                    "data_artifacts": project.data_artifacts,
+                }
             )
 
         if payload.get("remove_osint"):
@@ -3411,7 +3428,11 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         if artifacts_updated:
             update_fields.append("data_artifacts")
 
-        project.save(update_fields=update_fields)
+        project.rebuild_data_artifacts()
+
+        project.refresh_from_db(
+            fields=["workbook_data", "data_artifacts", "data_responses", "cap", "risks"]
+        )
 
         project_type_name = getattr(getattr(project, "project_type", None), "project_type", None)
         questions, _ = build_data_configuration(
@@ -3420,10 +3441,8 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             data_artifacts=project.data_artifacts,
             project_risks=project.risks,
         )
-        existing_grouped = (
-            ensure_data_responses_defaults(project.data_responses)
-            if isinstance(project.data_responses, dict)
-            else ensure_data_responses_defaults({})
+        existing_grouped = ensure_data_responses_defaults(
+            project.data_responses if isinstance(project.data_responses, dict) else {}
         )
         refreshed_responses = _build_grouped_data_responses(
             existing_grouped,
@@ -3432,7 +3451,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             workbook_data=project.workbook_data,
         )
         project.data_responses = ensure_data_responses_defaults(refreshed_responses)
-        project.save(update_fields=update_fields + ["data_responses"])
+        project.save(update_fields=["data_responses"])
 
         return JsonResponse({"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts})
 
@@ -4020,6 +4039,10 @@ class ProjectDataResponsesUpdate(RoleBasedAccessControlMixin, SingleObjectMixin,
 
             project.data_responses = ensure_data_responses_defaults(grouped_responses)
             project.save(update_fields=["data_responses"])
+            project.rebuild_data_artifacts()
+            project.refresh_from_db(
+                fields=["workbook_data", "data_artifacts", "data_responses", "cap", "risks"]
+            )
             messages.success(request, "Project data responses saved.")
         else:
             error_message = form.errors.as_text()

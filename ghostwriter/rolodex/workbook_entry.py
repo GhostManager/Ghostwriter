@@ -272,6 +272,14 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
         return normalized
     if area == "password" and isinstance(payload, Mapping):
         raw_policies = payload.get("policies")
+        removed_domains_raw = payload.get("removed_ad_domains")
+
+        removed_domains: list[str] = []
+        if isinstance(removed_domains_raw, list):
+            for entry in removed_domains_raw:
+                name = (entry or "").strip()
+                if name:
+                    removed_domains.append(name)
 
         def _normalize_bool_string(value: Any) -> Optional[str]:
             if isinstance(value, bool):
@@ -337,6 +345,49 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                     normalized_fgpp.append(fgpp_entry)
             return normalized_fgpp
 
+        def _policy_has_values(policy_entry: Mapping[str, Any], fgpp_entries: list[dict[str, Any]]) -> bool:
+            if fgpp_entries:
+                return True
+
+            if not isinstance(policy_entry, Mapping):
+                return False
+
+            for field in (
+                "max_age",
+                "min_age",
+                "min_length",
+                "history",
+                "lockout_threshold",
+                "lockout_reset",
+                "lockout_duration",
+                "complexity_enabled",
+                "mfa_required",
+                "passwords_cracked",
+                "admin_cracked",
+                "lanman_stored",
+                "enabled_accounts",
+                "password_pattern",
+            ):
+                if field not in policy_entry:
+                    continue
+
+                if field == "admin_cracked":
+                    admin_entry = policy_entry.get("admin_cracked")
+                    if isinstance(admin_entry, Mapping) and admin_entry:
+                        return True
+                    continue
+
+                if field == "password_pattern":
+                    pattern_entry = policy_entry.get("password_pattern")
+                    if isinstance(pattern_entry, Mapping) and pattern_entry:
+                        return True
+                    continue
+
+                if policy_entry.get(field) not in (None, "", []):
+                    return True
+
+            return False
+
         normalized_policies: list[dict[str, Any]] = []
         if isinstance(raw_policies, list):
             for policy in raw_policies:
@@ -397,11 +448,14 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                         normalized_policy["password_pattern"] = pattern_entry
 
                 fgpp_entries = _normalize_fgpp_entries(policy.get("fgpp"))
-                if normalized_policy or fgpp_entries:
+                if _policy_has_values(normalized_policy, fgpp_entries):
                     normalized_policy["fgpp"] = fgpp_entries
                     normalized_policies.append(normalized_policy)
 
-        if isinstance(raw_policies, list):
+        if removed_domains:
+            normalized["removed_ad_domains"] = removed_domains
+
+        if normalized_policies:
             normalized["policies"] = normalized_policies
         return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
@@ -536,8 +590,116 @@ def build_workbook_entry_payload(
     if isinstance(areas, Mapping):
         for area_key, area_payload in areas.items():
             normalized_area = _normalize_area_payload(area_key, area_payload)
-            if normalized_area:
-                normalized_workbook.setdefault(area_key, {}).update(normalized_area)
+            if not normalized_area:
+                continue
+
+            if area_key == "password":
+                existing_password = (
+                    normalized_workbook.get("password")
+                    if isinstance(normalized_workbook.get("password"), dict)
+                    else {}
+                )
+                updated_password = dict(existing_password)
+
+                removed_domains = normalized_area.get("removed_ad_domains")
+                removed_set: set[str] = set()
+                merged_removed: list[str] = []
+                if isinstance(removed_domains, list):
+                    for entry in removed_domains:
+                        name = (entry or "").strip()
+                        if not name:
+                            continue
+                        lowered = name.lower()
+                        if lowered not in removed_set:
+                            removed_set.add(lowered)
+                            merged_removed.append(name)
+
+                existing_removed = (
+                    existing_password.get("removed_ad_domains")
+                    if isinstance(existing_password.get("removed_ad_domains"), list)
+                    else []
+                )
+                seen_removed = set(removed_set)
+                for entry in existing_removed:
+                    name = (entry or "").strip()
+                    if not name:
+                        continue
+                    lowered = name.lower()
+                    if lowered in seen_removed:
+                        continue
+                    seen_removed.add(lowered)
+                    merged_removed.insert(0, name)
+
+                base_policies = (
+                    normalized_area["policies"]
+                    if "policies" in normalized_area
+                    else existing_password.get("policies")
+                )
+                if not isinstance(base_policies, list):
+                    base_policies = []
+
+                blocked_domains = seen_removed
+                filtered_policies: list[dict[str, Any]] = []
+                for policy in base_policies:
+                    if not isinstance(policy, Mapping):
+                        continue
+                    domain_value = (policy.get("domain_name") or "").strip()
+                    if domain_value and domain_value.lower() in blocked_domains:
+                        continue
+                    filtered_policies.append(policy)
+
+                updated_password["policies"] = filtered_policies
+
+                if merged_removed:
+                    updated_password["removed_ad_domains"] = merged_removed
+                elif "removed_ad_domains" in updated_password:
+                    updated_password.pop("removed_ad_domains", None)
+
+                normalized_workbook["password"] = updated_password
+                continue
+
+            normalized_workbook.setdefault(area_key, {}).update(normalized_area)
+
+    ad_domains: set[str] = set()
+    ad_state = (
+        normalized_workbook.get("ad")
+        if isinstance(normalized_workbook.get("ad"), Mapping)
+        else {}
+    )
+    if isinstance(ad_state, Mapping):
+        domain_entries = (
+            ad_state.get("domains") if isinstance(ad_state.get("domains"), list) else []
+        )
+        if isinstance(domain_entries, list):
+            for entry in domain_entries:
+                if not isinstance(entry, Mapping):
+                    continue
+                domain_name = (entry.get("domain") or entry.get("name") or "").strip()
+                if domain_name:
+                    ad_domains.add(domain_name.lower())
+
+    password_state = (
+        normalized_workbook.get("password")
+        if isinstance(normalized_workbook.get("password"), Mapping)
+        else None
+    )
+    if isinstance(password_state, Mapping):
+        removed_domains = password_state.get("removed_ad_domains")
+        if isinstance(removed_domains, list):
+            filtered_removed: list[str] = []
+            seen_removed: set[str] = set()
+            for entry in removed_domains:
+                name = (entry or "").strip()
+                lowered = name.lower()
+                if not name or lowered in seen_removed:
+                    continue
+                seen_removed.add(lowered)
+                if lowered in ad_domains:
+                    filtered_removed.append(name)
+            if filtered_removed:
+                password_state["removed_ad_domains"] = filtered_removed
+            elif "removed_ad_domains" in password_state:
+                password_state.pop("removed_ad_domains", None)
 
     score_updates: MutableMapping[str, MutableMapping[str, Any]] = {}
     category_scores: Dict[str, Optional[Decimal]] = {}

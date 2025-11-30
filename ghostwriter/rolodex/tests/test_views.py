@@ -5,8 +5,10 @@ import logging
 import shutil
 import tempfile
 from datetime import date, timedelta
+from unittest import mock
 
 # Django Imports
+from django import forms
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -1275,6 +1277,469 @@ class ProjectWorkbookUploadViewTests(TestCase):
         password_responses = self.project.data_responses.get("password", {})
         self.assertEqual(password_responses.get("entries"), [])
 
+
+class ProjectWorkbookDataUpdateViewTests(TestCase):
+    """Tests for updating workbook data via the area cards."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = MgrFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.project = ProjectFactory()
+        self.update_url = reverse(
+            "rolodex:project_workbook_data_update", kwargs={"pk": self.project.pk}
+        )
+
+    def test_password_responses_and_cap_rebuilt_on_area_save(self):
+        self.project.workbook_data = {
+            "password": {
+                "policies": [
+                    {"domain_name": "corp.example.com", "password_min_length": 10},
+                    {"domain_name": "old.example.com", "password_min_length": 8},
+                ]
+            }
+        }
+        self.project.data_responses = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com"},
+                    {"domain": "old.example.com"},
+                ]
+            }
+        }
+        self.project.cap = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 10}},
+                    {"domain": "old.example.com", "policy_cap_values": {"min_length": 8}},
+                ]
+            }
+        }
+        self.project.save(update_fields=["workbook_data", "data_responses", "cap"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps(
+                {
+                    "areas": {
+                        "password": {
+                            "policies": [
+                                {
+                                    "domain_name": "corp.example.com",
+                                    "password_min_length": 14,
+                                }
+                            ]
+                        }
+                    }
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        password_response = self.project.data_responses.get("password")
+        self.assertIsInstance(password_response, dict)
+        password_entries = password_response.get("entries")
+        self.assertIsInstance(password_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in password_entries], ["corp.example.com"]
+        )
+
+        password_cap = self.project.cap.get("password")
+        self.assertIsInstance(password_cap, dict)
+        cap_entries = password_cap.get("entries")
+        self.assertIsInstance(cap_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in cap_entries], ["corp.example.com"]
+        )
+
+    def test_iam_save_does_not_persist_placeholder_password_policy(self):
+        self.project.workbook_data = {}
+        self.project.save(update_fields=["workbook_data"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps(
+                {
+                    "areas": {
+                        "ad": {"domains": [{"domain": "corp.example"}]},
+                        "password": {},
+                    }
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        password_state = self.project.workbook_data.get("password")
+        self.assertTrue(
+            password_state is None
+            or (
+                isinstance(password_state, dict)
+                and not password_state.get("policies")
+                and not password_state.get("removed_ad_domains")
+            )
+        )
+
+    def test_password_entries_removed_when_ad_domain_deleted(self):
+        self.project.workbook_data = {
+            "ad": {"domains": [{"domain": "corp.example.com"}, {"domain": "old.example.com"}]},
+            "password": {
+                "policies": [
+                    {"domain_name": "corp.example.com", "password_min_length": 14},
+                    {"domain_name": "old.example.com", "password_min_length": 8},
+                ]
+            },
+        }
+        self.project.data_responses = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}},
+                    {"domain": "old.example.com", "policy_cap_values": {"min_length": 8}},
+                ]
+            }
+        }
+        self.project.cap = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}},
+                    {"domain": "old.example.com", "policy_cap_values": {"min_length": 8}},
+                ]
+            }
+        }
+        self.project.save(update_fields=["workbook_data", "data_responses", "cap"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps({"remove_ad_domain": "old.example.com"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        workbook_password = (
+            self.project.workbook_data.get("password")
+            if isinstance(self.project.workbook_data, dict)
+            else {}
+        )
+        policies = workbook_password.get("policies") if isinstance(workbook_password, dict) else None
+        self.assertIsInstance(policies, list)
+        self.assertListEqual(
+            [policy.get("domain_name") for policy in policies if isinstance(policy, dict)],
+            ["corp.example.com"],
+        )
+
+        password_response = self.project.data_responses.get("password")
+        self.assertIsInstance(password_response, dict)
+        password_entries = password_response.get("entries")
+        self.assertIsInstance(password_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in password_entries], ["corp.example.com"]
+        )
+
+        password_cap = self.project.cap.get("password")
+        self.assertIsInstance(password_cap, dict)
+        cap_entries = password_cap.get("entries")
+        self.assertIsInstance(cap_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in cap_entries], ["corp.example.com"]
+        )
+
+    def test_password_entries_removed_when_password_domain_deleted(self):
+        self.project.workbook_data = {
+            "ad": {"domains": [{"domain": "corp.example.com"}, {"domain": "old.example.com"}]},
+            "password": {
+                "policies": [
+                    {"domain_name": "corp.example.com", "password_min_length": 14},
+                    {"domain_name": "old.example.com", "password_min_length": 8},
+                ]
+            },
+        }
+        self.project.data_responses = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}},
+                    {"domain": "old.example.com", "policy_cap_values": {"min_length": 8}},
+                ]
+            }
+        }
+        self.project.cap = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}},
+                    {"domain": "old.example.com", "policy_cap_values": {"min_length": 8}},
+                ]
+            }
+        }
+        self.project.save(update_fields=["workbook_data", "data_responses", "cap"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps(
+                {
+                    "areas": {
+                        "password": {
+                            "policies": [
+                                {
+                                    "domain_name": "corp.example.com",
+                                    "password_min_length": 14,
+                                }
+                            ]
+                        }
+                    }
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        workbook_password = (
+            self.project.workbook_data.get("password")
+            if isinstance(self.project.workbook_data, dict)
+            else {}
+        )
+        policies = workbook_password.get("policies") if isinstance(workbook_password, dict) else None
+        self.assertIsInstance(policies, list)
+        self.assertListEqual(
+            [policy.get("domain_name") for policy in policies if isinstance(policy, dict)],
+            ["corp.example.com"],
+        )
+
+        password_response = self.project.data_responses.get("password")
+        self.assertIsInstance(password_response, dict)
+        password_entries = password_response.get("entries")
+        self.assertIsInstance(password_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in password_entries], ["corp.example.com"]
+        )
+
+        password_cap = self.project.cap.get("password")
+        self.assertIsInstance(password_cap, dict)
+        cap_entries = password_cap.get("entries")
+        self.assertIsInstance(cap_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in cap_entries], ["corp.example.com"]
+        )
+
+    def test_password_entries_removed_when_domain_removed_without_payload_policies(self):
+        self.project.workbook_data = {
+            "ad": {"domains": [{"domain": "corp.example.com"}, {"domain": "old.example.com"}]},
+            "password": {
+                "policies": [
+                    {"domain_name": "corp.example.com", "password_min_length": 14},
+                    {"domain_name": "old.example.com", "password_min_length": 8},
+                ]
+            },
+        }
+        self.project.data_responses = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}},
+                    {"domain": "old.example.com", "policy_cap_values": {"min_length": 8}},
+                ]
+            }
+        }
+        self.project.cap = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}},
+                    {"domain": "old.example.com", "policy_cap_values": {"min_length": 8}},
+                ]
+            }
+        }
+        self.project.save(update_fields=["workbook_data", "data_responses", "cap"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps(
+                {"areas": {"password": {"removed_ad_domains": ["old.example.com"]}}}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        workbook_password = (
+            self.project.workbook_data.get("password")
+            if isinstance(self.project.workbook_data, dict)
+            else {}
+        )
+        policies = workbook_password.get("policies") if isinstance(workbook_password, dict) else None
+        self.assertIsInstance(policies, list)
+        self.assertListEqual(
+            [policy.get("domain_name") for policy in policies if isinstance(policy, dict)],
+            ["corp.example.com"],
+        )
+        self.assertListEqual(
+            workbook_password.get("removed_ad_domains"), ["old.example.com"]
+        )
+
+        password_response = self.project.data_responses.get("password")
+        self.assertIsInstance(password_response, dict)
+        password_entries = password_response.get("entries")
+        self.assertIsInstance(password_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in password_entries], ["corp.example.com"]
+        )
+
+        password_cap = self.project.cap.get("password")
+        self.assertIsInstance(password_cap, dict)
+        cap_entries = password_cap.get("entries")
+        self.assertIsInstance(cap_entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in cap_entries], ["corp.example.com"]
+        )
+
+    def test_password_policy_not_created_until_metrics_saved(self):
+        self.project.workbook_data = {
+            "ad": {"domains": [{"domain": "corp.example.com", "total_accounts": 10}]}
+        }
+        self.project.save(update_fields=["workbook_data"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps(
+                {
+                    "areas": {
+                        "password": {
+                            "policies": [
+                                {
+                                    "domain_name": "corp.example.com",
+                                    "strong_passwords": 10,
+                                }
+                            ]
+                        }
+                    }
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        workbook_password = (
+            self.project.workbook_data.get("password")
+            if isinstance(self.project.workbook_data, dict)
+            else {}
+        )
+        policies = (
+            workbook_password.get("policies") if isinstance(workbook_password, dict) else None
+        )
+        self.assertIsInstance(policies, list)
+        self.assertListEqual(policies, [])
+
+        self.assertNotIn("password", self.project.cap or {})
+        self.assertNotIn("password", self.project.data_responses or {})
+
+    def test_password_policy_saved_after_metrics_added(self):
+        self.project.workbook_data = {
+            "ad": {"domains": [{"domain": "corp.example.com", "total_accounts": 25}]}
+        }
+        self.project.save(update_fields=["workbook_data"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps(
+                {
+                    "areas": {
+                        "password": {
+                            "policies": [
+                                {
+                                    "domain_name": "corp.example.com",
+                                    "passwords_cracked": 5,
+                                }
+                            ]
+                        }
+                    }
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        workbook_password = (
+            self.project.workbook_data.get("password")
+            if isinstance(self.project.workbook_data, dict)
+            else {}
+        )
+        policies = (
+            workbook_password.get("policies") if isinstance(workbook_password, dict) else None
+        )
+        self.assertIsInstance(policies, list)
+        self.assertListEqual(
+            [policy.get("domain_name") for policy in policies if isinstance(policy, dict)],
+            ["corp.example.com"],
+        )
+
+        password_response = (self.project.data_responses or {}).get("password")
+        self.assertIsInstance(password_response, dict)
+        entries = password_response.get("entries")
+        self.assertIsInstance(entries, list)
+        self.assertListEqual(
+            [entry.get("domain") for entry in entries if isinstance(entry, dict)],
+            ["corp.example.com"],
+        )
+
+    def test_password_entries_removed_when_all_domains_deleted(self):
+        self.project.workbook_data = {
+            "ad": {"domains": [{"domain": "corp.example.com"}]},
+            "password": {
+                "policies": [
+                    {"domain_name": "corp.example.com", "password_min_length": 14}
+                ]
+            },
+        }
+        self.project.data_responses = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}}
+                ]
+            }
+        }
+        self.project.cap = {
+            "password": {
+                "entries": [
+                    {"domain": "corp.example.com", "policy_cap_values": {"min_length": 14}}
+                ]
+            }
+        }
+        self.project.save(update_fields=["workbook_data", "data_responses", "cap"])
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps({"areas": {"password": {"policies": []}}}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        workbook_password = (
+            self.project.workbook_data.get("password")
+            if isinstance(self.project.workbook_data, dict)
+            else {}
+        )
+        policies = workbook_password.get("policies") if isinstance(workbook_password, dict) else None
+        self.assertIsInstance(policies, list)
+        self.assertListEqual(policies, [])
+
+        self.assertNotIn("password", self.project.data_responses)
+        self.assertNotIn("password", self.project.cap)
+
     def test_upload_populates_project_risks(self):
         workbook_payload = {
             "external_internal_grades": {
@@ -1453,6 +1918,191 @@ class ProjectDataResponsesUpdateTests(TestCase):
         self.assertEqual(general.get("scope_count"), 1)
         self.assertEqual(general.get("scope_string"), "External network and systems")
         self.assertNotIn("assessment_scope_cloud_on_prem", general)
+
+    def test_password_domain_responses_preserved_after_rebuild(self):
+        workbook_password_response = {"hashes_obtained": "yes"}
+        workbook_domain_values = {
+            "corp.example.com": {"policy_cap_values": {"Password Maturity": "medium"}}
+        }
+
+        questions = [
+            {
+                "key": "password_corp-example-com_risk",
+                "section_key": "password",
+                "field_class": forms.ChoiceField,
+                "field_kwargs": {
+                    "choices": [("high", "High"), ("medium", "Medium"), ("low", "Low")],
+                    "required": False,
+                },
+                "subheading": "corp.example.com",
+                "entry_slug": "password_corp-example-com",
+                "entry_field_key": "risk",
+            }
+        ]
+
+        payload = {"password_corp-example-com_risk": "high"}
+
+        general_cap_map = {
+            issue: {"recommendation": recommendation, "score": score}
+            for issue, (recommendation, score) in DEFAULT_GENERAL_CAP_MAP.items()
+        }
+
+        with mock.patch(
+            "ghostwriter.rolodex.views.build_data_configuration",
+            return_value=(questions, {}),
+        ):
+            with mock.patch("ghostwriter.rolodex.models.build_project_artifacts", return_value={}):
+                with mock.patch(
+                    "ghostwriter.rolodex.models.build_workbook_ad_response", return_value={}
+                ):
+                    with mock.patch(
+                        "ghostwriter.rolodex.models.build_workbook_dns_response", return_value={}
+                    ):
+                        with mock.patch(
+                            "ghostwriter.rolodex.models.build_workbook_firewall_response",
+                            return_value={},
+                        ):
+                            with mock.patch(
+                                "ghostwriter.rolodex.models.build_workbook_password_response",
+                                return_value=(
+                                    workbook_password_response,
+                                    workbook_domain_values,
+                                    ["corp.example.com"],
+                                ),
+                            ):
+                                with mock.patch(
+                                    "ghostwriter.rolodex.models.load_general_cap_map",
+                                    return_value=general_cap_map,
+                                ):
+                                    response = self.client_mgr.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 302)
+
+        self.project.refresh_from_db()
+        password_responses = self.project.data_responses.get("password", {})
+        entries = password_responses.get("entries") if isinstance(password_responses, dict) else None
+        self.assertIsInstance(entries, list)
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].get("domain"), "corp.example.com")
+        self.assertEqual(entries[0].get("risk"), "high")
+
+    def test_password_cap_updates_when_questionnaire_changes(self):
+        workbook_password_response = {}
+        workbook_domain_values = {
+            "corp.example.com": {
+                "passwords_cracked": 1,
+                "lanman": False,
+                "no_fgpp": False,
+            }
+        }
+
+        general_cap_map = {
+            "Weak passwords in use": {"recommendation": "", "score": 1},
+            "LANMAN password hashing enabled": {"recommendation": "", "score": 1},
+            "Fine-grained Password Policies not defined": {"recommendation": "", "score": 1},
+            "Additional password controls not implemented": {"recommendation": "", "score": 1},
+            "MFA not enforced for all accounts": {"recommendation": "", "score": 1},
+        }
+
+        self.project.data_responses = {
+            "password": {
+                "password_enforce_mfa_all_accounts": "no",
+                "password_additional_controls": "no",
+            }
+        }
+        self.project.save(update_fields=["data_responses"])
+
+        with mock.patch("ghostwriter.rolodex.models.build_project_artifacts", return_value={}):
+            with mock.patch("ghostwriter.rolodex.models.build_workbook_ad_response", return_value={}):
+                with mock.patch(
+                    "ghostwriter.rolodex.models.build_workbook_dns_response",
+                    return_value={},
+                ):
+                    with mock.patch(
+                        "ghostwriter.rolodex.models.build_workbook_firewall_response",
+                        return_value={},
+                    ):
+                        with mock.patch(
+                            "ghostwriter.rolodex.models.build_workbook_password_response",
+                            return_value=(
+                                workbook_password_response,
+                                workbook_domain_values,
+                                ["corp.example.com"],
+                            ),
+                        ):
+                            with mock.patch(
+                                "ghostwriter.rolodex.models.load_general_cap_map",
+                                return_value=general_cap_map,
+                            ):
+                                self.project.rebuild_data_artifacts()
+
+        self.project.refresh_from_db()
+        password_cap = self.project.cap.get("password", {})
+        badpass_map = password_cap.get("badpass_cap_map", {})
+        self.assertIn("global", badpass_map)
+
+        questions = [
+            {
+                "key": "password_enforce_mfa_all_accounts",
+                "section_key": "password",
+                "field_class": forms.ChoiceField,
+                "field_kwargs": {
+                    "choices": [("yes", "Yes"), ("no", "No")],
+                    "required": False,
+                },
+            },
+            {
+                "key": "password_additional_controls",
+                "section_key": "password",
+                "field_class": forms.ChoiceField,
+                "field_kwargs": {
+                    "choices": [("yes", "Yes"), ("no", "No")],
+                    "required": False,
+                },
+            },
+        ]
+
+        payload = {
+            "password_enforce_mfa_all_accounts": "yes",
+            "password_additional_controls": "yes",
+        }
+
+        with mock.patch(
+            "ghostwriter.rolodex.views.build_data_configuration",
+            return_value=(questions, {}),
+        ):
+            with mock.patch("ghostwriter.rolodex.models.build_project_artifacts", return_value={}):
+                with mock.patch(
+                    "ghostwriter.rolodex.models.build_workbook_ad_response", return_value={}
+                ):
+                    with mock.patch(
+                        "ghostwriter.rolodex.models.build_workbook_dns_response",
+                        return_value={},
+                    ):
+                        with mock.patch(
+                            "ghostwriter.rolodex.models.build_workbook_firewall_response",
+                            return_value={},
+                        ):
+                            with mock.patch(
+                                "ghostwriter.rolodex.models.build_workbook_password_response",
+                                return_value=(
+                                    workbook_password_response,
+                                    workbook_domain_values,
+                                    ["corp.example.com"],
+                                ),
+                            ):
+                                with mock.patch(
+                                    "ghostwriter.rolodex.models.load_general_cap_map",
+                                    return_value=general_cap_map,
+                                ):
+                                    response = self.client_mgr.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.project.refresh_from_db()
+
+        password_cap = self.project.cap.get("password", {})
+        badpass_map = password_cap.get("badpass_cap_map", {})
+        self.assertNotIn("global", badpass_map)
 
     def test_detail_view_displays_uploaded_workbook_sections(self):
         workbook_payload = {

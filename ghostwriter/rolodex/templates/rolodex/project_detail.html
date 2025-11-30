@@ -1280,6 +1280,7 @@
             enabled_accounts: null,
             password_pattern: {confirm: null, passwords: []},
             fgpp: [],
+            __metrics_opened: true,
           };
         };
 
@@ -1551,6 +1552,9 @@
             const adminCracked = policy && policy.admin_cracked ? policy.admin_cracked : {};
             const fgppEntries = Array.isArray(policy && policy.fgpp) ? policy.fgpp : [];
             const confirmValue = normalizeYesNo(adminCracked.confirm);
+            const metricsOpened = Object.prototype.hasOwnProperty.call(policy || {}, '__metrics_opened')
+              ? Boolean(policy && policy.__metrics_opened)
+              : true;
 
             const normalizedFgpp = fgppEntries.map(function(entry) {
               return Object.assign(createEmptyFgpp(), entry || {}, {
@@ -1580,7 +1584,7 @@
               passwords_cracked: normalizeNumber(policy && policy.passwords_cracked),
               admin_cracked: {
                 confirm: confirmValue,
-                count: confirmValue === 'Yes' ? normalizeNumber(adminCracked.count) : 0,
+                count: confirmValue === 'Yes' ? normalizeNumber(adminCracked.count) : null,
               },
               strong_passwords: normalizeNumber(policy && policy.strong_passwords),
               lanman_stored: normalizeYesNo(policy && policy.lanman_stored),
@@ -1597,23 +1601,108 @@
                   : [],
               },
               fgpp: normalizedFgpp,
+              __ad_placeholder: Boolean(policy && policy.__ad_placeholder),
+              __ad_domain_name: policy && policy.__ad_domain_name,
+              __ad_strong_default: policy && policy.__ad_strong_default,
+              __metrics_opened: metricsOpened,
             });
           });
 
           const adState = ensureAdState();
           const adDomains = Array.isArray(adState.domains) ? adState.domains : [];
+          const removedAdDomains = Array.isArray(passwordState.removed_ad_domains) ? passwordState.removed_ad_domains : [];
+          const removedDomainSet = new Set(
+            removedAdDomains
+              .map(function(name) { return (name || '').toString().trim().toLowerCase(); })
+              .filter(function(name) { return name; }),
+          );
+          const adDomainMap = {};
+          adDomains.forEach(function(domain) {
+            const name = (domain.domain || domain.name || '').toString().trim();
+            if (name) {
+              adDomainMap[name.toLowerCase()] = domain;
+            }
+          });
+
+          passwordState.policies = passwordState.policies.map(function(policy) {
+            const domainName = (policy && policy.domain_name) ? policy.domain_name.toString().trim() : '';
+            const lowerDomain = domainName.toLowerCase();
+            const adEntry = lowerDomain ? adDomainMap[lowerDomain] : null;
+            if (adEntry && !policy.__ad_placeholder && !passwordPolicyHasContent(policy)) {
+              return Object.assign({}, policy, {
+                __ad_placeholder: true,
+                __ad_domain_name: policy.__ad_domain_name || domainName,
+                __metrics_opened: false,
+              });
+            }
+            return policy;
+          });
+
+          const computeAdStrongPasswords = function(domainName, policy) {
+            const adEntry = adDomainMap[(domainName || '').toString().trim().toLowerCase()];
+            if (!adEntry) {
+              return null;
+            }
+
+            const totalAccounts = normalizeNumber(adEntry.total_accounts);
+            if (totalAccounts === null) {
+              return null;
+            }
+
+            const crackedValue = normalizeNumber(
+              policy && Object.prototype.hasOwnProperty.call(policy, 'passwords_cracked')
+                ? policy.passwords_cracked
+                : null,
+            );
+            const crackedCount = crackedValue === null ? 0 : crackedValue;
+            return Math.max(totalAccounts - crackedCount, 0);
+          };
+
+          passwordState.policies = passwordState.policies.map(function(policy) {
+            if (policy && policy.__ad_placeholder) {
+              const adDomainName = policy.__ad_domain_name || policy.domain_name;
+              const strongDefault = computeAdStrongPasswords(adDomainName, policy);
+              const previousDefault = policy.__ad_strong_default;
+              policy.__ad_strong_default = strongDefault;
+              if (
+                typeof strongDefault !== 'undefined'
+                && (policy.strong_passwords === previousDefault || typeof policy.strong_passwords === 'undefined' || policy.strong_passwords === null)
+              ) {
+                policy.strong_passwords = strongDefault;
+              }
+            }
+            return policy;
+          });
+
           const adDomainNames = adDomains
             .map(function(domain) { return (domain.domain || domain.name || '').toString().trim(); })
             .filter(function(name) { return name; });
           const existingDomains = new Set(passwordState.policies.map(function(policy) {
             return (policy.domain_name || '').toString().trim().toLowerCase();
           }));
-          adDomainNames.forEach(function(name) {
-            const lower = name.toLowerCase();
-            if (!existingDomains.has(lower)) {
-              passwordState.policies.push(createEmptyPasswordPolicy(name));
+          passwordState.policies.forEach(function(policy) {
+            const domainName = (policy && policy.domain_name) ? policy.domain_name.toString().trim().toLowerCase() : '';
+            if (domainName && passwordPolicyHasContent(policy)) {
+              removedDomainSet.delete(domainName);
             }
           });
+          adDomainNames.forEach(function(name) {
+            const lower = name.toLowerCase();
+            if (!existingDomains.has(lower) && !removedDomainSet.has(lower)) {
+              const strongDefault = computeAdStrongPasswords(name, null);
+              passwordState.policies.push(
+                Object.assign(createEmptyPasswordPolicy(name), {
+                  strong_passwords: strongDefault,
+                  __ad_placeholder: true,
+                  __ad_domain_name: name,
+                  __ad_strong_default: strongDefault,
+                  __metrics_opened: false,
+                }),
+              );
+            }
+          });
+
+          passwordState.removed_ad_domains = Array.from(removedDomainSet);
 
           workbookState.password = passwordState;
           return passwordState;
@@ -1687,8 +1776,105 @@
           return {domains: domains};
         }
 
+        const passwordPolicyHasContent = function(policy) {
+          const hasValue = function(value) {
+            if (value === null || typeof value === 'undefined') {
+              return false;
+            }
+            if (typeof value === 'number' && !Number.isNaN(value)) {
+              return true;
+            }
+            if (typeof value === 'boolean') {
+              return true;
+            }
+            if (typeof value === 'string') {
+              return value.trim() !== '';
+            }
+            if (Array.isArray(value)) {
+              return value.some(hasValue);
+            }
+            if (typeof value === 'object') {
+              return Object.values(value).some(hasValue);
+            }
+            return false;
+          };
+
+          if (!policy || typeof policy !== 'object') {
+            return false;
+          }
+
+          const importantValues = [
+            policy.max_age,
+            policy.min_age,
+            policy.min_length,
+            policy.history,
+            policy.lockout_threshold,
+            policy.lockout_reset,
+            policy.lockout_duration,
+            policy.complexity_enabled,
+            policy.mfa_required,
+            policy.passwords_cracked,
+            policy.enabled_accounts,
+            policy.lanman_stored,
+            policy.password_pattern && policy.password_pattern.confirm,
+            policy.admin_cracked && policy.admin_cracked.confirm,
+            policy.admin_cracked && policy.admin_cracked.count,
+          ];
+
+          if (importantValues.some(hasValue)) {
+            return true;
+          }
+
+          const patternPasswords = policy.password_pattern && policy.password_pattern.passwords;
+          if (Array.isArray(patternPasswords)) {
+            const hasPatternValues = patternPasswords.some(function(entry) {
+              return hasValue(entry && entry.password) || hasValue(entry && entry.count);
+            });
+            if (hasPatternValues) {
+              return true;
+            }
+          }
+
+          if (Array.isArray(policy.fgpp) && policy.fgpp.some(hasValue)) {
+            return true;
+          }
+
+          if (hasValue(policy.strong_passwords)) {
+            if (!policy.__ad_placeholder) {
+              return true;
+            }
+            if (policy.__ad_strong_default !== policy.strong_passwords) {
+              return true;
+            }
+          }
+
+          if (policy.__ad_placeholder) {
+            const currentDomain = (policy.domain_name || '').toString().trim();
+            const defaultDomain = (policy.__ad_domain_name || '').toString().trim();
+            if (currentDomain && defaultDomain && currentDomain.toLowerCase() !== defaultDomain.toLowerCase()) {
+              return true;
+            }
+            return false;
+          }
+
+          return !policy.__ad_placeholder && hasValue(policy.domain_name);
+        };
+
         function serializePasswordPayload() {
           const passwordState = ensurePasswordState();
+          const adState = ensureAdState();
+          const adDomainMap = {};
+          (Array.isArray(adState.domains) ? adState.domains : []).forEach(function(entry) {
+            const name = (entry && (entry.domain || entry.name)) ? (entry.domain || entry.name).toString().trim().toLowerCase() : '';
+            if (name) {
+              adDomainMap[name] = entry;
+            }
+          });
+          const removedAdDomains = Array.isArray(passwordState.removed_ad_domains)
+            ? passwordState.removed_ad_domains
+                .map(function(name) { return (name || '').toString().trim(); })
+                .filter(function(name) { return name; })
+            : [];
 
           const normalizeNumber = function(value) {
             if (typeof value === 'number' && !Number.isNaN(value)) {
@@ -1742,13 +1928,45 @@
             });
           };
 
-          const policies = (passwordState.policies || []).map(function(policy) {
+          const computeAdStrongPasswords = function(adEntry, policy) {
+            if (!adEntry) {
+              return null;
+            }
+
+            const totalAccounts = normalizeNumber(adEntry.total_accounts);
+            if (totalAccounts === null) {
+              return null;
+            }
+
+            const crackedValue = normalizeNumber(
+              policy && Object.prototype.hasOwnProperty.call(policy, 'passwords_cracked')
+                ? policy.passwords_cracked
+                : null,
+            );
+            const crackedCount = crackedValue === null ? 0 : crackedValue;
+            return Math.max(totalAccounts - crackedCount, 0);
+          };
+
+          const policies = [];
+          (passwordState.policies || []).forEach(function(policy) {
             const pattern = policy && policy.password_pattern ? policy.password_pattern : {};
             const patternConfirm = normalizeYesNo(pattern.confirm);
             const adminConfirm = normalizeYesNo(policy.admin_cracked && policy.admin_cracked.confirm);
             const adminCount = adminConfirm === 'Yes'
               ? normalizeNumber(policy.admin_cracked && policy.admin_cracked.count)
-              : 0;
+              : null;
+
+            if (policy && policy.__ad_placeholder && !policy.__metrics_opened) {
+              return;
+            }
+
+            const shouldIncludeStrongPasswords = (
+              !policy.__ad_placeholder
+              || policy.__ad_strong_default !== policy.strong_passwords
+            );
+            const strongPasswordsValue = shouldIncludeStrongPasswords
+              ? normalizeNumber(policy.strong_passwords)
+              : null;
 
             const patternPasswords = Array.isArray(pattern.passwords)
               ? pattern.passwords.map(function(entry) {
@@ -1759,7 +1977,7 @@
               }).filter(function(entry) { return entry.password || entry.count !== null; })
               : [];
 
-            return {
+            const serializedPolicy = {
               domain_name: (policy.domain_name || '').toString(),
               max_age: normalizeNumber(policy.max_age),
               min_age: normalizeNumber(policy.min_age),
@@ -1775,7 +1993,7 @@
                 confirm: adminConfirm,
                 count: adminCount,
               },
-              strong_passwords: normalizeNumber(policy.strong_passwords),
+              strong_passwords: strongPasswordsValue,
               lanman_stored: normalizeYesNo(policy.lanman_stored),
               enabled_accounts: normalizeNumber(policy.enabled_accounts),
               password_pattern: {
@@ -1784,9 +2002,98 @@
               },
               fgpp: fgppEntries(policy.fgpp),
             };
+
+            const domainName = (policy.domain_name || '').toString().trim();
+            const lowerDomain = domainName.toLowerCase();
+            const adEntry = lowerDomain ? adDomainMap[lowerDomain] : null;
+
+            const hasNonStrongContent = (function() {
+              const primaryValues = [
+                policy.max_age,
+                policy.min_age,
+                policy.min_length,
+                policy.history,
+                policy.lockout_threshold,
+                policy.lockout_reset,
+                policy.lockout_duration,
+                policy.complexity_enabled,
+                policy.mfa_required,
+                policy.passwords_cracked,
+                policy.enabled_accounts,
+                policy.lanman_stored,
+                patternConfirm,
+                adminConfirm,
+                adminCount,
+              ];
+
+              const hasValue = function(value) {
+                if (value === null || typeof value === 'undefined') {
+                  return false;
+                }
+                if (typeof value === 'number' && !Number.isNaN(value)) {
+                  return true;
+                }
+                if (typeof value === 'boolean') {
+                  return true;
+                }
+                if (typeof value === 'string') {
+                  return value.trim() !== '';
+                }
+                if (Array.isArray(value)) {
+                  return value.some(hasValue);
+                }
+                if (typeof value === 'object') {
+                  return Object.values(value).some(hasValue);
+                }
+                return false;
+              };
+
+              if (primaryValues.some(hasValue)) {
+                return true;
+              }
+
+              if (Array.isArray(patternPasswords) && patternPasswords.length) {
+                return true;
+              }
+
+              if (Array.isArray(policy.fgpp) && policy.fgpp.some(hasValue)) {
+                return true;
+              }
+
+              return false;
+            })();
+
+            const strongPasswordsDefault = computeAdStrongPasswords(adEntry, policy);
+            const strongValue = normalizeNumber(policy.strong_passwords);
+            const hasCustomStrong = strongPasswordsDefault === null
+              ? strongValue !== null
+              : strongValue !== null && strongValue !== strongPasswordsDefault;
+
+            const hasUserMetrics = adEntry
+              ? hasNonStrongContent || hasCustomStrong
+              : passwordPolicyHasContent(policy);
+            const allowPlaceholder = policy.__metrics_opened && hasUserMetrics;
+
+            if (adEntry && !allowPlaceholder && !hasUserMetrics) {
+              return;
+            }
+            if (!policy.__ad_placeholder || allowPlaceholder || (adEntry && hasUserMetrics)) {
+              policies.push(serializedPolicy);
+            }
           });
 
-          return {policies: policies};
+          if (!policies.length && !removedAdDomains.length) {
+            return null;
+          }
+
+          const payload = {};
+          if (policies.length) {
+            payload.policies = policies;
+          }
+          if (removedAdDomains.length) {
+            payload.removed_ad_domains = removedAdDomains;
+          }
+          return payload;
         }
 
         function renderFirewallSection(container, areaKey, modalId, mode) {
@@ -3190,6 +3497,30 @@
           const container = document.createElement('div');
           target.appendChild(container);
 
+          const removeDomain = function(policy, index) {
+            const removedDomain = (policy && (policy.domain_name || policy.__ad_domain_name))
+              ? (policy.domain_name || policy.__ad_domain_name).toString().trim()
+              : '';
+            passwordState.policies.splice(index, 1);
+            if (removedDomain) {
+              const removedSet = new Set(
+                (passwordState.removed_ad_domains || [])
+                  .map(function(name) { return (name || '').toString().trim(); })
+                  .filter(function(name) { return name; }),
+              );
+              removedSet.add(removedDomain);
+              passwordState.removed_ad_domains = Array.from(removedSet);
+            }
+            renderPolicies();
+            updateWorkbookCardProgress(areaKey);
+            const payload = {areas: {password: serializePasswordPayload()}};
+            submitWorkbookUpdate(payload, null, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          };
+
           const renderPolicies = function() {
             container.innerHTML = '';
             if (!passwordState.policies.length) {
@@ -3210,6 +3541,53 @@
               title.className = 'mb-2 mb-md-0';
               title.textContent = 'Domain ' + (index + 1);
               heading.appendChild(title);
+
+              const showCollapsedPlaceholder = policy.__ad_placeholder
+                && !policy.__metrics_opened
+                && !passwordPolicyHasContent(policy);
+
+              if (showCollapsedPlaceholder) {
+                const placeholderRow = document.createElement('div');
+                placeholderRow.className = 'd-flex justify-content-between align-items-center w-100 flex-wrap';
+
+                const domainInfo = document.createElement('div');
+                domainInfo.className = 'mb-2 mb-md-0';
+                domainInfo.innerHTML = '<strong>Domain:</strong> ' + (policy.domain_name || policy.__ad_domain_name || '');
+                placeholderRow.appendChild(domainInfo);
+
+                const placeholderActions = document.createElement('div');
+                placeholderActions.className = 'd-flex align-items-center flex-wrap';
+
+                const updateMetricsButton = document.createElement('button');
+                updateMetricsButton.type = 'button';
+                updateMetricsButton.className = 'btn btn-outline-primary btn-sm mr-2';
+                updateMetricsButton.textContent = 'Update Metrics';
+                updateMetricsButton.addEventListener('click', function() {
+                  policy.__metrics_opened = true;
+                  renderPolicies();
+                  updateWorkbookCardProgress(areaKey);
+                });
+                placeholderActions.appendChild(updateMetricsButton);
+
+                const removePlaceholderButton = document.createElement('button');
+                removePlaceholderButton.type = 'button';
+                removePlaceholderButton.className = 'btn btn-outline-danger btn-sm';
+                removePlaceholderButton.textContent = 'Remove Domain';
+                removePlaceholderButton.addEventListener('click', function() { removeDomain(policy, index); });
+                placeholderActions.appendChild(removePlaceholderButton);
+
+                placeholderRow.appendChild(placeholderActions);
+                heading.appendChild(placeholderRow);
+
+                wrapper.appendChild(heading);
+                const placeholderNote = document.createElement('p');
+                placeholderNote.className = 'text-muted mb-0';
+                placeholderNote.textContent = 'Domain imported from IAM. Click "Update Metrics" to enter password details before saving.';
+                wrapper.appendChild(placeholderNote);
+                wrapper.appendChild(document.createElement('hr'));
+                container.appendChild(wrapper);
+                return;
+              }
 
               const headingActions = document.createElement('div');
               headingActions.className = 'd-flex align-items-center flex-wrap';
@@ -3255,15 +3633,7 @@
               removeDomainButton.type = 'button';
               removeDomainButton.className = 'btn btn-outline-danger btn-sm';
               removeDomainButton.textContent = 'Remove Domain';
-              removeDomainButton.addEventListener('click', function() {
-                passwordState.policies.splice(index, 1);
-                const payload = {areas: {password: serializePasswordPayload()}};
-                submitWorkbookUpdate(payload, null, {
-                  reopenModalId: modalId,
-                  forceCloseModalId: modalId,
-                  afterRender: function() { updateWorkbookCardProgress(areaKey); },
-                });
-              });
+              removeDomainButton.addEventListener('click', function() { removeDomain(policy, index); });
               headingActions.appendChild(removeDomainButton);
 
               heading.appendChild(headingActions);
@@ -3538,10 +3908,14 @@
               const updateStrongPasswords = function() {
                 const domainKey = (policy.domain_name || '').toString().trim().toLowerCase();
                 const adEntry = domainKey ? adDomainMap[domainKey] : null;
-                const cracked = typeof policy.passwords_cracked === 'number' ? policy.passwords_cracked : parseNumber(policy.passwords_cracked);
+                const crackedRaw =
+                  typeof policy.passwords_cracked === 'number'
+                    ? policy.passwords_cracked
+                    : parseNumber(policy.passwords_cracked);
+                const cracked = crackedRaw === null ? 0 : crackedRaw;
                 if (adEntry && typeof adEntry.total_accounts !== 'undefined') {
                   const totalAccounts = parseNumber(adEntry.total_accounts);
-                  if (totalAccounts !== null && cracked !== null) {
+                  if (totalAccounts !== null) {
                     const strongCount = Math.max(totalAccounts - cracked, 0);
                     policy.strong_passwords = strongCount;
                     strongPasswordsGroup.input.value = strongCount;
@@ -3571,6 +3945,14 @@
           const domains = adState.domains;
           target.innerHTML = '';
 
+          const refreshPasswordPlaceholderCard = function() {
+            const passwordCardBody = document.getElementById(modalId + '-iam_password-body');
+            if (passwordCardBody) {
+              ensurePasswordState();
+              renderPasswordPolicies(passwordCardBody, areaKey, modalId);
+            }
+          };
+
           const addButton = document.createElement('button');
           addButton.type = 'button';
           addButton.className = 'btn btn-outline-primary mb-3';
@@ -3594,6 +3976,7 @@
             });
             renderAdDomains(target, areaKey, modalId);
             updateWorkbookCardProgress(areaKey);
+            refreshPasswordPlaceholderCard();
           });
           target.appendChild(addButton);
 
@@ -3883,6 +4266,8 @@
               removeButton.addEventListener('click', function() {
                 const domainName = (domainInput.value || domain.domain || '').trim();
                 domains.splice(index, 1);
+                renderAdDomains(target, areaKey, modalId);
+                refreshPasswordPlaceholderCard();
                 const payload = {areas: {ad: serializeAdPayload()}};
                 if (domainName) {
                   payload.remove_ad_domain = domainName;
@@ -4264,6 +4649,7 @@
               subHeader.textContent = subkeyLabel;
               const subBody = document.createElement('div');
               subBody.className = 'card-body';
+              subBody.id = modalId + '-' + subkey + '-body';
               const config = resolvedConfig;
               const uploaderContext = {areaKey: areaKey, subkey: subkey, workbookKey: workbookKey, modalId: modalId};
               if (config && config.renderer === 'web') {
