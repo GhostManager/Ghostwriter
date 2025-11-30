@@ -1708,6 +1708,96 @@
           return passwordState;
         }
 
+        const createEmptyEndpointDomain = function(domainName, options) {
+          const providedOptions = options || {};
+          const metricsOpened = Object.prototype.hasOwnProperty.call(providedOptions, 'metricsOpened')
+            ? Boolean(providedOptions.metricsOpened)
+            : true;
+          return Object.assign({
+            domain: domainName || '',
+            total_computers: null,
+            audited_computers: null,
+            systems_ood: null,
+            open_wifi: null,
+            usb_control_indication: null,
+            __ad_placeholder: Boolean(providedOptions.adPlaceholder),
+            __metrics_opened: metricsOpened,
+          }, providedOptions);
+        };
+
+        function ensureEndpointState() {
+          const endpointState = (workbookState && typeof workbookState.endpoint === 'object') ? workbookState.endpoint : {};
+          const normalizeNumber = function(value) {
+            if (typeof value === 'number' && !Number.isNaN(value)) {
+              return value;
+            }
+            const parsed = Number(value);
+            return Number.isNaN(parsed) ? null : parsed;
+          };
+          const normalizeYesNo = function(value) {
+            const text = (value || '').toString().trim().toLowerCase();
+            if (!text) {
+              return null;
+            }
+            return text === 'yes' ? 'Yes' : text === 'no' ? 'No' : null;
+          };
+
+          const adState = ensureAdState();
+          const adDomains = Array.isArray(adState.domains) ? adState.domains : [];
+          const adDomainSet = new Set(
+            adDomains
+              .map(function(domain) { return (domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+
+          const removedAdDomains = Array.isArray(endpointState.removed_ad_domains)
+            ? endpointState.removed_ad_domains
+                .map(function(name) { return (name || '').toString().trim(); })
+                .filter(function(name) { return name; })
+            : [];
+          const removedSet = new Set(removedAdDomains.map(function(name) { return name.toLowerCase(); }));
+
+          endpointState.domains = (endpointState.domains || [])
+            .map(function(domain) {
+              const resolvedDomain = createEmptyEndpointDomain(
+                domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString() : '',
+                {
+                  total_computers: normalizeNumber(domain && domain.total_computers),
+                  audited_computers: normalizeNumber(domain && domain.audited_computers),
+                  systems_ood: normalizeNumber(domain && domain.systems_ood),
+                  open_wifi: normalizeNumber(domain && domain.open_wifi),
+                  usb_control_indication: normalizeYesNo(domain && domain.usb_control_indication),
+                  adPlaceholder: Boolean(domain && domain.__ad_placeholder),
+                  metricsOpened: Object.prototype.hasOwnProperty.call(domain || {}, '__metrics_opened')
+                    ? Boolean(domain && domain.__metrics_opened)
+                    : true,
+                },
+              );
+              return resolvedDomain;
+            })
+            .filter(function(domain) {
+              const name = (domain.domain || '').toString().trim().toLowerCase();
+              return !name || !removedSet.has(name);
+            });
+
+          const existingDomains = new Set(
+            endpointState.domains
+              .map(function(domain) { return (domain && domain.domain ? domain.domain.toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+
+          adDomainSet.forEach(function(domainName) {
+            if (existingDomains.has(domainName) || removedSet.has(domainName)) {
+              return;
+            }
+            endpointState.domains.push(createEmptyEndpointDomain(domainName, {adPlaceholder: true, metricsOpened: false}));
+          });
+
+          endpointState.removed_ad_domains = Array.from(removedSet);
+          workbookState.endpoint = endpointState;
+          return endpointState;
+        }
+
         function serializeAdPayload() {
           const adState = ensureAdState();
           const normalizeNumber = function(value) {
@@ -2094,6 +2184,93 @@
             payload.removed_ad_domains = removedAdDomains;
           }
           return payload;
+        }
+
+        function serializeEndpointPayload() {
+          const endpointState = ensureEndpointState();
+          const adState = ensureAdState();
+          const adDomains = Array.isArray(adState.domains) ? adState.domains : [];
+          const adDomainSet = new Set(
+            adDomains
+              .map(function(domain) { return (domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+
+          const removedAdDomains = Array.isArray(endpointState.removed_ad_domains)
+            ? endpointState.removed_ad_domains
+                .map(function(name) { return (name || '').toString().trim(); })
+                .filter(function(name) { return name; })
+            : [];
+
+          const normalizeNumber = function(value) {
+            if (typeof value === 'number' && !Number.isNaN(value)) {
+              return value;
+            }
+            if (value === null || typeof value === 'undefined') {
+              return null;
+            }
+            const parsed = Number(value);
+            return Number.isNaN(parsed) ? null : parsed;
+          };
+
+          const normalizeYesNo = function(value) {
+            const text = (value || '').toString().trim().toLowerCase();
+            if (text === 'yes') {
+              return 'Yes';
+            }
+            if (text === 'no') {
+              return 'No';
+            }
+            return null;
+          };
+
+          const hasContent = function(domain) {
+            const metrics = [
+              domain.total_computers,
+              domain.audited_computers,
+              domain.systems_ood,
+              domain.open_wifi,
+            ];
+            if (metrics.some(function(value) { return value !== null && typeof value !== 'undefined'; })) {
+              return true;
+            }
+            return Boolean(domain.usb_control_indication);
+          };
+
+          const domains = (endpointState.domains || []).map(function(domain) {
+            const domainName = (domain.domain || '').toString().trim();
+            const normalized = {
+              domain: domainName,
+              total_computers: normalizeNumber(domain.total_computers),
+              audited_computers: normalizeNumber(domain.audited_computers),
+              systems_ood: normalizeNumber(domain.systems_ood),
+              open_wifi: normalizeNumber(domain.open_wifi),
+              usb_control_indication: normalizeYesNo(domain.usb_control_indication),
+            };
+
+            const hasMetrics = hasContent(normalized);
+            const lowerDomain = domainName.toLowerCase();
+            const isPlaceholder = Boolean(domain.__ad_placeholder) && adDomainSet.has(lowerDomain);
+            if (isPlaceholder && !domain.__metrics_opened && !hasMetrics) {
+              return null;
+            }
+
+            if (!domainName && !hasMetrics) {
+              return null;
+            }
+
+            return normalized;
+          }).filter(function(entry) { return entry !== null; });
+
+          const payload = {};
+          if (domains.length) {
+            payload.domains = domains;
+          }
+          if (removedAdDomains.length) {
+            payload.removed_ad_domains = removedAdDomains;
+          }
+
+          return Object.keys(payload).length ? payload : null;
         }
 
         function renderFirewallSection(container, areaKey, modalId, mode) {
@@ -2603,6 +2780,12 @@
               },
             ],
           },
+          internal_endpoint: {
+            label: 'Endpoint',
+            workbookKey: 'endpoint',
+            renderer: 'endpoint',
+            serializer: serializeEndpointPayload,
+          },
           internal_iot_iomt: {
             label: 'IoT/IoMT Nexpose',
             workbookKey: 'iot_iomt_nexpose',
@@ -2978,6 +3161,9 @@
               ad: ensureAdState,
               password: ensurePasswordState,
             },
+            internal: {
+              endpoint: ensureEndpointState,
+            },
             firewall: {
               firewall_os: ensureFirewallState,
               firewall_configuration: ensureFirewallState,
@@ -3125,6 +3311,44 @@
             console.error(error);
             alert(error.message || 'Unable to upload the AD log.');
           });
+        };
+
+        const uploadEndpointLog = function(file, onParsed) {
+          if (!file) {
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            const content = (event && event.target && event.target.result) ? event.target.result.toString() : '';
+            const lines = content.split(/\r?\n/);
+            const parseLineValue = function(labelText) {
+              const matchLine = lines.find(function(line) {
+                return line.toLowerCase().includes(labelText);
+              });
+              if (!matchLine) {
+                return null;
+              }
+              const match = matchLine.match(/(-?[0-9,]+)\s*$/);
+              if (!match) {
+                return null;
+              }
+              const parsed = Number((match[1] || '').replace(/,/g, ''));
+              return Number.isNaN(parsed) ? null : parsed;
+            };
+
+            const parsedValues = {
+              total: parseLineValue('total computers:'),
+              audited: parseLineValue('accessed computers:'),
+            };
+
+            if (typeof onParsed === 'function') {
+              onParsed(parsedValues);
+            }
+          };
+          reader.onerror = function() {
+            alert('Unable to read the endpoint log file.');
+          };
+          reader.readAsText(file);
         };
 
         const removeAdCsv = function(domain, metric, areaKey, modalId) {
@@ -3940,6 +4164,227 @@
           renderPolicies();
         }
 
+        function renderEndpointDomains(target, areaKey, modalId) {
+          const endpointState = ensureEndpointState();
+          const adState = ensureAdState();
+          const domains = endpointState.domains;
+          const adDomainSet = new Set(
+            (Array.isArray(adState.domains) ? adState.domains : [])
+              .map(function(domain) { return (domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+          const removedSet = new Set(
+            (Array.isArray(endpointState.removed_ad_domains) ? endpointState.removed_ad_domains : [])
+              .map(function(name) { return (name || '').toString().trim().toLowerCase(); })
+              .filter(function(name) { return name; }),
+          );
+
+          target.innerHTML = '';
+
+          const addButton = document.createElement('button');
+          addButton.type = 'button';
+          addButton.className = 'btn btn-outline-primary mb-3';
+          addButton.textContent = 'Add new Domain';
+          addButton.addEventListener('click', function() {
+            domains.push(createEmptyEndpointDomain('', {metricsOpened: true}));
+            renderEndpointDomains(target, areaKey, modalId);
+            updateWorkbookCardProgress(areaKey);
+          });
+          target.appendChild(addButton);
+
+          const domainsContainer = document.createElement('div');
+          target.appendChild(domainsContainer);
+
+          const renderDomains = function() {
+            domainsContainer.innerHTML = '';
+            if (!domains.length) {
+              const empty = document.createElement('p');
+              empty.className = 'text-muted mb-3';
+              empty.textContent = 'No domains have been added yet.';
+              domainsContainer.appendChild(empty);
+            }
+
+            const removeFromRemovedSet = function(domainName) {
+              const lower = (domainName || '').toString().trim().toLowerCase();
+              if (removedSet.has(lower)) {
+                removedSet.delete(lower);
+                endpointState.removed_ad_domains = Array.from(removedSet);
+              }
+            };
+
+            domains.forEach(function(domain, index) {
+              const wrapper = document.createElement('div');
+              wrapper.className = 'border rounded p-3 mb-3';
+
+              const heading = document.createElement('div');
+              heading.className = 'd-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3';
+              const title = document.createElement('h6');
+              title.className = 'mb-2 mb-md-0';
+              title.textContent = 'Domain ' + (index + 1);
+              heading.appendChild(title);
+
+              const headingActions = document.createElement('div');
+              headingActions.className = 'd-flex align-items-center flex-wrap mt-2 mt-md-0';
+              const logUploadInput = document.createElement('input');
+              logUploadInput.type = 'file';
+              logUploadInput.accept = '.txt,.log,text/plain';
+              logUploadInput.className = 'd-none';
+              logUploadInput.addEventListener('change', function(event) {
+                if (event.target.files && event.target.files[0]) {
+                  const file = event.target.files[0];
+                  uploadEndpointLog(file, function(parsed) {
+                    if (parsed && typeof parsed.total !== 'undefined') {
+                      domain.total_computers = parsed.total;
+                    }
+                    if (parsed && typeof parsed.audited !== 'undefined') {
+                      domain.audited_computers = parsed.audited;
+                    }
+                    domain.__metrics_opened = true;
+                    renderEndpointDomains(target, areaKey, modalId);
+                    updateWorkbookCardProgress(areaKey);
+                  });
+                  event.target.value = '';
+                }
+              });
+              const logUploadButton = document.createElement('button');
+              logUploadButton.type = 'button';
+              logUploadButton.className = 'btn btn-outline-primary btn-sm';
+              logUploadButton.textContent = 'Upload Endpoint Log';
+              logUploadButton.addEventListener('click', function() { logUploadInput.click(); });
+              headingActions.appendChild(logUploadButton);
+              headingActions.appendChild(logUploadInput);
+              heading.appendChild(headingActions);
+              wrapper.appendChild(heading);
+
+              const domainGroup = document.createElement('div');
+              domainGroup.className = 'form-group';
+              const domainLabel = document.createElement('label');
+              domainLabel.className = 'font-weight-bold';
+              domainLabel.textContent = 'Domain Name';
+              const domainInput = document.createElement('input');
+              domainInput.type = 'text';
+              domainInput.className = 'form-control';
+              domainInput.setAttribute('data-area-field', areaKey);
+              domainInput.value = domain.domain || '';
+              const warning = document.createElement('div');
+              warning.className = 'alert alert-warning py-2 px-3 mt-2 mb-0';
+              warning.textContent = 'Domain entered does not match an existing IAM domain!';
+
+              const refreshWarning = function() {
+                const lower = (domainInput.value || '').toString().trim().toLowerCase();
+                if (lower && !adDomainSet.has(lower)) {
+                  warning.classList.remove('d-none');
+                } else {
+                  warning.classList.add('d-none');
+                }
+              };
+
+              domainInput.addEventListener('input', function() {
+                domain.domain = domainInput.value;
+                domain.__metrics_opened = true;
+                if (domain.__ad_placeholder) {
+                  domain.__ad_placeholder = false;
+                }
+                removeFromRemovedSet(domain.domain);
+                refreshWarning();
+                updateWorkbookCardProgress(areaKey);
+              });
+
+              refreshWarning();
+
+              domainGroup.appendChild(domainLabel);
+              domainGroup.appendChild(domainInput);
+              domainGroup.appendChild(warning);
+              wrapper.appendChild(domainGroup);
+
+              const makeNumberGroup = function(labelText, value, onChange) {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                const label = document.createElement('label');
+                label.className = 'font-weight-bold';
+                label.textContent = labelText;
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'form-control';
+                input.setAttribute('data-area-field', areaKey);
+                input.value = typeof value === 'number' ? value : '';
+                input.addEventListener('input', function() {
+                  const parsed = input.value === '' ? null : Number(input.value);
+                  onChange(Number.isNaN(parsed) ? null : parsed);
+                  domain.__metrics_opened = true;
+                  updateWorkbookCardProgress(areaKey);
+                });
+                group.appendChild(label);
+                group.appendChild(input);
+                return group;
+              };
+
+              wrapper.appendChild(
+                makeNumberGroup('Total Computers', domain.total_computers, function(value) { domain.total_computers = value; }),
+              );
+              wrapper.appendChild(
+                makeNumberGroup('Audited Computers', domain.audited_computers, function(value) { domain.audited_computers = value; }),
+              );
+              wrapper.appendChild(
+                makeNumberGroup('Systems with out-of-date protection', domain.systems_ood, function(value) { domain.systems_ood = value; }),
+              );
+              wrapper.appendChild(
+                makeNumberGroup('Connected to Open WiFi networks', domain.open_wifi, function(value) { domain.open_wifi = value; }),
+              );
+
+              const usbGroup = document.createElement('div');
+              usbGroup.className = 'form-group';
+              const usbLabel = document.createElement('label');
+              usbLabel.className = 'font-weight-bold';
+              usbLabel.textContent = 'Did the client indicate they had controls in place around USB device usage?';
+              const usbSelect = document.createElement('select');
+              usbSelect.className = 'form-control';
+              usbSelect.setAttribute('data-area-field', areaKey);
+              const placeholder = document.createElement('option');
+              placeholder.value = '';
+              placeholder.textContent = 'Select';
+              usbSelect.appendChild(placeholder);
+              ['Yes', 'No'].forEach(function(option) {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                if ((domain.usb_control_indication || '').toString() === option) {
+                  opt.selected = true;
+                }
+                usbSelect.appendChild(opt);
+              });
+              usbSelect.addEventListener('change', function() {
+                domain.usb_control_indication = usbSelect.value || null;
+                domain.__metrics_opened = true;
+                updateWorkbookCardProgress(areaKey);
+              });
+              usbGroup.appendChild(usbLabel);
+              usbGroup.appendChild(usbSelect);
+              wrapper.appendChild(usbGroup);
+
+              const removeButton = document.createElement('button');
+              removeButton.type = 'button';
+              removeButton.className = 'btn btn-outline-danger';
+              removeButton.textContent = 'Remove Domain';
+              removeButton.addEventListener('click', function() {
+                const name = (domain.domain || '').toString().trim().toLowerCase();
+                if (name && adDomainSet.has(name)) {
+                  removedSet.add(name);
+                  endpointState.removed_ad_domains = Array.from(removedSet);
+                }
+                domains.splice(index, 1);
+                renderEndpointDomains(target, areaKey, modalId);
+                updateWorkbookCardProgress(areaKey);
+              });
+              wrapper.appendChild(removeButton);
+
+              domainsContainer.appendChild(wrapper);
+            });
+          };
+
+          renderDomains();
+        }
+
         function renderAdDomains(target, areaKey, modalId) {
           const adState = ensureAdState();
           const domains = adState.domains;
@@ -4658,6 +5103,8 @@
                 renderFirewallSection(subBody, areaKey, modalId, 'os');
               } else if (config && config.renderer === 'firewall_configuration') {
                 renderFirewallSection(subBody, areaKey, modalId, 'configuration');
+              } else if (config && config.renderer === 'endpoint') {
+                renderEndpointDomains(subBody, areaKey, modalId);
               } else if (config && config.renderer === 'ad') {
                 renderAdDomains(subBody, areaKey, modalId);
               } else if (config && config.renderer === 'password') {
