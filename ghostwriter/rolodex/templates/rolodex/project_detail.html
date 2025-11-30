@@ -1862,6 +1862,14 @@
 
         function serializePasswordPayload() {
           const passwordState = ensurePasswordState();
+          const adState = ensureAdState();
+          const adDomainMap = {};
+          (Array.isArray(adState.domains) ? adState.domains : []).forEach(function(entry) {
+            const name = (entry && (entry.domain || entry.name)) ? (entry.domain || entry.name).toString().trim().toLowerCase() : '';
+            if (name) {
+              adDomainMap[name] = entry;
+            }
+          });
           const removedAdDomains = Array.isArray(passwordState.removed_ad_domains)
             ? passwordState.removed_ad_domains
                 .map(function(name) { return (name || '').toString().trim(); })
@@ -1920,6 +1928,25 @@
             });
           };
 
+          const computeAdStrongPasswords = function(adEntry, policy) {
+            if (!adEntry) {
+              return null;
+            }
+
+            const totalAccounts = normalizeNumber(adEntry.total_accounts);
+            if (totalAccounts === null) {
+              return null;
+            }
+
+            const crackedValue = normalizeNumber(
+              policy && Object.prototype.hasOwnProperty.call(policy, 'passwords_cracked')
+                ? policy.passwords_cracked
+                : null,
+            );
+            const crackedCount = crackedValue === null ? 0 : crackedValue;
+            return Math.max(totalAccounts - crackedCount, 0);
+          };
+
           const policies = [];
           (passwordState.policies || []).forEach(function(policy) {
             const pattern = policy && policy.password_pattern ? policy.password_pattern : {};
@@ -1972,8 +1999,81 @@
               fgpp: fgppEntries(policy.fgpp),
             };
 
-            const allowPlaceholder = policy.__metrics_opened && passwordPolicyHasContent(policy);
-            if (!policy.__ad_placeholder || allowPlaceholder) {
+            const domainName = (policy.domain_name || '').toString().trim();
+            const lowerDomain = domainName.toLowerCase();
+            const adEntry = lowerDomain ? adDomainMap[lowerDomain] : null;
+
+            const hasNonStrongContent = (function() {
+              const primaryValues = [
+                policy.max_age,
+                policy.min_age,
+                policy.min_length,
+                policy.history,
+                policy.lockout_threshold,
+                policy.lockout_reset,
+                policy.lockout_duration,
+                policy.complexity_enabled,
+                policy.mfa_required,
+                policy.passwords_cracked,
+                policy.enabled_accounts,
+                policy.lanman_stored,
+                patternConfirm,
+                adminConfirm,
+                adminCount,
+              ];
+
+              const hasValue = function(value) {
+                if (value === null || typeof value === 'undefined') {
+                  return false;
+                }
+                if (typeof value === 'number' && !Number.isNaN(value)) {
+                  return true;
+                }
+                if (typeof value === 'boolean') {
+                  return true;
+                }
+                if (typeof value === 'string') {
+                  return value.trim() !== '';
+                }
+                if (Array.isArray(value)) {
+                  return value.some(hasValue);
+                }
+                if (typeof value === 'object') {
+                  return Object.values(value).some(hasValue);
+                }
+                return false;
+              };
+
+              if (primaryValues.some(hasValue)) {
+                return true;
+              }
+
+              if (Array.isArray(patternPasswords) && patternPasswords.length) {
+                return true;
+              }
+
+              if (Array.isArray(policy.fgpp) && policy.fgpp.some(hasValue)) {
+                return true;
+              }
+
+              return false;
+            })();
+
+            const strongPasswordsDefault = computeAdStrongPasswords(adEntry, policy);
+            const strongValue = normalizeNumber(policy.strong_passwords);
+            const hasCustomStrong = strongPasswordsDefault === null
+              ? strongValue !== null
+              : strongValue !== null && strongValue !== strongPasswordsDefault;
+
+            const hasUserMetrics = adEntry
+              ? hasNonStrongContent || hasCustomStrong
+              : passwordPolicyHasContent(policy);
+            const allowPlaceholder = policy.__metrics_opened && hasUserMetrics;
+
+            if (adEntry && !allowPlaceholder && !hasUserMetrics) {
+              return;
+            }
+            if (!policy.__ad_placeholder || allowPlaceholder || (adEntry && hasUserMetrics)) {
               policies.push(serializedPolicy);
             }
           });
