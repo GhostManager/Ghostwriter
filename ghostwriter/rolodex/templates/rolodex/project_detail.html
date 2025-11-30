@@ -1956,6 +1956,10 @@
               ? normalizeNumber(policy.admin_cracked && policy.admin_cracked.count)
               : null;
 
+            if (policy && policy.__ad_placeholder && !policy.__metrics_opened) {
+              return;
+            }
+
             const shouldIncludeStrongPasswords = (
               !policy.__ad_placeholder
               || policy.__ad_strong_default !== policy.strong_passwords
