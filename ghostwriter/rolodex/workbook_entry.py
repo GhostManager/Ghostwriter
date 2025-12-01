@@ -484,7 +484,18 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                     if usb_value:
                         domain_entry["usb_control_indication"] = usb_value
 
-                if domain_entry:
+                has_metrics = any(
+                    domain_entry.get(key) not in (None, "")
+                    for key in (
+                        "total_computers",
+                        "audited_computers",
+                        "systems_ood",
+                        "open_wifi",
+                        "usb_control_indication",
+                    )
+                )
+
+                if domain_entry and (domain_entry.get("domain") or has_metrics) and has_metrics:
                     normalized_domains.append(domain_entry)
 
         removed_domains_raw = payload.get("removed_ad_domains")

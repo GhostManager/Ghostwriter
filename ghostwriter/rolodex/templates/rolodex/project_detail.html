@@ -1750,6 +1750,19 @@
               .filter(function(name) { return name; }),
           );
 
+          const hasDomainMetrics = function(domain) {
+            const metrics = [
+              domain && domain.total_computers,
+              domain && domain.audited_computers,
+              domain && domain.systems_ood,
+              domain && domain.open_wifi,
+            ];
+            if (metrics.some(function(value) { return value !== null && typeof value !== 'undefined'; })) {
+              return true;
+            }
+            return Boolean(domain && domain.usb_control_indication);
+          };
+
           const removedAdDomains = Array.isArray(endpointState.removed_ad_domains)
             ? endpointState.removed_ad_domains
                 .map(function(name) { return (name || '').toString().trim(); })
@@ -1760,8 +1773,10 @@
 
           endpointState.domains = (endpointState.domains || [])
             .map(function(domain) {
+              const domainName = domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString() : '';
+              const lowerDomain = domainName.toLowerCase();
               const resolvedDomain = createEmptyEndpointDomain(
-                domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString() : '',
+                domainName,
                 {
                   total_computers: normalizeNumber(domain && domain.total_computers),
                   audited_computers: normalizeNumber(domain && domain.audited_computers),
@@ -1774,6 +1789,12 @@
                     : true,
                 },
               );
+
+              const isAdDomain = lowerDomain && adDomainSet.has(lowerDomain);
+              if (isAdDomain && !resolvedDomain.__ad_placeholder && !hasDomainMetrics(resolvedDomain)) {
+                resolvedDomain.__ad_placeholder = true;
+                resolvedDomain.__metrics_opened = false;
+              }
               return resolvedDomain;
             })
             .filter(function(domain) {
@@ -2251,8 +2272,10 @@
 
             const hasMetrics = hasContent(normalized);
             const lowerDomain = domainName.toLowerCase();
-            const isPlaceholder = Boolean(domain.__ad_placeholder) && adDomainSet.has(lowerDomain);
-            if (isPlaceholder && !hasMetrics) {
+            const isAdDomain = adDomainSet.has(lowerDomain);
+            const allowPlaceholder = domain.__metrics_opened && hasMetrics;
+
+            if (isAdDomain && !allowPlaceholder) {
               return null;
             }
 
