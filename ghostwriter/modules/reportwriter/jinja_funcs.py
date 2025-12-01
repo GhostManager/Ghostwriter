@@ -322,7 +322,7 @@ def filter_bhe_findings_by_domain(findings, domain_sid):
         for finding in findings:
             if finding.get("environment_id", "").lower() == domain_sid.lower():
                 filtered_values.append(finding)
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, AttributeError):
         logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
         raise InvalidFilterValue(
             "Invalid list of findings passed into `filter_bhe_findings_by_domain()` filter; must be the `{{ findings }}` object"

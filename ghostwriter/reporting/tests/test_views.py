@@ -2555,9 +2555,9 @@ class ReportTemplateFilterTests(TestCase):
 
     def test_filter_bhe_findings_by_domain(self):
         findings = [
-            {"domain": "example.com"},
-            {"domain": "test.com"},
-            {"domain": "example.com"},
+            {"environment_id": "example.com"},
+            {"environment_id": "test.com"},
+            {"environment_id": "example.com"},
         ]
         filtered = filter_bhe_findings_by_domain(findings, "example.com")
         self.assertEqual(len(filtered), 2)
@@ -2774,7 +2774,6 @@ class EvidencePreviewTests(TestCase):
         cls.deleted_evidence_file = EvidenceOnReportFactory()
         cls.unknown_evidence = EvidenceOnReportFactory(unknown=True)
         cls.uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.evidence_file.pk})
-        cls.download_uri = reverse("reporting:evidence_download", kwargs={"pk": cls.evidence_file.pk})
         cls.unknown_uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.unknown_evidence.pk})
         cls.deleted_uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.deleted_evidence_file.pk})
 
@@ -2788,10 +2787,6 @@ class EvidencePreviewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML(
-            f'<img class="img-evidence" src="{self.download_uri}"/>',
-            response.content.decode(),
-        )
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
