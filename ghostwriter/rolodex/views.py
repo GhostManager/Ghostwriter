@@ -3135,114 +3135,34 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             if "endpoint_csv" in request.FILES:
                 return self._handle_endpoint_csv_upload(request, project)
 
-            upload = request.FILES.get("osint_csv")
-            if not upload:
-                return JsonResponse({"error": "No OSINT CSV provided."}, status=400)
+            if "osint_csv" in request.FILES:
+                upload = request.FILES.get("osint_csv")
+                if not upload:
+                    return JsonResponse({"error": "No OSINT CSV provided."}, status=400)
 
-            rows, metrics, error_message = self._parse_osint_csv(upload)
-            if error_message:
-                return JsonResponse({"error": error_message}, status=400)
+                rows, metrics, error_message = self._parse_osint_csv(upload)
+                if error_message:
+                    return JsonResponse({"error": error_message}, status=400)
 
-            workbook_payload = build_workbook_entry_payload(
-                project=project,
-                areas={"osint": metrics or {}},
-            )
-            artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
-            artifacts = dict(artifacts)
-            if rows is not None:
-                artifacts["osint"] = rows
-                artifacts["osint_file_name"] = upload.name
-            project.workbook_data = workbook_payload
-            project.data_artifacts = artifacts
-            project.save(update_fields=["workbook_data", "data_artifacts"])
+                workbook_payload = build_workbook_entry_payload(
+                    project=project,
+                    areas={"osint": metrics or {}},
+                )
+                artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+                artifacts = dict(artifacts)
+                if rows is not None:
+                    artifacts["osint"] = rows
+                    artifacts["osint_file_name"] = upload.name
+                project.workbook_data = workbook_payload
+                project.data_artifacts = artifacts
+                project.save(update_fields=["workbook_data", "data_artifacts"])
 
-            return JsonResponse(
-                {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
-            )
-        return JsonResponse({"error": "Unsupported upload type."}, status=400)
+                return JsonResponse(
+                    {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
+                )
 
-    def _handle_endpoint_csv_upload(self, request, project):
-        upload = request.FILES.get("endpoint_csv")
-        if not upload:
-            return JsonResponse({"error": "No Endpoint CSV provided."}, status=400)
+            return JsonResponse({"error": "Unsupported upload type."}, status=400)
 
-        domain = (request.POST.get("domain") or "").strip()
-        if not domain:
-            return JsonResponse({"error": "A domain name is required for this upload."}, status=400)
-
-        computers, systems_ood, wifi_count, error_message = self._parse_endpoint_csv(upload)
-        if error_message:
-            return JsonResponse({"error": error_message}, status=400)
-
-        artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
-        artifacts = dict(artifacts)
-        endpoint_artifacts = artifacts.get("endpoint") if isinstance(artifacts.get("endpoint"), dict) else {}
-        if not isinstance(endpoint_artifacts, dict):
-            endpoint_artifacts = {}
-        domain_records = (
-            endpoint_artifacts.get("domains") if isinstance(endpoint_artifacts.get("domains"), list) else []
-        )
-        if not isinstance(domain_records, list):
-            domain_records = []
-
-        match = None
-        domain_key = domain.lower()
-        for record in domain_records:
-            if not isinstance(record, dict):
-                continue
-            record_domain = (record.get("domain") or record.get("name") or "").strip()
-            if record_domain.lower() == domain_key:
-                match = record
-                break
-
-        if match is None:
-            match = {"domain": domain}
-            domain_records.append(match)
-
-        match["domain"] = domain
-        match["computers"] = computers or []
-        match["file_name"] = upload.name
-
-        endpoint_artifacts["domains"] = domain_records
-        artifacts["endpoint"] = endpoint_artifacts
-
-        normalized_workbook = normalize_workbook_payload(project.workbook_data)
-        endpoint_state = (
-            normalized_workbook.get("endpoint") if isinstance(normalized_workbook.get("endpoint"), dict) else {}
-        )
-        if not isinstance(endpoint_state, dict):
-            endpoint_state = {}
-        endpoint_domains = endpoint_state.get("domains") if isinstance(endpoint_state.get("domains"), list) else []
-        if not isinstance(endpoint_domains, list):
-            endpoint_domains = []
-
-        endpoint_match = None
-        for record in endpoint_domains:
-            if not isinstance(record, dict):
-                continue
-            record_domain = (record.get("domain") or record.get("name") or "").strip()
-            if record_domain.lower() == domain_key:
-                endpoint_match = record
-                break
-
-        if endpoint_match is None:
-            endpoint_match = {"domain": domain}
-            endpoint_domains.append(endpoint_match)
-
-        endpoint_match["domain"] = domain
-        if systems_ood is not None:
-            endpoint_match["systems_ood"] = systems_ood
-        if wifi_count is not None:
-            endpoint_match["open_wifi"] = wifi_count
-
-        endpoint_state["domains"] = endpoint_domains
-
-        workbook_payload = build_workbook_entry_payload(project=project, areas={"endpoint": endpoint_state})
-        project.workbook_data = workbook_payload
-        project.data_artifacts = artifacts
-        project.save(update_fields=["workbook_data", "data_artifacts"])
-
-        return JsonResponse({"workbook_data": workbook_payload, "data_artifacts": artifacts})
         try:
             payload = json.loads(request.body.decode("utf-8")) if request.body else {}
         except json.JSONDecodeError:
@@ -3676,7 +3596,88 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
 
         return JsonResponse({"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts})
 
+    def _handle_endpoint_csv_upload(self, request, project):
+        upload = request.FILES.get("endpoint_csv")
+        if not upload:
+            return JsonResponse({"error": "No Endpoint CSV provided."}, status=400)
 
+        domain = (request.POST.get("domain") or "").strip()
+        if not domain:
+            return JsonResponse({"error": "A domain name is required for this upload."}, status=400)
+
+        computers, systems_ood, wifi_count, error_message = self._parse_endpoint_csv(upload)
+        if error_message:
+            return JsonResponse({"error": error_message}, status=400)
+
+        artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+        artifacts = dict(artifacts)
+        endpoint_artifacts = artifacts.get("endpoint") if isinstance(artifacts.get("endpoint"), dict) else {}
+        if not isinstance(endpoint_artifacts, dict):
+            endpoint_artifacts = {}
+        domain_records = (
+            endpoint_artifacts.get("domains") if isinstance(endpoint_artifacts.get("domains"), list) else []
+        )
+        if not isinstance(domain_records, list):
+            domain_records = []
+
+        match = None
+        domain_key = domain.lower()
+        for record in domain_records:
+            if not isinstance(record, dict):
+                continue
+            record_domain = (record.get("domain") or record.get("name") or "").strip()
+            if record_domain.lower() == domain_key:
+                match = record
+                break
+
+        if match is None:
+            match = {"domain": domain}
+            domain_records.append(match)
+
+        match["domain"] = domain
+        match["computers"] = computers or []
+        match["file_name"] = upload.name
+
+        endpoint_artifacts["domains"] = domain_records
+        artifacts["endpoint"] = endpoint_artifacts
+
+        normalized_workbook = normalize_workbook_payload(project.workbook_data)
+        endpoint_state = (
+            normalized_workbook.get("endpoint") if isinstance(normalized_workbook.get("endpoint"), dict) else {}
+        )
+        if not isinstance(endpoint_state, dict):
+            endpoint_state = {}
+        endpoint_domains = endpoint_state.get("domains") if isinstance(endpoint_state.get("domains"), list) else []
+        if not isinstance(endpoint_domains, list):
+            endpoint_domains = []
+
+        endpoint_match = None
+        for record in endpoint_domains:
+            if not isinstance(record, dict):
+                continue
+            record_domain = (record.get("domain") or record.get("name") or "").strip()
+            if record_domain.lower() == domain_key:
+                endpoint_match = record
+                break
+
+        if endpoint_match is None:
+            endpoint_match = {"domain": domain}
+            endpoint_domains.append(endpoint_match)
+
+        endpoint_match["domain"] = domain
+        if systems_ood is not None:
+            endpoint_match["systems_ood"] = systems_ood
+        if wifi_count is not None:
+            endpoint_match["open_wifi"] = wifi_count
+
+        endpoint_state["domains"] = endpoint_domains
+
+        workbook_payload = build_workbook_entry_payload(project=project, areas={"endpoint": endpoint_state})
+        project.workbook_data = workbook_payload
+        project.data_artifacts = artifacts
+        project.save(update_fields=["workbook_data", "data_artifacts"])
+
+        return JsonResponse({"workbook_data": workbook_payload, "data_artifacts": artifacts})
 class ProjectDataFileUpload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Upload supporting data files for a project."""
 
