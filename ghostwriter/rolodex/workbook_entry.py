@@ -743,6 +743,29 @@ def build_workbook_entry_payload(
             elif "removed_ad_domains" in password_state:
                 password_state.pop("removed_ad_domains", None)
 
+    endpoint_state = (
+        normalized_workbook.get("endpoint")
+        if isinstance(normalized_workbook.get("endpoint"), Mapping)
+        else None
+    )
+    if isinstance(endpoint_state, Mapping):
+        removed_domains = endpoint_state.get("removed_ad_domains")
+        if isinstance(removed_domains, list):
+            filtered_removed = []
+            seen_removed: set[str] = set()
+            for entry in removed_domains:
+                name = (entry or "").strip()
+                lowered = name.lower()
+                if not name or lowered in seen_removed:
+                    continue
+                seen_removed.add(lowered)
+                if lowered in ad_domains:
+                    filtered_removed.append(name)
+            if filtered_removed:
+                endpoint_state["removed_ad_domains"] = filtered_removed
+            elif "removed_ad_domains" in endpoint_state:
+                endpoint_state.pop("removed_ad_domains", None)
+
     score_updates: MutableMapping[str, MutableMapping[str, Any]] = {}
     category_scores: Dict[str, Optional[Decimal]] = {}
     if isinstance(scores, Mapping):

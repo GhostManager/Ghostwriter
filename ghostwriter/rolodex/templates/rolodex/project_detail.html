@@ -1754,6 +1754,7 @@
             ? endpointState.removed_ad_domains
                 .map(function(name) { return (name || '').toString().trim(); })
                 .filter(function(name) { return name; })
+                .filter(function(name) { return adDomainSet.has(name.toLowerCase()); })
             : [];
           const removedSet = new Set(removedAdDomains.map(function(name) { return name.toLowerCase(); }));
 
