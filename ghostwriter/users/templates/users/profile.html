@@ -124,7 +124,7 @@
             <tr id="assignment_{{ assignment.id }}">
               <td class="align-middle text-left"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a>
               <td class="align-middle text-left">{{ assignment.role }}</td>
-              <td class="align-middle text-left">{{ assignment.start_date|date:"d M Y" }} – {{ assignment.end_date|date:"d M Y" }}</td>
+              <td class="align-middle text-left" data-text="{{ assignment.start_date|date:"Y-m-d" }}">{{ assignment.start_date|date:"DATE_FORMAT" }} – {{ assignment.end_date|date:"DATE_FORMAT" }}</td>
             </tr>
           {% endif %}
         {% endfor %}

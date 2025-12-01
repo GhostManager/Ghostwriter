@@ -52,6 +52,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The sections will remain visible for any existing projects with content in the notes
   * New projects will not see the notes section
 
+## [6.0.6] - 20 November 2025
+
+### Changed
+
+* Updated the pre-built Ghostwriter CLI binaries to v0.3.0
+
+### Fixed
+
+* Fixed tables not using the full width in Word documents (PR #742)
+  * Adjusted table width from `auto` to `pct` (percentage) and 100%
+* Fixed text alignment set in content edited with the old TinyMCE editor not being applied in Word documents (PR #743)
+
 ## [6.0.5] - 16 October 2025
 
 ### Added

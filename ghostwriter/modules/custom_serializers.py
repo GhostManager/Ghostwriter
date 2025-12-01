@@ -242,6 +242,7 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
     extra_fields = ExtraFieldsSerField(Finding._meta.label)
     cvss_data = SerializerMethodField("get_cvss_data")
+    cvss_score = SerializerMethodField("get_cvss_score")
     tags = TagListSerializerField()
 
     # Include a copy of the ``mitigation`` field as ``recommendation`` to match legacy JSON output
@@ -277,6 +278,13 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
 
     def get_cvss_data(self, obj):
         return obj.cvss_data
+
+    def get_cvss_score(self, obj):
+        # If the score is empty, return `0.0` to ensure the value is always a float value
+        if obj.cvss_score in ("", None):
+            return 0.0
+        return obj.cvss_score
+
 
 
 class ObservationLinkSerializer(TaggitSerializer, CustomModelSerializer):

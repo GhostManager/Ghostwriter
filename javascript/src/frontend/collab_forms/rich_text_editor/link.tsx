@@ -70,7 +70,7 @@ export default function LinkButton({ editor }: { editor: Editor }) {
                             <label htmlFor={urlId}>URL</label>
                             <input
                                 id={urlId}
-                                type="url"
+                                type="text"
                                 className="form-control"
                                 value={formUrl}
                                 autoFocus

@@ -174,9 +174,9 @@
                   </a>
                 </td>
                 <td class="align-middle text-left">{{ operator.role }}</td>
-                <td class="align-middle text-left">{{ operator.start_date|date:"d M Y" }} –
-                  <br/> {{ operator.end_date|date:"d M Y" }}</td>
-                <td class="text-justify align-middle text-left">{{ operator.description|bleach }}</td>
+                <td class="align-middle text-left" data-text="{{ operator.start_date|date:"Y-m-d" }}">{{ operator.start_date|date:"DATE_FORMAT" }} –
+                  <br/> {{ operator.end_date|date:"DATE_FORMAT" }}</td>
+                <td class="text-justify align-middle text-left">{{ operator.note|bleach }}</td>
                 {% if request.user|is_privileged %}
                   <td class="align-middle">
                     <div class="d-flex justify-content-center">
@@ -721,7 +721,7 @@
                                     </span>
                 </td>
                 <td class="align-middle text-left">{{ domain.activity_type }}</td>
-                <td class="align-middle text-left">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}
+                <td class="align-middle text-left" data-text="{{ domain.start_date|date:"Y-m-d" }}">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}
                 </td>
                 <td class="align-middle text-left">{{ domain.operator }}</td>
 
