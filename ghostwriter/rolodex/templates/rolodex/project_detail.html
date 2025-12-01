@@ -1720,6 +1720,8 @@
             systems_ood: null,
             open_wifi: null,
             usb_control_indication: null,
+            csv_file_name: providedOptions.csv_file_name || '',
+            log_file_name: providedOptions.log_file_name || '',
             __ad_placeholder: Boolean(providedOptions.adPlaceholder),
             __metrics_opened: metricsOpened,
           }, providedOptions);
@@ -1750,6 +1752,22 @@
               .filter(function(name) { return name; }),
           );
 
+          const endpointArtifacts = dataArtifactsState.endpoint;
+          const endpointArtifactMap = new Map();
+          if (endpointArtifacts && typeof endpointArtifacts === 'object') {
+            const endpointDomains = Array.isArray(endpointArtifacts.domains) ? endpointArtifacts.domains : [];
+            endpointDomains.forEach(function(entry) {
+              if (!entry || typeof entry !== 'object') {
+                return;
+              }
+              const name = (entry.domain || entry.name || '').toString().trim().toLowerCase();
+              if (!name) {
+                return;
+              }
+              endpointArtifactMap.set(name, entry);
+            });
+          }
+
           const hasDomainMetrics = function(domain) {
             const metrics = [
               domain && domain.total_computers,
@@ -1775,6 +1793,8 @@
             .map(function(domain) {
               const domainName = domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString() : '';
               const lowerDomain = domainName.toLowerCase();
+              const artifact = endpointArtifactMap.get(lowerDomain);
+
               const resolvedDomain = createEmptyEndpointDomain(
                 domainName,
                 {
@@ -1783,6 +1803,8 @@
                   systems_ood: normalizeNumber(domain && domain.systems_ood),
                   open_wifi: normalizeNumber(domain && domain.open_wifi),
                   usb_control_indication: normalizeYesNo(domain && domain.usb_control_indication),
+                  csv_file_name: (domain && domain.csv_file_name) || (artifact && artifact.file_name) || '',
+                  log_file_name: (domain && domain.log_file_name) || (artifact && artifact.log_file_name) || '',
                   adPlaceholder: Boolean(domain && domain.__ad_placeholder),
                   metricsOpened: Object.prototype.hasOwnProperty.call(domain || {}, '__metrics_opened')
                     ? Boolean(domain && domain.__metrics_opened)
@@ -2269,6 +2291,15 @@
               open_wifi: normalizeNumber(domain.open_wifi),
               usb_control_indication: normalizeYesNo(domain.usb_control_indication),
             };
+
+            const csvFileName = (domain.csv_file_name || '').toString().trim();
+            const logFileName = (domain.log_file_name || '').toString().trim();
+            if (csvFileName) {
+              normalized.csv_file_name = csvFileName;
+            }
+            if (logFileName) {
+              normalized.log_file_name = logFileName;
+            }
 
             const hasMetrics = hasContent(normalized);
             const lowerDomain = domainName.toLowerCase();
@@ -4379,17 +4410,32 @@
                   if (event.target.files && event.target.files[0]) {
                     const file = event.target.files[0];
                     const domainName = domain.domain || '';
+                    domain.csv_file_name = file.name || '';
                     uploadEndpointCsv(file, domainName, areaKey, modalId);
                     event.target.value = '';
                   }
                 });
+
+                const csvButtonWrap = document.createElement('div');
+                csvButtonWrap.className = 'd-flex flex-column mr-2';
 
                 const endpointCsvButton = document.createElement('button');
                 endpointCsvButton.type = 'button';
                 endpointCsvButton.className = 'btn btn-outline-primary btn-sm mr-2';
                 endpointCsvButton.textContent = 'Upload Endpoint CSV';
                 endpointCsvButton.addEventListener('click', function() { endpointCsvInput.click(); });
-                headingActions.appendChild(endpointCsvButton);
+                const csvFileLabel = document.createElement('small');
+                csvFileLabel.className = 'text-muted mt-1';
+                const refreshCsvFileLabel = function() {
+                  const name = (domain.csv_file_name || '').toString().trim();
+                  csvFileLabel.textContent = name ? 'Uploaded: ' + name : '';
+                };
+                refreshCsvFileLabel();
+
+                csvButtonWrap.appendChild(endpointCsvButton);
+                csvButtonWrap.appendChild(csvFileLabel);
+
+                headingActions.appendChild(csvButtonWrap);
                 headingActions.appendChild(endpointCsvInput);
 
                 const logUploadInput = document.createElement('input');
@@ -4399,6 +4445,7 @@
                 logUploadInput.addEventListener('change', function(event) {
                   if (event.target.files && event.target.files[0]) {
                     const file = event.target.files[0];
+                    domain.log_file_name = file.name || '';
                     uploadEndpointLog(file, domain.domain || '', areaKey, modalId, function(parsed) {
                       if (parsed && typeof parsed.total !== 'undefined') {
                         domain.total_computers = parsed.total;
@@ -4413,12 +4460,25 @@
                     event.target.value = '';
                   }
                 });
+                const logButtonWrap = document.createElement('div');
+                logButtonWrap.className = 'd-flex flex-column';
                 const logUploadButton = document.createElement('button');
                 logUploadButton.type = 'button';
                 logUploadButton.className = 'btn btn-outline-primary btn-sm';
                 logUploadButton.textContent = 'Upload Endpoint Log';
                 logUploadButton.addEventListener('click', function() { logUploadInput.click(); });
-                headingActions.appendChild(logUploadButton);
+                const logFileLabel = document.createElement('small');
+                logFileLabel.className = 'text-muted mt-1';
+                const refreshLogFileLabel = function() {
+                  const name = (domain.log_file_name || '').toString().trim();
+                  logFileLabel.textContent = name ? 'Uploaded: ' + name : '';
+                };
+                refreshLogFileLabel();
+
+                logButtonWrap.appendChild(logUploadButton);
+                logButtonWrap.appendChild(logFileLabel);
+
+                headingActions.appendChild(logButtonWrap);
                 headingActions.appendChild(logUploadInput);
               }
 

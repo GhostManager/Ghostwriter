@@ -472,6 +472,15 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                 domain_text = str(domain_value).strip() if domain_value not in (None, "") else ""
                 if domain_text:
                     domain_entry["domain"] = domain_text
+                for field in ("csv_file_name", "log_file_name"):
+                    if field in domain_payload:
+                        text = (
+                            str(domain_payload.get(field)).strip()
+                            if domain_payload.get(field) not in (None, "")
+                            else ""
+                        )
+                        if text:
+                            domain_entry[field] = text
                 for field in (
                     "total_computers",
                     "audited_computers",
