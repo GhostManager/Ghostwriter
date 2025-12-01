@@ -3368,7 +3368,8 @@
             }
 
             if (areaKey && modalId) {
-              submitWorkbookUpdate({endpoint: serializeEndpointPayload()}, null, {
+              const endpointPayload = serializeEndpointPayload();
+              submitWorkbookUpdate({ areas: { endpoint: endpointPayload } }, null, {
                 reopenModalId: modalId,
                 forceCloseModalId: modalId,
                 afterRender: function() { updateWorkbookCardProgress(areaKey); },
