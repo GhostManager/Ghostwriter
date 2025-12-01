@@ -3335,7 +3335,7 @@
           });
         };
 
-        const uploadEndpointLog = function(file, onParsed) {
+        const uploadEndpointLog = function(file, domain, areaKey, modalId, onParsed) {
           if (!file) {
             return;
           }
@@ -3365,6 +3365,14 @@
 
             if (typeof onParsed === 'function') {
               onParsed(parsedValues);
+            }
+
+            if (areaKey && modalId) {
+              submitWorkbookUpdate({endpoint: serializeEndpointPayload()}, null, {
+                reopenModalId: modalId,
+                forceCloseModalId: modalId,
+                afterRender: function() { updateWorkbookCardProgress(areaKey); },
+              });
             }
           };
           reader.onerror = function() {
@@ -4312,56 +4320,6 @@
               const headingActions = document.createElement('div');
               headingActions.className = 'd-flex align-items-center flex-wrap mt-2 mt-md-0';
 
-              const endpointCsvInput = document.createElement('input');
-              endpointCsvInput.type = 'file';
-              endpointCsvInput.accept = '.csv,text/csv';
-              endpointCsvInput.className = 'd-none';
-              endpointCsvInput.addEventListener('change', function(event) {
-                if (event.target.files && event.target.files[0]) {
-                  const file = event.target.files[0];
-                  const domainName = domain.domain || '';
-                  uploadEndpointCsv(file, domainName, areaKey, modalId);
-                  event.target.value = '';
-                }
-              });
-
-              const endpointCsvButton = document.createElement('button');
-              endpointCsvButton.type = 'button';
-              endpointCsvButton.className = 'btn btn-outline-primary btn-sm mr-2';
-              endpointCsvButton.textContent = 'Upload Endpoint CSV';
-              endpointCsvButton.addEventListener('click', function() { endpointCsvInput.click(); });
-              headingActions.appendChild(endpointCsvButton);
-              headingActions.appendChild(endpointCsvInput);
-
-              const logUploadInput = document.createElement('input');
-              logUploadInput.type = 'file';
-              logUploadInput.accept = '.txt,.log,text/plain';
-              logUploadInput.className = 'd-none';
-              logUploadInput.addEventListener('change', function(event) {
-                if (event.target.files && event.target.files[0]) {
-                  const file = event.target.files[0];
-                  uploadEndpointLog(file, function(parsed) {
-                    if (parsed && typeof parsed.total !== 'undefined') {
-                      domain.total_computers = parsed.total;
-                    }
-                    if (parsed && typeof parsed.audited !== 'undefined') {
-                      domain.audited_computers = parsed.audited;
-                    }
-                    domain.__metrics_opened = true;
-                    renderEndpointDomains(target, areaKey, modalId);
-                    updateWorkbookCardProgress(areaKey);
-                  });
-                  event.target.value = '';
-                }
-              });
-              const logUploadButton = document.createElement('button');
-              logUploadButton.type = 'button';
-              logUploadButton.className = 'btn btn-outline-primary btn-sm';
-              logUploadButton.textContent = 'Upload Endpoint Log';
-              logUploadButton.addEventListener('click', function() { logUploadInput.click(); });
-              headingActions.appendChild(logUploadButton);
-              headingActions.appendChild(logUploadInput);
-
               const showCollapsedPlaceholder = domain.__ad_placeholder
                 && !domain.__metrics_opened
                 && !hasDomainMetrics(domain);
@@ -4408,6 +4366,59 @@
                 wrapper.appendChild(document.createElement('hr'));
                 domainsContainer.appendChild(wrapper);
                 return;
+              }
+
+              const allowUploads = Boolean(domain.__metrics_opened);
+              if (allowUploads) {
+                const endpointCsvInput = document.createElement('input');
+                endpointCsvInput.type = 'file';
+                endpointCsvInput.accept = '.csv,text/csv';
+                endpointCsvInput.className = 'd-none';
+                endpointCsvInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    const file = event.target.files[0];
+                    const domainName = domain.domain || '';
+                    uploadEndpointCsv(file, domainName, areaKey, modalId);
+                    event.target.value = '';
+                  }
+                });
+
+                const endpointCsvButton = document.createElement('button');
+                endpointCsvButton.type = 'button';
+                endpointCsvButton.className = 'btn btn-outline-primary btn-sm mr-2';
+                endpointCsvButton.textContent = 'Upload Endpoint CSV';
+                endpointCsvButton.addEventListener('click', function() { endpointCsvInput.click(); });
+                headingActions.appendChild(endpointCsvButton);
+                headingActions.appendChild(endpointCsvInput);
+
+                const logUploadInput = document.createElement('input');
+                logUploadInput.type = 'file';
+                logUploadInput.accept = '.txt,.log,text/plain';
+                logUploadInput.className = 'd-none';
+                logUploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    const file = event.target.files[0];
+                    uploadEndpointLog(file, domain.domain || '', areaKey, modalId, function(parsed) {
+                      if (parsed && typeof parsed.total !== 'undefined') {
+                        domain.total_computers = parsed.total;
+                      }
+                      if (parsed && typeof parsed.audited !== 'undefined') {
+                        domain.audited_computers = parsed.audited;
+                      }
+                      domain.__metrics_opened = true;
+                      renderEndpointDomains(target, areaKey, modalId);
+                      updateWorkbookCardProgress(areaKey);
+                    });
+                    event.target.value = '';
+                  }
+                });
+                const logUploadButton = document.createElement('button');
+                logUploadButton.type = 'button';
+                logUploadButton.className = 'btn btn-outline-primary btn-sm';
+                logUploadButton.textContent = 'Upload Endpoint Log';
+                logUploadButton.addEventListener('click', function() { logUploadInput.click(); });
+                headingActions.appendChild(logUploadButton);
+                headingActions.appendChild(logUploadInput);
               }
 
               heading.appendChild(headingActions);
