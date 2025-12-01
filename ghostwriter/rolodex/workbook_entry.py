@@ -153,6 +153,15 @@ def _normalize_general_payload(payload: Optional[Mapping[str, Any]]) -> Dict[str
 
 def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     normalized: Dict[str, Any] = {}
+
+    def _normalize_yes_no(value: Any) -> Optional[str]:
+        if isinstance(value, bool):
+            return "Yes" if value else "No"
+        text = str(value).strip().lower()
+        if not text:
+            return None
+        return "Yes" if text in {"yes", "y", "true", "1"} else "No"
+
     if area == "web":
         if isinstance(payload, Mapping):
             sites: list[dict[str, Any]] = []
@@ -288,14 +297,6 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
             if text in {"TRUE", "FALSE"}:
                 return text
             return None
-
-        def _normalize_yes_no(value: Any) -> Optional[str]:
-            if isinstance(value, bool):
-                return "Yes" if value else "No"
-            text = str(value).strip().lower()
-            if not text:
-                return None
-            return "Yes" if text in {"yes", "y", "true", "1"} else "No"
 
         def _normalize_password_pattern(pattern_payload: Mapping[str, Any]) -> dict[str, Any]:
             normalized_pattern: dict[str, Any] = {}
