@@ -462,7 +462,8 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
     if area == "endpoint" and isinstance(payload, Mapping):
         raw_domains = payload.get("domains")
         normalized_domains: list[dict[str, Any]] = []
-        if isinstance(raw_domains, list):
+        raw_domains_provided = isinstance(raw_domains, list)
+        if raw_domains_provided:
             for domain_payload in raw_domains:
                 if not isinstance(domain_payload, Mapping):
                     continue
@@ -501,15 +502,16 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
 
         removed_domains_raw = payload.get("removed_ad_domains")
         removed_domains: list[str] = []
-        if isinstance(removed_domains_raw, list):
+        removed_domains_provided = isinstance(removed_domains_raw, list)
+        if removed_domains_provided:
             for entry in removed_domains_raw:
                 name = (entry or "").strip()
                 if name:
                     removed_domains.append(name)
 
-        if normalized_domains:
+        if raw_domains_provided:
             normalized["domains"] = normalized_domains
-        if removed_domains:
+        if removed_domains_provided:
             normalized["removed_ad_domains"] = removed_domains
         return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
@@ -710,6 +712,10 @@ def build_workbook_entry_payload(
                     updated_password.pop("removed_ad_domains", None)
 
                 normalized_workbook["password"] = updated_password
+                continue
+
+            if area_key == "endpoint":
+                normalized_workbook["endpoint"] = dict(normalized_area)
                 continue
 
             normalized_workbook.setdefault(area_key, {}).update(normalized_area)

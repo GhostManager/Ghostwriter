@@ -2287,9 +2287,7 @@
           }).filter(function(entry) { return entry !== null; });
 
           const payload = {};
-          if (domains.length) {
-            payload.domains = domains;
-          }
+          payload.domains = domains;
           if (removedAdDomains.length) {
             payload.removed_ad_domains = removedAdDomains;
           }
