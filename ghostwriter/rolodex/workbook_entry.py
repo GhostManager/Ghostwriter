@@ -153,6 +153,15 @@ def _normalize_general_payload(payload: Optional[Mapping[str, Any]]) -> Dict[str
 
 def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     normalized: Dict[str, Any] = {}
+
+    def _normalize_yes_no(value: Any) -> Optional[str]:
+        if isinstance(value, bool):
+            return "Yes" if value else "No"
+        text = str(value).strip().lower()
+        if not text:
+            return None
+        return "Yes" if text in {"yes", "y", "true", "1"} else "No"
+
     if area == "web":
         if isinstance(payload, Mapping):
             sites: list[dict[str, Any]] = []
@@ -288,14 +297,6 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
             if text in {"TRUE", "FALSE"}:
                 return text
             return None
-
-        def _normalize_yes_no(value: Any) -> Optional[str]:
-            if isinstance(value, bool):
-                return "Yes" if value else "No"
-            text = str(value).strip().lower()
-            if not text:
-                return None
-            return "Yes" if text in {"yes", "y", "true", "1"} else "No"
 
         def _normalize_password_pattern(pattern_payload: Mapping[str, Any]) -> dict[str, Any]:
             normalized_pattern: dict[str, Any] = {}
@@ -457,6 +458,70 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
 
         if normalized_policies:
             normalized["policies"] = normalized_policies
+        return normalized
+    if area == "endpoint" and isinstance(payload, Mapping):
+        raw_domains = payload.get("domains")
+        normalized_domains: list[dict[str, Any]] = []
+        raw_domains_provided = isinstance(raw_domains, list)
+        if raw_domains_provided:
+            for domain_payload in raw_domains:
+                if not isinstance(domain_payload, Mapping):
+                    continue
+                domain_entry: dict[str, Any] = {}
+                domain_value = domain_payload.get("domain") or domain_payload.get("name")
+                domain_text = str(domain_value).strip() if domain_value not in (None, "") else ""
+                if domain_text:
+                    domain_entry["domain"] = domain_text
+                for field in ("csv_file_name", "log_file_name"):
+                    if field in domain_payload:
+                        text = (
+                            str(domain_payload.get(field)).strip()
+                            if domain_payload.get(field) not in (None, "")
+                            else ""
+                        )
+                        if text:
+                            domain_entry[field] = text
+                for field in (
+                    "total_computers",
+                    "audited_computers",
+                    "systems_ood",
+                    "open_wifi",
+                ):
+                    if field in domain_payload:
+                        domain_entry[field] = _as_int(domain_payload.get(field))
+
+                if "usb_control_indication" in domain_payload:
+                    usb_value = _normalize_yes_no(domain_payload.get("usb_control_indication"))
+                    if usb_value:
+                        domain_entry["usb_control_indication"] = usb_value
+
+                has_metrics = any(
+                    domain_entry.get(key) not in (None, "")
+                    for key in (
+                        "total_computers",
+                        "audited_computers",
+                        "systems_ood",
+                        "open_wifi",
+                        "usb_control_indication",
+                    )
+                )
+
+                if domain_entry and (domain_entry.get("domain") or has_metrics) and has_metrics:
+                    normalized_domains.append(domain_entry)
+
+        removed_domains_raw = payload.get("removed_ad_domains")
+        removed_domains: list[str] = []
+        removed_domains_provided = isinstance(removed_domains_raw, list)
+        if removed_domains_provided:
+            for entry in removed_domains_raw:
+                name = (entry or "").strip()
+                if name:
+                    removed_domains.append(name)
+
+        if raw_domains_provided:
+            normalized["domains"] = normalized_domains
+        if removed_domains_provided:
+            normalized["removed_ad_domains"] = removed_domains
         return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
     if not allowed_fields or not isinstance(payload, Mapping):
@@ -658,6 +723,10 @@ def build_workbook_entry_payload(
                 normalized_workbook["password"] = updated_password
                 continue
 
+            if area_key == "endpoint":
+                normalized_workbook["endpoint"] = dict(normalized_area)
+                continue
+
             normalized_workbook.setdefault(area_key, {}).update(normalized_area)
 
     ad_domains: set[str] = set()
@@ -700,6 +769,29 @@ def build_workbook_entry_payload(
                 password_state["removed_ad_domains"] = filtered_removed
             elif "removed_ad_domains" in password_state:
                 password_state.pop("removed_ad_domains", None)
+
+    endpoint_state = (
+        normalized_workbook.get("endpoint")
+        if isinstance(normalized_workbook.get("endpoint"), Mapping)
+        else None
+    )
+    if isinstance(endpoint_state, Mapping):
+        removed_domains = endpoint_state.get("removed_ad_domains")
+        if isinstance(removed_domains, list):
+            filtered_removed = []
+            seen_removed: set[str] = set()
+            for entry in removed_domains:
+                name = (entry or "").strip()
+                lowered = name.lower()
+                if not name or lowered in seen_removed:
+                    continue
+                seen_removed.add(lowered)
+                if lowered in ad_domains:
+                    filtered_removed.append(name)
+            if filtered_removed:
+                endpoint_state["removed_ad_domains"] = filtered_removed
+            elif "removed_ad_domains" in endpoint_state:
+                endpoint_state.pop("removed_ad_domains", None)
 
     score_updates: MutableMapping[str, MutableMapping[str, Any]] = {}
     category_scores: Dict[str, Optional[Decimal]] = {}

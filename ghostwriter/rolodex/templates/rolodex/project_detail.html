@@ -1708,6 +1708,140 @@
           return passwordState;
         }
 
+        const createEmptyEndpointDomain = function(domainName, options) {
+          const providedOptions = options || {};
+          const metricsOpened = Object.prototype.hasOwnProperty.call(providedOptions, 'metricsOpened')
+            ? Boolean(providedOptions.metricsOpened)
+            : true;
+          return Object.assign({
+            domain: domainName || '',
+            total_computers: null,
+            audited_computers: null,
+            systems_ood: null,
+            open_wifi: null,
+            usb_control_indication: null,
+            csv_file_name: providedOptions.csv_file_name || '',
+            log_file_name: providedOptions.log_file_name || '',
+            __ad_placeholder: Boolean(providedOptions.adPlaceholder),
+            __metrics_opened: metricsOpened,
+          }, providedOptions);
+        };
+
+        function ensureEndpointState() {
+          const endpointState = (workbookState && typeof workbookState.endpoint === 'object') ? workbookState.endpoint : {};
+          const normalizeNumber = function(value) {
+            if (typeof value === 'number' && !Number.isNaN(value)) {
+              return value;
+            }
+            const parsed = Number(value);
+            return Number.isNaN(parsed) ? null : parsed;
+          };
+          const normalizeYesNo = function(value) {
+            const text = (value || '').toString().trim().toLowerCase();
+            if (!text) {
+              return null;
+            }
+            return text === 'yes' ? 'Yes' : text === 'no' ? 'No' : null;
+          };
+
+          const adState = ensureAdState();
+          const adDomains = Array.isArray(adState.domains) ? adState.domains : [];
+          const adDomainSet = new Set(
+            adDomains
+              .map(function(domain) { return (domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+
+          const endpointArtifacts = dataArtifactsState.endpoint;
+          const endpointArtifactMap = new Map();
+          if (endpointArtifacts && typeof endpointArtifacts === 'object') {
+            const endpointDomains = Array.isArray(endpointArtifacts.domains) ? endpointArtifacts.domains : [];
+            endpointDomains.forEach(function(entry) {
+              if (!entry || typeof entry !== 'object') {
+                return;
+              }
+              const name = (entry.domain || entry.name || '').toString().trim().toLowerCase();
+              if (!name) {
+                return;
+              }
+              endpointArtifactMap.set(name, entry);
+            });
+          }
+
+          const hasDomainMetrics = function(domain) {
+            const metrics = [
+              domain && domain.total_computers,
+              domain && domain.audited_computers,
+              domain && domain.systems_ood,
+              domain && domain.open_wifi,
+            ];
+            if (metrics.some(function(value) { return value !== null && typeof value !== 'undefined'; })) {
+              return true;
+            }
+            return Boolean(domain && domain.usb_control_indication);
+          };
+
+          const removedAdDomains = Array.isArray(endpointState.removed_ad_domains)
+            ? endpointState.removed_ad_domains
+                .map(function(name) { return (name || '').toString().trim(); })
+                .filter(function(name) { return name; })
+                .filter(function(name) { return adDomainSet.has(name.toLowerCase()); })
+            : [];
+          const removedSet = new Set(removedAdDomains.map(function(name) { return name.toLowerCase(); }));
+
+          endpointState.domains = (endpointState.domains || [])
+            .map(function(domain) {
+              const domainName = domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString() : '';
+              const lowerDomain = domainName.toLowerCase();
+              const artifact = endpointArtifactMap.get(lowerDomain);
+
+              const resolvedDomain = createEmptyEndpointDomain(
+                domainName,
+                {
+                  total_computers: normalizeNumber(domain && domain.total_computers),
+                  audited_computers: normalizeNumber(domain && domain.audited_computers),
+                  systems_ood: normalizeNumber(domain && domain.systems_ood),
+                  open_wifi: normalizeNumber(domain && domain.open_wifi),
+                  usb_control_indication: normalizeYesNo(domain && domain.usb_control_indication),
+                  csv_file_name: (domain && domain.csv_file_name) || (artifact && artifact.file_name) || '',
+                  log_file_name: (domain && domain.log_file_name) || (artifact && artifact.log_file_name) || '',
+                  adPlaceholder: Boolean(domain && domain.__ad_placeholder),
+                  metricsOpened: Object.prototype.hasOwnProperty.call(domain || {}, '__metrics_opened')
+                    ? Boolean(domain && domain.__metrics_opened)
+                    : true,
+                },
+              );
+
+              const isAdDomain = lowerDomain && adDomainSet.has(lowerDomain);
+              if (isAdDomain && !resolvedDomain.__ad_placeholder && !hasDomainMetrics(resolvedDomain)) {
+                resolvedDomain.__ad_placeholder = true;
+                resolvedDomain.__metrics_opened = false;
+              }
+              return resolvedDomain;
+            })
+            .filter(function(domain) {
+              const name = (domain.domain || '').toString().trim().toLowerCase();
+              return !name || !removedSet.has(name);
+            });
+
+          const existingDomains = new Set(
+            endpointState.domains
+              .map(function(domain) { return (domain && domain.domain ? domain.domain.toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+
+          adDomainSet.forEach(function(domainName) {
+            if (existingDomains.has(domainName) || removedSet.has(domainName)) {
+              return;
+            }
+            endpointState.domains.push(createEmptyEndpointDomain(domainName, {adPlaceholder: true, metricsOpened: false}));
+          });
+
+          endpointState.removed_ad_domains = Array.from(removedSet);
+          workbookState.endpoint = endpointState;
+          return endpointState;
+        }
+
         function serializeAdPayload() {
           const adState = ensureAdState();
           const normalizeNumber = function(value) {
@@ -2094,6 +2228,102 @@
             payload.removed_ad_domains = removedAdDomains;
           }
           return payload;
+        }
+
+        function serializeEndpointPayload() {
+          const endpointState = ensureEndpointState();
+          const adState = ensureAdState();
+          const adDomains = Array.isArray(adState.domains) ? adState.domains : [];
+          const adDomainSet = new Set(
+            adDomains
+              .map(function(domain) { return (domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+
+          const removedAdDomains = Array.isArray(endpointState.removed_ad_domains)
+            ? endpointState.removed_ad_domains
+                .map(function(name) { return (name || '').toString().trim(); })
+                .filter(function(name) { return name; })
+            : [];
+
+          const normalizeNumber = function(value) {
+            if (typeof value === 'number' && !Number.isNaN(value)) {
+              return value;
+            }
+            if (value === null || typeof value === 'undefined') {
+              return null;
+            }
+            const parsed = Number(value);
+            return Number.isNaN(parsed) ? null : parsed;
+          };
+
+          const normalizeYesNo = function(value) {
+            const text = (value || '').toString().trim().toLowerCase();
+            if (text === 'yes') {
+              return 'Yes';
+            }
+            if (text === 'no') {
+              return 'No';
+            }
+            return null;
+          };
+
+          const hasContent = function(domain) {
+            const metrics = [
+              domain.total_computers,
+              domain.audited_computers,
+              domain.systems_ood,
+              domain.open_wifi,
+            ];
+            if (metrics.some(function(value) { return value !== null && typeof value !== 'undefined'; })) {
+              return true;
+            }
+            return Boolean(domain.usb_control_indication);
+          };
+
+          const domains = (endpointState.domains || []).map(function(domain) {
+            const domainName = (domain.domain || '').toString().trim();
+            const normalized = {
+              domain: domainName,
+              total_computers: normalizeNumber(domain.total_computers),
+              audited_computers: normalizeNumber(domain.audited_computers),
+              systems_ood: normalizeNumber(domain.systems_ood),
+              open_wifi: normalizeNumber(domain.open_wifi),
+              usb_control_indication: normalizeYesNo(domain.usb_control_indication),
+            };
+
+            const csvFileName = (domain.csv_file_name || '').toString().trim();
+            const logFileName = (domain.log_file_name || '').toString().trim();
+            if (csvFileName) {
+              normalized.csv_file_name = csvFileName;
+            }
+            if (logFileName) {
+              normalized.log_file_name = logFileName;
+            }
+
+            const hasMetrics = hasContent(normalized);
+            const lowerDomain = domainName.toLowerCase();
+            const isAdDomain = adDomainSet.has(lowerDomain);
+            const allowPlaceholder = domain.__metrics_opened && hasMetrics;
+
+            if (isAdDomain && !allowPlaceholder) {
+              return null;
+            }
+
+            if (!domainName && !hasMetrics) {
+              return null;
+            }
+
+            return normalized;
+          }).filter(function(entry) { return entry !== null; });
+
+          const payload = {};
+          payload.domains = domains;
+          if (removedAdDomains.length) {
+            payload.removed_ad_domains = removedAdDomains;
+          }
+
+          return Object.keys(payload).length ? payload : null;
         }
 
         function renderFirewallSection(container, areaKey, modalId, mode) {
@@ -2603,6 +2833,12 @@
               },
             ],
           },
+          internal_endpoint: {
+            label: 'Endpoint',
+            workbookKey: 'endpoint',
+            renderer: 'endpoint',
+            serializer: serializeEndpointPayload,
+          },
           internal_iot_iomt: {
             label: 'IoT/IoMT Nexpose',
             workbookKey: 'iot_iomt_nexpose',
@@ -2978,6 +3214,9 @@
               ad: ensureAdState,
               password: ensurePasswordState,
             },
+            internal: {
+              endpoint: ensureEndpointState,
+            },
             firewall: {
               firewall_os: ensureFirewallState,
               firewall_configuration: ensureFirewallState,
@@ -3124,6 +3363,93 @@
           }).catch(function(error) {
             console.error(error);
             alert(error.message || 'Unable to upload the AD log.');
+          });
+        };
+
+        const uploadEndpointLog = function(file, domain, areaKey, modalId, onParsed) {
+          if (!file) {
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            const content = (event && event.target && event.target.result) ? event.target.result.toString() : '';
+            const lines = content.split(/\r?\n/);
+            const parseLineValue = function(labelText) {
+              const matchLine = lines.find(function(line) {
+                return line.toLowerCase().includes(labelText);
+              });
+              if (!matchLine) {
+                return null;
+              }
+              const match = matchLine.match(/(-?[0-9,]+)\s*$/);
+              if (!match) {
+                return null;
+              }
+              const parsed = Number((match[1] || '').replace(/,/g, ''));
+              return Number.isNaN(parsed) ? null : parsed;
+            };
+
+            const parsedValues = {
+              total: parseLineValue('total computers:'),
+              audited: parseLineValue('accessed computers:'),
+            };
+
+            if (typeof onParsed === 'function') {
+              onParsed(parsedValues);
+            }
+
+            if (areaKey && modalId) {
+              const endpointPayload = serializeEndpointPayload();
+              submitWorkbookUpdate({ areas: { endpoint: endpointPayload } }, null, {
+                reopenModalId: modalId,
+                forceCloseModalId: modalId,
+                afterRender: function() { updateWorkbookCardProgress(areaKey); },
+              });
+            }
+          };
+          reader.onerror = function() {
+            alert('Unable to read the endpoint log file.');
+          };
+          reader.readAsText(file);
+        };
+
+        const uploadEndpointCsv = function(file, domain, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+          const domainValue = (domain || '').trim();
+          if (!domainValue) {
+            alert('Please enter a domain name before uploading an endpoint CSV.');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('endpoint_csv', file);
+          formData.append('domain', domainValue);
+
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to upload the endpoint CSV';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to upload the endpoint CSV.');
           });
         };
 
@@ -3940,6 +4266,345 @@
           renderPolicies();
         }
 
+        function renderEndpointDomains(target, areaKey, modalId) {
+          const endpointState = ensureEndpointState();
+          const adState = ensureAdState();
+          const domains = endpointState.domains;
+          const adDomainSet = new Set(
+            (Array.isArray(adState.domains) ? adState.domains : [])
+              .map(function(domain) { return (domain && (domain.domain || domain.name) ? (domain.domain || domain.name).toString().trim().toLowerCase() : ''); })
+              .filter(function(name) { return name; }),
+          );
+          const removedSet = new Set(
+            (Array.isArray(endpointState.removed_ad_domains) ? endpointState.removed_ad_domains : [])
+              .map(function(name) { return (name || '').toString().trim().toLowerCase(); })
+              .filter(function(name) { return name; }),
+          );
+
+          target.innerHTML = '';
+
+          const addButton = document.createElement('button');
+          addButton.type = 'button';
+          addButton.className = 'btn btn-outline-primary mb-3';
+          addButton.textContent = 'Add new Domain';
+          addButton.addEventListener('click', function() {
+            domains.push(createEmptyEndpointDomain('', {metricsOpened: true}));
+            renderEndpointDomains(target, areaKey, modalId);
+            updateWorkbookCardProgress(areaKey);
+          });
+          target.appendChild(addButton);
+
+          const domainsContainer = document.createElement('div');
+          target.appendChild(domainsContainer);
+
+          const renderDomains = function() {
+            domainsContainer.innerHTML = '';
+            if (!domains.length) {
+              const empty = document.createElement('p');
+              empty.className = 'text-muted mb-3';
+              empty.textContent = 'No domains have been added yet.';
+              domainsContainer.appendChild(empty);
+            }
+
+            const removeFromRemovedSet = function(domainName) {
+              const lower = (domainName || '').toString().trim().toLowerCase();
+              if (removedSet.has(lower)) {
+                removedSet.delete(lower);
+                endpointState.removed_ad_domains = Array.from(removedSet);
+              }
+            };
+
+            const hasDomainMetrics = function(domain) {
+              const metrics = [
+                domain.total_computers,
+                domain.audited_computers,
+                domain.systems_ood,
+                domain.open_wifi,
+              ];
+              if (metrics.some(function(value) { return value !== null && typeof value !== 'undefined'; })) {
+                return true;
+              }
+              return Boolean(domain.usb_control_indication);
+            };
+
+            const removeDomain = function(domain, index) {
+              const name = (domain.domain || '').toString().trim().toLowerCase();
+              if (name && adDomainSet.has(name)) {
+                removedSet.add(name);
+                endpointState.removed_ad_domains = Array.from(removedSet);
+              }
+              domains.splice(index, 1);
+              renderEndpointDomains(target, areaKey, modalId);
+              updateWorkbookCardProgress(areaKey);
+            };
+
+            domains.forEach(function(domain, index) {
+              const wrapper = document.createElement('div');
+              wrapper.className = 'border rounded p-3 mb-3';
+
+              const heading = document.createElement('div');
+              heading.className = 'd-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3';
+              const title = document.createElement('h6');
+              title.className = 'mb-2 mb-md-0';
+              title.textContent = 'Domain ' + (index + 1);
+              heading.appendChild(title);
+
+              const headingActions = document.createElement('div');
+              headingActions.className = 'd-flex align-items-center flex-wrap mt-2 mt-md-0';
+
+              const showCollapsedPlaceholder = domain.__ad_placeholder
+                && !domain.__metrics_opened
+                && !hasDomainMetrics(domain);
+
+              if (showCollapsedPlaceholder) {
+                const placeholderRow = document.createElement('div');
+                placeholderRow.className = 'd-flex justify-content-between align-items-center w-100 flex-wrap';
+
+                const domainInfo = document.createElement('div');
+                domainInfo.className = 'mb-2 mb-md-0';
+                domainInfo.innerHTML = '<strong>Domain:</strong> ' + (domain.domain || '');
+                placeholderRow.appendChild(domainInfo);
+
+                const placeholderActions = document.createElement('div');
+                placeholderActions.className = 'd-flex align-items-center flex-wrap';
+
+                const updateMetricsButton = document.createElement('button');
+                updateMetricsButton.type = 'button';
+                updateMetricsButton.className = 'btn btn-outline-primary btn-sm mr-2';
+                updateMetricsButton.textContent = 'Update Metrics';
+                updateMetricsButton.addEventListener('click', function() {
+                  domain.__metrics_opened = true;
+                  renderEndpointDomains(target, areaKey, modalId);
+                  updateWorkbookCardProgress(areaKey);
+                });
+                placeholderActions.appendChild(updateMetricsButton);
+
+                const removePlaceholderButton = document.createElement('button');
+                removePlaceholderButton.type = 'button';
+                removePlaceholderButton.className = 'btn btn-outline-danger btn-sm';
+                removePlaceholderButton.textContent = 'Remove Domain';
+                removePlaceholderButton.addEventListener('click', function() { removeDomain(domain, index); });
+                placeholderActions.appendChild(removePlaceholderButton);
+
+                placeholderRow.appendChild(placeholderActions);
+                heading.appendChild(headingActions);
+                heading.appendChild(placeholderRow);
+                wrapper.appendChild(heading);
+
+                const placeholderNote = document.createElement('p');
+                placeholderNote.className = 'text-muted mb-0';
+                placeholderNote.textContent = 'Domain imported from IAM. Click "Update Metrics" to enter endpoint details before saving.';
+                wrapper.appendChild(placeholderNote);
+                wrapper.appendChild(document.createElement('hr'));
+                domainsContainer.appendChild(wrapper);
+                return;
+              }
+
+              const allowUploads = Boolean(domain.__metrics_opened);
+              if (allowUploads) {
+                const endpointCsvInput = document.createElement('input');
+                endpointCsvInput.type = 'file';
+                endpointCsvInput.accept = '.csv,text/csv';
+                endpointCsvInput.className = 'd-none';
+                endpointCsvInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    const file = event.target.files[0];
+                    const domainName = domain.domain || '';
+                    domain.csv_file_name = file.name || '';
+                    uploadEndpointCsv(file, domainName, areaKey, modalId);
+                    event.target.value = '';
+                  }
+                });
+
+                const csvButtonWrap = document.createElement('div');
+                csvButtonWrap.className = 'd-flex flex-column mr-2';
+
+                const endpointCsvButton = document.createElement('button');
+                endpointCsvButton.type = 'button';
+                endpointCsvButton.className = 'btn btn-outline-primary btn-sm mr-2';
+                endpointCsvButton.textContent = 'Upload Endpoint CSV';
+                endpointCsvButton.addEventListener('click', function() { endpointCsvInput.click(); });
+                const csvFileLabel = document.createElement('small');
+                csvFileLabel.className = 'text-muted mt-1';
+                const refreshCsvFileLabel = function() {
+                  const name = (domain.csv_file_name || '').toString().trim();
+                  csvFileLabel.textContent = name ? 'Uploaded: ' + name : '';
+                };
+                refreshCsvFileLabel();
+
+                csvButtonWrap.appendChild(endpointCsvButton);
+                csvButtonWrap.appendChild(csvFileLabel);
+
+                headingActions.appendChild(csvButtonWrap);
+                headingActions.appendChild(endpointCsvInput);
+
+                const logUploadInput = document.createElement('input');
+                logUploadInput.type = 'file';
+                logUploadInput.accept = '.txt,.log,text/plain';
+                logUploadInput.className = 'd-none';
+                logUploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    const file = event.target.files[0];
+                    domain.log_file_name = file.name || '';
+                    uploadEndpointLog(file, domain.domain || '', areaKey, modalId, function(parsed) {
+                      if (parsed && typeof parsed.total !== 'undefined') {
+                        domain.total_computers = parsed.total;
+                      }
+                      if (parsed && typeof parsed.audited !== 'undefined') {
+                        domain.audited_computers = parsed.audited;
+                      }
+                      domain.__metrics_opened = true;
+                      renderEndpointDomains(target, areaKey, modalId);
+                      updateWorkbookCardProgress(areaKey);
+                    });
+                    event.target.value = '';
+                  }
+                });
+                const logButtonWrap = document.createElement('div');
+                logButtonWrap.className = 'd-flex flex-column';
+                const logUploadButton = document.createElement('button');
+                logUploadButton.type = 'button';
+                logUploadButton.className = 'btn btn-outline-primary btn-sm';
+                logUploadButton.textContent = 'Upload Endpoint Log';
+                logUploadButton.addEventListener('click', function() { logUploadInput.click(); });
+                const logFileLabel = document.createElement('small');
+                logFileLabel.className = 'text-muted mt-1';
+                const refreshLogFileLabel = function() {
+                  const name = (domain.log_file_name || '').toString().trim();
+                  logFileLabel.textContent = name ? 'Uploaded: ' + name : '';
+                };
+                refreshLogFileLabel();
+
+                logButtonWrap.appendChild(logUploadButton);
+                logButtonWrap.appendChild(logFileLabel);
+
+                headingActions.appendChild(logButtonWrap);
+                headingActions.appendChild(logUploadInput);
+              }
+
+              heading.appendChild(headingActions);
+              wrapper.appendChild(heading);
+
+              const domainGroup = document.createElement('div');
+              domainGroup.className = 'form-group';
+              const domainLabel = document.createElement('label');
+              domainLabel.className = 'font-weight-bold';
+              domainLabel.textContent = 'Domain Name';
+              const domainInput = document.createElement('input');
+              domainInput.type = 'text';
+              domainInput.className = 'form-control';
+              domainInput.setAttribute('data-area-field', areaKey);
+              domainInput.value = domain.domain || '';
+              const warning = document.createElement('div');
+              warning.className = 'alert alert-warning py-2 px-3 mt-2 mb-0';
+              warning.textContent = 'Domain entered does not match an existing IAM domain!';
+
+              const refreshWarning = function() {
+                const lower = (domainInput.value || '').toString().trim().toLowerCase();
+                if (lower && !adDomainSet.has(lower)) {
+                  warning.classList.remove('d-none');
+                } else {
+                  warning.classList.add('d-none');
+                }
+              };
+
+              domainInput.addEventListener('input', function() {
+                domain.domain = domainInput.value;
+                domain.__metrics_opened = true;
+                if (domain.__ad_placeholder) {
+                  domain.__ad_placeholder = false;
+                }
+                removeFromRemovedSet(domain.domain);
+                refreshWarning();
+                updateWorkbookCardProgress(areaKey);
+              });
+
+              refreshWarning();
+
+              domainGroup.appendChild(domainLabel);
+              domainGroup.appendChild(domainInput);
+              domainGroup.appendChild(warning);
+              wrapper.appendChild(domainGroup);
+
+              const makeNumberGroup = function(labelText, value, onChange) {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                const label = document.createElement('label');
+                label.className = 'font-weight-bold';
+                label.textContent = labelText;
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'form-control';
+                input.setAttribute('data-area-field', areaKey);
+                input.value = typeof value === 'number' ? value : '';
+                input.addEventListener('input', function() {
+                  const parsed = input.value === '' ? null : Number(input.value);
+                  onChange(Number.isNaN(parsed) ? null : parsed);
+                  domain.__metrics_opened = true;
+                  updateWorkbookCardProgress(areaKey);
+                });
+                group.appendChild(label);
+                group.appendChild(input);
+                return group;
+              };
+
+              wrapper.appendChild(
+                makeNumberGroup('Total Computers', domain.total_computers, function(value) { domain.total_computers = value; }),
+              );
+              wrapper.appendChild(
+                makeNumberGroup('Audited Computers', domain.audited_computers, function(value) { domain.audited_computers = value; }),
+              );
+              wrapper.appendChild(
+                makeNumberGroup('Systems with out-of-date protection', domain.systems_ood, function(value) { domain.systems_ood = value; }),
+              );
+              wrapper.appendChild(
+                makeNumberGroup('Connected to Open WiFi networks', domain.open_wifi, function(value) { domain.open_wifi = value; }),
+              );
+
+              const usbGroup = document.createElement('div');
+              usbGroup.className = 'form-group';
+              const usbLabel = document.createElement('label');
+              usbLabel.className = 'font-weight-bold';
+              usbLabel.textContent = 'Did the client indicate they had controls in place around USB device usage?';
+              const usbSelect = document.createElement('select');
+              usbSelect.className = 'form-control';
+              usbSelect.setAttribute('data-area-field', areaKey);
+              const placeholder = document.createElement('option');
+              placeholder.value = '';
+              placeholder.textContent = 'Select';
+              usbSelect.appendChild(placeholder);
+              ['Yes', 'No'].forEach(function(option) {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                if ((domain.usb_control_indication || '').toString() === option) {
+                  opt.selected = true;
+                }
+                usbSelect.appendChild(opt);
+              });
+              usbSelect.addEventListener('change', function() {
+                domain.usb_control_indication = usbSelect.value || null;
+                domain.__metrics_opened = true;
+                updateWorkbookCardProgress(areaKey);
+              });
+              usbGroup.appendChild(usbLabel);
+              usbGroup.appendChild(usbSelect);
+              wrapper.appendChild(usbGroup);
+
+              const removeButton = document.createElement('button');
+              removeButton.type = 'button';
+              removeButton.className = 'btn btn-outline-danger';
+              removeButton.textContent = 'Remove Domain';
+              removeButton.addEventListener('click', function() { removeDomain(domain, index); });
+              wrapper.appendChild(removeButton);
+
+              domainsContainer.appendChild(wrapper);
+            });
+          };
+
+          renderDomains();
+        }
+
         function renderAdDomains(target, areaKey, modalId) {
           const adState = ensureAdState();
           const domains = adState.domains;
@@ -4265,6 +4930,19 @@
               removeButton.textContent = 'Remove Domain';
               removeButton.addEventListener('click', function() {
                 const domainName = (domainInput.value || domain.domain || '').trim();
+                if (domainName) {
+                  const endpointState = ensureEndpointState();
+                  const removedSet = new Set(
+                    (Array.isArray(endpointState.removed_ad_domains) ? endpointState.removed_ad_domains : [])
+                      .map(function(name) { return (name || '').toString().trim().toLowerCase(); })
+                      .filter(function(name) { return name; }),
+                  );
+                  const lower = domainName.toLowerCase();
+                  if (removedSet.has(lower)) {
+                    removedSet.delete(lower);
+                    endpointState.removed_ad_domains = Array.from(removedSet);
+                  }
+                }
                 domains.splice(index, 1);
                 renderAdDomains(target, areaKey, modalId);
                 refreshPasswordPlaceholderCard();
@@ -4658,6 +5336,8 @@
                 renderFirewallSection(subBody, areaKey, modalId, 'os');
               } else if (config && config.renderer === 'firewall_configuration') {
                 renderFirewallSection(subBody, areaKey, modalId, 'configuration');
+              } else if (config && config.renderer === 'endpoint') {
+                renderEndpointDomains(subBody, areaKey, modalId);
               } else if (config && config.renderer === 'ad') {
                 renderAdDomains(subBody, areaKey, modalId);
               } else if (config && config.renderer === 'password') {

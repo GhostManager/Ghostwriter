@@ -10,7 +10,7 @@ import io
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Mapping, Optional, Set
 from xml.etree import ElementTree
 
 # Django Imports
@@ -2334,6 +2334,139 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         return records, domain_name, zone_transfer, raw_bytes, None
 
     @staticmethod
+    def _parse_endpoint_csv(upload) -> tuple[Optional[list[dict[str, Any]]], Optional[int], Optional[int], Optional[str]]:
+        required_headers = {
+            "online_status": "Online_Status",
+            "computer": "Computer",
+            "username": "Username",
+            "securityproduct": "SecurityProduct",
+            "version": "Version",
+            "status": "Status",
+            "lastupdated": "LastUpdated",
+            "running": "Running",
+            "vtp_enabled": "VTP_Enabled",
+            "ssid": "SSID",
+            "method": "Method",
+        }
+
+        try:
+            raw_bytes = upload.read()
+        except Exception:
+            return None, None, None, "Unable to read the uploaded CSV file."
+
+        content: Optional[str] = None
+        for encoding in ("utf-8-sig", "latin-1"):
+            try:
+                content = raw_bytes.decode(encoding)
+                break
+            except Exception:
+                continue
+        if content is None:
+            return None, None, None, "Unable to decode the uploaded CSV file."
+
+        dialect = None
+        try:
+            dialect = csv.Sniffer().sniff(content[:2048])
+        except Exception:
+            dialect = csv.get_dialect("excel")
+
+        reader = csv.DictReader(io.StringIO(content), dialect=dialect)
+        header_lookup = {
+            header.lower().strip(): header
+            for header in (reader.fieldnames or [])
+        }
+
+        missing_headers = [
+            label
+            for key, label in required_headers.items()
+            if key not in header_lookup
+        ]
+        if missing_headers:
+            return (
+                None,
+                None,
+                None,
+                f"Missing required Endpoint headers: {', '.join(missing_headers)}",
+            )
+
+        computer_map: dict[str, dict[str, Any]] = {}
+
+        for row in reader:
+            computer_value = (row.get(header_lookup["computer"]) or "").strip()
+            if not computer_value:
+                continue
+            key = computer_value.lower()
+            online_status = (row.get(header_lookup["online_status"]) or "").strip()
+            username_value = (row.get(header_lookup["username"]) or "").strip()
+            security_product_value = (row.get(header_lookup["securityproduct"]) or "").strip()
+            version_value = (row.get(header_lookup["version"]) or "").strip()
+            status_value = (row.get(header_lookup["status"]) or "").strip()
+            last_updated_value = (row.get(header_lookup["lastupdated"]) or "").strip()
+            running_value = (row.get(header_lookup["running"]) or "").strip()
+            vtp_enabled_value = (row.get(header_lookup["vtp_enabled"]) or "").strip()
+            ssid_value = (row.get(header_lookup["ssid"]) or "").strip()
+            method_value = (row.get(header_lookup["method"]) or "").strip()
+
+            existing = computer_map.get(key)
+            if existing is None:
+                existing = {
+                    "Computer": computer_value,
+                    "Online_Status": online_status,
+                }
+                computer_map[key] = existing
+
+            if online_status.lower() != "online":
+                continue
+
+            if method_value:
+                existing["method"] = method_value
+
+            username_normalized = username_value.lower()
+            if username_normalized not in {"", "n/a", "-"}:
+                usernames = set(existing.get("usernames") or [])
+                usernames.add(username_value)
+                existing["usernames"] = sorted(usernames)
+
+            if security_product_value and security_product_value.lower() not in {"n/a", "-"}:
+                products = existing.get("securityproducts") or []
+                product_lookup = {product.get("SecurityProduct", ""): product for product in products if isinstance(product, Mapping)}
+                product_entry = product_lookup.get(security_product_value)
+                if product_entry is None:
+                    product_entry = {"SecurityProduct": security_product_value}
+                    products.append(product_entry)
+                product_entry["Version"] = version_value
+                product_entry["Status"] = status_value
+                product_entry["LastUpdated"] = last_updated_value
+                product_entry["Running"] = running_value
+                product_entry["VTP_Enabled"] = vtp_enabled_value
+                existing["securityproducts"] = products
+
+            if ssid_value and ssid_value.lower() not in {"n/a", "-"}:
+                ssids = set(existing.get("ssids") or [])
+                ssids.add(ssid_value)
+                existing["ssids"] = sorted(ssids)
+
+        systems_ood = 0
+        wifi_count = 0
+        for computer in computer_map.values():
+            if str(computer.get("Online_Status", "")).strip().lower() != "online":
+                continue
+            products = computer.get("securityproducts") or []
+            has_up_to_date = any(
+                isinstance(product, Mapping)
+                and str(product.get("Status", "")).strip() == "Enabled, UpToDate"
+                for product in products
+            )
+            if not has_up_to_date:
+                systems_ood += 1
+
+            ssids = computer.get("ssids") or []
+            if ssids:
+                wifi_count += 1
+
+        return list(computer_map.values()), systems_ood, wifi_count, None
+
+    @staticmethod
     def _extract_dns_domains(payload: Optional[dict[str, Any]]) -> set[str]:
         domains: set[str] = set()
         if not isinstance(payload, dict):
@@ -2999,29 +3132,37 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             if "ad_log" in request.FILES:
                 return self._handle_ad_log_upload(request, project)
 
-            upload = request.FILES.get("osint_csv")
-            if not upload:
-                return JsonResponse({"error": "No OSINT CSV provided."}, status=400)
+            if "endpoint_csv" in request.FILES:
+                return self._handle_endpoint_csv_upload(request, project)
 
-            rows, metrics, error_message = self._parse_osint_csv(upload)
-            if error_message:
-                return JsonResponse({"error": error_message}, status=400)
+            if "osint_csv" in request.FILES:
+                upload = request.FILES.get("osint_csv")
+                if not upload:
+                    return JsonResponse({"error": "No OSINT CSV provided."}, status=400)
 
-            workbook_payload = build_workbook_entry_payload(
-                project=project,
-                areas={"osint": metrics or {}},
-            )
-            artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
-            artifacts = dict(artifacts)
-            if rows is not None:
-                artifacts["osint"] = rows
-                artifacts["osint_file_name"] = upload.name
-            project.workbook_data = workbook_payload
-            project.data_artifacts = artifacts
-            project.save(update_fields=["workbook_data", "data_artifacts"])
-            return JsonResponse(
-                {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
-            )
+                rows, metrics, error_message = self._parse_osint_csv(upload)
+                if error_message:
+                    return JsonResponse({"error": error_message}, status=400)
+
+                workbook_payload = build_workbook_entry_payload(
+                    project=project,
+                    areas={"osint": metrics or {}},
+                )
+                artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+                artifacts = dict(artifacts)
+                if rows is not None:
+                    artifacts["osint"] = rows
+                    artifacts["osint_file_name"] = upload.name
+                project.workbook_data = workbook_payload
+                project.data_artifacts = artifacts
+                project.save(update_fields=["workbook_data", "data_artifacts"])
+
+                return JsonResponse(
+                    {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
+                )
+
+            return JsonResponse({"error": "Unsupported upload type."}, status=400)
+
         try:
             payload = json.loads(request.body.decode("utf-8")) if request.body else {}
         except json.JSONDecodeError:
@@ -3455,7 +3596,88 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
 
         return JsonResponse({"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts})
 
+    def _handle_endpoint_csv_upload(self, request, project):
+        upload = request.FILES.get("endpoint_csv")
+        if not upload:
+            return JsonResponse({"error": "No Endpoint CSV provided."}, status=400)
 
+        domain = (request.POST.get("domain") or "").strip()
+        if not domain:
+            return JsonResponse({"error": "A domain name is required for this upload."}, status=400)
+
+        computers, systems_ood, wifi_count, error_message = self._parse_endpoint_csv(upload)
+        if error_message:
+            return JsonResponse({"error": error_message}, status=400)
+
+        artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+        artifacts = dict(artifacts)
+        endpoint_artifacts = artifacts.get("endpoint") if isinstance(artifacts.get("endpoint"), dict) else {}
+        if not isinstance(endpoint_artifacts, dict):
+            endpoint_artifacts = {}
+        domain_records = (
+            endpoint_artifacts.get("domains") if isinstance(endpoint_artifacts.get("domains"), list) else []
+        )
+        if not isinstance(domain_records, list):
+            domain_records = []
+
+        match = None
+        domain_key = domain.lower()
+        for record in domain_records:
+            if not isinstance(record, dict):
+                continue
+            record_domain = (record.get("domain") or record.get("name") or "").strip()
+            if record_domain.lower() == domain_key:
+                match = record
+                break
+
+        if match is None:
+            match = {"domain": domain}
+            domain_records.append(match)
+
+        match["domain"] = domain
+        match["computers"] = computers or []
+        match["file_name"] = upload.name
+
+        endpoint_artifacts["domains"] = domain_records
+        artifacts["endpoint"] = endpoint_artifacts
+
+        normalized_workbook = normalize_workbook_payload(project.workbook_data)
+        endpoint_state = (
+            normalized_workbook.get("endpoint") if isinstance(normalized_workbook.get("endpoint"), dict) else {}
+        )
+        if not isinstance(endpoint_state, dict):
+            endpoint_state = {}
+        endpoint_domains = endpoint_state.get("domains") if isinstance(endpoint_state.get("domains"), list) else []
+        if not isinstance(endpoint_domains, list):
+            endpoint_domains = []
+
+        endpoint_match = None
+        for record in endpoint_domains:
+            if not isinstance(record, dict):
+                continue
+            record_domain = (record.get("domain") or record.get("name") or "").strip()
+            if record_domain.lower() == domain_key:
+                endpoint_match = record
+                break
+
+        if endpoint_match is None:
+            endpoint_match = {"domain": domain}
+            endpoint_domains.append(endpoint_match)
+
+        endpoint_match["domain"] = domain
+        if systems_ood is not None:
+            endpoint_match["systems_ood"] = systems_ood
+        if wifi_count is not None:
+            endpoint_match["open_wifi"] = wifi_count
+
+        endpoint_state["domains"] = endpoint_domains
+
+        workbook_payload = build_workbook_entry_payload(project=project, areas={"endpoint": endpoint_state})
+        project.workbook_data = workbook_payload
+        project.data_artifacts = artifacts
+        project.save(update_fields=["workbook_data", "data_artifacts"])
+
+        return JsonResponse({"workbook_data": workbook_payload, "data_artifacts": artifacts})
 class ProjectDataFileUpload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Upload supporting data files for a project."""
 
