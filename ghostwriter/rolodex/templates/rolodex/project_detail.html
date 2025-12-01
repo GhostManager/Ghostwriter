@@ -3373,6 +3373,46 @@
           reader.readAsText(file);
         };
 
+        const uploadEndpointCsv = function(file, domain, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+          const domainValue = (domain || '').trim();
+          if (!domainValue) {
+            alert('Please enter a domain name before uploading an endpoint CSV.');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('endpoint_csv', file);
+          formData.append('domain', domainValue);
+
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to upload the endpoint CSV';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to upload the endpoint CSV.');
+          });
+        };
+
         const removeAdCsv = function(domain, metric, areaKey, modalId) {
           const domainValue = (domain || '').trim();
           if (!domainValue) {
@@ -4271,6 +4311,28 @@
 
               const headingActions = document.createElement('div');
               headingActions.className = 'd-flex align-items-center flex-wrap mt-2 mt-md-0';
+
+              const endpointCsvInput = document.createElement('input');
+              endpointCsvInput.type = 'file';
+              endpointCsvInput.accept = '.csv,text/csv';
+              endpointCsvInput.className = 'd-none';
+              endpointCsvInput.addEventListener('change', function(event) {
+                if (event.target.files && event.target.files[0]) {
+                  const file = event.target.files[0];
+                  const domainName = domain.domain || '';
+                  uploadEndpointCsv(file, domainName, areaKey, modalId);
+                  event.target.value = '';
+                }
+              });
+
+              const endpointCsvButton = document.createElement('button');
+              endpointCsvButton.type = 'button';
+              endpointCsvButton.className = 'btn btn-outline-primary btn-sm mr-2';
+              endpointCsvButton.textContent = 'Upload Endpoint CSV';
+              endpointCsvButton.addEventListener('click', function() { endpointCsvInput.click(); });
+              headingActions.appendChild(endpointCsvButton);
+              headingActions.appendChild(endpointCsvInput);
+
               const logUploadInput = document.createElement('input');
               logUploadInput.type = 'file';
               logUploadInput.accept = '.txt,.log,text/plain';
@@ -4335,6 +4397,7 @@
                 placeholderActions.appendChild(removePlaceholderButton);
 
                 placeholderRow.appendChild(placeholderActions);
+                heading.appendChild(headingActions);
                 heading.appendChild(placeholderRow);
                 wrapper.appendChild(heading);
 
