@@ -3155,9 +3155,11 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             project.workbook_data = workbook_payload
             project.data_artifacts = artifacts
             project.save(update_fields=["workbook_data", "data_artifacts"])
-        return JsonResponse(
-            {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
-        )
+
+            return JsonResponse(
+                {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
+            )
+        return JsonResponse({"error": "Unsupported upload type."}, status=400)
 
     def _handle_endpoint_csv_upload(self, request, project):
         upload = request.FILES.get("endpoint_csv")
