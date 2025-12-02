@@ -114,6 +114,8 @@ from ghostwriter.rolodex.workbook import (
 )
 from ghostwriter.rolodex.workbook_defaults import (
     WORKBOOK_DEFAULTS,
+    WORKBOOK_META_KEY,
+    WORKBOOK_META_SECTIONS_KEY,
     ensure_data_responses_defaults,
     normalize_workbook_payload,
 )
@@ -3840,6 +3842,14 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 workbook_payload["wireless"] = default_wireless
             else:
                 workbook_payload.pop("wireless", None)
+
+            meta = workbook_payload.get(WORKBOOK_META_KEY)
+            if isinstance(meta, dict):
+                stored_sections = meta.get(WORKBOOK_META_SECTIONS_KEY)
+                if isinstance(stored_sections, list):
+                    meta[WORKBOOK_META_SECTIONS_KEY] = sorted(
+                        {section for section in stored_sections if section != "wireless"}
+                    )
 
             project_cap = dict(project.cap or {}) if isinstance(project.cap, dict) else {}
             project_cap.pop("wireless", None)
