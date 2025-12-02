@@ -2471,6 +2471,52 @@ class ProjectDataResponsesUpdateTests(TestCase):
         self.assertEqual(vulnerabilities["med"], {"total_unique": 0, "items": []})
         self.assertEqual(vulnerabilities["low"], {"total_unique": 0, "items": []})
 
+    def test_upload_snmp_csv_updates_metrics_and_artifacts(self):
+        snmp_csv = SimpleUploadedFile(
+            "snmp.csv",
+            b"""Host,String,Access,Desc
+host1,public,read-only,desc1
+host2,private,read-write,desc2
+host1,foo,read-only,desc3
+""",
+            content_type="text/csv",
+        )
+
+        response = self.client_auth.post(self.update_url, {"snmp_csv": snmp_csv})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        snmp_data = payload.get("workbook_data", {}).get("snmp", {})
+        self.assertEqual(snmp_data.get("total_strings"), 3)
+        self.assertEqual(snmp_data.get("total_systems"), 2)
+        self.assertEqual(snmp_data.get("read_write_access"), "Yes")
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.workbook_data.get("snmp", {}).get("total_strings"), 3)
+        self.assertEqual(
+            self.project.workbook_data.get("snmp", {}).get("read_write_access"), "Yes"
+        )
+        artifacts = self.project.data_artifacts or {}
+        self.assertIn("snmp", artifacts)
+        self.assertEqual(len(artifacts.get("snmp", [])), 3)
+        self.assertEqual(artifacts.get("snmp_file_name"), "snmp.csv")
+
+    def test_upload_snmp_csv_validates_headers(self):
+        bad_csv = SimpleUploadedFile(
+            "bad_snmp.csv",
+            b"Host,String,Desc\nhost1,public,desc1\n",
+            content_type="text/csv",
+        )
+
+        response = self.client_auth.post(self.update_url, {"snmp_csv": bad_csv})
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn("Missing required SNMP headers", payload.get("error", ""))
+
+        self.project.refresh_from_db()
+        self.assertNotIn("snmp", self.project.data_artifacts or {})
+
     def test_remove_firewall_data_clears_artifacts_and_workbook(self):
         self.project.workbook_data = {"firewall": {"unique": 1}}
         self.project.save(update_fields=["workbook_data"])

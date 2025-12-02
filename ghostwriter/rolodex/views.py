@@ -2319,6 +2319,62 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         return rows, metrics, None
 
     @staticmethod
+    def _parse_snmp_csv(
+        upload,
+    ) -> tuple[Optional[list[dict[str, str]]], Optional[dict[str, Any]], Optional[str]]:
+        required_headers = {
+            "host": "Host",
+            "string": "String",
+            "access": "Access",
+            "desc": "Desc",
+        }
+
+        try:
+            content = upload.read().decode("utf-8-sig")
+        except Exception:
+            return None, None, "Unable to read the uploaded CSV file."
+
+        reader = csv.DictReader(io.StringIO(content))
+        header_lookup = {header.lower(): header for header in (reader.fieldnames or [])}
+        missing_headers = [
+            label for key, label in required_headers.items() if key not in header_lookup
+        ]
+        if missing_headers:
+            return None, None, f"Missing required SNMP headers: {', '.join(missing_headers)}"
+
+        rows: list[dict[str, str]] = []
+        host_set: set[str] = set()
+        has_read_write = False
+
+        for row in reader:
+            normalized_row: dict[str, str] = {}
+            has_value = False
+            for key, label in required_headers.items():
+                source_header = header_lookup.get(key) or label
+                value = (row.get(source_header) or "").strip()
+                normalized_row[label] = value
+                has_value = has_value or bool(value)
+
+            if not has_value:
+                continue
+
+            rows.append(normalized_row)
+            host_value = normalized_row.get("Host", "").strip().lower()
+            access_value = normalized_row.get("Access", "").strip().lower()
+            if host_value:
+                host_set.add(host_value)
+            if access_value == "read-write":
+                has_read_write = True
+
+        metrics: dict[str, Any] = {
+            "total_strings": len(rows),
+            "total_systems": len(host_set),
+            "read_write_access": "Yes" if has_read_write else "No",
+        }
+
+        return rows, metrics, None
+
+    @staticmethod
     def _parse_dns_csv(upload) -> tuple[
         Optional[list[dict[str, str]]],
         Optional[int],
@@ -3451,6 +3507,33 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 if rows is not None:
                     artifacts["osint"] = rows
                     artifacts["osint_file_name"] = upload.name
+                project.workbook_data = workbook_payload
+                project.data_artifacts = artifacts
+                project.save(update_fields=["workbook_data", "data_artifacts"])
+
+                return JsonResponse(
+                    {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
+                )
+
+            if "snmp_csv" in request.FILES:
+                upload = request.FILES.get("snmp_csv")
+                if not upload:
+                    return JsonResponse({"error": "No SNMP CSV provided."}, status=400)
+
+                rows, metrics, error_message = self._parse_snmp_csv(upload)
+                if error_message:
+                    return JsonResponse({"error": error_message}, status=400)
+
+                workbook_payload = build_workbook_entry_payload(
+                    project=project, areas={"snmp": metrics or {}}
+                )
+
+                artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+                artifacts = dict(artifacts)
+                if rows is not None:
+                    artifacts["snmp"] = rows
+                    artifacts["snmp_file_name"] = upload.name
+
                 project.workbook_data = workbook_payload
                 project.data_artifacts = artifacts
                 project.save(update_fields=["workbook_data", "data_artifacts"])
