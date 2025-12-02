@@ -3861,6 +3861,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             existing_grouped = ensure_data_responses_defaults(
                 project.data_responses if isinstance(project.data_responses, dict) else {}
             )
+            existing_grouped.pop("wireless", None)
             refreshed_responses = _build_grouped_data_responses(
                 existing_grouped,
                 questions,
