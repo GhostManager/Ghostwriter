@@ -3086,6 +3086,9 @@
           formGroup.className = inlineLayout
             ? 'form-group row align-items-center mb-2'
             : 'form-group';
+          if (field.key === 'wep_key_cracked') {
+            formGroup.classList.add('d-none');
+          }
           const label = document.createElement('label');
           label.className = inlineLayout
             ? 'col-12 col-sm-6 col-md-5 col-lg-6 col-form-label font-weight-bold pr-sm-2'
@@ -5552,7 +5555,7 @@
             const modalRow = document.createElement('div');
             modalRow.className = 'row workbook-area-modal-grid';
             const getSubcardColumnClass = function(currentAreaKey) {
-              if (currentAreaKey === 'iam' || currentAreaKey === 'firewall') {
+              if (currentAreaKey === 'iam' || currentAreaKey === 'firewall' || currentAreaKey === 'wireless') {
                 return 'col-12 col-lg-6 d-flex workbook-area-modal-col';
               }
               return 'col-12 col-lg-6 col-xl-4 d-flex workbook-area-modal-col';
