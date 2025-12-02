@@ -1,3 +1,13 @@
+# Only export main API classes and exceptions
+__all__ = [
+    "Credentials",
+    "APIVersion",
+    "Domain",
+    "ErrorDetails",
+    "ErrorResponse",
+    "APIException",
+    "APIClient",
+]
 # Standard Libraries
 import base64
 import hashlib
