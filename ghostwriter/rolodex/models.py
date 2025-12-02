@@ -6,7 +6,7 @@ import re
 from collections import OrderedDict
 from datetime import time, timedelta
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 # Django Imports
 from django.conf import settings
