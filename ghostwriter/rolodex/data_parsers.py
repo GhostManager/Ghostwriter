@@ -1712,6 +1712,14 @@ def _build_nexpose_finding_entry(
 
 
 
+def _normalize_nexpose_identifier(value: Any) -> str:
+    """Normalize Nexpose identifiers into a comparable form."""
+
+    if value is None:
+        return ""
+    return re.sub(r"[^a-z0-9]+", "_", str(value).strip().lower()).strip("_")
+
+
 def _detect_nexpose_xml_artifact_key(values: Iterable[Any]) -> Optional[str]:
     """Infer the artifact key for any Nexpose XML specific ``values``."""
 
@@ -1735,9 +1743,13 @@ def _resolve_nexpose_xml_artifact_key(data_file: "ProjectDataFile") -> Optional[
         (data_file.requirement_context or ""),
         (data_file.description or ""),
     ]
-    filename = getattr(data_file, "filename", "")
-    if filename:
-        candidates.append(filename)
+    for candidate in candidates:
+        normalized = _normalize_nexpose_identifier(candidate)
+        if not normalized:
+            continue
+        artifact_key = NEXPOSE_XML_REQUIREMENT_MAP.get(normalized)
+        if artifact_key:
+            return artifact_key
     return _detect_nexpose_xml_artifact_key(candidates)
 
 
@@ -3605,6 +3617,25 @@ NEXPOSE_TEST_STATUS_MAP = {
     "potential": "VP",
     "vulnerable-exploited": "VE",
     "vulnerable-version": "VV",
+}
+
+NEXPOSE_XML_REQUIREMENT_MAP = {
+    _normalize_nexpose_identifier("external_nexpose_xml.xml"): "external_nexpose_findings",
+    _normalize_nexpose_identifier("required_external_nexpose_xml-xml"): "external_nexpose_findings",
+    _normalize_nexpose_identifier("required_external-nexpose-xml-xml"): "external_nexpose_findings",
+    _normalize_nexpose_identifier("external nexpose xml"): "external_nexpose_findings",
+    _normalize_nexpose_identifier("internal_nexpose_xml.xml"): "internal_nexpose_findings",
+    _normalize_nexpose_identifier("required_internal_nexpose_xml-xml"): "internal_nexpose_findings",
+    _normalize_nexpose_identifier("required_internal-nexpose-xml-xml"): "internal_nexpose_findings",
+    _normalize_nexpose_identifier("internal nexpose xml"): "internal_nexpose_findings",
+    _normalize_nexpose_identifier("iot_nexpose_xml.xml"): "iot_iomt_nexpose_findings",
+    _normalize_nexpose_identifier("iot_iomt_nexpose_xml.xml"): "iot_iomt_nexpose_findings",
+    _normalize_nexpose_identifier("required_iot_nexpose_xml-xml"): "iot_iomt_nexpose_findings",
+    _normalize_nexpose_identifier("required_iot_nexpose-xml-xml"): "iot_iomt_nexpose_findings",
+    _normalize_nexpose_identifier("required_iot_iomt_nexpose_xml-xml"): "iot_iomt_nexpose_findings",
+    _normalize_nexpose_identifier("required_iot-iomt_nexpose_xml-xml"): "iot_iomt_nexpose_findings",
+    _normalize_nexpose_identifier("iot nexpose xml"): "iot_iomt_nexpose_findings",
+    _normalize_nexpose_identifier("iot iomt nexpose xml"): "iot_iomt_nexpose_findings",
 }
 
 NEXPOSE_XML_ARTIFACT_MAP = {

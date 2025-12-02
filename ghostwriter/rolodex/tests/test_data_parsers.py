@@ -256,6 +256,61 @@ class NexposeDataParserTests(TestCase):
         self.assertEqual(software_entry["Software"], "ExampleApp")
         self.assertEqual(software_entry["Version"], "1.2.3")
 
+    def test_nexpose_xml_prefers_requirement_context_over_filename(self):
+        xml_payload = """<?xml version='1.0' encoding='UTF-8'?>
+<NexposeReport version='1.0'>
+  <nodes>
+    <node address='192.0.2.50' status='alive'>
+      <names>
+        <name>internal-host.example.com</name>
+      </names>
+      <software>
+        <fingerprint product='InternalApp' version='2.0.0' certainty='1.0'/>
+      </software>
+      <tests>
+        <test id='internal-issue' status='vulnerable-version'>
+          <Paragraph>
+            <Paragraph>Internal proof</Paragraph>
+          </Paragraph>
+        </test>
+      </tests>
+    </node>
+  </nodes>
+  <vulnerabilityDefinitions>
+    <vulnerability>
+      <id>internal-issue</id>
+      <title>Internal Vulnerability</title>
+      <severity>4</severity>
+      <description>Example internal issue</description>
+      <solution>Fix internally</solution>
+    </vulnerability>
+  </vulnerabilityDefinitions>
+</NexposeReport>
+"""
+
+        upload = ProjectDataFile.objects.create(
+            project=self.project,
+            file=SimpleUploadedFile(
+                "external_scan.xml",
+                xml_payload.encode("utf-8"),
+                content_type="text/xml",
+            ),
+            requirement_label="internal_nexpose_xml.xml",
+            requirement_slug="required_internal_nexpose_xml-xml",
+            requirement_context="internal nexpose xml",
+        )
+        self.addCleanup(lambda: ProjectDataFile.objects.filter(pk=upload.pk).delete())
+
+        self.project.rebuild_data_artifacts()
+        self.project.refresh_from_db()
+
+        artifact = self.project.data_artifacts.get("internal_nexpose_findings")
+        self.assertIsInstance(artifact, dict)
+        findings = artifact.get("findings")
+        self.assertIsInstance(findings, list)
+        self.assertEqual(len(findings), 1)
+        self.assertNotIn("external_nexpose_findings", self.project.data_artifacts)
+
     def test_nexpose_xml_generates_metrics_and_xlsx(self):
         xml_payload = """<?xml version='1.0' encoding='UTF-8'?>
 <NexposeReport version='1.0'>
