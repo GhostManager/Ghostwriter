@@ -3810,6 +3810,29 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
             )
 
+        if payload.get("remove_sql"):
+            workbook_payload = normalize_workbook_payload(project.workbook_data)
+            default_sql = copy.deepcopy(WORKBOOK_DEFAULTS.get("sql"))
+            if default_sql is not None:
+                workbook_payload["sql"] = default_sql
+            else:
+                workbook_payload.pop("sql", None)
+
+            project_cap = dict(project.cap or {}) if isinstance(project.cap, dict) else {}
+            project_cap.pop("sql", None)
+
+            project.workbook_data = workbook_payload
+            project.cap = project_cap
+            project.save(update_fields=["workbook_data", "cap"])
+
+            return JsonResponse(
+                {
+                    "workbook_data": project.workbook_data,
+                    "data_artifacts": project.data_artifacts,
+                    "cap": project.cap,
+                }
+            )
+
         if payload.get("remove_web"):
             requirement_slug = _slugify_identifier("required", "burp_xml.xml")
             for data_file in project.data_files.filter(requirement_slug=requirement_slug):

@@ -561,6 +561,45 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                 payload.get("read_write_access")
             )
         return normalized
+    if area == "sql" and isinstance(payload, Mapping):
+        for field in ("total_open", "weak_creds"):
+            if field in payload:
+                normalized[field] = _as_int(payload.get(field))
+
+        db_types_value = payload.get("db_types")
+        if db_types_value is not None:
+            db_types_text = str(db_types_value).strip()
+            normalized["db_types"] = db_types_text or None
+
+        subnets_value = payload.get("subnets")
+        if subnets_value is not None:
+            subnets_text = str(subnets_value).strip()
+            normalized["subnets"] = subnets_text or None
+
+        unsupported_payload = payload.get("unsupported_dbs")
+        if not isinstance(unsupported_payload, Mapping):
+            unsupported_payload = {}
+
+        confirm_value = payload.get("unsupported_confirm")
+        if confirm_value is None:
+            confirm_value = unsupported_payload.get("confirm")
+        confirm_normalized = _normalize_yes_no(confirm_value)
+
+        count_value = payload.get("unsupported_count")
+        if count_value is None:
+            count_value = unsupported_payload.get("count")
+
+        if confirm_normalized != "Yes":
+            unsupported_count = 0
+        else:
+            unsupported_count = _as_int(count_value)
+
+        normalized["unsupported_dbs"] = {
+            "confirm": confirm_normalized,
+            "count": unsupported_count,
+        }
+
+        return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
     if not allowed_fields or not isinstance(payload, Mapping):
         return normalized
