@@ -332,7 +332,7 @@ class APIClient:
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
                     # No results
-                    domain_users = {"nodes": dict()}
+                    domain_users = {"nodes": {}}
                 else:
                     raise
 
