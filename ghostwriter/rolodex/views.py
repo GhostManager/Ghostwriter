@@ -31,6 +31,8 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
 from taggit.models import Tag
+from xlsxwriter.workbook import Workbook
+from xlsxwriter.worksheet import Worksheet
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -1969,6 +1971,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         }
         dns_issue_counts: Dict[str, int] = {}
         artifacts = normalize_nexpose_artifacts_map(object.data_artifacts or {})
+        artifacts_updated = False
         object.data_artifacts = artifacts
         ctx["project_data_artifacts_json"] = artifacts
         matrix_gap_summary = summarize_nexpose_matrix_gaps(artifacts)
@@ -2023,6 +2026,59 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                     "type": "firewall",
                 }
             )
+        endpoint_artifacts = artifacts.get("endpoint")
+        if isinstance(endpoint_artifacts, dict):
+            endpoint_metrics = (
+                endpoint_artifacts.get("metrics")
+                if isinstance(endpoint_artifacts.get("metrics"), dict)
+                else {}
+            )
+            domain_records = (
+                endpoint_artifacts.get("domains")
+                if isinstance(endpoint_artifacts.get("domains"), list)
+                else []
+            )
+            for record in domain_records:
+                if not isinstance(record, dict):
+                    continue
+                domain_value = (record.get("domain") or record.get("name") or "").strip()
+                if not domain_value:
+                    continue
+                domain_key = domain_value.lower()
+                metrics_payload = endpoint_metrics.get(domain_key)
+                if not metrics_payload and record.get("computers"):
+                    metrics_payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
+                        domain_value,
+                        record.get("computers") or [],
+                        systems_ood=record.get("systems_ood"),
+                        wifi_count=record.get("open_wifi"),
+                        file_name=record.get("file_name"),
+                    )
+                    endpoint_metrics = dict(endpoint_metrics)
+                    endpoint_metrics[domain_key] = metrics_payload
+                    endpoint_artifacts["metrics"] = endpoint_metrics
+                    artifacts["endpoint"] = endpoint_artifacts
+                    object.data_artifacts = artifacts
+                    artifacts_updated = True
+                if not metrics_payload:
+                    continue
+                summary = (
+                    metrics_payload.get("summary")
+                    if isinstance(metrics_payload, dict)
+                    else {}
+                )
+                processed_cards.append(
+                    {
+                        "label": f"Endpoint Data - {domain_value}",
+                        "metrics_key": domain_key,
+                        "summary": summary,
+                        "has_file": bool(metrics_payload.get("xlsx_base64")),
+                        "type": "endpoint",
+                        "domain": domain_value,
+                    }
+                )
+        if artifacts_updated:
+            object.save(update_fields=["data_artifacts"])
         ctx["processed_data_cards"] = processed_cards
         cap_payload = object.cap if isinstance(object.cap, dict) else {}
         nexpose_section = cap_payload.get("nexpose") if isinstance(cap_payload, dict) else None
@@ -2465,6 +2521,248 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 wifi_count += 1
 
         return list(computer_map.values()), systems_ood, wifi_count, None
+
+
+    @staticmethod
+    def _render_endpoint_metrics_workbook(
+        domain: str,
+        rows: List[List[str]],
+        wifi_rows: List[List[str]],
+        ood_rows: List[List[str]],
+    ) -> Optional[bytes]:
+        """Create an XLSX workbook for endpoint metrics."""
+
+        buffer = io.BytesIO()
+        workbook = Workbook(buffer, {"in_memory": True})
+
+        header_format = workbook.add_format(
+            {"bold": True, "border": 1, "bg_color": "#0066CC", "font_color": "white"}
+        )
+        text_format = workbook.add_format({"text_wrap": True, "border": 1})
+        banded_text_format = workbook.add_format(
+            {"text_wrap": True, "border": 1, "bg_color": "#99CCFF"}
+        )
+
+        sheet_name = (domain or "Endpoint")[:31] or "Endpoint"
+        domain_sheet = workbook.add_worksheet(sheet_name)
+        wifi_sheet = workbook.add_worksheet("WiFi")
+        ood_sheet = workbook.add_worksheet("OOD")
+
+        domain_headers = [
+            "Online_Status",
+            "Computer",
+            "Username",
+            "SecurityProduct",
+            "Version",
+            "Status",
+            "LastUpdated",
+            "Running",
+            "VTP_Enabled",
+            "SSID",
+            "Method",
+        ]
+        wifi_headers = ["Computer", "SSID"]
+        ood_headers = ["Computer"]
+
+        def _write_table(
+            worksheet: Worksheet, headers: list[str], data_rows: list[list[str]]
+        ) -> None:
+            for col, header in enumerate(headers):
+                worksheet.write(0, col, header, header_format)
+
+            for row_index, row_values in enumerate(data_rows, start=1):
+                row_format = banded_text_format if row_index % 2 == 0 else text_format
+                for col, value in enumerate(row_values):
+                    worksheet.write(row_index, col, value, row_format)
+
+            column_widths: list[int] = [len(header) for header in headers]
+            for row_values in data_rows:
+                for col, value in enumerate(row_values):
+                    if col >= len(column_widths):
+                        column_widths.append(0)
+                    column_widths[col] = max(column_widths[col], len(str(value)))
+
+            for col, width in enumerate(column_widths):
+                worksheet.set_column(col, col, min(max(width + 2, 10), 60))
+
+        _write_table(domain_sheet, domain_headers, rows)
+        _write_table(wifi_sheet, wifi_headers, wifi_rows)
+        _write_table(ood_sheet, ood_headers, ood_rows)
+
+        workbook.close()
+        return buffer.getvalue()
+
+    @staticmethod
+    def _build_endpoint_metrics_payload(
+        domain: str,
+        computers: List[Dict[str, Any]],
+        *,
+        systems_ood: Optional[int] = None,
+        wifi_count: Optional[int] = None,
+        file_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create summary metrics and workbook payload for Endpoint data."""
+
+        normalized_domain = (domain or "").strip() or "Endpoint"
+        rows: List[List[str]] = []
+        wifi_rows: List[List[str]] = []
+        ood_rows: List[List[str]] = []
+
+        total_computers = 0
+        online_count = 0
+        computed_ood = 0
+        computed_wifi = 0
+
+        def _normalize(value: Any, default: str = "-") -> str:
+            text = str(value).strip() if value not in (None, "") else ""
+            return text or default
+
+        for computer in computers or []:
+            if not isinstance(computer, dict):
+                continue
+
+            total_computers += 1
+            online_status = _normalize(computer.get("Online_Status"), "")
+            computer_name = _normalize(computer.get("Computer"))
+            method_value = _normalize(computer.get("method") or computer.get("Method"))
+            is_online = online_status.lower() == "online"
+
+            if not is_online:
+                rows.append(
+                    [
+                        online_status,
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                    ]
+                )
+                continue
+
+            online_count += 1
+            products = computer.get("securityproducts") if isinstance(computer.get("securityproducts"), list) else []
+            usernames = computer.get("usernames") if isinstance(computer.get("usernames"), list) else []
+            ssids = computer.get("ssids") if isinstance(computer.get("ssids"), list) else []
+
+            has_up_to_date = any(
+                isinstance(product, Mapping)
+                and str(product.get("Status", "")).strip() == "Enabled, UpToDate"
+                for product in products
+            )
+            if not has_up_to_date:
+                computed_ood += 1
+                if computer_name not in {"", "-"}:
+                    ood_rows.append([computer_name])
+
+            if ssids:
+                computed_wifi += 1
+
+            created_row = False
+            for product in products:
+                if not isinstance(product, Mapping):
+                    continue
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        "-",
+                        _normalize(product.get("SecurityProduct")),
+                        _normalize(product.get("Version")),
+                        _normalize(product.get("Status")),
+                        _normalize(product.get("LastUpdated")),
+                        _normalize(product.get("Running")),
+                        _normalize(product.get("VTP_Enabled")),
+                        "-",
+                        method_value,
+                    ]
+                )
+                created_row = True
+
+            for username in usernames:
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        _normalize(username),
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        method_value,
+                    ]
+                )
+                created_row = True
+
+            for ssid in ssids:
+                normalized_ssid = _normalize(ssid)
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        normalized_ssid,
+                        method_value,
+                    ]
+                )
+                wifi_rows.append([computer_name, normalized_ssid])
+                created_row = True
+
+            if not created_row:
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        method_value,
+                    ]
+                )
+
+        ood_value = systems_ood if systems_ood is not None else computed_ood
+        wifi_value = wifi_count if wifi_count is not None else computed_wifi
+
+        metrics_payload: Dict[str, Any] = {
+            "domain": normalized_domain,
+            "summary": {
+                "total_computers": total_computers,
+                "online_count": online_count,
+                "systems_ood": ood_value,
+                "wifi_count": wifi_value,
+                "file_name": file_name or "",
+            },
+            "xlsx_filename": f"endpoint_data_{_slugify_identifier('endpoint', normalized_domain)}.xlsx",
+        }
+
+        workbook_bytes = ProjectWorkbookDataUpdate._render_endpoint_metrics_workbook(
+            normalized_domain, rows, wifi_rows, ood_rows
+        )
+        if workbook_bytes:
+            metrics_payload["xlsx_base64"] = base64.b64encode(workbook_bytes).decode(
+                "ascii"
+            )
+
+        return metrics_payload
 
     @staticmethod
     def _extract_dns_domains(payload: Optional[dict[str, Any]]) -> set[str]:
@@ -3638,6 +3936,20 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         match["computers"] = computers or []
         match["file_name"] = upload.name
 
+        metrics_map = (
+            endpoint_artifacts.get("metrics") if isinstance(endpoint_artifacts.get("metrics"), dict) else {}
+        )
+        metrics_payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
+            domain,
+            match["computers"],
+            systems_ood=systems_ood,
+            wifi_count=wifi_count,
+            file_name=upload.name,
+        )
+        metrics_map[domain_key] = metrics_payload
+        match["metrics_key"] = domain_key
+        endpoint_artifacts["metrics"] = metrics_map
+
         endpoint_artifacts["domains"] = domain_records
         artifacts["endpoint"] = endpoint_artifacts
 
@@ -3932,6 +4244,89 @@ class ProjectWebDataDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         filename = payload.get("xlsx_filename") or "burp_data.xlsx"
+        add_content_disposition_header(response, filename)
+        return response
+
+
+class ProjectEndpointDataDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Provide the processed endpoint metrics XLSX download for a project."""
+
+    model = Project
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to modify that project.")
+        return redirect("home:dashboard")
+
+    def get_success_url(self, project: Project) -> str:
+        return reverse("rolodex:project_detail", kwargs={"pk": project.pk}) + "#processed-data"
+
+    def get(self, request, *args, **kwargs):
+        project = self.get_object()
+        domain_key = (request.GET.get("domain") or "").strip().lower()
+        artifacts = project.data_artifacts or {}
+        endpoint_artifacts = (
+            artifacts.get("endpoint") if isinstance(artifacts, dict) else None
+        )
+        if not isinstance(endpoint_artifacts, dict):
+            messages.error(request, "No endpoint data file is available for download.")
+            return HttpResponseRedirect(self.get_success_url(project))
+
+        metrics_map = (
+            endpoint_artifacts.get("metrics")
+            if isinstance(endpoint_artifacts.get("metrics"), dict)
+            else {}
+        )
+        payload = metrics_map.get(domain_key)
+
+        if not payload:
+            domains = endpoint_artifacts.get("domains") if isinstance(endpoint_artifacts.get("domains"), list) else []
+            for record in domains:
+                if not isinstance(record, dict):
+                    continue
+                domain_value = (record.get("domain") or record.get("name") or "").strip()
+                if not domain_value:
+                    continue
+                if domain_key and domain_value.lower() != domain_key:
+                    continue
+                payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
+                    domain_value,
+                    record.get("computers") or [],
+                    systems_ood=record.get("systems_ood"),
+                    wifi_count=record.get("open_wifi"),
+                    file_name=record.get("file_name"),
+                )
+                metrics_map = dict(metrics_map)
+                metrics_map[domain_value.lower()] = payload
+                endpoint_artifacts["metrics"] = metrics_map
+                artifacts["endpoint"] = endpoint_artifacts
+                project.data_artifacts = artifacts
+                project.save(update_fields=["data_artifacts"])
+                break
+
+        if not payload:
+            messages.error(request, "No endpoint data file is available for download.")
+            return HttpResponseRedirect(self.get_success_url(project))
+
+        workbook_b64 = payload.get("xlsx_base64")
+        if not workbook_b64:
+            messages.error(request, "The endpoint data file is not available for download yet.")
+            return HttpResponseRedirect(self.get_success_url(project))
+
+        try:
+            workbook_bytes = base64.b64decode(workbook_b64)
+        except (ValueError, binascii.Error):  # pragma: no cover - defensive guard
+            logger.exception("Failed to decode endpoint XLSX payload")
+            messages.error(request, "Unable to decode the endpoint data file.")
+            return HttpResponseRedirect(self.get_success_url(project))
+
+        response = HttpResponse(
+            workbook_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        filename = payload.get("xlsx_filename") or "endpoint_data.xlsx"
         add_content_disposition_header(response, filename)
         return response
 

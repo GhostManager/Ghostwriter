@@ -262,6 +262,11 @@ urlpatterns += [
         name="project_web_data_download",
     ),
     path(
+        "projects/<int:pk>/endpoint-data/",
+        views.ProjectEndpointDataDownload.as_view(),
+        name="project_endpoint_data_download",
+    ),
+    path(
         "projects/<int:pk>/firewall-data/",
         views.ProjectFirewallDataDownload.as_view(),
         name="project_firewall_data_download",

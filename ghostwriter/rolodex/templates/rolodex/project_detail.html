@@ -507,22 +507,39 @@
                   <div class="card-body">
                     <h5 class="card-title">{{ card.label }}</h5>
                     <dl class="row small mb-3">
-                      <dt class="col-6">Total Count</dt>
-                      {% with total_count=card.summary.total|default:card.summary.unique %}
-                        <dd class="col-6 text-right">{{ total_count|default:0 }}</dd>
-                      {% endwith %}
-                      <dt class="col-6">Total Highs</dt>
-                      {% with total_high=card.summary.total_high|default:card.summary.unique_high %}
-                        <dd class="col-6 text-right">{{ total_high|default:0 }}</dd>
-                      {% endwith %}
-                      <dt class="col-6">Total Mediums</dt>
-                      {% with total_med=card.summary.total_med|default:card.summary.unique_med %}
-                        <dd class="col-6 text-right">{{ total_med|default:0 }}</dd>
-                      {% endwith %}
-                      <dt class="col-6">Total Lows</dt>
-                      {% with total_low=card.summary.total_low|default:card.summary.unique_low %}
-                        <dd class="col-6 text-right">{{ total_low|default:0 }}</dd>
-                      {% endwith %}
+                      {% if card.type == "endpoint" %}
+                        <dt class="col-6">Domain</dt>
+                        <dd class="col-6 text-right">{{ card.domain }}</dd>
+                        {% if card.summary.file_name %}
+                          <dt class="col-6">Source File</dt>
+                          <dd class="col-6 text-right">{{ card.summary.file_name }}</dd>
+                        {% endif %}
+                        <dt class="col-6">Total Systems</dt>
+                        <dd class="col-6 text-right">{{ card.summary.total_computers|default:0 }}</dd>
+                        <dt class="col-6">Online Systems</dt>
+                        <dd class="col-6 text-right">{{ card.summary.online_count|default:0 }}</dd>
+                        <dt class="col-6">Systems OOD</dt>
+                        <dd class="col-6 text-right">{{ card.summary.systems_ood|default:0 }}</dd>
+                        <dt class="col-6">Systems on WiFi</dt>
+                        <dd class="col-6 text-right">{{ card.summary.wifi_count|default:0 }}</dd>
+                      {% else %}
+                        <dt class="col-6">Total Count</dt>
+                        {% with total_count=card.summary.total|default:card.summary.unique %}
+                          <dd class="col-6 text-right">{{ total_count|default:0 }}</dd>
+                        {% endwith %}
+                        <dt class="col-6">Total Highs</dt>
+                        {% with total_high=card.summary.total_high|default:card.summary.unique_high %}
+                          <dd class="col-6 text-right">{{ total_high|default:0 }}</dd>
+                        {% endwith %}
+                        <dt class="col-6">Total Mediums</dt>
+                        {% with total_med=card.summary.total_med|default:card.summary.unique_med %}
+                          <dd class="col-6 text-right">{{ total_med|default:0 }}</dd>
+                        {% endwith %}
+                        <dt class="col-6">Total Lows</dt>
+                        {% with total_low=card.summary.total_low|default:card.summary.unique_low %}
+                          <dd class="col-6 text-right">{{ total_low|default:0 }}</dd>
+                        {% endwith %}
+                      {% endif %}
                       {% if card.type == "web" %}
                         <dt class="col-6">Unique Highs</dt>
                         <dd class="col-6 text-right">{{ card.summary.unique_high|default:0 }}</dd>
@@ -554,6 +571,8 @@
                         <dd class="col-6 text-right">{{ card.summary.complexity_count|default:0 }}</dd>
                         <dt class="col-6">Vulnerability Count</dt>
                         <dd class="col-6 text-right">{{ card.summary.vuln_count|default:0 }}</dd>
+                      {% elif card.type == "endpoint" %}
+                        {# Endpoint metrics are displayed above #}
                       {% else %}
                         <dt class="col-6">Unique High/Medium</dt>
                         <dd class="col-6 text-right">{{ card.summary.unique_high_med|default:0 }}</dd>
@@ -582,6 +601,10 @@
                       {% if card.type == "web" %}
                         <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_web_data_download' project.id %}">
                           Download Web Data file
+                        </a>
+                      {% elif card.type == "endpoint" %}
+                        <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_endpoint_data_download' project.id %}?domain={{ card.metrics_key }}">
+                          Download Endpoint Data file
                         </a>
                       {% elif card.type == "firewall" %}
                         <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_firewall_data_download' project.id %}">

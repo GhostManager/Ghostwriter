@@ -811,7 +811,7 @@ def build_workbook_entry_payload(
     if isinstance(endpoint_state, Mapping):
         removed_domains = endpoint_state.get("removed_ad_domains")
         if isinstance(removed_domains, list):
-            filtered_removed = []
+            filtered_removed: list[str] = []
             seen_removed: set[str] = set()
             for entry in removed_domains:
                 name = (entry or "").strip()
@@ -819,8 +819,7 @@ def build_workbook_entry_payload(
                 if not name or lowered in seen_removed:
                     continue
                 seen_removed.add(lowered)
-                if lowered in ad_domains:
-                    filtered_removed.append(name)
+                filtered_removed.append(name)
             if filtered_removed:
                 endpoint_state["removed_ad_domains"] = filtered_removed
             elif "removed_ad_domains" in endpoint_state:
