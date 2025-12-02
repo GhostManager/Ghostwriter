@@ -215,13 +215,16 @@ def business_days(start_date, end_date):
     **Parameters**
 
     ``start_date``
-        Start datetime object
+        Start date string or datetime object
     ``end_date``
-        End datetime object
+        End date string or datetime object
     """
-    if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
-        logger.exception("Error calculating business days between datetime objects: %s, %s", start_date, end_date)
-        raise InvalidFilterValue(f'Invalid datetime objects ("{start_date}", "{end_date}") passed into the `business_days()` filter') from e
+    try:
+        start_date = start_date if isinstance(start_date, datetime) else parse_datetime(start_date)
+        end_date = end_date if isinstance(end_date, datetime) else parse_datetime(end_date)
+    except ParserError as e:
+        logger.exception("Error parsing dates with the provided format: %s, %s", start_date, end_date)
+        raise InvalidFilterValue(f'Invalid date strings ("{start_date}", "{end_date}") passed into the `business_days()` filter') from e
 
     # If user passed the dates in the wrong order, swap them
     if start_date > end_date:

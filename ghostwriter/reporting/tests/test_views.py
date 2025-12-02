@@ -2460,11 +2460,17 @@ class ReportTemplateFilterTests(TestCase):
         with self.assertRaises(InvalidFilterValue):
             to_datetime(test_date, "%d %b %Y")
 
-    def test_business_days(self):
-        test_date = dateformat(self.test_date, self.test_date_string)
-        test_date2 = test_date + timedelta(days=13)
+    def test_business_days_datetime(self):
+        end_date = self.test_date + timedelta(days=13)
 
-        business_days_count = business_days(test_date, test_date2)
+        business_days_count = business_days(self.test_date, end_date)
+        self.assertEqual(business_days_count, 10)
+
+    def test_business_days_string(self):
+        start_date = dateformat(self.test_date, self.test_date_string)
+        end_date = dateformat(self.test_date + timedelta(days=13), self.test_date_string)
+
+        business_days_count = business_days(start_date, end_date)
         self.assertEqual(business_days_count, 10)
 
     def test_business_days_with_invalid_datetime(self):
