@@ -3876,6 +3876,46 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 }
             )
 
+        if payload.get("remove_wireless_walkthru"):
+            workbook_payload = normalize_workbook_payload(project.workbook_data)
+            wireless_payload = (
+                workbook_payload.get("wireless")
+                if isinstance(workbook_payload.get("wireless"), dict)
+                else {}
+            )
+
+            preserved_wireless = {}
+            for key, value in wireless_payload.items():
+                if key not in {
+                    "open_count",
+                    "psk_count",
+                    "hidden_count",
+                    "rogue_count",
+                    "rogue_signals",
+                    "weak_psks",
+                    "wep_inuse",
+                    "802_1x_used",
+                }:
+                    preserved_wireless[key] = value
+
+            default_wireless = copy.deepcopy(WORKBOOK_DEFAULTS.get("wireless")) or {}
+            default_wireless.update(preserved_wireless)
+            workbook_payload["wireless"] = default_wireless
+
+            project.workbook_data = workbook_payload
+            project.save(update_fields=["workbook_data"])
+
+            project.refresh_from_db(fields=["workbook_data", "data_artifacts", "cap", "data_responses"])
+
+            return JsonResponse(
+                {
+                    "workbook_data": project.workbook_data,
+                    "data_artifacts": project.data_artifacts,
+                    "cap": project.cap,
+                    "data_responses": project.data_responses,
+                }
+            )
+
         if payload.get("remove_wireless"):
             workbook_payload = normalize_workbook_payload(project.workbook_data)
             default_wireless = copy.deepcopy(WORKBOOK_DEFAULTS.get("wireless"))
