@@ -2881,6 +2881,33 @@
               },
             ],
           },
+          internal_sql: {
+            label: 'SQL',
+            workbookKey: 'sql',
+            fields: [
+              {key: 'total_open', label: 'Total number of open databases', type: 'number'},
+              {
+                key: 'weak_creds',
+                label: 'Total number of databases using weak credentials',
+                type: 'number',
+              },
+              {
+                key: 'unsupported_confirm',
+                label: "Are any of the DB's running an unsupported version?",
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+              {
+                key: 'unsupported_count',
+                label: "How many DB's are running unsupported versions?",
+                type: 'number',
+              },
+              {key: 'db_types', label: 'What DB types were tested for?', type: 'textarea'},
+            ],
+          },
           internal_iot_iomt: {
             label: 'IoT/IoMT Nexpose',
             workbookKey: 'iot_iomt_nexpose',
@@ -2952,6 +2979,26 @@
           return 'area-' + areaKey + '-' + subkey + '-' + fieldKey;
         };
 
+        const updateSqlUnsupportedCount = function(areaKey, subkey) {
+          const confirmSelect = document.getElementById(
+            buildAreaFieldId(areaKey, subkey, 'unsupported_confirm')
+          );
+          const countInput = document.getElementById(
+            buildAreaFieldId(areaKey, subkey, 'unsupported_count')
+          );
+          const countGroup = countInput ? countInput.closest('.form-group') : null;
+          if (!confirmSelect || !countInput) {
+            return;
+          }
+          const isYes = (confirmSelect.value || '').toLowerCase() === 'yes';
+          if (countGroup) {
+            countGroup.classList.toggle('d-none', !isYes);
+          }
+          if (!isYes) {
+            countInput.value = '0';
+          }
+        };
+
         const createAreaFieldGroup = function(areaKey, subkey, workbookKey, field) {
           const inlineLayout = field.layout !== 'stacked' && field.type !== 'text';
           const formGroup = document.createElement('div');
@@ -2990,6 +3037,12 @@
             input.addEventListener('change', function() {
               updateWorkbookCardProgress(areaKey);
             });
+            if (areaKey === 'internal' && subkey === 'sql' && field.key === 'unsupported_confirm') {
+              input.addEventListener('change', function() {
+                updateSqlUnsupportedCount(areaKey, subkey);
+              });
+              setTimeout(function() { updateSqlUnsupportedCount(areaKey, subkey); });
+            }
           } else if (field.type === 'textarea') {
             input = document.createElement('textarea');
             input.className = 'form-control';
@@ -3714,6 +3767,14 @@
 
         const removeSnmpData = function(areaKey, modalId) {
           const payload = {remove_snmp: true};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+          });
+        };
+
+        const removeSqlData = function(areaKey, modalId) {
+          const payload = {remove_sql: true};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -5436,6 +5497,9 @@
                   const formGroup = createAreaFieldGroup(areaKey, subkey, workbookKey, field);
                   subBody.appendChild(formGroup);
                 });
+                if (areaKey === 'internal' && subkey === 'sql') {
+                  updateSqlUnsupportedCount(areaKey, subkey);
+                }
               } else {
                 const empty = document.createElement('p');
                 empty.className = 'mb-0';
@@ -5581,6 +5645,19 @@
                 uploadWrapper.appendChild(removeButton);
                 uploadWrapper.appendChild(fileNameDisplay);
                 subBody.appendChild(uploadWrapper);
+              }
+              if (subkey === 'sql') {
+                const removeWrapper = document.createElement('div');
+                removeWrapper.className = 'mt-2';
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger';
+                removeButton.textContent = 'Remove SQL Data';
+                removeButton.addEventListener('click', function() {
+                  removeSqlData(areaKey, modalId);
+                });
+                removeWrapper.appendChild(removeButton);
+                subBody.appendChild(removeWrapper);
               }
               subCard.appendChild(subHeader);
             subCard.appendChild(subBody);
