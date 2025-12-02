@@ -54,9 +54,9 @@ function openEvidenceLightbox(evidenceName, evidenceUrl, evidenceType) {
       // Dynamically adjust modal width based on image dimensions
       const img = $image[0];
       const imageWidth = img.naturalWidth;
-      const imageHeight = img.naturalHeight;
+      // const imageHeight = img.naturalHeight;
       const viewportWidth = $(window).width();
-      const viewportHeight = $(window).height();
+      // const viewportHeight = $(window).height();
 
       // Calculate optimal modal width (90% of viewport or image width, whichever is smaller)
       let modalWidth = Math.min(imageWidth + 100, viewportWidth * 0.9);
