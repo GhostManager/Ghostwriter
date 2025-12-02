@@ -600,6 +600,39 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
         }
 
         return normalized
+    if area == "wireless" and isinstance(payload, Mapping):
+        for field in ("open_count", "psk_count", "hidden_count", "rogue_count"):
+            if field in payload:
+                normalized[field] = _as_int(payload.get(field))
+
+        for field in ("rogue_signals", "weak_psks", "802_1x_used", "internal_access"):
+            if field in payload:
+                normalized[field] = _normalize_yes_no(payload.get(field))
+
+        wep_payload = payload.get("wep_inuse") if isinstance(payload.get("wep_inuse"), Mapping) else {}
+        confirm_value = payload.get("wep_confirm")
+        if confirm_value is None:
+            confirm_value = payload.get("wep_inuse_confirm")
+        if confirm_value is None:
+            confirm_value = wep_payload.get("confirm")
+
+        key_cracked_value = payload.get("wep_key_cracked")
+        if key_cracked_value is None:
+            key_cracked_value = payload.get("wep_inuse_key_cracked")
+        if key_cracked_value is None:
+            key_cracked_value = wep_payload.get("key_cracked")
+
+        confirm_normalized = _normalize_yes_no(confirm_value)
+        key_cracked_normalized = (
+            _normalize_yes_no(key_cracked_value) if confirm_normalized == "Yes" else None
+        )
+
+        normalized["wep_inuse"] = {
+            "confirm": confirm_normalized,
+            "key_cracked": key_cracked_normalized,
+        }
+
+        return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
     if not allowed_fields or not isinstance(payload, Mapping):
         return normalized
