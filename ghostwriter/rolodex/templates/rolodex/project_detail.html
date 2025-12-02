@@ -3070,29 +3070,38 @@
         };
 
         const updateWirelessWepFollowup = function(areaKey, subkey) {
-          const confirmSelect = document.getElementById(
-            buildAreaFieldId(areaKey, subkey, 'wep_confirm')
-          );
-          const followupSelect = document.getElementById(
-            buildAreaFieldId(areaKey, subkey, 'wep_key_cracked')
-          );
-          const followupGroup = followupSelect ? followupSelect.closest('.form-group') : null;
+          const confirmId = buildAreaFieldId(areaKey, subkey, 'wep_confirm');
+          const followupId = buildAreaFieldId(areaKey, subkey, 'wep_key_cracked');
 
-          const toggleFollowup = function() {
-            const isYes = (confirmSelect && confirmSelect.value || '').toLowerCase() === 'yes';
-            if (followupGroup) {
+          const attemptBind = function() {
+            const confirmSelect = document.getElementById(confirmId);
+            const followupSelect = document.getElementById(followupId);
+            const followupGroup = followupSelect ? followupSelect.closest('.form-group') : null;
+
+            if (!confirmSelect || !followupGroup) {
+              setTimeout(attemptBind, 25);
+              return;
+            }
+
+            if (confirmSelect.dataset.wepFollowupBound === 'true') {
+              return;
+            }
+            confirmSelect.dataset.wepFollowupBound = 'true';
+
+            const toggleFollowup = function() {
+              const isYes = (confirmSelect.value || '').toLowerCase() === 'yes';
               followupGroup.classList.toggle('d-none', !isYes);
-            }
-            if (!isYes && followupSelect) {
-              followupSelect.value = '';
-              updateWorkbookCardProgress(areaKey);
-            }
-          };
+              if (!isYes && followupSelect) {
+                followupSelect.value = '';
+                updateWorkbookCardProgress(areaKey);
+              }
+            };
 
-          if (confirmSelect) {
             confirmSelect.addEventListener('change', toggleFollowup);
             setTimeout(toggleFollowup);
-          }
+          };
+
+          attemptBind();
         };
 
         const createAreaFieldGroup = function(areaKey, subkey, workbookKey, field) {
