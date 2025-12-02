@@ -550,6 +550,17 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                 text_value = str(value).strip() if value not in (None, "") else ""
                 normalized[field] = text_value or None
         return normalized
+    if area == "snmp" and isinstance(payload, Mapping):
+        for field in ("total_strings", "total_systems"):
+            if field in payload:
+                value = payload.get(field)
+                normalized[field] = None if value in (None, "") else _as_int(value)
+
+        if "read_write_access" in payload:
+            normalized["read_write_access"] = _normalize_yes_no(
+                payload.get("read_write_access")
+            )
+        return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
     if not allowed_fields or not isinstance(payload, Mapping):
         return normalized

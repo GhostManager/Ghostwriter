@@ -781,6 +781,10 @@ class Project(models.Model):
         existing_artifacts = dict(self.data_artifacts or {})
         artifacts = build_project_artifacts(self)
 
+        for key in ("osint", "osint_file_name", "snmp", "snmp_file_name"):
+            if key in existing_artifacts and key not in artifacts:
+                artifacts[key] = existing_artifacts[key]
+
         endpoint_artifact = existing_artifacts.get("endpoint")
         if isinstance(endpoint_artifact, dict):
             existing_endpoint = artifacts.get("endpoint")

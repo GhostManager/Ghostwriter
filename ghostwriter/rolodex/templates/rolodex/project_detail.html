@@ -2864,6 +2864,23 @@
             renderer: 'endpoint',
             serializer: serializeEndpointPayload,
           },
+          internal_snmp: {
+            label: 'SNMP',
+            workbookKey: 'snmp',
+            fields: [
+              {key: 'total_strings', label: 'Total number of Strings identified', type: 'number'},
+              {key: 'total_systems', label: 'Total number of systems', type: 'number'},
+              {
+                key: 'read_write_access',
+                label: 'Was read/write access obtained?',
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+            ],
+          },
           internal_iot_iomt: {
             label: 'IoT/IoMT Nexpose',
             workbookKey: 'iot_iomt_nexpose',
@@ -3529,6 +3546,38 @@
           });
         };
 
+        const uploadSnmpCsv = function(file, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+          const formData = new FormData();
+          formData.append('snmp_csv', file);
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to update workbook data';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to save workbook data.');
+          });
+        };
+
         const uploadNexposeXml = function(file, uploadFieldName, areaKey, modalId) {
           if (!workbookUpdateUrl || !file) {
             return;
@@ -3657,6 +3706,14 @@
 
         const removeOsintData = function(areaKey, modalId) {
           const payload = {remove_osint: true};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+          });
+        };
+
+        const removeSnmpData = function(areaKey, modalId) {
+          const payload = {remove_snmp: true};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -5476,6 +5533,47 @@
                 const updateFileName = function() {
                   const name = (dataArtifactsState.osint_file_name || '').toString().trim();
                   fileNameDisplay.textContent = name ? 'Uploaded file: ' + name : 'No OSINT CSV uploaded.';
+                };
+                updateFileName();
+                uploadWrapper.appendChild(uploadInput);
+                uploadWrapper.appendChild(uploadButton);
+                uploadWrapper.appendChild(removeButton);
+                uploadWrapper.appendChild(fileNameDisplay);
+                subBody.appendChild(uploadWrapper);
+              }
+              if (subkey === 'snmp') {
+                const uploadWrapper = document.createElement('div');
+                uploadWrapper.className = 'mt-2';
+                const uploadInput = document.createElement('input');
+                uploadInput.type = 'file';
+                uploadInput.accept = '.csv,text/csv';
+                uploadInput.className = 'd-none';
+                uploadInput.id = 'area-' + subkey + '-upload';
+                uploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    uploadSnmpCsv(event.target.files[0], areaKey, modalId);
+                    event.target.value = '';
+                  }
+                });
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'btn btn-outline-primary';
+                uploadButton.textContent = 'Upload SNMP CSV';
+                uploadButton.addEventListener('click', function() {
+                  uploadInput.click();
+                });
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger ml-2';
+                removeButton.textContent = 'Remove SNMP Data';
+                removeButton.addEventListener('click', function() {
+                  removeSnmpData(areaKey, modalId);
+                });
+                const fileNameDisplay = document.createElement('div');
+                fileNameDisplay.className = 'small text-muted mt-2';
+                const updateFileName = function() {
+                  const name = (dataArtifactsState.snmp_file_name || '').toString().trim();
+                  fileNameDisplay.textContent = name ? 'Uploaded file: ' + name : 'No SNMP CSV uploaded.';
                 };
                 updateFileName();
                 uploadWrapper.appendChild(uploadInput);
