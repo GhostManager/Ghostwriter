@@ -2908,6 +2908,61 @@
               {key: 'db_types', label: 'What DB types were tested for?', type: 'textarea'},
             ],
           },
+          wireless_walkthru: {
+            label: 'Walkthru',
+            workbookKey: 'wireless',
+            fields: [
+              {key: 'open_count', label: 'Open Count', type: 'number'},
+              {key: 'psk_count', label: 'PSK Count', type: 'number'},
+              {key: 'hidden_count', label: 'Hidden Count', type: 'number'},
+              {key: 'rogue_count', label: 'Rogue Count', type: 'number'},
+              {
+                key: 'rogue_signals',
+                label: 'Do any of the rogues have strong signals or appear to be on the same equipment as the client?',
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+              {
+                key: 'weak_psks',
+                label: "Are any of the PSK's in use weak?",
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+              {
+                key: 'wep_confirm',
+                label: 'Is WEP in use on the wireless networks?',
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+              {
+                key: 'wep_key_cracked',
+                label: 'Were you able to crack the WEP key?',
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+              {
+                key: '802_1x_used',
+                label: 'Is 802.1x authentication used for all non-Guest wireless access?',
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+            ],
+          },
           internal_iot_iomt: {
             label: 'IoT/IoMT Nexpose',
             workbookKey: 'iot_iomt_nexpose',
@@ -2996,6 +3051,32 @@
           }
           if (!isYes) {
             countInput.value = '0';
+          }
+        };
+
+        const updateWirelessWepFollowup = function(areaKey, subkey) {
+          const confirmSelect = document.getElementById(
+            buildAreaFieldId(areaKey, subkey, 'wep_confirm')
+          );
+          const followupSelect = document.getElementById(
+            buildAreaFieldId(areaKey, subkey, 'wep_key_cracked')
+          );
+          const followupGroup = followupSelect ? followupSelect.closest('.form-group') : null;
+
+          const toggleFollowup = function() {
+            const isYes = (confirmSelect && confirmSelect.value || '').toLowerCase() === 'yes';
+            if (followupGroup) {
+              followupGroup.classList.toggle('d-none', !isYes);
+            }
+            if (!isYes && followupSelect) {
+              followupSelect.value = '';
+              updateWorkbookCardProgress(areaKey);
+            }
+          };
+
+          if (confirmSelect) {
+            confirmSelect.addEventListener('change', toggleFollowup);
+            setTimeout(toggleFollowup);
           }
         };
 
@@ -3786,6 +3867,15 @@
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
+          });
+        };
+
+        const removeWirelessData = function(areaKey, modalId) {
+          const payload = {remove_wireless: true};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+            afterRender: function() { updateWorkbookCardProgress(areaKey); },
           });
         };
 
@@ -5663,6 +5753,20 @@
                 removeButton.textContent = 'Remove SQL Data';
                 removeButton.addEventListener('click', function() {
                   removeSqlData(areaKey, modalId);
+                });
+                removeWrapper.appendChild(removeButton);
+                subBody.appendChild(removeWrapper);
+              }
+              if (areaKey === 'wireless' && subkey === 'walkthru') {
+                updateWirelessWepFollowup(areaKey, subkey);
+                const removeWrapper = document.createElement('div');
+                removeWrapper.className = 'mt-2';
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger';
+                removeButton.textContent = 'Remove Walkthru Data';
+                removeButton.addEventListener('click', function() {
+                  removeWirelessData(areaKey, modalId);
                 });
                 removeWrapper.appendChild(removeButton);
                 subBody.appendChild(removeWrapper);
