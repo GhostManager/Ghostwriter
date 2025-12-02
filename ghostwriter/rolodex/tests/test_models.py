@@ -331,6 +331,50 @@ class ProjectModelTests(TestCase):
         self.assertFalse(project.user_can_edit(user))
         self.assertFalse(project.user_can_delete(user))
 
+    def test_rebuild_preserves_endpoint_artifacts(self):
+        project = ProjectFactory()
+
+        endpoint_artifacts = {
+            "endpoint": {
+                "domains": [
+                    {
+                        "domain": "example.local",
+                        "computers": [
+                            {"Computer": "workstation01", "Online_Status": "Online"}
+                        ],
+                        "file_name": "endpoint.csv",
+                    }
+                ],
+                "metrics": {
+                    "example.local": {
+                        "summary": {
+                            "total_computers": 1,
+                            "online_count": 1,
+                            "systems_ood": 0,
+                            "wifi_count": 0,
+                            "file_name": "endpoint.csv",
+                        },
+                        "xlsx_base64": "ZGF0YQ==",
+                    }
+                },
+            }
+        }
+        workbook_payload = {"endpoint": {"domains": [{"domain": "example.local"}]}}
+
+        project.data_artifacts = endpoint_artifacts
+        project.workbook_data = workbook_payload
+        project.save(update_fields=["data_artifacts", "workbook_data"])
+
+        project.rebuild_data_artifacts()
+        project.refresh_from_db(fields=["data_artifacts"])
+
+        endpoint_payload = project.data_artifacts.get("endpoint")
+        self.assertIsInstance(endpoint_payload, dict)
+        self.assertIn("metrics", endpoint_payload)
+        self.assertEqual(
+            endpoint_payload.get("domains", [{}])[0].get("domain"), "example.local"
+        )
+
 
 class ProjectScopingNormalizationTests(TestCase):
     """Validate normalization helpers for project scoping data."""

@@ -571,6 +571,8 @@
                         <dd class="col-6 text-right">{{ card.summary.complexity_count|default:0 }}</dd>
                         <dt class="col-6">Vulnerability Count</dt>
                         <dd class="col-6 text-right">{{ card.summary.vuln_count|default:0 }}</dd>
+                      {% elif card.type == "endpoint" %}
+                        {# Endpoint metrics are displayed above #}
                       {% else %}
                         <dt class="col-6">Unique High/Medium</dt>
                         <dd class="col-6 text-right">{{ card.summary.unique_high_med|default:0 }}</dd>

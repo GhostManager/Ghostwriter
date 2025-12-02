@@ -778,7 +778,18 @@ class Project(models.Model):
             load_general_cap_map,
         )
 
+        existing_artifacts = dict(self.data_artifacts or {})
         artifacts = build_project_artifacts(self)
+
+        endpoint_artifact = existing_artifacts.get("endpoint")
+        if isinstance(endpoint_artifact, dict):
+            existing_endpoint = artifacts.get("endpoint")
+            if isinstance(existing_endpoint, dict):
+                merged_endpoint = dict(endpoint_artifact)
+                merged_endpoint.update(existing_endpoint)
+                artifacts["endpoint"] = merged_endpoint
+            else:
+                artifacts["endpoint"] = endpoint_artifact
 
         existing_responses = dict(self.data_responses or {})
         existing_cap = dict(self.cap or {})
