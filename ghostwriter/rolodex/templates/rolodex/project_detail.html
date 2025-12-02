@@ -2963,6 +2963,21 @@
               },
             ],
           },
+          wireless_segmentation: {
+            label: 'Segmentation',
+            workbookKey: 'wireless',
+            fields: [
+              {
+                key: 'internal_access',
+                label: 'Was internal network access gained from the Open wireless network?',
+                type: 'select',
+                options: [
+                  {value: 'Yes', label: 'Yes'},
+                  {value: 'No', label: 'No'},
+                ],
+              },
+            ],
+          },
           internal_iot_iomt: {
             label: 'IoT/IoMT Nexpose',
             workbookKey: 'iot_iomt_nexpose',
@@ -3461,7 +3476,12 @@
                 fieldPayload[field.key] = rawValue || null;
               }
             });
-            payload.areas[workbookKey] = fieldPayload;
+            const existingPayload = payload.areas[workbookKey];
+            if (existingPayload && typeof existingPayload === 'object') {
+              payload.areas[workbookKey] = Object.assign({}, existingPayload, fieldPayload);
+            } else {
+              payload.areas[workbookKey] = fieldPayload;
+            }
           });
           submitWorkbookUpdate(payload, function() {
             if (modalId) {
@@ -3875,6 +3895,15 @@
 
         const removeWirelessData = function(areaKey, modalId) {
           const payload = {remove_wireless: true};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+            afterRender: function() { updateWorkbookCardProgress(areaKey); },
+          });
+        };
+
+        const removeWirelessSegmentationData = function(areaKey, modalId) {
+          const payload = {areas: {wireless: {internal_access: null}}};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -5770,6 +5799,19 @@
                 removeButton.textContent = 'Remove Walkthru Data';
                 removeButton.addEventListener('click', function() {
                   removeWirelessData(areaKey, modalId);
+                });
+                removeWrapper.appendChild(removeButton);
+                subBody.appendChild(removeWrapper);
+              }
+              if (areaKey === 'wireless' && subkey === 'segmentation') {
+                const removeWrapper = document.createElement('div');
+                removeWrapper.className = 'mt-2';
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger';
+                removeButton.textContent = 'Remove Segmentation Data';
+                removeButton.addEventListener('click', function() {
+                  removeWirelessSegmentationData(areaKey, modalId);
                 });
                 removeWrapper.appendChild(removeButton);
                 subBody.appendChild(removeWrapper);
