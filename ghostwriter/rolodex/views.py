@@ -2467,28 +2467,65 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             return None, None, None, "Unable to read the uploaded CSV file."
 
         content: Optional[str] = None
-        for encoding in ("utf-8-sig", "latin-1"):
+        for encoding in ("utf-8-sig", "utf-16", "utf-16le", "utf-16be", "latin-1"):
             try:
                 content = raw_bytes.decode(encoding)
                 break
             except Exception:
                 continue
         if content is None:
-            return None, None, None, "Unable to decode the uploaded CSV file."
+            try:
+                content = raw_bytes.decode("utf-8", errors="replace")
+            except Exception:
+                return None, None, None, "Unable to decode the uploaded CSV file."
 
         # Strip null bytes that can break CSV parsing
         if "\x00" in content:
             content = content.replace("\x00", "")
 
-        dialect = None
-        try:
-            dialect = csv.Sniffer().sniff(content[:2048])
-        except Exception:
-            dialect = csv.get_dialect("excel")
+        sample = content[:2048]
+        candidate_delimiters = [",", ";", "\t", "|"]
+        delimiter = ","
+        best_match_count = -1
+        best_dialect: Optional[csv.Dialect] = None
 
-        reader = csv.DictReader(io.StringIO(content), dialect=dialect)
+        for candidate in candidate_delimiters:
+            reader = csv.DictReader(io.StringIO(content), delimiter=candidate)
+            header_lookup = {
+                (header or "").lower().strip(): header
+                for header in (reader.fieldnames or [])
+            }
+            match_count = sum(1 for key in required_headers if key in header_lookup)
+            if match_count == len(required_headers):
+                delimiter = candidate
+                best_match_count = match_count
+                break
+            if match_count > best_match_count:
+                best_match_count = match_count
+                delimiter = candidate
+
+        try:
+            sniffed = csv.Sniffer().sniff(sample, delimiters="".join(candidate_delimiters))
+            reader = csv.DictReader(io.StringIO(content), dialect=sniffed)
+            sniff_header_lookup = {
+                (header or "").lower().strip(): header
+                for header in (reader.fieldnames or [])
+            }
+            sniff_match_count = sum(1 for key in required_headers if key in sniff_header_lookup)
+            if sniff_match_count > best_match_count:
+                delimiter = sniffed.delimiter
+                best_dialect = sniffed
+                best_match_count = sniff_match_count
+        except csv.Error:
+            pass
+
+        reader = (
+            csv.DictReader(io.StringIO(content), dialect=best_dialect)
+            if best_dialect is not None
+            else csv.DictReader(io.StringIO(content), delimiter=delimiter)
+        )
         header_lookup = {
-            header.lower().strip(): header
+            (header or "").lower().strip(): header
             for header in (reader.fieldnames or [])
         }
 
