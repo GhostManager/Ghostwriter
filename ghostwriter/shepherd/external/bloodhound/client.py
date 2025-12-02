@@ -191,9 +191,10 @@ class APIClient:
         tzassets = {}
         txassets = {}
         for assetKey, asset in payload["finding_assets"].items():
+            print(asset)
             tzfields = {}
             txfields = {}
-            for term in ["title", "type", "references", "short_description", "long_description"]:
+            for term in ["title", "type", "references", "short_description", "long_description", "short_remediation", "long_remediation"]:
                 tzkey = term + ".md"
                 txkey = "tx-" + tzkey
                 tzvalue = asset[tzkey]
