@@ -2045,7 +2045,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                 domain_key = domain_value.lower()
                 metrics_payload = endpoint_metrics.get(domain_key)
                 if not metrics_payload and record.get("computers"):
-                    metrics_payload = _build_endpoint_metrics_payload(
+                    metrics_payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
                         domain_value,
                         record.get("computers") or [],
                         systems_ood=record.get("systems_ood"),
@@ -2518,217 +2518,222 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         return list(computer_map.values()), systems_ood, wifi_count, None
 
 
-def _render_endpoint_metrics_workbook(
-    domain: str,
-    rows: List[List[str]],
-    wifi_rows: List[List[str]],
-) -> Optional[bytes]:
-    """Create an XLSX workbook for endpoint metrics."""
+    @staticmethod
+    def _render_endpoint_metrics_workbook(
+        domain: str,
+        rows: List[List[str]],
+        wifi_rows: List[List[str]],
+    ) -> Optional[bytes]:
+        """Create an XLSX workbook for endpoint metrics."""
 
-    buffer = io.BytesIO()
-    workbook = Workbook(buffer, {"in_memory": True})
+        buffer = io.BytesIO()
+        workbook = Workbook(buffer, {"in_memory": True})
 
-    header_format = workbook.add_format({"bold": True, "border": 1})
-    text_format = workbook.add_format({"text_wrap": True, "border": 1})
+        header_format = workbook.add_format({"bold": True, "border": 1})
+        text_format = workbook.add_format({"text_wrap": True, "border": 1})
 
-    sheet_name = (domain or "Endpoint")[:31] or "Endpoint"
-    domain_sheet = workbook.add_worksheet(sheet_name)
-    wifi_sheet = workbook.add_worksheet("WiFi")
+        sheet_name = (domain or "Endpoint")[:31] or "Endpoint"
+        domain_sheet = workbook.add_worksheet(sheet_name)
+        wifi_sheet = workbook.add_worksheet("WiFi")
 
-    domain_headers = [
-        "Online_Status",
-        "Computer",
-        "Username",
-        "SecurityProduct",
-        "Version",
-        "Status",
-        "LastUpdated",
-        "Running",
-        "VTP_Enabled",
-        "SSID",
-        "Method",
-    ]
-    wifi_headers = ["Computer", "SSID"]
+        domain_headers = [
+            "Online_Status",
+            "Computer",
+            "Username",
+            "SecurityProduct",
+            "Version",
+            "Status",
+            "LastUpdated",
+            "Running",
+            "VTP_Enabled",
+            "SSID",
+            "Method",
+        ]
+        wifi_headers = ["Computer", "SSID"]
 
-    for col, header in enumerate(domain_headers):
-        domain_sheet.write(0, col, header, header_format)
-    for row_index, row_values in enumerate(rows, start=1):
-        for col, value in enumerate(row_values):
-            domain_sheet.write(row_index, col, value, text_format)
+        for col, header in enumerate(domain_headers):
+            domain_sheet.write(0, col, header, header_format)
+        for row_index, row_values in enumerate(rows, start=1):
+            for col, value in enumerate(row_values):
+                domain_sheet.write(row_index, col, value, text_format)
 
-    for col, header in enumerate(wifi_headers):
-        wifi_sheet.write(0, col, header, header_format)
-    for row_index, row_values in enumerate(wifi_rows, start=1):
-        for col, value in enumerate(row_values):
-            wifi_sheet.write(row_index, col, value, text_format)
+        for col, header in enumerate(wifi_headers):
+            wifi_sheet.write(0, col, header, header_format)
+        for row_index, row_values in enumerate(wifi_rows, start=1):
+            for col, value in enumerate(row_values):
+                wifi_sheet.write(row_index, col, value, text_format)
 
-    workbook.close()
-    return buffer.getvalue()
+        workbook.close()
+        return buffer.getvalue()
 
+    @staticmethod
+    def _build_endpoint_metrics_payload(
+        domain: str,
+        computers: List[Dict[str, Any]],
+        *,
+        systems_ood: Optional[int] = None,
+        wifi_count: Optional[int] = None,
+        file_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create summary metrics and workbook payload for Endpoint data."""
 
-def _build_endpoint_metrics_payload(
-    domain: str,
-    computers: List[Dict[str, Any]],
-    *,
-    systems_ood: Optional[int] = None,
-    wifi_count: Optional[int] = None,
-    file_name: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Create summary metrics and workbook payload for Endpoint data."""
+        normalized_domain = (domain or "").strip() or "Endpoint"
+        rows: List[List[str]] = []
+        wifi_rows: List[List[str]] = []
 
-    normalized_domain = (domain or "").strip() or "Endpoint"
-    rows: List[List[str]] = []
-    wifi_rows: List[List[str]] = []
+        total_computers = 0
+        online_count = 0
+        computed_ood = 0
+        computed_wifi = 0
 
-    total_computers = 0
-    online_count = 0
-    computed_ood = 0
-    computed_wifi = 0
+        def _normalize(value: Any, default: str = "-") -> str:
+            text = str(value).strip() if value not in (None, "") else ""
+            return text or default
 
-    def _normalize(value: Any, default: str = "-") -> str:
-        text = str(value).strip() if value not in (None, "") else ""
-        return text or default
-
-    for computer in computers or []:
-        if not isinstance(computer, dict):
-            continue
-
-        total_computers += 1
-        online_status = _normalize(computer.get("Online_Status"), "")
-        computer_name = _normalize(computer.get("Computer"))
-        method_value = _normalize(computer.get("method") or computer.get("Method"))
-        is_online = online_status.lower() == "online"
-
-        if not is_online:
-            rows.append(
-                [
-                    online_status,
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                ]
-            )
-            continue
-
-        online_count += 1
-        products = computer.get("securityproducts") if isinstance(computer.get("securityproducts"), list) else []
-        usernames = computer.get("usernames") if isinstance(computer.get("usernames"), list) else []
-        ssids = computer.get("ssids") if isinstance(computer.get("ssids"), list) else []
-
-        has_up_to_date = any(
-            isinstance(product, Mapping)
-            and str(product.get("Status", "")).strip() == "Enabled, UpToDate"
-            for product in products
-        )
-        if not has_up_to_date:
-            computed_ood += 1
-
-        if ssids:
-            computed_wifi += 1
-
-        created_row = False
-        for product in products:
-            if not isinstance(product, Mapping):
+        for computer in computers or []:
+            if not isinstance(computer, dict):
                 continue
-            rows.append(
-                [
-                    online_status,
-                    computer_name,
-                    "-",
-                    _normalize(product.get("SecurityProduct")),
-                    _normalize(product.get("Version")),
-                    _normalize(product.get("Status")),
-                    _normalize(product.get("LastUpdated")),
-                    _normalize(product.get("Running")),
-                    _normalize(product.get("VTP_Enabled")),
-                    "-",
-                    method_value,
-                ]
+
+            total_computers += 1
+            online_status = _normalize(computer.get("Online_Status"), "")
+            computer_name = _normalize(computer.get("Computer"))
+            method_value = _normalize(computer.get("method") or computer.get("Method"))
+            is_online = online_status.lower() == "online"
+
+            if not is_online:
+                rows.append(
+                    [
+                        online_status,
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                    ]
+                )
+                continue
+
+            online_count += 1
+            products = computer.get("securityproducts") if isinstance(computer.get("securityproducts"), list) else []
+            usernames = computer.get("usernames") if isinstance(computer.get("usernames"), list) else []
+            ssids = computer.get("ssids") if isinstance(computer.get("ssids"), list) else []
+
+            has_up_to_date = any(
+                isinstance(product, Mapping)
+                and str(product.get("Status", "")).strip() == "Enabled, UpToDate"
+                for product in products
             )
-            created_row = True
+            if not has_up_to_date:
+                computed_ood += 1
 
-        for username in usernames:
-            rows.append(
-                [
-                    online_status,
-                    computer_name,
-                    _normalize(username),
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    method_value,
-                ]
+            if ssids:
+                computed_wifi += 1
+
+            created_row = False
+            for product in products:
+                if not isinstance(product, Mapping):
+                    continue
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        "-",
+                        _normalize(product.get("SecurityProduct")),
+                        _normalize(product.get("Version")),
+                        _normalize(product.get("Status")),
+                        _normalize(product.get("LastUpdated")),
+                        _normalize(product.get("Running")),
+                        _normalize(product.get("VTP_Enabled")),
+                        "-",
+                        method_value,
+                    ]
+                )
+                created_row = True
+
+            for username in usernames:
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        _normalize(username),
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        method_value,
+                    ]
+                )
+                created_row = True
+
+            for ssid in ssids:
+                normalized_ssid = _normalize(ssid)
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        normalized_ssid,
+                        method_value,
+                    ]
+                )
+                wifi_rows.append([computer_name, normalized_ssid])
+                created_row = True
+
+            if not created_row:
+                rows.append(
+                    [
+                        online_status,
+                        computer_name,
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        "-",
+                        method_value,
+                    ]
+                )
+
+        ood_value = systems_ood if systems_ood is not None else computed_ood
+        wifi_value = wifi_count if wifi_count is not None else computed_wifi
+
+        metrics_payload: Dict[str, Any] = {
+            "domain": normalized_domain,
+            "summary": {
+                "total_computers": total_computers,
+                "online_count": online_count,
+                "systems_ood": ood_value,
+                "wifi_count": wifi_value,
+                "file_name": file_name or "",
+            },
+            "xlsx_filename": f"endpoint_data_{_slugify_identifier('endpoint', normalized_domain)}.xlsx",
+        }
+
+        workbook_bytes = ProjectWorkbookDataUpdate._render_endpoint_metrics_workbook(
+            normalized_domain, rows, wifi_rows
+        )
+        if workbook_bytes:
+            metrics_payload["xlsx_base64"] = base64.b64encode(workbook_bytes).decode(
+                "ascii"
             )
-            created_row = True
 
-        for ssid in ssids:
-            normalized_ssid = _normalize(ssid)
-            rows.append(
-                [
-                    online_status,
-                    computer_name,
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    normalized_ssid,
-                    method_value,
-                ]
-            )
-            wifi_rows.append([computer_name, normalized_ssid])
-            created_row = True
-
-        if not created_row:
-            rows.append(
-                [
-                    online_status,
-                    computer_name,
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    "-",
-                    method_value,
-                ]
-            )
-
-    ood_value = systems_ood if systems_ood is not None else computed_ood
-    wifi_value = wifi_count if wifi_count is not None else computed_wifi
-
-    metrics_payload: Dict[str, Any] = {
-        "domain": normalized_domain,
-        "summary": {
-            "total_computers": total_computers,
-            "online_count": online_count,
-            "systems_ood": ood_value,
-            "wifi_count": wifi_value,
-            "file_name": file_name or "",
-        },
-        "xlsx_filename": f"endpoint_data_{_slugify_identifier('endpoint', normalized_domain)}.xlsx",
-    }
-
-    workbook_bytes = _render_endpoint_metrics_workbook(normalized_domain, rows, wifi_rows)
-    if workbook_bytes:
-        metrics_payload["xlsx_base64"] = base64.b64encode(workbook_bytes).decode("ascii")
-
-    return metrics_payload
+        return metrics_payload
 
     @staticmethod
     def _extract_dns_domains(payload: Optional[dict[str, Any]]) -> set[str]:
@@ -3905,7 +3910,7 @@ def _build_endpoint_metrics_payload(
         metrics_map = (
             endpoint_artifacts.get("metrics") if isinstance(endpoint_artifacts.get("metrics"), dict) else {}
         )
-        metrics_payload = _build_endpoint_metrics_payload(
+        metrics_payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
             domain,
             match["computers"],
             systems_ood=systems_ood,
@@ -4257,7 +4262,7 @@ class ProjectEndpointDataDownload(RoleBasedAccessControlMixin, SingleObjectMixin
                     continue
                 if domain_key and domain_value.lower() != domain_key:
                     continue
-                payload = _build_endpoint_metrics_payload(
+                payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
                     domain_value,
                     record.get("computers") or [],
                     systems_ood=record.get("systems_ood"),
