@@ -3531,7 +3531,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
                 artifacts = dict(artifacts)
                 if rows is not None:
-                    artifacts["snmp"] = rows
+                    artifacts["snmp"] = [dict(row) for row in rows]
                     artifacts["snmp_file_name"] = upload.name
 
                 project.workbook_data = workbook_payload

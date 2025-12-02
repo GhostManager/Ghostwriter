@@ -2500,6 +2500,7 @@ host1,foo,read-only,desc3
         self.assertIn("snmp", artifacts)
         self.assertEqual(len(artifacts.get("snmp", [])), 3)
         self.assertEqual(artifacts.get("snmp_file_name"), "snmp.csv")
+        self.assertTrue(all(isinstance(record, dict) for record in artifacts.get("snmp", [])))
 
     def test_upload_snmp_csv_validates_headers(self):
         bad_csv = SimpleUploadedFile(
