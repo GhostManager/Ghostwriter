@@ -3075,20 +3075,28 @@
 
           const attemptBind = function() {
             const confirmSelect = document.getElementById(confirmId);
-            const followupSelect = document.getElementById(followupId);
-            const followupGroup = followupSelect ? followupSelect.closest('.form-group') : null;
-
-            if (!confirmSelect || !followupGroup) {
+            if (!confirmSelect) {
               setTimeout(attemptBind, 25);
               return;
             }
 
             if (confirmSelect.dataset.wepFollowupBound === 'true') {
+              const followupSelect = document.getElementById(followupId);
+              const followupGroup = followupSelect ? followupSelect.closest('.form-group') : null;
+              if (followupGroup) {
+                const isYes = (confirmSelect.value || '').toLowerCase() === 'yes';
+                followupGroup.classList.toggle('d-none', !isYes);
+              }
               return;
             }
             confirmSelect.dataset.wepFollowupBound = 'true';
 
             const toggleFollowup = function() {
+              const followupSelect = document.getElementById(followupId);
+              const followupGroup = followupSelect ? followupSelect.closest('.form-group') : null;
+              if (!followupGroup) {
+                return;
+              }
               const isYes = (confirmSelect.value || '').toLowerCase() === 'yes';
               followupGroup.classList.toggle('d-none', !isYes);
               if (!isYes && followupSelect) {
@@ -3912,6 +3920,15 @@
 
         const removeWirelessData = function(areaKey, modalId) {
           const payload = {remove_wireless: true};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+            afterRender: function() { updateWorkbookCardProgress(areaKey); },
+          });
+        };
+
+        const removeWirelessWalkthruData = function(areaKey, modalId) {
+          const payload = {remove_wireless_walkthru: true};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -5815,7 +5832,7 @@
                 removeButton.className = 'btn btn-outline-danger';
                 removeButton.textContent = 'Remove Walkthru Data';
                 removeButton.addEventListener('click', function() {
-                  removeWirelessData(areaKey, modalId);
+                  removeWirelessWalkthruData(areaKey, modalId);
                 });
                 removeWrapper.appendChild(removeButton);
                 subBody.appendChild(removeWrapper);

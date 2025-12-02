@@ -624,15 +624,16 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
         if key_cracked_value is None:
             key_cracked_value = wep_payload.get("key_cracked")
 
-        confirm_normalized = _normalize_yes_no(confirm_value)
-        key_cracked_normalized = (
-            _normalize_yes_no(key_cracked_value) if confirm_normalized == "Yes" else None
-        )
+        if confirm_value is not None or key_cracked_value is not None or wep_payload:
+            confirm_normalized = _normalize_yes_no(confirm_value)
+            key_cracked_normalized = (
+                _normalize_yes_no(key_cracked_value) if confirm_normalized == "Yes" else None
+            )
 
-        normalized["wep_inuse"] = {
-            "confirm": confirm_normalized,
-            "key_cracked": key_cracked_normalized,
-        }
+            normalized["wep_inuse"] = {
+                "confirm": confirm_normalized,
+                "key_cracked": key_cracked_normalized,
+            }
 
         return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
