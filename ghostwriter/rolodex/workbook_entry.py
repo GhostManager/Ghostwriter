@@ -523,6 +523,33 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
         if removed_domains_provided:
             normalized["removed_ad_domains"] = removed_domains
         return normalized
+    if area in {"external_nexpose", "internal_nexpose", "iot_iomt_nexpose"} and isinstance(
+        payload, Mapping
+    ):
+        numeric_fields = {
+            "total",
+            "total_high",
+            "total_med",
+            "total_low",
+            "unique",
+            "unique_high_med",
+            "unique_majority",
+            "unique_majority_sub",
+            "unique_minority",
+        }
+        text_fields = {"majority_type", "unique_majority_sub_info", "minority_type"}
+
+        for field in numeric_fields:
+            if field in payload:
+                value = payload.get(field)
+                normalized[field] = None if value in (None, "") else _as_int(value)
+
+        for field in text_fields:
+            if field in payload:
+                value = payload.get(field)
+                text_value = str(value).strip() if value not in (None, "") else ""
+                normalized[field] = text_value or None
+        return normalized
     allowed_fields = AREA_FIELDS.get(area, set())
     if not allowed_fields or not isinstance(payload, Mapping):
         return normalized
