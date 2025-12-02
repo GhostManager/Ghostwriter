@@ -3013,7 +3013,15 @@
           label.textContent = field.label;
           const fieldId = buildAreaFieldId(areaKey, subkey, field.key);
           const existingArea = workbookState[workbookKey] || workbookState[subkey] || {};
-          const existing = existingArea[field.key];
+          let existing = existingArea[field.key];
+          if (areaKey === 'internal' && subkey === 'sql') {
+            const unsupportedState = existingArea.unsupported_dbs || {};
+            if (existing === undefined && field.key === 'unsupported_confirm') {
+              existing = unsupportedState.confirm;
+            } else if (existing === undefined && field.key === 'unsupported_count') {
+              existing = unsupportedState.count;
+            }
+          }
 
           let input;
           if (field.type === 'select') {
