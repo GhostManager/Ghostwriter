@@ -32,6 +32,7 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 # 3rd Party Libraries
 from taggit.models import Tag
 from xlsxwriter.workbook import Workbook
+from xlsxwriter.worksheet import Worksheet
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -2527,18 +2528,25 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         domain: str,
         rows: List[List[str]],
         wifi_rows: List[List[str]],
+        ood_rows: List[List[str]],
     ) -> Optional[bytes]:
         """Create an XLSX workbook for endpoint metrics."""
 
         buffer = io.BytesIO()
         workbook = Workbook(buffer, {"in_memory": True})
 
-        header_format = workbook.add_format({"bold": True, "border": 1})
+        header_format = workbook.add_format(
+            {"bold": True, "border": 1, "bg_color": "#0066CC", "font_color": "white"}
+        )
         text_format = workbook.add_format({"text_wrap": True, "border": 1})
+        banded_text_format = workbook.add_format(
+            {"text_wrap": True, "border": 1, "bg_color": "#99CCFF"}
+        )
 
         sheet_name = (domain or "Endpoint")[:31] or "Endpoint"
         domain_sheet = workbook.add_worksheet(sheet_name)
         wifi_sheet = workbook.add_worksheet("WiFi")
+        ood_sheet = workbook.add_worksheet("OOD")
 
         domain_headers = [
             "Online_Status",
@@ -2554,18 +2562,32 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             "Method",
         ]
         wifi_headers = ["Computer", "SSID"]
+        ood_headers = ["Computer"]
 
-        for col, header in enumerate(domain_headers):
-            domain_sheet.write(0, col, header, header_format)
-        for row_index, row_values in enumerate(rows, start=1):
-            for col, value in enumerate(row_values):
-                domain_sheet.write(row_index, col, value, text_format)
+        def _write_table(
+            worksheet: Worksheet, headers: list[str], data_rows: list[list[str]]
+        ) -> None:
+            for col, header in enumerate(headers):
+                worksheet.write(0, col, header, header_format)
 
-        for col, header in enumerate(wifi_headers):
-            wifi_sheet.write(0, col, header, header_format)
-        for row_index, row_values in enumerate(wifi_rows, start=1):
-            for col, value in enumerate(row_values):
-                wifi_sheet.write(row_index, col, value, text_format)
+            for row_index, row_values in enumerate(data_rows, start=1):
+                row_format = banded_text_format if row_index % 2 == 0 else text_format
+                for col, value in enumerate(row_values):
+                    worksheet.write(row_index, col, value, row_format)
+
+            column_widths: list[int] = [len(header) for header in headers]
+            for row_values in data_rows:
+                for col, value in enumerate(row_values):
+                    if col >= len(column_widths):
+                        column_widths.append(0)
+                    column_widths[col] = max(column_widths[col], len(str(value)))
+
+            for col, width in enumerate(column_widths):
+                worksheet.set_column(col, col, min(max(width + 2, 10), 60))
+
+        _write_table(domain_sheet, domain_headers, rows)
+        _write_table(wifi_sheet, wifi_headers, wifi_rows)
+        _write_table(ood_sheet, ood_headers, ood_rows)
 
         workbook.close()
         return buffer.getvalue()
@@ -2584,6 +2606,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         normalized_domain = (domain or "").strip() or "Endpoint"
         rows: List[List[str]] = []
         wifi_rows: List[List[str]] = []
+        ood_rows: List[List[str]] = []
 
         total_computers = 0
         online_count = 0
@@ -2634,6 +2657,8 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             )
             if not has_up_to_date:
                 computed_ood += 1
+                if computer_name not in {"", "-"}:
+                    ood_rows.append([computer_name])
 
             if ssids:
                 computed_wifi += 1
@@ -2730,7 +2755,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         }
 
         workbook_bytes = ProjectWorkbookDataUpdate._render_endpoint_metrics_workbook(
-            normalized_domain, rows, wifi_rows
+            normalized_domain, rows, wifi_rows, ood_rows
         )
         if workbook_bytes:
             metrics_payload["xlsx_base64"] = base64.b64encode(workbook_bytes).decode(
