@@ -315,6 +315,9 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
         if not self.user:
             raise ValidationError("User context is required for rate limiting.")
 
+        if not self.authenticator:
+            raise ValidationError("No authenticator device found.")
+
         clear_rl = check_rate_limit(self.user)
         code = self.cleaned_data.get("code")
 
@@ -330,8 +333,5 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
         Ensure authenticator is present before proceeding.
         """
         cleaned_data = super().clean()
-
-        if not self.authenticator:
-            raise ValidationError("No authenticator device found.")
 
         return cleaned_data
