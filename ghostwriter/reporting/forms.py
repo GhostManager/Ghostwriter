@@ -541,6 +541,7 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"
         self.fields["pptx_template"].empty_label = "-- Select a PPTX Template --"
         self.fields["include_bloodhound_data"].required = False
+        self.fields["include_bloodhound_data"].label = "Include BloodHound Data"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = False
