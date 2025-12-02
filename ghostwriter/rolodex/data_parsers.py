@@ -3651,6 +3651,12 @@ NEXPOSE_FINDINGS_VULNERABILITY_MAP = {
     "iot_iomt_nexpose_findings": "iot_iomt_nexpose_vulnerabilities",
 }
 
+NEXPOSE_FILENAME_KEY_MAP = {
+    "external_nexpose_findings": "external_nexpose_file_name",
+    "internal_nexpose_findings": "internal_nexpose_file_name",
+    "iot_iomt_nexpose_findings": "iot_iomt_nexpose_file_name",
+}
+
 NEXPOSE_METRICS_KEY_MAP = {
     "external_nexpose_findings": "external_nexpose_metrics",
     "internal_nexpose_findings": "internal_nexpose_metrics",
@@ -5235,6 +5241,9 @@ def build_project_artifacts(project: "Project") -> Dict[str, Any]:
                     **parsed_vulnerabilities,
                 }
         elif xml_artifact_key:
+            file_name_key = NEXPOSE_FILENAME_KEY_MAP.get(xml_artifact_key)
+            if file_name_key:
+                artifacts[file_name_key] = data_file.filename
             parsed_xml = parse_nexpose_xml_report(
                 data_file.file, vulnerability_matrix=vulnerability_matrix
             )
