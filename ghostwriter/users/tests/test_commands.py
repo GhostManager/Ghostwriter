@@ -1,12 +1,9 @@
 # Standard Libraries
 import base64
-import unittest
-from unittest import mock
 
 # Django Imports
 from django.test import TestCase
 from django.core.management import call_command
-from django.contrib.auth import get_user_model
 
 # 3rd Party Libraries
 from allauth.mfa.adapter import get_adapter

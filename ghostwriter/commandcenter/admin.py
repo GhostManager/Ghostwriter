@@ -3,7 +3,6 @@
 # Django Imports
 from django.contrib import admin
 from django import forms
-from django.template.loader import render_to_string
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ReportConfigurationForm

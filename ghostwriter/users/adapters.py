@@ -8,7 +8,6 @@ from typing import Any
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.core.validators import validate_email
 from django.http import HttpRequest
 from django.shortcuts import redirect
 
