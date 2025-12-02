@@ -2476,6 +2476,10 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         if content is None:
             return None, None, None, "Unable to decode the uploaded CSV file."
 
+        # Strip null bytes that can break CSV parsing
+        if "\x00" in content:
+            content = content.replace("\x00", "")
+
         dialect = None
         try:
             dialect = csv.Sniffer().sniff(content[:2048])
