@@ -1970,6 +1970,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         }
         dns_issue_counts: Dict[str, int] = {}
         artifacts = normalize_nexpose_artifacts_map(object.data_artifacts or {})
+        artifacts_updated = False
         object.data_artifacts = artifacts
         ctx["project_data_artifacts_json"] = artifacts
         matrix_gap_summary = summarize_nexpose_matrix_gaps(artifacts)
@@ -2057,6 +2058,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                     endpoint_artifacts["metrics"] = endpoint_metrics
                     artifacts["endpoint"] = endpoint_artifacts
                     object.data_artifacts = artifacts
+                    artifacts_updated = True
                 if not metrics_payload:
                     continue
                 summary = (
@@ -2074,6 +2076,8 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                         "domain": domain_value,
                     }
                 )
+        if artifacts_updated:
+            object.save(update_fields=["data_artifacts"])
         ctx["processed_data_cards"] = processed_cards
         cap_payload = object.cap if isinstance(object.cap, dict) else {}
         nexpose_section = cap_payload.get("nexpose") if isinstance(cap_payload, dict) else None
