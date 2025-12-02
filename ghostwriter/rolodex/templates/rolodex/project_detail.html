@@ -3121,6 +3121,14 @@
               existing = unsupportedState.count;
             }
           }
+          if (areaKey === 'wireless' && subkey === 'walkthru') {
+            const wepState = existingArea.wep_inuse || {};
+            if (existing === undefined && field.key === 'wep_confirm') {
+              existing = wepState.confirm;
+            } else if (existing === undefined && field.key === 'wep_key_cracked') {
+              existing = wepState.key_cracked;
+            }
+          }
 
           let input;
           if (field.type === 'select') {
