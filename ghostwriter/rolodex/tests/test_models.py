@@ -375,6 +375,42 @@ class ProjectModelTests(TestCase):
             endpoint_payload.get("domains", [{}])[0].get("domain"), "example.local"
         )
 
+    def test_rebuild_removes_deleted_endpoint_domains(self):
+        project = ProjectFactory()
+
+        project.data_artifacts = {
+            "endpoint": {
+                "domains": [
+                    {"domain": "keep.local", "computers": [{"Computer": "host"}]},
+                    {"domain": "remove.local", "computers": [{"Computer": "old"}]},
+                ],
+                "metrics": {
+                    "keep.local": {"summary": {"total_computers": 1}},
+                    "remove.local": {"summary": {"total_computers": 1}},
+                },
+            }
+        }
+        project.workbook_data = {
+            "endpoint": {
+                "domains": [{"domain": "keep.local"}],
+                "removed_ad_domains": ["remove.local"],
+            }
+        }
+        project.save(update_fields=["data_artifacts", "workbook_data"])
+
+        project.rebuild_data_artifacts()
+        project.refresh_from_db(fields=["data_artifacts"])
+
+        endpoint_payload = project.data_artifacts.get("endpoint") or {}
+        remaining_domains = endpoint_payload.get("domains") if isinstance(endpoint_payload, dict) else None
+        self.assertIsInstance(remaining_domains, list)
+        self.assertEqual(len(remaining_domains), 1)
+        self.assertEqual((remaining_domains[0].get("domain") or "").strip(), "keep.local")
+
+        metrics = endpoint_payload.get("metrics") if isinstance(endpoint_payload, dict) else None
+        self.assertIsInstance(metrics, dict)
+        self.assertEqual(set(metrics.keys()), {"keep.local"})
+
 
 class ProjectScopingNormalizationTests(TestCase):
     """Validate normalization helpers for project scoping data."""

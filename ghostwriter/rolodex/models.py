@@ -800,6 +800,87 @@ class Project(models.Model):
             getattr(self, "workbook_data", None)
         )
 
+        endpoint_state = (
+            workbook_payload.get("endpoint")
+            if isinstance(workbook_payload.get("endpoint"), Mapping)
+            else {}
+        )
+        active_endpoint_domains: set[str] = set()
+        removed_endpoint_domains: set[str] = set()
+        if isinstance(endpoint_state, Mapping):
+            entries = (
+                endpoint_state.get("domains")
+                if isinstance(endpoint_state.get("domains"), list)
+                else []
+            )
+            for entry in entries:
+                if not isinstance(entry, Mapping):
+                    continue
+                name = (entry.get("domain") or entry.get("name") or "").strip()
+                if name:
+                    active_endpoint_domains.add(name.lower())
+
+            removed_entries = (
+                endpoint_state.get("removed_ad_domains")
+                if isinstance(endpoint_state.get("removed_ad_domains"), list)
+                else []
+            )
+            for entry in removed_entries:
+                name = (entry or "").strip()
+                if name:
+                    removed_endpoint_domains.add(name.lower())
+
+        endpoint_artifacts = artifacts.get("endpoint")
+        if isinstance(endpoint_artifacts, dict):
+            endpoint_artifacts = dict(endpoint_artifacts)
+            domain_records = (
+                endpoint_artifacts.get("domains")
+                if isinstance(endpoint_artifacts.get("domains"), list)
+                else []
+            )
+
+            filtered_domains: list[dict[str, Any]] = []
+            for record in domain_records:
+                if not isinstance(record, Mapping):
+                    continue
+                domain_value = (record.get("domain") or record.get("name") or "").strip()
+                domain_key = domain_value.lower()
+                if not domain_key:
+                    continue
+                if removed_endpoint_domains and domain_key in removed_endpoint_domains:
+                    continue
+                if active_endpoint_domains and domain_key not in active_endpoint_domains:
+                    continue
+                filtered_domains.append(dict(record))
+
+            metrics_map = (
+                endpoint_artifacts.get("metrics")
+                if isinstance(endpoint_artifacts.get("metrics"), dict)
+                else {}
+            )
+            filtered_metrics = {}
+            for domain_key, payload in metrics_map.items():
+                if removed_endpoint_domains and domain_key in removed_endpoint_domains:
+                    continue
+                if active_endpoint_domains and domain_key not in active_endpoint_domains:
+                    continue
+                filtered_metrics[domain_key] = payload
+
+            if filtered_domains:
+                endpoint_artifacts["domains"] = filtered_domains
+            else:
+                endpoint_artifacts.pop("domains", None)
+
+            if filtered_metrics:
+                endpoint_artifacts["metrics"] = filtered_metrics
+            else:
+                endpoint_artifacts.pop("metrics", None)
+
+            if endpoint_artifacts:
+                artifacts["endpoint"] = endpoint_artifacts
+            elif "endpoint" in artifacts:
+                artifacts.pop("endpoint", None)
+
         def _safe_int(value: Any) -> int:
             if value in (None, ""):
                 return 0
