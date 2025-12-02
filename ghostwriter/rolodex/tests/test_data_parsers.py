@@ -3073,6 +3073,28 @@ class NexposeDataParserTests(TestCase):
         self.assertIsInstance(sql_cap, dict)
         self.assertEqual(sql_cap.get("sql_cap_map"), expected_sql_map)
 
+    def test_sql_cap_map_populated_for_unsupported_databases(self):
+        workbook_payload = {"sql": {"unsupported_dbs": {"count": 2}}}
+
+        self.project.workbook_data = workbook_payload
+        self.project.data_responses = {}
+        self.project.cap = {}
+        self.project.save(update_fields=["workbook_data", "data_responses", "cap"])
+
+        self.project.rebuild_data_artifacts()
+        self.project.refresh_from_db()
+
+        general_map = load_general_cap_map()
+        expected_sql_map = {
+            "Unsupported Database software in use": general_map.get(
+                "Unsupported Database software in use"
+            )
+        }
+
+        sql_cap = self.project.cap.get("sql")
+        self.assertIsInstance(sql_cap, dict)
+        self.assertEqual(sql_cap.get("sql_cap_map"), expected_sql_map)
+
     def test_sql_cap_map_removed_when_conditions_not_met(self):
         general_map = load_general_cap_map()
         existing_cap = {
@@ -3080,12 +3102,15 @@ class NexposeDataParserTests(TestCase):
                 "sql_cap_map": {
                     "Databases allowing open access": general_map.get(
                         "Databases allowing open access"
-                    )
+                    ),
+                    "Unsupported Database software in use": general_map.get(
+                        "Unsupported Database software in use"
+                    ),
                 }
             }
         }
 
-        workbook_payload = {"sql": {"total_open": 0}}
+        workbook_payload = {"sql": {"total_open": 5, "unsupported_dbs": {"count": 0}}}
 
         self.project.cap = existing_cap
         self.project.workbook_data = workbook_payload
@@ -3095,7 +3120,16 @@ class NexposeDataParserTests(TestCase):
         self.project.rebuild_data_artifacts()
         self.project.refresh_from_db()
 
-        self.assertNotIn("sql", self.project.cap)
+        sql_cap = self.project.cap.get("sql")
+        self.assertIsInstance(sql_cap, dict)
+        self.assertEqual(
+            sql_cap.get("sql_cap_map"),
+            {
+                "Databases allowing open access": general_map.get(
+                    "Databases allowing open access"
+                )
+            },
+        )
 
     def test_snmp_cap_map_populated_from_workbook(self):
         workbook_payload = {"snmp": {"total_strings": 2}}

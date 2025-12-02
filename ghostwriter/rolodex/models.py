@@ -2221,6 +2221,17 @@ class Project(models.Model):
                 if entry:
                     sql_cap_map["Databases allowing open access"] = entry
 
+            unsupported_payload = sql_data.get("unsupported_dbs")
+            unsupported_count = (
+                _safe_int(unsupported_payload.get("count"))
+                if isinstance(unsupported_payload, dict)
+                else 0
+            )
+            if unsupported_count > 0:
+                entry = _clone_cap_entry("Unsupported Database software in use")
+                if entry:
+                    sql_cap_map["Unsupported Database software in use"] = entry
+
         if sql_cap_map:
             sql_section["sql_cap_map"] = sql_cap_map
         else:
