@@ -754,7 +754,13 @@ def build_workbook_entry_payload(
                 normalized_workbook["endpoint"] = dict(normalized_area)
                 continue
 
-            normalized_workbook.setdefault(area_key, {}).update(normalized_area)
+            existing_area = (
+                dict(normalized_workbook.get(area_key))
+                if isinstance(normalized_workbook.get(area_key), Mapping)
+                else {}
+            )
+            existing_area.update(normalized_area)
+            normalized_workbook[area_key] = existing_area
 
     ad_domains: set[str] = set()
     ad_state = (
