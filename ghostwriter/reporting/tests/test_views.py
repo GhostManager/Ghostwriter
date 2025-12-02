@@ -2,7 +2,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Django Imports
 from django.contrib.messages import get_messages
@@ -51,6 +51,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     filter_type,
     format_datetime,
     to_datetime,
+    business_days,
     get_item,
     regex_search,
     strip_html,
@@ -2458,6 +2459,19 @@ class ReportTemplateFilterTests(TestCase):
         test_date = "Not a Date"
         with self.assertRaises(InvalidFilterValue):
             to_datetime(test_date, "%d %b %Y")
+
+    def test_business_days(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+        test_date2 = test_date + timedelta(days=13)
+
+        business_days_count = business_days(test_date, test_date2)
+        self.assertEqual(business_days_count, 10)
+
+    def test_business_days_with_invalid_datetime(self):
+        test_date = "Not a Date"
+        test_date2 = "Also Not a Date"
+        with self.assertRaises(InvalidFilterValue):
+            business_days(test_date, test_date2)
 
     def test_add_days_with_invalid_string(self):
         test_date = "Not a Date"

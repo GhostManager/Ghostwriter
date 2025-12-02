@@ -207,6 +207,7 @@ def to_datetime(date, format):
         logger.exception("Error parsing ``date`` with the provided format: %s", date)
         raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format}") passed into the `to_datetime()` filter') from e
 
+
 def business_days(start_date, end_date):
     """
     Calculate the number of business days between two dates.
@@ -235,6 +236,7 @@ def business_days(start_date, end_date):
         current_date += timedelta(days=1)
 
     return business_days_count
+
 
 def get_item(lst, index):
     """
