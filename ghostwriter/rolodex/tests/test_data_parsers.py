@@ -15,6 +15,7 @@ from django.test import TestCase
 from ghostwriter.factories import GenerateMockProject, OpenAIConfigurationFactory
 from ghostwriter.rolodex.data_parsers import (
     NEXPOSE_ARTIFACT_DEFINITIONS,
+    _build_nexpose_metrics_payload,
     normalize_nexpose_artifact_payload,
     normalize_nexpose_artifacts_map,
     load_general_cap_map,
@@ -379,6 +380,55 @@ class NexposeDataParserTests(TestCase):
         self.assertTrue(workbook_b64)
         decoded = base64.b64decode(workbook_b64)
         self.assertTrue(decoded.startswith(b"PK"))
+
+    def test_nexpose_metrics_calculates_minority_type(self):
+        findings = [
+            {
+                "Asset IP Address": "10.0.0.1",
+                "Vulnerability Title": "Old Patch",
+                "Vulnerability Severity Level": 9,
+                "Category": "OOD",
+            },
+            {
+                "Asset IP Address": "10.0.0.2",
+                "Vulnerability Title": "Config Drift",
+                "Vulnerability Severity Level": 6,
+                "Category": "ISC",
+            },
+            {
+                "Asset IP Address": "10.0.0.3",
+                "Vulnerability Title": "Unpatched Library",
+                "Vulnerability Severity Level": 5,
+                "Category": "OOD",
+            },
+            {
+                "Asset IP Address": "10.0.0.4",
+                "Vulnerability Title": "Web Misconfig",
+                "Vulnerability Severity Level": 4,
+                "Category": "IWC",
+            },
+        ]
+
+        metrics_payload = _build_nexpose_metrics_payload(findings)
+        summary = metrics_payload.get("summary") or {}
+
+        self.assertEqual(metrics_payload.get("majority_type"), "OOD")
+        self.assertEqual(metrics_payload.get("minority_type"), "ISC")
+        self.assertEqual(summary.get("total_ood"), 2)
+        self.assertEqual(summary.get("total_isc"), 1)
+        self.assertEqual(summary.get("total_iwc"), 1)
+
+        with mock.patch(
+            "ghostwriter.rolodex.models.build_project_artifacts",
+            return_value={"external_nexpose_metrics": metrics_payload},
+        ):
+            self.project.rebuild_data_artifacts()
+            self.project.refresh_from_db()
+
+        workbook_data = self.project.workbook_data or {}
+        external = workbook_data.get("external_nexpose") or {}
+        self.assertEqual(external.get("minority_type"), "Insecure System Configurations")
+        self.assertEqual(external.get("unique_minority"), summary.get("total_isc"))
 
     def test_nexpose_xml_uses_vulnerability_lookup_details(self):
         xml_payload = """
