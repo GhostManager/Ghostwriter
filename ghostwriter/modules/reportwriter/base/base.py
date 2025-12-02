@@ -174,6 +174,12 @@ class ExportBase:
             ext = self.extension()
         return report_name.strip() + "." + ext
 
+    def bloodhound_heading_offset(self) -> int:
+        """
+        Number of levels to offset headers in the descriptions from BloodHound data. Default is zero.
+        """
+        return 0
+
 def _replace_filename_chars(name):
     """Remove illegal characters from the report name."""
     name = name.replace("–", "-")

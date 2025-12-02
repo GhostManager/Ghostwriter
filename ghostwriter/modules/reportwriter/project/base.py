@@ -24,9 +24,6 @@ class ExportProjectBase(ExportBase):
     def serialize_object(self, object):
         return FullProjectSerializer(object).data
 
-    def bloodhound_heading_offset(self) -> int:
-        return 0
-
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)
         rich_text_context = ChainMap(ExportProjectBase.rich_text_jinja_overlay(self.data), base_context)

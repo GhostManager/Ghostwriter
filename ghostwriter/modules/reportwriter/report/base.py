@@ -39,9 +39,6 @@ class ExportReportBase(ExportBase):
             exclude=excludes,
         ).data
 
-    def bloodhound_heading_offset(self) -> int:
-        return 0
-
     def severity_rich_text(self, text: str, severity_color: str) -> str | DocxRichText:
         """
         Creates an exporter specific rich text object for some text related to finding severity.
