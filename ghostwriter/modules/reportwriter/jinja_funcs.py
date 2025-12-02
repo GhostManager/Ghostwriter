@@ -190,7 +190,7 @@ def format_datetime(date, new_format=None):
     return formatted_date
 
 
-def to_datetime(date, format):
+def to_datetime(date, format_str):
     """
     Convert a date string to a datetime object using the given format.
 
@@ -198,14 +198,14 @@ def to_datetime(date, format):
 
     ``date``
         Date string to convert
-    ``format``
+    ``format_str``
         Format string to use for conversion
     """
     try:
-        return datetime.strptime(date, format)
+        return datetime.strptime(date, format_str)
     except ValueError as e:
         logger.exception("Error parsing ``date`` with the provided format: %s", date)
-        raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format}") passed into the `to_datetime()` filter') from e
+        raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter') from e
 
 
 def business_days(start_date, end_date):
