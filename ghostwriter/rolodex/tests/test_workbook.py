@@ -18,6 +18,7 @@ from ghostwriter.rolodex.workbook import (
     normalize_scope_selection,
     prepare_data_responses_initial,
 )
+from ghostwriter.rolodex.workbook_entry import build_workbook_entry_payload
 from ghostwriter.rolodex.workbook_defaults import (
     ensure_data_responses_defaults,
     normalize_workbook_payload,
@@ -610,3 +611,33 @@ class BuildGroupedDataResponsesTests(SimpleTestCase):
         self.assertEqual(entry.get("domain"), "corp.example.com")
         self.assertEqual(entry.get("av_gap"), "medium")
         self.assertEqual(entry.get("open_wifi"), "high")
+
+
+class WorkbookEntryIsolationTests(SimpleTestCase):
+    def test_nexpose_sections_do_not_share_state(self):
+        class DummyProject:
+            def __init__(self):
+                self.workbook_data = {"external_nexpose": {"total": 4}}
+                self.scoping = {}
+                self.scoping_weights = {}
+
+        project = DummyProject()
+
+        payload = build_workbook_entry_payload(
+            project=project,
+            areas={
+                "internal_nexpose": {
+                    "total": 9,
+                    "majority_type": "Insecure System Configurations",
+                }
+            },
+        )
+
+        self.assertEqual(payload["external_nexpose"].get("total"), 4)
+        self.assertNotEqual(payload["external_nexpose"], payload["internal_nexpose"])
+        self.assertEqual(payload["internal_nexpose"].get("total"), 9)
+        self.assertEqual(
+            payload["internal_nexpose"].get("majority_type"),
+            "Insecure System Configurations",
+        )
+        self.assertIsNone(payload["external_nexpose"].get("majority_type"))

@@ -2905,6 +2905,10 @@
           return areaSubsectionConfig[compositeKey] || areaSubsectionConfig[subkey];
         };
 
+        const buildAreaFieldId = function(areaKey, subkey, fieldKey) {
+          return 'area-' + areaKey + '-' + subkey + '-' + fieldKey;
+        };
+
         const createAreaFieldGroup = function(areaKey, subkey, workbookKey, field) {
           const inlineLayout = field.layout !== 'stacked' && field.type !== 'text';
           const formGroup = document.createElement('div');
@@ -2915,9 +2919,9 @@
           label.className = inlineLayout
             ? 'col-12 col-sm-6 col-md-5 col-lg-6 col-form-label font-weight-bold pr-sm-2'
             : 'font-weight-bold';
-          label.setAttribute('for', 'area-' + subkey + '-' + field.key);
+          label.setAttribute('for', buildAreaFieldId(areaKey, subkey, field.key));
           label.textContent = field.label;
-          const fieldId = 'area-' + subkey + '-' + field.key;
+          const fieldId = buildAreaFieldId(areaKey, subkey, field.key);
           const existingArea = workbookState[workbookKey] || workbookState[subkey] || {};
           const existing = existingArea[field.key];
 
@@ -3256,7 +3260,7 @@
             }
             const fieldPayload = {};
             config.fields.forEach(function(field) {
-              const input = document.getElementById('area-' + subkey + '-' + field.key);
+              const input = document.getElementById(buildAreaFieldId(areaKey, subkey, field.key));
               if (!input) {
                 return;
               }
