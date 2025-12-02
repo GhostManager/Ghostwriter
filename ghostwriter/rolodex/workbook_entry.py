@@ -155,6 +155,8 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
     normalized: Dict[str, Any] = {}
 
     def _normalize_yes_no(value: Any) -> Optional[str]:
+        if value is None:
+            return None
         if isinstance(value, bool):
             return "Yes" if value else "No"
         text = str(value).strip().lower()
