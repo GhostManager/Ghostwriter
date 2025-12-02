@@ -3788,6 +3788,28 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
             )
 
+        if payload.get("remove_snmp"):
+            artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+            artifacts = dict(artifacts)
+            artifacts.pop("snmp", None)
+            artifacts.pop("snmp_file_name", None)
+
+            workbook_payload = normalize_workbook_payload(project.workbook_data)
+            default_snmp = copy.deepcopy(WORKBOOK_DEFAULTS.get("snmp"))
+            if default_snmp is not None:
+                workbook_payload["snmp"] = default_snmp
+            else:
+                workbook_payload.pop("snmp", None)
+
+            project.workbook_data = workbook_payload
+            project.data_artifacts = artifacts
+            project.rebuild_data_artifacts()
+            project.refresh_from_db(fields=["workbook_data", "data_artifacts", "cap"])
+
+            return JsonResponse(
+                {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
+            )
+
         if payload.get("remove_web"):
             requirement_slug = _slugify_identifier("required", "burp_xml.xml")
             for data_file in project.data_files.filter(requirement_slug=requirement_slug):

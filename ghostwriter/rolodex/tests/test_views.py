@@ -2518,6 +2518,53 @@ host1,foo,read-only,desc3
         self.project.refresh_from_db()
         self.assertNotIn("snmp", self.project.data_artifacts or {})
 
+    def test_remove_snmp_data_clears_artifacts_workbook_and_cap(self):
+        self.project.workbook_data = {
+            "snmp": {"total_strings": 3, "total_systems": 2, "read_write_access": "Yes"}
+        }
+        self.project.data_artifacts = {
+            "snmp": [{"Host": "host1", "String": "public", "Access": "read-only", "Desc": "desc"}],
+            "snmp_file_name": "snmp.csv",
+        }
+        self.project.save(update_fields=["workbook_data", "data_artifacts"])
+        self.project.rebuild_data_artifacts()
+        self.project.refresh_from_db()
+
+        self.assertIn("snmp", self.project.cap)
+
+        response = self.client_auth.post(
+            self.update_url,
+            data=json.dumps({"remove_snmp": True}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.project.refresh_from_db()
+
+        artifacts = self.project.data_artifacts or {}
+        self.assertNotIn("snmp", artifacts)
+        self.assertNotIn("snmp_file_name", artifacts)
+        self.assertEqual(self.project.workbook_data.get("snmp"), WORKBOOK_DEFAULTS.get("snmp"))
+        self.assertNotIn("snmp", self.project.cap or {})
+
+    def test_snmp_file_name_persists_after_rebuild(self):
+        snmp_artifacts = {
+            "snmp": [
+                {"Host": "host1", "String": "public", "Access": "read-only", "Desc": "desc"}
+            ],
+            "snmp_file_name": "snmp.csv",
+        }
+        self.project.workbook_data = {"snmp": {"total_strings": 1, "total_systems": 1}}
+        self.project.data_artifacts = snmp_artifacts
+        self.project.save(update_fields=["workbook_data", "data_artifacts"])
+
+        self.project.rebuild_data_artifacts()
+        self.project.refresh_from_db()
+
+        artifacts = self.project.data_artifacts or {}
+        self.assertEqual(artifacts.get("snmp_file_name"), "snmp.csv")
+        self.assertEqual(artifacts.get("snmp"), snmp_artifacts.get("snmp"))
+
     def test_remove_firewall_data_clears_artifacts_and_workbook(self):
         self.project.workbook_data = {"firewall": {"unique": 1}}
         self.project.save(update_fields=["workbook_data"])

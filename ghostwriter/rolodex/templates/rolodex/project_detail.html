@@ -3712,6 +3712,14 @@
           });
         };
 
+        const removeSnmpData = function(areaKey, modalId) {
+          const payload = {remove_snmp: true};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+          });
+        };
+
         function renderPasswordPolicies(target, areaKey, modalId) {
           const passwordState = ensurePasswordState();
           const adState = ensureAdState();
@@ -5554,6 +5562,13 @@
                 uploadButton.addEventListener('click', function() {
                   uploadInput.click();
                 });
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger ml-2';
+                removeButton.textContent = 'Remove SNMP Data';
+                removeButton.addEventListener('click', function() {
+                  removeSnmpData(areaKey, modalId);
+                });
                 const fileNameDisplay = document.createElement('div');
                 fileNameDisplay.className = 'small text-muted mt-2';
                 const updateFileName = function() {
@@ -5563,6 +5578,7 @@
                 updateFileName();
                 uploadWrapper.appendChild(uploadInput);
                 uploadWrapper.appendChild(uploadButton);
+                uploadWrapper.appendChild(removeButton);
                 uploadWrapper.appendChild(fileNameDisplay);
                 subBody.appendChild(uploadWrapper);
               }
