@@ -5368,11 +5368,14 @@
                   uploadInput.className = 'd-none';
                   uploadInput.accept = uploader.accept || '.xml,application/xml,text/xml';
                   uploadInput.id = 'uploader-' + subkey + '-' + uploader.fieldName;
+                  const fileNameDisplay = document.createElement('div');
+                  fileNameDisplay.className = 'small text-muted mt-2';
                   const uploadHandler = (typeof uploader.uploadHandler === 'function')
                     ? function(file) { uploader.uploadHandler(file, uploaderContext); }
                     : function(file) { uploadNexposeXml(file, uploader.fieldName, areaKey, modalId); };
                   uploadInput.addEventListener('change', function(event) {
                     if (event.target.files && event.target.files[0]) {
+                      fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
                       uploadHandler(event.target.files[0]);
                       event.target.value = '';
                     }
@@ -5391,11 +5394,15 @@
                   removeButton.type = 'button';
                   removeButton.className = 'btn btn-outline-danger ml-2';
                   removeButton.textContent = uploader.removeLabel || 'Remove Nexpose Data';
-                  removeButton.addEventListener('click', function() { removeHandler(); });
+                  removeButton.addEventListener('click', function() {
+                    removeHandler();
+                    fileNameDisplay.textContent = '';
+                  });
 
                   uploadContainer.appendChild(uploadButton);
                   uploadContainer.appendChild(removeButton);
                   uploadContainer.appendChild(uploadInput);
+                  uploadContainer.appendChild(fileNameDisplay);
                 });
                 subBody.appendChild(uploadContainer);
               }
