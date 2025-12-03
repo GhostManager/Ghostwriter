@@ -974,6 +974,7 @@ class Project(models.Model):
                 "OOD": "OOD Software or Missing Patches",
                 "ISC": "Insecure System Configurations",
                 "IWC": "Insecure Web Configurations",
+                "EVEN": "Even",
             }
             majority_label = majority_label_map.get(majority_type_raw)
             minority_label = majority_label_map.get(minority_type_raw)
@@ -1003,6 +1004,8 @@ class Project(models.Model):
                 summary_key = majority_summary_map.get(majority_type_raw)
                 if summary_key:
                     area_payload["unique_majority"] = _safe_int(summary.get(summary_key))
+                elif majority_type_raw == "EVEN":
+                    area_payload["unique_majority"] = _safe_int(summary.get("majority_count"))
 
             if minority_label:
                 area_payload["minority_type"] = minority_label
@@ -1010,6 +1013,10 @@ class Project(models.Model):
                 if minority_summary_key:
                     area_payload["unique_minority"] = _safe_int(
                         summary.get(minority_summary_key)
+                    )
+                elif minority_type_raw == "EVEN":
+                    area_payload["unique_minority"] = _safe_int(
+                        summary.get("minority_count")
                     )
 
             workbook_payload[workbook_key] = area_payload
