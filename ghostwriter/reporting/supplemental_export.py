@@ -205,7 +205,7 @@ class SupplementalDocumentBuilder:
 
         if sheets:
             workbook_bytes = self._create_workbook(sheets)
-            files.append((f"{self.client_name} DNS Records.xlsx", workbook_bytes))
+            files.append((f"{self.client_name} DNS Report.xlsx", workbook_bytes))
 
     def _append_dns_records(self, files: List[Tuple[str, bytes]]) -> None:
         records = self.artifacts.get("dns_records")
@@ -240,7 +240,7 @@ class SupplementalDocumentBuilder:
 
         if sheets:
             workbook_bytes = self._create_workbook(sheets)
-            files.append((f"{self.client_name} DNS Report.xlsx", workbook_bytes))
+            files.append((f"{self.client_name} DNS Records.xlsx", workbook_bytes))
 
     def _append_internal_software(self, files: List[Tuple[str, bytes]]) -> None:
         internal = self.artifacts.get("internal_nexpose_findings")
