@@ -2555,6 +2555,12 @@ th.icon {
   color: #FFBA01;
 }
 
+.supplemental-btn-icon:before {
+  content: '\f1c6';
+  font-size: 2em;
+  color: #0066CC;
+}
+
 .json-btn-icon:before {
   content: '\f1c9';
   font-size: 2em;

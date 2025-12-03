@@ -40,6 +40,7 @@ from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
 from ghostwriter.reporting.forms import ReportForm, ReportTemplateForm, SelectReportTemplateForm
 from ghostwriter.reporting.models import Archive, Finding, Report, ReportTemplate
+from ghostwriter.reporting.supplemental_export import SupplementalDocumentBuilder
 from ghostwriter.rolodex.models import Project
 from ghostwriter.rolodex.data_parsers import (
     has_open_nexpose_matrix_gaps,
@@ -848,6 +849,57 @@ class GenerateReportXLSX(GenerateReportBase):
                 "Encountered an error generating the spreadsheet: {}".format(error),
                 extra_tags="alert-danger",
             )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
+
+
+class GenerateSupplementalDocuments(GenerateReportBase):
+    """Generate a ZIP archive of supplemental XLSX documents for a report's project."""
+
+    def get(self, *args, **kwargs):
+        obj = self.object
+
+        logger.info(
+            "Generating supplemental documents for %s %s by request of %s",
+            obj.__class__.__name__,
+            obj.id,
+            self.request.user,
+        )
+
+        try:
+            builder = SupplementalDocumentBuilder(obj.project)
+            files = builder.build()
+
+            if not files:
+                messages.error(
+                    self.request,
+                    "No supplemental data is available to export.",
+                    extra_tags="alert-danger",
+                )
+                return HttpResponseRedirect(
+                    reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate"
+                )
+
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                for filename, content in files:
+                    archive.writestr(filename, content)
+
+            response = HttpResponse(zip_buffer.getvalue(), content_type="application/x-zip-compressed")
+            add_content_disposition_header(response, "supplemental_docs.zip")
+            return response
+        except Exception:
+            logger.exception(
+                "Supplemental document generation failed unexpectedly for %s %s and user %s",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
+            messages.error(
+                self.request,
+                "Encountered an error generating the supplemental documents.",
+                extra_tags="alert-danger",
+            )
+
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 

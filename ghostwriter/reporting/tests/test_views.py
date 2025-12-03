@@ -1,7 +1,9 @@
 # Standard Libraries
 import json
+import io
 import logging
 import os
+import zipfile
 from datetime import datetime
 
 # Django Imports
@@ -2251,6 +2253,7 @@ class GenerateReportTests(TestCase):
         cls.redirect_uri = reverse("reporting:report_detail", kwargs={"pk": cls.report.pk})
         cls.docx_uri = reverse("reporting:generate_docx", kwargs={"pk": cls.report.pk})
         cls.xlsx_uri = reverse("reporting:generate_xlsx", kwargs={"pk": cls.report.pk})
+        cls.supplemental_uri = reverse("reporting:generate_supplemental", kwargs={"pk": cls.report.pk})
         cls.pptx_uri = reverse("reporting:generate_pptx", kwargs={"pk": cls.report.pk})
         cls.json_uri = reverse("reporting:generate_json", kwargs={"pk": cls.report.pk})
         cls.all_uri = reverse("reporting:generate_all", kwargs={"pk": cls.report.pk})
@@ -2308,6 +2311,35 @@ class GenerateReportTests(TestCase):
             response.get("Content-Type"),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
+    def test_view_supplemental_uri_generates_zip(self):
+        self.report.project.data_artifacts = {
+            "osint": [
+                {
+                    "Domain": "example.com",
+                    "Hostname": "host.example.com",
+                    "altNames": "",
+                    "IP": "1.2.3.4",
+                    "Port": "443",
+                    "Info": "Test entry",
+                }
+            ]
+        }
+        self.report.project.save(update_fields=["data_artifacts"])
+
+        response = self.client_mgr.get(self.supplemental_uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get("Content-Type"), "application/x-zip-compressed"
+        )
+
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            names = archive.namelist()
+            self.assertTrue(
+                any(name.endswith("OSINT Report.xlsx") for name in names),
+                f"Unexpected archive contents: {names}",
+            )
 
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)
