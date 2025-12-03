@@ -6,8 +6,10 @@ import base64
 import binascii
 import io
 import logging
+import re
 from typing import Any, Callable, Dict, Iterable, List, Sequence, Tuple
 
+from django.utils.dateparse import parse_date, parse_datetime
 from xlsxwriter.workbook import Workbook
 
 logger = logging.getLogger(__name__)
@@ -159,12 +161,20 @@ class SupplementalDocumentBuilder:
         if not isinstance(osint_rows, list) or not osint_rows:
             return
 
+        sorted_rows = sorted(
+            osint_rows,
+            key=lambda row: (
+                self._string_value(row, "Domain").lower(),
+                self._string_value(row, "Hostname").lower(),
+            ),
+        )
+
         workbook_bytes = self._create_workbook(
             [
                 {
                     "name": "OSINT",
                     "headers": ["Domain", "Hostname", "altNames", "IP", "Port", "Info"],
-                    "rows": osint_rows,
+                    "rows": sorted_rows,
                 }
             ]
         )
@@ -234,12 +244,20 @@ class SupplementalDocumentBuilder:
         if not isinstance(software_entries, list) or not software_entries:
             return
 
+        sorted_rows = sorted(
+            software_entries,
+            key=lambda row: (
+                self._numeric_sort_key(self._string_value(row, "System")),
+                self._string_value(row, "Software").lower(),
+            ),
+        )
+
         workbook_bytes = self._create_workbook(
             [
                 {
                     "name": "Software",
                     "headers": ["System", "Software", "Version"],
-                    "rows": software_entries,
+                    "rows": sorted_rows,
                 }
             ]
         )
@@ -277,6 +295,25 @@ class SupplementalDocumentBuilder:
             ),
         ]
 
+        sort_strategies = {
+            "inactive_accounts": lambda r: (
+                -self._numeric_sort_key(self._string_value(r, "Days Past")),
+                self._string_value(r, "Account").lower(),
+            ),
+            "generic_accounts": lambda r: (
+                self._date_sort_key(self._string_value(r, "Creation Date")),
+                self._string_value(r, "Account").lower(),
+            ),
+            "generic_logins": lambda r: (
+                self._string_value(r, "Computer").lower(),
+                self._string_value(r, "Username").lower(),
+            ),
+            "old_passwords": lambda r: (
+                -self._numeric_sort_key(self._string_value(r, "Days Past Due")),
+                self._string_value(r, "Account").lower(),
+            ),
+        }
+
         for key, label, headers in report_configs:
             sheets = []
             for domain, entries in ad_artifacts.items():
@@ -285,11 +322,19 @@ class SupplementalDocumentBuilder:
                 domain_entries = entries.get(key)
                 if not isinstance(domain_entries, list) or not domain_entries:
                     continue
+
+                sorter = sort_strategies.get(key) or (
+                    lambda r: (
+                        self._date_sort_key(self._string_value(r, "Password Last Set")),
+                        self._string_value(r, "Account").lower(),
+                    )
+                )
+                sorted_rows = sorted(domain_entries, key=sorter)
                 sheets.append(
                     {
                         "name": str(domain) if domain else label,
                         "headers": headers,
-                        "rows": domain_entries,
+                        "rows": sorted_rows,
                     }
                 )
 
@@ -303,21 +348,32 @@ class SupplementalDocumentBuilder:
         sheets = []
 
         if isinstance(snmp_entries, list) and snmp_entries:
+            sorted_snmp = sorted(
+                snmp_entries,
+                key=lambda r: (
+                    self._numeric_sort_key(self._string_value(r, "Host")),
+                    self._string_value(r, "String").lower(),
+                ),
+            )
             sheets.append(
                 {
                     "name": "SNMP",
                     "headers": ["Host", "String", "Desc"],
-                    "rows": snmp_entries,
+                    "rows": sorted_snmp,
                     "row_format_fn": self._format_snmp_row,
                 }
             )
 
         if isinstance(snmp_hosts, list) and snmp_hosts:
+            sorted_hosts = sorted(
+                snmp_hosts,
+                key=lambda r: self._numeric_sort_key(self._string_value(r, "Host")),
+            )
             sheets.append(
                 {
                     "name": "Hosts",
                     "headers": ["Host"],
-                    "rows": snmp_hosts,
+                    "rows": sorted_hosts,
                 }
             )
 
@@ -383,3 +439,54 @@ class SupplementalDocumentBuilder:
             return
 
         files.append((filename, workbook_bytes))
+
+    @staticmethod
+    def _string_value(row: Any, header: str) -> str:
+        """Extract a cell value as a string without altering original row data."""
+
+        if isinstance(row, dict):
+            value = row.get(header)
+            if value is None:
+                value = row.get(header.lower()) or row.get(header.replace(" ", "_"))
+        else:
+            value = row
+        return "" if value is None else str(value)
+
+    @staticmethod
+    def _numeric_sort_key(value: str):
+        """Sort helper that treats dotted-quad IPs and numeric strings numerically."""
+
+        import ipaddress
+
+        try:
+            return (0, float(value))
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            return (0, float(int(ipaddress.ip_address(value))))
+        except (ValueError, ipaddress.AddressValueError):
+            pass
+
+        parts = [int(piece) if piece.isdigit() else piece.lower() for piece in re.split(r"(\d+)", value)]
+        return (1, tuple(parts))
+
+    @staticmethod
+    def _date_sort_key(value: str) -> float:
+        """Convert common date/datetime strings to a sortable timestamp, placing missing values last."""
+
+        if not value:
+            return float("inf")
+
+        dt = parse_datetime(value) or parse_date(value)
+        if dt is None:
+            return float("inf")
+        if hasattr(dt, "timestamp"):
+            return dt.timestamp()
+        try:
+            from datetime import datetime
+
+            dt = datetime.combine(dt, datetime.min.time())
+            return dt.timestamp()
+        except Exception:
+            return float("inf")
