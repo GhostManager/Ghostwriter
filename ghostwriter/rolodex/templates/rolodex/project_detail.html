@@ -3057,6 +3057,12 @@
           cloud_system_configuration: {
             label: 'SYSTEM CONFIGURATION',
             workbookKey: 'system_config',
+            fields: [
+              {key: 'total_pass', label: 'Total Checks Passed', type: 'number'},
+              {key: 'total_fail', label: 'Total Checks Failed', type: 'number'},
+              {key: 'unique_pass', label: 'Unique Checks Passed', type: 'number'},
+              {key: 'unique_fail', label: 'Unique Checks Failed', type: 'number'},
+            ],
           },
         };
 
@@ -3976,6 +3982,17 @@
 
         const removeCloudConfigData = function(areaKey, modalId) {
           const payload = {areas: {cloud_config: {pass: null, fail: null}}};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+            afterRender: function() { updateWorkbookCardProgress(areaKey); },
+          });
+        };
+
+        const removeSystemConfigData = function(areaKey, modalId) {
+          const payload = {
+            areas: {system_config: {total_pass: null, total_fail: null, unique_pass: null, unique_fail: null}},
+          };
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -5725,6 +5742,16 @@
                 removeButton.textContent = 'Remove IAM Management Data';
                 removeButton.addEventListener('click', function() {
                   removeIamCloudConfigData(areaKey, modalId);
+                });
+                subBody.appendChild(removeButton);
+              }
+              if (areaKey === 'cloud' && subkey === 'system_configuration') {
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger mt-2';
+                removeButton.textContent = 'Remove System Configuration Data';
+                removeButton.addEventListener('click', function() {
+                  removeSystemConfigData(areaKey, modalId);
                 });
                 subBody.appendChild(removeButton);
               }
