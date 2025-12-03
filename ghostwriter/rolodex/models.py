@@ -789,7 +789,7 @@ class Project(models.Model):
             if preserved_key in existing_artifacts and preserved_key not in artifacts:
                 artifacts[preserved_key] = existing_artifacts[preserved_key]
 
-        for key in ("osint", "osint_file_name", "snmp", "snmp_file_name"):
+        for key in ("osint", "osint_file_name", "snmp", "snmp_file_name", "snmp_hosts"):
             if key in existing_artifacts and key not in artifacts:
                 artifacts[key] = existing_artifacts[key]
 
