@@ -1,43 +1,121 @@
+{% load custom_tags %}
+
 {% if res.findings or res.finding_assets or res.domains %}
     {% if res.domains %}
+        <h4>BloodHound Domain Information</h4>
+        <hr />
+        <p>Expand the sections below to view detailed information about each domain.</p>
         <div id="bh_domains_accordion" class="finding-accordion">
+            {% for domain in res.domains %}
             <div class="card">
-                <div class="card-header" data-toggle="collapse" data-target="#bh_domains_contents">
-                    <a class="accordion-toggle btn btn-link">
-                        Domains
-                    </a>
+                <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#bh_domain_{{ forloop.counter }}">
+                    <div>
+                        <strong>{{ domain.name }}</strong>
+                        <span class="badge badge-secondary ml-2">{{ domain.functional_level|default:"Unknown" }}</span>
+                    </div>
+                    <div class="ml-auto mr-2">
+                        <span class="mr-3"><i class="fas fa-users"></i> {{ domain.users.count }} users</span>
+                        <span class="mr-3"><i class="fas fa-desktop"></i> {{ domain.computers.count }} computers</span>
+                        <span><i class="fas fa-users-cog"></i> {{ domain.data_quality.groups|default:0 }} groups</span>
+                    </div>
                 </div>
-                <div id="bh_domains_contents" class="collapse" data-parent="#bh_domains_accordion">
+                <div id="bh_domain_{{ forloop.counter }}" class="collapse" data-parent="#bh_domains_accordion">
                     <div class="card-body">
-                        <table class="table table-striped table-sm mt-0">
-                            <thead>
-                                <tr>
-                                  <th class="align-middle text-left">Name</th>
-                                  <th class="align-middle text-left">Num. Computers</th>
-                                  <th class="align-middle text-left">Operating Systems</th>
-                                  <th class="align-middle text-left">Num. Users</th>
-                                  <th class="align-middle text-left">Old Passwords</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            {% for domain in res.domains %}
-                                <tr>
-                                  <td class="align-middle text-left">{{ domain.name }}</td>
-                                  <td class="align-middle text-left">{{ domain.computers.count }}</td>
-                                  <td class="align-middle text-left">{%  for os, count in domain.computers.operating_systems.items %}{% if os != "null"%}{{ os|title }} ({{ count }})<br/>{% endif %}{% endfor %}</td>
-                                  <td class="align-middle text-left">{{ domain.users.count }}
-                                  <td class="align-middle text-left">{{ domain.users.with_old_pw }}
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted text-left">Domain Information</h6>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-6 text-left">Distinguished Name:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.distinguished_name|default:"N/A" }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Domain SID:</dt>
+                                    <dd class="col-sm-6 text-left"><code class="small">{{ domain.domain_sid|default:"N/A" }}</code></dd>
+
+                                    <dt class="col-sm-6 text-left">Functional Level:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.functional_level|default:"Unknown" }}</dd>
+                                </dl>
+
+                                {% if domain.inbound_trusts or domain.outbound_trusts %}
+                                <h6 class="text-muted mt-3 text-left">Trust Relationships</h6>
+                                <dl class="row mb-0">
+                                    {% if domain.inbound_trusts %}
+                                    <dt class="col-sm-6 text-left">Inbound Trusts:</dt>
+                                    <dd class="col-sm-6 text-left">
+                                        {% for trust in domain.inbound_trusts %}
+                                        <span class="badge badge-primary">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
+                                        {% endfor %}
+                                    </dd>
+                                    {% endif %}
+
+                                    {% if domain.outbound_trusts %}
+                                    <dt class="col-sm-6 text-left">Outbound Trusts:</dt>
+                                    <dd class="col-sm-6 text-left">
+                                        {% for trust in domain.outbound_trusts %}
+                                        <span class="badge badge-warning">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
+                                        {% endfor %}
+                                    </dd>
+                                    {% endif %}
+                                </dl>
+                                {% endif %}
+
+                                {% if domain.computers.operating_systems %}
+                                <h6 class="text-muted mt-3 text-left">Operating Systems</h6>
+                                <ul class="list-unstyled mb-0 text-left">
+                                    {% for os, count in domain.computers.operating_systems.items %}
+                                    {% if os != "null" %}
+                                    <li><span class="badge badge-secondary">{{ os|title }}</span> <span class="text-muted">({{ count }})</span></li>
+                                    {% endif %}
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6 class="text-muted text-left">Statistics</h6>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-6 text-left">Total Users:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.users.count }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Users with Old Passwords:</dt>
+                                    <dd class="col-sm-6 text-left">
+                                        {{ domain.users.with_old_pw }}
+                                        {% if domain.users.count > 0 %}
+                                        {% widthratio domain.users.with_old_pw domain.users.count 100 as percentage %}
+                                        <span class="text-muted small">({{ percentage }}%)</span>
+                                        {% endif %}
+                                    </dd>
+
+                                    <dt class="col-sm-6 text-left">Total Computers:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.computers.count }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Total Groups:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.groups|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Sessions:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.sessions|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">GPOs:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.gpos|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">ACLs:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.acls|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Relationships:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.relationships|default:0 }}</dd>
+                                </dl>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
     {% endif %}
 
     {% if res.findings %}
+        <h4>BloodHound Enterprise Findings</h4>
+        <hr />
+        <p>Expand the section below to view detailed findings from BloodHound Enterprise.</p>
         <div id="bh_findings_accordion" class="finding-accordion">
             <div class="card">
                 <div class="card-header" data-toggle="collapse" data-target="#bh_findings_contents">

@@ -2644,6 +2644,10 @@ th.icon {
   position: relative;
 }
 
+.finding-accordion .card-header span {
+  color: #fff;
+}
+
 .finding-accordion .fa-stack {
   font-size: 18px;
 }
@@ -2832,6 +2836,11 @@ ol {
   background-color: var(--secondary-color);
 }
 
+.badge-warning {
+  color: #212529;
+  background-color: var(--warning-color);
+}
+
 .badge-word {
   color: #fff;
   background-color: var(--word-color);
@@ -2851,6 +2860,7 @@ ol {
   color: #fff;
   background-color: var(--blocked-color);
 }
+
 
 /* ---------------------------------------------------
     MEDIAQUERIES
@@ -4003,8 +4013,15 @@ input[type="color"]:focus,
   color: var(--main-txt-color);
 }
 
-[data-theme="dark"] .finding-accordion .card-header:after {
+[data-theme="dark"] .finding-accordion .card-header:after,
+[data-theme="dark"] .finding-accordion .card-header span  {
   color: var(--main-txt-color);
+}
+
+[data-theme="dark"] .finding-accordion .card-header[aria-expanded=true] span,
+[data-theme="dark"] .finding-accordion .card-header:hover span,
+[data-theme="dark"] .finding-accordion .card-header:hover::after {
+  color: #fff;
 }
 
 /* Table header span highlighting fix */
