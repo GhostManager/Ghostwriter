@@ -103,26 +103,26 @@ class SupplementalDocumentBuilder:
             worksheet = workbook.add_worksheet(sheet_name or "Sheet1")
             worksheet.freeze_panes(1, 0)
 
-            widths = [len(str(header)) for header in headers]
-            normalized_rows: List[List[str]] = []
+            widths = [self._string_width(header) for header in headers]
+            normalized_rows: List[Tuple[List[str], Any]] = []
             for row in rows:
                 normalized_row: List[str] = []
                 for idx, header in enumerate(headers):
                     value = self._extract_cell_value(row, header)
                     normalized_row.append(value)
-                    widths[idx] = max(widths[idx], len(value))
-                normalized_rows.append(normalized_row)
+                    widths[idx] = max(widths[idx], self._string_width(value))
+                normalized_rows.append((normalized_row, row))
 
             for col_idx, title in enumerate(headers):
                 worksheet.write_string(0, col_idx, title, formats["header"])
 
-            for row_idx, row in enumerate(normalized_rows, start=1):
+            for row_idx, (row, raw_row) in enumerate(normalized_rows, start=1):
                 is_banded = row_idx % 2 == 0
                 row_format = formats["banded"] if is_banded else formats["default"]
                 if row_format_fn:
                     row_format = row_format_fn(
                         row_idx,
-                        row,
+                        raw_row,
                         formats,
                         is_banded,
                     )
@@ -130,11 +130,17 @@ class SupplementalDocumentBuilder:
                     worksheet.write_string(row_idx, col_idx, value, row_format)
 
             for col_idx, width in enumerate(widths):
-                worksheet.set_column(col_idx, col_idx, min(width + 2, 60))
+                worksheet.set_column(col_idx, col_idx, width + 2)
 
         workbook.close()
         output.seek(0)
         return output.getvalue()
+
+    @staticmethod
+    def _string_width(value: str) -> int:
+        """Estimate column width based on the longest line of the value."""
+
+        return max((len(line) for line in str(value).splitlines()), default=0)
 
     @staticmethod
     def _extract_cell_value(row: Any, header: str) -> str:
@@ -300,7 +306,7 @@ class SupplementalDocumentBuilder:
             sheets.append(
                 {
                     "name": "SNMP",
-                    "headers": ["Host", "String", "Desc", "Access"],
+                    "headers": ["Host", "String", "Desc"],
                     "rows": snmp_entries,
                     "row_format_fn": self._format_snmp_row,
                 }
@@ -322,12 +328,10 @@ class SupplementalDocumentBuilder:
     @staticmethod
     def _format_snmp_row(row_idx: int, row: List[str], formats: Dict[str, Any], is_banded: bool):
         access_value = ""
-        if isinstance(row, list) and len(row) >= 4:
-            access_value = row[3]
-        elif isinstance(row, dict):
-            access_value = str(row.get("Access", ""))
+        if isinstance(row, dict):
+            access_value = row.get("Access") or row.get("access") or row.get("ACCESS")
         elif isinstance(row, (list, tuple)):
-            access_value = row[1] if len(row) > 1 else ""
+            access_value = row[3] if len(row) > 3 else (row[1] if len(row) > 1 else "")
 
         if str(access_value).lower() == "read-write":
             return formats["banded_red"] if is_banded else formats["default_red"]
@@ -353,11 +357,14 @@ class SupplementalDocumentBuilder:
                 else {}
             )
             if metrics_map:
-                for domain, payload in metrics_map.items():
-                    filename = f"{self.client_name} Detailed Endpoint Findings.xlsx"
-                    if domain:
-                        filename = f"{self.client_name} Detailed Endpoint Findings ({domain}).xlsx"
-                    self._append_processed_payload(files, payload, filename)
+                base_filename = f"{self.client_name} Detailed Endpoint Findings.xlsx"
+                if len(metrics_map) == 1:
+                    payload = next(iter(metrics_map.values()))
+                    self._append_processed_payload(files, payload, base_filename)
+                else:
+                    for idx, (domain, payload) in enumerate(metrics_map.items()):
+                        suffix = f" - {domain}" if domain else f" - {idx + 1}"
+                        self._append_processed_payload(files, payload, f"{base_filename[:-5]}{suffix}.xlsx")
 
     def _append_processed_payload(self, files: List[Tuple[str, bytes]], payload: Any, filename: str) -> None:
         if not isinstance(payload, dict):
