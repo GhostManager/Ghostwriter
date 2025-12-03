@@ -16,8 +16,9 @@ from typing import Iterator
 
 from docx.oxml import parse_xml
 from docxtpl.template import DocxTemplate
-from jinja2 import Environment, meta, Undefined
+from jinja2 import Environment, meta, Undefined, TemplateSyntaxError
 from docx.opc.packuri import PackURI
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 try:
     from jinja2.debug import Traceback as JinjaTraceback
 except Exception:  # pragma: no cover - depends on optional Jinja debug support
@@ -173,10 +174,12 @@ class GhostwriterDocxTemplate(DocxTemplate):
 
         self.init_docx(reload=False)
 
-        xml_sources = [self.patch_xml(self.get_xml())]
+        xml_sources: list[tuple[str, str]] = [
+            (self._describe_part(getattr(self.docx, "_part", None)), self.patch_xml(self.get_xml()))
+        ]
         for uri in (self.HEADER_URI, self.FOOTER_URI):
             for _rel_key, part in self.get_headers_footers(uri):
-                xml_sources.append(self.patch_xml(self.get_part_xml(part)))
+                xml_sources.append((self._describe_part(part), self.patch_xml(self.get_part_xml(part))))
 
         for part in self._iter_additional_parts():
             partname = self._normalise_partname(part)
@@ -189,13 +192,123 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 for name, data in files.items():
                     if not name.endswith(".xml"):
                         continue
-                    xml_sources.append(self.patch_xml(data.decode("utf-8")))
+                    label = f"{partname}:{name}"
+                    xml_sources.append((label, self.patch_xml(data.decode("utf-8"))))
             else:
-                xml_sources.append(self.patch_xml(self.get_part_xml(part)))
+                xml_sources.append((self._describe_part(part), self.patch_xml(self.get_part_xml(part))))
 
         env = jinja_env or getattr(self, "jinja_env", None) or Environment()
-        parse_content = env.parse("".join(xml_sources))
+        try:
+            parse_content = env.parse("".join(xml for _label, xml in xml_sources))
+        except Exception as exc:
+            self._log_template_parse_error(exc, xml_sources)
+            if isinstance(exc, TemplateSyntaxError):
+                location, context_line = self._extract_template_part_context(exc, xml_sources)
+                raise ReportExportTemplateError(
+                    f"Template syntax error: {exc}", location, context_line
+                ) from exc
+            raise
         return meta.find_undeclared_variables(parse_content)
+
+    def _extract_template_part_context(
+        self, exc: BaseException, xml_sources: list[tuple[str, str]]
+    ) -> tuple[str | None, str | None]:
+        """Return the part label and context line for a template syntax error."""
+
+        error_line = getattr(exc, "lineno", None) or self._extract_template_error_line(exc)
+        current_line = 1
+        for label, xml in xml_sources:
+            line_count = xml.count("\n") + 1
+            if error_line is None:
+                return label, None
+            start_line = current_line
+            end_line = current_line + line_count - 1
+            if start_line <= error_line <= end_line:
+                relative_line = error_line - start_line
+                lines = xml.splitlines()
+                if 0 <= relative_line < len(lines):
+                    return label, self._trim_template_text(lines[relative_line])
+                return label, None
+            current_line = end_line + 1
+
+        return None, None
+
+    def _log_template_parse_error(
+        self, exc: BaseException, xml_sources: list[tuple[str, str]]
+    ) -> None:
+        """Log contextual information when parsing template parts fails."""
+
+        error_line = getattr(exc, "lineno", None) or self._extract_template_error_line(exc)
+        part_label: str | None = None
+        part_line: int | None = None
+        part_xml: str | None = None
+        current_line = 1
+
+        for label, xml in xml_sources:
+            line_count = xml.count("\n") + 1
+            if error_line is None:
+                part_label = label
+                part_xml = xml
+                break
+
+            start_line = current_line
+            end_line = current_line + line_count - 1
+            if start_line <= error_line <= end_line:
+                part_label = label
+                part_xml = xml
+                part_line = error_line - start_line + 1
+                break
+            current_line = end_line + 1
+
+        error_context: list[tuple[int, str]] = []
+        if part_xml and part_line is not None:
+            lines = part_xml.splitlines()
+            start = max(part_line - 3, 0)
+            end = min(part_line + 2, len(lines))
+            for index in range(start, end):
+                error_context.append((index + 1, self._trim_template_text(lines[index])))
+
+        statements: list[dict[str, str | int]] = []
+        total_statements = 0
+        if part_xml:
+            statements, total_statements = self._collect_template_statements(
+                part_xml, focus_line=part_line
+            )
+
+        message_parts: list[str] = []
+        if part_line is not None and part_label:
+            message_parts.append(
+                f"error near template line {part_line} in {part_label}"
+            )
+        elif error_line is not None:
+            message_parts.append(f"error near template line {error_line}")
+        if error_context:
+            message_parts.append(self._format_template_context(error_context, part_line))
+        if statements:
+            message_parts.append(self._format_statement_preview(statements, total_statements))
+
+        logger.exception(
+            "Failed to parse DOCX template while collecting undeclared variables%s",
+            f" in {part_label}" if part_label else "",
+            extra={
+                "docx_template_part": part_label,
+                "docx_template_error_line": part_line or error_line,
+                "docx_template_statements_preview": statements,
+                "docx_template_statement_count": total_statements,
+                **(
+                    {
+                        "docx_template_error_context": [
+                            {"line": line, "text": text}
+                            for line, text in error_context
+                        ]
+                    }
+                    if error_context
+                    else {}
+                ),
+            },
+        )
+        if message_parts:
+            logger.error("; ".join(message_parts))
 
     def patch_xml(self, src_xml):  # type: ignore[override]
         """Normalize XML for templating across Word body and SmartArt parts."""
