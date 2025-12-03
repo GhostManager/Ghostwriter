@@ -198,17 +198,24 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 xml_sources.append((self._describe_part(part), self.patch_xml(self.get_part_xml(part))))
 
         env = jinja_env or getattr(self, "jinja_env", None) or Environment()
-        try:
-            parse_content = env.parse("".join(xml for _label, xml in xml_sources))
-        except Exception as exc:
-            self._log_template_parse_error(exc, xml_sources)
-            if isinstance(exc, TemplateSyntaxError):
-                location, context_line = self._extract_template_part_context(exc, xml_sources)
-                raise ReportExportTemplateError(
-                    f"Template syntax error: {exc}", location, context_line
-                ) from exc
-            raise
-        return meta.find_undeclared_variables(parse_content)
+
+        undeclared: set[str] = set()
+        for label, xml in xml_sources:
+            try:
+                parse_content = env.parse(xml)
+            except Exception as exc:
+                self._log_template_parse_error(exc, [(label, xml)])
+                if isinstance(exc, TemplateSyntaxError):
+                    location, context_line = self._extract_template_part_context(
+                        exc, [(label, xml)]
+                    )
+                    raise ReportExportTemplateError(
+                        f"Template syntax error: {exc}", location, context_line
+                    ) from exc
+                raise
+            undeclared.update(meta.find_undeclared_variables(parse_content))
+
+        return undeclared
 
     def _extract_template_part_context(
         self, exc: BaseException, xml_sources: list[tuple[str, str]]
