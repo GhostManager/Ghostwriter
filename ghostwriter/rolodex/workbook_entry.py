@@ -395,6 +395,12 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                 if policy_entry.get(field) not in (None, "", []):
                     return True
 
+            if policy_entry.get("policy_file_name"):
+                return True
+
+            if policy_entry.get("fgpp_file_name"):
+                return True
+
             return False
 
         normalized_policies: list[dict[str, Any]] = []
@@ -457,6 +463,15 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                         normalized_policy["password_pattern"] = pattern_entry
 
                 fgpp_entries = _normalize_fgpp_entries(policy.get("fgpp"))
+
+                policy_file_name = (policy.get("policy_file_name") or "").strip()
+                if policy_file_name:
+                    normalized_policy["policy_file_name"] = policy_file_name
+
+                fgpp_file_name = (policy.get("fgpp_file_name") or "").strip()
+                if fgpp_file_name:
+                    normalized_policy["fgpp_file_name"] = fgpp_file_name
+
                 if _policy_has_values(normalized_policy, fgpp_entries):
                     normalized_policy["fgpp"] = fgpp_entries
                     normalized_policies.append(normalized_policy)
