@@ -1624,6 +1624,8 @@
                   : [],
               },
               fgpp: normalizedFgpp,
+              policy_file_name: (policy && policy.policy_file_name) || '',
+              fgpp_file_name: (policy && policy.fgpp_file_name) || '',
               __ad_placeholder: Boolean(policy && policy.__ad_placeholder),
               __ad_domain_name: policy && policy.__ad_domain_name,
               __ad_strong_default: policy && policy.__ad_strong_default,
@@ -2158,6 +2160,8 @@
                 passwords: patternConfirm === 'Yes' ? patternPasswords : [],
               },
               fgpp: fgppEntries(policy.fgpp),
+              policy_file_name: (policy.policy_file_name || '').toString().trim() || null,
+              fgpp_file_name: (policy.fgpp_file_name || '').toString().trim() || null,
             };
 
             const domainName = (policy.domain_name || '').toString().trim();
@@ -4289,11 +4293,29 @@
               policyUploadInput.type = 'file';
               policyUploadInput.accept = '.txt,.log,text/plain';
               policyUploadInput.className = 'd-none';
+              const policyFileInfo = document.createElement('div');
+              policyFileInfo.className = 'small text-muted mt-2';
+              const updatePolicyFileInfo = function() {
+                const name = (policy.policy_file_name || '').toString().trim();
+                policyFileInfo.textContent = name ? 'Uploaded: ' + name : '';
+              };
               policyUploadInput.addEventListener('change', function(event) {
                 const file = event.target.files && event.target.files[0];
                 if (!file) {
                   return;
                 }
+
+                const savePasswordUpload = function() {
+                  const payload = {areas: {password: serializePasswordPayload()}};
+                  submitWorkbookUpdate(payload, null, {
+                    reopenModalId: modalId,
+                    forceCloseModalId: modalId,
+                    afterRender: function() { updateWorkbookCardProgress(areaKey); },
+                  });
+                };
+
+                policy.policy_file_name = file.name;
+                updatePolicyFileInfo();
 
                 const reader = new FileReader();
                 reader.onload = function(loadEvent) {
@@ -4302,6 +4324,7 @@
                     applyPasswordPolicyImport(policy, parsed);
                     renderPolicies();
                     updateWorkbookCardProgress(areaKey);
+                    savePasswordUpload();
                   } catch (error) {
                     console.error(error);
                     alert('Unable to parse the password policy file.');
@@ -4321,6 +4344,8 @@
               policyUploadButton.addEventListener('click', function() { policyUploadInput.click(); });
               headingActions.appendChild(policyUploadButton);
               headingActions.appendChild(policyUploadInput);
+              headingActions.appendChild(policyFileInfo);
+              updatePolicyFileInfo();
 
               const removeDomainButton = document.createElement('button');
               removeDomainButton.type = 'button';
@@ -4463,6 +4488,15 @@
                   return;
                 }
 
+                const saveFgppUpload = function() {
+                  const payload = {areas: {password: serializePasswordPayload()}};
+                  submitWorkbookUpdate(payload, null, {
+                    reopenModalId: modalId,
+                    forceCloseModalId: modalId,
+                    afterRender: function() { updateWorkbookCardProgress(areaKey); },
+                  });
+                };
+
                 const reader = new FileReader();
                 reader.onload = function(loadEvent) {
                   try {
@@ -4473,6 +4507,9 @@
                     parsedEntries.forEach(function(entry) { policy.fgpp.push(entry); });
                     renderFgpp();
                     updateWorkbookCardProgress(areaKey);
+                    policy.fgpp_file_name = file.name;
+                    updateFgppFileInfo();
+                    saveFgppUpload();
                   } catch (error) {
                     console.error(error);
                     alert('Unable to parse the FGPP file.');
@@ -4492,6 +4529,14 @@
               fgppUploadButton.addEventListener('click', function() { fgppUploadInput.click(); });
               fgppActions.appendChild(fgppUploadButton);
               fgppActions.appendChild(fgppUploadInput);
+              const fgppFileInfo = document.createElement('div');
+              fgppFileInfo.className = 'small text-muted mt-2';
+              const updateFgppFileInfo = function() {
+                const name = (policy.fgpp_file_name || '').toString().trim();
+                fgppFileInfo.textContent = name ? 'Uploaded: ' + name : '';
+              };
+              fgppActions.appendChild(fgppFileInfo);
+              updateFgppFileInfo();
 
               const addFgppButton = document.createElement('button');
               addFgppButton.type = 'button';
