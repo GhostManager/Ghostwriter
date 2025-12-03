@@ -4293,11 +4293,29 @@
               policyUploadInput.type = 'file';
               policyUploadInput.accept = '.txt,.log,text/plain';
               policyUploadInput.className = 'd-none';
+              const policyFileInfo = document.createElement('div');
+              policyFileInfo.className = 'small text-muted mt-2';
+              const updatePolicyFileInfo = function() {
+                const name = (policy.policy_file_name || '').toString().trim();
+                policyFileInfo.textContent = name ? 'Uploaded: ' + name : '';
+              };
               policyUploadInput.addEventListener('change', function(event) {
                 const file = event.target.files && event.target.files[0];
                 if (!file) {
                   return;
                 }
+
+                const savePasswordUpload = function() {
+                  const payload = {areas: {password: serializePasswordPayload()}};
+                  submitWorkbookUpdate(payload, null, {
+                    reopenModalId: modalId,
+                    forceCloseModalId: modalId,
+                    afterRender: function() { updateWorkbookCardProgress(areaKey); },
+                  });
+                };
+
+                policy.policy_file_name = file.name;
+                updatePolicyFileInfo();
 
                 const reader = new FileReader();
                 reader.onload = function(loadEvent) {
@@ -4306,6 +4324,7 @@
                     applyPasswordPolicyImport(policy, parsed);
                     renderPolicies();
                     updateWorkbookCardProgress(areaKey);
+                    savePasswordUpload();
                   } catch (error) {
                     console.error(error);
                     alert('Unable to parse the password policy file.');
@@ -4323,12 +4342,6 @@
               policyUploadButton.className = 'btn btn-outline-primary btn-sm mr-2';
               policyUploadButton.textContent = 'Upload Password Policy';
               policyUploadButton.addEventListener('click', function() { policyUploadInput.click(); });
-              const policyFileInfo = document.createElement('div');
-              policyFileInfo.className = 'small text-muted mt-2';
-              const updatePolicyFileInfo = function() {
-                const name = (policy.policy_file_name || '').toString().trim();
-                policyFileInfo.textContent = name ? 'Uploaded: ' + name : '';
-              };
               headingActions.appendChild(policyUploadButton);
               headingActions.appendChild(policyUploadInput);
               headingActions.appendChild(policyFileInfo);
@@ -4475,6 +4488,15 @@
                   return;
                 }
 
+                const saveFgppUpload = function() {
+                  const payload = {areas: {password: serializePasswordPayload()}};
+                  submitWorkbookUpdate(payload, null, {
+                    reopenModalId: modalId,
+                    forceCloseModalId: modalId,
+                    afterRender: function() { updateWorkbookCardProgress(areaKey); },
+                  });
+                };
+
                 const reader = new FileReader();
                 reader.onload = function(loadEvent) {
                   try {
@@ -4487,6 +4509,7 @@
                     updateWorkbookCardProgress(areaKey);
                     policy.fgpp_file_name = file.name;
                     updateFgppFileInfo();
+                    saveFgppUpload();
                   } catch (error) {
                     console.error(error);
                     alert('Unable to parse the FGPP file.');
@@ -4496,8 +4519,6 @@
                   alert('Unable to read the FGPP file.');
                 };
                 reader.readAsText(file);
-                policy.policy_file_name = file.name;
-                updatePolicyFileInfo();
                 event.target.value = '';
               });
 
