@@ -3041,6 +3041,10 @@
           cloud_cloud_management: {
             label: 'CLOUD MANAGEMENT',
             workbookKey: 'cloud_config',
+            fields: [
+              {key: 'pass', label: 'Checks Passed', type: 'number'},
+              {key: 'fail', label: 'Checks Failed', type: 'number'},
+            ],
           },
           cloud_iam_management: {
             label: 'IAM MANAGEMENT',
@@ -3963,6 +3967,15 @@
 
         const removeIamCloudConfigData = function(areaKey, modalId) {
           const payload = {areas: {iam_cloud_config: {pass: null, fail: null}}};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+            afterRender: function() { updateWorkbookCardProgress(areaKey); },
+          });
+        };
+
+        const removeCloudConfigData = function(areaKey, modalId) {
+          const payload = {areas: {cloud_config: {pass: null, fail: null}}};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -5694,6 +5707,16 @@
                 empty.className = 'mb-0';
                 empty.textContent = 'No workbook fields are available for this area yet.';
                 subBody.appendChild(empty);
+              }
+              if (areaKey === 'cloud' && subkey === 'cloud_management') {
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger mt-2';
+                removeButton.textContent = 'Remove Cloud Management Data';
+                removeButton.addEventListener('click', function() {
+                  removeCloudConfigData(areaKey, modalId);
+                });
+                subBody.appendChild(removeButton);
               }
               if (areaKey === 'cloud' && subkey === 'iam_management') {
                 const removeButton = document.createElement('button');
