@@ -785,6 +785,10 @@ class Project(models.Model):
             existing_artifacts.get("ad") if isinstance(existing_artifacts.get("ad"), Mapping) else None
         )
 
+        for preserved_key in ("dns_records",):
+            if preserved_key in existing_artifacts and preserved_key not in artifacts:
+                artifacts[preserved_key] = existing_artifacts[preserved_key]
+
         for key in ("osint", "osint_file_name", "snmp", "snmp_file_name"):
             if key in existing_artifacts and key not in artifacts:
                 artifacts[key] = existing_artifacts[key]

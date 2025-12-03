@@ -694,6 +694,12 @@ def _normalize_dns_payload(payload: Optional[Mapping[str, Any]]) -> Dict[str, An
                 "total": _as_int(record.get("total")),
                 "zone_transfer": _normalize_zone_transfer(record.get("zone_transfer")),
             }
+            csv_file = (record.get("csv_file_name") or "").strip()
+            if csv_file:
+                normalized_record["csv_file_name"] = csv_file
+            xml_file = (record.get("xml_file_name") or "").strip()
+            if xml_file:
+                normalized_record["xml_file_name"] = xml_file
             normalized_records.append(normalized_record)
         normalized["records"] = normalized_records
 
