@@ -149,7 +149,13 @@ class SupplementalDocumentBuilder:
         if isinstance(row, dict):
             value = row.get(header)
             if value is None:
-                value = row.get(header.lower()) or row.get(header.replace(" ", "_"))
+                alt_header = header.replace(" ", "")
+                value = (
+                    row.get(header.lower())
+                    or row.get(header.replace(" ", "_"))
+                    or row.get(alt_header)
+                    or row.get(alt_header.lower())
+                )
         else:
             value = row
         if value is None:
@@ -277,11 +283,11 @@ class SupplementalDocumentBuilder:
                 "IAM - Accounts with Passwords that Never Expire",
                 ["Account", "Password Last Set"],
             ),
-            (
-                "inactive_accounts",
-                "IAM - Potentially Inactive Accounts",
-                ["Account", "LastLogin", "Creation Date", "Days Past"],
-            ),
+                (
+                    "inactive_accounts",
+                    "IAM - Potentially Inactive Accounts",
+                    ["Account", "Last Login", "Creation Date", "Days Past"],
+                ),
             ("generic_accounts", "IAM - Generic Accounts", ["Account", "Creation Date"]),
             (
                 "generic_logins",
@@ -447,7 +453,13 @@ class SupplementalDocumentBuilder:
         if isinstance(row, dict):
             value = row.get(header)
             if value is None:
-                value = row.get(header.lower()) or row.get(header.replace(" ", "_"))
+                alt_header = header.replace(" ", "")
+                value = (
+                    row.get(header.lower())
+                    or row.get(header.replace(" ", "_"))
+                    or row.get(alt_header)
+                    or row.get(alt_header.lower())
+                )
         else:
             value = row
         return "" if value is None else str(value)
@@ -490,14 +502,32 @@ class SupplementalDocumentBuilder:
             return float("inf")
 
         dt = parse_datetime(value) or parse_date(value)
+
+        if dt is None:
+            from datetime import datetime
+
+            for fmt in (
+                "%m/%d/%Y %H:%M",
+                "%m/%d/%Y %H:%M:%S",
+                "%m/%d/%y %H:%M",
+                "%m/%d/%Y",
+                "%m/%d/%y",
+            ):
+                try:
+                    dt = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+
         if dt is None:
             return float("inf")
         if hasattr(dt, "timestamp"):
             return dt.timestamp()
-        try:
-            from datetime import datetime
 
-            dt = datetime.combine(dt, datetime.min.time())
+        from datetime import datetime as dt_class
+
+        try:
+            dt = dt_class.combine(dt, dt_class.min.time())
             return dt.timestamp()
         except Exception:
             return float("inf")
