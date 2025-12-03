@@ -1624,6 +1624,8 @@
                   : [],
               },
               fgpp: normalizedFgpp,
+              policy_file_name: (policy && policy.policy_file_name) || '',
+              fgpp_file_name: (policy && policy.fgpp_file_name) || '',
               __ad_placeholder: Boolean(policy && policy.__ad_placeholder),
               __ad_domain_name: policy && policy.__ad_domain_name,
               __ad_strong_default: policy && policy.__ad_strong_default,
@@ -2158,6 +2160,8 @@
                 passwords: patternConfirm === 'Yes' ? patternPasswords : [],
               },
               fgpp: fgppEntries(policy.fgpp),
+              policy_file_name: (policy.policy_file_name || '').toString().trim() || null,
+              fgpp_file_name: (policy.fgpp_file_name || '').toString().trim() || null,
             };
 
             const domainName = (policy.domain_name || '').toString().trim();
@@ -4319,8 +4323,16 @@
               policyUploadButton.className = 'btn btn-outline-primary btn-sm mr-2';
               policyUploadButton.textContent = 'Upload Password Policy';
               policyUploadButton.addEventListener('click', function() { policyUploadInput.click(); });
+              const policyFileInfo = document.createElement('div');
+              policyFileInfo.className = 'small text-muted mt-2';
+              const updatePolicyFileInfo = function() {
+                const name = (policy.policy_file_name || '').toString().trim();
+                policyFileInfo.textContent = name ? 'Uploaded: ' + name : '';
+              };
               headingActions.appendChild(policyUploadButton);
               headingActions.appendChild(policyUploadInput);
+              headingActions.appendChild(policyFileInfo);
+              updatePolicyFileInfo();
 
               const removeDomainButton = document.createElement('button');
               removeDomainButton.type = 'button';
@@ -4473,6 +4485,8 @@
                     parsedEntries.forEach(function(entry) { policy.fgpp.push(entry); });
                     renderFgpp();
                     updateWorkbookCardProgress(areaKey);
+                    policy.fgpp_file_name = file.name;
+                    updateFgppFileInfo();
                   } catch (error) {
                     console.error(error);
                     alert('Unable to parse the FGPP file.');
@@ -4482,6 +4496,8 @@
                   alert('Unable to read the FGPP file.');
                 };
                 reader.readAsText(file);
+                policy.policy_file_name = file.name;
+                updatePolicyFileInfo();
                 event.target.value = '';
               });
 
@@ -4492,6 +4508,14 @@
               fgppUploadButton.addEventListener('click', function() { fgppUploadInput.click(); });
               fgppActions.appendChild(fgppUploadButton);
               fgppActions.appendChild(fgppUploadInput);
+              const fgppFileInfo = document.createElement('div');
+              fgppFileInfo.className = 'small text-muted mt-2';
+              const updateFgppFileInfo = function() {
+                const name = (policy.fgpp_file_name || '').toString().trim();
+                fgppFileInfo.textContent = name ? 'Uploaded: ' + name : '';
+              };
+              fgppActions.appendChild(fgppFileInfo);
+              updateFgppFileInfo();
 
               const addFgppButton = document.createElement('button');
               addFgppButton.type = 'button';
