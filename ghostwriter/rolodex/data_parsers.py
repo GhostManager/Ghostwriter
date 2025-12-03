@@ -3809,12 +3809,23 @@ def _build_nexpose_metrics_payload(findings: List[Dict[str, Any]]) -> Dict[str, 
     ]
     candidate_counts.sort(key=lambda item: (-item[1], candidate_order[item[0]]))
 
-    majority_type = candidate_counts[0][0] if candidate_counts[0][1] > 0 else None
-    minority_type = (
-        candidate_counts[1][0]
-        if len(candidate_counts) > 1 and candidate_counts[1][1] > 0
-        else None
-    )
+    top_count = candidate_counts[0][1] if candidate_counts else 0
+    second_count = candidate_counts[1][1] if len(candidate_counts) > 1 else 0
+
+    if top_count > 0 and top_count == second_count:
+        majority_type = "Even"
+        minority_type = "Even"
+        majority_count = top_count
+        minority_count = second_count
+    else:
+        majority_type = candidate_counts[0][0] if candidate_counts and top_count > 0 else None
+        minority_type = (
+            candidate_counts[1][0]
+            if len(candidate_counts) > 1 and second_count > 0
+            else None
+        )
+        majority_count = top_count
+        minority_count = second_count
 
     summary = {
         "total": total_count,
@@ -3829,6 +3840,8 @@ def _build_nexpose_metrics_payload(findings: List[Dict[str, Any]]) -> Dict[str, 
         "total_ood": category_counter.get("OOD", 0),
         "total_isc": category_counter.get("ISC", 0),
         "total_iwc": category_counter.get("IWC", 0),
+        "majority_count": majority_count,
+        "minority_count": minority_count,
     }
 
     host_rows = [
