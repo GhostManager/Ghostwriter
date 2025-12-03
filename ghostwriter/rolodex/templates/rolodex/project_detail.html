@@ -5530,6 +5530,26 @@
               xmlButton.textContent = 'Upload DNS XML';
               xmlButton.addEventListener('click', function() { xmlInput.click(); });
 
+              const fileLabel = document.createElement('div');
+              fileLabel.className = 'w-100 mt-2 small text-muted';
+              const renderFileLabel = function() {
+                const csvName = (record.csv_file_name || '').trim();
+                const xmlName = (record.xml_file_name || '').trim();
+                const parts = [];
+                if (csvName) {
+                  parts.push('CSV: ' + csvName);
+                }
+                if (xmlName) {
+                  parts.push('XML: ' + xmlName);
+                }
+                if (parts.length === 0) {
+                  fileLabel.textContent = '';
+                  return;
+                }
+                fileLabel.textContent = parts.join(' | ');
+              };
+              renderFileLabel();
+
               const removeButton = document.createElement('button');
               removeButton.type = 'button';
               removeButton.className = 'btn btn-outline-danger btn-sm';
@@ -5548,6 +5568,7 @@
               actionGroup.appendChild(removeButton);
               actionGroup.appendChild(csvInput);
               actionGroup.appendChild(xmlInput);
+              actionGroup.appendChild(fileLabel);
 
               header.appendChild(actionGroup);
               wrapper.appendChild(header);

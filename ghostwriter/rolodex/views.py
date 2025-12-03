@@ -3186,6 +3186,8 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         match["domain"] = target_domain
         if fail_count is not None:
             match["total"] = fail_count
+        if upload.name:
+            match["csv_file_name"] = upload.name
 
         dns_state["records"] = records
 
@@ -3245,6 +3247,8 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             match["domain"] = target_domain
         if zone_transfer is not None:
             match["zone_transfer"] = zone_transfer
+        if upload.name:
+            match["xml_file_name"] = upload.name
 
         dns_state["records"] = records_state
         unique_total = self._compute_dns_unique_total(records_state, artifacts.get("dns_findings"))
