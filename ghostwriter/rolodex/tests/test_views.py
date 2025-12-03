@@ -2500,6 +2500,7 @@ host1,foo,read-only,desc3
         self.assertIn("snmp", artifacts)
         self.assertEqual(len(artifacts.get("snmp", [])), 3)
         self.assertEqual(artifacts.get("snmp_file_name"), "snmp.csv")
+        self.assertEqual(artifacts.get("snmp_hosts"), ["host1", "host2"])
         self.assertTrue(all(isinstance(record, dict) for record in artifacts.get("snmp", [])))
 
     def test_upload_snmp_csv_validates_headers(self):
@@ -2525,6 +2526,7 @@ host1,foo,read-only,desc3
         self.project.data_artifacts = {
             "snmp": [{"Host": "host1", "String": "public", "Access": "read-only", "Desc": "desc"}],
             "snmp_file_name": "snmp.csv",
+            "snmp_hosts": ["host1"],
         }
         self.project.save(update_fields=["workbook_data", "data_artifacts"])
         self.project.rebuild_data_artifacts()
@@ -2544,6 +2546,7 @@ host1,foo,read-only,desc3
         artifacts = self.project.data_artifacts or {}
         self.assertNotIn("snmp", artifacts)
         self.assertNotIn("snmp_file_name", artifacts)
+        self.assertNotIn("snmp_hosts", artifacts)
         self.assertEqual(self.project.workbook_data.get("snmp"), WORKBOOK_DEFAULTS.get("snmp"))
         self.assertNotIn("snmp", self.project.cap or {})
 
@@ -2553,6 +2556,7 @@ host1,foo,read-only,desc3
                 {"Host": "host1", "String": "public", "Access": "read-only", "Desc": "desc"}
             ],
             "snmp_file_name": "snmp.csv",
+            "snmp_hosts": ["host1"],
         }
         self.project.workbook_data = {"snmp": {"total_strings": 1, "total_systems": 1}}
         self.project.data_artifacts = snmp_artifacts
@@ -2564,6 +2568,7 @@ host1,foo,read-only,desc3
         artifacts = self.project.data_artifacts or {}
         self.assertEqual(artifacts.get("snmp_file_name"), "snmp.csv")
         self.assertEqual(artifacts.get("snmp"), snmp_artifacts.get("snmp"))
+        self.assertEqual(artifacts.get("snmp_hosts"), ["host1"])
 
     def test_remove_firewall_data_clears_artifacts_and_workbook(self):
         self.project.workbook_data = {"firewall": {"unique": 1}}

@@ -2283,7 +2283,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         try:
             content = upload.read().decode("utf-8-sig")
         except Exception:
-            return None, None, "Unable to read the uploaded CSV file."
+            return None, None, None, "Unable to read the uploaded CSV file."
 
         reader = csv.DictReader(io.StringIO(content))
         header_lookup = {header.lower(): header for header in (reader.fieldnames or [])}
@@ -2323,7 +2323,12 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
     @staticmethod
     def _parse_snmp_csv(
         upload,
-    ) -> tuple[Optional[list[dict[str, str]]], Optional[dict[str, Any]], Optional[str]]:
+    ) -> tuple[
+        Optional[list[dict[str, str]]],
+        Optional[dict[str, Any]],
+        Optional[list[str]],
+        Optional[str],
+    ]:
         required_headers = {
             "host": "Host",
             "string": "String",
@@ -2334,7 +2339,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         try:
             content = upload.read().decode("utf-8-sig")
         except Exception:
-            return None, None, "Unable to read the uploaded CSV file."
+            return None, None, None, "Unable to read the uploaded CSV file."
 
         reader = csv.DictReader(io.StringIO(content))
         header_lookup = {header.lower(): header for header in (reader.fieldnames or [])}
@@ -2342,7 +2347,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             label for key, label in required_headers.items() if key not in header_lookup
         ]
         if missing_headers:
-            return None, None, f"Missing required SNMP headers: {', '.join(missing_headers)}"
+            return None, None, None, f"Missing required SNMP headers: {', '.join(missing_headers)}"
 
         rows: list[dict[str, str]] = []
         host_set: set[str] = set()
@@ -2374,7 +2379,9 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             "read_write_access": "Yes" if has_read_write else "No",
         }
 
-        return rows, metrics, None
+        hosts = sorted(host_set)
+
+        return rows, metrics, hosts, None
 
     @staticmethod
     def _parse_dns_csv(upload) -> tuple[
@@ -3567,7 +3574,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 if not upload:
                     return JsonResponse({"error": "No SNMP CSV provided."}, status=400)
 
-                rows, metrics, error_message = self._parse_snmp_csv(upload)
+                rows, metrics, hosts, error_message = self._parse_snmp_csv(upload)
                 if error_message:
                     return JsonResponse({"error": error_message}, status=400)
 
@@ -3580,6 +3587,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 if rows is not None:
                     artifacts["snmp"] = [dict(row) for row in rows]
                     artifacts["snmp_file_name"] = upload.name
+                    artifacts["snmp_hosts"] = hosts or []
 
                 project.workbook_data = workbook_payload
                 project.data_artifacts = artifacts
@@ -3840,6 +3848,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             artifacts = dict(artifacts)
             artifacts.pop("snmp", None)
             artifacts.pop("snmp_file_name", None)
+            artifacts.pop("snmp_hosts", None)
 
             workbook_payload = normalize_workbook_payload(project.workbook_data)
             default_snmp = copy.deepcopy(WORKBOOK_DEFAULTS.get("snmp"))
