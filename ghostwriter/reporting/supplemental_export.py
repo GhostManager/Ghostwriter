@@ -297,7 +297,7 @@ class SupplementalDocumentBuilder:
 
         sort_strategies = {
             "inactive_accounts": lambda r: (
-                -self._numeric_sort_key(self._string_value(r, "Days Past")),
+                self._numeric_sort_key_desc(self._string_value(r, "Days Past")),
                 self._string_value(r, "Account").lower(),
             ),
             "generic_accounts": lambda r: (
@@ -309,7 +309,7 @@ class SupplementalDocumentBuilder:
                 self._string_value(r, "Username").lower(),
             ),
             "old_passwords": lambda r: (
-                -self._numeric_sort_key(self._string_value(r, "Days Past Due")),
+                self._numeric_sort_key_desc(self._string_value(r, "Days Past Due")),
                 self._string_value(r, "Account").lower(),
             ),
         }
@@ -470,6 +470,17 @@ class SupplementalDocumentBuilder:
 
         parts = [int(piece) if piece.isdigit() else piece.lower() for piece in re.split(r"(\d+)", value)]
         return (1, tuple(parts))
+
+    def _numeric_sort_key_desc(self, value: str):
+        """Descending numeric-first sort helper compatible with :meth:`_numeric_sort_key`."""
+
+        flag, parsed = self._numeric_sort_key(value)
+        if flag == 0:
+            try:
+                return (flag, -parsed)
+            except TypeError:
+                pass
+        return (flag, parsed)
 
     @staticmethod
     def _date_sort_key(value: str) -> float:
