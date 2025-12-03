@@ -219,6 +219,7 @@ WORKBOOK_DEFAULTS: Dict[str, Any] = {
         "802_1x_used": None,
     },
     "cloud_config": {"pass": None, "fail": None},
+    "iam_cloud_config": {"pass": None, "fail": None},
     "system_config": {
         "total_pass": None,
         "total_fail": None,
