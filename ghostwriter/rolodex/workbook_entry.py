@@ -52,7 +52,13 @@ FIREWALL_SUMMARY_FIELDS = {
     "complexity_count",
 }
 
-AREA_FIELDS = {"osint": OSINT_FIELDS, "firewall": FIREWALL_SUMMARY_FIELDS}
+AREA_FIELDS = {
+    "osint": OSINT_FIELDS,
+    "firewall": FIREWALL_SUMMARY_FIELDS,
+    "cloud_config": {"pass", "fail"},
+    "iam_cloud_config": {"pass", "fail"},
+    "system_config": {"total_pass", "total_fail", "unique_pass", "unique_fail"},
+}
 
 AD_DOMAIN_COUNT_FIELDS = {
     "domain_admins",

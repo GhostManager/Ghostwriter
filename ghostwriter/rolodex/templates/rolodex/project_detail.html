@@ -3038,6 +3038,22 @@
             renderer: 'firewall_configuration',
             serializer: serializeFirewallPayload,
           },
+          cloud_cloud_management: {
+            label: 'CLOUD MANAGEMENT',
+            workbookKey: 'cloud_config',
+          },
+          cloud_iam_management: {
+            label: 'IAM MANAGEMENT',
+            workbookKey: 'iam_cloud_config',
+            fields: [
+              {key: 'pass', label: 'Checks Passed', type: 'number'},
+              {key: 'fail', label: 'Checks Failed', type: 'number'},
+            ],
+          },
+          cloud_system_configuration: {
+            label: 'SYSTEM CONFIGURATION',
+            workbookKey: 'system_config',
+          },
         };
 
         const resolveAreaConfig = function(areaKey, subkey) {
@@ -3938,6 +3954,15 @@
 
         const removeWirelessSegmentationData = function(areaKey, modalId) {
           const payload = {areas: {wireless: {internal_access: null}}};
+          submitWorkbookUpdate(payload, null, {
+            reopenModalId: modalId,
+            forceCloseModalId: modalId,
+            afterRender: function() { updateWorkbookCardProgress(areaKey); },
+          });
+        };
+
+        const removeIamCloudConfigData = function(areaKey, modalId) {
+          const payload = {areas: {iam_cloud_config: {pass: null, fail: null}}};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -5669,6 +5694,16 @@
                 empty.className = 'mb-0';
                 empty.textContent = 'No workbook fields are available for this area yet.';
                 subBody.appendChild(empty);
+              }
+              if (areaKey === 'cloud' && subkey === 'iam_management') {
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline-danger mt-2';
+                removeButton.textContent = 'Remove IAM Management Data';
+                removeButton.addEventListener('click', function() {
+                  removeIamCloudConfigData(areaKey, modalId);
+                });
+                subBody.appendChild(removeButton);
               }
               if (config && Array.isArray(config.uploaders)) {
                 const uploadContainer = document.createElement('div');
