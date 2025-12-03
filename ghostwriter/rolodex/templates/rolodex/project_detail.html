@@ -4501,10 +4501,7 @@
                 reader.onload = function(loadEvent) {
                   try {
                     const parsedEntries = parseFgppText(loadEvent.target && loadEvent.target.result);
-                    if (!Array.isArray(policy.fgpp)) {
-                      policy.fgpp = [];
-                    }
-                    parsedEntries.forEach(function(entry) { policy.fgpp.push(entry); });
+                    policy.fgpp = Array.isArray(parsedEntries) ? parsedEntries : [];
                     renderFgpp();
                     updateWorkbookCardProgress(areaKey);
                     policy.fgpp_file_name = file.name;
