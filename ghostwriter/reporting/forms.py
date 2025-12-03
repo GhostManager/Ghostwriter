@@ -623,6 +623,8 @@ class SelectReportTemplateForm(forms.ModelForm):
                 <div class="btn-group">
                     <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}"
                     data-toggle="tooltip" data-placement="top" title="Generate a CAP report"></i></a>
+                    <a class="btn btn-default supplemental-btn-icon" href="{% url 'reporting:generate_supplemental' report.id %}"
+                    data-toggle="tooltip" data-placement="top" title="Generate supplemental documents"></a>
                     <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}"
                     data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"></a>
                     <a class="btn btn-default archive-btn-icon js-generate-report"
