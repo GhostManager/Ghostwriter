@@ -316,6 +316,8 @@ LINTER_CONTEXT = {
                 "internal": "B+",
                 "firewall": "B",
                 "wireless": "A-",
+                "iam": "B+",
+                "cloud": "B",
             },
             "iam_cloud_config": {"pass": 6, "fail": 1},
             "cloud_config": {"pass": 85, "fail": 12},
