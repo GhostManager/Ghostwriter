@@ -6723,6 +6723,15 @@
             uploadButton.addEventListener('click', function() {
               uploadInput.click();
             });
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'btn btn-outline-danger ml-2';
+            removeButton.textContent = 'Remove Wireless Data';
+            removeButton.addEventListener('click', function() {
+              runWithButtonLoading(removeButton, 'Removing...', function() {
+                return removeWirelessData(areaKey, modalId);
+              });
+            });
             const handleWirelessUpload = function(file) {
               return runWithButtonLoading(uploadButton, 'Uploading...', function() {
                 return uploadWirelessData(file, areaKey, modalId);
@@ -6746,6 +6755,7 @@
             updateFileName();
             uploadWrapper.appendChild(uploadInput);
             uploadWrapper.appendChild(uploadButton);
+            uploadWrapper.appendChild(removeButton);
             uploadWrapper.appendChild(fileNameDisplay);
             modalBody.appendChild(uploadWrapper);
           }

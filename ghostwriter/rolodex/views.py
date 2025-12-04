@@ -5034,9 +5034,21 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             project_cap = dict(project.cap or {}) if isinstance(project.cap, dict) else {}
             project_cap.pop("wireless", None)
 
+            for data_file in project.data_files.filter(
+                requirement_slug=WIRELESS_DATA_REQUIREMENT_SLUG
+            ):
+                if data_file.file:
+                    data_file.file.delete(save=False)
+                data_file.delete()
+
+            artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+            artifacts = dict(artifacts)
+            artifacts.pop(WIRELESS_DATA_FILE_NAME_KEY, None)
+
             project.workbook_data = workbook_payload
             project.cap = project_cap
-            project.save(update_fields=["workbook_data", "cap"])
+            project.data_artifacts = artifacts
+            project.save(update_fields=["workbook_data", "cap", "data_artifacts"])
 
             project.refresh_from_db(
                 fields=["workbook_data", "data_artifacts", "data_responses", "cap", "risks"]
