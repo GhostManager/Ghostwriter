@@ -1026,6 +1026,21 @@
         const riskScoreMap = parseJsonScript('project-risk-score-map') || {};
         const riskLabels = Object.keys(riskScoreMap);
 
+        const getNexposeMissingEntries = function(artifactKey) {
+          if (!artifactKey) {
+            return [];
+          }
+          const gapData = dataArtifactsState.nexpose_matrix_gaps;
+          const missingByArtifact = gapData && gapData.missing_by_artifact;
+          const payload = missingByArtifact && missingByArtifact[artifactKey];
+          const entries = payload && (payload.entries || payload);
+          return Array.isArray(entries) ? entries : [];
+        };
+
+        const hasNexposeMissingEntries = function(artifactKey) {
+          return getNexposeMissingEntries(artifactKey).length > 0;
+        };
+
         const setCardProgress = function(cardKey, filled, total) {
           const bar = document.getElementById('workbook-progress-' + cardKey);
           if (!bar) {
@@ -2769,6 +2784,7 @@
           external_nexpose: {
             label: 'External Nexpose',
             workbookKey: 'external_nexpose',
+            missingArtifactKey: 'external_nexpose_findings',
             fields: [
               {key: 'total', label: 'Total Count', type: 'number'},
               {key: 'total_high', label: 'Total High', type: 'number'},
@@ -2819,6 +2835,7 @@
           internal_nexpose: {
             label: 'Internal Nexpose',
             workbookKey: 'internal_nexpose',
+            missingArtifactKey: 'internal_nexpose_findings',
             fields: [
               {key: 'total', label: 'Total Count', type: 'number'},
               {key: 'total_high', label: 'Total High', type: 'number'},
@@ -2989,6 +3006,7 @@
           internal_iot_iomt: {
             label: 'IoT/IoMT Nexpose',
             workbookKey: 'iot_iomt_nexpose',
+            missingArtifactKey: 'iot_iomt_nexpose_findings',
             fields: [
               {key: 'total', label: 'Total Count', type: 'number'},
               {key: 'total_high', label: 'Total High', type: 'number'},
@@ -5765,6 +5783,7 @@
               subBody.className = 'card-body';
               subBody.id = modalId + '-' + subkey + '-body';
               const config = resolvedConfig;
+              const missingArtifactKey = config && config.missingArtifactKey;
               const uploaderContext = {areaKey: areaKey, subkey: subkey, workbookKey: workbookKey, modalId: modalId};
               if (config && config.renderer === 'web') {
                 renderWebSites(subBody, areaKey, modalId);
@@ -5835,7 +5854,16 @@
                   uploadInput.id = 'uploader-' + subkey + '-' + uploader.fieldName;
                   const fileNameDisplay = document.createElement('div');
                   fileNameDisplay.className = 'small text-muted mt-2';
+                  const missingNotice = document.createElement('div');
+                  missingNotice.className = 'alert alert-warning small py-2 px-3 mt-2';
+                  missingNotice.textContent = 'Missing Nexpose issues identified! Update the matrix and re-upload.';
+                  missingNotice.style.display = 'none';
+                  const updateMissingNotice = function() {
+                    const hasMissing = hasNexposeMissingEntries(missingArtifactKey);
+                    missingNotice.style.display = hasMissing ? '' : 'none';
+                  };
                   const setFileNameFromState = function() {
+                    updateMissingNotice();
                     if (!uploader.fileNameKey) {
                       fileNameDisplay.textContent = '';
                       return;
@@ -5878,6 +5906,7 @@
                   uploadContainer.appendChild(removeButton);
                   uploadContainer.appendChild(uploadInput);
                   uploadContainer.appendChild(fileNameDisplay);
+                  uploadContainer.appendChild(missingNotice);
                   setFileNameFromState();
                 });
                 subBody.appendChild(uploadContainer);
