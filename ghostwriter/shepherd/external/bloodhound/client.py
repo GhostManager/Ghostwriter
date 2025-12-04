@@ -188,6 +188,61 @@ class APIClient:
         """
         Gets findings from BHEE
         """
+        def _calculate_severity(finding: dict) -> str:
+            """
+            Calculate severity based on ``impact_percentage`` or ``exposure_percentage``.
+
+            Use ``impact_percentage`` unless the finding is a relationship type (has a source). This could mean a
+            finding with a 99% impact (Critical) is marked as Low because its exposure is only 1%. This means the
+            finding could lead to a Critical impact, but only 1% of principals has a path. We assume Tier 0 is always
+            critical, so we use exposure in these cases to help prioritize.
+
+            The exception to this rule is if ``LargeDefaultGroups`` is in the ``finding_name``, then we use
+            ``impact_percentage`` ``LargeDefaultGroups`` means exposure is 100% so impact is more relevant for
+            prioritizing the finding.
+            """
+            impact_percentage = finding.get("impact_percentage", 0)
+            exposure_percentage = finding.get("exposure_percentage", 0)
+            if finding.get("sourceid") is not None and "LargeDefaultGroups" not in finding.get("finding_name", ""):
+                impact_percentage = exposure_percentage
+            # Convert to percentage (0.98473 -> 98.473) for comparison
+            impact_pct = impact_percentage * 100
+            if impact_pct >= 95:
+                return "Critical"
+            elif impact_pct >= 80:
+                return "High"
+            elif impact_pct >= 40:
+                return "Moderate"
+            else:
+                return "Low"
+
+        def _build_target_entry(finding: dict, severity: str) -> dict:
+            """
+            Build a target entry dictionary from a finding with calculated severity.
+            """
+            return {
+                # There is always a target, but source is only present for relationship findings
+                # Exposure values are linked to the source-target relationship
+                "target_id": finding.get("target_id"),
+                "target_kind": finding.get("target_kind", None),
+                "target_properties": finding.get("target_properties", {}),
+
+                "impact_count": finding.get("impact_count", 0),
+                "impact_percentage": finding.get("impact_percentage", 0),
+
+                # BHE's API has a typo in "sourceid" (missing underscore)
+                "source_id": finding.get("sourceid", None),
+                "source_kind": finding.get("source_kind", None),
+                "source_properties": finding.get("source_properties", {}),
+
+                "exposure_count": finding.get("exposure_count", 0),
+                "exposure_percentage": finding.get("exposure_percentage", 0),
+
+                "attack_path_edge_id": finding.get("attack_path_edge_id", None),
+
+                "severity": severity,
+            }
+
         try:
             response = self._request("GET", "/api/v2/attack-paths/details")
         except APIException as err:
@@ -195,6 +250,7 @@ class APIClient:
                 return None
             raise
         payload = response.json()["data"]
+        grouped = {}
 
         # Some finding assets have different fields for "tier zero" (tz) targets, so build
         # two dicts - one for tz and one for others (tx).
@@ -235,7 +291,69 @@ class APIClient:
                 finding["assets"] = txassets[finding["finding_name"]]
             else:
                 finding["assets"] = tzassets.get(finding["finding_name"])
-        return findings
+
+            finding_name = finding.get("finding_name")
+            environment_id = finding.get("environment_id")
+            if not finding_name:
+                continue
+
+            # Create unique key from ``finding_name`` and ``environment_id``
+            unique_key = (finding_name, environment_id)
+
+            if unique_key not in grouped:
+                # First occurrence - create entry with all fields
+                grouped[unique_key] = dict(finding)
+                # Move ``finding_name`` to the top level of the dict
+                grouped[unique_key] = {"finding_name": finding.pop("finding_name"), **grouped[unique_key]}
+
+                # Calculate severity and build target entry
+                severity = _calculate_severity(finding)
+                grouped[unique_key]["principals"] = [_build_target_entry(finding, severity)]
+
+                # Drop values from top level that are part of the unique target/source combinations
+                grouped[unique_key].pop("target_id", None)
+                grouped[unique_key].pop("target_kind", None)
+                grouped[unique_key].pop("target_properties", None)
+
+                grouped[unique_key].pop("impact_count", None)
+                grouped[unique_key].pop("impact_percentage", None)
+
+                grouped[unique_key].pop("sourceid", None)
+                grouped[unique_key].pop("source_kind", None)
+                grouped[unique_key].pop("source_properties", None)
+
+                grouped[unique_key].pop("exposure_count", None)
+                grouped[unique_key].pop("exposure_percentage", None)
+
+                grouped[unique_key].pop("attack_path_edge_id", None)
+            else:
+                # Additional finding occurrence - just add the target information if not already present
+                target_id = finding.get("target_id")
+                # Check if this ``target_id`` is already in the list
+                existing_target_ids = [t["target_id"] for t in grouped[unique_key]["principals"]]
+                if target_id not in existing_target_ids:
+                    severity = _calculate_severity(finding)
+                    grouped[unique_key]["principals"].append(_build_target_entry(finding, severity))
+
+        # Now we set the ``severity`` at the top level based on the highest severity of its target(s)
+        severity_order = {
+            "Low": 1,
+            "Moderate": 2,
+            "High": 3,
+            "Critical": 4,
+        }
+        for finding_key, finding_value in grouped.items():
+            highest_severity = "Low"
+            for target in finding_value["principals"]:
+                target_severity = target.get("severity", "Low")
+                if severity_order.get(target_severity, 0) > severity_order.get(highest_severity, 0):
+                    highest_severity = target_severity
+            grouped[finding_key]["severity"] = highest_severity
+
+        # Convert to list and sort by severity
+        result = list(grouped.values())
+        result.sort(key=lambda x: severity_order.get(x.get("severity", "Low"), 0), reverse=True)
+        return result
 
     def get_features(self) -> dict[str, bool]:
         features_list = self._request("GET", "/api/v2/features").json()["data"]
