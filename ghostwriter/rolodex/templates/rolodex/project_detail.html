@@ -3653,6 +3653,46 @@
           });
         };
 
+        const uploadAdAdminUsers = function(file, domain, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+          const domainValue = (domain || '').trim();
+          if (!domainValue) {
+            alert('Please enter a domain name before uploading a privileged users list.');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('ad_admin_users', file);
+          formData.append('domain', domainValue);
+
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to update workbook data';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to upload the privileged users list.');
+          });
+        };
+
         const uploadAdLog = function(file, domain, areaKey, modalId) {
           if (!workbookUpdateUrl || !file) {
             return;
@@ -5184,6 +5224,16 @@
                 return (domainInput.value || domain.domain || '').toString().trim().toLowerCase();
               };
 
+              const getAdArtifactEntry = function() {
+                const adArtifacts = dataArtifactsState.ad;
+                const domainKey = resolveDomainKey();
+                if (!domainKey || !adArtifacts || typeof adArtifacts !== 'object') {
+                  return null;
+                }
+                const entry = adArtifacts[domainKey];
+                return entry && typeof entry === 'object' ? entry : null;
+              };
+
               const heading = document.createElement('div');
               heading.className = 'd-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3';
               const titleWrap = document.createElement('div');
@@ -5192,8 +5242,11 @@
               title.className = 'mb-0 mr-2';
               title.textContent = 'Domain ' + (index + 1);
               titleWrap.appendChild(title);
+              const uploadsInfoContainer = document.createElement('div');
+              uploadsInfoContainer.className = 'w-100 mt-2';
+
               const logFileInfo = document.createElement('div');
-              logFileInfo.className = 'small text-muted mt-1 mt-md-0';
+              logFileInfo.className = 'small text-muted';
               const headingActions = document.createElement('div');
               headingActions.className = 'd-flex align-items-center flex-wrap mt-2 mt-md-0';
               const logUploadInput = document.createElement('input');
@@ -5215,17 +5268,21 @@
               headingActions.appendChild(logUploadInput);
 
               const getMetricFileName = function(metricKey) {
-                const adArtifacts = dataArtifactsState.ad;
-                const domainKey = resolveDomainKey();
-                if (!domainKey || !adArtifacts || typeof adArtifacts !== 'object') {
-                  return '';
-                }
-                const entry = adArtifacts[domainKey];
-                if (!entry || typeof entry !== 'object') {
+                const entry = getAdArtifactEntry();
+                if (!entry) {
                   return '';
                 }
                 const fileName = entry[metricKey + '_file_name'];
                 return (fileName || '').toString();
+              };
+
+              const getAdminUserCount = function() {
+                const entry = getAdArtifactEntry();
+                if (!entry) {
+                  return 0;
+                }
+                const adminUsers = entry.admin_users;
+                return Array.isArray(adminUsers) ? adminUsers.length : 0;
               };
 
               const updateLogFileInfo = function() {
@@ -5233,13 +5290,58 @@
                 logFileInfo.textContent = fileName ? 'AD Log: ' + fileName : '';
               };
 
-              metricFileUpdateCallbacks.push(updateLogFileInfo);
-              updateLogFileInfo();
+              const adminUsersInfo = document.createElement('div');
+              adminUsersInfo.className = 'small text-muted';
 
-              titleWrap.appendChild(logFileInfo);
+              const updateAdminUsersInfo = function() {
+                const fileName = getMetricFileName('admin_users');
+                const count = getAdminUserCount();
+                if (fileName || count) {
+                  const segments = [];
+                  if (fileName) {
+                    segments.push('Privileged Users: ' + fileName);
+                  }
+                  if (count) {
+                    segments.push('(' + count + ' entries)');
+                  }
+                  adminUsersInfo.textContent = segments.join(' ');
+                } else {
+                  adminUsersInfo.textContent = '';
+                }
+              };
+
+              metricFileUpdateCallbacks.push(updateLogFileInfo);
+              metricFileUpdateCallbacks.push(updateAdminUsersInfo);
+              updateLogFileInfo();
+              updateAdminUsersInfo();
+
               heading.appendChild(titleWrap);
               heading.appendChild(headingActions);
               wrapper.appendChild(heading);
+
+              uploadsInfoContainer.appendChild(logFileInfo);
+              uploadsInfoContainer.appendChild(adminUsersInfo);
+              wrapper.appendChild(uploadsInfoContainer);
+
+              const adminUsersUploadInput = document.createElement('input');
+              adminUsersUploadInput.type = 'file';
+              adminUsersUploadInput.accept = '.txt,text/plain';
+              adminUsersUploadInput.className = 'd-none';
+              adminUsersUploadInput.addEventListener('change', function(event) {
+                if (event.target.files && event.target.files[0]) {
+                  uploadAdAdminUsers(event.target.files[0], domainInput.value || domain.domain || '', areaKey, modalId);
+                  event.target.value = '';
+                }
+              });
+
+              const adminUsersUploadButton = document.createElement('button');
+              adminUsersUploadButton.type = 'button';
+              adminUsersUploadButton.className = 'btn btn-outline-secondary btn-sm ml-2';
+              adminUsersUploadButton.textContent = 'Upload Privileged Users list';
+              adminUsersUploadButton.addEventListener('click', function() { adminUsersUploadInput.click(); });
+
+              headingActions.appendChild(adminUsersUploadButton);
+              headingActions.appendChild(adminUsersUploadInput);
 
               const layoutRow = document.createElement('div');
               layoutRow.className = 'form-row';
