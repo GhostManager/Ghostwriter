@@ -522,6 +522,26 @@
                         <dd class="col-6 text-right">{{ card.summary.systems_ood|default:0 }}</dd>
                         <dt class="col-6">Systems on WiFi</dt>
                         <dd class="col-6 text-right">{{ card.summary.wifi_count|default:0 }}</dd>
+                      {% elif card.type == "password" %}
+                        {% if card.file_name %}
+                          <dt class="col-6">Source File</dt>
+                          <dd class="col-6 text-right">{{ card.file_name }}</dd>
+                        {% endif %}
+                        {% for domain in card.domains %}
+                          <dt class="col-12 font-weight-bold text-uppercase mt-2">{{ domain.domain }}</dt>
+                          <dt class="col-8">Total passwords cracked</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.passwords_cracked|default:0 }}</dd>
+                          <dt class="col-8">Were Admin accounts cracked?</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.admin_confirm|default:"No" }}</dd>
+                          {% if domain.metrics.admin_count %}
+                            <dt class="col-8">How many admin accounts were cracked?</dt>
+                            <dd class="col-4 text-right">{{ domain.metrics.admin_count }}</dd>
+                          {% endif %}
+                          <dt class="col-8">Were LANMAN hashes stored?</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.lanman_stored|default:"No" }}</dd>
+                          <dt class="col-8">Of the passwords cracked, how many are enabled accounts?</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.enabled_accounts|default:0 }}</dd>
+                        {% endfor %}
                       {% else %}
                         <dt class="col-6">Total Count</dt>
                         {% with total_count=card.summary.total|default:card.summary.unique %}
@@ -573,6 +593,8 @@
                         <dd class="col-6 text-right">{{ card.summary.vuln_count|default:0 }}</dd>
                       {% elif card.type == "endpoint" %}
                         {# Endpoint metrics are displayed above #}
+                      {% elif card.type == "password" %}
+                        {# Password metrics are displayed above #}
                       {% else %}
                         <dt class="col-6">Unique High/Medium</dt>
                         <dd class="col-6 text-right">{{ card.summary.unique_high_med|default:0 }}</dd>
@@ -597,24 +619,28 @@
                         </ul>
                       </div>
                     {% endif %}
-                    {% if card.has_file %}
-                      {% if card.type == "web" %}
-                        <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_web_data_download' project.id %}">
-                          Download Web Data file
-                        </a>
-                      {% elif card.type == "endpoint" %}
-                        <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_endpoint_data_download' project.id %}?domain={{ card.metrics_key }}">
-                          Download Endpoint Data file
-                        </a>
-                      {% elif card.type == "firewall" %}
-                        <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_firewall_data_download' project.id %}">
-                          Download Firewall Data file
-                        </a>
-                      {% elif card.type == "nexpose" %}
-                        <div class="d-flex flex-wrap align-items-center">
-                          <a class="btn btn-outline-primary btn-sm mr-2 mb-2" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
-                            Download Nexpose Data file
+                      {% if card.has_file %}
+                        {% if card.type == "web" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_web_data_download' project.id %}">
+                            Download Web Data file
                           </a>
+                        {% elif card.type == "endpoint" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_endpoint_data_download' project.id %}?domain={{ card.metrics_key }}">
+                            Download Endpoint Data file
+                          </a>
+                        {% elif card.type == "firewall" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_firewall_data_download' project.id %}">
+                            Download Firewall Data file
+                          </a>
+                        {% elif card.type == "password" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_password_data_download' project.id %}">
+                            Download Password Data file
+                          </a>
+                        {% elif card.type == "nexpose" %}
+                          <div class="d-flex flex-wrap align-items-center">
+                            <a class="btn btn-outline-primary btn-sm mr-2 mb-2" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
+                              Download Nexpose Data file
+                            </a>
                           {% if card.upload %}
                             <form
                               method="post"
@@ -3693,6 +3719,40 @@
           });
         };
 
+        const uploadPasswordCsv = function(file, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('password_csv', file);
+
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to update password data';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to upload the password CSV.');
+          });
+        };
+
         const uploadAdLog = function(file, domain, areaKey, modalId) {
           if (!workbookUpdateUrl || !file) {
             return;
@@ -4318,16 +4378,96 @@
 
           target.innerHTML = '';
 
+          let renderPolicies = null;
+
+          const openAllDomainMetrics = function() {
+            let shouldRender = false;
+            (passwordState.policies || []).forEach(function(policy) {
+              if (policy && !policy.__metrics_opened) {
+                policy.__metrics_opened = true;
+                shouldRender = true;
+              }
+            });
+            if (shouldRender && typeof renderPolicies === 'function') {
+              renderPolicies();
+              updateWorkbookCardProgress(areaKey);
+            }
+          };
+
+          const getDomainsMissingAdminUsers = function() {
+            const adArtifacts = dataArtifactsState.ad;
+            if (!adArtifacts || typeof adArtifacts !== 'object') {
+              return [];
+            }
+
+            const missing = [];
+            Object.keys(adArtifacts).forEach(function(key) {
+              const entry = adArtifacts[key];
+              const adminUsers = entry && entry.admin_users;
+              const hasAdmins = Array.isArray(adminUsers)
+                && adminUsers.some(function(user) { return (user || '').toString().trim(); });
+              if (!hasAdmins) {
+                const label = (entry && (entry.domain || entry.domain_name)) || key;
+                missing.push(label || key);
+              }
+            });
+            return missing;
+          };
+
+          const uploadInput = document.createElement('input');
+          uploadInput.type = 'file';
+          uploadInput.accept = '.csv,text/csv';
+          uploadInput.className = 'd-none';
+          uploadInput.addEventListener('change', function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (file) {
+              uploadPasswordCsv(file, areaKey, modalId);
+              event.target.value = '';
+            }
+          });
+
+          const actionsRow = document.createElement('div');
+          actionsRow.className = 'd-flex flex-wrap mb-3';
+
+          const uploadButton = document.createElement('button');
+          uploadButton.type = 'button';
+          uploadButton.className = 'btn btn-primary mb-2 mr-2';
+          uploadButton.textContent = 'Upload Password CSV';
+          uploadButton.addEventListener('click', function() {
+            const missingAdminDomains = getDomainsMissingAdminUsers();
+            if (missingAdminDomains.length) {
+              alert('Please upload the "Privileged Users" file for each Domain before uploading the password CSV.');
+              return;
+            }
+            openAllDomainMetrics();
+            uploadInput.click();
+          });
+          actionsRow.appendChild(uploadButton);
+
           const addDomainButton = document.createElement('button');
           addDomainButton.type = 'button';
-          addDomainButton.className = 'btn btn-outline-primary mb-3';
+          addDomainButton.className = 'btn btn-outline-primary mb-2';
           addDomainButton.textContent = 'Add new Domain';
           addDomainButton.addEventListener('click', function() {
             passwordState.policies.push(createEmptyPasswordPolicy());
             renderPasswordPolicies(target, areaKey, modalId);
             updateWorkbookCardProgress(areaKey);
           });
-          target.appendChild(addDomainButton);
+          actionsRow.appendChild(addDomainButton);
+          actionsRow.appendChild(uploadInput);
+          target.appendChild(actionsRow);
+
+          const passwordFileInfo = document.createElement('div');
+          passwordFileInfo.className = 'small text-muted mb-2';
+          const updatePasswordFileInfo = function() {
+            const passwordArtifacts = dataArtifactsState.password;
+            const name = (passwordArtifacts && typeof passwordArtifacts === 'object')
+              ? (passwordArtifacts.file_name || '').toString().trim()
+              : '';
+            passwordFileInfo.textContent = name ? 'Last uploaded: ' + name : '';
+          };
+          updatePasswordFileInfo();
+          target.appendChild(passwordFileInfo);
 
           const container = document.createElement('div');
           target.appendChild(container);
@@ -4356,7 +4496,7 @@
             });
           };
 
-          const renderPolicies = function() {
+          renderPolicies = function() {
             container.innerHTML = '';
             if (!passwordState.policies.length) {
               const empty = document.createElement('p');
@@ -4552,7 +4692,6 @@
               addField(makeNumberGroup('Lockout Reset (minutes)', policy.lockout_reset, function(value) { policy.lockout_reset = value; }).group);
               addField(makeNumberGroup('Lockout Duration (minutes)', policy.lockout_duration, function(value) { policy.lockout_duration = value; }).group);
               addField(makeBoolSelect('Is Complexity Enabled?', policy.complexity_enabled, function(value) { policy.complexity_enabled = value; }));
-              addField(makeBoolSelect('Is MFA required?', policy.mfa_required, function(value) { policy.mfa_required = value; }));
 
               const passwordsCracked = makeNumberGroup('Total passwords cracked', policy.passwords_cracked, function(value) {
                 policy.passwords_cracked = value;

@@ -442,6 +442,8 @@ class SupplementalDocumentBuilder:
                         suffix = f" - {domain}" if domain else f" - {idx + 1}"
                         self._append_processed_payload(files, payload, f"{base_filename[:-5]}{suffix}.xlsx")
 
+        self._append_password_metrics(files)
+
     def _append_processed_payload(self, files: List[Tuple[str, bytes]], payload: Any, filename: str) -> None:
         if not isinstance(payload, dict):
             return
@@ -459,6 +461,178 @@ class SupplementalDocumentBuilder:
             return
 
         files.append((filename, workbook_bytes))
+
+    def _append_password_metrics(self, files: List[Tuple[str, bytes]]):
+        password_payload = self.artifacts.get("password")
+        if not isinstance(password_payload, dict):
+            return
+
+        raw_rows = password_payload.get("raw") if isinstance(password_payload.get("raw"), list) else []
+        domains = password_payload.get("domains") if isinstance(password_payload.get("domains"), dict) else {}
+        if not raw_rows or not domains:
+            return
+
+        workbook_bytes = self._render_password_workbook(
+            raw_rows,
+            domains,
+            include_ntlm_state=False,
+        )
+        if not workbook_bytes:
+            return
+
+        filename = f"{self.client_name} Detailed Password Strength Findings.xlsx"
+        files.append((filename, workbook_bytes))
+
+    @staticmethod
+    def _render_password_workbook(
+        raw_rows: List[Dict[str, str]],
+        domains: Dict[str, Dict[str, Any]],
+        *,
+        include_ntlm_state: bool,
+    ) -> bytes | None:
+        buffer = io.BytesIO()
+        workbook = Workbook(buffer, {"in_memory": True})
+
+        header_format = workbook.add_format(
+            {"bold": True, "border": 1, "bg_color": "#0066CC", "font_color": "white"}
+        )
+        text_format = workbook.add_format({"text_wrap": True, "border": 1})
+        banded_text_format = workbook.add_format(
+            {"text_wrap": True, "border": 1, "bg_color": "#99CCFF"}
+        )
+
+        def _write_table(
+            worksheet, headers: List[str], data_rows: List[List[str]]
+        ) -> None:
+            for col, header in enumerate(headers):
+                worksheet.write(0, col, header, header_format)
+
+            column_widths: List[int] = [len(header) for header in headers]
+            for row_idx, row_values in enumerate(data_rows, start=1):
+                row_format = banded_text_format if row_idx % 2 == 0 else text_format
+                for col_idx, value in enumerate(row_values):
+                    worksheet.write(row_idx, col_idx, value, row_format)
+                    if col_idx >= len(column_widths):
+                        column_widths.append(0)
+                    column_widths[col_idx] = max(column_widths[col_idx], len(str(value)))
+
+            for col, width in enumerate(column_widths):
+                worksheet.set_column(col, col, min(max(width + 2, 10), 60))
+
+        def _row_value(entry: Dict[str, Any], key: str) -> str:
+            for current_key, value in entry.items():
+                if (current_key or "").lower().strip() == key:
+                    return (value or "").strip()
+            return ""
+
+        raw_headers = [
+            "Domain",
+            "Username",
+            "NTLM Hash",
+            "NTLM Password",
+        ]
+        if include_ntlm_state:
+            raw_headers.append("NTLM State")
+        raw_headers.extend(
+            [
+                "User Info",
+                "Last Changed Time",
+                "Lockout",
+                "Disabled",
+                "Expired",
+                "No Expire",
+                "LM Hash",
+            ]
+        )
+
+        cracked_headers = [
+            "Domain",
+            "Username",
+            "NTLM Hash",
+            "NTLM Password",
+        ]
+        if include_ntlm_state:
+            cracked_headers.append("NTLM State")
+        cracked_headers.extend(
+            [
+                "User Info",
+                "Last Changed Time",
+                "Lockout",
+                "Disabled",
+                "Expired",
+                "No Expire",
+            ]
+        )
+        enabled_headers = [
+            "Domain",
+            "Username",
+            "NTLM Password",
+            "User Info",
+            "Last Changed Time",
+            "Lockout",
+            "Disabled",
+            "Expired",
+            "No Expire",
+        ]
+        lanman_headers = ["Username", "LM Hash"]
+        duplicates_headers = ["NTLM Password", "Count"]
+
+        raw_sheet = workbook.add_worksheet("raw")
+        raw_data_rows = [
+            [_row_value(row, header.lower()) for header in raw_headers]
+            for row in raw_rows
+            if isinstance(row, dict)
+        ]
+        _write_table(raw_sheet, raw_headers, raw_data_rows)
+
+        for domain_payload in domains.values():
+            if not isinstance(domain_payload, dict):
+                continue
+            sheet_names = domain_payload.get("sheets") if isinstance(domain_payload.get("sheets"), dict) else {}
+            domain_name = (domain_payload.get("domain") or "NoDomain")[:31] or "NoDomain"
+
+            cracked_sheet = workbook.add_worksheet(sheet_names.get("cracked") or f"cracked-{domain_name}")
+            cracked_rows = [
+                [_row_value(row, header.lower()) for header in cracked_headers]
+                for row in domain_payload.get("cracked", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(cracked_sheet, cracked_headers, cracked_rows)
+
+            admin_sheet = workbook.add_worksheet(sheet_names.get("admin") or f"admin-{domain_name}")
+            admin_rows = [
+                [_row_value(row, header.lower()) for header in cracked_headers]
+                for row in domain_payload.get("admin", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(admin_sheet, cracked_headers, admin_rows)
+
+            enabled_sheet = workbook.add_worksheet(sheet_names.get("enabled") or f"enabled-{domain_name}")
+            enabled_rows = [
+                [_row_value(row, header.lower()) for header in enabled_headers]
+                for row in domain_payload.get("enabled", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(enabled_sheet, enabled_headers, enabled_rows)
+
+            lanman_sheet = workbook.add_worksheet(sheet_names.get("lanman") or f"LANMAN-{domain_name}")
+            lanman_rows = [
+                [_row_value(row, header.lower()) for header in lanman_headers]
+                for row in domain_payload.get("lanman", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(lanman_sheet, lanman_headers, lanman_rows)
+
+            duplicates_sheet = workbook.add_worksheet(sheet_names.get("duplicates") or f"duplicates-{domain_name}")
+            duplicates_rows = [
+                [entry.get("NTLM Password", ""), entry.get("Count", "")]
+                for entry in domain_payload.get("duplicates", [])
+                if isinstance(entry, dict)
+            ]
+            _write_table(duplicates_sheet, duplicates_headers, duplicates_rows)
+
+        workbook.close()
+        return buffer.getvalue()
 
     def _append_wireless_upload(self, files: List[Tuple[str, bytes]]):
         data_file = self.data_files_by_slug.get(WIRELESS_DATA_REQUIREMENT_SLUG)

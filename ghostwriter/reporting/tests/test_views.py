@@ -2390,6 +2390,79 @@ class GenerateReportTests(TestCase):
             filenames,
         )
 
+    def test_password_file_included_in_supplemental_zip_without_state(self):
+        project = self.report.project
+        domain_rows = [
+            {
+                "Domain": "example.com",
+                "Username": "alice",
+                "NTLM Hash": "hash1",
+                "NTLM Password": "Password1",
+                "NTLM State": "Cracked",
+                "User Info": "Info",
+                "Last Changed Time": "2024-01-01",
+                "Lockout": "N",
+                "Disabled": "N",
+                "Expired": "N",
+                "No Expire": "Y",
+                "LM Hash": "",
+            },
+            {
+                "Domain": "example.com",
+                "Username": "bob",
+                "NTLM Hash": "hash2",
+                "NTLM Password": "Password2",
+                "NTLM State": "Cracked",
+                "User Info": "Info",
+                "Last Changed Time": "2024-02-01",
+                "Lockout": "N",
+                "Disabled": "N",
+                "Expired": "N",
+                "No Expire": "Y",
+                "LM Hash": "LMHASH",
+            },
+        ]
+        project.data_artifacts = {
+            "password": {
+                "raw": domain_rows,
+                "domains": {
+                    "example.com": {
+                        "domain": "example.com",
+                        "sheets": {
+                            "cracked": "cracked-example.com",
+                            "admin": "admin-example.com",
+                            "enabled": "enabled-example.com",
+                            "lanman": "LANMAN-example.com",
+                            "duplicates": "duplicates-example.com",
+                        },
+                        "cracked": domain_rows,
+                        "admin": [domain_rows[0]],
+                        "enabled": [domain_rows[0]],
+                        "lanman": [domain_rows[1]],
+                        "duplicates": [{"NTLM Password": "Password1", "Count": 1}],
+                    }
+                },
+            }
+        }
+        project.save(update_fields=["data_artifacts"])
+        self.addCleanup(self._reset_project_artifacts)
+
+        response = self.client_mgr.get(self.supplemental_uri)
+
+        self.assertEqual(response.status_code, 200)
+
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            password_filename = f"{project.client.name} Detailed Password Strength Findings.xlsx"
+            self.assertIn(password_filename, archive.namelist())
+            workbook_bytes = archive.read(password_filename)
+
+        with zipfile.ZipFile(io.BytesIO(workbook_bytes)) as workbook_archive:
+            workbook_content = b"".join(
+                workbook_archive.read(name) for name in workbook_archive.namelist()
+            )
+
+        self.assertNotIn(b"NTLM State", workbook_content)
+
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)
         self.assertEqual(
