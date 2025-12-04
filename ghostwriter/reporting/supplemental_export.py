@@ -12,6 +12,8 @@ from typing import Any, Callable, Dict, Iterable, List, Sequence, Tuple
 from django.utils.dateparse import parse_date, parse_datetime
 from xlsxwriter.workbook import Workbook
 
+from ghostwriter.rolodex.data_parsers import NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,6 +32,15 @@ class SupplementalDocumentBuilder:
         self.project = project
         self.artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
         self.client_name = getattr(getattr(project, "client", None), "name", "Client")
+        data_files = getattr(project, "data_files", None)
+        if data_files is not None:
+            self.data_files_by_slug = {
+                data_file.requirement_slug: data_file
+                for data_file in data_files.all()
+                if getattr(data_file, "requirement_slug", "")
+            }
+        else:
+            self.data_files_by_slug = {}
 
     def build(self) -> List[Tuple[str, bytes]]:
         files: List[Tuple[str, bytes]] = []
@@ -41,6 +52,7 @@ class SupplementalDocumentBuilder:
         self._append_ad_reports(files)
         self._append_snmp_reports(files)
         self._append_processed_metrics(files)
+        self._append_uploaded_nexpose(files)
 
         return files
 
@@ -445,6 +457,29 @@ class SupplementalDocumentBuilder:
             return
 
         files.append((filename, workbook_bytes))
+
+    def _append_uploaded_nexpose(self, files: List[Tuple[str, bytes]]) -> None:
+        for slug, definition in NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG.items():
+            data_file = self.data_files_by_slug.get(slug)
+            if not data_file or not getattr(data_file, "file", None):
+                continue
+
+            try:
+                content = data_file.file.read()
+                if hasattr(data_file.file, "seek"):
+                    data_file.file.seek(0)
+            except Exception:
+                logger.exception("Failed to read Nexpose XLSX upload for slug %s", slug)
+                continue
+
+            if not isinstance(content, (bytes, bytearray)) or not content:
+                continue
+
+            filename_template = definition.get("filename_template")
+            if not filename_template:
+                continue
+
+            files.append((filename_template.format(client_name=self.client_name), content))
 
     @staticmethod
     def _string_value(row: Any, header: str) -> str:

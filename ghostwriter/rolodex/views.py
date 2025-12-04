@@ -10,6 +10,7 @@ import io
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Set
 from xml.etree import ElementTree
 
@@ -99,6 +100,8 @@ from ghostwriter.rolodex.ip_artifacts import IP_ARTIFACT_DEFINITIONS, IP_ARTIFAC
 from ghostwriter.rolodex.data_parsers import (
     NEXPOSE_METRICS_KEY_MAP,
     NEXPOSE_METRICS_LABELS,
+    NEXPOSE_UPLOAD_REQUIREMENTS,
+    NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG,
     normalize_nexpose_artifacts_map,
     resolve_nexpose_requirement_artifact_key,
     summarize_nexpose_matrix_gaps,
@@ -1988,6 +1991,12 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             if not isinstance(payload, dict):
                 continue
             summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            upload_meta = NEXPOSE_UPLOAD_REQUIREMENTS.get(metrics_key)
+            upload_file = (
+                required_file_lookup.get(upload_meta["slug"], None)
+                if upload_meta and upload_meta.get("slug")
+                else None
+            )
             processed_cards.append(
                 {
                     "label": label,
@@ -1995,6 +2004,8 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                     "summary": summary,
                     "has_file": bool(payload.get("xlsx_base64")),
                     "type": "nexpose",
+                    "upload": upload_meta,
+                    "upload_filename": upload_file.filename if upload_file else None,
                 }
             )
         web_metrics = artifacts.get("web_metrics")
@@ -4261,6 +4272,9 @@ class ProjectDataFileUpload(RoleBasedAccessControlMixin, SingleObjectMixin, View
 
     def post(self, request, *args, **kwargs):
         project = self.get_object()
+        redirect_url = (request.POST.get("redirect_url") or "").strip()
+        if not redirect_url:
+            redirect_url = self.get_success_url()
         form = ProjectDataFileForm(request.POST, request.FILES)
         if form.is_valid():
             data_file = form.save(commit=False)
@@ -4275,6 +4289,19 @@ class ProjectDataFileUpload(RoleBasedAccessControlMixin, SingleObjectMixin, View
                     if existing.file:
                         existing.file.delete(save=False)
                     existing.delete()
+                uploaded_file = data_file.file
+                nexpose_xlsx_slugs = {
+                    definition.get("slug")
+                    for definition in NEXPOSE_UPLOAD_REQUIREMENTS.values()
+                    if definition.get("slug")
+                }
+                if (
+                    uploaded_file
+                    and requirement_slug in nexpose_xlsx_slugs
+                    and Path(uploaded_file.name).suffix.lower() != ".xlsx"
+                ):
+                    messages.error(request, "Only XLSX files are allowed for Nexpose data uploads.")
+                    return redirect(redirect_url)
                 data_file.requirement_slug = requirement_slug
                 data_file.requirement_label = requirement_label
                 data_file.requirement_context = requirement_context
@@ -4292,7 +4319,7 @@ class ProjectDataFileUpload(RoleBasedAccessControlMixin, SingleObjectMixin, View
                 messages.error(request, error_message)
             else:
                 messages.error(request, "Unable to upload data file. Please review the form for errors.")
-        return redirect(self.get_success_url())
+        return redirect(redirect_url)
 
 
 class ProjectNexposeMissingMatrixDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):

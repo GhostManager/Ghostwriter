@@ -8,6 +8,7 @@ from datetime import datetime
 
 # Django Imports
 from django.contrib.messages import get_messages
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
@@ -58,6 +59,8 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     replace_blanks,
 )
 from ghostwriter.reporting.templatetags import report_tags
+from ghostwriter.reporting.supplemental_export import SupplementalDocumentBuilder
+from ghostwriter.rolodex.models import ProjectDataFile
 
 logging.disable(logging.CRITICAL)
 
@@ -2340,6 +2343,52 @@ class GenerateReportTests(TestCase):
                 any(name.endswith("OSINT Report.xlsx") for name in names),
                 f"Unexpected archive contents: {names}",
             )
+
+    def test_uploaded_nexpose_files_are_included_in_supplemental_zip(self):
+        project = self.report.project
+        uploads = {
+            "external_nexpose_xlsx": b"external",
+            "internal_nexpose_xlsx": b"internal",
+            "iot_iomt_nexpose_xlsx": b"iot",
+        }
+
+        for slug, content in uploads.items():
+            ProjectDataFile.objects.create(
+                project=project,
+                requirement_slug=slug,
+                requirement_label=f"{slug} label",
+                file=SimpleUploadedFile(
+                    f"{slug}.xlsx",
+                    content,
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ),
+            )
+
+        self.addCleanup(
+            lambda: [
+                data_file.file.delete(save=False)
+                for data_file in project.data_files.all()
+                if data_file.file
+            ]
+        )
+        self.addCleanup(lambda: project.data_files.all().delete())
+
+        builder = SupplementalDocumentBuilder(project)
+        files = builder.build()
+        filenames = [name for name, _ in files]
+
+        self.assertIn(
+            f"{project.client.name} Detailed External System Vulnerability Findings.xlsx",
+            filenames,
+        )
+        self.assertIn(
+            f"{project.client.name} Detailed Internal System Vulnerability Findings.xlsx",
+            filenames,
+        )
+        self.assertIn(
+            f"{project.client.name} Detailed IoT-IoMT Device Vulnerability Findings.xlsx",
+            filenames,
+        )
 
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)

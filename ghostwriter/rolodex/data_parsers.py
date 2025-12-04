@@ -3669,6 +3669,30 @@ NEXPOSE_METRICS_LABELS = {
     "iot_iomt_nexpose_metrics": "IoT/IoMT Nexpose",
 }
 
+NEXPOSE_UPLOAD_REQUIREMENTS = {
+    "external_nexpose_metrics": {
+        "slug": "external_nexpose_xlsx",
+        "label": "External Nexpose Data file",
+        "filename_template": "{client_name} Detailed External System Vulnerability Findings.xlsx",
+    },
+    "internal_nexpose_metrics": {
+        "slug": "internal_nexpose_xlsx",
+        "label": "Internal Nexpose Data file",
+        "filename_template": "{client_name} Detailed Internal System Vulnerability Findings.xlsx",
+    },
+    "iot_iomt_nexpose_metrics": {
+        "slug": "iot_iomt_nexpose_xlsx",
+        "label": "IoT/IoMT Nexpose Data file",
+        "filename_template": "{client_name} Detailed IoT-IoMT Device Vulnerability Findings.xlsx",
+    },
+}
+
+NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG = {
+    definition["slug"]: definition
+    for definition in NEXPOSE_UPLOAD_REQUIREMENTS.values()
+    if definition.get("slug")
+}
+
 NEXPOSE_TAB_INDEX_ENTRIES = [
     "Unique Issues  -:-  Unique issues found across all scanned systems",
     "Issues by Majority Type  -:-  From the Unique Issues, a listing of those that are the same 'type' (missing patch, configuration item, etc) that represent the majority of the issues found",
