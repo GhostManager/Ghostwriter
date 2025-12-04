@@ -2,7 +2,7 @@
 
 {% if res.findings or res.finding_assets or res.domains %}
     {% if res.domains %}
-        <h4>BloodHound Domain Information</h4>
+        <h5>BloodHound Domain Information</h5>
         <hr />
         <p>Expand the sections below to view detailed information about each domain.</p>
         <div id="bh_domains_accordion" class="finding-accordion">
@@ -113,7 +113,7 @@
     {% endif %}
 
     {% if res.findings %}
-        <h4>BloodHound Enterprise Findings</h4>
+        <h5 class="mt-3">BloodHound Enterprise Findings</h5>
         <hr />
         <p>Expand the section below to view detailed findings from BloodHound Enterprise.</p>
         <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
