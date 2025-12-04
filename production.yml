@@ -106,8 +106,6 @@ services:
     volumes:
       - production_data:/app/media
       - production_staticfiles:/app/staticfiles
-      - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
       - ./ssl:/ssl
     labels:
       name: ghostwriter_nginx
