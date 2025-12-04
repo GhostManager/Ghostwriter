@@ -2772,9 +2772,10 @@ def parse_nipper_firewall_report(
                         if device_name and device_name.lower() in summary_text:
                             device_entries.append(device_name)
                 elif child_title.lower() == "affected devices":
-                    for item in _find_child_elements(child, "listitem") + _find_child_elements(
-                        child, "item"
-                    ):
+                    for item in child.iter():
+                        tag = _normalize_xml_tag(getattr(item, "tag", ""))
+                        if tag not in {"listitem", "item"}:
+                            continue
                         item_text = _element_text(item)
                         if not item_text:
                             continue
