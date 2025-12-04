@@ -107,6 +107,7 @@ from ghostwriter.rolodex.data_parsers import (
     summarize_nexpose_matrix_gaps,
     summarize_web_issue_matrix_gaps,
 )
+from ghostwriter.rolodex.constants import WIRELESS_DATA_FILE_NAME_KEY
 from ghostwriter.rolodex.workbook import (
     SECTION_ENTRY_FIELD_MAP,
     build_data_configuration,
@@ -114,7 +115,6 @@ from ghostwriter.rolodex.workbook import (
     build_workbook_sections,
     normalize_scope_selection,
     prepare_data_responses_initial,
-    WIRELESS_DATA_FILE_NAME_KEY,
     WIRELESS_DATA_REQUIREMENT_LABEL,
     WIRELESS_DATA_REQUIREMENT_SLUG,
 )

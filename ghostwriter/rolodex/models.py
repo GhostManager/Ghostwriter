@@ -22,7 +22,7 @@ from timezone_field import TimeZoneField
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink, ScopingWeightCategory
 from ghostwriter.rolodex.validators import validate_ip_range
-from ghostwriter.rolodex.workbook import WIRELESS_DATA_FILE_NAME_KEY
+from ghostwriter.rolodex.constants import WIRELESS_DATA_FILE_NAME_KEY
 from ghostwriter.rolodex.workbook_defaults import normalize_workbook_payload
 
 User = get_user_model()
