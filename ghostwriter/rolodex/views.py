@@ -3513,15 +3513,15 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 data_file.file.save(upload.name, upload)
                 data_file.save()
 
-                    project.rebuild_data_artifacts()
-                    project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
+                project.rebuild_data_artifacts()
+                project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
 
-                    return JsonResponse(
-                        {
-                            "workbook_data": project.workbook_data,
-                            "data_artifacts": project.data_artifacts,
-                        }
-                    )
+                return JsonResponse(
+                    {
+                        "workbook_data": project.workbook_data,
+                        "data_artifacts": project.data_artifacts,
+                    }
+                )
 
             if "wireless_xlsx" in request.FILES:
                 upload = request.FILES.get("wireless_xlsx")
