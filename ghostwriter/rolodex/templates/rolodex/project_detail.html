@@ -4254,7 +4254,7 @@
         };
 
         const removeCloudConfigData = function(areaKey, modalId) {
-          const payload = {areas: {cloud_config: {pass: null, fail: null}}};
+          const payload = {remove_cloud_management: true};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,

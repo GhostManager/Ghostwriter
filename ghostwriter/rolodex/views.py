@@ -4640,6 +4640,39 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 }
             )
 
+        if payload.get("remove_cloud_management"):
+            workbook_payload = normalize_workbook_payload(project.workbook_data)
+            default_cloud_config = copy.deepcopy(WORKBOOK_DEFAULTS.get("cloud_config"))
+            if default_cloud_config is not None:
+                workbook_payload["cloud_config"] = default_cloud_config
+            else:
+                workbook_payload.pop("cloud_config", None)
+
+            for data_file in project.data_files.filter(
+                requirement_slug=CLOUD_MANAGEMENT_REQUIREMENT_SLUG
+            ):
+                if data_file.file:
+                    data_file.file.delete(save=False)
+                data_file.delete()
+
+            artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+            artifacts = dict(artifacts)
+            artifacts.pop(CLOUD_MANAGEMENT_FILE_NAME_KEY, None)
+
+            project.workbook_data = workbook_payload
+            project.data_artifacts = artifacts
+            project.rebuild_data_artifacts()
+            project.refresh_from_db(
+                fields=["workbook_data", "data_artifacts", "cap", "data_responses"]
+            )
+
+            return JsonResponse(
+                {
+                    "workbook_data": project.workbook_data,
+                    "data_artifacts": project.data_artifacts,
+                }
+            )
+
         if payload.get("remove_wireless_walkthru"):
             workbook_payload = normalize_workbook_payload(project.workbook_data)
             wireless_payload = (
