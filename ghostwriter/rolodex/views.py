@@ -71,6 +71,7 @@ from ghostwriter.rolodex.forms_project import (
     WhiteCardFormSet,
 )
 from ghostwriter.rolodex.forms_workbook import (
+    _flatten_grouped_initial,
     ProjectDataFileForm,
     ProjectDataResponsesForm,
     ProjectIPArtifactForm,
@@ -164,6 +165,33 @@ def _is_empty_response(value: Any) -> bool:
     if isinstance(value, dict):
         return not value
     return False
+
+
+def _count_pending_question_sections(
+    question_definitions: List[Dict[str, Any]],
+    grouped_responses: Mapping[str, Any],
+) -> int:
+    """Return the number of sections that have unanswered questions."""
+
+    if not question_definitions:
+        return 0
+
+    flattened_responses = _flatten_grouped_initial(
+        ensure_data_responses_defaults(grouped_responses), question_definitions
+    )
+    pending_sections: Set[str] = set()
+
+    for definition in question_definitions:
+        key = definition.get("key")
+        section = definition.get("section")
+        if not key or not section:
+            continue
+
+        value = flattened_responses.get(key)
+        if _is_empty_response(value):
+            pending_sections.add(section)
+
+    return len(pending_sections)
 
 
 def _build_grouped_data_responses(
@@ -1952,6 +1980,9 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             initial=normalized_responses,
         )
         ctx["data_responses_form"] = data_responses_form
+        ctx["pending_question_sections_count"] = _count_pending_question_sections(
+            questions, normalized_responses
+        )
         ctx["project_scoping_json"] = normalize_project_scoping(object.scoping)
         ctx["project_scoping_weights_json"] = {
             category: {option: float(weight) for option, weight in weights.items()}

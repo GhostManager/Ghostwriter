@@ -57,7 +57,10 @@ from ghostwriter.rolodex.models import (
     VulnerabilityMatrixEntry,
     WebIssueMatrixEntry,
 )
-from ghostwriter.rolodex.workbook_defaults import WORKBOOK_DEFAULTS
+from ghostwriter.rolodex.workbook_defaults import (
+    WORKBOOK_DEFAULTS,
+    ensure_data_responses_defaults,
+)
 from ghostwriter.rolodex.templatetags import determine_primary
 
 logging.disable(logging.CRITICAL)
@@ -1036,6 +1039,41 @@ class ProjectDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Firewall Findings")
+
+    def test_questionnaire_badge_counts_pending_sections(self):
+        self.project.data_responses = {}
+        self.project.save(update_fields=["data_responses"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(
+            response,
+            'Questionnaire <span class="badge badge-pill badge-light">3</span>',
+        )
+
+    def test_questionnaire_badge_shows_zero_when_all_answered(self):
+        self.project.data_responses = ensure_data_responses_defaults(
+            {
+                "general": {
+                    "assessment_scope": ["cloud"],
+                    "assessment_scope_cloud_on_prem": "yes",
+                    "general_first_ca": "no",
+                    "general_scope_changed": "no",
+                    "general_anonymous_ephi": "no",
+                },
+                "iot_iomt": {"iot_testing_confirm": "no"},
+                "password": {"hashes_obtained": "no"},
+                "overall_risk": {"major_issues": ["None"]},
+            }
+        )
+        self.project.save(update_fields=["data_responses"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(
+            response,
+            'Questionnaire <span class="badge badge-pill badge-light">0</span>',
+        )
 
 
 class ProjectNexposeMissingMatrixDownloadTests(TestCase):
