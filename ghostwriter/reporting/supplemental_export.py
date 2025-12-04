@@ -13,6 +13,7 @@ from django.utils.dateparse import parse_date, parse_datetime
 from xlsxwriter.workbook import Workbook
 
 from ghostwriter.rolodex.data_parsers import NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG
+from ghostwriter.rolodex.workbook import WIRELESS_DATA_REQUIREMENT_SLUG
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class SupplementalDocumentBuilder:
         self._append_ad_reports(files)
         self._append_snmp_reports(files)
         self._append_processed_metrics(files)
+        self._append_wireless_upload(files)
         self._append_uploaded_nexpose(files)
 
         return files
@@ -457,6 +459,29 @@ class SupplementalDocumentBuilder:
             return
 
         files.append((filename, workbook_bytes))
+
+    def _append_wireless_upload(self, files: List[Tuple[str, bytes]]):
+        data_file = self.data_files_by_slug.get(WIRELESS_DATA_REQUIREMENT_SLUG)
+        if not data_file or not getattr(data_file, "file", None):
+            return
+
+        try:
+            content = data_file.file.read()
+            if hasattr(data_file.file, "seek"):
+                data_file.file.seek(0)
+        except Exception:
+            logger.exception(
+                "Failed to read wireless XLSX upload for project ID=%s",
+                getattr(self.project, "id", "?"),
+            )
+            return
+
+        if not isinstance(content, (bytes, bytearray)) or not content:
+            return
+
+        files.append(
+            (f"{self.client_name} Detailed Wireless Findings.xlsx", content)
+        )
 
     def _append_uploaded_nexpose(self, files: List[Tuple[str, bytes]]) -> None:
         for slug, definition in NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG.items():

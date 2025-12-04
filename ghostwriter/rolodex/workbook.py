@@ -8,6 +8,7 @@ from django import forms
 from django.utils.text import slugify
 
 # Ghostwriter Libraries
+from ghostwriter.rolodex.constants import WIRELESS_DATA_FILE_NAME_KEY
 from ghostwriter.rolodex.forms_workbook import MultiValueField, SummaryMultipleChoiceField
 from ghostwriter.rolodex.workbook_defaults import (
     WORKBOOK_META_KEY,
@@ -142,6 +143,12 @@ def _slugify_identifier(*parts: Iterable[Any]) -> str:
         if text:
             identifiers.append(text)
     return "_".join(identifiers)
+
+
+WIRELESS_DATA_REQUIREMENT_LABEL = "wireless_data.xlsx"
+WIRELESS_DATA_REQUIREMENT_SLUG = _slugify_identifier(
+    "required", WIRELESS_DATA_REQUIREMENT_LABEL
+)
 
 
 def _get_nested(data: Dict[str, Any], path: Iterable[str], default: Any = None) -> Any:
