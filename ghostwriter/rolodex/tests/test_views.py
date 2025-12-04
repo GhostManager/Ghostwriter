@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import shutil
+import re
 import tempfile
 from datetime import date, timedelta
 from unittest import mock
@@ -1155,6 +1156,49 @@ class ProjectNexposeDataDownloadTests(TestCase):
         self.project.data_artifacts = {}
         self.project.save(update_fields=["data_artifacts"])
         response = self.client_mgr.get(self.url + "?artifact=external_nexpose_metrics")
+        self.assertEqual(response.status_code, 302)
+
+
+class ProjectPasswordDataDownloadTests(TestCase):
+    """Tests for downloading processed password XLSX data."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.url = reverse(
+            "rolodex:project_password_data_download", kwargs={"pk": cls.project.pk}
+        )
+
+    def setUp(self):
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.manager.username, password=PASSWORD))
+
+    def _set_password_artifacts(self):
+        workbook_b64 = base64.b64encode(b"PK\x03\x04").decode("ascii")
+        self.project.data_artifacts = {
+            "password": {
+                "xlsx_base64": workbook_b64,
+                "xlsx_filename": "client_Password_Report.xlsx",
+            }
+        }
+        self.project.save(update_fields=["data_artifacts"])
+
+    def test_download_returns_xlsx(self):
+        self._set_password_artifacts()
+        response = self.client_mgr.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertTrue(response.content.startswith(b"PK"))
+        self.assertIn("client_Password_Report.xlsx", response["Content-Disposition"])
+
+    def test_download_redirects_when_missing(self):
+        self.project.data_artifacts = {}
+        self.project.save(update_fields=["data_artifacts"])
+        response = self.client_mgr.get(self.url)
         self.assertEqual(response.status_code, 302)
 
 class ProjectInviteDeleteTests(TestCase):
@@ -2599,6 +2643,13 @@ host1,foo,read-only,desc3
         artifacts = payload.get("data_artifacts", {})
         self.assertIn("password", artifacts)
         self.assertEqual(artifacts.get("password", {}).get("file_name"), "passwords.csv")
+        password_artifacts = artifacts.get("password", {})
+        self.assertIn("xlsx_base64", password_artifacts)
+        expected_filename = (
+            re.sub(r"\s+", "_", self.project.client.short_name or self.project.client.name)
+            + "_Password_Report.xlsx"
+        )
+        self.assertEqual(password_artifacts.get("xlsx_filename"), expected_filename)
         domain_artifacts = artifacts.get("password", {}).get("domains", {})
         self.assertIn("corp.example.com", domain_artifacts)
         self.assertEqual(len(domain_artifacts.get("corp.example.com", {}).get("cracked", [])), 2)

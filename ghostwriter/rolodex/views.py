@@ -2043,6 +2043,70 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                     "type": "firewall",
                 }
             )
+        password_artifacts = artifacts.get("password") if isinstance(artifacts, dict) else None
+        if isinstance(password_artifacts, dict):
+            domains_payload = (
+                password_artifacts.get("domains")
+                if isinstance(password_artifacts.get("domains"), dict)
+                else {}
+            )
+            metrics_map = (
+                password_artifacts.get("metrics")
+                if isinstance(password_artifacts.get("metrics"), dict)
+                else {}
+            )
+            domain_entries: list[dict[str, Any]] = []
+            for domain_key, domain_payload in domains_payload.items():
+                if not isinstance(domain_payload, dict):
+                    continue
+                domain_name = (
+                    (domain_payload.get("domain") or domain_key or "NoDomain").strip()
+                    or "NoDomain"
+                )
+                normalized_key = str(domain_key or domain_name).strip().lower() or "nodomain"
+                metrics = metrics_map.get(normalized_key) if isinstance(metrics_map, dict) else None
+                if not isinstance(metrics, dict):
+                    metrics = {
+                        "domain_name": domain_name,
+                        "passwords_cracked": len(domain_payload.get("cracked", []) or []),
+                        "admin_count": len(domain_payload.get("admin", []) or []),
+                        "lanman_stored": "Yes"
+                        if domain_payload.get("lanman")
+                        else "No",
+                        "enabled_accounts": len(domain_payload.get("enabled", []) or []),
+                    }
+                    metrics_map = dict(metrics_map)
+                    metrics_map[normalized_key] = metrics
+                    password_artifacts["metrics"] = metrics_map
+                    artifacts["password"] = password_artifacts
+                    artifacts_updated = True
+
+                admin_count = metrics.get("admin_count") or 0
+                domain_entries.append(
+                    {
+                        "domain": domain_name,
+                        "metrics": {
+                            "passwords_cracked": metrics.get("passwords_cracked", 0),
+                            "admin_confirm": "Yes" if admin_count > 0 else "No",
+                            "admin_count": admin_count if admin_count > 0 else None,
+                            "lanman_stored": metrics.get("lanman_stored", "No"),
+                            "enabled_accounts": metrics.get("enabled_accounts", 0),
+                        },
+                    }
+                )
+
+            if domain_entries:
+                domain_entries = sorted(domain_entries, key=lambda entry: entry.get("domain", "").lower())
+
+            processed_cards.append(
+                {
+                    "label": "Password",
+                    "domains": domain_entries,
+                    "has_file": bool(password_artifacts.get("xlsx_base64")),
+                    "file_name": password_artifacts.get("file_name"),
+                    "type": "password",
+                }
+            )
         endpoint_artifacts = artifacts.get("endpoint")
         if isinstance(endpoint_artifacts, dict):
             endpoint_metrics = (
@@ -3296,6 +3360,146 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         return {"raw": rows, "domains": processed_domains, "metrics": metrics}
 
     @staticmethod
+    def _render_password_workbook(
+        raw_rows: list[dict[str, str]],
+        domains: dict[str, dict[str, Any]],
+    ) -> Optional[bytes]:
+        """Create an XLSX workbook for processed password data."""
+
+        buffer = io.BytesIO()
+        workbook = Workbook(buffer, {"in_memory": True})
+
+        header_format = workbook.add_format(
+            {"bold": True, "border": 1, "bg_color": "#0066CC", "font_color": "white"}
+        )
+        text_format = workbook.add_format({"text_wrap": True, "border": 1})
+        banded_text_format = workbook.add_format(
+            {"text_wrap": True, "border": 1, "bg_color": "#99CCFF"}
+        )
+
+        def _write_table(
+            worksheet: Worksheet, headers: list[str], data_rows: list[list[str]]
+        ) -> None:
+            for col, header in enumerate(headers):
+                worksheet.write(0, col, header, header_format)
+
+            column_widths: list[int] = [len(header) for header in headers]
+            for row_idx, row_values in enumerate(data_rows, start=1):
+                row_format = banded_text_format if row_idx % 2 == 0 else text_format
+                for col_idx, value in enumerate(row_values):
+                    worksheet.write(row_idx, col_idx, value, row_format)
+                    if col_idx >= len(column_widths):
+                        column_widths.append(0)
+                    column_widths[col_idx] = max(column_widths[col_idx], len(str(value)))
+
+            for col, width in enumerate(column_widths):
+                worksheet.set_column(col, col, min(max(width + 2, 10), 60))
+
+        def _row_value(entry: dict[str, str], key: str) -> str:
+            for current_key, value in entry.items():
+                if (current_key or "").lower().strip() == key:
+                    return (value or "").strip()
+            return ""
+
+        raw_headers = [
+            "Domain",
+            "Username",
+            "NTLM Hash",
+            "NTLM Password",
+            "NTLM State",
+            "User Info",
+            "Last Changed Time",
+            "Lockout",
+            "Disabled",
+            "Expired",
+            "No Expire",
+            "LM Hash",
+        ]
+
+        raw_sheet = workbook.add_worksheet("raw")
+        raw_data_rows = [
+            [_row_value(row, header.lower()) for header in raw_headers]
+            for row in raw_rows
+        ]
+        _write_table(raw_sheet, raw_headers, raw_data_rows)
+
+        cracked_headers = [
+            "Domain",
+            "Username",
+            "NTLM Hash",
+            "NTLM Password",
+            "NTLM State",
+            "User Info",
+            "Last Changed Time",
+            "Lockout",
+            "Disabled",
+            "Expired",
+            "No Expire",
+        ]
+        enabled_headers = [
+            "Domain",
+            "Username",
+            "NTLM Password",
+            "User Info",
+            "Last Changed Time",
+            "Lockout",
+            "Disabled",
+            "Expired",
+            "No Expire",
+        ]
+        lanman_headers = ["Username", "LM Hash"]
+        duplicates_headers = ["NTLM Password", "Count"]
+
+        for domain_payload in domains.values():
+            if not isinstance(domain_payload, dict):
+                continue
+            sheet_names = domain_payload.get("sheets") if isinstance(domain_payload.get("sheets"), dict) else {}
+            domain_name = (domain_payload.get("domain") or "NoDomain")[:31] or "NoDomain"
+
+            cracked_sheet = workbook.add_worksheet(sheet_names.get("cracked") or f"cracked-{domain_name}")
+            cracked_rows = [
+                [_row_value(row, header.lower()) for header in cracked_headers]
+                for row in domain_payload.get("cracked", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(cracked_sheet, cracked_headers, cracked_rows)
+
+            admin_sheet = workbook.add_worksheet(sheet_names.get("admin") or f"admin-{domain_name}")
+            admin_rows = [
+                [_row_value(row, header.lower()) for header in cracked_headers]
+                for row in domain_payload.get("admin", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(admin_sheet, cracked_headers, admin_rows)
+
+            enabled_sheet = workbook.add_worksheet(sheet_names.get("enabled") or f"enabled-{domain_name}")
+            enabled_rows = [
+                [_row_value(row, header.lower()) for header in enabled_headers]
+                for row in domain_payload.get("enabled", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(enabled_sheet, enabled_headers, enabled_rows)
+
+            lanman_sheet = workbook.add_worksheet(sheet_names.get("lanman") or f"LANMAN-{domain_name}")
+            lanman_rows = [
+                [_row_value(row, header.lower()) for header in lanman_headers]
+                for row in domain_payload.get("lanman", [])
+                if isinstance(row, dict)
+            ]
+            _write_table(lanman_sheet, lanman_headers, lanman_rows)
+
+            duplicates_sheet = workbook.add_worksheet(sheet_names.get("duplicates") or f"duplicates-{domain_name}")
+            duplicates_rows = [
+                [entry.get("NTLM Password", ""), entry.get("Count", "")]
+                for entry in domain_payload.get("duplicates", [])
+                if isinstance(entry, dict)
+            ]
+            _write_table(duplicates_sheet, duplicates_headers, duplicates_rows)
+
+        workbook.close()
+        return buffer.getvalue()
+
+    @staticmethod
     def _extract_ad_domains(payload: Optional[dict[str, Any]]) -> set[str]:
         domains: set[str] = set()
         if not isinstance(payload, dict):
@@ -3724,6 +3928,24 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         password_artifacts["file_name"] = upload.name
         password_artifacts["raw"] = processed.get("raw", [])
         password_artifacts["domains"] = processed.get("domains", {})
+        password_artifacts["metrics"] = processed.get("metrics", {})
+
+        client_short = ""
+        try:
+            client_short = (project.client.short_name or project.client.name or "").strip()
+        except Exception:  # pragma: no cover - defensive guard
+            client_short = ""
+        safe_base = re.sub(r"\s+", "_", client_short or "Client")
+        xlsx_filename = f"{safe_base}_Password_Report.xlsx"
+
+        workbook_bytes = self._render_password_workbook(
+            processed.get("raw", []), processed.get("domains", {})
+        )
+        if workbook_bytes:
+            password_artifacts["xlsx_base64"] = base64.b64encode(workbook_bytes).decode(
+                "ascii"
+            )
+            password_artifacts["xlsx_filename"] = xlsx_filename
         artifacts["password"] = password_artifacts
 
         normalized_workbook = normalize_workbook_payload(project.workbook_data)
@@ -5078,6 +5300,53 @@ class ProjectFirewallDataDownload(RoleBasedAccessControlMixin, SingleObjectMixin
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         filename = payload.get("xlsx_filename") or "firewall_data.xlsx"
+        add_content_disposition_header(response, filename)
+        return response
+
+
+class ProjectPasswordDataDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Provide the processed password data XLSX download for a project."""
+
+    model = Project
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to modify that project.")
+        return redirect("home:dashboard")
+
+    def get_success_url(self, project: Project) -> str:
+        return reverse("rolodex:project_detail", kwargs={"pk": project.pk}) + "#processed-data"
+
+    def get(self, request, *args, **kwargs):
+        project = self.get_object()
+        artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+        payload = artifacts.get("password") if isinstance(artifacts, dict) else None
+
+        if not isinstance(payload, dict):
+            messages.error(request, "No password data file is available for download.")
+            return HttpResponseRedirect(self.get_success_url(project))
+
+        workbook_b64 = payload.get("xlsx_base64")
+        if not workbook_b64:
+            messages.error(request, "The password data file is not available for download yet.")
+            return HttpResponseRedirect(self.get_success_url(project))
+
+        try:
+            workbook_bytes = base64.b64decode(workbook_b64)
+        except (ValueError, binascii.Error):  # pragma: no cover - defensive guard
+            logger.exception("Failed to decode password XLSX payload")
+            messages.error(request, "Unable to decode the password data file.")
+            return HttpResponseRedirect(self.get_success_url(project))
+
+        response = HttpResponse(
+            workbook_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        client_short = (project.client.short_name or project.client.name or "Client").strip()
+        fallback_name = re.sub(r"\s+", "_", client_short or "Client") + "_Password_Report.xlsx"
+        filename = payload.get("xlsx_filename") or fallback_name
         add_content_disposition_header(response, filename)
         return response
 

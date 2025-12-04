@@ -522,6 +522,26 @@
                         <dd class="col-6 text-right">{{ card.summary.systems_ood|default:0 }}</dd>
                         <dt class="col-6">Systems on WiFi</dt>
                         <dd class="col-6 text-right">{{ card.summary.wifi_count|default:0 }}</dd>
+                      {% elif card.type == "password" %}
+                        {% if card.file_name %}
+                          <dt class="col-6">Source File</dt>
+                          <dd class="col-6 text-right">{{ card.file_name }}</dd>
+                        {% endif %}
+                        {% for domain in card.domains %}
+                          <dt class="col-12 font-weight-bold text-uppercase mt-2">{{ domain.domain }}</dt>
+                          <dt class="col-8">Total passwords cracked</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.passwords_cracked|default:0 }}</dd>
+                          <dt class="col-8">Were Admin accounts cracked?</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.admin_confirm|default:"No" }}</dd>
+                          {% if domain.metrics.admin_count %}
+                            <dt class="col-8">How many admin accounts were cracked?</dt>
+                            <dd class="col-4 text-right">{{ domain.metrics.admin_count }}</dd>
+                          {% endif %}
+                          <dt class="col-8">Were LANMAN hashes stored?</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.lanman_stored|default:"No" }}</dd>
+                          <dt class="col-8">Of the passwords cracked, how many are enabled accounts?</dt>
+                          <dd class="col-4 text-right">{{ domain.metrics.enabled_accounts|default:0 }}</dd>
+                        {% endfor %}
                       {% else %}
                         <dt class="col-6">Total Count</dt>
                         {% with total_count=card.summary.total|default:card.summary.unique %}
@@ -573,6 +593,8 @@
                         <dd class="col-6 text-right">{{ card.summary.vuln_count|default:0 }}</dd>
                       {% elif card.type == "endpoint" %}
                         {# Endpoint metrics are displayed above #}
+                      {% elif card.type == "password" %}
+                        {# Password metrics are displayed above #}
                       {% else %}
                         <dt class="col-6">Unique High/Medium</dt>
                         <dd class="col-6 text-right">{{ card.summary.unique_high_med|default:0 }}</dd>
@@ -597,24 +619,28 @@
                         </ul>
                       </div>
                     {% endif %}
-                    {% if card.has_file %}
-                      {% if card.type == "web" %}
-                        <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_web_data_download' project.id %}">
-                          Download Web Data file
-                        </a>
-                      {% elif card.type == "endpoint" %}
-                        <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_endpoint_data_download' project.id %}?domain={{ card.metrics_key }}">
-                          Download Endpoint Data file
-                        </a>
-                      {% elif card.type == "firewall" %}
-                        <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_firewall_data_download' project.id %}">
-                          Download Firewall Data file
-                        </a>
-                      {% elif card.type == "nexpose" %}
-                        <div class="d-flex flex-wrap align-items-center">
-                          <a class="btn btn-outline-primary btn-sm mr-2 mb-2" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
-                            Download Nexpose Data file
+                      {% if card.has_file %}
+                        {% if card.type == "web" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_web_data_download' project.id %}">
+                            Download Web Data file
                           </a>
+                        {% elif card.type == "endpoint" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_endpoint_data_download' project.id %}?domain={{ card.metrics_key }}">
+                            Download Endpoint Data file
+                          </a>
+                        {% elif card.type == "firewall" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_firewall_data_download' project.id %}">
+                            Download Firewall Data file
+                          </a>
+                        {% elif card.type == "password" %}
+                          <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_password_data_download' project.id %}">
+                            Download Password Data file
+                          </a>
+                        {% elif card.type == "nexpose" %}
+                          <div class="d-flex flex-wrap align-items-center">
+                            <a class="btn btn-outline-primary btn-sm mr-2 mb-2" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
+                              Download Nexpose Data file
+                            </a>
                           {% if card.upload %}
                             <form
                               method="post"
