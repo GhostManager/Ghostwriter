@@ -140,6 +140,7 @@
                 "pages": [
                   "features/bloodhound-integration-overview",
                   "features/bloodhound-integration/configuring-bloodhound",
+                  "features/bloodhound-integration/managing-bloodhound-data",
                   "features/bloodhound-integration/differences-between-bhce-and-bhe",
                   "features/bloodhound-integration/bloodhound-data-in-reports"
                 ]
