@@ -32,6 +32,8 @@ from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
+from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 from taggit.models import Tag
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
@@ -4358,6 +4360,56 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                         {"error": "Wireless data file must be an .xlsx file."}, status=400
                     )
 
+                try:
+                    wireless_bytes = upload.read()
+                    workbook = load_workbook(io.BytesIO(wireless_bytes), read_only=True)
+                except InvalidFileException:
+                    return JsonResponse(
+                        {
+                            "error": "Wireless data file could not be read as an .xlsx workbook.",
+                        },
+                        status=400,
+                    )
+
+                required_sheets = {"Client", "Rogue", "Open", "PSKs", "Hidden", "802.1x"}
+                missing_sheets = required_sheets.difference(workbook.sheetnames)
+                if missing_sheets:
+                    workbook.close()
+                    missing_sheet_list = ", ".join(sorted(missing_sheets))
+                    return JsonResponse(
+                        {
+                            "error": f"Wireless data file is missing required worksheets: {missing_sheet_list}.",
+                        },
+                        status=400,
+                    )
+
+                def _row_has_data(row: tuple[Any, ...]) -> bool:
+                    for cell in row:
+                        if isinstance(cell, str):
+                            if cell.strip():
+                                return True
+                        elif cell is not None:
+                            return True
+                    return False
+
+                def _count_data_rows(sheet_name: str) -> int:
+                    worksheet = workbook[sheet_name]
+                    return sum(
+                        1
+                        for row in worksheet.iter_rows(min_row=2, values_only=True)
+                        if _row_has_data(row)
+                    )
+
+                wireless_metrics = {
+                    "open_count": _count_data_rows("Open"),
+                    "psk_count": _count_data_rows("PSKs"),
+                    "hidden_count": _count_data_rows("Hidden"),
+                    "rogue_count": _count_data_rows("Rogue"),
+                }
+
+                workbook.close()
+                upload.seek(0)
+
                 existing_files = list(
                     project.data_files.filter(
                         requirement_slug=WIRELESS_DATA_REQUIREMENT_SLUG
@@ -4386,7 +4438,18 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 artifacts = dict(artifacts)
                 artifacts[WIRELESS_DATA_FILE_NAME_KEY] = filename
                 project.data_artifacts = artifacts
-                project.save(update_fields=["data_artifacts"])
+                workbook_payload = normalize_workbook_payload(project.workbook_data)
+                wireless_payload: Dict[str, Any] = (
+                    dict(workbook_payload.get("wireless", {}))
+                    if isinstance(workbook_payload.get("wireless"), dict)
+                    else {}
+                )
+                wireless_payload.update(wireless_metrics)
+                workbook_payload["wireless"] = wireless_payload
+                workbook_payload = normalize_workbook_payload(workbook_payload)
+
+                project.workbook_data = workbook_payload
+                project.save(update_fields=["workbook_data", "data_artifacts"])
 
                 project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
 
