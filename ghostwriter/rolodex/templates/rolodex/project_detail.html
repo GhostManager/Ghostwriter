@@ -2025,7 +2025,7 @@
           },
         }).then(res => {
           if(res.status === 200)
-            displayToastTop({type: "success", string: "Refresh the page to view updated results."});
+            displayToastTop({type: "success", string: "Refresh the page to view updated results.", delay: 0, title: "Fetch Completed"});
           else
             displayToastTop({type: "error", string: "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
         })
