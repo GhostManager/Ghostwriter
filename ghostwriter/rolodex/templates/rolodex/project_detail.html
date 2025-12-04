@@ -610,6 +610,37 @@
                         <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_firewall_data_download' project.id %}">
                           Download Firewall Data file
                         </a>
+                      {% elif card.type == "nexpose" %}
+                        <div class="d-flex flex-wrap align-items-center">
+                          <a class="btn btn-outline-primary btn-sm mr-2 mb-2" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
+                            Download Nexpose Data file
+                          </a>
+                          {% if card.upload %}
+                            <form
+                              method="post"
+                              action="{% url 'rolodex:project_data_file_upload' project.id %}"
+                              enctype="multipart/form-data"
+                              class="mb-2 project-required-data-form"
+                            >
+                              {% csrf_token %}
+                              <input type="hidden" name="requirement_slug" value="{{ card.upload.slug }}"/>
+                              <input type="hidden" name="requirement_label" value="{{ card.upload.label }}"/>
+                              <input type="hidden" name="requirement_context" value="{{ card.label }}"/>
+                              <input type="hidden" name="description" value="{{ card.upload.label }}"/>
+                              <input type="hidden" name="redirect_url" value="{{ request.path }}#processed-data"/>
+                              <label class="btn btn-primary btn-sm mb-0">
+                                Upload Updated Nexpose Data file
+                                <input
+                                  type="file"
+                                  name="file"
+                                  class="d-none project-required-data-input"
+                                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                  required
+                                >
+                              </label>
+                            </form>
+                          {% endif %}
+                        </div>
                       {% else %}
                         <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
                           Download Nexpose Data file
