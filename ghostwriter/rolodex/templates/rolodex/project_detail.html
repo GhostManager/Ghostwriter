@@ -1152,17 +1152,17 @@
         };
 
         const isVisibleInput = function(input) {
-          if (!input) {
+          if (!input || input.hidden) {
             return false;
           }
-          if (input.hidden) {
+          if (input.closest('.d-none')) {
             return false;
           }
-          const rects = input.getClientRects();
-          if (rects.length) {
-            return true;
+          const hiddenParent = input.closest('[aria-hidden="true"]');
+          if (hiddenParent && !hiddenParent.classList.contains('modal')) {
+            return false;
           }
-          return !!input.offsetParent;
+          return true;
         };
 
         const updateWorkbookCardProgress = function(cardKey) {
