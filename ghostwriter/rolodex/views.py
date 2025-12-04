@@ -108,7 +108,10 @@ from ghostwriter.rolodex.data_parsers import (
     summarize_nexpose_matrix_gaps,
     summarize_web_issue_matrix_gaps,
 )
-from ghostwriter.rolodex.constants import WIRELESS_DATA_FILE_NAME_KEY
+from ghostwriter.rolodex.constants import (
+    SQL_DATA_FILE_NAME_KEY,
+    WIRELESS_DATA_FILE_NAME_KEY,
+)
 from ghostwriter.rolodex.workbook import (
     SECTION_ENTRY_FIELD_MAP,
     build_data_configuration,
@@ -116,6 +119,8 @@ from ghostwriter.rolodex.workbook import (
     build_workbook_sections,
     normalize_scope_selection,
     prepare_data_responses_initial,
+    SQL_DATA_REQUIREMENT_LABEL,
+    SQL_DATA_REQUIREMENT_SLUG,
     WIRELESS_DATA_REQUIREMENT_LABEL,
     WIRELESS_DATA_REQUIREMENT_SLUG,
 )
@@ -4162,6 +4167,56 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                     {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
                 )
 
+            if "sql_xlsx" in request.FILES:
+                upload = request.FILES.get("sql_xlsx")
+                if not upload:
+                    return JsonResponse(
+                        {"error": "No SQL data file provided."}, status=400
+                    )
+
+                filename = (upload.name or "").strip()
+                if not filename.lower().endswith(".xlsx"):
+                    return JsonResponse(
+                        {"error": "SQL data file must be an .xlsx file."},
+                        status=400,
+                    )
+
+                existing_files = list(
+                    project.data_files.filter(
+                        requirement_slug=SQL_DATA_REQUIREMENT_SLUG
+                    )
+                )
+                for data_file in existing_files:
+                    if data_file.file:
+                        data_file.file.delete(save=False)
+                    data_file.delete()
+
+                data_file = ProjectDataFile(
+                    project=project,
+                    requirement_slug=SQL_DATA_REQUIREMENT_SLUG,
+                    requirement_label=SQL_DATA_REQUIREMENT_LABEL,
+                    requirement_context="sql upload",
+                    description="",
+                )
+                data_file.file.save(filename, upload)
+                data_file.save()
+
+                artifacts = (
+                    project.data_artifacts
+                    if isinstance(project.data_artifacts, dict)
+                    else {}
+                )
+                artifacts = dict(artifacts)
+                artifacts[SQL_DATA_FILE_NAME_KEY] = filename
+                project.data_artifacts = artifacts
+                project.save(update_fields=["data_artifacts"])
+
+                project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
+
+                return JsonResponse(
+                    {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
+                )
+
             if "ad_csv" in request.FILES:
                 return self._handle_ad_csv_upload(request, project)
 
@@ -4511,9 +4566,17 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             project_cap = dict(project.cap or {}) if isinstance(project.cap, dict) else {}
             project_cap.pop("sql", None)
 
+            project.data_files.filter(
+                requirement_slug=SQL_DATA_REQUIREMENT_SLUG
+            ).delete()
+            artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+            artifacts = dict(artifacts)
+            artifacts.pop(SQL_DATA_FILE_NAME_KEY, None)
+
             project.workbook_data = workbook_payload
+            project.data_artifacts = artifacts
             project.cap = project_cap
-            project.save(update_fields=["workbook_data", "cap"])
+            project.save(update_fields=["workbook_data", "data_artifacts", "cap"])
 
             return JsonResponse(
                 {
