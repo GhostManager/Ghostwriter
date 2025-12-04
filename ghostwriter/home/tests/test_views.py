@@ -194,8 +194,8 @@ class TemplateTagTests(TestCase):
 
         # Test custom_tags.translate_domain_sid
         domains = [
-            {"domain_sid": "S-1-5-21-1000", "domain_name": "EXAMPLE_DOMAIN"},
-            {"domain_sid": "S-1-5-21-2000", "domain_name": "ANOTHER_DOMAIN"},
+            {"domain_sid": "S-1-5-21-1000", "name": "EXAMPLE_DOMAIN"},
+            {"domain_sid": "S-1-5-21-2000", "name": "ANOTHER_DOMAIN"},
         ]
         result = custom_tags.translate_domain_sid("S-1-5-21-1000", domains)
         self.assertEqual(result, "EXAMPLE_DOMAIN")
