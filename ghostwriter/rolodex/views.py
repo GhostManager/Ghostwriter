@@ -3101,6 +3101,39 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         )
 
     @staticmethod
+    def _parse_ad_admin_users(upload) -> tuple[Optional[list[str]], Optional[str]]:
+        raw_bytes = upload.read()
+        content = None
+
+        for encoding in ("utf-8-sig", "utf-16", "utf-16le", "utf-16be"):
+            try:
+                content = raw_bytes.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+
+        if content is None:
+            try:
+                content = raw_bytes.decode("utf-8", errors="replace")
+            except Exception:
+                return None, "Unable to read the uploaded privileged users file."
+
+        entries: list[str] = []
+        seen: set[str] = set()
+
+        for line in content.splitlines():
+            entry = line.strip()
+            if not entry:
+                continue
+            lowered = entry.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            entries.append(entry)
+
+        return entries, None
+
+    @staticmethod
     def _extract_ad_domains(payload: Optional[dict[str, Any]]) -> set[str]:
         domains: set[str] = set()
         if not isinstance(payload, dict):
@@ -3425,6 +3458,78 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
         )
 
+    def _handle_ad_admin_users_upload(self, request, project):
+        upload = request.FILES.get("ad_admin_users")
+        if not upload:
+            return JsonResponse({"error": "No privileged users list provided."}, status=400)
+
+        domain = (request.POST.get("domain") or "").strip()
+        if not domain:
+            return JsonResponse(
+                {"error": "A domain name is required for this upload."}, status=400
+            )
+
+        filename = (upload.name or "").strip().lower()
+        if not filename.endswith(".txt"):
+            return JsonResponse(
+                {"error": "Privileged users list must be a .txt file."}, status=400
+            )
+
+        admin_users, error_message = self._parse_ad_admin_users(upload)
+        if error_message:
+            return JsonResponse({"error": error_message}, status=400)
+
+        artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+        artifacts = dict(artifacts)
+        ad_artifacts = artifacts.get("ad") if isinstance(artifacts.get("ad"), dict) else {}
+        if not isinstance(ad_artifacts, dict):
+            ad_artifacts = {}
+
+        domain_key = domain.lower()
+        domain_entry = ad_artifacts.get(domain_key, {}) if isinstance(ad_artifacts, dict) else {}
+        if not isinstance(domain_entry, dict):
+            domain_entry = {}
+
+        domain_entry["admin_users_file_name"] = upload.name
+        if admin_users is not None:
+            domain_entry["admin_users"] = admin_users
+        ad_artifacts[domain_key] = domain_entry
+        artifacts["ad"] = ad_artifacts
+
+        normalized_workbook = normalize_workbook_payload(project.workbook_data)
+        ad_state = normalized_workbook.get("ad") if isinstance(normalized_workbook.get("ad"), dict) else {}
+        if not isinstance(ad_state, dict):
+            ad_state = {}
+        domain_records = ad_state.get("domains") if isinstance(ad_state.get("domains"), list) else []
+        if not isinstance(domain_records, list):
+            domain_records = []
+
+        match = None
+        for record in domain_records:
+            if not isinstance(record, dict):
+                continue
+            domain_value = (record.get("domain") or record.get("name") or "").strip()
+            if domain_value.lower() == domain_key:
+                match = record
+                break
+
+        if match is None:
+            match = {"domain": domain}
+            domain_records.append(match)
+
+        match["domain"] = domain
+
+        ad_state["domains"] = domain_records
+
+        workbook_payload = build_workbook_entry_payload(project=project, areas={"ad": ad_state})
+        project.workbook_data = workbook_payload
+        project.data_artifacts = artifacts
+        project.save(update_fields=["workbook_data", "data_artifacts"])
+
+        return JsonResponse(
+            {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
+        )
+
     def test_func(self):
         return self.get_object().user_can_edit(self.request.user)
 
@@ -3574,6 +3679,9 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
 
             if "ad_csv" in request.FILES:
                 return self._handle_ad_csv_upload(request, project)
+
+            if "ad_admin_users" in request.FILES:
+                return self._handle_ad_admin_users_upload(request, project)
 
             if "ad_log" in request.FILES:
                 return self._handle_ad_log_upload(request, project)
