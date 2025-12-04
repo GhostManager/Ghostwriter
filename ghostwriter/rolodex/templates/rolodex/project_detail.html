@@ -4692,7 +4692,6 @@
               addField(makeNumberGroup('Lockout Reset (minutes)', policy.lockout_reset, function(value) { policy.lockout_reset = value; }).group);
               addField(makeNumberGroup('Lockout Duration (minutes)', policy.lockout_duration, function(value) { policy.lockout_duration = value; }).group);
               addField(makeBoolSelect('Is Complexity Enabled?', policy.complexity_enabled, function(value) { policy.complexity_enabled = value; }));
-              addField(makeBoolSelect('Is MFA required?', policy.mfa_required, function(value) { policy.mfa_required = value; }));
 
               const passwordsCracked = makeNumberGroup('Total passwords cracked', policy.passwords_cracked, function(value) {
                 policy.passwords_cracked = value;
