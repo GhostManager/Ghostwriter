@@ -37,6 +37,7 @@ if False:  # pragma: no cover - typing only
 from ghostwriter.commandcenter.models import OpenAIConfiguration
 from ghostwriter.modules.openai_client import submit_prompt_to_assistant
 from ghostwriter.rolodex.ip_artifacts import IP_ARTIFACT_DEFINITIONS, parse_ip_text
+from ghostwriter.rolodex.constants import FIREWALL_XML_FILE_NAME_KEY
 from ghostwriter.rolodex.workbook import AD_DOMAIN_METRICS
 
 logger = logging.getLogger(__name__)
@@ -2735,6 +2736,7 @@ def parse_nipper_firewall_report(
             risk = ""
             impact = ""
             score: Any = ""
+            device_entries: List[str] = []
             devices = ""
             reference = ""
             details = ""
@@ -2753,7 +2755,10 @@ def parse_nipper_firewall_report(
                         normalized_risk = "Low"
                     risk = normalized_risk
 
-                    for item in _find_child_elements(child, "item"):
+                    metric_nodes = _find_child_elements(child, "item") + _find_child_elements(
+                        child, "infodata"
+                    )
+                    for item in metric_nodes:
                         label = (item.attrib.get("label") or "").strip()
                         value = _element_text(item)
                         if label == "CVSSv2 Score":
@@ -2762,13 +2767,27 @@ def parse_nipper_firewall_report(
                             impact = _get_nipper_impact(value)
                 elif child_title.lower() == "summary":
                     details = _element_text(child)
+                    impact = details
+                    summary_text = (details or "").lower()
+                    for device_name in device_names:
+                        if device_name and device_name.lower() in summary_text:
+                            device_entries.append(device_name)
                 elif child_title.lower() == "affected devices":
-                    device_entries = []
-                    for item in _find_child_elements(child, "item"):
+                    for item in child.iter():
+                        tag = _normalize_xml_tag(getattr(item, "tag", ""))
+                        if tag not in {"listitem", "item"}:
+                            continue
                         item_text = _element_text(item)
-                        if item_text:
+                        if not item_text:
+                            continue
+                        matched = [
+                            name for name in device_names if name and name.lower() in item_text.lower()
+                        ]
+                        if matched:
+                            device_entries.extend(matched)
+                        else:
                             device_entries.append(item_text)
-                    devices = "\n".join(device_entries)
+                    devices = "\n".join(dict.fromkeys(device_entries))
                 elif child_title.lower() == "affected device":
                     device_text = _element_text(child)
                     matched_devices = [name for name in device_names if name and name in device_text]
@@ -2780,6 +2799,9 @@ def parse_nipper_firewall_report(
                         if link:
                             advisories.append(link)
                     reference = "\n".join(advisories)
+
+            reference = _build_cve_links(issue)
+            devices = "\n".join(dict.fromkeys(device_entries)) or devices
 
             findings.append(
                 {
@@ -5257,6 +5279,7 @@ def build_project_artifacts(project: "Project") -> Dict[str, Any]:
             logger.info(
                 "Processing firewall XML upload '%s' for project ID=%s", file_label, getattr(project, "id", "?")
             )
+            artifacts[FIREWALL_XML_FILE_NAME_KEY] = data_file.filename
             parsed_firewall_xml = parse_nipper_firewall_report(
                 data_file.file, project_type_value
             )

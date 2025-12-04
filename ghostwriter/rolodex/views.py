@@ -111,6 +111,7 @@ from ghostwriter.rolodex.data_parsers import (
 )
 from ghostwriter.rolodex.constants import (
     CLOUD_MANAGEMENT_FILE_NAME_KEY,
+    FIREWALL_XML_FILE_NAME_KEY,
     IAM_MANAGEMENT_FILE_NAME_KEY,
     SYSTEM_CONFIGURATION_FILE_NAME_KEY,
     SQL_DATA_FILE_NAME_KEY,
@@ -5060,6 +5061,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 "firewall_findings",
                 "firewall_metrics",
                 "firewall_vulnerabilities",
+                FIREWALL_XML_FILE_NAME_KEY,
             ):
                 artifacts.pop(key, None)
 
