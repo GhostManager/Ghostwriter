@@ -53,8 +53,9 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     format_datetime,
     get_item,
     regex_search,
-    strip_html,
     replace_blanks,
+    strip_html,
+    translate_domain_sid,
 )
 from ghostwriter.reporting.templatetags import report_tags
 
@@ -2564,6 +2565,18 @@ class ReportTemplateFilterTests(TestCase):
 
         with self.assertRaises(InvalidFilterValue):
             filter_bhe_findings_by_domain("Not a list", "example.com")
+
+    def test_translate_domain_sid(self):
+        domains = [
+            {"name": "MISSINGSID"},
+            {"name": "GHOSTWRITER", "domain_sid": "S-1-5-21-1234567890-123456789-1234567890-1001"},
+            {"name": "EXAMPLE", "domain_sid": "S-1-5-21-0987654321-987654321-9876543210"},
+        ]
+        translated = translate_domain_sid("S-1-5-21-1234567890-123456789-1234567890-1001", domains)
+        self.assertEqual(translated, "GHOSTWRITER")
+
+        with self.assertRaises(InvalidFilterValue):
+            translate_domain_sid("S-1-5-21-0000000000-000000000-0000000000-1001", "Not a list")
 
 
 class LocalFindingNoteUpdateTests(TestCase):
