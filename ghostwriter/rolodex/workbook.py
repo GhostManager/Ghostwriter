@@ -144,6 +144,13 @@ def _slugify_identifier(*parts: Iterable[Any]) -> str:
     return "_".join(identifiers)
 
 
+WIRELESS_DATA_REQUIREMENT_LABEL = "wireless_data.xlsx"
+WIRELESS_DATA_REQUIREMENT_SLUG = _slugify_identifier(
+    "required", WIRELESS_DATA_REQUIREMENT_LABEL
+)
+WIRELESS_DATA_FILE_NAME_KEY = "wireless_data_file_name"
+
+
 def _get_nested(data: Dict[str, Any], path: Iterable[str], default: Any = None) -> Any:
     result: Any = data
     for key in path:

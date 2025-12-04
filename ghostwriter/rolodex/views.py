@@ -114,6 +114,9 @@ from ghostwriter.rolodex.workbook import (
     build_workbook_sections,
     normalize_scope_selection,
     prepare_data_responses_initial,
+    WIRELESS_DATA_FILE_NAME_KEY,
+    WIRELESS_DATA_REQUIREMENT_LABEL,
+    WIRELESS_DATA_REQUIREMENT_SLUG,
 )
 from ghostwriter.rolodex.workbook_defaults import (
     WORKBOOK_DEFAULTS,
@@ -3510,14 +3513,63 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 data_file.file.save(upload.name, upload)
                 data_file.save()
 
-                project.rebuild_data_artifacts()
+                    project.rebuild_data_artifacts()
+                    project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
+
+                    return JsonResponse(
+                        {
+                            "workbook_data": project.workbook_data,
+                            "data_artifacts": project.data_artifacts,
+                        }
+                    )
+
+            if "wireless_xlsx" in request.FILES:
+                upload = request.FILES.get("wireless_xlsx")
+                if not upload:
+                    return JsonResponse(
+                        {"error": "No wireless data file provided."}, status=400
+                    )
+
+                filename = (upload.name or "").strip()
+                if not filename.lower().endswith(".xlsx"):
+                    return JsonResponse(
+                        {"error": "Wireless data file must be an .xlsx file."}, status=400
+                    )
+
+                existing_files = list(
+                    project.data_files.filter(
+                        requirement_slug=WIRELESS_DATA_REQUIREMENT_SLUG
+                    )
+                )
+                for data_file in existing_files:
+                    if data_file.file:
+                        data_file.file.delete(save=False)
+                    data_file.delete()
+
+                data_file = ProjectDataFile(
+                    project=project,
+                    requirement_slug=WIRELESS_DATA_REQUIREMENT_SLUG,
+                    requirement_label=WIRELESS_DATA_REQUIREMENT_LABEL,
+                    requirement_context="wireless data",
+                    description="",
+                )
+                data_file.file.save(filename, upload)
+                data_file.save()
+
+                artifacts = (
+                    project.data_artifacts
+                    if isinstance(project.data_artifacts, dict)
+                    else {}
+                )
+                artifacts = dict(artifacts)
+                artifacts[WIRELESS_DATA_FILE_NAME_KEY] = filename
+                project.data_artifacts = artifacts
+                project.save(update_fields=["data_artifacts"])
+
                 project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
 
                 return JsonResponse(
-                    {
-                        "workbook_data": project.workbook_data,
-                        "data_artifacts": project.data_artifacts,
-                    }
+                    {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
                 )
 
             if "ad_csv" in request.FILES:
