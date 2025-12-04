@@ -1032,6 +1032,43 @@
           });
         };
 
+        const setButtonLoading = function(button, text) {
+          if (!button) {
+            return;
+          }
+          const defaultText = button.getAttribute('data-default-text') || button.textContent.trim();
+          button.setAttribute('data-default-text', defaultText);
+          button.innerHTML = '<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>' + text;
+          button.disabled = true;
+        };
+
+        const clearButtonLoading = function(button) {
+          if (!button) {
+            return;
+          }
+          const defaultText = button.getAttribute('data-default-text');
+          if (defaultText) {
+            button.innerHTML = defaultText;
+          }
+          button.disabled = false;
+        };
+
+        const runWithButtonLoading = function(button, text, action) {
+          if (!button || typeof action !== 'function') {
+            return action && action();
+          }
+
+          setButtonLoading(button, text);
+          const result = action();
+          const finalize = function() { clearButtonLoading(button); };
+          if (result && typeof result.finally === 'function') {
+            result.finally(finalize);
+          } else {
+            finalize();
+          }
+          return result;
+        };
+
         const refreshProjectDataTabs = function() {
           const baseUrl = window.location.pathname + window.location.search;
           const reloadSection = function(id, onComplete) {
@@ -2780,24 +2817,33 @@
             uploadInput.type = 'file';
             uploadInput.className = 'd-none';
             uploadInput.accept = '.xml,application/xml,text/xml';
-            uploadInput.addEventListener('change', function(event) {
-              if (event.target.files && event.target.files[0]) {
-                uploadBurpXml(event.target.files[0], areaKey, modalId);
-                event.target.value = '';
-              }
-            });
             const uploadButton = document.createElement('button');
             uploadButton.type = 'button';
             uploadButton.className = 'btn btn-outline-primary';
             uploadButton.textContent = 'Upload Burp XML';
             uploadButton.addEventListener('click', function() { uploadInput.click(); });
 
+            const handleBurpUpload = function(file) {
+              return runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                return uploadBurpXml(file, areaKey, modalId);
+              });
+            };
+
+            uploadInput.addEventListener('change', function(event) {
+              if (event.target.files && event.target.files[0]) {
+                handleBurpUpload(event.target.files[0]);
+                event.target.value = '';
+              }
+            });
+
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
             removeButton.className = 'btn btn-outline-danger ml-2';
             removeButton.textContent = 'Remove Web Data';
             removeButton.addEventListener('click', function() {
-              removeWebData(areaKey, modalId);
+              runWithButtonLoading(removeButton, 'Removing...', function() {
+                return removeWebData(areaKey, modalId);
+              });
             });
 
             uploadWrapper.appendChild(uploadButton);
@@ -3624,7 +3670,7 @@
               payload.areas[workbookKey] = fieldPayload;
             }
           });
-          submitWorkbookUpdate(payload, function() {
+          return submitWorkbookUpdate(payload, function() {
             if (modalId) {
               $('#' + modalId).modal('hide');
             }
@@ -3653,7 +3699,7 @@
           formData.append('ad_csv', file);
           formData.append('ad_metric', metric);
           formData.append('domain', domainValue);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3693,7 +3739,7 @@
           formData.append('ad_admin_users', file);
           formData.append('domain', domainValue);
 
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3727,7 +3773,7 @@
           const formData = new FormData();
           formData.append('password_csv', file);
 
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3767,7 +3813,7 @@
           formData.append('ad_log', file);
           formData.append('domain', domainValue);
 
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3854,7 +3900,7 @@
           formData.append('endpoint_csv', file);
           formData.append('domain', domainValue);
 
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3887,7 +3933,7 @@
             return;
           }
           const payload = {remove_ad_metric: {domain: domainValue, metric: metric}};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -3900,7 +3946,7 @@
           }
           const formData = new FormData();
           formData.append('osint_csv', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3932,7 +3978,7 @@
           }
           const formData = new FormData();
           formData.append('snmp_csv', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3964,7 +4010,7 @@
           }
           const formData = new FormData();
           formData.append('cloud_management_xlsx', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -3996,7 +4042,7 @@
           }
           const formData = new FormData();
           formData.append('iam_management_xlsx', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -4028,7 +4074,7 @@
           }
           const formData = new FormData();
           formData.append('system_configuration_xlsx', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -4067,7 +4113,7 @@
           const formData = new FormData();
           formData.append('sql_xlsx', file);
 
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || '',
@@ -4099,7 +4145,7 @@
           }
           const formData = new FormData();
           formData.append(uploadFieldName || 'external_nexpose_xml', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || '',
@@ -4137,7 +4183,7 @@
 
           const formData = new FormData();
           formData.append('wireless_xlsx', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || '',
@@ -4169,7 +4215,7 @@
           }
           const formData = new FormData();
           formData.append('firewall_xml', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || '',
@@ -4201,7 +4247,7 @@
           }
           const formData = new FormData();
           formData.append('burp_xml', file);
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || '',
@@ -4232,7 +4278,7 @@
             return;
           }
           const payload = {remove_nexpose: workbookKey};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -4241,7 +4287,7 @@
 
         const removeWebData = function(areaKey, modalId) {
           const payload = {remove_web: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -4250,7 +4296,7 @@
 
         const removeFirewallData = function(areaKey, modalId) {
           const payload = {remove_firewall: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -4259,7 +4305,7 @@
 
         const removeOsintData = function(areaKey, modalId) {
           const payload = {remove_osint: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
           });
@@ -4267,7 +4313,7 @@
 
         const removeSnmpData = function(areaKey, modalId) {
           const payload = {remove_snmp: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
           });
@@ -4275,7 +4321,7 @@
 
         const removeSqlData = function(areaKey, modalId) {
           const payload = {remove_sql: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
           });
@@ -4283,7 +4329,7 @@
 
         const removeWirelessData = function(areaKey, modalId) {
           const payload = {remove_wireless: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -4292,7 +4338,7 @@
 
         const removeWirelessWalkthruData = function(areaKey, modalId) {
           const payload = {remove_wireless_walkthru: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -4301,7 +4347,7 @@
 
         const removeWirelessSegmentationData = function(areaKey, modalId) {
           const payload = {areas: {wireless: {internal_access: null}}};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -4310,7 +4356,7 @@
 
         const removeIamCloudConfigData = function(areaKey, modalId) {
           const payload = {remove_iam_management: true};
-          submitWorkbookUpdate(payload, null, {
+          return submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
             afterRender: function() { updateWorkbookCardProgress(areaKey); },
@@ -5867,7 +5913,7 @@
           if (domain) {
             formData.append('domain', domain);
           }
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -5902,7 +5948,7 @@
           if (domain) {
             formData.append('domain', domain);
           }
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'X-CSRFToken': getCsrfToken() || ''
@@ -6267,7 +6313,9 @@
                 removeButton.className = 'btn btn-outline-danger mt-2';
                 removeButton.textContent = 'Remove Cloud Management Data';
                 removeButton.addEventListener('click', function() {
-                  removeCloudConfigData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeCloudConfigData(areaKey, modalId);
+                  });
                 });
                 subBody.appendChild(removeButton);
 
@@ -6278,6 +6326,13 @@
                 uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
                 uploadInput.className = 'd-none';
                 uploadInput.id = 'cloud-management-upload';
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'btn btn-primary';
+                uploadButton.textContent = 'Upload Cloud Benchmark XLSX file';
+                uploadButton.addEventListener('click', function() {
+                  uploadInput.click();
+                });
                 const fileNameDisplay = document.createElement('div');
                 fileNameDisplay.className = 'small text-muted mt-2';
                 const updateFileName = function() {
@@ -6287,16 +6342,11 @@
                 uploadInput.addEventListener('change', function(event) {
                   if (event.target.files && event.target.files[0]) {
                     fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
-                    uploadCloudManagementXlsx(event.target.files[0], areaKey, modalId);
+                    runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                      return uploadCloudManagementXlsx(event.target.files[0], areaKey, modalId);
+                    });
                     event.target.value = '';
                   }
-                });
-                const uploadButton = document.createElement('button');
-                uploadButton.type = 'button';
-                uploadButton.className = 'btn btn-primary';
-                uploadButton.textContent = 'Upload Cloud Benchmark XLSX file';
-                uploadButton.addEventListener('click', function() {
-                  uploadInput.click();
                 });
                 uploadWrapper.appendChild(uploadInput);
                 uploadWrapper.appendChild(uploadButton);
@@ -6310,7 +6360,9 @@
                 removeButton.className = 'btn btn-outline-danger mt-2';
                 removeButton.textContent = 'Remove IAM Management Data';
                 removeButton.addEventListener('click', function() {
-                  removeIamCloudConfigData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeIamCloudConfigData(areaKey, modalId);
+                  });
                 });
                 subBody.appendChild(removeButton);
 
@@ -6321,6 +6373,13 @@
                 uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
                 uploadInput.className = 'd-none';
                 uploadInput.id = 'iam-management-upload';
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'btn btn-primary';
+                uploadButton.textContent = 'Upload IAM Benchmark XLSX file';
+                uploadButton.addEventListener('click', function() {
+                  uploadInput.click();
+                });
                 const fileNameDisplay = document.createElement('div');
                 fileNameDisplay.className = 'small text-muted mt-2';
                 const updateFileName = function() {
@@ -6330,16 +6389,11 @@
                 uploadInput.addEventListener('change', function(event) {
                   if (event.target.files && event.target.files[0]) {
                     fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
-                    uploadIamManagementXlsx(event.target.files[0], areaKey, modalId);
+                    runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                      return uploadIamManagementXlsx(event.target.files[0], areaKey, modalId);
+                    });
                     event.target.value = '';
                   }
-                });
-                const uploadButton = document.createElement('button');
-                uploadButton.type = 'button';
-                uploadButton.className = 'btn btn-primary';
-                uploadButton.textContent = 'Upload IAM Benchmark XLSX file';
-                uploadButton.addEventListener('click', function() {
-                  uploadInput.click();
                 });
                 uploadWrapper.appendChild(uploadInput);
                 uploadWrapper.appendChild(uploadButton);
@@ -6353,7 +6407,9 @@
                 removeButton.className = 'btn btn-outline-danger mt-2';
                 removeButton.textContent = 'Remove System Configuration Data';
                 removeButton.addEventListener('click', function() {
-                  removeSystemConfigData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeSystemConfigData(areaKey, modalId);
+                  });
                 });
                 subBody.appendChild(removeButton);
 
@@ -6364,6 +6420,13 @@
                 uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
                 uploadInput.className = 'd-none';
                 uploadInput.id = 'system-configuration-upload';
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'btn btn-primary';
+                uploadButton.textContent = 'Upload System Configuration Benchmark XLSX file';
+                uploadButton.addEventListener('click', function() {
+                  uploadInput.click();
+                });
                 const fileNameDisplay = document.createElement('div');
                 fileNameDisplay.className = 'small text-muted mt-2';
                 const updateFileName = function() {
@@ -6373,16 +6436,11 @@
                 uploadInput.addEventListener('change', function(event) {
                   if (event.target.files && event.target.files[0]) {
                     fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
-                    uploadSystemConfigurationXlsx(event.target.files[0], areaKey, modalId);
+                    runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                      return uploadSystemConfigurationXlsx(event.target.files[0], areaKey, modalId);
+                    });
                     event.target.value = '';
                   }
-                });
-                const uploadButton = document.createElement('button');
-                uploadButton.type = 'button';
-                uploadButton.className = 'btn btn-primary';
-                uploadButton.textContent = 'Upload System Configuration Benchmark XLSX file';
-                uploadButton.addEventListener('click', function() {
-                  uploadInput.click();
                 });
                 uploadWrapper.appendChild(uploadInput);
                 uploadWrapper.appendChild(uploadButton);
@@ -6399,6 +6457,13 @@
                   uploadInput.className = 'd-none';
                   uploadInput.accept = uploader.accept || '.xml,application/xml,text/xml';
                   uploadInput.id = 'uploader-' + subkey + '-' + uploader.fieldName;
+                  const uploadButton = document.createElement('button');
+                  uploadButton.type = 'button';
+                  uploadButton.className = 'btn btn-outline-primary';
+                  uploadButton.textContent = uploader.label || 'Upload';
+                  uploadButton.addEventListener('click', function() {
+                    uploadInput.click();
+                  });
                   const fileNameDisplay = document.createElement('div');
                   fileNameDisplay.className = 'small text-muted mt-2';
                   const missingNotice = document.createElement('div');
@@ -6421,32 +6486,32 @@
                       : '';
                   };
                   const uploadHandler = (typeof uploader.uploadHandler === 'function')
-                    ? function(file) { uploader.uploadHandler(file, uploaderContext); }
-                    : function(file) { uploadNexposeXml(file, uploader.fieldName, areaKey, modalId); };
+                    ? function(file) { return uploader.uploadHandler(file, uploaderContext); }
+                    : function(file) { return uploadNexposeXml(file, uploader.fieldName, areaKey, modalId); };
+                  const handleUpload = function(file) {
+                    return runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                      return uploadHandler(file);
+                    });
+                  };
                   uploadInput.addEventListener('change', function(event) {
                     if (event.target.files && event.target.files[0]) {
                       fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
-                      uploadHandler(event.target.files[0]);
+                      handleUpload(event.target.files[0]);
                       event.target.value = '';
                     }
                   });
-                  const uploadButton = document.createElement('button');
-                  uploadButton.type = 'button';
-                  uploadButton.className = 'btn btn-outline-primary';
-                  uploadButton.textContent = uploader.label || 'Upload';
-                  uploadButton.addEventListener('click', function() {
-                    uploadInput.click();
-                  });
                   const removeHandler = (typeof uploader.removeHandler === 'function')
-                    ? function() { uploader.removeHandler(uploaderContext); }
-                    : function() { removeNexposeData(workbookKey, areaKey, modalId); };
+                    ? function() { return uploader.removeHandler(uploaderContext); }
+                    : function() { return removeNexposeData(workbookKey, areaKey, modalId); };
                   const removeButton = document.createElement('button');
                   removeButton.type = 'button';
                   removeButton.className = 'btn btn-outline-danger ml-2';
                   removeButton.textContent = uploader.removeLabel || 'Remove Nexpose Data';
                   removeButton.addEventListener('click', function() {
-                    removeHandler();
-                    fileNameDisplay.textContent = '';
+                    runWithButtonLoading(removeButton, 'Removing...', function() {
+                      fileNameDisplay.textContent = '';
+                      return removeHandler();
+                    });
                   });
 
                   uploadContainer.appendChild(uploadButton);
@@ -6466,12 +6531,6 @@
                 uploadInput.accept = '.csv,text/csv';
                 uploadInput.className = 'd-none';
                 uploadInput.id = 'area-' + subkey + '-upload';
-                uploadInput.addEventListener('change', function(event) {
-                  if (event.target.files && event.target.files[0]) {
-                    uploadOsintCsv(event.target.files[0], areaKey, modalId);
-                    event.target.value = '';
-                  }
-                });
                 const uploadButton = document.createElement('button');
                 uploadButton.type = 'button';
                 uploadButton.className = 'btn btn-outline-primary';
@@ -6479,12 +6538,25 @@
                 uploadButton.addEventListener('click', function() {
                   uploadInput.click();
                 });
+                const handleUpload = function(file) {
+                  return runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                    return uploadOsintCsv(file, areaKey, modalId);
+                  });
+                };
+                uploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    handleUpload(event.target.files[0]);
+                    event.target.value = '';
+                  }
+                });
                 const removeButton = document.createElement('button');
                 removeButton.type = 'button';
                 removeButton.className = 'btn btn-outline-danger ml-2';
                 removeButton.textContent = 'Remove OSINT Data';
                 removeButton.addEventListener('click', function() {
-                  removeOsintData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeOsintData(areaKey, modalId);
+                  });
                 });
                 const fileNameDisplay = document.createElement('div');
                 fileNameDisplay.className = 'small text-muted mt-2';
@@ -6507,12 +6579,6 @@
                 uploadInput.accept = '.csv,text/csv';
                 uploadInput.className = 'd-none';
                 uploadInput.id = 'area-' + subkey + '-upload';
-                uploadInput.addEventListener('change', function(event) {
-                  if (event.target.files && event.target.files[0]) {
-                    uploadSnmpCsv(event.target.files[0], areaKey, modalId);
-                    event.target.value = '';
-                  }
-                });
                 const uploadButton = document.createElement('button');
                 uploadButton.type = 'button';
                 uploadButton.className = 'btn btn-outline-primary';
@@ -6520,12 +6586,25 @@
                 uploadButton.addEventListener('click', function() {
                   uploadInput.click();
                 });
+                const handleUpload = function(file) {
+                  return runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                    return uploadSnmpCsv(file, areaKey, modalId);
+                  });
+                };
+                uploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    handleUpload(event.target.files[0]);
+                    event.target.value = '';
+                  }
+                });
                 const removeButton = document.createElement('button');
                 removeButton.type = 'button';
                 removeButton.className = 'btn btn-outline-danger ml-2';
                 removeButton.textContent = 'Remove SNMP Data';
                 removeButton.addEventListener('click', function() {
-                  removeSnmpData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeSnmpData(areaKey, modalId);
+                  });
                 });
                 const fileNameDisplay = document.createElement('div');
                 fileNameDisplay.className = 'small text-muted mt-2';
@@ -6549,12 +6628,6 @@
                 uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
                 uploadInput.className = 'd-none';
                 uploadInput.id = 'area-' + subkey + '-upload';
-                uploadInput.addEventListener('change', function(event) {
-                  if (event.target.files && event.target.files[0]) {
-                    uploadSqlXlsx(event.target.files[0], areaKey, modalId);
-                    event.target.value = '';
-                  }
-                });
 
                 const uploadButton = document.createElement('button');
                 uploadButton.type = 'button';
@@ -6563,13 +6636,26 @@
                 uploadButton.addEventListener('click', function() {
                   uploadInput.click();
                 });
+                const handleUpload = function(file) {
+                  return runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                    return uploadSqlXlsx(file, areaKey, modalId);
+                  });
+                };
+                uploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    handleUpload(event.target.files[0]);
+                    event.target.value = '';
+                  }
+                });
 
                 const removeButton = document.createElement('button');
                 removeButton.type = 'button';
                 removeButton.className = 'btn btn-outline-danger ml-2';
                 removeButton.textContent = 'Remove SQL Data';
                 removeButton.addEventListener('click', function() {
-                  removeSqlData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeSqlData(areaKey, modalId);
+                  });
                 });
 
                 const fileNameDisplay = document.createElement('div');
@@ -6595,7 +6681,9 @@
                 removeButton.className = 'btn btn-outline-danger';
                 removeButton.textContent = 'Remove Walkthru Data';
                 removeButton.addEventListener('click', function() {
-                  removeWirelessWalkthruData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeWirelessWalkthruData(areaKey, modalId);
+                  });
                 });
                 removeWrapper.appendChild(removeButton);
                 subBody.appendChild(removeWrapper);
@@ -6608,7 +6696,9 @@
                 removeButton.className = 'btn btn-outline-danger';
                 removeButton.textContent = 'Remove Segmentation Data';
                 removeButton.addEventListener('click', function() {
-                  removeWirelessSegmentationData(areaKey, modalId);
+                  runWithButtonLoading(removeButton, 'Removing...', function() {
+                    return removeWirelessSegmentationData(areaKey, modalId);
+                  });
                 });
                 removeWrapper.appendChild(removeButton);
                 subBody.appendChild(removeWrapper);
@@ -6626,19 +6716,24 @@
             uploadInput.type = 'file';
             uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
             uploadInput.className = 'd-none';
-            uploadInput.addEventListener('change', function(event) {
-              if (event.target.files && event.target.files[0]) {
-                uploadWirelessData(event.target.files[0], areaKey, modalId);
-                fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
-                event.target.value = '';
-              }
-            });
             const uploadButton = document.createElement('button');
             uploadButton.type = 'button';
             uploadButton.className = 'btn btn-primary';
             uploadButton.textContent = 'Upload Wireless Data file';
             uploadButton.addEventListener('click', function() {
               uploadInput.click();
+            });
+            const handleWirelessUpload = function(file) {
+              return runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                return uploadWirelessData(file, areaKey, modalId);
+              });
+            };
+            uploadInput.addEventListener('change', function(event) {
+              if (event.target.files && event.target.files[0]) {
+                handleWirelessUpload(event.target.files[0]);
+                fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
+                event.target.value = '';
+              }
             });
             const fileNameDisplay = document.createElement('div');
             fileNameDisplay.className = 'small text-muted mt-2';
@@ -6661,23 +6756,30 @@
             uploadInput.type = 'file';
             uploadInput.className = 'd-none';
             uploadInput.accept = '.xml,application/xml,text/xml';
-            uploadInput.addEventListener('change', function(event) {
-              if (event.target.files && event.target.files[0]) {
-                uploadFirewallXml(event.target.files[0], areaKey, modalId);
-                event.target.value = '';
-              }
-            });
             const uploadButton = document.createElement('button');
             uploadButton.type = 'button';
             uploadButton.className = 'btn btn-outline-primary';
             uploadButton.textContent = 'Upload Nipper XML';
             uploadButton.addEventListener('click', function() { uploadInput.click(); });
+            const handleUpload = function(file) {
+              return runWithButtonLoading(uploadButton, 'Uploading...', function() {
+                return uploadFirewallXml(file, areaKey, modalId);
+              });
+            };
+            uploadInput.addEventListener('change', function(event) {
+              if (event.target.files && event.target.files[0]) {
+                handleUpload(event.target.files[0]);
+                event.target.value = '';
+              }
+            });
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
             removeButton.className = 'btn btn-outline-danger ml-2';
             removeButton.textContent = 'Remove Nipper Data';
             removeButton.addEventListener('click', function() {
-              removeFirewallData(areaKey, modalId);
+              runWithButtonLoading(removeButton, 'Removing...', function() {
+                return removeFirewallData(areaKey, modalId);
+              });
             });
             uploadWrapper.appendChild(uploadInput);
             uploadWrapper.appendChild(uploadButton);
@@ -6696,7 +6798,9 @@
             saveButton.className = 'btn btn-primary';
             saveButton.textContent = 'Save ' + (areaConfig.label || titleize(areaKey));
             saveButton.addEventListener('click', function() {
-              saveAreaData(areaKey, subkeys, modalId);
+              runWithButtonLoading(saveButton, 'Saving...', function() {
+                return saveAreaData(areaKey, subkeys, modalId);
+              });
             });
             modalFooter.appendChild(closeButton);
             modalFooter.appendChild(saveButton);
@@ -6975,7 +7079,7 @@
           if (!workbookUpdateUrl) {
             return;
           }
-          fetch(workbookUpdateUrl, {
+          return fetch(workbookUpdateUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
