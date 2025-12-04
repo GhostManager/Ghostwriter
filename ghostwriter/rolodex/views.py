@@ -71,6 +71,7 @@ from ghostwriter.rolodex.forms_project import (
     WhiteCardFormSet,
 )
 from ghostwriter.rolodex.forms_workbook import (
+    _flatten_grouped_initial,
     ProjectDataFileForm,
     ProjectDataResponsesForm,
     ProjectIPArtifactForm,
@@ -178,6 +179,69 @@ def _is_empty_response(value: Any) -> bool:
     if isinstance(value, dict):
         return not value
     return False
+
+
+def _coerce_selection_set(selection: Any) -> Set[str]:
+    if isinstance(selection, str):
+        return {selection}
+    if isinstance(selection, (list, tuple, set)):
+        return {str(value) for value in selection if value}
+    return set()
+
+
+def _is_question_visible(
+    question_definition: Mapping[str, Any], flattened_responses: Mapping[str, Any]
+) -> bool:
+    key = question_definition.get("key")
+
+    if key == "wireless_segmentation_ssids":
+        return bool(flattened_responses.get("wireless_segmentation_tested"))
+
+    if key == "wireless_psk_masterpass_ssids":
+        return flattened_responses.get("wireless_psk_masterpass") == "yes"
+
+    if key == "assessment_scope_cloud_on_prem":
+        scope_selection = _coerce_selection_set(flattened_responses.get("assessment_scope"))
+        return "cloud" in scope_selection
+
+    if key == "hashes_obtained":
+        scope_selection = _coerce_selection_set(flattened_responses.get("assessment_scope"))
+        return bool(scope_selection.intersection({"cloud", "internal"}))
+
+    if key == "general_scope_changed":
+        return flattened_responses.get("general_first_ca") == "no"
+
+    return True
+
+
+def _count_pending_question_sections(
+    question_definitions: List[Dict[str, Any]],
+    grouped_responses: Mapping[str, Any],
+) -> int:
+    """Return the number of sections that have unanswered questions."""
+
+    if not question_definitions:
+        return 0
+
+    flattened_responses = _flatten_grouped_initial(
+        ensure_data_responses_defaults(grouped_responses), question_definitions
+    )
+    pending_sections: Set[str] = set()
+
+    for definition in question_definitions:
+        key = definition.get("key")
+        section = definition.get("section")
+        if not key or not section:
+            continue
+
+        if not _is_question_visible(definition, flattened_responses):
+            continue
+
+        value = flattened_responses.get(key)
+        if _is_empty_response(value):
+            pending_sections.add(section)
+
+    return len(pending_sections)
 
 
 def _build_grouped_data_responses(
@@ -1966,6 +2030,9 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             initial=normalized_responses,
         )
         ctx["data_responses_form"] = data_responses_form
+        ctx["pending_question_sections_count"] = _count_pending_question_sections(
+            questions, normalized_responses
+        )
         ctx["project_scoping_json"] = normalize_project_scoping(object.scoping)
         ctx["project_scoping_weights_json"] = {
             category: {option: float(weight) for option, weight in weights.items()}
