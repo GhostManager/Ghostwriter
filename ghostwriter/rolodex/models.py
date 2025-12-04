@@ -24,6 +24,7 @@ from ghostwriter.reporting.models import ReportFindingLink, ScopingWeightCategor
 from ghostwriter.rolodex.validators import validate_ip_range
 from ghostwriter.rolodex.constants import (
     CLOUD_MANAGEMENT_FILE_NAME_KEY,
+    IAM_MANAGEMENT_FILE_NAME_KEY,
     SQL_DATA_FILE_NAME_KEY,
     WIRELESS_DATA_FILE_NAME_KEY,
 )
@@ -803,6 +804,7 @@ class Project(models.Model):
             WIRELESS_DATA_FILE_NAME_KEY,
             SQL_DATA_FILE_NAME_KEY,
             CLOUD_MANAGEMENT_FILE_NAME_KEY,
+            IAM_MANAGEMENT_FILE_NAME_KEY,
         ):
             if key in existing_artifacts and key not in artifacts:
                 artifacts[key] = existing_artifacts[key]
