@@ -1021,6 +1021,7 @@ class ProjectDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertContains(response, "Processed Data")
         self.assertContains(response, "Total Count")
+        self.assertContains(response, 'Processed Data <span class="badge badge-pill badge-light">1</span>')
         self.assertContains(response, "Download Nexpose Data file")
         self.assertContains(response, "?artifact=external_nexpose_metrics")
 
