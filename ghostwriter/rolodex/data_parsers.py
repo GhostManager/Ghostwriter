@@ -2753,7 +2753,10 @@ def parse_nipper_firewall_report(
                         normalized_risk = "Low"
                     risk = normalized_risk
 
-                    for item in _find_child_elements(child, "item"):
+                    metric_nodes = _find_child_elements(child, "item") + _find_child_elements(
+                        child, "infodata"
+                    )
+                    for item in metric_nodes:
                         label = (item.attrib.get("label") or "").strip()
                         value = _element_text(item)
                         if label == "CVSSv2 Score":
@@ -2762,13 +2765,23 @@ def parse_nipper_firewall_report(
                             impact = _get_nipper_impact(value)
                 elif child_title.lower() == "summary":
                     details = _element_text(child)
+                    impact = details
                 elif child_title.lower() == "affected devices":
-                    device_entries = []
-                    for item in _find_child_elements(child, "item"):
+                    device_entries: List[str] = []
+                    for item in _find_child_elements(child, "listitem") + _find_child_elements(
+                        child, "item"
+                    ):
                         item_text = _element_text(item)
-                        if item_text:
+                        if not item_text:
+                            continue
+                        matched = [
+                            name for name in device_names if name and name.lower() in item_text.lower()
+                        ]
+                        if matched:
+                            device_entries.extend(matched)
+                        else:
                             device_entries.append(item_text)
-                    devices = "\n".join(device_entries)
+                    devices = "\n".join(dict.fromkeys(device_entries))
                 elif child_title.lower() == "affected device":
                     device_text = _element_text(child)
                     matched_devices = [name for name in device_names if name and name in device_text]
@@ -2780,6 +2793,8 @@ def parse_nipper_firewall_report(
                         if link:
                             advisories.append(link)
                     reference = "\n".join(advisories)
+
+            reference = _build_cve_links(issue)
 
             findings.append(
                 {

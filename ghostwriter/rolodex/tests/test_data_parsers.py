@@ -1184,13 +1184,17 @@ class NexposeDataParserTests(TestCase):
     </information>
   </document>
   <section ref=\"VULNAUDIT\">
-    <section ref=\"VULNAUDIT.TEST\" title=\"Sample Vulnerability\">
-      <infobox title=\"Risk: Critical\">
-        <item label=\"CVSSv2 Score\">8.5</item>
-        <item label=\"CVSSv2 Base\">X/X/X/C:P/I:C/A:P 8.5</item>
+    <section ref=\"VULNAUDIT.CVE-2017-3134\" title=\"CVE-2017-3134\">
+      <infobox title=\"Overall Rating: High\" dataformat=\"dual\">
+        <infodata label=\"CVSSv2 Score\">9.0</infodata>
+        <infodata label=\"CVSSv2 Base\">AV:N/AC:L/Au:S/C:C/I:C/A:C (9.0)</infodata>
       </infobox>
-      <section title=\"Summary\">Issue summary content</section>
-      <section title=\"Affected Device\">Device FW-EDGE is impacted</section>
+      <section title=\"Summary\"><text>Issue summary content</text></section>
+      <section title=\"Affected Devices\">
+        <list type=\"bullet\">
+          <listitem>Fortinet FortiGate Firewall with UTM FG6H1E-FW-EDGE;</listitem>
+        </list>
+      </section>
       <section title=\"Vendor Security Advisory\"><item weblink=\"http://vendor.example/advisory\" /></section>
     </section>
   </section>
@@ -1242,9 +1246,14 @@ class NexposeDataParserTests(TestCase):
 
         vuln_entry = findings[0]
         self.assertEqual(vuln_entry["Risk"], "High")
-        self.assertEqual(vuln_entry["Issue"], "Sample Vulnerability")
+        self.assertEqual(vuln_entry["Issue"], "CVE-2017-3134")
         self.assertEqual(vuln_entry["Devices"], "FW-EDGE")
-        self.assertEqual(vuln_entry["Reference"], "http://vendor.example/advisory")
+        self.assertEqual(vuln_entry["Impact"], "Issue summary content")
+        self.assertEqual(
+            vuln_entry["Reference"],
+            "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2017-3134",
+        )
+        self.assertEqual(vuln_entry["Score"], 9.0)
         self.assertEqual(vuln_entry["Type"], "Vuln")
 
         security_entry = [row for row in findings if row.get("Type") == "Rule"][0]
