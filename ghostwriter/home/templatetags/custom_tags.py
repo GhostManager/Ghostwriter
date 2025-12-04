@@ -239,7 +239,6 @@ def translate_domain_sid(sid: str, domains: dict):
     Translate a domain SID to its corresponding domain name.
     """
     for domain in domains:
-        print(domain)
         if sid == domain["domain_sid"]:
             return domain["name"]
     return sid
