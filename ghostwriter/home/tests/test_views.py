@@ -184,6 +184,24 @@ class TemplateTagTests(TestCase):
         self.assertTrue(custom_tags.is_past(past_datetime))
         self.assertFalse(custom_tags.is_past(future_datetime))
 
+        # Test custom_tags.multiply
+        result = custom_tags.multiply(10, 5)
+        self.assertEqual(result, 50)
+        result = custom_tags.multiply(10, -2)
+        self.assertEqual(result, -20)
+        result = custom_tags.multiply("A", 5)
+        self.assertEqual(result, None)
+
+        # Test custom_tags.translate_domain_sid
+        domains = [
+            {"domain_sid": "S-1-5-21-1000", "domain_name": "EXAMPLE_DOMAIN"},
+            {"domain_sid": "S-1-5-21-2000", "domain_name": "ANOTHER_DOMAIN"},
+        ]
+        result = custom_tags.translate_domain_sid("S-1-5-21-1000", domains)
+        self.assertEqual(result, "EXAMPLE_DOMAIN")
+        result = custom_tags.translate_domain_sid("S-1-5-21-3000", domains)
+        self.assertEqual(result, "S-1-5-21-3000")
+
 
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""

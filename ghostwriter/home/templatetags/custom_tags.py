@@ -122,6 +122,15 @@ def divide(value, arg):
 
 
 @register.filter
+def multiply(value, arg):
+    """Multiply the value by the argument."""
+    try:
+        return round(float(value) * float(arg), 2)
+    except (ValueError, TypeError):
+        return None
+
+
+@register.filter
 def has_access(project, user):
     """Check if the user has access to the project."""
     return project.user_can_view(user)
@@ -222,3 +231,15 @@ def is_past(value):
     if timezone.is_naive(value):
         value = timezone.make_aware(value, timezone.get_current_timezone())
     return value < now
+
+
+@register.filter(name="translate_domain_sid")
+def translate_domain_sid(sid: str, domains: dict):
+    """
+    Translate a domain SID to its corresponding domain name.
+    """
+    for domain in domains:
+        print(domain)
+        if sid == domain["domain_sid"]:
+            return domain["name"]
+    return sid
