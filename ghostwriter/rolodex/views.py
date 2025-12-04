@@ -2130,9 +2130,9 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                 reordered_requirements[burp_insert_index:burp_insert_index] = nexpose_requirements
         required_files = reordered_requirements
 
-        supplemental_cards = []
-        inserted_ip_cards = False
-        pending_ip_cards_after_burp = False
+        supplemental_cards = [
+            {"card_type": "ip", "data": card} for card in ip_cards
+        ]
         for requirement in required_files:
             label = (requirement.get("label") or "").strip().lower()
             slug = requirement.get("slug")
@@ -2167,32 +2167,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                     fail_count = 0
                 requirement["parsed_fail_count"] = fail_count
                 setattr(existing, "parsed_fail_count", fail_count)
-            if label in burp_requirement_labels:
-                supplemental_cards.append({"card_type": "required", "data": requirement})
-                pending_ip_cards_after_burp = True
-                continue
-
-            if (
-                pending_ip_cards_after_burp
-                and not inserted_ip_cards
-                and label not in nexpose_requirement_labels
-            ):
-                supplemental_cards.extend({"card_type": "ip", "data": card} for card in ip_cards)
-                inserted_ip_cards = True
-                pending_ip_cards_after_burp = False
-
-            if label in nexpose_requirement_labels:
-                supplemental_cards.append({"card_type": "required", "data": requirement})
-                continue
             supplemental_cards.append({"card_type": "required", "data": requirement})
-
-        if pending_ip_cards_after_burp and not inserted_ip_cards:
-            supplemental_cards.extend({"card_type": "ip", "data": card} for card in ip_cards)
-            inserted_ip_cards = True
-            pending_ip_cards_after_burp = False
-
-        if not inserted_ip_cards:
-            supplemental_cards.extend({"card_type": "ip", "data": card} for card in ip_cards)
 
         ctx["required_data_files"] = required_files
         ctx["supplemental_cards"] = supplemental_cards
