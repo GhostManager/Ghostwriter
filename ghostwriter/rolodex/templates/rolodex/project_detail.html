@@ -5242,8 +5242,11 @@
               title.className = 'mb-0 mr-2';
               title.textContent = 'Domain ' + (index + 1);
               titleWrap.appendChild(title);
+              const uploadsInfoContainer = document.createElement('div');
+              uploadsInfoContainer.className = 'w-100 mt-2';
+
               const logFileInfo = document.createElement('div');
-              logFileInfo.className = 'small text-muted mt-1 mt-md-0';
+              logFileInfo.className = 'small text-muted';
               const headingActions = document.createElement('div');
               headingActions.className = 'd-flex align-items-center flex-wrap mt-2 mt-md-0';
               const logUploadInput = document.createElement('input');
@@ -5288,7 +5291,7 @@
               };
 
               const adminUsersInfo = document.createElement('div');
-              adminUsersInfo.className = 'small text-muted mt-1 mt-md-0';
+              adminUsersInfo.className = 'small text-muted';
 
               const updateAdminUsersInfo = function() {
                 const fileName = getMetricFileName('admin_users');
@@ -5312,11 +5315,13 @@
               updateLogFileInfo();
               updateAdminUsersInfo();
 
-              titleWrap.appendChild(logFileInfo);
-              titleWrap.appendChild(adminUsersInfo);
               heading.appendChild(titleWrap);
               heading.appendChild(headingActions);
               wrapper.appendChild(heading);
+
+              uploadsInfoContainer.appendChild(logFileInfo);
+              uploadsInfoContainer.appendChild(adminUsersInfo);
+              wrapper.appendChild(uploadsInfoContainer);
 
               const adminUsersUploadInput = document.createElement('input');
               adminUsersUploadInput.type = 'file';
