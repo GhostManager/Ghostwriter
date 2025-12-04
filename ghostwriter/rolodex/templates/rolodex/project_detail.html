@@ -3958,6 +3958,102 @@
           });
         };
 
+        const uploadCloudManagementXlsx = function(file, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+          const formData = new FormData();
+          formData.append('cloud_management_xlsx', file);
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to upload the cloud management XLSX';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to upload the cloud management XLSX.');
+          });
+        };
+
+        const uploadIamManagementXlsx = function(file, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+          const formData = new FormData();
+          formData.append('iam_management_xlsx', file);
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to upload the IAM management XLSX';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to upload the IAM management XLSX.');
+          });
+        };
+
+        const uploadSystemConfigurationXlsx = function(file, areaKey, modalId) {
+          if (!workbookUpdateUrl || !file) {
+            return;
+          }
+          const formData = new FormData();
+          formData.append('system_configuration_xlsx', file);
+          fetch(workbookUpdateUrl, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken() || ''
+            },
+            body: formData,
+          }).then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) {
+                const message = (data && data.error) ? data.error : 'Unable to upload the system configuration XLSX';
+                throw new Error(message);
+              }
+              return data;
+            });
+          }).then(function(data) {
+            handleWorkbookUpdateResponse(data, {
+              reopenModalId: modalId,
+              forceCloseModalId: modalId,
+              afterRender: function() { updateWorkbookCardProgress(areaKey); },
+            });
+          }).catch(function(error) {
+            console.error(error);
+            alert(error.message || 'Unable to upload the system configuration XLSX.');
+          });
+        };
+
         const uploadSqlXlsx = function(file, areaKey, modalId) {
           if (!workbookUpdateUrl || !file) {
             return;
@@ -4213,7 +4309,7 @@
         };
 
         const removeIamCloudConfigData = function(areaKey, modalId) {
-          const payload = {areas: {iam_cloud_config: {pass: null, fail: null}}};
+          const payload = {remove_iam_management: true};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -4222,7 +4318,7 @@
         };
 
         const removeCloudConfigData = function(areaKey, modalId) {
-          const payload = {areas: {cloud_config: {pass: null, fail: null}}};
+          const payload = {remove_cloud_management: true};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -4231,9 +4327,7 @@
         };
 
         const removeSystemConfigData = function(areaKey, modalId) {
-          const payload = {
-            areas: {system_config: {total_pass: null, total_fail: null, unique_pass: null, unique_fail: null}},
-          };
+          const payload = {remove_system_configuration: true};
           submitWorkbookUpdate(payload, null, {
             reopenModalId: modalId,
             forceCloseModalId: modalId,
@@ -6176,6 +6270,39 @@
                   removeCloudConfigData(areaKey, modalId);
                 });
                 subBody.appendChild(removeButton);
+
+                const uploadWrapper = document.createElement('div');
+                uploadWrapper.className = 'mt-3';
+                const uploadInput = document.createElement('input');
+                uploadInput.type = 'file';
+                uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                uploadInput.className = 'd-none';
+                uploadInput.id = 'cloud-management-upload';
+                const fileNameDisplay = document.createElement('div');
+                fileNameDisplay.className = 'small text-muted mt-2';
+                const updateFileName = function() {
+                  const name = (dataArtifactsState.cloud_management_benchmark_file_name || '').toString().trim();
+                  fileNameDisplay.textContent = name ? 'Uploaded file: ' + name : '';
+                };
+                uploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
+                    uploadCloudManagementXlsx(event.target.files[0], areaKey, modalId);
+                    event.target.value = '';
+                  }
+                });
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'btn btn-primary';
+                uploadButton.textContent = 'Upload Cloud Benchmark XLSX file';
+                uploadButton.addEventListener('click', function() {
+                  uploadInput.click();
+                });
+                uploadWrapper.appendChild(uploadInput);
+                uploadWrapper.appendChild(uploadButton);
+                uploadWrapper.appendChild(fileNameDisplay);
+                updateFileName();
+                subBody.appendChild(uploadWrapper);
               }
               if (areaKey === 'cloud' && subkey === 'iam_management') {
                 const removeButton = document.createElement('button');
@@ -6186,6 +6313,39 @@
                   removeIamCloudConfigData(areaKey, modalId);
                 });
                 subBody.appendChild(removeButton);
+
+                const uploadWrapper = document.createElement('div');
+                uploadWrapper.className = 'mt-3';
+                const uploadInput = document.createElement('input');
+                uploadInput.type = 'file';
+                uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                uploadInput.className = 'd-none';
+                uploadInput.id = 'iam-management-upload';
+                const fileNameDisplay = document.createElement('div');
+                fileNameDisplay.className = 'small text-muted mt-2';
+                const updateFileName = function() {
+                  const name = (dataArtifactsState.iam_management_benchmark_file_name || '').toString().trim();
+                  fileNameDisplay.textContent = name ? 'Uploaded file: ' + name : '';
+                };
+                uploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
+                    uploadIamManagementXlsx(event.target.files[0], areaKey, modalId);
+                    event.target.value = '';
+                  }
+                });
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'btn btn-primary';
+                uploadButton.textContent = 'Upload IAM Benchmark XLSX file';
+                uploadButton.addEventListener('click', function() {
+                  uploadInput.click();
+                });
+                uploadWrapper.appendChild(uploadInput);
+                uploadWrapper.appendChild(uploadButton);
+                uploadWrapper.appendChild(fileNameDisplay);
+                updateFileName();
+                subBody.appendChild(uploadWrapper);
               }
               if (areaKey === 'cloud' && subkey === 'system_configuration') {
                 const removeButton = document.createElement('button');
@@ -6196,6 +6356,39 @@
                   removeSystemConfigData(areaKey, modalId);
                 });
                 subBody.appendChild(removeButton);
+
+                const uploadWrapper = document.createElement('div');
+                uploadWrapper.className = 'mt-3';
+                const uploadInput = document.createElement('input');
+                uploadInput.type = 'file';
+                uploadInput.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                uploadInput.className = 'd-none';
+                uploadInput.id = 'system-configuration-upload';
+                const fileNameDisplay = document.createElement('div');
+                fileNameDisplay.className = 'small text-muted mt-2';
+                const updateFileName = function() {
+                  const name = (dataArtifactsState.system_configuration_benchmark_file_name || '').toString().trim();
+                  fileNameDisplay.textContent = name ? 'Uploaded file: ' + name : '';
+                };
+                uploadInput.addEventListener('change', function(event) {
+                  if (event.target.files && event.target.files[0]) {
+                    fileNameDisplay.textContent = 'Selected: ' + event.target.files[0].name;
+                    uploadSystemConfigurationXlsx(event.target.files[0], areaKey, modalId);
+                    event.target.value = '';
+                  }
+                });
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'btn btn-primary';
+                uploadButton.textContent = 'Upload System Configuration Benchmark XLSX file';
+                uploadButton.addEventListener('click', function() {
+                  uploadInput.click();
+                });
+                uploadWrapper.appendChild(uploadInput);
+                uploadWrapper.appendChild(uploadButton);
+                uploadWrapper.appendChild(fileNameDisplay);
+                updateFileName();
+                subBody.appendChild(uploadWrapper);
               }
               if (config && Array.isArray(config.uploaders)) {
                 const uploadContainer = document.createElement('div');

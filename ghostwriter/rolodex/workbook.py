@@ -156,6 +156,21 @@ SQL_DATA_REQUIREMENT_LABEL = "sql_instances_allowing_open_access.xlsx"
 SQL_DATA_REQUIREMENT_SLUG = _slugify_identifier(
     "required", SQL_DATA_REQUIREMENT_LABEL
 )
+CLOUD_MANAGEMENT_REQUIREMENT_LABEL = "cloud_management_benchmark.xlsx"
+CLOUD_MANAGEMENT_REQUIREMENT_SLUG = _slugify_identifier(
+    "required",
+    CLOUD_MANAGEMENT_REQUIREMENT_LABEL,
+)
+IAM_MANAGEMENT_REQUIREMENT_LABEL = "iam_management_benchmark.xlsx"
+IAM_MANAGEMENT_REQUIREMENT_SLUG = _slugify_identifier(
+    "required",
+    IAM_MANAGEMENT_REQUIREMENT_LABEL,
+)
+SYSTEM_CONFIGURATION_REQUIREMENT_LABEL = "system_configuration_benchmark.xlsx"
+SYSTEM_CONFIGURATION_REQUIREMENT_SLUG = _slugify_identifier(
+    "required",
+    SYSTEM_CONFIGURATION_REQUIREMENT_LABEL,
+)
 
 
 def _get_nested(data: Dict[str, Any], path: Iterable[str], default: Any = None) -> Any:
