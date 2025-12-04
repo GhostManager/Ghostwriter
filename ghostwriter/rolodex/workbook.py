@@ -8,7 +8,10 @@ from django import forms
 from django.utils.text import slugify
 
 # Ghostwriter Libraries
-from ghostwriter.rolodex.constants import WIRELESS_DATA_FILE_NAME_KEY
+from ghostwriter.rolodex.constants import (
+    SQL_DATA_FILE_NAME_KEY,
+    WIRELESS_DATA_FILE_NAME_KEY,
+)
 from ghostwriter.rolodex.forms_workbook import MultiValueField, SummaryMultipleChoiceField
 from ghostwriter.rolodex.workbook_defaults import (
     WORKBOOK_META_KEY,
@@ -148,6 +151,10 @@ def _slugify_identifier(*parts: Iterable[Any]) -> str:
 WIRELESS_DATA_REQUIREMENT_LABEL = "wireless_data.xlsx"
 WIRELESS_DATA_REQUIREMENT_SLUG = _slugify_identifier(
     "required", WIRELESS_DATA_REQUIREMENT_LABEL
+)
+SQL_DATA_REQUIREMENT_LABEL = "sql_instances_allowing_open_access.xlsx"
+SQL_DATA_REQUIREMENT_SLUG = _slugify_identifier(
+    "required", SQL_DATA_REQUIREMENT_LABEL
 )
 
 
