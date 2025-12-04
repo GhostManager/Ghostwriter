@@ -109,6 +109,7 @@ from ghostwriter.rolodex.data_parsers import (
     summarize_web_issue_matrix_gaps,
 )
 from ghostwriter.rolodex.constants import (
+    CLOUD_MANAGEMENT_FILE_NAME_KEY,
     SQL_DATA_FILE_NAME_KEY,
     WIRELESS_DATA_FILE_NAME_KEY,
 )
@@ -119,6 +120,8 @@ from ghostwriter.rolodex.workbook import (
     build_workbook_sections,
     normalize_scope_selection,
     prepare_data_responses_initial,
+    CLOUD_MANAGEMENT_REQUIREMENT_LABEL,
+    CLOUD_MANAGEMENT_REQUIREMENT_SLUG,
     SQL_DATA_REQUIREMENT_LABEL,
     SQL_DATA_REQUIREMENT_SLUG,
     WIRELESS_DATA_REQUIREMENT_LABEL,
@@ -4116,6 +4119,57 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                         "workbook_data": project.workbook_data,
                         "data_artifacts": project.data_artifacts,
                     }
+                )
+
+            if "cloud_management_xlsx" in request.FILES:
+                upload = request.FILES.get("cloud_management_xlsx")
+                if not upload:
+                    return JsonResponse(
+                        {"error": "No cloud management benchmark file provided."},
+                        status=400,
+                    )
+
+                filename = (upload.name or "").strip()
+                if not filename.lower().endswith(".xlsx"):
+                    return JsonResponse(
+                        {"error": "Cloud management file must be an .xlsx file."},
+                        status=400,
+                    )
+
+                existing_files = list(
+                    project.data_files.filter(
+                        requirement_slug=CLOUD_MANAGEMENT_REQUIREMENT_SLUG
+                    )
+                )
+                for data_file in existing_files:
+                    if data_file.file:
+                        data_file.file.delete(save=False)
+                    data_file.delete()
+
+                data_file = ProjectDataFile(
+                    project=project,
+                    requirement_slug=CLOUD_MANAGEMENT_REQUIREMENT_SLUG,
+                    requirement_label=CLOUD_MANAGEMENT_REQUIREMENT_LABEL,
+                    requirement_context="cloud management benchmark",
+                    description="",
+                )
+                data_file.file.save(filename, upload)
+                data_file.save()
+
+                artifacts = (
+                    project.data_artifacts
+                    if isinstance(project.data_artifacts, dict)
+                    else {}
+                )
+                artifacts = dict(artifacts)
+                artifacts[CLOUD_MANAGEMENT_FILE_NAME_KEY] = filename
+                project.data_artifacts = artifacts
+                project.save(update_fields=["data_artifacts"])
+
+                project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
+
+                return JsonResponse(
+                    {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
                 )
 
             if "wireless_xlsx" in request.FILES:
