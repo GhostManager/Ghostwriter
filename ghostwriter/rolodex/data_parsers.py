@@ -2735,6 +2735,7 @@ def parse_nipper_firewall_report(
             risk = ""
             impact = ""
             score: Any = ""
+            device_entries: List[str] = []
             devices = ""
             reference = ""
             details = ""
@@ -2766,8 +2767,11 @@ def parse_nipper_firewall_report(
                 elif child_title.lower() == "summary":
                     details = _element_text(child)
                     impact = details
+                    summary_text = (details or "").lower()
+                    for device_name in device_names:
+                        if device_name and device_name.lower() in summary_text:
+                            device_entries.append(device_name)
                 elif child_title.lower() == "affected devices":
-                    device_entries: List[str] = []
                     for item in _find_child_elements(child, "listitem") + _find_child_elements(
                         child, "item"
                     ):
@@ -2795,6 +2799,7 @@ def parse_nipper_firewall_report(
                     reference = "\n".join(advisories)
 
             reference = _build_cve_links(issue)
+            devices = "\n".join(dict.fromkeys(device_entries)) or devices
 
             findings.append(
                 {

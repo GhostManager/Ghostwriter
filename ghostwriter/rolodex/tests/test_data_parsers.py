@@ -1197,6 +1197,12 @@ class NexposeDataParserTests(TestCase):
       </section>
       <section title=\"Vendor Security Advisory\"><item weblink=\"http://vendor.example/advisory\" /></section>
     </section>
+    <section ref=\"VULNAUDIT.CVE-2024-EXAMPLE\" title=\"CVE-2024-EXAMPLE\">
+      <infobox title=\"Overall Rating: Medium\" dataformat=\"dual\">
+        <infodata label=\"CVSSv2 Score\">5.0</infodata>
+      </infobox>
+      <section title=\"Summary\"><text>FW-EDGE device is affected by this example issue.</text></section>
+    </section>
   </section>
   <section ref=\"SECURITYAUDIT\">
     <section ref=\"FILTER.TEST\" title=\"Rule Finding\">
@@ -1242,7 +1248,7 @@ class NexposeDataParserTests(TestCase):
 
         findings = self.project.data_artifacts.get("firewall_findings")
         self.assertIsInstance(findings, list)
-        self.assertEqual(len(findings), 3)
+        self.assertEqual(len(findings), 4)
 
         vuln_entry = findings[0]
         self.assertEqual(vuln_entry["Risk"], "High")
@@ -1255,6 +1261,12 @@ class NexposeDataParserTests(TestCase):
         )
         self.assertEqual(vuln_entry["Score"], 9.0)
         self.assertEqual(vuln_entry["Type"], "Vuln")
+
+        summary_matched_entry = [row for row in findings if row.get("Issue") == "CVE-2024-EXAMPLE"][0]
+        self.assertEqual(summary_matched_entry["Devices"], "FW-EDGE")
+        self.assertEqual(summary_matched_entry["Impact"], "FW-EDGE device is affected by this example issue.")
+        self.assertEqual(summary_matched_entry["Score"], 5.0)
+        self.assertEqual(summary_matched_entry["Risk"], "Medium")
 
         security_entry = [row for row in findings if row.get("Type") == "Rule"][0]
         self.assertEqual(security_entry["Reference"], "N/A")
