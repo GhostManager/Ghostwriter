@@ -5,6 +5,7 @@ import base64
 import binascii
 import copy
 import csv
+from collections import Counter
 import datetime
 import io
 import json
@@ -3134,6 +3135,167 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         return entries, None
 
     @staticmethod
+    def _parse_password_csv(upload) -> tuple[Optional[list[dict[str, str]]], Optional[str]]:
+        filename = (upload.name or "").strip().lower()
+        if not filename.endswith(".csv"):
+            return None, "Password upload must be a CSV file."
+
+        raw_bytes = upload.read()
+        content = None
+
+        for encoding in ("utf-8-sig", "utf-16", "utf-16le", "utf-16be"):
+            try:
+                content = raw_bytes.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+
+        if content is None:
+            try:
+                content = raw_bytes.decode("utf-8", errors="replace")
+            except Exception:
+                return None, "Unable to read the uploaded password CSV file."
+
+        reader = csv.DictReader(io.StringIO(content))
+        headers = reader.fieldnames or []
+        header_lookup = {(header or "").strip().lower(): header for header in headers}
+        required_headers = [
+            "domain",
+            "username",
+            "ntlm hash",
+            "ntlm password",
+            "ntlm state",
+            "user info",
+            "last changed time",
+            "lockout",
+            "disabled",
+            "expired",
+            "no expire",
+        ]
+
+        missing_headers = [
+            header
+            for header in required_headers
+            if header not in header_lookup
+        ]
+
+        if missing_headers:
+            return (
+                None,
+                "Missing required password headers: "
+                + ", ".join(sorted(missing_headers)),
+            )
+
+        normalized_rows: list[dict[str, str]] = []
+        for row in reader:
+            if not isinstance(row, dict):
+                continue
+            normalized_row: dict[str, str] = {}
+            for key, value in row.items():
+                normalized_row[(key or "").strip()] = (value or "").strip()
+            # Skip completely empty rows
+            if any(value for value in normalized_row.values()):
+                normalized_rows.append(normalized_row)
+
+        return normalized_rows, None
+
+    @staticmethod
+    def _process_password_csv(
+        rows: list[dict[str, str]],
+        admin_users_by_domain: dict[str, set[str]],
+    ) -> dict[str, Any]:
+        def get_value(entry: dict[str, str], key: str) -> str:
+            for current_key, value in entry.items():
+                if (current_key or "").lower().strip() == key:
+                    return (value or "").strip()
+            return ""
+
+        def make_tab_name(base: str, domain: str) -> str:
+            domain_label = domain or "NoDomain"
+            full = f"{base}-{domain_label}"
+            if len(full) <= 31:
+                return full
+            max_domain_length = 31 - (len(base) + 1)
+            return f"{base}-{domain_label[:max_domain_length]}"
+
+        domains: dict[str, dict[str, Any]] = {}
+
+        for row in rows:
+            domain_value = get_value(row, "domain")
+            domain_key = domain_value.lower().strip() or "nodomain"
+            domains.setdefault(domain_key, {"domain": domain_value or "NoDomain", "rows": []})
+            domains[domain_key]["rows"].append(row)
+
+        processed_domains: dict[str, Any] = {}
+        metrics: dict[str, Any] = {}
+
+        for domain_key, payload in domains.items():
+            domain_rows = payload.get("rows", [])
+            domain_label = (payload.get("domain") or "NoDomain").strip() or "NoDomain"
+
+            def row_value(entry: dict[str, str], key: str) -> str:
+                return get_value(entry, key).strip()
+
+            cracked_rows = [
+                entry
+                for entry in domain_rows
+                if row_value(entry, "ntlm state").lower() != "not cracked"
+            ]
+
+            admin_users = admin_users_by_domain.get(domain_key, set())
+            admin_rows = [
+                entry
+                for entry in cracked_rows
+                if row_value(entry, "username").lower() in admin_users
+            ]
+
+            enabled_rows = [
+                entry
+                for entry in cracked_rows
+                if row_value(entry, "disabled").lower() == "n"
+            ]
+
+            lanman_rows = [
+                entry
+                for entry in domain_rows
+                if row_value(entry, "lm hash")
+            ]
+
+            password_counter = Counter(
+                row_value(entry, "ntlm password") for entry in cracked_rows if row_value(entry, "ntlm password")
+            )
+            duplicates_rows = [
+                {"NTLM Password": password, "Count": count}
+                for password, count in password_counter.most_common()
+            ]
+
+            processed_domains[domain_key] = {
+                "domain": domain_label,
+                "sheets": {
+                    "cracked": make_tab_name("cracked", domain_label),
+                    "admin": make_tab_name("admin", domain_label),
+                    "enabled": make_tab_name("enabled", domain_label),
+                    "lanman": make_tab_name("LANMAN", domain_label),
+                    "duplicates": make_tab_name("duplicates", domain_label),
+                },
+                "cracked": cracked_rows,
+                "admin": admin_rows,
+                "enabled": enabled_rows,
+                "lanman": lanman_rows,
+                "duplicates": duplicates_rows,
+            }
+
+            metrics[domain_key] = {
+                "domain_name": domain_label,
+                "passwords_cracked": len(cracked_rows),
+                "admin_count": len(admin_rows),
+                "lanman_stored": "Yes" if lanman_rows else "No",
+                "enabled_accounts": len(enabled_rows),
+            }
+
+        return {"raw": rows, "domains": processed_domains, "metrics": metrics}
+
+    @staticmethod
     def _extract_ad_domains(payload: Optional[dict[str, Any]]) -> set[str]:
         domains: set[str] = set()
         if not isinstance(payload, dict):
@@ -3530,6 +3692,107 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
         )
 
+    def _handle_password_csv_upload(self, request, project):
+        upload = request.FILES.get("password_csv")
+        if not upload:
+            return JsonResponse({"error": "No password CSV provided."}, status=400)
+
+        rows, error_message = self._parse_password_csv(upload)
+        if error_message:
+            return JsonResponse({"error": error_message}, status=400)
+
+        artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+        artifacts = dict(artifacts)
+
+        ad_artifacts = artifacts.get("ad") if isinstance(artifacts.get("ad"), dict) else {}
+        admin_users_by_domain: dict[str, set[str]] = {}
+        if isinstance(ad_artifacts, dict):
+            for domain_key, entry in ad_artifacts.items():
+                if not isinstance(entry, dict):
+                    continue
+                admin_users = entry.get("admin_users")
+                if not isinstance(admin_users, list):
+                    continue
+                admin_users_by_domain[domain_key] = {
+                    (user or "").strip().lower() for user in admin_users if (user or "").strip()
+                }
+
+        processed = self._process_password_csv(rows, admin_users_by_domain)
+
+        password_artifacts = artifacts.get("password") if isinstance(artifacts.get("password"), dict) else {}
+        password_artifacts = dict(password_artifacts)
+        password_artifacts["file_name"] = upload.name
+        password_artifacts["raw"] = processed.get("raw", [])
+        password_artifacts["domains"] = processed.get("domains", {})
+        artifacts["password"] = password_artifacts
+
+        normalized_workbook = normalize_workbook_payload(project.workbook_data)
+        password_state = (
+            normalized_workbook.get("password")
+            if isinstance(normalized_workbook.get("password"), dict)
+            else {}
+        )
+        policies = password_state.get("policies") if isinstance(password_state.get("policies"), list) else []
+
+        policy_map: dict[str, dict[str, Any]] = {}
+        for policy in policies:
+            if not isinstance(policy, dict):
+                continue
+            domain_name = (policy.get("domain_name") or "").strip()
+            policy_map[domain_name.lower()] = dict(policy)
+
+        metrics = processed.get("metrics", {}) if isinstance(processed.get("metrics", {}), dict) else {}
+        for domain_key, metric_payload in metrics.items():
+            if not isinstance(metric_payload, dict):
+                continue
+            domain_name = (metric_payload.get("domain_name") or "").strip()
+            if not domain_name:
+                continue
+            key = domain_name.lower()
+            policy_entry = policy_map.get(key, {"domain_name": domain_name})
+            admin_count = metric_payload.get("admin_count") or 0
+            policy_entry.update(
+                {
+                    "passwords_cracked": metric_payload.get("passwords_cracked"),
+                    "admin_cracked": {
+                        "confirm": "Yes" if admin_count > 0 else "No",
+                        "count": admin_count if admin_count > 0 else None,
+                    },
+                    "lanman_stored": metric_payload.get("lanman_stored"),
+                    "enabled_accounts": metric_payload.get("enabled_accounts"),
+                }
+            )
+            policy_map[key] = policy_entry
+
+        updated_policies: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for policy in policies:
+            if not isinstance(policy, dict):
+                continue
+            key = (policy.get("domain_name") or "").strip().lower()
+            if key and key in policy_map:
+                updated_policies.append(policy_map[key])
+                seen.add(key)
+
+        for key, policy in policy_map.items():
+            if key not in seen:
+                updated_policies.append(policy)
+
+        updated_password_state = dict(password_state)
+        if updated_policies:
+            updated_password_state["policies"] = updated_policies
+
+        workbook_payload = build_workbook_entry_payload(
+            project=project, areas={"password": updated_password_state}
+        )
+        project.workbook_data = workbook_payload
+        project.data_artifacts = artifacts
+        project.save(update_fields=["workbook_data", "data_artifacts"])
+
+        return JsonResponse(
+            {"workbook_data": workbook_payload, "data_artifacts": project.data_artifacts}
+        )
+
     def test_func(self):
         return self.get_object().user_can_edit(self.request.user)
 
@@ -3685,6 +3948,9 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
 
             if "ad_log" in request.FILES:
                 return self._handle_ad_log_upload(request, project)
+
+            if "password_csv" in request.FILES:
+                return self._handle_password_csv_upload(request, project)
 
             if "endpoint_csv" in request.FILES:
                 return self._handle_endpoint_csv_upload(request, project)

@@ -2562,6 +2562,59 @@ host1,foo,read-only,desc3
         self.assertEqual(artifacts.get("snmp"), snmp_artifacts.get("snmp"))
         self.assertEqual(artifacts.get("snmp_hosts"), ["host1"])
 
+    def test_upload_password_csv_populates_metrics(self):
+        password_csv = SimpleUploadedFile(
+            "passwords.csv",
+            b"Domain,Username,NTLM Hash,NTLM Password,NTLM State,User Info,Last Changed Time,Lockout,Disabled,Expired,No Expire,LM Hash\n"
+            b"corp.example.com,user1,hash1,pw1,Cracked,info,2024-01-01,N,N,N,Y,\n"
+            b"corp.example.com,Admin1,hash2,pw2,Cracked,info,2024-01-02,N,N,N,N,LM1\n"
+            b"corp.example.com,user3,hash3,,Not Cracked,info,2024-01-03,N,Y,N,N,\n"
+            b"branch.example.com,user4,hash4,pw4,Cracked,info,2024-01-04,N,N,N,N,\n",
+            content_type="text/csv",
+        )
+
+        self.project.data_artifacts = {"ad": {"corp.example.com": {"admin_users": ["admin1"]}}}
+        self.project.save(update_fields=["data_artifacts"])
+
+        response = self.client_auth.post(self.update_url, {"password_csv": password_csv})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        policies = payload.get("workbook_data", {}).get("password", {}).get("policies", [])
+        policy_map = {entry.get("domain_name"): entry for entry in policies}
+
+        corp_policy = policy_map.get("corp.example.com")
+        self.assertIsNotNone(corp_policy)
+        self.assertEqual(corp_policy.get("passwords_cracked"), 2)
+        self.assertEqual(corp_policy.get("lanman_stored"), "Yes")
+        self.assertEqual(corp_policy.get("enabled_accounts"), 2)
+        self.assertEqual(corp_policy.get("admin_cracked", {}).get("confirm"), "Yes")
+        self.assertEqual(corp_policy.get("admin_cracked", {}).get("count"), 1)
+
+        branch_policy = policy_map.get("branch.example.com")
+        self.assertIsNotNone(branch_policy)
+        self.assertEqual(branch_policy.get("passwords_cracked"), 1)
+        self.assertEqual(branch_policy.get("lanman_stored"), "No")
+
+        artifacts = payload.get("data_artifacts", {})
+        self.assertIn("password", artifacts)
+        domain_artifacts = artifacts.get("password", {}).get("domains", {})
+        self.assertIn("corp.example.com", domain_artifacts)
+        self.assertEqual(len(domain_artifacts.get("corp.example.com", {}).get("cracked", [])), 2)
+
+    def test_upload_password_csv_validates_headers(self):
+        password_csv = SimpleUploadedFile(
+            "passwords.csv",
+            b"Domain,Username\ncorp.example.com,user1\n",
+            content_type="text/csv",
+        )
+
+        response = self.client_auth.post(self.update_url, {"password_csv": password_csv})
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn("Missing required password headers", payload.get("error", ""))
+
     def test_remove_firewall_data_clears_artifacts_and_workbook(self):
         self.project.workbook_data = {"firewall": {"unique": 1}}
         self.project.save(update_fields=["workbook_data"])
