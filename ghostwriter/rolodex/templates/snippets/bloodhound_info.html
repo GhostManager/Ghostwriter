@@ -116,45 +116,55 @@
         <h4>BloodHound Enterprise Findings</h4>
         <hr />
         <p>Expand the section below to view detailed findings from BloodHound Enterprise.</p>
-        <div id="bh_findings_accordion" class="finding-accordion">
-            <div class="card">
-                <div class="card-header" data-toggle="collapse" data-target="#bh_findings_contents">
-                    <a class="accordion-toggle btn btn-link">
-                        Findings
-                    </a>
-                </div>
-                <div id="bh_findings_contents" class="collapse" data-parent="#bh_findings_accordion">
-                    <div class="card-body">
-                        <table class="table table-striped table-sm mt-0">
-                            <thead>
-                                <tr>
-                                    <th class="align-middle">ID</th>
-                                    <th class="align-middle text-left">Name</th>
-                                    <th class="align-middle text-left">Target Kind</th>
-                                    <th class="align-middle text-left">Target Name</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            {% for finding in res.findings|dictsort:"id" %}
-                                <tr>
-                                    <td class="align-middle">{{ finding.id }}</td>
-                                    <td class="align-middle text-left">
-                                        {% if finding.assets.title %}
-                                            {{ finding.assets.title|striptags }}
-                                        {% else %}
-                                            {{ finding.finding_name }}
-                                        {% endif %}
-                                    </td>
-                                    <td class="align-middle text-left">{{ finding.target_kind}}</td>
-                                    <td class="align-middle text-left">{{ finding.target_properties.name }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
+        <table id="bheFindingsTable" class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th class="sortable align-middle text-left">Severity</th>
+                    <th class="sortable align-middle text-left">Environment</th>
+                    <th class="sortable align-middle text-left">Name</th>
+                    <th class="sortable align-middle text-left">Type</th>
+                    <th class="sortable align-middle text-left">Targets</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for finding in res.findings %}
+                <tr>
+                    <td class="align-middle text-left">
+
+                        {% comment %}
+                            Use data-text attribute for proper sorting with a severity weight + impact percentage
+                            This method properly sorts Critical @ 100% above Critical @ 99.99% and so on
+                        {% endcomment %}
+                        <span class="
+                            {% if finding.severity == 'Critical' %}critical" data-text="1"
+                            {% elif finding.severity == 'High' %}high" data-text="2"
+                            {% elif finding.severity == 'Moderate' %}medium" data-text="3"
+                            {% else %}low" data-text="4"
+                            {% endif %}>
+                        {{ finding.severity }}
+                        </span>
+
+                    </td>
+                    <td class="align-middle text-left">{{ finding.environment_id|translate_domain_sid:res.domains }}</td>
+                    <td class="align-middle text-left">
+                        {% if finding.assets.title %}
+                            {{ finding.assets.title|striptags }}
+                        {% else %}
+                            {{ finding.finding_name }}
+                        {% endif %}
+                    </td>
+                    <td class="align-middle text-left">
+                        {% if finding.assets.type %}
+                            {{ finding.assets.type|striptags }}
+                        {% else %}
+                            --
+                        {% endif %}</td>
+                    <td class="align-middle text-left">{{ finding.targets|length }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     {% endif %}
 {% else %}
   <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">
@@ -162,3 +172,43 @@
       <p>Configure a connection to BloodHound and then fetch data to view information here.</p>
   </div>
 {% endif %}
+
+<script>
+    $(document).ready(function () {
+      $('#bheFindingsTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+          headers: {
+            0: { sorter: 'digit' }
+          },
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'bheFindingsTable'
+          },
+        textExtraction: function(node) {
+            // Check if the node or its children have a data-text attribute
+            var $node = $(node);
+            var $dataElement = $node.find('[data-text]').first();
+            if ($dataElement.length && $dataElement.attr('data-text')) {
+                // Return the data-text value for sorting
+                return $dataElement.attr('data-text');
+            }
+            // Fallback to default text extraction if no data-text attribute
+            return $node.text();
+        }
+        }
+      );
+
+      $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#bheFindingsTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
+      });
+    });
+</script>
