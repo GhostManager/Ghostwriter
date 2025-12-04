@@ -1992,6 +1992,11 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                 continue
             summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
             upload_meta = NEXPOSE_UPLOAD_REQUIREMENTS.get(metrics_key)
+            upload_file = (
+                required_file_lookup.get(upload_meta["slug"], None)
+                if upload_meta and upload_meta.get("slug")
+                else None
+            )
             processed_cards.append(
                 {
                     "label": label,
@@ -2000,6 +2005,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
                     "has_file": bool(payload.get("xlsx_base64")),
                     "type": "nexpose",
                     "upload": upload_meta,
+                    "upload_filename": upload_file.filename if upload_file else None,
                 }
             )
         web_metrics = artifacts.get("web_metrics")
