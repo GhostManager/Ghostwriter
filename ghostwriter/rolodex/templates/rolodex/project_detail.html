@@ -6761,6 +6761,15 @@
             uploadButton.className = 'btn btn-outline-primary';
             uploadButton.textContent = 'Upload Nipper XML';
             uploadButton.addEventListener('click', function() { uploadInput.click(); });
+            const fileNameDisplay = document.createElement('div');
+            fileNameDisplay.className = 'small text-muted mt-2';
+            const updateFileName = function() {
+              const name = (dataArtifactsState.firewall_xml_file_name || '').toString().trim();
+              fileNameDisplay.textContent = name
+                ? 'Uploaded file: ' + name
+                : 'No Nipper XML uploaded.';
+            };
+            updateFileName();
             const handleUpload = function(file) {
               return runWithButtonLoading(uploadButton, 'Uploading...', function() {
                 return uploadFirewallXml(file, areaKey, modalId);
@@ -6768,7 +6777,7 @@
             };
             uploadInput.addEventListener('change', function(event) {
               if (event.target.files && event.target.files[0]) {
-                handleUpload(event.target.files[0]);
+                handleUpload(event.target.files[0]).then(function() { updateFileName(); });
                 event.target.value = '';
               }
             });
@@ -6779,11 +6788,12 @@
             removeButton.addEventListener('click', function() {
               runWithButtonLoading(removeButton, 'Removing...', function() {
                 return removeFirewallData(areaKey, modalId);
-              });
+              }).then(function() { updateFileName(); });
             });
             uploadWrapper.appendChild(uploadInput);
             uploadWrapper.appendChild(uploadButton);
             uploadWrapper.appendChild(removeButton);
+            uploadWrapper.appendChild(fileNameDisplay);
             modalBody.appendChild(uploadWrapper);
           }
           const modalFooter = document.createElement('div');

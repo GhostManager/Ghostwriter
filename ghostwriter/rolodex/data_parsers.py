@@ -37,6 +37,7 @@ if False:  # pragma: no cover - typing only
 from ghostwriter.commandcenter.models import OpenAIConfiguration
 from ghostwriter.modules.openai_client import submit_prompt_to_assistant
 from ghostwriter.rolodex.ip_artifacts import IP_ARTIFACT_DEFINITIONS, parse_ip_text
+from ghostwriter.rolodex.constants import FIREWALL_XML_FILE_NAME_KEY
 from ghostwriter.rolodex.workbook import AD_DOMAIN_METRICS
 
 logger = logging.getLogger(__name__)
@@ -5278,6 +5279,7 @@ def build_project_artifacts(project: "Project") -> Dict[str, Any]:
             logger.info(
                 "Processing firewall XML upload '%s' for project ID=%s", file_label, getattr(project, "id", "?")
             )
+            artifacts[FIREWALL_XML_FILE_NAME_KEY] = data_file.filename
             parsed_firewall_xml = parse_nipper_firewall_report(
                 data_file.file, project_type_value
             )

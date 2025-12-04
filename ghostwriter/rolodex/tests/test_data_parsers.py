@@ -1249,6 +1249,10 @@ class NexposeDataParserTests(TestCase):
         findings = self.project.data_artifacts.get("firewall_findings")
         self.assertIsInstance(findings, list)
         self.assertEqual(len(findings), 4)
+        self.assertEqual(
+            self.project.data_artifacts.get("firewall_xml_file_name"),
+            upload.filename,
+        )
 
         vuln_entry = findings[0]
         self.assertEqual(vuln_entry["Risk"], "High")
