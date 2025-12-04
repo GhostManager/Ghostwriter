@@ -167,6 +167,39 @@ def _is_empty_response(value: Any) -> bool:
     return False
 
 
+def _coerce_selection_set(selection: Any) -> Set[str]:
+    if isinstance(selection, str):
+        return {selection}
+    if isinstance(selection, (list, tuple, set)):
+        return {str(value) for value in selection if value}
+    return set()
+
+
+def _is_question_visible(
+    question_definition: Mapping[str, Any], flattened_responses: Mapping[str, Any]
+) -> bool:
+    key = question_definition.get("key")
+
+    if key == "wireless_segmentation_ssids":
+        return bool(flattened_responses.get("wireless_segmentation_tested"))
+
+    if key == "wireless_psk_masterpass_ssids":
+        return flattened_responses.get("wireless_psk_masterpass") == "yes"
+
+    if key == "assessment_scope_cloud_on_prem":
+        scope_selection = _coerce_selection_set(flattened_responses.get("assessment_scope"))
+        return "cloud" in scope_selection
+
+    if key == "hashes_obtained":
+        scope_selection = _coerce_selection_set(flattened_responses.get("assessment_scope"))
+        return bool(scope_selection.intersection({"cloud", "internal"}))
+
+    if key == "general_scope_changed":
+        return flattened_responses.get("general_first_ca") == "no"
+
+    return True
+
+
 def _count_pending_question_sections(
     question_definitions: List[Dict[str, Any]],
     grouped_responses: Mapping[str, Any],
@@ -185,6 +218,9 @@ def _count_pending_question_sections(
         key = definition.get("key")
         section = definition.get("section")
         if not key or not section:
+            continue
+
+        if not _is_question_visible(definition, flattened_responses):
             continue
 
         value = flattened_responses.get(key)

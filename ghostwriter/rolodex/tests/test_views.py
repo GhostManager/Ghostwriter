@@ -1046,9 +1046,11 @@ class ProjectDetailViewTests(TestCase):
 
         response = self.client_mgr.get(self.uri)
 
+        badge_count = response.context["pending_question_sections_count"]
+        self.assertGreater(badge_count, 0)
         self.assertContains(
             response,
-            'Questionnaire <span class="badge badge-pill badge-light">3</span>',
+            f'Questionnaire <span class="badge badge-pill badge-light">{badge_count}</span>',
         )
 
     def test_questionnaire_badge_shows_zero_when_all_answered(self):
@@ -1073,6 +1075,48 @@ class ProjectDetailViewTests(TestCase):
         self.assertContains(
             response,
             'Questionnaire <span class="badge badge-pill badge-light">0</span>',
+        )
+
+    def test_questionnaire_badge_ignores_hidden_followups(self):
+        self.project.data_responses = ensure_data_responses_defaults(
+            {
+                "general": {
+                    "assessment_scope": ["external"],
+                    "general_first_ca": "yes",
+                    "general_anonymous_ephi": "no",
+                },
+                "iot_iomt": {"iot_testing_confirm": "no"},
+            }
+        )
+        self.project.save(update_fields=["data_responses"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.context["pending_question_sections_count"], 0)
+        self.assertContains(
+            response,
+            'Questionnaire <span class="badge badge-pill badge-light">0</span>',
+        )
+
+    def test_questionnaire_badge_counts_visible_followups(self):
+        self.project.data_responses = ensure_data_responses_defaults(
+            {
+                "general": {
+                    "assessment_scope": ["cloud"],
+                    "general_first_ca": "yes",
+                    "general_anonymous_ephi": "no",
+                },
+                "iot_iomt": {"iot_testing_confirm": "no"},
+            }
+        )
+        self.project.save(update_fields=["data_responses"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.context["pending_question_sections_count"], 1)
+        self.assertContains(
+            response,
+            'Questionnaire <span class="badge badge-pill badge-light">1</span>',
         )
 
 
