@@ -2598,6 +2598,7 @@ host1,foo,read-only,desc3
 
         artifacts = payload.get("data_artifacts", {})
         self.assertIn("password", artifacts)
+        self.assertEqual(artifacts.get("password", {}).get("file_name"), "passwords.csv")
         domain_artifacts = artifacts.get("password", {}).get("domains", {})
         self.assertIn("corp.example.com", domain_artifacts)
         self.assertEqual(len(domain_artifacts.get("corp.example.com", {}).get("cracked", [])), 2)

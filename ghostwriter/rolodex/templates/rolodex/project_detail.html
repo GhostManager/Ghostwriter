@@ -4368,6 +4368,26 @@
             }
           };
 
+          const getDomainsMissingAdminUsers = function() {
+            const adArtifacts = dataArtifactsState.ad;
+            if (!adArtifacts || typeof adArtifacts !== 'object') {
+              return [];
+            }
+
+            const missing = [];
+            Object.keys(adArtifacts).forEach(function(key) {
+              const entry = adArtifacts[key];
+              const adminUsers = entry && entry.admin_users;
+              const hasAdmins = Array.isArray(adminUsers)
+                && adminUsers.some(function(user) { return (user || '').toString().trim(); });
+              if (!hasAdmins) {
+                const label = (entry && (entry.domain || entry.domain_name)) || key;
+                missing.push(label || key);
+              }
+            });
+            return missing;
+          };
+
           const uploadInput = document.createElement('input');
           uploadInput.type = 'file';
           uploadInput.accept = '.csv,text/csv';
@@ -4388,6 +4408,11 @@
           uploadButton.className = 'btn btn-primary mb-2 mr-2';
           uploadButton.textContent = 'Upload Password CSV';
           uploadButton.addEventListener('click', function() {
+            const missingAdminDomains = getDomainsMissingAdminUsers();
+            if (missingAdminDomains.length) {
+              alert('Please upload the "Privileged Users" file for each Domain before uploading the password CSV.');
+              return;
+            }
             openAllDomainMetrics();
             uploadInput.click();
           });
@@ -4405,6 +4430,18 @@
           actionsRow.appendChild(addDomainButton);
           actionsRow.appendChild(uploadInput);
           target.appendChild(actionsRow);
+
+          const passwordFileInfo = document.createElement('div');
+          passwordFileInfo.className = 'small text-muted mb-2';
+          const updatePasswordFileInfo = function() {
+            const passwordArtifacts = dataArtifactsState.password;
+            const name = (passwordArtifacts && typeof passwordArtifacts === 'object')
+              ? (passwordArtifacts.file_name || '').toString().trim()
+              : '';
+            passwordFileInfo.textContent = name ? 'Last uploaded: ' + name : '';
+          };
+          updatePasswordFileInfo();
+          target.appendChild(passwordFileInfo);
 
           const container = document.createElement('div');
           target.appendChild(container);
