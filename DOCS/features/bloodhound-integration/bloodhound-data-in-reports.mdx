@@ -19,3 +19,10 @@ For example, you can iterate over the domains to create a table like so
 <Frame>
   <img src="/images/features/image-65.png" alt=""/>
 </Frame>
+
+## Report Filters for BloodHound Data
+
+| **Filter**                                     | **Usage** |
+| ---------------------------------------------- | --------- |
+| `translate_domain_sid(SID, domains)`           | Accepts the `bloodhound.domains` `dict` and a SID to translate the SID to a domain name. |
+| `filter_bhe_findings_by_domain(findings, SID)` | Accepts the `bloodhound.findings` `dict` and a SID to return only findings for that domain SID (based on the findings `environment_id`.) |
