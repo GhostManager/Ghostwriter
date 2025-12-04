@@ -16,6 +16,7 @@ from ghostwriter.rolodex.data_parsers import NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG
 from ghostwriter.rolodex.workbook import (
     CLOUD_MANAGEMENT_REQUIREMENT_SLUG,
     IAM_MANAGEMENT_REQUIREMENT_SLUG,
+    SYSTEM_CONFIGURATION_REQUIREMENT_SLUG,
     SQL_DATA_REQUIREMENT_SLUG,
     WIRELESS_DATA_REQUIREMENT_SLUG,
 )
@@ -60,6 +61,7 @@ class SupplementalDocumentBuilder:
         self._append_processed_metrics(files)
         self._append_cloud_management_upload(files)
         self._append_iam_management_upload(files)
+        self._append_system_configuration_upload(files)
         self._append_wireless_upload(files)
         self._append_sql_upload(files)
         self._append_uploaded_nexpose(files)
@@ -689,6 +691,32 @@ class SupplementalDocumentBuilder:
 
         files.append(
             (f"{self.client_name} Detailed IAM Management Benchmark Assessment.xlsx", content)
+        )
+
+    def _append_system_configuration_upload(self, files: List[Tuple[str, bytes]]):
+        data_file = self.data_files_by_slug.get(SYSTEM_CONFIGURATION_REQUIREMENT_SLUG)
+        if not data_file or not getattr(data_file, "file", None):
+            return
+
+        try:
+            content = data_file.file.read()
+            if hasattr(data_file.file, "seek"):
+                data_file.file.seek(0)
+        except Exception:
+            logger.exception(
+                "Failed to read system configuration XLSX upload for project ID=%s",
+                getattr(self.project, "id", "?"),
+            )
+            return
+
+        if not isinstance(content, (bytes, bytearray)) or not content:
+            return
+
+        files.append(
+            (
+                f"{self.client_name} Detailed System Configuration Benchmark Assessment.xlsx",
+                content,
+            )
         )
 
     def _append_wireless_upload(self, files: List[Tuple[str, bytes]]):

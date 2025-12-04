@@ -111,6 +111,7 @@ from ghostwriter.rolodex.data_parsers import (
 from ghostwriter.rolodex.constants import (
     CLOUD_MANAGEMENT_FILE_NAME_KEY,
     IAM_MANAGEMENT_FILE_NAME_KEY,
+    SYSTEM_CONFIGURATION_FILE_NAME_KEY,
     SQL_DATA_FILE_NAME_KEY,
     WIRELESS_DATA_FILE_NAME_KEY,
 )
@@ -125,6 +126,8 @@ from ghostwriter.rolodex.workbook import (
     CLOUD_MANAGEMENT_REQUIREMENT_SLUG,
     IAM_MANAGEMENT_REQUIREMENT_LABEL,
     IAM_MANAGEMENT_REQUIREMENT_SLUG,
+    SYSTEM_CONFIGURATION_REQUIREMENT_LABEL,
+    SYSTEM_CONFIGURATION_REQUIREMENT_SLUG,
     SQL_DATA_REQUIREMENT_LABEL,
     SQL_DATA_REQUIREMENT_SLUG,
     WIRELESS_DATA_REQUIREMENT_LABEL,
@@ -4224,6 +4227,57 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                     {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
                 )
 
+            if "system_configuration_xlsx" in request.FILES:
+                upload = request.FILES.get("system_configuration_xlsx")
+                if not upload:
+                    return JsonResponse(
+                        {"error": "No system configuration benchmark file provided."},
+                        status=400,
+                    )
+
+                filename = (upload.name or "").strip()
+                if not filename.lower().endswith(".xlsx"):
+                    return JsonResponse(
+                        {"error": "System configuration file must be an .xlsx file."},
+                        status=400,
+                    )
+
+                existing_files = list(
+                    project.data_files.filter(
+                        requirement_slug=SYSTEM_CONFIGURATION_REQUIREMENT_SLUG
+                    )
+                )
+                for data_file in existing_files:
+                    if data_file.file:
+                        data_file.file.delete(save=False)
+                    data_file.delete()
+
+                data_file = ProjectDataFile(
+                    project=project,
+                    requirement_slug=SYSTEM_CONFIGURATION_REQUIREMENT_SLUG,
+                    requirement_label=SYSTEM_CONFIGURATION_REQUIREMENT_LABEL,
+                    requirement_context="system configuration benchmark",
+                    description="",
+                )
+                data_file.file.save(filename, upload)
+                data_file.save()
+
+                artifacts = (
+                    project.data_artifacts
+                    if isinstance(project.data_artifacts, dict)
+                    else {}
+                )
+                artifacts = dict(artifacts)
+                artifacts[SYSTEM_CONFIGURATION_FILE_NAME_KEY] = filename
+                project.data_artifacts = artifacts
+                project.save(update_fields=["data_artifacts"])
+
+                project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
+
+                return JsonResponse(
+                    {"workbook_data": project.workbook_data, "data_artifacts": project.data_artifacts}
+                )
+
             if "wireless_xlsx" in request.FILES:
                 upload = request.FILES.get("wireless_xlsx")
                 if not upload:
@@ -4743,6 +4797,39 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
             artifacts = dict(artifacts)
             artifacts.pop(CLOUD_MANAGEMENT_FILE_NAME_KEY, None)
+
+            project.workbook_data = workbook_payload
+            project.data_artifacts = artifacts
+            project.rebuild_data_artifacts()
+            project.refresh_from_db(
+                fields=["workbook_data", "data_artifacts", "cap", "data_responses"]
+            )
+
+            return JsonResponse(
+                {
+                    "workbook_data": project.workbook_data,
+                    "data_artifacts": project.data_artifacts,
+                }
+            )
+
+        if payload.get("remove_system_configuration"):
+            workbook_payload = normalize_workbook_payload(project.workbook_data)
+            default_system_config = copy.deepcopy(WORKBOOK_DEFAULTS.get("system_config"))
+            if default_system_config is not None:
+                workbook_payload["system_config"] = default_system_config
+            else:
+                workbook_payload.pop("system_config", None)
+
+            for data_file in project.data_files.filter(
+                requirement_slug=SYSTEM_CONFIGURATION_REQUIREMENT_SLUG
+            ):
+                if data_file.file:
+                    data_file.file.delete(save=False)
+                data_file.delete()
+
+            artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+            artifacts = dict(artifacts)
+            artifacts.pop(SYSTEM_CONFIGURATION_FILE_NAME_KEY, None)
 
             project.workbook_data = workbook_payload
             project.data_artifacts = artifacts

@@ -166,6 +166,11 @@ IAM_MANAGEMENT_REQUIREMENT_SLUG = _slugify_identifier(
     "required",
     IAM_MANAGEMENT_REQUIREMENT_LABEL,
 )
+SYSTEM_CONFIGURATION_REQUIREMENT_LABEL = "system_configuration_benchmark.xlsx"
+SYSTEM_CONFIGURATION_REQUIREMENT_SLUG = _slugify_identifier(
+    "required",
+    SYSTEM_CONFIGURATION_REQUIREMENT_LABEL,
+)
 
 
 def _get_nested(data: Dict[str, Any], path: Iterable[str], default: Any = None) -> Any:
