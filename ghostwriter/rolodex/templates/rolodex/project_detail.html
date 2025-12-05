@@ -7240,8 +7240,10 @@
               }
               payload.general[field.key] = input.value || null;
             });
-            submitWorkbookUpdate(payload, function() {
-              $('#workbookGeneralModal').modal('hide');
+            runWithButtonLoading(saveGeneralButton, 'Saving...', function() {
+              return submitWorkbookUpdate(payload, function() {
+                $('#workbookGeneralModal').modal('hide');
+              });
             });
           });
         }
@@ -7250,8 +7252,10 @@
         if (saveScoringButton) {
           saveScoringButton.addEventListener('click', function() {
             const payload = {scores: getScoresFromInputs()};
-            submitWorkbookUpdate(payload, function() {
-              $('#workbookScoringModal').modal('hide');
+            runWithButtonLoading(saveScoringButton, 'Saving...', function() {
+              return submitWorkbookUpdate(payload, function() {
+                $('#workbookScoringModal').modal('hide');
+              });
             });
           });
         }
@@ -7268,8 +7272,10 @@
               }
               payload.grades[category] = select.value || null;
             });
-            submitWorkbookUpdate(payload, function() {
-              $('#workbookGradesModal').modal('hide');
+            runWithButtonLoading(saveGradesButton, 'Saving...', function() {
+              return submitWorkbookUpdate(payload, function() {
+                $('#workbookGradesModal').modal('hide');
+              });
             });
           });
         }
