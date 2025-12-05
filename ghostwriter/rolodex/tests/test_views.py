@@ -1040,13 +1040,69 @@ class ProjectDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Firewall Findings")
 
+
+class UpdateProjectBadgesTests(TestCase):
+    """Tests for :view:`rolodex.update_project_badges`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.uri = reverse(
+            "rolodex:ajax_update_project_badges", kwargs={"pk": cls.project.pk}
+        )
+
+    def setUp(self):
+        self.client_mgr = Client()
+        self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD)
+
+    def test_returns_updated_questionnaire_and_processed_badges(self):
+        workbook_b64 = base64.b64encode(b"PK\x03\x04").decode("ascii")
+        self.project.data_artifacts = {
+            "external_nexpose_metrics": {
+                "summary": {"total": 4},
+                "xlsx_base64": workbook_b64,
+            }
+        }
+        self.project.data_responses = ensure_data_responses_defaults(
+            {
+                "general": {
+                    "assessment_scope": ["cloud"],
+                    "assessment_scope_cloud_on_prem": "yes",
+                    "general_first_ca": "no",
+                    "general_scope_changed": "no",
+                    "general_anonymous_ephi": "no",
+                },
+                "iot_iomt": {"iot_testing_confirm": "no"},
+                "password": {"hashes_obtained": "no"},
+                "overall_risk": {"major_issues": ["None"]},
+            }
+        )
+        self.project.save(update_fields=["data_artifacts", "data_responses"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(
+            response,
+            'Processed Data <span class="badge badge-pill badge-light">1</span>',
+        )
+        self.assertContains(
+            response,
+            'Questionnaire <span class="badge badge-pill badge-light">0</span>',
+        )
+
     def test_questionnaire_badge_counts_pending_sections(self):
         self.project.data_responses = {}
         self.project.save(update_fields=["data_responses"])
 
         response = self.client_mgr.get(self.uri)
 
-        badge_count = response.context["pending_question_sections_count"]
+        badge_count = int(
+            re.search(
+                r"Questionnaire <span class=\"badge badge-pill badge-light\">(\d+)</span>",
+                response.content.decode(),
+            ).group(1)
+        )
         self.assertGreater(badge_count, 0)
         self.assertContains(
             response,

@@ -247,6 +247,190 @@ def _count_pending_question_sections(
     return len(pending_sections)
 
 
+def _build_processed_cards(
+    project: Project,
+    artifacts: Mapping[str, Any],
+    required_file_lookup: Mapping[str, Any],
+):
+    """Generate processed data cards for a project and flag if artifacts were updated."""
+
+    processed_cards: list[dict[str, Any]] = []
+    artifacts_updated = False
+
+    for metrics_key, label in NEXPOSE_METRICS_LABELS.items():
+        payload = artifacts.get(metrics_key)
+        if not isinstance(payload, dict):
+            continue
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        upload_meta = NEXPOSE_UPLOAD_REQUIREMENTS.get(metrics_key)
+        upload_file = (
+            required_file_lookup.get(upload_meta["slug"], None)
+            if upload_meta and upload_meta.get("slug")
+            else None
+        )
+        processed_cards.append(
+            {
+                "label": label,
+                "metrics_key": metrics_key,
+                "summary": summary,
+                "has_file": bool(payload.get("xlsx_base64")),
+                "type": "nexpose",
+                "upload": upload_meta,
+                "upload_filename": upload_file.filename if upload_file else None,
+            }
+        )
+
+    web_metrics = artifacts.get("web_metrics")
+    if isinstance(web_metrics, dict):
+        summary = (
+            web_metrics.get("summary") if isinstance(web_metrics.get("summary"), dict) else {}
+        )
+        processed_cards.append(
+            {
+                "label": "Web Findings",
+                "metrics_key": "web_metrics",
+                "summary": summary,
+                "has_file": bool(web_metrics.get("xlsx_base64")),
+                "type": "web",
+            }
+        )
+
+    firewall_metrics = artifacts.get("firewall_metrics")
+    if isinstance(firewall_metrics, dict):
+        summary = _coerce_firewall_summary(
+            firewall_metrics.get("summary")
+            if isinstance(firewall_metrics.get("summary"), dict)
+            else {}
+        )
+        processed_cards.append(
+            {
+                "label": "Firewall Findings",
+                "metrics_key": "firewall_metrics",
+                "summary": summary,
+                "devices": firewall_metrics.get("devices", []),
+                "has_file": bool(firewall_metrics.get("xlsx_base64")),
+                "type": "firewall",
+            }
+        )
+
+    password_artifacts = artifacts.get("password") if isinstance(artifacts, dict) else None
+    if isinstance(password_artifacts, dict):
+        domains_payload = (
+            password_artifacts.get("domains")
+            if isinstance(password_artifacts.get("domains"), dict)
+            else {}
+        )
+        metrics_map = (
+            password_artifacts.get("metrics")
+            if isinstance(password_artifacts.get("metrics"), dict)
+            else {}
+        )
+        domain_entries: list[dict[str, Any]] = []
+        for domain_key, domain_payload in domains_payload.items():
+            if not isinstance(domain_payload, dict):
+                continue
+            domain_name = (
+                (domain_payload.get("domain") or domain_key or "NoDomain").strip()
+                or "NoDomain"
+            )
+            normalized_key = str(domain_key or domain_name).strip().lower() or "nodomain"
+            metrics = metrics_map.get(normalized_key) if isinstance(metrics_map, dict) else None
+            if not isinstance(metrics, dict):
+                metrics = {
+                    "domain_name": domain_name,
+                    "passwords_cracked": len(domain_payload.get("cracked", []) or []),
+                    "admin_count": len(domain_payload.get("admin", []) or []),
+                    "lanman_stored": "Yes" if domain_payload.get("lanman") else "No",
+                    "enabled_accounts": len(domain_payload.get("enabled", []) or []),
+                }
+                metrics_map = dict(metrics_map)
+                metrics_map[normalized_key] = metrics
+                password_artifacts["metrics"] = metrics_map
+                artifacts["password"] = password_artifacts
+                artifacts_updated = True
+
+            admin_count = metrics.get("admin_count") or 0
+            domain_entries.append(
+                {
+                    "domain": domain_name,
+                    "metrics": {
+                        "passwords_cracked": metrics.get("passwords_cracked", 0),
+                        "admin_confirm": "Yes" if admin_count > 0 else "No",
+                        "admin_count": admin_count if admin_count > 0 else None,
+                        "lanman_stored": metrics.get("lanman_stored", "No"),
+                        "enabled_accounts": metrics.get("enabled_accounts", 0),
+                    },
+                }
+            )
+
+        if domain_entries:
+            domain_entries = sorted(domain_entries, key=lambda entry: entry.get("domain", "").lower())
+
+        processed_cards.append(
+            {
+                "label": "Password",
+                "domains": domain_entries,
+                "has_file": bool(password_artifacts.get("xlsx_base64")),
+                "file_name": password_artifacts.get("file_name"),
+                "type": "password",
+            }
+        )
+
+    endpoint_artifacts = artifacts.get("endpoint")
+    if isinstance(endpoint_artifacts, dict):
+        endpoint_metrics = (
+            endpoint_artifacts.get("metrics")
+            if isinstance(endpoint_artifacts.get("metrics"), dict)
+            else {}
+        )
+        domain_records = (
+            endpoint_artifacts.get("domains")
+            if isinstance(endpoint_artifacts.get("domains"), list)
+            else []
+        )
+        for record in domain_records:
+            if not isinstance(record, dict):
+                continue
+            domain_value = (record.get("domain") or record.get("name") or "").strip()
+            if not domain_value:
+                continue
+            domain_key = domain_value.lower()
+            metrics_payload = endpoint_metrics.get(domain_key)
+            if not metrics_payload and record.get("computers"):
+                metrics_payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
+                    domain_value,
+                    record.get("computers") or [],
+                    systems_ood=record.get("systems_ood"),
+                    wifi_count=record.get("open_wifi"),
+                    file_name=record.get("file_name"),
+                )
+                endpoint_metrics = dict(endpoint_metrics)
+                endpoint_metrics[domain_key] = metrics_payload
+                endpoint_artifacts["metrics"] = endpoint_metrics
+                artifacts["endpoint"] = endpoint_artifacts
+                project.data_artifacts = artifacts
+                artifacts_updated = True
+            if not metrics_payload:
+                continue
+            summary = (
+                metrics_payload.get("summary")
+                if isinstance(metrics_payload, dict)
+                else {}
+            )
+            processed_cards.append(
+                {
+                    "label": f"Endpoint Data - {domain_value}",
+                    "metrics_key": domain_key,
+                    "summary": summary,
+                    "has_file": bool(metrics_payload.get("xlsx_base64")),
+                    "type": "endpoint",
+                    "domain": domain_value,
+                }
+            )
+
+    return processed_cards, artifacts_updated
+
+
 def _build_grouped_data_responses(
     responses: Dict[str, Any],
     question_definitions: List[Dict[str, Any]],
@@ -512,9 +696,43 @@ def update_project_badges(request, pk):
     if not project_instance.user_can_edit(request.user):
         return ForbiddenJsonResponse()
 
+    project_type_name = getattr(
+        getattr(project_instance, "project_type", None), "project_type", None
+    )
+    questions, _ = build_data_configuration(
+        project_instance.workbook_data,
+        project_type_name,
+        data_artifacts=project_instance.data_artifacts,
+        project_risks=project_instance.risks,
+    )
+    normalized_responses = prepare_data_responses_initial(
+        project_instance.data_responses,
+        project_type_name,
+    )
+    pending_question_sections_count = _count_pending_question_sections(
+        questions, normalized_responses
+    )
+    data_files = project_instance.data_files.all()
+    required_file_lookup = {
+        data_file.requirement_slug: data_file
+        for data_file in data_files
+        if data_file.requirement_slug
+    }
+    artifacts = normalize_nexpose_artifacts_map(project_instance.data_artifacts or {})
+    project_instance.data_artifacts = artifacts
+    processed_cards, artifacts_updated = _build_processed_cards(
+        project_instance, artifacts, required_file_lookup
+    )
+    if artifacts_updated:
+        project_instance.save(update_fields=["data_artifacts"])
+
     html = render_to_string(
         "snippets/project_nav_tabs.html",
-        {"project": project_instance},
+        {
+            "project": project_instance,
+            "pending_question_sections_count": pending_question_sections_count,
+            "processed_data_cards": processed_cards,
+        },
     )
     return HttpResponse(html)
 
@@ -2073,175 +2291,9 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         web_issue_gap_summary = summarize_web_issue_matrix_gaps(artifacts)
         ctx["web_issue_matrix_gap_summary"] = web_issue_gap_summary
         ctx["has_web_issue_matrix_gaps"] = bool(web_issue_gap_summary)
-        processed_cards = []
-        for metrics_key, label in NEXPOSE_METRICS_LABELS.items():
-            payload = artifacts.get(metrics_key)
-            if not isinstance(payload, dict):
-                continue
-            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
-            upload_meta = NEXPOSE_UPLOAD_REQUIREMENTS.get(metrics_key)
-            upload_file = (
-                required_file_lookup.get(upload_meta["slug"], None)
-                if upload_meta and upload_meta.get("slug")
-                else None
-            )
-            processed_cards.append(
-                {
-                    "label": label,
-                    "metrics_key": metrics_key,
-                    "summary": summary,
-                    "has_file": bool(payload.get("xlsx_base64")),
-                    "type": "nexpose",
-                    "upload": upload_meta,
-                    "upload_filename": upload_file.filename if upload_file else None,
-                }
-            )
-        web_metrics = artifacts.get("web_metrics")
-        if isinstance(web_metrics, dict):
-            summary = (
-                web_metrics.get("summary") if isinstance(web_metrics.get("summary"), dict) else {}
-            )
-            processed_cards.append(
-                {
-                    "label": "Web Findings",
-                    "metrics_key": "web_metrics",
-                    "summary": summary,
-                    "has_file": bool(web_metrics.get("xlsx_base64")),
-                    "type": "web",
-                }
-            )
-        firewall_metrics = artifacts.get("firewall_metrics")
-        if isinstance(firewall_metrics, dict):
-            summary = _coerce_firewall_summary(
-                firewall_metrics.get("summary")
-                if isinstance(firewall_metrics.get("summary"), dict)
-                else {}
-            )
-            processed_cards.append(
-                {
-                    "label": "Firewall Findings",
-                    "metrics_key": "firewall_metrics",
-                    "summary": summary,
-                    "devices": firewall_metrics.get("devices", []),
-                    "has_file": bool(firewall_metrics.get("xlsx_base64")),
-                    "type": "firewall",
-                }
-            )
-        password_artifacts = artifacts.get("password") if isinstance(artifacts, dict) else None
-        if isinstance(password_artifacts, dict):
-            domains_payload = (
-                password_artifacts.get("domains")
-                if isinstance(password_artifacts.get("domains"), dict)
-                else {}
-            )
-            metrics_map = (
-                password_artifacts.get("metrics")
-                if isinstance(password_artifacts.get("metrics"), dict)
-                else {}
-            )
-            domain_entries: list[dict[str, Any]] = []
-            for domain_key, domain_payload in domains_payload.items():
-                if not isinstance(domain_payload, dict):
-                    continue
-                domain_name = (
-                    (domain_payload.get("domain") or domain_key or "NoDomain").strip()
-                    or "NoDomain"
-                )
-                normalized_key = str(domain_key or domain_name).strip().lower() or "nodomain"
-                metrics = metrics_map.get(normalized_key) if isinstance(metrics_map, dict) else None
-                if not isinstance(metrics, dict):
-                    metrics = {
-                        "domain_name": domain_name,
-                        "passwords_cracked": len(domain_payload.get("cracked", []) or []),
-                        "admin_count": len(domain_payload.get("admin", []) or []),
-                        "lanman_stored": "Yes"
-                        if domain_payload.get("lanman")
-                        else "No",
-                        "enabled_accounts": len(domain_payload.get("enabled", []) or []),
-                    }
-                    metrics_map = dict(metrics_map)
-                    metrics_map[normalized_key] = metrics
-                    password_artifacts["metrics"] = metrics_map
-                    artifacts["password"] = password_artifacts
-                    artifacts_updated = True
-
-                admin_count = metrics.get("admin_count") or 0
-                domain_entries.append(
-                    {
-                        "domain": domain_name,
-                        "metrics": {
-                            "passwords_cracked": metrics.get("passwords_cracked", 0),
-                            "admin_confirm": "Yes" if admin_count > 0 else "No",
-                            "admin_count": admin_count if admin_count > 0 else None,
-                            "lanman_stored": metrics.get("lanman_stored", "No"),
-                            "enabled_accounts": metrics.get("enabled_accounts", 0),
-                        },
-                    }
-                )
-
-            if domain_entries:
-                domain_entries = sorted(domain_entries, key=lambda entry: entry.get("domain", "").lower())
-
-            processed_cards.append(
-                {
-                    "label": "Password",
-                    "domains": domain_entries,
-                    "has_file": bool(password_artifacts.get("xlsx_base64")),
-                    "file_name": password_artifacts.get("file_name"),
-                    "type": "password",
-                }
-            )
-        endpoint_artifacts = artifacts.get("endpoint")
-        if isinstance(endpoint_artifacts, dict):
-            endpoint_metrics = (
-                endpoint_artifacts.get("metrics")
-                if isinstance(endpoint_artifacts.get("metrics"), dict)
-                else {}
-            )
-            domain_records = (
-                endpoint_artifacts.get("domains")
-                if isinstance(endpoint_artifacts.get("domains"), list)
-                else []
-            )
-            for record in domain_records:
-                if not isinstance(record, dict):
-                    continue
-                domain_value = (record.get("domain") or record.get("name") or "").strip()
-                if not domain_value:
-                    continue
-                domain_key = domain_value.lower()
-                metrics_payload = endpoint_metrics.get(domain_key)
-                if not metrics_payload and record.get("computers"):
-                    metrics_payload = ProjectWorkbookDataUpdate._build_endpoint_metrics_payload(
-                        domain_value,
-                        record.get("computers") or [],
-                        systems_ood=record.get("systems_ood"),
-                        wifi_count=record.get("open_wifi"),
-                        file_name=record.get("file_name"),
-                    )
-                    endpoint_metrics = dict(endpoint_metrics)
-                    endpoint_metrics[domain_key] = metrics_payload
-                    endpoint_artifacts["metrics"] = endpoint_metrics
-                    artifacts["endpoint"] = endpoint_artifacts
-                    object.data_artifacts = artifacts
-                    artifacts_updated = True
-                if not metrics_payload:
-                    continue
-                summary = (
-                    metrics_payload.get("summary")
-                    if isinstance(metrics_payload, dict)
-                    else {}
-                )
-                processed_cards.append(
-                    {
-                        "label": f"Endpoint Data - {domain_value}",
-                        "metrics_key": domain_key,
-                        "summary": summary,
-                        "has_file": bool(metrics_payload.get("xlsx_base64")),
-                        "type": "endpoint",
-                        "domain": domain_value,
-                    }
-                )
+        processed_cards, artifacts_updated = _build_processed_cards(
+            object, artifacts, required_file_lookup
+        )
         if artifacts_updated:
             object.save(update_fields=["data_artifacts"])
         ctx["processed_data_cards"] = processed_cards
