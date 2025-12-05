@@ -631,6 +631,16 @@ class SelectReportTemplateForm(forms.ModelForm):
                     href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top"
                     title="Generate and package all report types and evidence in a Zip"></a>
                 </div>
+                {% if missing_supplemental_files %}
+                <div class="alert alert-warning mt-3" role="alert">
+                    <strong>Warning:</strong> The following files required for Supplemental Documents are missing:
+                    <ul class="mb-0 mt-2">
+                        {% for file_label in missing_supplemental_files %}
+                        <li>{{ file_label }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
                 """
             ),
         )
