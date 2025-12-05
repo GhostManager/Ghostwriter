@@ -228,7 +228,7 @@ LINTER_CONTEXT = {
                 "domains": [
                     {
                         "domain": "corp.example.com",
-                        "access_pct": 96.5,
+                        "access_pct": "96.47%",
                         "open_wifi": 3,
                         "systems_ood": 45,
                         "total_computers": 850,
@@ -237,7 +237,7 @@ LINTER_CONTEXT = {
                     },
                     {
                         "domain": "lab.example.com",
-                        "access_pct": 82.1,
+                        "access_pct": "83.33%",
                         "open_wifi": 1,
                         "systems_ood": 10,
                         "total_computers": 120,
@@ -250,6 +250,7 @@ LINTER_CONTEXT = {
                 "unique": 12,
                 "devices": [
                     {
+                        "device": "Edge-FW01",
                         "name": "Edge-FW01",
                         "ood": "yes",
                         "total_low": 3,
@@ -257,6 +258,7 @@ LINTER_CONTEXT = {
                         "total_high": 2,
                     },
                     {
+                        "device": "Core-FW02",
                         "name": "Core-FW02",
                         "ood": "no",
                         "total_low": 4,
