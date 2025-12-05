@@ -2,11 +2,14 @@ from typing import Any, Tuple, List
 import io
 import logging
 import os
+import re
 
+from bs4 import BeautifulSoup, NavigableString, Tag
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.opc.exceptions import PackageNotFoundError
 from docx.shared import Inches, Pt
+from docxtpl import RichText
 from docxtpl.template import DocxTemplate
 from docx.image.exceptions import UnrecognizedImageError
 
@@ -312,6 +315,10 @@ class ExportDocxBase(ExportBase):
         """
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
         """
+        inline_rich_text = _render_inline_rich_text(str(rich_text.render_html()))
+        if inline_rich_text is not None:
+            return inline_rich_text
+
         def render():
             doc = self.word_doc.new_subdoc()
             ReportExportTemplateError.map_errors(
@@ -335,6 +342,83 @@ class ExportDocxBase(ExportBase):
             )
             return doc
         return LazySubdocRender(render)
+
+
+def _render_inline_rich_text(html: str) -> RichText | None:
+    """
+    Convert simple inline HTML into a ``RichText`` so it can be rendered inline in DOCX templates.
+
+    Falls back to ``None`` for any content that includes block-level elements that
+    require full HTML rendering.
+    """
+
+    soup = BeautifulSoup(html, "html.parser")
+    block_tags = {"div", "ul", "ol", "table", "blockquote", "pre", "p"}
+
+    def is_inline_tag(tag: Tag) -> bool:
+        return tag.name in {"span", "strong", "b", "em", "i"}
+
+    def extract_color(style_value: str) -> str | None:
+        if not style_value:
+            return None
+        match = re.search(r"color\s*:\s*#?([0-9a-fA-F]{3,6})", style_value)
+        return match.group(1) if match else None
+
+    container = soup.body or soup
+
+    if container.find(block_tags):
+        # Allow a single outer <p> wrapper by unwrapping it before the block check.
+        if len(container.contents) == 1 and isinstance(container.contents[0], Tag) and container.contents[0].name == "p":
+            container = container.contents[0]
+        elif container.name == "p":
+            container = container
+        else:
+            return None
+
+        if container.find(block_tags - {"p"}):
+            return None
+
+    rich_text = RichText()
+    success = True
+
+    def walk(node, *, bold: bool = False, italic: bool = False, color: str | None = None):
+        nonlocal success
+
+        if not success:
+            return
+
+        if isinstance(node, NavigableString):
+            text = str(node)
+            if text:
+                kwargs = {"bold": bold, "italic": italic, "color": color}
+                kwargs = {k: v for k, v in kwargs.items() if v}
+                rich_text.add(text, **kwargs)
+            return
+
+        if not isinstance(node, Tag):
+            return
+
+        if node.name in block_tags:
+            success = False
+            return
+
+        if not is_inline_tag(node):
+            success = False
+            return
+
+        next_bold = bold or node.name in {"strong", "b"} or "bold" in (node.get("class") or [])
+        next_italic = italic or node.name in {"em", "i"} or "italic" in (node.get("class") or [])
+        next_color = extract_color(node.get("style", "")) or color
+
+        for child in node.contents:
+            walk(child, bold=next_bold, italic=next_italic, color=next_color)
+
+    for child in container.contents:
+        walk(child)
+
+    if success and len(str(rich_text)):
+        return rich_text
+    return None
 
     @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
