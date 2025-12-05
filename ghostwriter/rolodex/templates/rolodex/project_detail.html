@@ -914,6 +914,46 @@
           a.click();
         });
 
+        // Toggle Project Status with AJAX
+        $('.js-toggle-project-status').on('click', function() {
+          const $toggle = $(this);
+          const url = $toggle.attr('toggle-project-status-url');
+          const projectId = $toggle.attr('toggle-project-status-id');
+          const csrftoken = $toggle.attr('toggle-project-status-csrftoken');
+          const statusIcon = $('#js-toggle-project-status-icon');
+          const statusText = $('#js-project-status');
+
+          $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+              }
+            },
+          });
+
+          $.ajax({
+            url: url,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+              project: projectId,
+            },
+            success: function(data) {
+              statusText.html(data.status);
+              if (data.toggle) {
+                statusIcon.removeClass('fa-toggle-off');
+                statusIcon.addClass('fa-toggle-on');
+              } else {
+                statusIcon.removeClass('fa-toggle-on');
+                statusIcon.addClass('fa-toggle-off');
+              }
+              if (data.message) {
+                displayToastTop({type: data.result, string: data.message, title: 'Project Update'});
+              }
+            },
+          });
+        });
+
         const $projectDescription = $('#projectDescription');
         const $projectDescDropdown = $('#projectDescriptionDropdown');
         $projectDescription.hide();
