@@ -36,6 +36,7 @@ from ghostwriter.reporting.models import (
     ReportFindingLink,
     ReportObservationLink,
     ReportTemplate,
+    RiskScoreRangeMapping,
     Severity,
 )
 from ghostwriter.rolodex.data_parsers import (
@@ -738,6 +739,9 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
         raw_responses = instance.data_responses or {}
         workbook_data = instance.workbook_data or {}
         data["data_responses"] = self._format_data_responses(raw_responses, workbook_data)
+        risk_rich_text_map = RiskScoreRangeMapping.get_risk_rich_text_map()
+        self._apply_project_risk_rich_text(data.get("risks"), risk_rich_text_map)
+        self._apply_workbook_risk_rich_text(data.get("workbook_data"), risk_rich_text_map)
         return data
 
     @staticmethod
@@ -911,6 +915,59 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
             cleaned_list = [ProjectSerializer._strip_internal_metadata(item) for item in value]
             return [item for item in cleaned_list if item not in (None, {})]
         return value
+
+    @staticmethod
+    def _risk_rich_text(value: Any, risk_rich_text_map: Dict[str, str]) -> Optional[str]:
+        if value in (None, ""):
+            return None
+        normalized = str(value).strip()
+        if not normalized:
+            return None
+        return risk_rich_text_map.get(normalized, normalized)
+
+    @classmethod
+    def _apply_project_risk_rich_text(
+        cls, risks: Any, risk_rich_text_map: Dict[str, str]
+    ) -> None:
+        if not isinstance(risks, dict):
+            return
+        for key, value in list(risks.items()):
+            rich_text_value = cls._risk_rich_text(value, risk_rich_text_map)
+            if rich_text_value is not None:
+                risks[f"{key}_rt"] = rich_text_value
+
+    @classmethod
+    def _apply_workbook_risk_rich_text(
+        cls, workbook_data: Any, risk_rich_text_map: Dict[str, str]
+    ) -> None:
+        if not isinstance(workbook_data, dict):
+            return
+
+        report_card = workbook_data.get("report_card")
+        if isinstance(report_card, dict):
+            for key, value in list(report_card.items()):
+                rich_text_value = cls._risk_rich_text(value, risk_rich_text_map)
+                if rich_text_value is not None:
+                    report_card[f"{key}_rt"] = rich_text_value
+
+        grades = workbook_data.get("external_internal_grades")
+        if isinstance(grades, dict):
+            for category_data in grades.values():
+                if not isinstance(category_data, dict):
+                    continue
+
+                grade_value = category_data.get("grade")
+                rich_text_grade = cls._risk_rich_text(grade_value, risk_rich_text_map)
+                if rich_text_grade is not None:
+                    category_data["grade_rt"] = rich_text_grade
+
+                for subkey, subvalue in category_data.items():
+                    if not isinstance(subvalue, dict):
+                        continue
+                    risk_value = subvalue.get("risk")
+                    rich_text_risk = cls._risk_rich_text(risk_value, risk_rich_text_map)
+                    if rich_text_risk is not None:
+                        subvalue["risk_rt"] = rich_text_risk
 
     @staticmethod
     def _collect_firewall_responses(raw_responses, workbook_data):

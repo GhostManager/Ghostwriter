@@ -847,3 +847,15 @@ class RiskScoreRangeMappingModelTests(TestCase):
             RiskScoreRangeMapping.score_range_for_risk("Medium"),
             (Decimal("3.0"), Decimal("3.9")),
         )
+
+    def test_get_risk_rich_text_map_returns_expected_values(self):
+        default_map = RiskScoreRangeMapping.get_risk_rich_text_map()
+        self.assertEqual(default_map.get("Low"), "Low")
+        self.assertEqual(default_map.get("High"), "High")
+
+        mapping = RiskScoreRangeMapping.objects.create(
+            risk="Custom", min_score=Decimal("6.1"), max_score=Decimal("7.0"), risk_rich_text="<b>Custom</b>"
+        )
+        rich_text_map = RiskScoreRangeMapping.get_risk_rich_text_map()
+        self.assertEqual(rich_text_map.get("Custom"), "<b>Custom</b>")
+        mapping.delete()

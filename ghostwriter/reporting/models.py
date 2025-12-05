@@ -1386,6 +1386,12 @@ class RiskScoreRangeMapping(models.Model):
         unique=True,
         help_text="Risk bucket label (e.g., Low or Medium-->High)",
     )
+    risk_rich_text = models.TextField(
+        "Risk label rich text",
+        default="",
+        blank=True,
+        help_text="Rich Text version of the risk bucket label.",
+    )
     min_score = models.DecimalField(
         "Minimum score",
         max_digits=4,
@@ -1423,6 +1429,26 @@ class RiskScoreRangeMapping(models.Model):
         )
         if not mapping:
             mapping = OrderedDict(cls.DEFAULT_RISK_SCORE_MAP)
+        return mapping
+
+    @classmethod
+    def get_risk_rich_text_map(cls):
+        """Return configured rich text labels keyed by risk label."""
+
+        try:
+            records = cls.objects.all()
+        except (ProgrammingError, OperationalError):  # pragma: no cover - table not ready
+            return OrderedDict((risk, risk) for risk in cls.DEFAULT_RISK_SCORE_MAP)
+
+        mapping = OrderedDict(
+            (
+                record.risk,
+                record.risk_rich_text if record.risk_rich_text.strip() else record.risk,
+            )
+            for record in records
+        )
+        if not mapping:
+            mapping = OrderedDict((risk, risk) for risk in cls.DEFAULT_RISK_SCORE_MAP)
         return mapping
 
     @classmethod

@@ -1,6 +1,7 @@
 """This contains customizations for displaying the Reporting application models in the admin panel."""
 
 # Django Imports
+from django import forms
 from django.contrib import admin
 
 # 3rd Party Libraries
@@ -8,6 +9,7 @@ from import_export.admin import ImportExportMixin
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.admin import CollabAdminBase
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.reporting.forms import SeverityForm
 from ghostwriter.reporting.models import (
     Archive,
@@ -247,11 +249,20 @@ class GradeRiskMappingAdmin(admin.ModelAdmin):
     ordering = ("grade",)
 
 
+class RiskScoreRangeMappingForm(forms.ModelForm):
+    class Meta:
+        model = RiskScoreRangeMapping
+        fields = "__all__"
+
+    risk_rich_text = JinjaRichTextField(required=False)
+
+
 @admin.register(RiskScoreRangeMapping)
 class RiskScoreRangeMappingAdmin(admin.ModelAdmin):
     list_display = ("risk", "min_score", "max_score")
     list_editable = ("min_score", "max_score")
     ordering = ("min_score", "risk")
+    form = RiskScoreRangeMappingForm
 
 
 @admin.register(PasswordComplianceMapping)
