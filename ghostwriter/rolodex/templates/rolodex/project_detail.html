@@ -3097,16 +3097,18 @@
             label: 'SQL',
             workbookKey: 'sql',
             fields: [
-              {key: 'total_open', label: 'Total number of open databases', type: 'number'},
+              {key: 'total_open', label: 'Total number of open databases', type: 'number', color: 'blue'},
               {
                 key: 'weak_creds',
                 label: 'Total number of databases using weak credentials',
                 type: 'number',
+                color: 'blue',
               },
               {
                 key: 'unsupported_confirm',
                 label: "Are any of the DB's running an unsupported version?",
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3116,8 +3118,9 @@
                 key: 'unsupported_count',
                 label: "How many DB's are running unsupported versions?",
                 type: 'number',
+                color: 'blue',
               },
-              {key: 'db_types', label: 'What DB types were tested for?', type: 'textarea'},
+              {key: 'db_types', label: 'What DB types were tested for?', type: 'textarea', color: 'blue'},
             ],
           },
           wireless_walkthru: {
@@ -5519,6 +5522,7 @@
               const usbLabel = document.createElement('label');
               usbLabel.className = 'font-weight-bold';
               usbLabel.textContent = 'Did the client indicate they had controls in place around USB device usage?';
+              usbLabel.style.color = 'blue';
               const usbSelect = document.createElement('select');
               usbSelect.className = 'form-control';
               usbSelect.setAttribute('data-area-field', areaKey);
