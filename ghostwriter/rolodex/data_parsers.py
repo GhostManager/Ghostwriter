@@ -37,7 +37,7 @@ if False:  # pragma: no cover - typing only
 from ghostwriter.commandcenter.models import OpenAIConfiguration
 from ghostwriter.modules.openai_client import submit_prompt_to_assistant
 from ghostwriter.rolodex.ip_artifacts import IP_ARTIFACT_DEFINITIONS, parse_ip_text
-from ghostwriter.rolodex.constants import FIREWALL_XML_FILE_NAME_KEY
+from ghostwriter.rolodex.constants import BURP_XML_FILE_NAME_KEY, FIREWALL_XML_FILE_NAME_KEY
 from ghostwriter.rolodex.workbook import AD_DOMAIN_METRICS
 
 logger = logging.getLogger(__name__)
@@ -5262,6 +5262,7 @@ def build_project_artifacts(project: "Project") -> Dict[str, Any]:
                 except Exception:
                     pass
         elif label == "burp_xml.xml":
+            artifacts[BURP_XML_FILE_NAME_KEY] = data_file.filename
             burp_payload = parse_burp_xml_report(data_file.file, web_issue_matrix)
             findings = burp_payload.get("findings") if isinstance(burp_payload, dict) else burp_payload
             if findings:

@@ -26,6 +26,7 @@ from ghostwriter.rolodex.data_parsers import (
     parse_dns_report,
     DEFAULT_GENERAL_CAP_MAP,
 )
+from ghostwriter.rolodex.constants import BURP_XML_FILE_NAME_KEY
 from ghostwriter.rolodex.models import (
     DNSCapMapping,
     DNSSOACapMapping,
@@ -3532,11 +3533,14 @@ class NexposeDataParserTests(TestCase):
         self.project.rebuild_data_artifacts()
         self.project.refresh_from_db()
 
-        findings = self.project.data_artifacts.get("web_findings")
+        artifacts = self.project.data_artifacts
+        self.assertEqual(artifacts.get(BURP_XML_FILE_NAME_KEY), "burp_xml.xml")
+
+        findings = artifacts.get("web_findings")
         self.assertIsInstance(findings, list)
         self.assertEqual(len(findings), 2)
 
-        metrics = self.project.data_artifacts.get("web_metrics")
+        metrics = artifacts.get("web_metrics")
         self.assertIsInstance(metrics, dict)
         host_risk_counts = metrics.get("summary", {}).get("host_risk_counts")
         self.assertIsInstance(host_risk_counts, list)

@@ -2881,6 +2881,13 @@
             uploadButton.className = 'btn btn-outline-primary';
             uploadButton.textContent = 'Upload Burp XML';
             uploadButton.addEventListener('click', function() { uploadInput.click(); });
+            const fileNameDisplay = document.createElement('div');
+            fileNameDisplay.className = 'small text-muted mt-2';
+            const updateFileName = function() {
+              const name = (dataArtifactsState.burp_xml_file_name || '').toString().trim();
+              fileNameDisplay.textContent = name ? 'Uploaded file: ' + name : 'No Burp XML uploaded.';
+            };
+            updateFileName();
 
             const handleBurpUpload = function(file) {
               return runWithButtonLoading(uploadButton, 'Uploading...', function() {
@@ -2890,7 +2897,7 @@
 
             uploadInput.addEventListener('change', function(event) {
               if (event.target.files && event.target.files[0]) {
-                handleBurpUpload(event.target.files[0]);
+                handleBurpUpload(event.target.files[0]).then(function() { updateFileName(); });
                 event.target.value = '';
               }
             });
@@ -2908,6 +2915,7 @@
             uploadWrapper.appendChild(uploadButton);
             uploadWrapper.appendChild(removeButton);
             uploadWrapper.appendChild(uploadInput);
+            uploadWrapper.appendChild(fileNameDisplay);
             footerContainer.appendChild(uploadWrapper);
           };
 
