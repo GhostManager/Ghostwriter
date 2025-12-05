@@ -1,5 +1,6 @@
 """This contains utilities and values used by template linting."""
 
+from ghostwriter.reporting.models import RiskScoreRangeMapping
 from ghostwriter.rolodex.data_parsers import normalize_nexpose_artifacts_map
 
 # Example JSON reporting data for loading into templates for rendering tests
@@ -1542,6 +1543,40 @@ LINTER_CONTEXT = {
     },
     "extra_fields": {},
 }
+
+
+def _wrap_risk_rich_text_samples():
+    """Wrap inline-only risk rich text samples with block-level markup."""
+
+    def _wrap_risk_fields(container):
+        if not isinstance(container, dict):
+            return
+        for key, value in list(container.items()):
+            if value in (None, ""):
+                continue
+            if isinstance(value, dict):
+                _wrap_risk_fields(value)
+            if isinstance(key, str) and key.endswith("_rt"):
+                container[key] = RiskScoreRangeMapping._wrap_inline_rich_text(str(value))
+
+    _wrap_risk_fields(LINTER_CONTEXT.get("project", {}).get("risks"))
+
+    workbook_data = LINTER_CONTEXT.get("project", {}).get("workbook_data")
+    if isinstance(workbook_data, dict):
+        _wrap_risk_fields(workbook_data.get("report_card"))
+
+        grades = workbook_data.get("external_internal_grades")
+        if isinstance(grades, dict):
+            for category_data in grades.values():
+                if not isinstance(category_data, dict):
+                    continue
+                _wrap_risk_fields(category_data)
+                for subvalue in category_data.values():
+                    if isinstance(subvalue, dict):
+                        _wrap_risk_fields(subvalue)
+
+
+_wrap_risk_rich_text_samples()
 
 LINTER_CONTEXT["project"]["data_artifacts"] = normalize_nexpose_artifacts_map(
     LINTER_CONTEXT["project"].get("data_artifacts", {})
