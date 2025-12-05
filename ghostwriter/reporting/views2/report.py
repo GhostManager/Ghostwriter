@@ -41,10 +41,20 @@ from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
 from ghostwriter.reporting.forms import ReportForm, ReportTemplateForm, SelectReportTemplateForm
 from ghostwriter.reporting.models import Archive, Finding, Report, ReportTemplate
 from ghostwriter.reporting.supplemental_export import SupplementalDocumentBuilder
-from ghostwriter.rolodex.models import Project
+from ghostwriter.rolodex.models import Project, normalize_project_scoping
 from ghostwriter.rolodex.data_parsers import (
     has_open_nexpose_matrix_gaps,
     has_open_web_issue_matrix_gaps,
+    NEXPOSE_UPLOAD_REQUIREMENTS,
+)
+from ghostwriter.rolodex.workbook_defaults import normalize_workbook_payload
+from ghostwriter.rolodex.workbook import (
+    CLOUD_MANAGEMENT_REQUIREMENT_SLUG,
+    IAM_MANAGEMENT_REQUIREMENT_SLUG,
+    SQL_DATA_REQUIREMENT_SLUG,
+    SYSTEM_CONFIGURATION_REQUIREMENT_SLUG,
+    WIRELESS_DATA_REQUIREMENT_SLUG,
+    _slugify_identifier,
 )
 
 logger = logging.getLogger(__name__)
@@ -199,7 +209,149 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
         ctx["report_config"] = ReportConfiguration.get_solo()
 
+        ctx["missing_supplemental_files"] = self._build_missing_supplemental_files(self.object.project)
+
         return ctx
+
+    @staticmethod
+    def _build_missing_supplemental_files(project):
+        missing: list[str] = []
+
+        scoping = normalize_project_scoping(getattr(project, "scoping", {}))
+        workbook = normalize_workbook_payload(getattr(project, "workbook_data", {}))
+        artifacts = project.data_artifacts if isinstance(project.data_artifacts, dict) else {}
+        artifacts = artifacts or {}
+        data_files_by_slug = {
+            data_file.requirement_slug: data_file
+            for data_file in project.data_files.all()
+            if getattr(data_file, "requirement_slug", None)
+        }
+
+        def has_data_file(slug: str) -> bool:
+            return bool(slug and data_files_by_slug.get(slug))
+
+        external_scope = scoping.get("external", {}) if isinstance(scoping, dict) else {}
+        internal_scope = scoping.get("internal", {}) if isinstance(scoping, dict) else {}
+        iam_scope = scoping.get("iam", {}) if isinstance(scoping, dict) else {}
+        wireless_scope = scoping.get("wireless", {}) if isinstance(scoping, dict) else {}
+        firewall_scope = scoping.get("firewall", {}) if isinstance(scoping, dict) else {}
+        cloud_scope = scoping.get("cloud", {}) if isinstance(scoping, dict) else {}
+
+        if external_scope.get("osint") and not artifacts.get("osint_file_name"):
+            missing.append("OSINT CSV")
+
+        if external_scope.get("dns"):
+            dns_state = workbook.get("dns", {}) if isinstance(workbook, dict) else {}
+            records = dns_state.get("records") if isinstance(dns_state, dict) else []
+            if isinstance(records, list):
+                for record in records:
+                    if not isinstance(record, dict):
+                        continue
+                    domain = (record.get("domain") or "").strip() or "DNS domain"
+                    if not record.get("xml_file_name"):
+                        missing.append(f"DNS XML for {domain}")
+                    if not record.get("csv_file_name"):
+                        missing.append(f"DNS CSV for {domain}")
+
+        if (
+            external_scope.get("nexpose")
+            and (workbook.get("external_nexpose", {}) or {}).get("total", 0) > 0
+            and not has_data_file(NEXPOSE_UPLOAD_REQUIREMENTS.get("external_nexpose_metrics", {}).get("slug"))
+        ):
+            missing.append("Updated Nexpose Data file (External Nexpose)")
+
+        if external_scope.get("web"):
+            burp_slug = _slugify_identifier("required", "burp_xml.xml")
+            if not has_data_file(burp_slug):
+                missing.append("Burp XML")
+
+        if (
+            internal_scope.get("nexpose")
+            and (workbook.get("internal_nexpose", {}) or {}).get("total", 0) > 0
+            and not has_data_file(NEXPOSE_UPLOAD_REQUIREMENTS.get("internal_nexpose_metrics", {}).get("slug"))
+        ):
+            missing.append("Updated Nexpose Data file (Internal Nexpose)")
+
+        if (
+            internal_scope.get("iot_iomt")
+            and (workbook.get("iot_iomt_nexpose", {}) or {}).get("total", 0) > 0
+            and not has_data_file(NEXPOSE_UPLOAD_REQUIREMENTS.get("iot_iomt_nexpose_metrics", {}).get("slug"))
+        ):
+            missing.append("Updated Nexpose Data file (IoT/IoMT Nexpose)")
+
+        if internal_scope.get("endpoint"):
+            endpoint_artifacts = artifacts.get("endpoint") if isinstance(artifacts, dict) else {}
+            domain_entries = endpoint_artifacts.get("domains") if isinstance(endpoint_artifacts, dict) else []
+            if not domain_entries:
+                missing.append("Endpoint CSV")
+            elif isinstance(domain_entries, list):
+                for entry in domain_entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    domain = (entry.get("domain") or "").strip() or "Endpoint domain"
+                    if not entry.get("file_name"):
+                        missing.append(f"Endpoint CSV for {domain}")
+
+        if internal_scope.get("snmp") and not artifacts.get("snmp_file_name"):
+            missing.append("SNMP CSV")
+
+        if internal_scope.get("sql") and not has_data_file(SQL_DATA_REQUIREMENT_SLUG):
+            missing.append("SQL XLSX")
+
+        if iam_scope.get("ad"):
+            ad_artifacts = artifacts.get("ad") if isinstance(artifacts, dict) else {}
+            ad_domains = set()
+            ad_state = workbook.get("ad", {}) if isinstance(workbook, dict) else {}
+            for record in ad_state.get("domains", []) or []:
+                if isinstance(record, dict):
+                    domain_value = (record.get("domain") or record.get("name") or "").strip()
+                    if domain_value:
+                        ad_domains.add(domain_value)
+            if isinstance(ad_artifacts, dict):
+                ad_domains.update((key or "").strip() for key in ad_artifacts.keys())
+
+            metric_labels = {
+                "domain_admins": "Domain Admins",
+                "ent_admins": "Enterprise Admins",
+                "exp_passwords": "Expired Passwords",
+                "passwords_never_exp": "Passwords set to Never Expire",
+                "inactive_accounts": "Inactive Accounts",
+                "generic_accounts": "Generic Accounts",
+                "old_passwords": "Old Passwords",
+                "generic_logins": "Generic Logins",
+            }
+
+            for domain in sorted(filter(None, ad_domains)):
+                domain_key = domain.lower()
+                domain_entry = ad_artifacts.get(domain_key, {}) if isinstance(ad_artifacts, dict) else {}
+                if not isinstance(domain_entry, dict):
+                    domain_entry = {}
+                for metric_key, label in metric_labels.items():
+                    filename_key = f"{metric_key}_file_name"
+                    if not domain_entry.get(filename_key):
+                        missing.append(f"{label} CSV for {domain}")
+
+        if iam_scope.get("password") and not (artifacts.get("password") or {}).get("file_name"):
+            missing.append("Password CSV")
+
+        if wireless_scope.get("selected") and not has_data_file(WIRELESS_DATA_REQUIREMENT_SLUG):
+            missing.append("Wireless Data file")
+
+        if firewall_scope.get("configuration"):
+            firewall_slug = _slugify_identifier("required", "firewall_xml.xml")
+            if not has_data_file(firewall_slug):
+                missing.append("Nipper XML")
+
+        if cloud_scope.get("iam_management") and not has_data_file(IAM_MANAGEMENT_REQUIREMENT_SLUG):
+            missing.append("IAM Management Benchmark XLSX")
+
+        if cloud_scope.get("cloud_management") and not has_data_file(CLOUD_MANAGEMENT_REQUIREMENT_SLUG):
+            missing.append("Cloud Management Benchmark XLSX")
+
+        if cloud_scope.get("system_configuration") and not has_data_file(SYSTEM_CONFIGURATION_REQUIREMENT_SLUG):
+            missing.append("System Configuration Benchmark XLSX")
+
+        return missing
 
 
 class ReportCreate(RoleBasedAccessControlMixin, CreateView):
