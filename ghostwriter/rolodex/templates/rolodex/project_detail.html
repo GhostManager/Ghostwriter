@@ -3135,6 +3135,7 @@
                 key: 'rogue_signals',
                 label: 'Do any of the rogues have strong signals or appear to be on the same equipment as the client?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3144,6 +3145,7 @@
                 key: 'weak_psks',
                 label: "Are any of the PSK's in use weak?",
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3153,6 +3155,7 @@
                 key: 'wep_confirm',
                 label: 'Is WEP in use on the wireless networks?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3162,6 +3165,7 @@
                 key: 'wep_key_cracked',
                 label: 'Were you able to crack the WEP key?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3171,6 +3175,7 @@
                 key: '802_1x_used',
                 label: 'Is 802.1x authentication used for all non-Guest wireless access?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -4541,12 +4546,15 @@
             return group;
           };
 
-          const makeYesNoSelect = function(labelText, value, onChange) {
+          const makeYesNoSelect = function(labelText, value, onChange, options) {
             const group = document.createElement('div');
             group.className = 'form-group';
             const label = document.createElement('label');
             label.className = 'font-weight-bold';
             label.textContent = labelText;
+            if (options && options.color) {
+              label.style.color = options.color;
+            }
             const select = document.createElement('select');
             select.className = 'form-control';
             select.setAttribute('data-area-field', areaKey);
@@ -5008,7 +5016,7 @@
                   policy.password_pattern.passwords = [];
                 }
                 toggleDuplicateTable();
-              });
+              }, {color: 'blue'});
               patternCol.appendChild(patternSelect.group);
               const duplicatesContainer = document.createElement('div');
               patternCol.appendChild(duplicatesContainer);
