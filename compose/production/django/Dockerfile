@@ -22,6 +22,8 @@ RUN apk --no-cache add build-base curl \
     # Rust and Cargo required by the ``cryptography`` Python package
     && apk --no-cache add rust \
     && apk --no-cache add cargo \
+    # Git for installing packages from GitHub
+    && apk --no-cache add git \
     && addgroup -S django \
     && adduser -S -G django django \
     && pip install --no-cache-dir -U setuptools pip
