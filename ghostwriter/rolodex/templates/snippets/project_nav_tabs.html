@@ -50,6 +50,19 @@
         Reporting
     </a>
 </li>
+{% if project.has_bloodhound_api or global_bloodhound_config.has_bloodhound_api %}
+    {# TODO BH icon #}
+    <li class="nav-item">
+        <a id="id_bloodhound" class="nav-link tab-icon bloodhound-icon" data-toggle="tab" href="#bloodhound">
+            BloodHound
+        </a>
+    </li>
+{% endif %}
+<li class="nav-item">
+    <a id="id_collab_notes" class="nav-link tab-icon sticky-note-icon" data-toggle="tab" href="#collab_notes">
+        Collab Notes
+    </a>
+</li>
 {% if project_extra_fields_spec %}
     <li class="nav-item">
         <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-toggle="tab" href="#extra_fields">
@@ -57,8 +70,10 @@
         </a>
     </li>
 {% endif %}
-<li class="nav-item">
-    <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
-        Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
-    </a>
-</li>
+{% if project.projectnote_set.all %}
+    <li class="nav-item">
+        <a id="id_legacy_comments" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#legacy_comments">
+            Legacy Comments <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
+        </a>
+    </li>
+{% endif %}

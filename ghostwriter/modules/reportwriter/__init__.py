@@ -57,6 +57,8 @@ def prepare_jinja2_env(debug=False):
     env.filters["regex_search"] = jinja_funcs.regex_search
     env.filters["filter_tags"] = jinja_funcs.filter_tags
     env.filters["replace_blanks"] = jinja_funcs.replace_blanks
+    env.filters["filter_bhe_findings_by_domain"] = jinja_funcs.filter_bhe_findings_by_domain
+    env.filters["translate_domain_sid"] = jinja_funcs.translate_domain_sid
 
     if debug:
         return env, undefined_vars

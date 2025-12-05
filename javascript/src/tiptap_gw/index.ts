@@ -2,9 +2,7 @@
 // change the schema.
 
 import StarterKit from "@tiptap/starter-kit";
-import Table from "@tiptap/extension-table";
-import TableHeader from "@tiptap/extension-table-header";
-import TableRow from "@tiptap/extension-table-row";
+import { Table, TableHeader, TableRow } from "@tiptap/extension-table";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import { type Extensions } from "@tiptap/core";
@@ -21,14 +19,19 @@ import {
 import { TableWithCaption, TableCaption, GwTableCell } from "./table";
 import { HeadingWithId } from "./heading";
 import Color from "./color";
+import CaseChange from "./case_change";
 import Link from "./link";
+import Image from "./image";
 import TextAlign from "./text_align";
+import Caption from "./caption";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
+        undoRedo: false,
         heading: false,
-        history: false,
         codeBlock: false,
+        link: false,
+        underline: false,
         bold: false,
         italic: false,
         horizontalRule: false,
@@ -45,6 +48,8 @@ const EXTENSIONS: Extensions = [
     Link.configure({
         openOnClick: false,
         autolink: false,
+        linkOnPaste: false,
+        shouldAutoLink: () => false,
     }),
     TextAlign.configure({
         types: ["heading", "paragraph"],
@@ -61,6 +66,9 @@ const EXTENSIONS: Extensions = [
     TableWithCaption,
     TableCaption,
     Color,
+    Image,
+    CaseChange,
+    Caption,
 ];
 
 export default EXTENSIONS;

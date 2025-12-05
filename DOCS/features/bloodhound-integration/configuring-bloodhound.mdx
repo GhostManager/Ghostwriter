@@ -1,0 +1,54 @@
+---
+title: "Configuring BloodHound"
+description: "How to integrate your BloodHound server(s) with Ghostwriter"
+---
+
+Ghostwriter integrates with BloodHound to pull data from the BloodHound graph and makes it available in your report
+templates. If the BloodHound API is enabled and configured, Ghostwriter pulls the BloodHound data when you generate a
+report.
+
+<Check>
+Ghostwriter integrates with v8.4 and later of *both* BloodHound Community Edition and BloodHound Enterprise. There are some differences
+between the two. You can learn more here: [Differences Between BHCE and BHE](/features/bloodhound-integration/differences-between-bhce-and-bhe)
+</Check>
+
+To enable the BloodHound API, generate your access token, and configure the API in Ghostwriter, follow these steps:
+
+##  Generating an Access Token
+
+Generate your BloodHound access token by logging into your BloodHound instance and opening the _Administration_ section
+from the sidebar menu.
+
+Click _Manage Users_ and then click the hamburger menu next to the user you want to use for the API access. Select
+_Generate/Revoke API Tokens_.
+
+<Frame>
+  <img src="/images/configuring-global-settings/configuring-apis/image-1.png" alt=""/>
+</Frame>
+
+Give your token a name and generate it. Take note of the _Key_ and _ID_ values in the modal window.
+
+<Frame>
+  <img src="/images/configuring-global-settings/configuring-apis/image-2.png" alt=""/>
+</Frame>
+
+### Configuring the BloodHound API in Ghostwriter
+
+Take the _ID_ and _Token_ values and plug them into the BloodHound API Configuration in Ghostwriter. You will also need
+to add the URL of your BloodHound instance. The URL should be the base URL of your BloodHound instance, including the
+protocol and port (if needed). For example, `http://bloodhound:8080`.
+
+<Frame>
+  <img src="/images/configuring-global-settings/configuring-apis/image-3.png" alt=""/>
+</Frame>
+
+#### Testing the Configuration
+
+Once you have configured the BloodHound API in Ghostwriter, an admin can test the configuration by clicking the _Test BloodHound_
+button on the _Review Configuration_ page. This will send a request to the `/api/version` endpoint of the BloodHound API
+and verify that the connection is successful.
+
+#### Per-Project Instances
+
+If you have multiple BloodHound instances — such as seperate servers for different clients — you can configure a BloodHound server for a project.
+Project members can manage their BloodHound instance under the _BloodHound_ tab on the project dashboard.

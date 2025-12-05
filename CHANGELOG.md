@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.0] - 5 December 2025
+
+### Added
+
+* Added support for uploading a logo for a client
+  * Ghostwriter now replaces any image in your template with the client logo if you have set the alt text to `[CLIENT_LOGO]`
+  * The client logo will keep the exact dimensions and placement as the template image
+* Added a menu to the editor with new options
+  * Added options to convert selected text to lowercase or uppercase
+  * Added a command to insert the logo of the project's client
+* Added a new collaborative notes field on the project dashboard
+  * This field allows project members to take shared notes about the project
+  * The notes are saved automatically and can be edited by multiple users simultaneously
+  * Find this field under the "Collab Notes" tab
+* Added a `downloadEvidence` query to the GraphQL API
+  * This provides a mechanism for programmatically pulling down an evidence file
+  * The query can return a download URL or a base64-encoded blob
+  * You can visit the download URL with a valid login session or decode the base64
+* Added an all-new integration with BloodHound
+  * Thank you [@zinic](https://github.com/zinic) for the initial implementation of the BloodHound client!
+  * This integration allows you to import data and findings from BloodHound into Ghostwriter
+  * The integration supports both Community Edition and Enterprise versions of BloodHound
+  * You can find the integration under the "BloodHound" tab in the project dashboard
+  * Ghostwriter supports a global BloodHound configuration for your instance and per-project configurations
+    * Configure a BloodHound instance globally or use a different instance for each project
+  * Review the wiki for more information: [https://www.ghostwriter.wiki/features/bloodhound-integration](https://www.ghostwriter.wiki/features/bloodhound-integration)
+
+### Changed
+
+* Upgraded `allauth` to provide the best support for SSO providers and enable new options for MFA
+  * Moved to a new MFA management page
+  * Implemented WebAuthn for future support for Passkey authentication
+  * Note: These changes require migrating existing TOTP devices to this new version with `./ghostwriter-cli migrate_totp`
+* Changed the `note` fields on most models to `description` to better reflect their purpose
+  * This includes models like Domain, Server, Finding, Observation, Project, Client, and others
+  * These fields were meant to be used as descriptions of the object, but the `note` naming was confused with other note-taking features added to Ghostwriter over time
+  * This is a breaking change for any references to these in existing report templates or scripts
+* Converted the `{{.caption}}` keyword to a new editor object to make it easier to use and see in the collaborative editor
+  * This continues what we started with evidence previews as objects in the editor
+  * You can now set the caption text and a custom reference ID for bookmarks in the object
+  * This replaces the need to use a line like `{{.caption REF_ID}} Caption text`
+* We have hidden the legacy "Notes" sections in the dashboards
+  * Like the change to the old `note` fields, this change is to reduce confusion with the new collaborative notes feature
+  * The feature was not widely used, and the collaborative notes feature provides a better experience
+  * The sections will remain visible for any existing projects with content in the notes
+  * New projects will not see the notes section
+
 ## [6.0.6] - 20 November 2025
 
 ### Changed

@@ -6,12 +6,16 @@ from django.contrib.auth import forms, get_user_model
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.forms import ModelForm, ModelMultipleChoiceField
+from django.forms import CharField, ModelForm, ModelMultipleChoiceField, TextInput
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
 from allauth.account.forms import LoginForm, SignupForm
-from allauth_2fa.forms import TOTPAuthenticateForm, TOTPDeviceForm, TOTPDeviceRemoveForm
+from allauth.mfa.adapter import get_adapter
+from allauth.mfa.base.forms import AuthenticateForm
+from allauth.mfa.base.internal.flows import check_rate_limit
+from allauth.mfa.models import Authenticator
+from allauth.mfa.totp.forms import ActivateTOTPForm, DeactivateTOTPForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
@@ -200,24 +204,24 @@ class UserSignupForm(SignupForm):
         )
 
 
-class User2FAAuthenticateForm(TOTPAuthenticateForm):
+class UserMFAAuthenticateForm(AuthenticateForm):
     """
     Authenticate an individual :model:`users.User` with their TOTP. This is customized
     to make adjustments like disabling autocomplete on the token field.
     """
 
-    def __init__(self, user, *args, **kwargs):
-        super().__init__(user, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["otp_token"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].widget.attrs["placeholder"] = "421 984"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_tag = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("otp_token", css_class="form-group col-4 offset-4 mb-0"),
+                Column("code", css_class="form-group col-4 offset-4 mb-0"),
                 css_class="form-row mt-4",
             ),
             ButtonHolder(
@@ -225,24 +229,38 @@ class User2FAAuthenticateForm(TOTPAuthenticateForm):
             ),
         )
 
+    def clean_code(self):
+        clear_rl = check_rate_limit(self.user)
+        code = self.cleaned_data["code"]
+        for auth in Authenticator.objects.filter(user=self.user).exclude(
+            # WebAuthn cannot validate manual codes.
+            type=Authenticator.Type.WEBAUTHN
+        ):
+            if auth.wrap().validate_code(code):
+                self.authenticator = auth
+                clear_rl()
+                return code
 
-class User2FADeviceForm(TOTPDeviceForm):
+        raise get_adapter().validation_error("incorrect_code")
+
+
+class UserMFADeviceForm(ActivateTOTPForm):
     """
-    Enroll an 2FA device for an individual :model:`users.User`. This is customized
+    Enroll an MFA device for an individual :model:`users.User`. This is customized
     to make adjustments like disabling autocomplete on the token field.
     """
 
-    def __init__(self, user, *args, **kwargs):
-        super().__init__(user, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["otp_token"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].widget.attrs["placeholder"] = "421 984"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("otp_token", css_class="form-group col-4 offset-4 mb-0"),
+                Column("code", css_class="form-group col-4 offset-4 mb-0"),
                 css_class="form-row mt-4",
             ),
             ButtonHolder(
@@ -251,26 +269,69 @@ class User2FADeviceForm(TOTPDeviceForm):
         )
 
 
-class User2FADeviceRemoveForm(TOTPDeviceRemoveForm):
+class UserMFADeviceRemoveForm(DeactivateTOTPForm):
     """
-    Remove an 2FA device enrolled for an individual :model:`users.User`. This is customized
+    Remove an MFA device enrolled for an individual :model:`users.User`. This is customized
     to make adjustments like disabling autocomplete on the password field.
     """
+    code = CharField(
+        label=_("Current Authenticator Code"),
+        max_length=6,
+        min_length=6,
+        required=True,
+        widget=TextInput(
+            attrs={
+                "placeholder": "Enter 6-digit code",
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "pattern": "[0-9]{6}",
+            }
+        ),
+        help_text="Enter the current 6-digit code from your authenticator app to confirm deactivation.",
+    )
 
-    def __init__(self, user, *args, **kwargs):
-        super().__init__(user, *args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["otp_token"].widget.attrs["placeholder"] = "421 984"
+    def __init__(self, *args, **kwargs):
+        self.authenticator = kwargs.get("authenticator")
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("otp_token", css_class="form-group col-4 offset-4 mb-0"),
+                Column("code", css_class="form-group col-4 offset-4 mb-0"),
                 css_class="form-row mt-4",
             ),
             ButtonHolder(
-                Submit("submit", "Disable Two-Factor", css_class="col-4"),
+                Submit("submit", "Disable Multi-Factor", css_class="col-4"),
             ),
         )
+
+    def clean_code(self):
+        """
+        Validate the TOTP code against the authenticator.
+        """
+
+        if not self.user:
+            raise ValidationError("User context is required for rate limiting.")
+
+        if not self.authenticator:
+            raise ValidationError("No authenticator device found.")
+
+        clear_rl = check_rate_limit(self.user)
+        code = self.cleaned_data.get("code")
+
+        # Validate the TOTP code
+        if self.authenticator.wrap().validate_code(code):
+            clear_rl()
+            return code
+
+        raise get_adapter().validation_error("incorrect_code")
+
+    def clean(self):
+        """
+        Ensure authenticator is present before proceeding.
+        """
+        cleaned_data = super().clean()
+
+        return cleaned_data

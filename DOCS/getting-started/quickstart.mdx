@@ -76,6 +76,14 @@ $ cd Ghostwriter
 $ ./ghostwriter-cli install
 ```
 
+## Migrating TOTP Secrets from Legacy Installations
+
+If you are upgrading from an older version of Ghostwriter that used `allauth-2fa` for two-factor authentication, you'll need to migrate your TOTP secrets to the new format:
+
+```log Migrate TOTP Secrets
+$ ./ghostwriter-cli migrate_totp
+```
+
 <Info>
 Ghostwriter will create self-signed TLS/SSL certificates. If you'd like to use your signed certificates, do that now to make things easier. If you don't have them ready, you can install them later.
 </Info>
