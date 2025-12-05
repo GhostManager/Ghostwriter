@@ -230,6 +230,17 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         def has_data_file(slug: str) -> bool:
             return bool(slug and data_files_by_slug.get(slug))
 
+        def has_positive_total(section_key: str) -> bool:
+            if not isinstance(workbook, dict):
+                return False
+            section = workbook.get(section_key, {}) or {}
+            if not isinstance(section, dict):
+                return False
+            try:
+                return float(section.get("total", 0) or 0) > 0
+            except (TypeError, ValueError):
+                return False
+
         external_scope = scoping.get("external", {}) if isinstance(scoping, dict) else {}
         internal_scope = scoping.get("internal", {}) if isinstance(scoping, dict) else {}
         iam_scope = scoping.get("iam", {}) if isinstance(scoping, dict) else {}
@@ -255,7 +266,7 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
         if (
             external_scope.get("nexpose")
-            and (workbook.get("external_nexpose", {}) or {}).get("total", 0) > 0
+            and has_positive_total("external_nexpose")
             and not has_data_file(NEXPOSE_UPLOAD_REQUIREMENTS.get("external_nexpose_metrics", {}).get("slug"))
         ):
             missing.append("Updated Nexpose Data file (External Nexpose)")
@@ -267,14 +278,14 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
         if (
             internal_scope.get("nexpose")
-            and (workbook.get("internal_nexpose", {}) or {}).get("total", 0) > 0
+            and has_positive_total("internal_nexpose")
             and not has_data_file(NEXPOSE_UPLOAD_REQUIREMENTS.get("internal_nexpose_metrics", {}).get("slug"))
         ):
             missing.append("Updated Nexpose Data file (Internal Nexpose)")
 
         if (
             internal_scope.get("iot_iomt")
-            and (workbook.get("iot_iomt_nexpose", {}) or {}).get("total", 0) > 0
+            and has_positive_total("iot_iomt_nexpose")
             and not has_data_file(NEXPOSE_UPLOAD_REQUIREMENTS.get("iot_iomt_nexpose_metrics", {}).get("slug"))
         ):
             missing.append("Updated Nexpose Data file (IoT/IoMT Nexpose)")
