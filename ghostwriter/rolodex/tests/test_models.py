@@ -285,15 +285,23 @@ class ProjectModelTests(TestCase):
                     "snmp": {"risk": "low"},
                     "sql": {"risk": "medium"},
                     "iam": {"risk": "high"},
-                    "password": {"risk": "low"},
+                    "iot_iomt": {"risk": "medium"},
+                },
+                "iam": {"ad": {"risk": "high"}, "password": {"risk": "low"}},
+                "wireless": {"grade": "A-"},
+                "firewall": {"grade": "C-"},
+                "cloud": {
+                    "iam_management": {"risk": "high"},
+                    "cloud_management": {"risk": "medium"},
+                    "system_configuration": {"risk": "low"},
                 },
             },
             "report_card": {
                 "overall": "B",
                 "external": "C+",
                 "internal": "D",
-                "wireless": "A-",
-                "firewall": "C-",
+                "wireless": None,
+                "firewall": None,
             },
         }
 
@@ -304,6 +312,11 @@ class ProjectModelTests(TestCase):
         self.assertEqual(project.risks.get("osint"), "High")
         self.assertEqual(project.risks.get("overall_risk"), "Medium")
         self.assertEqual(project.risks.get("internal"), "High")
+        self.assertEqual(project.risks.get("ad"), "High")
+        self.assertEqual(project.risks.get("iot_iomt_nexpose"), "Medium")
+        self.assertEqual(project.risks.get("iam_management"), "High")
+        self.assertEqual(project.risks.get("cloud_management"), "Medium")
+        self.assertEqual(project.risks.get("system_configuration"), "Low")
 
         assignment = ProjectAssignmentFactory(operator=user, project=project)
         self.assertFalse(Project.user_can_create(user))

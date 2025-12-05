@@ -16,29 +16,41 @@ _RISK_LABELS = {
     "low": "Low",
 }
 
-_WORKBOOK_RISK_PATHS: Dict[str, Sequence[str]] = {
-    "osint": ("external_internal_grades", "external", "osint", "risk"),
-    "dns": ("external_internal_grades", "external", "dns", "risk"),
-    "external_nexpose": ("external_internal_grades", "external", "nexpose", "risk"),
-    "web": ("external_internal_grades", "external", "web", "risk"),
-    "cloud_config": ("external_internal_grades", "internal", "cloud", "risk"),
-    "system_config": ("external_internal_grades", "internal", "configuration", "risk"),
-    "internal_nexpose": ("external_internal_grades", "internal", "nexpose", "risk"),
-    "endpoint": ("external_internal_grades", "internal", "endpoint", "risk"),
-    "snmp": ("external_internal_grades", "internal", "snmp", "risk"),
-    "sql": ("external_internal_grades", "internal", "sql", "risk"),
-    "iam": ("external_internal_grades", "internal", "iam", "risk"),
-    "password": ("external_internal_grades", "internal", "password", "risk"),
-    "cloud": ("external_internal_grades", "internal", "cloud", "risk"),
-    "configuration": ("external_internal_grades", "internal", "configuration", "risk"),
+_WORKBOOK_RISK_PATHS: Dict[str, Sequence[Sequence[str]]] = {
+    "osint": (("external_internal_grades", "external", "osint", "risk"),),
+    "dns": (("external_internal_grades", "external", "dns", "risk"),),
+    "external_nexpose": (("external_internal_grades", "external", "nexpose", "risk"),),
+    "web": (("external_internal_grades", "external", "web", "risk"),),
+    "cloud_config": (("external_internal_grades", "internal", "cloud", "risk"),),
+    "system_config": (("external_internal_grades", "internal", "configuration", "risk"),),
+    "internal_nexpose": (("external_internal_grades", "internal", "nexpose", "risk"),),
+    "endpoint": (("external_internal_grades", "internal", "endpoint", "risk"),),
+    "snmp": (("external_internal_grades", "internal", "snmp", "risk"),),
+    "sql": (("external_internal_grades", "internal", "sql", "risk"),),
+    "iam": (("external_internal_grades", "internal", "iam", "risk"),),
+    "ad": (("external_internal_grades", "iam", "ad", "risk"),),
+    "password": (
+        ("external_internal_grades", "iam", "password", "risk"),
+        ("external_internal_grades", "internal", "password", "risk"),
+    ),
+    "wireless": (("external_internal_grades", "wireless", "grade"),),
+    "firewall": (("external_internal_grades", "firewall", "grade"),),
+    "cloud": (("external_internal_grades", "internal", "cloud", "risk"),),
+    "configuration": (("external_internal_grades", "internal", "configuration", "risk"),),
+    "iam_management": (("external_internal_grades", "cloud", "iam_management", "risk"),),
+    "cloud_management": (("external_internal_grades", "cloud", "cloud_management", "risk"),),
+    "system_configuration": (
+        ("external_internal_grades", "cloud", "system_configuration", "risk"),
+    ),
+    "iot_iomt_nexpose": (("external_internal_grades", "internal", "iot_iomt", "risk"),),
 }
 
 _GRADE_FIELD_MAP: Dict[str, Sequence[str]] = {
     "overall_risk": ("overall_grade", "overall"),
     "external": ("external_grade", "external"),
     "internal": ("internal_grade", "internal"),
-    "wireless": ("wireless_grade", "wireless"),
-    "firewall": ("firewall_grade", "firewall"),
+    "wireless": ("wireless_grade", "wireless", "grade"),
+    "firewall": ("firewall_grade", "firewall", "grade"),
 }
 
 
@@ -72,6 +84,12 @@ def _collect_grade_sources(workbook_data: Dict[str, Any]) -> Sequence[Dict[str, 
             nested = candidate.get("grades")
             if isinstance(nested, dict):
                 candidates.append(nested)
+
+    grade_section = workbook_data.get("external_internal_grades")
+    if isinstance(grade_section, dict):
+        for value in grade_section.values():
+            if isinstance(value, dict):
+                candidates.append(value)
     return candidates
 
 
@@ -92,11 +110,13 @@ def build_project_risk_summary(workbook_data: Any) -> Dict[str, str]:
 
     results: Dict[str, str] = {}
 
-    for key, path in _WORKBOOK_RISK_PATHS.items():
-        raw_value = _get_nested_value(workbook_data, path)
-        normalized = _normalize_risk(raw_value)
-        if normalized:
-            results[key] = normalized
+    for key, paths in _WORKBOOK_RISK_PATHS.items():
+        for path in paths:
+            raw_value = _get_nested_value(workbook_data, path)
+            normalized = _normalize_risk(raw_value)
+            if normalized:
+                results[key] = normalized
+                break
 
     grade_sources = _collect_grade_sources(workbook_data)
     grade_map = GradeRiskMapping.get_grade_map()
