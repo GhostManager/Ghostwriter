@@ -17,6 +17,7 @@ from django.db.utils import OperationalError, ProgrammingError
 from django.urls import reverse
 
 # 3rd Party Libraries
+from bs4 import BeautifulSoup
 from cvss import CVSS3, CVSS4
 from taggit.managers import TaggableManager
 
@@ -1438,18 +1439,47 @@ class RiskScoreRangeMapping(models.Model):
         try:
             records = cls.objects.all()
         except (ProgrammingError, OperationalError):  # pragma: no cover - table not ready
-            return OrderedDict((risk, risk) for risk in cls.DEFAULT_RISK_SCORE_MAP)
+            return OrderedDict(
+                (risk, cls._wrap_inline_rich_text(risk))
+                for risk in cls.DEFAULT_RISK_SCORE_MAP
+            )
 
         mapping = OrderedDict(
             (
                 record.risk,
-                record.risk_rich_text if record.risk_rich_text.strip() else record.risk,
+                cls._wrap_inline_rich_text(
+                    record.risk_rich_text if record.risk_rich_text.strip() else record.risk
+                ),
             )
             for record in records
         )
         if not mapping:
-            mapping = OrderedDict((risk, risk) for risk in cls.DEFAULT_RISK_SCORE_MAP)
+            mapping = OrderedDict(
+                (risk, cls._wrap_inline_rich_text(risk))
+                for risk in cls.DEFAULT_RISK_SCORE_MAP
+            )
         return mapping
+
+    @staticmethod
+    def _wrap_inline_rich_text(html: str) -> str:
+        """
+        Ensure inline-only rich text content is wrapped in a block container.
+
+        The DOCX renderer requires text nodes to be nested inside block-level elements
+        (e.g., ``<p>``). Inline-only values such as ``"<b>High</b>"`` are wrapped to
+        prevent export failures.
+        """
+
+        soup = BeautifulSoup(html, "html.parser")
+        block_tags = ("p", "div", "ul", "ol", "table", "blockquote", "pre")
+        if any(soup.find(tag) for tag in block_tags):
+            return html
+
+        stripped = html.strip()
+        if not stripped:
+            return html
+
+        return f"<p>{stripped}</p>"
 
     @classmethod
     def score_range_for_risk(cls, risk_label):
