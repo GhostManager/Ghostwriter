@@ -4,12 +4,14 @@ import logging
 import os
 import re
 
-from docxtpl import DocxTemplate, RichText as DocxRichText
-from docx.opc.exceptions import PackageNotFoundError
+from docx import Document
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches, Pt
 from docx.image.exceptions import UnrecognizedImageError
+from docx.opc.exceptions import PackageNotFoundError
+from docx.oxml.ns import qn
+from docx.shared import Inches, Pt
+from docxtpl import DocxTemplate, RichText as DocxRichText
 
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -128,7 +130,64 @@ class ExportDocxBase(ExportBase):
 
         out = io.BytesIO()
         self.word_doc.save(out)
+
+        # Post-process to clean up separator footnotes (remove extra empty paragraphs)
+        out = self._cleanup_footnote_separators(out)
+
         return out
+
+    def _cleanup_footnote_separators(self, docx_bytes: io.BytesIO) -> io.BytesIO:
+        """
+        Remove extra empty paragraphs from separator footnotes.
+
+        Some Word templates have extra empty paragraphs in the separator and
+        continuationSeparator footnotes, which causes unwanted spacing between
+        the footnote separator line and the actual footnotes.
+
+        This post-processes the saved DOCX to avoid interfering with docxtpl's
+        template rendering.
+        """
+        try:
+            docx_bytes.seek(0)
+            doc = Document(docx_bytes)
+
+            # Access the footnotes part (requires accessing internal python-docx members)
+            # pylint: disable=protected-access
+            if not hasattr(doc._part, '_footnotes_part') or doc._part._footnotes_part is None:
+                docx_bytes.seek(0)
+                return docx_bytes
+
+            footnotes_part = doc._part._footnotes_part
+            footnotes_element = footnotes_part._element
+            # pylint: enable=protected-access
+
+            modified = False
+            for footnote in footnotes_element:
+                # Only clean separator footnotes (id=-1 or id=0)
+                footnote_id = footnote.get(qn("w:id"))
+                if footnote_id in ("-1", "0"):
+                    # Find all paragraph elements
+                    paragraphs = list(footnote.iterchildren(qn("w:p")))
+                    # Keep only the first paragraph (which contains the separator)
+                    for para in paragraphs[1:]:
+                        footnote.remove(para)
+                        modified = True
+
+            if modified:
+                # Save the modified document
+                out = io.BytesIO()
+                doc.save(out)
+                out.seek(0)
+                return out
+
+            docx_bytes.seek(0)
+            return docx_bytes
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            # Log but don't fail the report generation
+            logger.warning("Failed to cleanup footnote separators: %s", e)
+            docx_bytes.seek(0)
+            return docx_bytes
 
     def create_styles(self):
         """

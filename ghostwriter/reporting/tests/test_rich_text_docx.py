@@ -673,3 +673,73 @@ class RichTextToDocxTests(TestCase):
         "<p>Hello&#20; World!</p><p>This is a test!</p>",
         """<w:p><w:pPr/><w:r><w:t>Hello World!</w:t></w:r></w:p><w:p><w:pPr/><w:r><w:t>This is a test!</w:t></w:r></w:p>""",
     )
+
+
+class FootnoteToDocxTests(TestCase):
+    """Tests for footnote HTML to DOCX conversion."""
+
+    maxDiff = None
+
+    def test_footnote_creates_footnote_in_document(self):
+        """Test that <footnote> elements create Word footnotes."""
+        html = "<p>Text with a footnote<footnote>This is the footnote content.</footnote> and more text.</p>"
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        # Check that footnotes.xml exists and contains the footnote
+        with ZipFile(out) as zip:
+            self.assertIn("word/footnotes.xml", zip.namelist())
+            with zip.open("word/footnotes.xml") as file:
+                contents = file.read().decode("utf-8")
+                self.assertIn("This is the footnote content.", contents)
+
+    def test_multiple_footnotes(self):
+        """Test that multiple footnotes are created correctly."""
+        html = """
+            <p>First footnote<footnote>Footnote one.</footnote> and
+            second footnote<footnote>Footnote two.</footnote> in same paragraph.</p>
+        """
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/footnotes.xml") as file:
+                contents = file.read().decode("utf-8")
+                self.assertIn("Footnote one.", contents)
+                self.assertIn("Footnote two.", contents)
+
+    def test_footnote_with_formatted_content(self):
+        """Test that footnotes preserve basic text content."""
+        html = "<p>Text<footnote>Footnote with content.</footnote></p>"
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/footnotes.xml") as file:
+                contents = file.read().decode("utf-8")
+                self.assertIn("Footnote with content.", contents)
+
+    def test_footnote_reference_in_document(self):
+        """Test that footnote reference is inserted in the document."""
+        html = "<p>Text with footnote<footnote>The footnote.</footnote> here.</p>"
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/document.xml") as file:
+                contents = file.read().decode("utf-8")
+                # Should contain a footnote reference element
+                self.assertIn("footnoteReference", contents)
+

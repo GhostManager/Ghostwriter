@@ -21,6 +21,8 @@ RUN apk --no-cache add build-base curl \
     # Rust and Cargo required by the ``cryptography`` Python package
     && apk --no-cache add rust \
     && apk --no-cache add cargo \
+    # Git for installing packages from GitHub
+    && apk --no-cache add git \
     && pip install --no-cache-dir -U setuptools pip
 
 COPY ./requirements /requirements
