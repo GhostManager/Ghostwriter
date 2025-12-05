@@ -256,6 +256,12 @@ class RiskScoreRangeMappingForm(forms.ModelForm):
 
     risk_rich_text = JinjaRichTextField(required=False)
 
+    class Media:
+        js = (
+            "js/tinymce/tinymce.min.js",
+            "js/tinymce/config.js",
+        )
+
 
 @admin.register(RiskScoreRangeMapping)
 class RiskScoreRangeMappingAdmin(admin.ModelAdmin):
