@@ -2929,10 +2929,10 @@
               {key: 'total_domains', label: 'Total domains found', type: 'number'},
               {key: 'total_hostnames', label: 'Total hostnames/subdomains found', type: 'number'},
               {key: 'total_ips', label: 'Total IPs found', type: 'number'},
-              {key: 'total_cloud', label: 'Total Cloud Providers found', type: 'number'},
-              {key: 'total_buckets', label: 'Total Open Buckets found', type: 'number'},
-              {key: 'total_squat', label: 'Total Domain Squatters found', type: 'number'},
-              {key: 'total_leaks', label: 'Total Leaked Creds found', type: 'number'},
+              {key: 'total_cloud', label: 'Total Cloud Providers found', type: 'number', color: 'blue'},
+              {key: 'total_buckets', label: 'Total Open Buckets found', type: 'number', color: 'blue'},
+              {key: 'total_squat', label: 'Total Domain Squatters found', type: 'number', color: 'blue'},
+              {key: 'total_leaks', label: 'Total Leaked Creds found', type: 'number', color: 'blue'},
             ],
           },
           dns: {
@@ -2979,11 +2979,17 @@
                 ],
               },
               {key: 'unique_majority', label: 'Unique Majority Vulnerability Count', type: 'number'},
-              {key: 'unique_majority_sub', label: 'Unique Majority Vulnerability Sub-Count', type: 'number'},
+              {
+                key: 'unique_majority_sub',
+                label: 'Unique Majority Vulnerability Sub-Count',
+                type: 'number',
+                color: 'blue',
+              },
               {
                 key: 'unique_majority_sub_info',
                 label: 'Unique Majority Vulnerability Sub-Count Info',
                 type: 'textarea',
+                color: 'blue',
               },
               {
                 key: 'minority_type',
@@ -3030,11 +3036,17 @@
                 ],
               },
               {key: 'unique_majority', label: 'Unique Majority Vulnerability Count', type: 'number'},
-              {key: 'unique_majority_sub', label: 'Unique Majority Vulnerability Sub-Count', type: 'number'},
+              {
+                key: 'unique_majority_sub',
+                label: 'Unique Majority Vulnerability Sub-Count',
+                type: 'number',
+                color: 'blue',
+              },
               {
                 key: 'unique_majority_sub_info',
                 label: 'Unique Majority Vulnerability Sub-Count Info',
                 type: 'textarea',
+                color: 'blue',
               },
               {
                 key: 'minority_type',
@@ -3085,16 +3097,18 @@
             label: 'SQL',
             workbookKey: 'sql',
             fields: [
-              {key: 'total_open', label: 'Total number of open databases', type: 'number'},
+              {key: 'total_open', label: 'Total number of open databases', type: 'number', color: 'blue'},
               {
                 key: 'weak_creds',
                 label: 'Total number of databases using weak credentials',
                 type: 'number',
+                color: 'blue',
               },
               {
                 key: 'unsupported_confirm',
                 label: "Are any of the DB's running an unsupported version?",
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3104,8 +3118,9 @@
                 key: 'unsupported_count',
                 label: "How many DB's are running unsupported versions?",
                 type: 'number',
+                color: 'blue',
               },
-              {key: 'db_types', label: 'What DB types were tested for?', type: 'textarea'},
+              {key: 'db_types', label: 'What DB types were tested for?', type: 'textarea', color: 'blue'},
             ],
           },
           wireless_walkthru: {
@@ -3120,6 +3135,7 @@
                 key: 'rogue_signals',
                 label: 'Do any of the rogues have strong signals or appear to be on the same equipment as the client?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3129,6 +3145,7 @@
                 key: 'weak_psks',
                 label: "Are any of the PSK's in use weak?",
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3138,6 +3155,7 @@
                 key: 'wep_confirm',
                 label: 'Is WEP in use on the wireless networks?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3147,6 +3165,7 @@
                 key: 'wep_key_cracked',
                 label: 'Were you able to crack the WEP key?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3156,6 +3175,7 @@
                 key: '802_1x_used',
                 label: 'Is 802.1x authentication used for all non-Guest wireless access?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3171,6 +3191,7 @@
                 key: 'internal_access',
                 label: 'Was internal network access gained from the Open wireless network?',
                 type: 'select',
+                color: 'blue',
                 options: [
                   {value: 'Yes', label: 'Yes'},
                   {value: 'No', label: 'No'},
@@ -3201,11 +3222,17 @@
                 ],
               },
               {key: 'unique_majority', label: 'Unique Majority Vulnerability Count', type: 'number'},
-              {key: 'unique_majority_sub', label: 'Unique Majority Vulnerability Sub-Count', type: 'number'},
+              {
+                key: 'unique_majority_sub',
+                label: 'Unique Majority Vulnerability Sub-Count',
+                type: 'number',
+                color: 'blue',
+              },
               {
                 key: 'unique_majority_sub_info',
                 label: 'Unique Majority Vulnerability Sub-Count Info',
                 type: 'textarea',
+                color: 'blue',
               },
               {
                 key: 'minority_type',
@@ -3356,6 +3383,9 @@
             : 'font-weight-bold';
           label.setAttribute('for', buildAreaFieldId(areaKey, subkey, field.key));
           label.textContent = field.label;
+          if (field.color) {
+            label.style.color = field.color;
+          }
           const fieldId = buildAreaFieldId(areaKey, subkey, field.key);
           const existingArea = workbookState[workbookKey] || workbookState[subkey] || {};
           let existing = existingArea[field.key];
@@ -4517,12 +4547,15 @@
             return group;
           };
 
-          const makeYesNoSelect = function(labelText, value, onChange) {
+          const makeYesNoSelect = function(labelText, value, onChange, options) {
             const group = document.createElement('div');
             group.className = 'form-group';
             const label = document.createElement('label');
             label.className = 'font-weight-bold';
             label.textContent = labelText;
+            if (options && options.color) {
+              label.style.color = options.color;
+            }
             const select = document.createElement('select');
             select.className = 'form-control';
             select.setAttribute('data-area-field', areaKey);
@@ -4984,7 +5017,7 @@
                   policy.password_pattern.passwords = [];
                 }
                 toggleDuplicateTable();
-              });
+              }, {color: 'blue'});
               patternCol.appendChild(patternSelect.group);
               const duplicatesContainer = document.createElement('div');
               patternCol.appendChild(duplicatesContainer);
@@ -5498,6 +5531,7 @@
               const usbLabel = document.createElement('label');
               usbLabel.className = 'font-weight-bold';
               usbLabel.textContent = 'Did the client indicate they had controls in place around USB device usage?';
+              usbLabel.style.color = 'blue';
               const usbSelect = document.createElement('select');
               usbSelect.className = 'form-control';
               usbSelect.setAttribute('data-area-field', areaKey);
