@@ -923,7 +923,9 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
         normalized = str(value).strip()
         if not normalized:
             return None
-        return risk_rich_text_map.get(normalized, normalized)
+        return risk_rich_text_map.get(
+            normalized, RiskScoreRangeMapping._wrap_inline_rich_text(normalized)
+        )
 
     @classmethod
     def _apply_project_risk_rich_text(

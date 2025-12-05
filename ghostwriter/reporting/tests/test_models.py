@@ -42,6 +42,7 @@ from ghostwriter.reporting.models import (
     ScopingWeightCategory,
     ScopingWeightOption,
 )
+from ghostwriter.modules.custom_serializers import ProjectSerializer
 from ghostwriter.rolodex.models import Project
 
 logging.disable(logging.CRITICAL)
@@ -859,3 +860,8 @@ class RiskScoreRangeMappingModelTests(TestCase):
         rich_text_map = RiskScoreRangeMapping.get_risk_rich_text_map()
         self.assertEqual(rich_text_map.get("Custom"), "<p><b>Custom</b></p>")
         mapping.delete()
+
+    def test_rich_text_wrapped_for_unknown_risk_labels(self):
+        workbook_data = {"report_card": {"overall": "A"}}
+        ProjectSerializer._apply_workbook_risk_rich_text(workbook_data, {})
+        self.assertEqual(workbook_data["report_card"].get("overall_rt"), "<p>A</p>")
