@@ -2929,10 +2929,10 @@
               {key: 'total_domains', label: 'Total domains found', type: 'number'},
               {key: 'total_hostnames', label: 'Total hostnames/subdomains found', type: 'number'},
               {key: 'total_ips', label: 'Total IPs found', type: 'number'},
-              {key: 'total_cloud', label: 'Total Cloud Providers found', type: 'number'},
-              {key: 'total_buckets', label: 'Total Open Buckets found', type: 'number'},
-              {key: 'total_squat', label: 'Total Domain Squatters found', type: 'number'},
-              {key: 'total_leaks', label: 'Total Leaked Creds found', type: 'number'},
+              {key: 'total_cloud', label: 'Total Cloud Providers found', type: 'number', color: 'blue'},
+              {key: 'total_buckets', label: 'Total Open Buckets found', type: 'number', color: 'blue'},
+              {key: 'total_squat', label: 'Total Domain Squatters found', type: 'number', color: 'blue'},
+              {key: 'total_leaks', label: 'Total Leaked Creds found', type: 'number', color: 'blue'},
             ],
           },
           dns: {
@@ -3356,6 +3356,9 @@
             : 'font-weight-bold';
           label.setAttribute('for', buildAreaFieldId(areaKey, subkey, field.key));
           label.textContent = field.label;
+          if (field.color) {
+            label.style.color = field.color;
+          }
           const fieldId = buildAreaFieldId(areaKey, subkey, field.key);
           const existingArea = workbookState[workbookKey] || workbookState[subkey] || {};
           let existing = existingArea[field.key];
