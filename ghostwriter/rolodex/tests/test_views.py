@@ -1940,15 +1940,23 @@ class ProjectWorkbookDataUpdateViewTests(TestCase):
                     "snmp": {"risk": "low"},
                     "sql": {"risk": "medium"},
                     "iam": {"risk": "high"},
-                    "password": {"risk": "low"},
+                    "iot_iomt": {"risk": "medium"},
+                },
+                "iam": {"ad": {"risk": "high"}, "password": {"risk": "low"}},
+                "wireless": {"grade": "A-"},
+                "firewall": {"grade": "C-"},
+                "cloud": {
+                    "iam_management": {"risk": "high"},
+                    "cloud_management": {"risk": "medium"},
+                    "system_configuration": {"risk": "low"},
                 },
             },
             "report_card": {
                 "overall": "B",
                 "external": "C+",
                 "internal": "D",
-                "wireless": "A-",
-                "firewall": "C-",
+                "wireless": None,
+                "firewall": None,
             },
         }
 
@@ -1975,6 +1983,7 @@ class ProjectWorkbookDataUpdateViewTests(TestCase):
             "snmp": "Low",
             "sql": "Medium",
             "iam": "High",
+            "ad": "High",
             "password": "Low",
             "cloud": "Medium",
             "configuration": "Low",
@@ -1983,6 +1992,10 @@ class ProjectWorkbookDataUpdateViewTests(TestCase):
             "internal": "High",
             "wireless": "Low",
             "firewall": "High",
+            "iot_iomt_nexpose": "Medium",
+            "iam_management": "High",
+            "cloud_management": "Medium",
+            "system_configuration": "Low",
         }
 
         self.assertEqual(self.project.risks, expected_risks)
