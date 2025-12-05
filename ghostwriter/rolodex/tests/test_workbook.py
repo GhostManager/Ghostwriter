@@ -282,6 +282,29 @@ class WorkbookHelpersTests(SimpleTestCase):
         self.assertIsInstance(uploaded, list)
         self.assertEqual(uploaded, [])
 
+    def test_endpoint_access_percentage_calculated(self):
+        project = type("Dummy", (), {"workbook_data": {}, "scoping": {}})()
+
+        workbook_payload = build_workbook_entry_payload(
+            project=project,
+            areas={
+                "endpoint": {
+                    "domains": [
+                        {
+                            "domain": "corp.example.com",
+                            "total_computers": 200,
+                            "audited_computers": 80,
+                        }
+                    ]
+                }
+            },
+        )
+
+        endpoint_domains = workbook_payload.get("endpoint", {}).get("domains")
+        self.assertIsInstance(endpoint_domains, list)
+        self.assertEqual(len(endpoint_domains), 1)
+        self.assertEqual(endpoint_domains[0].get("access_pct"), "40.00%")
+
     def test_ensure_data_responses_defaults_populates_structure(self):
         defaults = ensure_data_responses_defaults({})
 

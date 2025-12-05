@@ -513,6 +513,13 @@ def _normalize_area_payload(area: str, payload: Optional[Mapping[str, Any]]) -> 
                     if field in domain_payload:
                         domain_entry[field] = _as_int(domain_payload.get(field))
 
+                total_computers = domain_entry.get("total_computers")
+                audited_computers = domain_entry.get("audited_computers")
+                if isinstance(total_computers, int) and total_computers > 0:
+                    if isinstance(audited_computers, int) and audited_computers >= 0:
+                        percentage = (audited_computers / total_computers) * 100
+                        domain_entry["access_pct"] = f"{percentage:.2f}%"
+
                 if "usb_control_indication" in domain_payload:
                     usb_value = _normalize_yes_no(domain_payload.get("usb_control_indication"))
                     if usb_value:
