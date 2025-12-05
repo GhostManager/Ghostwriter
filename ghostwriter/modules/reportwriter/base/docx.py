@@ -343,6 +343,81 @@ class ExportDocxBase(ExportBase):
             return doc
         return LazySubdocRender(render)
 
+    @classmethod
+    def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
+        """
+        Checks a Word template to help ensure that it will export properly.
+
+        Returns two lists: a list of warnings and a list of errors.
+        Linting passes if the errors list is empty.
+        """
+        warnings = []
+        errors = []
+
+        logger.info("Linting docx file %r", template_loc)
+        try:
+            if not os.path.exists(template_loc):
+                logger.error("Template file path did not exist: %r", template_loc)
+                errors.append("Template file does not exist – upload it again")
+                return warnings, errors
+
+            lint_data = cls.generate_lint_data()
+            exporter = cls(
+                lint_data,
+                is_raw=True,
+                linting=True,
+                template_loc=template_loc,
+                p_style=p_style,
+                evidence_image_width=6.5,  # Value doesn't matter for linting
+            )
+            logger.info("Template loaded for linting")
+
+            undeclared_variables = ReportExportTemplateError.map_errors(
+                lambda: exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env), "the DOCX template"
+            )
+            for variable in undeclared_variables:
+                if not _lint_context_has_variable(lint_data, variable):
+                    warnings.append("Potential undefined variable: {!r}".format(variable))
+
+            document_styles = exporter.word_doc.styles
+            for style in EXPECTED_STYLES:
+                if style not in document_styles:
+                    warnings.append("Template is missing a recommended style (see documentation): " + style)
+                else:
+                    if style == "CodeInline":
+                        if document_styles[style].type != WD_STYLE_TYPE.CHARACTER:
+                            warnings.append("CodeInline style is not a character style (see documentation)")
+                    if style == "CodeBlock":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("CodeBlock style is not a paragraph style (see documentation)")
+                    if style == "Bullet List":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("Bullet List style is not a paragraph style (see documentation)")
+                    if style == "Number List":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("Number List style is not a paragraph style (see documentation)")
+                    if style == "List Paragraph":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("List Paragraph style is not a paragraph style (see documentation)")
+            if "Table Grid" not in document_styles:
+                errors.append("Template is missing a required style (see documentation): Table Grid")
+            if p_style and p_style not in document_styles:
+                warnings.append("Template is missing your configured default paragraph style: " + p_style)
+
+            exporter.run()
+
+            for var in exporter.jinja_undefined_variables:
+                warnings.append("Undefined variable: {!r}".format(var))
+        except ReportExportTemplateError as error:
+            logger.exception("Template failed linting: %s", error)
+            errors.append(f"Linting failed: {error}")
+        except Exception:
+            logger.exception("Template failed linting")
+            errors.append("Template rendering failed unexpectedly")
+
+        logger.info("Linting finished: %d warnings, %d errors", len(warnings), len(errors))
+        return warnings, errors
+
 
 def _render_inline_rich_text(html: str) -> RichText | None:
     """
@@ -419,78 +494,3 @@ def _render_inline_rich_text(html: str) -> RichText | None:
     if success and len(str(rich_text)):
         return rich_text
     return None
-
-    @classmethod
-    def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
-        """
-        Checks a Word template to help ensure that it will export properly.
-
-        Returns two lists: a list of warnings and a list of errors.
-        Linting passes if the errors list is empty.
-        """
-        warnings = []
-        errors = []
-
-        logger.info("Linting docx file %r", template_loc)
-        try:
-            if not os.path.exists(template_loc):
-                logger.error("Template file path did not exist: %r", template_loc)
-                errors.append("Template file does not exist – upload it again")
-                return warnings, errors
-
-            lint_data = cls.generate_lint_data()
-            exporter = cls(
-                lint_data,
-                is_raw=True,
-                linting=True,
-                template_loc=template_loc,
-                p_style=p_style,
-                evidence_image_width=6.5,  # Value doesn't matter for linting
-            )
-            logger.info("Template loaded for linting")
-
-            undeclared_variables = ReportExportTemplateError.map_errors(
-                lambda: exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env), "the DOCX template"
-            )
-            for variable in undeclared_variables:
-                if not _lint_context_has_variable(lint_data, variable):
-                    warnings.append("Potential undefined variable: {!r}".format(variable))
-
-            document_styles = exporter.word_doc.styles
-            for style in EXPECTED_STYLES:
-                if style not in document_styles:
-                    warnings.append("Template is missing a recommended style (see documentation): " + style)
-                else:
-                    if style == "CodeInline":
-                        if document_styles[style].type != WD_STYLE_TYPE.CHARACTER:
-                            warnings.append("CodeInline style is not a character style (see documentation)")
-                    if style == "CodeBlock":
-                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("CodeBlock style is not a paragraph style (see documentation)")
-                    if style == "Bullet List":
-                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("Bullet List style is not a paragraph style (see documentation)")
-                    if style == "Number List":
-                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("Number List style is not a paragraph style (see documentation)")
-                    if style == "List Paragraph":
-                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("List Paragraph style is not a paragraph style (see documentation)")
-            if "Table Grid" not in document_styles:
-                errors.append("Template is missing a required style (see documentation): Table Grid")
-            if p_style and p_style not in document_styles:
-                warnings.append("Template is missing your configured default paragraph style: " + p_style)
-
-            exporter.run()
-
-            for var in exporter.jinja_undefined_variables:
-                warnings.append("Undefined variable: {!r}".format(var))
-        except ReportExportTemplateError as error:
-            logger.exception("Template failed linting: %s", error)
-            errors.append(f"Linting failed: {error}")
-        except Exception:
-            logger.exception("Template failed linting")
-            errors.append("Template rendering failed unexpectedly")
-
-        logger.info("Linting finished: %d warnings, %d errors", len(warnings), len(errors))
-        return warnings, errors
