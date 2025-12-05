@@ -177,6 +177,37 @@ class ExportProjectBase(ExportBase):
                     rich_text_context,
                 )
 
+        def render_risk_rich_text_fields(container: dict | None, location: str):
+            if not isinstance(container, dict):
+                return
+            for key, value in list(container.items()):
+                if not (isinstance(key, str) and key.endswith("_rt")):
+                    continue
+                if value in (None, ""):
+                    continue
+                container[key] = ex.create_lazy_template(location, str(value), rich_text_context)
+
+        project_context = base_context.get("project", {}) if isinstance(base_context.get("project"), dict) else {}
+        render_risk_rich_text_fields(project_context.get("risks"), "the project risk label")
+
+        workbook_data = project_context.get("workbook_data") if isinstance(project_context, dict) else {}
+        if isinstance(workbook_data, dict):
+            render_risk_rich_text_fields(workbook_data.get("report_card"), "the report card risk label")
+
+            grades = workbook_data.get("external_internal_grades")
+            if isinstance(grades, dict):
+                for category_key, category_data in grades.items():
+                    render_risk_rich_text_fields(
+                        category_data if isinstance(category_data, dict) else {},
+                        f"the {category_key} grade",
+                    )
+                    if isinstance(category_data, dict):
+                        for subkey, subvalue in category_data.items():
+                            render_risk_rich_text_fields(
+                                subvalue if isinstance(subvalue, dict) else {},
+                                f"the {category_key} {subkey} risk label",
+                            )
+
     @classmethod
     def generate_lint_data(cls):
         context = {

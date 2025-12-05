@@ -1,5 +1,6 @@
 """This contains utilities and values used by template linting."""
 
+from ghostwriter.reporting.models import RiskScoreRangeMapping
 from ghostwriter.rolodex.data_parsers import normalize_nexpose_artifacts_map
 
 # Example JSON reporting data for loading into templates for rendering tests
@@ -70,27 +71,46 @@ LINTER_CONTEXT = {
         },
         "risks": {
             "overall_risk": "Medium",
+            "overall_risk_rt": "Medium",
             "external": "Low",
+            "external_rt": "Low",
             "internal": "High",
+            "internal_rt": "High",
             "wireless": "Medium",
+            "wireless_rt": "Medium",
             "firewall": "High",
+            "firewall_rt": "High",
             "osint": "High",
+            "osint_rt": "High",
             "dns": "Medium",
+            "dns_rt": "Medium",
             "external_nexpose": "Low",
+            "external_nexpose_rt": "Low",
             "web": "Medium",
+            "web_rt": "Medium",
             "cloud_config": "Medium",
+            "cloud_config_rt": "Medium",
             "system_config": "Low",
+            "system_config_rt": "Low",
             "cloud_management": "Medium",
             "iam_management": "Medium",
             "system_configuration": "Low",
             "internal_nexpose": "High",
+            "internal_nexpose_rt": "High",
             "endpoint": "Medium",
+            "endpoint_rt": "Medium",
             "snmp": "Low",
+            "snmp_rt": "Low",
             "sql": "High",
+            "sql_rt": "High",
             "iam": "High",
+            "iam_rt": "High",
             "password": "Medium",
+            "password_rt": "Medium",
             "cloud": "Medium",
+            "cloud_rt": "Medium",
             "configuration": "Low",
+            "configuration_rt": "Low",
         },
         "workbook_data": {
             "client": {
@@ -318,12 +338,19 @@ LINTER_CONTEXT = {
             },
             "report_card": {
                 "overall": "A",
+                "overall_rt": "A",
                 "external": "A",
+                "external_rt": "A",
                 "internal": "B+",
+                "internal_rt": "B+",
                 "firewall": "B",
+                "firewall_rt": "B",
                 "wireless": "A-",
+                "wireless_rt": "A-",
                 "iam": "B+",
+                "iam_rt": "B+",
                 "cloud": "B",
+                "cloud_rt": "B",
             },
             "iam_cloud_config": {"pass": 6, "fail": 1},
             "cloud_config": {"pass": 85, "fail": 12},
@@ -378,50 +405,56 @@ LINTER_CONTEXT = {
             "external_internal_grades": {
                 "external": {
                     "grade": "B+",
+                    "grade_rt": "B+",
                     "total": 3.0,
-                    "dns": {"risk": "Medium", "score": 3.2},
-                    "web": {"risk": "Low", "score": 1.7},
-                    "osint": {"risk": "High", "score": 4.5},
-                    "nexpose": {"risk": "Medium", "score": 2.8},
-                    "iot_iomt": {"risk": "Low", "score": 2.2},
+                    "dns": {"risk": "Medium", "risk_rt": "Medium", "score": 3.2},
+                    "web": {"risk": "Low", "risk_rt": "Low", "score": 1.7},
+                    "osint": {"risk": "High", "risk_rt": "High", "score": 4.5},
+                    "nexpose": {"risk": "Medium", "risk_rt": "Medium", "score": 2.8},
+                    "iot_iomt": {"risk": "Low", "risk_rt": "Low", "score": 2.2},
                 },
                 "internal": {
                     "grade": "B",
+                    "grade_rt": "B",
                     "total": 3.3,
-                    "iam": {"risk": "High", "score": 4.2},
-                    "iot_iomt": {"risk": "Medium", "score": 3.4},
-                    "sql": {"risk": "High", "score": 4.0},
-                    "snmp": {"risk": "Low", "score": 2.8},
-                    "cloud": {"risk": "Medium", "score": 3.3},
-                    "endpoint": {"risk": "Medium", "score": 3.0},
-                    "password": {"risk": "Medium", "score": 3.9},
-                    "configuration": {"risk": "Medium", "score": 3.1},
-                    "nexpose": {"risk": "High", "score": 4.4},
+                    "iam": {"risk": "High", "risk_rt": "High", "score": 4.2},
+                    "iot_iomt": {"risk": "Medium", "risk_rt": "Medium", "score": 3.4},
+                    "sql": {"risk": "High", "risk_rt": "High", "score": 4.0},
+                    "snmp": {"risk": "Low", "risk_rt": "Low", "score": 2.8},
+                    "cloud": {"risk": "Medium", "risk_rt": "Medium", "score": 3.3},
+                    "endpoint": {"risk": "Medium", "risk_rt": "Medium", "score": 3.0},
+                    "password": {"risk": "Medium", "risk_rt": "Medium", "score": 3.9},
+                    "configuration": {"risk": "Medium", "risk_rt": "Medium", "score": 3.1},
+                    "nexpose": {"risk": "High", "risk_rt": "High", "score": 4.4},
                 },
                 "iam": {
                     "grade": "B+",
+                    "grade_rt": "B+",
                     "total": 3.1,
-                    "ad": {"risk": "High", "score": 4.0},
-                    "password": {"risk": "Medium", "score": 3.2},
+                    "ad": {"risk": "High", "risk_rt": "High", "score": 4.0},
+                    "password": {"risk": "Medium", "risk_rt": "Medium", "score": 3.2},
                 },
                 "wireless": {
                     "grade": "A-",
+                    "grade_rt": "A-",
                     "total": 2.4,
-                    "walkthru": {"risk": "Low", "score": 2.0},
-                    "segmentation": {"risk": "Medium", "score": 2.8},
+                    "walkthru": {"risk": "Low", "risk_rt": "Low", "score": 2.0},
+                    "segmentation": {"risk": "Medium", "risk_rt": "Medium", "score": 2.8},
                 },
                 "firewall": {
                     "grade": "B",
+                    "grade_rt": "B",
                     "total": 3.0,
-                    "os": {"risk": "Medium", "score": 3.1},
-                    "configuration": {"risk": "Medium", "score": 2.9},
+                    "os": {"risk": "Medium", "risk_rt": "Medium", "score": 3.1},
+                    "configuration": {"risk": "Medium", "risk_rt": "Medium", "score": 2.9},
                 },
                 "cloud": {
                     "grade": "B",
+                    "grade_rt": "B",
                     "total": 3.2,
-                    "cloud_management": {"risk": "Medium", "score": 3.0},
-                    "iam_management": {"risk": "Medium", "score": 3.4},
-                    "system_configuration": {"risk": "Medium", "score": 3.2},
+                    "cloud_management": {"risk": "Medium", "risk_rt": "Medium", "score": 3.0},
+                    "iam_management": {"risk": "Medium", "risk_rt": "Medium", "score": 3.4},
+                    "system_configuration": {"risk": "Medium", "risk_rt": "Medium", "score": 3.2},
                 },
             },
         },
@@ -1516,6 +1549,40 @@ LINTER_CONTEXT = {
     },
     "extra_fields": {},
 }
+
+
+def _wrap_risk_rich_text_samples():
+    """Wrap inline-only risk rich text samples with block-level markup."""
+
+    def _wrap_risk_fields(container):
+        if not isinstance(container, dict):
+            return
+        for key, value in list(container.items()):
+            if value in (None, ""):
+                continue
+            if isinstance(value, dict):
+                _wrap_risk_fields(value)
+            if isinstance(key, str) and key.endswith("_rt"):
+                container[key] = RiskScoreRangeMapping._wrap_inline_rich_text(str(value))
+
+    _wrap_risk_fields(LINTER_CONTEXT.get("project", {}).get("risks"))
+
+    workbook_data = LINTER_CONTEXT.get("project", {}).get("workbook_data")
+    if isinstance(workbook_data, dict):
+        _wrap_risk_fields(workbook_data.get("report_card"))
+
+        grades = workbook_data.get("external_internal_grades")
+        if isinstance(grades, dict):
+            for category_data in grades.values():
+                if not isinstance(category_data, dict):
+                    continue
+                _wrap_risk_fields(category_data)
+                for subvalue in category_data.values():
+                    if isinstance(subvalue, dict):
+                        _wrap_risk_fields(subvalue)
+
+
+_wrap_risk_rich_text_samples()
 
 LINTER_CONTEXT["project"]["data_artifacts"] = normalize_nexpose_artifacts_map(
     LINTER_CONTEXT["project"].get("data_artifacts", {})

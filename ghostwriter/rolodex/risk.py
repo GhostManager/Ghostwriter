@@ -10,12 +10,6 @@ from django.db.models import Q
 from ghostwriter.reporting.models import GradeRiskMapping
 
 
-_RISK_LABELS = {
-    "high": "High",
-    "medium": "Medium",
-    "low": "Low",
-}
-
 _WORKBOOK_RISK_PATHS: Dict[str, Sequence[Sequence[str]]] = {
     "osint": (("external_internal_grades", "external", "osint", "risk"),),
     "dns": (("external_internal_grades", "external", "dns", "risk"),),
@@ -69,10 +63,7 @@ def _normalize_risk(value: Any) -> Optional[str]:
     text = str(value).strip()
     if not text:
         return None
-    lowered = text.lower()
-    if lowered in _RISK_LABELS:
-        return _RISK_LABELS[lowered]
-    return text.capitalize()
+    return text
 
 
 def _collect_grade_sources(workbook_data: Dict[str, Any]) -> Sequence[Dict[str, Any]]:
