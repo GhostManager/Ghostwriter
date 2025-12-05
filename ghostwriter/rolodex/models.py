@@ -23,6 +23,7 @@ from timezone_field import TimeZoneField
 from ghostwriter.reporting.models import ReportFindingLink, ScopingWeightCategory
 from ghostwriter.rolodex.validators import validate_ip_range
 from ghostwriter.rolodex.constants import (
+    BURP_XML_FILE_NAME_KEY,
     CLOUD_MANAGEMENT_FILE_NAME_KEY,
     FIREWALL_XML_FILE_NAME_KEY,
     IAM_MANAGEMENT_FILE_NAME_KEY,
@@ -809,6 +810,7 @@ class Project(models.Model):
             CLOUD_MANAGEMENT_FILE_NAME_KEY,
             IAM_MANAGEMENT_FILE_NAME_KEY,
             SYSTEM_CONFIGURATION_FILE_NAME_KEY,
+            BURP_XML_FILE_NAME_KEY,
         ):
             if key in existing_artifacts and key not in artifacts:
                 artifacts[key] = existing_artifacts[key]

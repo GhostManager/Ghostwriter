@@ -112,6 +112,7 @@ from ghostwriter.rolodex.data_parsers import (
     summarize_web_issue_matrix_gaps,
 )
 from ghostwriter.rolodex.constants import (
+    BURP_XML_FILE_NAME_KEY,
     CLOUD_MANAGEMENT_FILE_NAME_KEY,
     FIREWALL_XML_FILE_NAME_KEY,
     IAM_MANAGEMENT_FILE_NAME_KEY,
@@ -5151,6 +5152,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 "web_cap_entries",
                 "web_issue_matrix_gaps",
                 "web_issues",
+                BURP_XML_FILE_NAME_KEY,
             ):
                 artifacts.pop(key, None)
 
