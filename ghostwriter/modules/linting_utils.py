@@ -64,6 +64,9 @@ LINTER_CONTEXT = {
                 "iam_management": True,
                 "system_configuration": True,
             },
+            "cloud_management": True,
+            "iam_management": True,
+            "system_configuration": True,
         },
         "risks": {
             "overall_risk": "Medium",
