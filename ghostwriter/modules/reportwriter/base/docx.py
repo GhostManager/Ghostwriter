@@ -348,14 +348,14 @@ def _render_inline_rich_text(html: str) -> RichText | None:
     """
     Convert simple inline HTML into a ``RichText`` so it can be rendered inline in DOCX templates.
 
-    Falls back to ``None`` for any content that includes block-level elements or nested tags that
+    Falls back to ``None`` for any content that includes block-level elements that
     require full HTML rendering.
     """
 
     soup = BeautifulSoup(html, "html.parser")
-    block_tags = {"p", "div", "ul", "ol", "table", "blockquote", "pre"}
+    block_tags = {"div", "ul", "ol", "table", "blockquote", "pre", "p"}
 
-    def is_allowed_tag(tag: Tag) -> bool:
+    def is_inline_tag(tag: Tag) -> bool:
         return tag.name in {"span", "strong", "b", "em", "i"}
 
     def extract_color(style_value: str) -> str | None:
@@ -365,45 +365,58 @@ def _render_inline_rich_text(html: str) -> RichText | None:
         return match.group(1) if match else None
 
     container = soup.body or soup
-    children = container.contents
-    if len(children) == 1 and isinstance(children[0], Tag) and children[0].name == "p":
-        children = children[0].contents
+
+    if container.find(block_tags):
+        # Allow a single outer <p> wrapper by unwrapping it before the block check.
+        if len(container.contents) == 1 and isinstance(container.contents[0], Tag) and container.contents[0].name == "p":
+            container = container.contents[0]
+        elif container.name == "p":
+            container = container
+        else:
+            return None
+
+        if container.find(block_tags - {"p"}):
+            return None
 
     rich_text = RichText()
-    added = False
+    success = True
 
-    for child in children:
-        if isinstance(child, NavigableString):
-            text = str(child)
+    def walk(node, *, bold: bool = False, italic: bool = False, color: str | None = None):
+        nonlocal success
+
+        if not success:
+            return
+
+        if isinstance(node, NavigableString):
+            text = str(node)
             if text:
-                rich_text.add(text)
-                added = True
-            continue
+                kwargs = {"bold": bold, "italic": italic, "color": color}
+                kwargs = {k: v for k, v in kwargs.items() if v}
+                rich_text.add(text, **kwargs)
+            return
 
-        if not isinstance(child, Tag) or not is_allowed_tag(child):
-            return None
+        if not isinstance(node, Tag):
+            return
 
-        if any(isinstance(grandchild, Tag) for grandchild in child.contents):
-            return None
+        if node.name in block_tags:
+            success = False
+            return
 
-        text = child.get_text()
-        if not text:
-            continue
+        if not is_inline_tag(node):
+            success = False
+            return
 
-        kwargs = {}
-        if child.name in {"strong", "b"}:
-            kwargs["bold"] = True
-        if child.name in {"em", "i"}:
-            kwargs["italic"] = True
+        next_bold = bold or node.name in {"strong", "b"} or "bold" in (node.get("class") or [])
+        next_italic = italic or node.name in {"em", "i"} or "italic" in (node.get("class") or [])
+        next_color = extract_color(node.get("style", "")) or color
 
-        color = extract_color(child.get("style", ""))
-        if color:
-            kwargs["color"] = color
+        for child in node.contents:
+            walk(child, bold=next_bold, italic=next_italic, color=next_color)
 
-        rich_text.add(text, **kwargs)
-        added = True
+    for child in container.contents:
+        walk(child)
 
-    if added and not container.find(block_tags - {"p"}):
+    if success and len(str(rich_text)):
         return rich_text
     return None
 

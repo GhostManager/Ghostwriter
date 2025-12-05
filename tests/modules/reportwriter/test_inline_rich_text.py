@@ -19,3 +19,13 @@ def test_render_inline_rich_text_rejects_block_content():
     result = _render_inline_rich_text(html)
 
     assert result is None
+
+
+def test_render_inline_rich_text_accepts_nested_spans_with_styles():
+    html = "<p><span class=\"bold\"><span style=\"color: #00b050;\">Low</span>--><span style=\"color: #ed7d31;\">Medium</span></span></p>"
+
+    result = _render_inline_rich_text(html)
+
+    assert isinstance(result, RichText)
+    result_str = str(result)
+    assert "Low" in result_str and "Medium" in result_str
