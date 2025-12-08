@@ -988,7 +988,13 @@ class GhostwriterDocxTemplate(DocxTemplate):
                     part._element = parse_xml(rendered_bytes)
                 if hasattr(part, "_blob"):
                     part._blob = rendered_bytes
-                self._cleanup_part_relationships(part, rendered)
+            else:
+                rendered_bytes = rendered.encode("utf-8")
+                if hasattr(part, "_element"):
+                    part._element = parse_xml(rendered_bytes)
+                if hasattr(part, "_blob"):
+                    part._blob = rendered_bytes
+            self._cleanup_part_relationships(part, rendered)
 
         self._summarise_templated_parts()
 
