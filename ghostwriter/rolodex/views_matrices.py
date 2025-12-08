@@ -10,6 +10,7 @@ from typing import Sequence, Tuple
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -96,11 +97,28 @@ class BaseMatrixListView(MatrixContextMixin, ListView):
     template_name = "rolodex/matrix_list.html"
     context_object_name = "entries"
     paginate_by = 100
+    search_fields: Sequence[str] = ()
+
+    def get_search_query(self) -> str:
+        return (self.request.GET.get("q") or "").strip()
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search_query = self.get_search_query()
+        if search_query and self.search_fields:
+            terms = [term for term in search_query.split(" ") if term]
+            for term in terms:
+                term_filters = Q()
+                for field in self.search_fields:
+                    term_filters |= Q(**{f"{field}__icontains": term})
+                queryset = queryset.filter(term_filters)
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(self.get_matrix_context())
         context["upload_form"] = MatrixUploadForm()
+        context["search_query"] = self.get_search_query()
         return context
 
 
@@ -203,6 +221,13 @@ class VulnerabilityMatrixListView(BaseMatrixListView):
     resource_class = VulnerabilityMatrixEntryResource
     edit_url_name = "rolodex:vulnerability_matrix_edit"
     ordering = ["vulnerability"]
+    search_fields = (
+        "vulnerability",
+        "category",
+        "vulnerability_threat",
+        "action_required",
+        "remediation_impact",
+    )
 
 
 class VulnerabilityMatrixCreateView(BaseMatrixEntryFormView, CreateView):
@@ -321,6 +346,11 @@ class WebIssueMatrixListView(BaseMatrixListView):
     resource_class = WebIssueMatrixEntryResource
     edit_url_name = "rolodex:web_issue_matrix_edit"
     ordering = ["title"]
+    search_fields = (
+        "title",
+        "impact",
+        "fix",
+    )
 
 
 class WebIssueMatrixCreateView(BaseMatrixEntryFormView, CreateView):
