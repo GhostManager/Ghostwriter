@@ -510,6 +510,31 @@ class NexposeDataParserTests(TestCase):
             first_host.get("high", 0) + first_host.get("med", 0) + first_host.get("low", 0),
         )
 
+    def test_nexpose_metrics_top_hosts_totals_are_summed(self):
+        findings = [
+            {
+                "Asset IP Address": "10.0.0.1",
+                "Vulnerability Title": "Old Patch",
+                "Vulnerability Severity Level": 9,
+            },
+            {
+                "Asset IP Address": "10.0.0.1",
+                "Vulnerability Title": "Unpatched Library",
+                "Vulnerability Severity Level": 6,
+            },
+            {
+                "Asset IP Address": "10.0.0.2",
+                "Vulnerability Title": "Minor Finding",
+                "Vulnerability Severity Level": 2,
+            },
+        ]
+
+        metrics_payload = _build_nexpose_metrics_payload(findings)
+
+        self.assertEqual(metrics_payload.get("top_hosts_high"), 1)
+        self.assertEqual(metrics_payload.get("top_hosts_med"), 1)
+        self.assertEqual(metrics_payload.get("top_hosts_low"), 1)
+
     def test_nexpose_xml_uses_vulnerability_lookup_details(self):
         xml_payload = """
 <NexposeReport version='1.0'>
