@@ -488,6 +488,8 @@ LINTER_CONTEXT = {
                 "osint_squat_concern": "example.com",
                 "osint_bucket_risk": "High",
                 "osint_leaked_creds_risk": "Medium",
+                "osint_bucket_risk_rt": "High",
+                "osint_leaked_creds_risk_rt": "Medium",
             },
             "iot_iomt": {"iot_testing_confirm": "yes"},
             "dns": {
@@ -510,6 +512,10 @@ LINTER_CONTEXT = {
                 "open_risk": "high",
                 "rogue_risk": "medium",
                 "hidden_risk": "low",
+                "psk_risk_rt": "medium",
+                "open_risk_rt": "high",
+                "rogue_risk_rt": "medium",
+                "hidden_risk_rt": "low",
                 "psk_rotation_concern": "yes",
                 "segmentation_tested": True,
                 "psk_weak_reasons": "to short and not enough entropy",
@@ -548,6 +554,13 @@ LINTER_CONTEXT = {
                 "ia_risk_string": "Medium",
                 "ga_risk_string": "High",
                 "gl_risk_string": "Medium",
+                "da_risk_string_rt": "High",
+                "ea_risk_string_rt": "Medium",
+                "ep_risk_string_rt": "Low",
+                "ne_risk_string_rt": "Low",
+                "ia_risk_string_rt": "Medium",
+                "ga_risk_string_rt": "High",
+                "gl_risk_string_rt": "Medium",
                 "old_domains_string": "'legacy.local' and 'ancient.local'",
                 "old_domains_str": "'legacy.local'/'ancient.local'",
                 "old_domains_count": 2,
@@ -627,6 +640,7 @@ LINTER_CONTEXT = {
                 "domains_str": "'corp.example.com'/'lab.example.com'",
                 "cracked_count_str": "17/9",
                 "cracked_risk_string": "Medium/High",
+                "cracked_risk_string_rt": "Medium/High",
                 "cracked_finding_string": "17 and 9",
                 "enabled_count_string": "220 and 150",
                 "admin_cracked_string": "2 and 1",
@@ -723,6 +737,8 @@ LINTER_CONTEXT = {
                 "wifi_count_str": "3/1",
                 "ood_risk_string": "Medium/High",
                 "wifi_risk_string": "Low/High",
+                "ood_risk_string_rt": "Medium/High",
+                "wifi_risk_string_rt": "Low/High",
             },
             "firewall": {
                 "entries": [
@@ -1588,6 +1604,10 @@ def _wrap_risk_rich_text_samples():
                 for subvalue in category_data.values():
                     if isinstance(subvalue, dict):
                         _wrap_risk_fields(subvalue)
+
+    data_responses = LINTER_CONTEXT.get("project", {}).get("data_responses")
+    if isinstance(data_responses, dict):
+        _wrap_risk_fields(data_responses)
 
 
 _wrap_risk_rich_text_samples()
