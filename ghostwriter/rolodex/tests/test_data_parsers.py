@@ -1629,6 +1629,18 @@ class NexposeDataParserTests(TestCase):
         self._assert_default_nexpose_artifacts(self.project.data_artifacts)
         self.assertEqual(self.project.data_responses, {"custom": "value"})
 
+    def test_normalize_nexpose_metrics_has_defaults(self):
+        normalized = normalize_nexpose_artifacts_map({})
+
+        metrics = normalized.get("internal_nexpose_metrics")
+        self.assertIsInstance(metrics, dict)
+        self.assertEqual(metrics.get("top_hosts_high"), 0)
+        self.assertEqual(metrics.get("top_hosts"), [])
+
+        summary = metrics.get("summary")
+        self.assertIsInstance(summary, dict)
+        self.assertIn("total", summary)
+
     def test_workbook_populates_old_domain_artifact(self):
         workbook_payload = {
             "ad": {

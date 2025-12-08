@@ -3255,6 +3255,82 @@ def _coerce_web_issue_summary(
     }
 
 
+def _normalize_nexpose_metrics_payload(metrics: Any) -> Dict[str, Any]:
+    """Return a Nexpose metrics payload with expected keys populated."""
+
+    if not isinstance(metrics, Mapping):
+        metrics = {}
+
+    normalized: Dict[str, Any] = dict(metrics)
+
+    summary_defaults = {
+        "total": 0,
+        "total_high": 0,
+        "total_med": 0,
+        "total_low": 0,
+        "unique": 0,
+        "unique_high": 0,
+        "unique_med": 0,
+        "unique_low": 0,
+        "unique_high_med": 0,
+        "total_ood": 0,
+        "total_isc": 0,
+        "total_iwc": 0,
+        "majority_count": 0,
+        "minority_count": 0,
+    }
+
+    summary = normalized.get("summary")
+    summary_data = dict(summary) if isinstance(summary, Mapping) else {}
+    for key, default in summary_defaults.items():
+        summary_data.setdefault(key, default)
+    normalized["summary"] = summary_data
+
+    normalized["host_counts"] = (
+        list(normalized.get("host_counts"))
+        if isinstance(normalized.get("host_counts"), list)
+        else []
+    )
+    normalized["top_hosts"] = (
+        list(normalized.get("top_hosts"))
+        if isinstance(normalized.get("top_hosts"), list)
+        else []
+    )
+
+    for key in ("top_hosts_high", "top_hosts_med", "top_hosts_low", "top_hosts_total"):
+        normalized[key] = _coerce_int(normalized.get(key)) or 0
+
+    for key in (
+        "top_impacts",
+        "tab_index_entries",
+        "unique_issues",
+        "majority_unique",
+        "majority_subset",
+        "all_issues",
+        "high_issues",
+        "med_issues",
+        "low_issues",
+    ):
+        normalized[key] = (
+            list(normalized.get(key)) if isinstance(normalized.get(key), list) else []
+        )
+
+    for key in ("majority_type", "minority_type"):
+        raw_value = normalized.get(key)
+        normalized[key] = raw_value.strip() if isinstance(raw_value, str) else None
+
+    normalized["xlsx_filename"] = (
+        normalized.get("xlsx_filename")
+        if isinstance(normalized.get("xlsx_filename"), str)
+        else None
+    )
+    normalized["xlsx_base64"] = (
+        normalized.get("xlsx_base64") if isinstance(normalized.get("xlsx_base64"), str) else None
+    )
+
+    return normalized
+
+
 def normalize_nexpose_artifacts_map(artifacts: Any) -> Any:
     """Normalize Nexpose and web issue artifact entries for template access."""
 
@@ -3274,6 +3350,11 @@ def normalize_nexpose_artifacts_map(artifacts: Any) -> Any:
             normalized[key] = normalize_nexpose_artifact_payload(value)
         elif key == "web_issues":
             normalized[key] = _coerce_web_issue_summary(value)
+
+    for metrics_key in NEXPOSE_METRICS_LABELS:
+        normalized[metrics_key] = _normalize_nexpose_metrics_payload(
+            normalized.get(metrics_key)
+        )
     return normalized
 
 
