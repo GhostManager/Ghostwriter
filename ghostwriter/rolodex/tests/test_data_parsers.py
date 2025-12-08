@@ -510,6 +510,51 @@ class NexposeDataParserTests(TestCase):
             first_host.get("high", 0) + first_host.get("med", 0) + first_host.get("low", 0),
         )
 
+    def test_nexpose_metrics_top_hosts_totals_are_summed(self):
+        findings = [
+            {
+                "Asset IP Address": "10.0.0.1",
+                "Vulnerability Title": "Old Patch",
+                "Vulnerability Severity Level": 9,
+            },
+            {
+                "Asset IP Address": "10.0.0.1",
+                "Vulnerability Title": "Unpatched Library",
+                "Vulnerability Severity Level": 6,
+            },
+            {
+                "Asset IP Address": "10.0.0.2",
+                "Vulnerability Title": "Minor Finding",
+                "Vulnerability Severity Level": 2,
+            },
+        ]
+
+        metrics_payload = _build_nexpose_metrics_payload(findings)
+
+        self.assertEqual(metrics_payload.get("top_hosts_high"), 1)
+        self.assertEqual(metrics_payload.get("top_hosts_med"), 1)
+        self.assertEqual(metrics_payload.get("top_hosts_low"), 1)
+        self.assertEqual(metrics_payload.get("top_hosts_total"), 3)
+
+        with mock.patch(
+            "ghostwriter.rolodex.models.build_project_artifacts",
+            return_value={"external_nexpose_metrics": metrics_payload},
+        ):
+            self.project.rebuild_data_artifacts()
+            self.project.refresh_from_db()
+
+        workbook_data = self.project.workbook_data or {}
+        external = workbook_data.get("external_nexpose") or {}
+
+        self.assertEqual(external.get("top_hosts_high"), 1)
+        self.assertEqual(external.get("top_hosts_med"), 1)
+        self.assertEqual(external.get("top_hosts_low"), 1)
+        self.assertEqual(external.get("top_hosts_total"), 3)
+
+        top_hosts = external.get("top_hosts") or []
+        self.assertTrue(top_hosts)
+        self.assertEqual(len(top_hosts), 2)
+
     def test_nexpose_xml_uses_vulnerability_lookup_details(self):
         xml_payload = """
 <NexposeReport version='1.0'>
@@ -1583,6 +1628,18 @@ class NexposeDataParserTests(TestCase):
 
         self._assert_default_nexpose_artifacts(self.project.data_artifacts)
         self.assertEqual(self.project.data_responses, {"custom": "value"})
+
+    def test_normalize_nexpose_metrics_has_defaults(self):
+        normalized = normalize_nexpose_artifacts_map({})
+
+        metrics = normalized.get("internal_nexpose_metrics")
+        self.assertIsInstance(metrics, dict)
+        self.assertEqual(metrics.get("top_hosts_high"), 0)
+        self.assertEqual(metrics.get("top_hosts"), [])
+
+        summary = metrics.get("summary")
+        self.assertIsInstance(summary, dict)
+        self.assertIn("total", summary)
 
     def test_workbook_populates_old_domain_artifact(self):
         workbook_payload = {
