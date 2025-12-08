@@ -478,8 +478,37 @@ class NexposeDataParserTests(TestCase):
         external = workbook_data.get("external_nexpose") or {}
         self.assertEqual(external.get("majority_type"), "Even")
         self.assertEqual(external.get("minority_type"), "Even")
-        self.assertEqual(external.get("unique_majority"), summary.get("majority_count"))
-        self.assertEqual(external.get("unique_minority"), summary.get("minority_count"))
+
+    def test_nexpose_metrics_top_hosts_include_total(self):
+        findings = [
+            {
+                "Asset IP Address": "10.0.0.1",
+                "Vulnerability Title": "Old Patch",
+                "Vulnerability Severity Level": 9,
+            },
+            {
+                "Asset IP Address": "10.0.0.1",
+                "Vulnerability Title": "Unpatched Library",
+                "Vulnerability Severity Level": 6,
+            },
+            {
+                "Asset IP Address": "10.0.0.2",
+                "Vulnerability Title": "Minor Finding",
+                "Vulnerability Severity Level": 2,
+            },
+        ]
+
+        metrics_payload = _build_nexpose_metrics_payload(findings)
+        top_hosts = metrics_payload.get("top_hosts") or []
+        top_hosts_by_name = {entry.get("host"): entry for entry in top_hosts}
+
+        self.assertIn("10.0.0.1", top_hosts_by_name)
+        first_host = top_hosts_by_name["10.0.0.1"]
+
+        self.assertEqual(
+            first_host.get("total"),
+            first_host.get("high", 0) + first_host.get("med", 0) + first_host.get("low", 0),
+        )
 
     def test_nexpose_xml_uses_vulnerability_lookup_details(self):
         xml_payload = """

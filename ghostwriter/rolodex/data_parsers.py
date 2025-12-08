@@ -3902,9 +3902,12 @@ def _build_nexpose_metrics_payload(findings: List[Dict[str, Any]]) -> Dict[str, 
 
     top_hosts = []
     for host in host_rows:
+        total_count = host["high"] + host["med"] + host["low"]
         score = host["high"] * 3 + host["med"] * 2 + host["low"]
-        top_hosts.append({**host, "score": score})
-    top_hosts.sort(key=lambda item: (-item["score"], -(item["high"] + item["med"] + item["low"]), item["host"].lower()))
+        top_hosts.append({**host, "total": total_count, "score": score})
+    top_hosts.sort(
+        key=lambda item: (-item["score"], -item["total"], item["host"].lower())
+    )
     top_hosts = top_hosts[:10]
 
     top_impacts = [
