@@ -536,6 +536,25 @@ class NexposeDataParserTests(TestCase):
         self.assertEqual(metrics_payload.get("top_hosts_low"), 1)
         self.assertEqual(metrics_payload.get("top_hosts_total"), 3)
 
+        with mock.patch(
+            "ghostwriter.rolodex.models.build_project_artifacts",
+            return_value={"external_nexpose_metrics": metrics_payload},
+        ):
+            self.project.rebuild_data_artifacts()
+            self.project.refresh_from_db()
+
+        workbook_data = self.project.workbook_data or {}
+        external = workbook_data.get("external_nexpose") or {}
+
+        self.assertEqual(external.get("top_hosts_high"), 1)
+        self.assertEqual(external.get("top_hosts_med"), 1)
+        self.assertEqual(external.get("top_hosts_low"), 1)
+        self.assertEqual(external.get("top_hosts_total"), 3)
+
+        top_hosts = external.get("top_hosts") or []
+        self.assertTrue(top_hosts)
+        self.assertEqual(len(top_hosts), 2)
+
     def test_nexpose_xml_uses_vulnerability_lookup_details(self):
         xml_payload = """
 <NexposeReport version='1.0'>

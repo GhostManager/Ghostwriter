@@ -1025,6 +1025,23 @@ class Project(models.Model):
                 }
             )
 
+            host_counts = metrics_payload.get("host_counts")
+            if isinstance(host_counts, list):
+                area_payload["host_counts"] = list(host_counts)
+
+            top_hosts = metrics_payload.get("top_hosts")
+            if isinstance(top_hosts, list):
+                area_payload["top_hosts"] = list(top_hosts)
+
+            for key in (
+                "top_hosts_high",
+                "top_hosts_med",
+                "top_hosts_low",
+                "top_hosts_total",
+            ):
+                if key in metrics_payload:
+                    area_payload[key] = _safe_int(metrics_payload.get(key))
+
             if majority_label:
                 area_payload["majority_type"] = majority_label
                 summary_key = majority_summary_map.get(majority_type_raw)
