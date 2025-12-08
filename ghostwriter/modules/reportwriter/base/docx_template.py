@@ -980,15 +980,15 @@ class GhostwriterDocxTemplate(DocxTemplate):
             if chart_label:
                 self._record_templated_part("charts", chart_label)
 
-        if self._is_chart_part(partname):
-            rendered = self._sync_chart_cache(rendered, part, excel_values)
+            if self._is_chart_part(partname):
+                rendered = self._sync_chart_cache(rendered, part, excel_values)
 
-            rendered_bytes = rendered.encode("utf-8")
-            if hasattr(part, "_element"):
-                part._element = parse_xml(rendered_bytes)
-            if hasattr(part, "_blob"):
-                part._blob = rendered_bytes
-            self._cleanup_part_relationships(part, rendered)
+                rendered_bytes = rendered.encode("utf-8")
+                if hasattr(part, "_element"):
+                    part._element = parse_xml(rendered_bytes)
+                if hasattr(part, "_blob"):
+                    part._blob = rendered_bytes
+                self._cleanup_part_relationships(part, rendered)
 
         self._summarise_templated_parts()
 
