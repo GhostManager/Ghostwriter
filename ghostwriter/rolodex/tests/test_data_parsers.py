@@ -534,6 +534,7 @@ class NexposeDataParserTests(TestCase):
         self.assertEqual(metrics_payload.get("top_hosts_high"), 1)
         self.assertEqual(metrics_payload.get("top_hosts_med"), 1)
         self.assertEqual(metrics_payload.get("top_hosts_low"), 1)
+        self.assertEqual(metrics_payload.get("top_hosts_total"), 3)
 
     def test_nexpose_xml_uses_vulnerability_lookup_details(self):
         xml_payload = """
