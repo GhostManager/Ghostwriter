@@ -3116,6 +3116,26 @@ class MatrixViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "SQL Injection")
 
+    def test_vulnerability_matrix_search_filters_results(self):
+        VulnerabilityMatrixEntry.objects.create(
+            vulnerability="SQL Injection",
+            action_required="Update all input validation.",
+            remediation_impact="High",
+            vulnerability_threat="Data exfiltration",
+            category="Injection",
+        )
+        VulnerabilityMatrixEntry.objects.create(
+            vulnerability="Cross-Site Request Forgery",
+            action_required="Add CSRF tokens",
+            remediation_impact="Medium",
+            vulnerability_threat="Session hijacking",
+            category="Web",
+        )
+        self.client.login(username=self.manager.username, password=PASSWORD)
+        response = self.client.get(reverse("rolodex:vulnerability_matrix") + "?q=SQL")
+        self.assertContains(response, "SQL Injection")
+        self.assertNotContains(response, "Cross-Site Request Forgery")
+
     def test_non_privileged_user_redirected(self):
         self.client.login(username=self.user.username, password=PASSWORD)
         response = self.client.get(reverse("rolodex:web_issue_matrix"))
@@ -3255,3 +3275,11 @@ class MatrixViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/csv", response["Content-Type"])
         self.assertIn("Missing CSP", response.content.decode("utf-8"))
+
+    def test_web_issue_matrix_search_filters_results(self):
+        WebIssueMatrixEntry.objects.create(title="Missing CSP", impact="Medium", fix="Add policy")
+        WebIssueMatrixEntry.objects.create(title="Cross-Site Scripting", impact="High", fix="Encode output")
+        self.client.login(username=self.manager.username, password=PASSWORD)
+        response = self.client.get(reverse("rolodex:web_issue_matrix") + "?q=Missing")
+        self.assertContains(response, "Missing CSP")
+        self.assertNotContains(response, "Cross-Site Scripting")

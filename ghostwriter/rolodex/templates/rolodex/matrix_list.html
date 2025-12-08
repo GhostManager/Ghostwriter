@@ -22,6 +22,15 @@
         <h4 class="card-title mb-1">{{ matrix_title }}</h4>
         <p class="card-text mb-0">Manage reusable remediation data that can be imported during project artifact processing.</p>
       </div>
+      <form method="get" class="form-inline mt-3 mt-md-0" role="search" aria-label="Search entries">
+        <div class="input-group">
+          <label class="sr-only" for="matrix-search">Search</label>
+          <input type="search" class="form-control" id="matrix-search" name="q" placeholder="Search" value="{{ search_query }}" aria-label="Search matrix entries">
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary icon search-icon" type="submit">Search</button>
+          </div>
+        </div>
+      </form>
       <div class="btn-group mt-3 mt-md-0" role="group" aria-label="Matrix actions">
         {% if create_url %}
           <a class="btn btn-primary icon plus-icon" href="{{ create_url }}">Add entry</a>
@@ -84,13 +93,13 @@
         <nav aria-label="Matrix pagination" class="mt-3">
           <ul class="pagination justify-content-center mb-0">
             <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
-              <a class="page-link" href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}{% else %}#{% endif %}" tabindex="{% if page_obj.has_previous %}0{% else %}-1{% endif %}">Previous</a>
+              <a class="page-link" href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}{% else %}#{% endif %}" tabindex="{% if page_obj.has_previous %}0{% else %}-1{% endif %}">Previous</a>
             </li>
             <li class="page-item disabled">
               <span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
             </li>
             <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
-              <a class="page-link" href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}{% else %}#{% endif %}" tabindex="{% if page_obj.has_next %}0{% else %}-1{% endif %}">Next</a>
+              <a class="page-link" href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}{% else %}#{% endif %}" tabindex="{% if page_obj.has_next %}0{% else %}-1{% endif %}">Next</a>
             </li>
           </ul>
         </nav>
