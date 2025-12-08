@@ -742,6 +742,9 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
         risk_rich_text_map = RiskScoreRangeMapping.get_risk_rich_text_map()
         self._apply_project_risk_rich_text(data.get("risks"), risk_rich_text_map)
         self._apply_workbook_risk_rich_text(data.get("workbook_data"), risk_rich_text_map)
+        self._apply_data_responses_risk_rich_text(
+            data.get("data_responses"), risk_rich_text_map
+        )
         return data
 
     @staticmethod
@@ -923,9 +926,15 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
         normalized = str(value).strip()
         if not normalized:
             return None
-        return risk_rich_text_map.get(
-            normalized, RiskScoreRangeMapping._wrap_inline_rich_text(normalized)
-        )
+        if normalized in risk_rich_text_map:
+            return risk_rich_text_map[normalized]
+
+        lower_normalized = normalized.lower()
+        for risk_label, rich_text in risk_rich_text_map.items():
+            if str(risk_label).strip().lower() == lower_normalized:
+                return rich_text
+
+        return RiskScoreRangeMapping._wrap_inline_rich_text(normalized)
 
     @classmethod
     def _apply_project_risk_rich_text(
@@ -970,6 +979,41 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
                     rich_text_risk = cls._risk_rich_text(risk_value, risk_rich_text_map)
                     if rich_text_risk is not None:
                         subvalue["risk_rt"] = rich_text_risk
+
+    @classmethod
+    def _apply_data_responses_risk_rich_text(
+        cls, data_responses: Any, risk_rich_text_map: Dict[str, str]
+    ) -> None:
+        if not isinstance(data_responses, dict):
+            return
+
+        risk_fields_by_section = {
+            "intelligence": ("osint_bucket_risk", "osint_leaked_creds_risk"),
+            "ad": (
+                "da_risk_string",
+                "ea_risk_string",
+                "ep_risk_string",
+                "ne_risk_string",
+                "ia_risk_string",
+                "ga_risk_string",
+                "gl_risk_string",
+            ),
+            "password": ("cracked_risk_string",),
+            "endpoint": ("ood_risk_string", "wifi_risk_string"),
+            "wireless": ("psk_risk", "open_risk", "rogue_risk", "hidden_risk"),
+        }
+
+        for section, fields in risk_fields_by_section.items():
+            section_data = data_responses.get(section)
+            if not isinstance(section_data, dict):
+                continue
+
+            for field in fields:
+                rich_text_value = cls._risk_rich_text(
+                    section_data.get(field), risk_rich_text_map
+                )
+                if rich_text_value is not None:
+                    section_data[f"{field}_rt"] = rich_text_value
 
     @staticmethod
     def _collect_firewall_responses(raw_responses, workbook_data):

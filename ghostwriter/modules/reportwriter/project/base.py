@@ -181,6 +181,8 @@ class ExportProjectBase(ExportBase):
             if not isinstance(container, dict):
                 return
             for key, value in list(container.items()):
+                if isinstance(value, dict):
+                    render_risk_rich_text_fields(value, location)
                 if not (isinstance(key, str) and key.endswith("_rt")):
                     continue
                 if value in (None, ""):
@@ -207,6 +209,10 @@ class ExportProjectBase(ExportBase):
                                 subvalue if isinstance(subvalue, dict) else {},
                                 f"the {category_key} {subkey} risk label",
                             )
+
+        render_risk_rich_text_fields(
+            project_context.get("data_responses"), "the workbook response risk label"
+        )
 
     @classmethod
     def generate_lint_data(cls):

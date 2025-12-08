@@ -307,6 +307,10 @@ class ProjectSerializerDataResponsesTests(TestCase):
         intelligence_summary = responses["intelligence"]
         self.assertEqual(intelligence_summary["osint_bucket_risk"], "High")
         self.assertEqual(intelligence_summary["osint_leaked_creds_risk"], "Medium")
+        self.assertEqual(intelligence_summary["osint_bucket_risk_rt"], "<p>High</p>")
+        self.assertEqual(
+            intelligence_summary["osint_leaked_creds_risk_rt"], "<p>Medium</p>"
+        )
 
         wireless_summary = responses["wireless"]
         self.assertEqual(wireless_summary["segmentation_ssids"], ["Guest"])
@@ -317,6 +321,10 @@ class ProjectSerializerDataResponsesTests(TestCase):
         self.assertEqual(wireless_summary["rogue_risk"], "medium")
         self.assertEqual(wireless_summary["hidden_risk"], "low")
         self.assertEqual(wireless_summary["psk_weak_reasons"], "to short and not enough entropy")
+        self.assertEqual(wireless_summary["psk_risk_rt"], "<p>Medium</p>")
+        self.assertEqual(wireless_summary["open_risk_rt"], "<p>High</p>")
+        self.assertEqual(wireless_summary["rogue_risk_rt"], "<p>Medium</p>")
+        self.assertEqual(wireless_summary["hidden_risk_rt"], "<p>Low</p>")
 
         ad_summary = responses["ad"]
         self.assertIn("entries", ad_summary)
@@ -352,6 +360,13 @@ class ProjectSerializerDataResponsesTests(TestCase):
         self.assertEqual(ad_summary["ia_risk_string"], "Medium/Low")
         self.assertEqual(ad_summary["ga_risk_string"], "High/Low")
         self.assertEqual(ad_summary["gl_risk_string"], "Medium/Medium")
+        self.assertEqual(ad_summary["da_risk_string_rt"], "<p>High/Medium</p>")
+        self.assertEqual(ad_summary["ea_risk_string_rt"], "<p>Medium/High</p>")
+        self.assertEqual(ad_summary["ep_risk_string_rt"], "<p>Low/Medium</p>")
+        self.assertEqual(ad_summary["ne_risk_string_rt"], "<p>Low/High</p>")
+        self.assertEqual(ad_summary["ia_risk_string_rt"], "<p>Medium/Low</p>")
+        self.assertEqual(ad_summary["ga_risk_string_rt"], "<p>High/Low</p>")
+        self.assertEqual(ad_summary["gl_risk_string_rt"], "<p>Medium/Medium</p>")
 
         password_summary = responses["password"]
         self.assertIn("entries", password_summary)
@@ -372,6 +387,7 @@ class ProjectSerializerDataResponsesTests(TestCase):
         )
         self.assertEqual(password_summary["cracked_count_str"], "3589/4875")
         self.assertEqual(password_summary["cracked_risk_string"], "Medium/High")
+        self.assertEqual(password_summary["cracked_risk_string_rt"], "<p>Medium/High</p>")
         self.assertEqual(password_summary["cracked_finding_string"], "3589 and 4875")
         self.assertEqual(password_summary["enabled_count_string"], "230 and 90")
         self.assertEqual(password_summary["admin_cracked_string"], "2 and 4")
@@ -516,6 +532,8 @@ class ProjectSerializerDataResponsesTests(TestCase):
         self.assertEqual(endpoint_summary["wifi_count_str"], "5/12")
         self.assertEqual(endpoint_summary["ood_risk_string"], "Medium/High")
         self.assertEqual(endpoint_summary["wifi_risk_string"], "Low/High")
+        self.assertEqual(endpoint_summary["ood_risk_string_rt"], "<p>Medium/High</p>")
+        self.assertEqual(endpoint_summary["wifi_risk_string_rt"], "<p>Low/High</p>")
 
         firewall_summary = responses["firewall"]
         self.assertIn("entries", firewall_summary)
