@@ -2,7 +2,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Django Imports
 from django.contrib.messages import get_messages
@@ -51,6 +51,8 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     filter_tags,
     filter_type,
     format_datetime,
+    to_datetime,
+    business_days,
     get_item,
     regex_search,
     replace_blanks,
@@ -2476,6 +2478,40 @@ class ReportTemplateFilterTests(TestCase):
 
         new_date = add_days(test_date, -5)
         self.assertEqual(new_date, past_date)
+
+    def test_to_datetime(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date, "%d %b %Y")
+        self.assertEqual(parsed_date, self.test_date)
+
+    def test_to_datetime_with_invalid_string(self):
+        test_date = "Not a Date"
+        with self.assertRaises(InvalidFilterValue):
+            to_datetime(test_date, "%d %b %Y")
+
+    def test_business_days_datetime(self):
+        end_date = self.test_date + timedelta(days=13)
+
+        # Monday to Monday
+        start_date = datetime(2025, 12, 1)
+        end_date = datetime(2025, 12, 12)
+
+        business_days_count = business_days(start_date, end_date)
+        self.assertEqual(business_days_count, 10)
+
+    def test_business_days_string(self):
+        start_date = dateformat(self.test_date, self.test_date_string)
+        end_date = dateformat(self.test_date + timedelta(days=13), self.test_date_string)
+
+        business_days_count = business_days(start_date, end_date)
+        self.assertEqual(business_days_count, 10)
+
+    def test_business_days_with_invalid_datetime(self):
+        test_date = "Not a Date"
+        test_date2 = "Also Not a Date"
+        with self.assertRaises(InvalidFilterValue):
+            business_days(test_date, test_date2)
 
     def test_add_days_with_invalid_string(self):
         test_date = "Not a Date"
