@@ -716,6 +716,31 @@ def _normalize_dns_payload(payload: Optional[Mapping[str, Any]]) -> Dict[str, An
     return normalized
 
 
+def _normalize_area_updates(
+    updates: Optional[Mapping[str, Any]]
+) -> Dict[str, Dict[str, Dict[str, bool]]]:
+    normalized: Dict[str, Dict[str, Dict[str, bool]]] = {}
+    if not isinstance(updates, Mapping):
+        return normalized
+
+    for area_key, area_payload in updates.items():
+        if not isinstance(area_payload, Mapping):
+            continue
+        area_entry: Dict[str, Dict[str, bool]] = {}
+        for subkey, sub_payload in area_payload.items():
+            if not isinstance(sub_payload, Mapping):
+                continue
+            needs_update = bool(sub_payload.get("needs_update"))
+            updated_flag = bool(sub_payload.get("updated")) if needs_update else False
+            area_entry[subkey] = {
+                "needs_update": needs_update,
+                "updated": updated_flag,
+            }
+        normalized[area_key] = area_entry
+
+    return normalized
+
+
 def _calculate_category_total(
     *, scores: Mapping[str, Optional[Decimal]], weights: Mapping[str, Decimal]
 ) -> Optional[Decimal]:
@@ -779,6 +804,7 @@ def build_workbook_entry_payload(
     grades: Optional[Mapping[str, Any]] = None,
     areas: Optional[Mapping[str, Any]] = None,
     dns: Optional[Mapping[str, Any]] = None,
+    area_updates: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Return updated workbook data for inline workbook entry."""
 
@@ -881,6 +907,18 @@ def build_workbook_entry_payload(
             )
             existing_area.update(normalized_area)
             normalized_workbook[area_key] = existing_area
+
+    if area_updates is not None:
+        normalized_updates = _normalize_area_updates(area_updates)
+        existing_updates = (
+            normalized_workbook.get("area_updates")
+            if isinstance(normalized_workbook.get("area_updates"), Mapping)
+            else {}
+        )
+        merged_updates: Dict[str, Dict[str, Dict[str, bool]]] = dict(existing_updates)
+        for area_key, area_payload in normalized_updates.items():
+            merged_updates[area_key] = area_payload
+        normalized_workbook["area_updates"] = merged_updates
 
     ad_domains: set[str] = set()
     ad_state = (
