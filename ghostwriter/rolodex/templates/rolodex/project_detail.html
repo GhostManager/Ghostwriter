@@ -741,6 +741,11 @@
           </span>
         </div>
 
+        <div id="workbook-updates-warning" class="alert alert-warning offset-2 col-8 d-none" role="alert">
+          <p class="font-weight-bold mb-1">Workbook Updates Needed:</p>
+          <ul class="mb-0 workbook-updates-list"></ul>
+        </div>
+
         <h4>Project Reports & Findings</h4>
         <hr/>
 
@@ -907,6 +912,9 @@
       $(function() {
         const projectExportSelector = $("#projectExportSelector");
         const projectExportButton = $("#projectExportButton");
+        projectExportSelector.on("change", function() {
+          refreshDocxUpdateState();
+        });
         projectExportButton.on("click", function(event) {
           const selectedOption = projectExportSelector.find("option:selected");
           const selectedExtension = (selectedOption.data("extension") || "").toString().toLowerCase();
@@ -3395,6 +3403,127 @@
           return areaPayload;
         };
 
+        const getAreaLabel = function(areaKey) {
+          const areaConfig = scopingConfig[areaKey] || {};
+          return areaConfig.label || titleize(areaKey);
+        };
+
+        const getSubkeyLabel = function(areaKey, subkey) {
+          const resolvedConfig = resolveAreaConfig(areaKey, subkey) || {};
+          if (resolvedConfig.label) {
+            return resolvedConfig.label;
+          }
+          const areaConfig = scopingConfig[areaKey] || {};
+          const options = areaConfig.options || {};
+          return options[subkey] || subkey.replace(/_/g, ' ').toUpperCase();
+        };
+
+        const formatAreaUpdateLabel = function(areaKey, subkey) {
+          return getAreaLabel(areaKey) + ' - ' + getSubkeyLabel(areaKey, subkey);
+        };
+
+        const getPendingDocxUpdateEntries = function() {
+          const pending = [];
+          const seen = new Set();
+
+          const notePending = function(areaKey, subkey) {
+            const key = areaKey + ':' + subkey;
+            if (seen.has(key)) {
+              return;
+            }
+            seen.add(key);
+            pending.push({areaKey: areaKey, subkey: subkey});
+          };
+
+          Object.keys(scopingState).forEach(function(areaKey) {
+            const scope = scopingState[areaKey] || {};
+            if (!scope.selected) {
+              return;
+            }
+            const subkeys = getAreaSubkeys(areaKey);
+            const areaPayload = collectAreaUpdatePayload(areaKey, subkeys);
+            subkeys.forEach(function(subkey) {
+              const state = areaPayload[subkey];
+              if (state && state.needs_update && !state.updated) {
+                notePending(areaKey, subkey);
+              }
+            });
+          });
+
+          const storedUpdates = workbookState.area_updates || {};
+          Object.keys(storedUpdates).forEach(function(areaKey) {
+            const areaState = storedUpdates[areaKey];
+            if (!areaState || typeof areaState !== 'object') {
+              return;
+            }
+            const scope = scopingState[areaKey];
+            if (scope && scope.selected === false) {
+              return;
+            }
+            Object.keys(areaState).forEach(function(subkey) {
+              const entry = areaState[subkey];
+              if (entry && entry.needs_update && !entry.updated) {
+                notePending(areaKey, subkey);
+              }
+            });
+          });
+
+          return pending;
+        };
+
+        const renderWorkbookUpdatesWarning = function(pendingEntries) {
+          const warning = document.getElementById('workbook-updates-warning');
+          if (!warning) {
+            return;
+          }
+
+          const list = warning.querySelector('.workbook-updates-list');
+          if (!list) {
+            return;
+          }
+
+          list.innerHTML = '';
+          if (!pendingEntries || !pendingEntries.length) {
+            warning.classList.add('d-none');
+            return;
+          }
+
+          pendingEntries.forEach(function(entry) {
+            const item = document.createElement('li');
+            item.textContent = formatAreaUpdateLabel(entry.areaKey, entry.subkey);
+            list.appendChild(item);
+          });
+
+          warning.classList.remove('d-none');
+        };
+
+        const updateDocxGenerateButtonState = function(pendingEntries) {
+          const button = document.getElementById('projectExportButton');
+          const selector = document.getElementById('projectExportSelector');
+          if (!button || !selector) {
+            return;
+          }
+
+          const selectedOption = selector.options[selector.selectedIndex];
+          const selectedExtension = selectedOption && selectedOption.getAttribute('data-extension');
+          const shouldDisable = Boolean(pendingEntries && pendingEntries.length && selectedExtension && selectedExtension.toLowerCase() === 'docx');
+
+          button.disabled = shouldDisable;
+          button.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+          if (shouldDisable) {
+            button.classList.add('disabled');
+          } else {
+            button.classList.remove('disabled');
+          }
+        };
+
+        const refreshDocxUpdateState = function() {
+          const pendingEntries = getPendingDocxUpdateEntries();
+          renderWorkbookUpdatesWarning(pendingEntries);
+          updateDocxGenerateButtonState(pendingEntries);
+          return pendingEntries;
+        };
+
         const updateSqlUnsupportedCount = function(areaKey, subkey) {
           const confirmSelect = document.getElementById(
             buildAreaFieldId(areaKey, subkey, 'unsupported_confirm')
@@ -3784,37 +3913,7 @@
         };
 
         const hasPendingDocxUpdates = function() {
-          const scopedPending = Object.keys(scopingState).some(function(areaKey) {
-            const scope = scopingState[areaKey] || {};
-            if (!scope.selected) {
-              return false;
-            }
-            const subkeys = getAreaSubkeys(areaKey);
-            const areaPayload = collectAreaUpdatePayload(areaKey, subkeys);
-            return subkeys.some(function(subkey) {
-              const state = areaPayload[subkey];
-              return state && state.needs_update && !state.updated;
-            });
-          });
-
-          if (scopedPending) {
-            return true;
-          }
-
-          const storedUpdates = workbookState.area_updates || {};
-          return Object.keys(storedUpdates).some(function(areaKey) {
-            const areaState = storedUpdates[areaKey];
-            if (!areaState || typeof areaState !== 'object') {
-              return false;
-            }
-            const scope = scopingState[areaKey];
-            if (scope && scope.selected === false) {
-              return false;
-            }
-            return Object.values(areaState).some(function(entry) {
-              return entry && entry.needs_update && !entry.updated;
-            });
-          });
+          return getPendingDocxUpdateEntries().length > 0;
         };
 
         const saveAreaData = function(areaKey, subkeys, modalId) {
@@ -6553,11 +6652,13 @@
                 updatedWrapper.style.display = needsUpdate ? '' : 'none';
                 persistAreaUpdateEntry(areaKey, subkey, needsUpdate, updatedCheckbox.checked);
                 applyAreaUpdateStatusStyles(areaKey, subkey, subHeader);
+                refreshDocxUpdateState();
               });
 
               updatedCheckbox.addEventListener('change', function() {
                 persistAreaUpdateEntry(areaKey, subkey, updateSelect.value === 'updates_needed', updatedCheckbox.checked);
                 applyAreaUpdateStatusStyles(areaKey, subkey, subHeader);
+                refreshDocxUpdateState();
               });
 
               updateControls.appendChild(updateSelect);
@@ -7346,6 +7447,7 @@
             if (typeof opts.afterRender === 'function') {
               opts.afterRender();
             }
+            refreshDocxUpdateState();
             if (opts.reopenModalId) {
               $('#' + opts.reopenModalId).modal('show');
             }
@@ -7499,6 +7601,7 @@
         }
 
         renderWorkbookUi();
+        refreshDocxUpdateState();
         buildRiskLegend();
       });
     })(jQuery);
