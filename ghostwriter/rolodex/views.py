@@ -269,6 +269,12 @@ def _build_processed_cards(
             if upload_meta and upload_meta.get("slug")
             else None
         )
+        upload_file_url = None
+        if upload_file and upload_file.file:
+            try:
+                upload_file_url = upload_file.file.url
+            except ValueError:
+                upload_file_url = None
         processed_cards.append(
             {
                 "label": label,
@@ -278,6 +284,8 @@ def _build_processed_cards(
                 "type": "nexpose",
                 "upload": upload_meta,
                 "upload_filename": upload_file.filename if upload_file else None,
+                "upload_file": upload_file,
+                "upload_file_url": upload_file_url,
             }
         )
 

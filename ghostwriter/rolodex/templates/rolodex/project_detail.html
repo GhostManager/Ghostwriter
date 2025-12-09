@@ -641,6 +641,21 @@
                             <a class="btn btn-outline-primary btn-sm mr-2 mb-2" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
                               Download Nexpose Data file
                             </a>
+                            {% with has_updated_upload=card.upload_file_url %}
+                              <a
+                                class="btn btn-warning btn-sm mr-2 mb-2{% if not has_updated_upload %} disabled{% endif %}"
+                                {% if has_updated_upload %}
+                                  href="{{ card.upload_file_url }}"
+                                  download
+                                {% else %}
+                                  href="#"
+                                  tabindex="-1"
+                                  aria-disabled="true"
+                                {% endif %}
+                              >
+                                Download Updated Nexpose file
+                              </a>
+                            {% endwith %}
                           {% if card.upload %}
                             <form
                               method="post"
