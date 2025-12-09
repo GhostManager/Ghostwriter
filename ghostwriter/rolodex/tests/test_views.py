@@ -5,11 +5,13 @@ import logging
 import shutil
 import re
 import tempfile
+from io import BytesIO
 from datetime import date, timedelta
 from unittest import mock
 
 # Django Imports
 from django import forms
+from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -22,6 +24,7 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     ClientNoteFactory,
+    DocTypeFactory,
     MgrFactory,
     ObjectiveStatusFactory,
     ProjectFactory,
@@ -30,6 +33,7 @@ from ghostwriter.factories import (
     ProjectNoteFactory,
     ProjectAssignmentFactory,
     ProjectObjectiveFactory,
+    ReportTemplateFactory,
     ProjectScopeFactory,
     StaticServerFactory,
     UserFactory,
@@ -57,6 +61,7 @@ from ghostwriter.rolodex.models import (
     VulnerabilityMatrixEntry,
     WebIssueMatrixEntry,
 )
+from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.workbook_defaults import (
     WORKBOOK_DEFAULTS,
     ensure_data_responses_defaults,
@@ -1039,6 +1044,67 @@ class ProjectDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Firewall Findings")
+
+
+class GenerateProjectReportDocxGateTests(TestCase):
+    """Tests for blocking DOCX generation when updates are pending."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.doc_type = DocTypeFactory(doc_type="project_docx", extension="docx", name="project_docx")
+        cls.template = ReportTemplateFactory(doc_type=cls.doc_type, client=cls.project.client)
+        cls.uri = reverse(
+            "rolodex:ajax_project_generate_report",
+            kwargs={"pk": cls.project.pk, "type_or_template_id": cls.template.pk},
+        )
+
+    def setUp(self):
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
+        self.project = self.__class__.project
+        self.project.refresh_from_db()
+
+    def _dummy_exporter(self):
+        class DummyExporter:
+            def render_filename(self, *args, **kwargs):
+                return "test.docx"
+
+            def run(self):
+                return BytesIO(b"dummy")
+
+            def mime_type(self):
+                return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+        return DummyExporter()
+
+    def test_docx_generation_blocked_when_updates_pending(self):
+        self.project.scoping = {"external": {"selected": True, "osint": True}}
+        self.project.workbook_data = {
+            "area_updates": {"external": {"osint": {"needs_update": True, "updated": False}}}
+        }
+        self.project.save(update_fields=["scoping", "workbook_data"])
+
+        response = self.client_mgr.get(self.uri, follow=True)
+
+        self.assertTrue(any("#documents" in url for url, _ in response.redirect_chain))
+        messages_list = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("Updates Needed" in message.message for message in messages_list))
+        self.assertEqual(response.status_code, 200)
+
+    def test_docx_generation_allowed_when_updates_marked(self):
+        self.project.scoping = {"external": {"selected": True, "osint": True}}
+        self.project.workbook_data = {
+            "area_updates": {"external": {"osint": {"needs_update": True, "updated": True}}}
+        }
+        self.project.save(update_fields=["scoping", "workbook_data"])
+
+        with mock.patch.object(ReportTemplate, "exporter", return_value=self._dummy_exporter()):
+            response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"dummy")
 
 
 class UpdateProjectBadgesTests(TestCase):

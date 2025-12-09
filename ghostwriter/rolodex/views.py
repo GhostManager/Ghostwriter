@@ -12,7 +12,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 from xml.etree import ElementTree
 
 # Django Imports
@@ -560,6 +560,43 @@ def _build_grouped_data_responses(
     return grouped
 
 
+def _get_pending_area_updates(project: Project) -> List[Tuple[str, str]]:
+    """Return (area, subkey) pairs with Updates Needed that are not marked updated."""
+
+    workbook = normalize_workbook_payload(getattr(project, "workbook_data", {}))
+    area_updates = (
+        workbook.get("area_updates") if isinstance(workbook.get("area_updates"), dict) else {}
+    )
+    scoping_state = normalize_project_scoping(getattr(project, "scoping", {}))
+
+    pending: List[Tuple[str, str]] = []
+    for area_key, scope in scoping_state.items():
+        if not scope.get("selected"):
+            continue
+        subkeys = [key for key, enabled in scope.items() if key != "selected" and enabled]
+        area_state = area_updates.get(area_key)
+        if not isinstance(area_state, dict):
+            continue
+        for subkey in subkeys:
+            update_state = area_state.get(subkey)
+            if not isinstance(update_state, dict):
+                continue
+            if bool(update_state.get("needs_update")) and not bool(update_state.get("updated")):
+                pending.append((area_key, subkey))
+
+    return pending
+
+
+def _format_area_update_label(area_key: str, subkey: str) -> str:
+    area_config = PROJECT_SCOPING_CONFIGURATION.get(area_key, {})
+    area_label = area_config.get("label") or area_key.replace("_", " ").title()
+    option_map = area_config.get("options") or {}
+    sub_label = option_map.get(subkey) if isinstance(option_map, dict) else None
+    if not sub_label:
+        sub_label = subkey.replace("_", " ").title()
+    return f"{area_label} - {sub_label}"
+
+
 def _coerce_firewall_summary(summary: Dict[str, Any]) -> Dict[str, Any]:
     """Ensure firewall summaries include legacy aliases and default counters."""
 
@@ -918,6 +955,29 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
                     .select_related("doc_type")
                     .get(pk=type_or_template_id)
                 )
+                pending_updates = _get_pending_area_updates(project)
+                if (
+                    template.doc_type.extension.lower() == "docx"
+                    and pending_updates
+                ):
+                    labels = ", ".join(
+                        _format_area_update_label(area_key, subkey)
+                        for area_key, subkey in pending_updates
+                    )
+                    message = (
+                        "Please mark Updates Needed items as Updated before generating a DOCX report."
+                    )
+                    if labels:
+                        message = f"{message} Pending: {labels}."
+                    messages.error(
+                        self.request,
+                        message,
+                        extra_tags="alert-danger",
+                    )
+                    return HttpResponseRedirect(
+                        reverse("rolodex:project_detail", kwargs={"pk": project.id})
+                        + "#documents"
+                    )
                 exporter = template.exporter(project)
                 filename = exporter.render_filename(template.filename_override or report_config.project_filename)
                 out = exporter.run()
@@ -4640,6 +4700,9 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         dns_payload = payload.get("dns") if isinstance(payload, dict) else None
         artifacts_updated = False
         areas_payload = payload.get("areas") if isinstance(payload.get("areas"), dict) else {}
+        area_updates_payload = (
+            payload.get("area_updates") if isinstance(payload.get("area_updates"), dict) else {}
+        )
 
         if isinstance(dns_payload, dict):
             artifacts = (
@@ -5293,6 +5356,7 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
             grades=payload.get("grades"),
             areas=areas_payload,
             dns=dns_payload,
+            area_updates=area_updates_payload,
         )
 
         project.workbook_data = workbook_payload

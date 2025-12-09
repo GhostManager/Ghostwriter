@@ -53,6 +53,7 @@ def _has_meaningful_data(value: Any) -> bool:
 
 WORKBOOK_DEFAULTS: Dict[str, Any] = {
     "client": {"name": None, "short_name": None},
+    "area_updates": {},
     "report_card": {
         "external": None,
         "internal": None,
@@ -321,7 +322,11 @@ def _detect_uploaded_sections(raw_data: Optional[Mapping[str, Any]]) -> Set[str]
     for key, value in raw_data.items():
         if key == WORKBOOK_META_KEY:
             continue
-        if key in WORKBOOK_DEFAULTS and _has_meaningful_data(value):
+        if (
+            key in WORKBOOK_DEFAULTS
+            and key not in {"area_updates"}
+            and _has_meaningful_data(value)
+        ):
             sections.add(str(key))
     return sections
 

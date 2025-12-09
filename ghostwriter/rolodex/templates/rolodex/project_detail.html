@@ -731,9 +731,9 @@
           </div>
           <select class="form-control form-select custom-select" id="projectExportSelector"
                   data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
-            <option value="json">JSON</option>
+            <option value="json" data-extension="json">JSON</option>
             {% for template in export_templates %}
-              <option value="{{ template.pk }}">{{ template.name }} ({{ template.doc_type.extension }})</option>
+              <option value="{{ template.pk }}" data-extension="{{ template.doc_type.extension }}">{{ template.name }} ({{ template.doc_type.extension }})</option>
             {% endfor %}
           </select>
           <span class="input-group-append">
@@ -907,7 +907,18 @@
       $(function() {
         const projectExportSelector = $("#projectExportSelector");
         const projectExportButton = $("#projectExportButton");
-        projectExportButton.on("click", function() {
+        projectExportButton.on("click", function(event) {
+          const selectedOption = projectExportSelector.find("option:selected");
+          const selectedExtension = (selectedOption.data("extension") || "").toString().toLowerCase();
+          if (selectedExtension === "docx" && hasPendingDocxUpdates()) {
+            event.preventDefault();
+            displayToastTop({
+              type: "error",
+              string: "Please mark Updates Needed items as Updated before generating a DOCX report.",
+              title: "Project Documents"
+            });
+            return;
+          }
           const url = projectExportSelector.attr("data-url").replace("replaceme", projectExportSelector.val());
           const a = document.createElement("a");
           a.href = url;
@@ -3305,6 +3316,42 @@
           return 'area-' + areaKey + '-' + subkey + '-' + fieldKey;
         };
 
+        const buildAreaUpdateSelectId = function(areaKey, subkey) {
+          return 'area-' + areaKey + '-' + subkey + '-updates';
+        };
+
+        const buildAreaUpdatedCheckboxId = function(areaKey, subkey) {
+          return 'area-' + areaKey + '-' + subkey + '-updated';
+        };
+
+        const getAreaUpdateEntry = function(areaKey, subkey) {
+          const select = document.getElementById(buildAreaUpdateSelectId(areaKey, subkey));
+          const checkbox = document.getElementById(buildAreaUpdatedCheckboxId(areaKey, subkey));
+          if (select) {
+            const needsUpdate = select.value === 'updates_needed';
+            const updated = needsUpdate && checkbox ? checkbox.checked : false;
+            return {needs_update: needsUpdate, updated: updated};
+          }
+          const areaUpdates = (workbookState.area_updates && workbookState.area_updates[areaKey]) || {};
+          const storedState = areaUpdates[subkey] || {};
+          return {
+            needs_update: Boolean(storedState.needs_update),
+            updated: Boolean(storedState.updated),
+          };
+        };
+
+        const collectAreaUpdatePayload = function(areaKey, subkeys) {
+          const areaPayload = {};
+          subkeys.forEach(function(subkey) {
+            const state = getAreaUpdateEntry(areaKey, subkey);
+            areaPayload[subkey] = {
+              needs_update: Boolean(state.needs_update),
+              updated: Boolean(state.needs_update) && Boolean(state.updated),
+            };
+          });
+          return areaPayload;
+        };
+
         const updateSqlUnsupportedCount = function(areaKey, subkey) {
           const confirmSelect = document.getElementById(
             buildAreaFieldId(areaKey, subkey, 'unsupported_confirm')
@@ -3693,6 +3740,21 @@
           });
         };
 
+        const hasPendingDocxUpdates = function() {
+          return Object.keys(scopingState).some(function(areaKey) {
+            const scope = scopingState[areaKey] || {};
+            if (!scope.selected) {
+              return false;
+            }
+            const subkeys = getAreaSubkeys(areaKey);
+            const areaPayload = collectAreaUpdatePayload(areaKey, subkeys);
+            return subkeys.some(function(subkey) {
+              const state = areaPayload[subkey];
+              return state && state.needs_update && !state.updated;
+            });
+          });
+        };
+
         const saveAreaData = function(areaKey, subkeys, modalId) {
           if (!Array.isArray(subkeys) || !subkeys.length) {
             return;
@@ -3767,6 +3829,10 @@
               payload.areas[workbookKey] = fieldPayload;
             }
           });
+          if (subkeys.length) {
+            payload.area_updates = {};
+            payload.area_updates[areaKey] = collectAreaUpdatePayload(areaKey, subkeys);
+          }
           return submitWorkbookUpdate(payload, function() {
             if (modalId) {
               $('#' + modalId).modal('hide');
@@ -6367,13 +6433,64 @@
               const subCard = document.createElement('div');
               subCard.className = 'card mb-3 flex-fill';
               const subHeader = document.createElement('div');
-              subHeader.className = 'card-header font-weight-bold';
+              subHeader.className = 'card-header d-flex justify-content-between align-items-center flex-wrap';
+              const titleWrap = document.createElement('span');
+              titleWrap.className = 'font-weight-bold';
               const resolvedConfig = resolveAreaConfig(areaKey, subkey);
               const workbookKey = (resolvedConfig && resolvedConfig.workbookKey) || subkey;
               const subkeyLabel = (resolvedConfig && resolvedConfig.label)
                 ? resolvedConfig.label
                 : subkey.toUpperCase();
-              subHeader.textContent = subkeyLabel;
+              titleWrap.textContent = subkeyLabel;
+
+              const updateControls = document.createElement('div');
+              updateControls.className = 'd-flex align-items-center flex-wrap';
+
+              const updateSelect = document.createElement('select');
+              updateSelect.className = 'custom-select custom-select-sm w-auto workbook-area-update-select';
+              updateSelect.id = buildAreaUpdateSelectId(areaKey, subkey);
+              updateSelect.setAttribute('aria-label', 'Updates Needed');
+
+              const defaultOption = document.createElement('option');
+              defaultOption.value = '';
+              defaultOption.textContent = 'Select';
+              updateSelect.appendChild(defaultOption);
+
+              const needsUpdateOption = document.createElement('option');
+              needsUpdateOption.value = 'updates_needed';
+              needsUpdateOption.textContent = 'Updates Needed';
+              updateSelect.appendChild(needsUpdateOption);
+
+              const updateState = getAreaUpdateEntry(areaKey, subkey);
+              updateSelect.value = updateState.needs_update ? 'updates_needed' : '';
+
+              const updatedWrapper = document.createElement('div');
+              updatedWrapper.className = 'form-check form-check-inline mb-0 ml-2 workbook-area-updated-wrapper';
+              const updatedCheckbox = document.createElement('input');
+              updatedCheckbox.type = 'checkbox';
+              updatedCheckbox.className = 'form-check-input workbook-area-updated-checkbox';
+              updatedCheckbox.id = buildAreaUpdatedCheckboxId(areaKey, subkey);
+              updatedCheckbox.checked = updateState.needs_update && updateState.updated;
+              const updatedLabel = document.createElement('label');
+              updatedLabel.className = 'form-check-label small';
+              updatedLabel.setAttribute('for', updatedCheckbox.id);
+              updatedLabel.textContent = 'Updated';
+              updatedWrapper.appendChild(updatedCheckbox);
+              updatedWrapper.appendChild(updatedLabel);
+              updatedWrapper.style.display = updateState.needs_update ? '' : 'none';
+
+              updateSelect.addEventListener('change', function() {
+                const needsUpdate = updateSelect.value === 'updates_needed';
+                if (!needsUpdate) {
+                  updatedCheckbox.checked = false;
+                }
+                updatedWrapper.style.display = needsUpdate ? '' : 'none';
+              });
+
+              updateControls.appendChild(updateSelect);
+              updateControls.appendChild(updatedWrapper);
+              subHeader.appendChild(titleWrap);
+              subHeader.appendChild(updateControls);
               const subBody = document.createElement('div');
               subBody.className = 'card-body';
               subBody.id = modalId + '-' + subkey + '-body';
