@@ -3848,6 +3848,20 @@ def _format_port_display(port_value: str, protocol: str) -> str:
 def _build_nexpose_metrics_payload(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Build summary metrics, top lists, and workbook bytes for Nexpose findings."""
 
+    risk_priority = {"High": 0, "Medium": 1, "Low": 2}
+
+    def _sort_by_risk(entries: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return sorted(
+            entries,
+            key=lambda entry: (
+                risk_priority.get(entry.get("risk", ""), len(risk_priority)),
+                -entry.get("severity", 0),
+                (entry.get("issue") or "").lower(),
+                (entry.get("ip") or ""),
+                (entry.get("hostnames") or ""),
+            ),
+        )
+
     total_entries: List[Dict[str, Any]] = []
     unique_entries: "OrderedDict[Tuple[int, str], Dict[str, Any]]" = OrderedDict()
     seen_total_keys: Set[Tuple[str, str, str, int]] = set()
@@ -3921,8 +3935,10 @@ def _build_nexpose_metrics_payload(findings: List[Dict[str, Any]]) -> Dict[str, 
         if impact:
             impact_counter[impact] += 1
 
+    total_entries = _sort_by_risk(total_entries)
+
     total_count = len(total_entries)
-    unique_values = list(unique_entries.values())
+    unique_values = _sort_by_risk(unique_entries.values())
     unique_count = len(unique_values)
     unique_high = sum(1 for entry in unique_values if entry.get("severity", 0) >= 8)
     unique_med = sum(1 for entry in unique_values if 4 <= entry.get("severity", 0) <= 7)
