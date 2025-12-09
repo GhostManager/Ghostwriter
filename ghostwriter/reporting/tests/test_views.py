@@ -2493,7 +2493,11 @@ class ReportTemplateFilterTests(TestCase):
     def test_business_days_datetime(self):
         end_date = self.test_date + timedelta(days=13)
 
-        business_days_count = business_days(self.test_date, end_date)
+        # Monday to Monday
+        start_date = datetime(2025, 12, 1)
+        end_date = datetime(2025, 12, 12)
+
+        business_days_count = business_days(start_date, end_date)
         self.assertEqual(business_days_count, 10)
 
     def test_business_days_string(self):
