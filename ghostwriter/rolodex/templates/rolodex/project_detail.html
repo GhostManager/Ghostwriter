@@ -641,51 +641,53 @@
                             <a class="btn btn-outline-primary btn-sm mr-2 mb-2" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
                               Download Nexpose Data file
                             </a>
-                            {% with has_updated_upload=card.upload_file_url %}
-                              <a
-                                class="btn btn-warning btn-sm mr-2 mb-2{% if not has_updated_upload %} disabled{% endif %}"
-                                {% if has_updated_upload %}
-                                  href="{{ card.upload_file_url }}"
-                                  download
-                                {% else %}
-                                  href="#"
-                                  tabindex="-1"
-                                  aria-disabled="true"
-                                {% endif %}
+                            {% if card.upload %}
+                              <form
+                                method="post"
+                                action="{% url 'rolodex:project_data_file_upload' project.id %}"
+                                enctype="multipart/form-data"
+                                class="mb-2 mr-2 project-required-data-form"
                               >
-                                Download Updated Nexpose file
-                              </a>
-                            {% endwith %}
-                          {% if card.upload %}
-                            <form
-                              method="post"
-                              action="{% url 'rolodex:project_data_file_upload' project.id %}"
-                              enctype="multipart/form-data"
-                              class="mb-2 project-required-data-form"
-                            >
-                              {% csrf_token %}
-                              <input type="hidden" name="requirement_slug" value="{{ card.upload.slug }}"/>
-                              <input type="hidden" name="requirement_label" value="{{ card.upload.label }}"/>
-                              <input type="hidden" name="requirement_context" value="{{ card.label }}"/>
-                              <input type="hidden" name="description" value="{{ card.upload.label }}"/>
-                              <input type="hidden" name="redirect_url" value="{{ request.path }}#processed-data"/>
-                              <label class="btn btn-outline-primary btn-sm mb-0 text-primary">
-                                Upload Updated Nexpose Data file
-                                <input
-                                  type="file"
-                                  name="file"
-                                  class="d-none project-required-data-input"
-                                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                  required
+                                {% csrf_token %}
+                                <input type="hidden" name="requirement_slug" value="{{ card.upload.slug }}"/>
+                                <input type="hidden" name="requirement_label" value="{{ card.upload.label }}"/>
+                                <input type="hidden" name="requirement_context" value="{{ card.label }}"/>
+                                <input type="hidden" name="description" value="{{ card.upload.label }}"/>
+                                <input type="hidden" name="redirect_url" value="{{ request.path }}#processed-data"/>
+                                <label class="btn btn-outline-primary btn-sm mb-0 text-primary text-center">
+                                  <span class="d-block">Upload Updated</span>
+                                  <span class="d-block">Nexpose Data file</span>
+                                  <input
+                                    type="file"
+                                    name="file"
+                                    class="d-none project-required-data-input"
+                                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    required
+                                  >
+                                </label>
+                              </form>
+                              {% with has_updated_upload=card.upload_file_url %}
+                                <a
+                                  class="btn btn-warning btn-sm mr-2 mb-2 text-center{% if not has_updated_upload %} disabled{% endif %}"
+                                  {% if has_updated_upload %}
+                                    href="{{ card.upload_file_url }}"
+                                    download
+                                  {% else %}
+                                    href="#"
+                                    tabindex="-1"
+                                    aria-disabled="true"
+                                  {% endif %}
                                 >
-                              </label>
-                            </form>
-                            {% if card.upload_filename %}
-                              <p class="text-muted small mb-0 w-100">
-                                Uploaded file: {{ card.upload_filename }}
-                              </p>
+                                  <span class="d-block">Download Updated</span>
+                                  <span class="d-block">Nexpose file</span>
+                                </a>
+                              {% endwith %}
+                              {% if card.upload_filename %}
+                                <p class="text-muted small mb-0 w-100">
+                                  Uploaded file: {{ card.upload_filename }}
+                                </p>
+                              {% endif %}
                             {% endif %}
-                          {% endif %}
                         </div>
                       {% else %}
                         <a class="btn btn-outline-primary btn-sm" href="{% url 'rolodex:project_nexpose_data_download' project.id %}?artifact={{ card.metrics_key }}">
