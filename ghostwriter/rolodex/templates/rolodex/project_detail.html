@@ -3336,6 +3336,10 @@
           return 'area-' + areaKey + '-' + subkey + '-header';
         };
 
+        const buildAreaCardId = function(areaKey) {
+          return 'workbook-area-card-' + areaKey;
+        };
+
         const getAreaUpdateEntry = function(areaKey, subkey) {
           const select = document.getElementById(buildAreaUpdateSelectId(areaKey, subkey));
           const checkbox = document.getElementById(buildAreaUpdatedCheckboxId(areaKey, subkey));
@@ -3386,6 +3390,24 @@
             header.classList.add('bg-success', 'text-white');
           } else if (state.needs_update) {
             header.classList.add('bg-danger', 'text-white');
+          }
+        };
+
+        const applyAreaCardUpdateStatus = function(areaKey, cardEl) {
+          const card = cardEl || document.getElementById(buildAreaCardId(areaKey));
+          if (!card) {
+            return;
+          }
+
+          const subkeys = getAreaSubkeys(areaKey);
+          const hasPendingUpdates = subkeys.some(function(subkey) {
+            const state = getAreaUpdateEntry(areaKey, subkey);
+            return state.needs_update && !state.updated;
+          });
+
+          card.classList.remove('bg-danger', 'text-white');
+          if (hasPendingUpdates) {
+            card.classList.add('bg-danger', 'text-white');
           }
         };
 
@@ -6525,6 +6547,7 @@
             column.className = 'col-12 col-sm-6 col-lg-4 col-xl-3 d-flex workbook-area-col';
             const card = document.createElement('div');
             card.className = 'card workbook-entry-card mb-3 workbook-area-card flex-fill';
+            card.id = buildAreaCardId(areaKey);
             card.setAttribute('role', 'button');
             card.setAttribute('data-toggle', 'modal');
             card.setAttribute('data-target', '#' + modalId);
@@ -6653,12 +6676,14 @@
                 persistAreaUpdateEntry(areaKey, subkey, needsUpdate, updatedCheckbox.checked);
                 applyAreaUpdateStatusStyles(areaKey, subkey, subHeader);
                 refreshDocxUpdateState();
+                applyAreaCardUpdateStatus(areaKey);
               });
 
               updatedCheckbox.addEventListener('change', function() {
                 persistAreaUpdateEntry(areaKey, subkey, updateSelect.value === 'updates_needed', updatedCheckbox.checked);
                 applyAreaUpdateStatusStyles(areaKey, subkey, subHeader);
                 refreshDocxUpdateState();
+                applyAreaCardUpdateStatus(areaKey);
               });
 
               updateControls.appendChild(updateSelect);
@@ -7222,6 +7247,8 @@
             modalDialog.appendChild(modalContent);
             modal.appendChild(modalDialog);
             modalFragment.appendChild(modal);
+
+            applyAreaCardUpdateStatus(areaKey, card);
           });
           if (deck.children.length) {
             cardContainer.appendChild(deck);
