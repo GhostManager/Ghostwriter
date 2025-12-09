@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -121,8 +121,8 @@
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">
-          {% if project.note %}
-            {{ project.note|bleach }}
+          {% if project.description %}
+            {{ project.description|bleach }}
           {% else %}
             <p class="text-center">No one has added a description of this project. <a class="clickable"
                                                                                       href="{% url 'rolodex:project_update' project.id %}">Fix
@@ -436,7 +436,7 @@
                     {{ target.hostname }}
                   {% endif %}
                 </td>
-                <td class="text-justify align-middle text-left">{{ target.note|bleach }}</td>
+                <td class="text-justify align-middle text-left">{{ target.description|bleach }}</td>
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
                       <a class="icon burn-icon js-compromise-target clickable-link" href="javascript:void(0);"
@@ -708,6 +708,7 @@
             <th class="align-middle text-left">Domain Name</th>
             <th class="align-middle text-left">Purpose</th>
             <th class="sorter-date-range-dMMMyyyy align-middle text-left">Date Range</th>
+            <th class="align-middle text-left">Checked Out By</th>
             <th class="sorter-false align-middle">Options</th>
             </thead>
             {% for domain in project.history_set.all %}
@@ -722,6 +723,7 @@
                 <td class="align-middle text-left">{{ domain.activity_type }}</td>
                 <td class="align-middle text-left" data-text="{{ domain.start_date|date:"Y-m-d" }}">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}
                 </td>
+                <td class="align-middle text-left">{{ domain.operator }}</td>
 
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
@@ -791,6 +793,7 @@
                 <th class="align-middle pr-4 text-left">Purpose</th>
                 <th class="align-middle pr-4 text-left">Role</th>
                 <th class="align-middle pr-4 text-left">Provider</th>
+                <th class="align-middle pr-4 text-left">Checked Out By</th>
                 <th class="sorter-false align-middle">Options</th>
               </tr>
             </thead>
@@ -820,6 +823,7 @@
                 <td class="align-middle text-left">{{ server.activity_type }}</td>
                 <td class="align-middle text-left">{{ server.server_role }}</td>
                 <td class="align-middle text-left">{{ server.server.server_provider }}</td>
+                <td class="align-middle text-left">{{ server.operator }}</td>
 
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
@@ -1074,6 +1078,58 @@
         {% endif %}
       </div>
 
+      {% comment %} BloodHound Tab {% endcomment %}
+      {% if bhc_api %}
+        <div id="bloodhound" class="tab-pane">
+          <h4>BloodHound</h4>
+          <hr/>
+
+          <p>
+            {% if project.has_bloodhound_api %}
+              Using Project Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
+            {% elif global_bloodhound_config.has_bloodhound_api %}
+              Using Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em>
+            {% else %}
+              Unavailable
+            {% endif %}
+          </p>
+
+          <div class="d-flex justify-content-center mb-3" role="group" aria-label="BloodHound buttons">
+            <div class="row justify-content-center w-100">
+              <div class="col-3 pr-1">
+                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-secondary w-100" type="submit" value="Test BloodHound Connectivity" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound" />
+                </form>
+              </div>
+              <div class="col-3 pl-1">
+                <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
+                  {% csrf_token %}
+                  <input class="btn btn-primary w-100" type="submit" value="Fetch BloodHound Data" data-toggle="tooltip"
+                    {% if project.has_bloodhound_api %}
+                    title="Fetch data from the project's configured BloodHound API"
+                    {% else %}
+                    title="Fetch data from the globally configured BloodHound API"
+                    {% endif %}
+                  />
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {% include "snippets/bloodhound_info.html" with res=bhc_api.bloodhound_results only %}
+        </div>
+      {% endif %}
+
+      <div id="collab_notes" class="tab-pane">
+        <h4>Collaborative Notes</h4>
+        <hr />
+
+        <div id="collab_notes_container">
+          <p>Loading...</p>
+        </div>
+      </div>
+
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if project_extra_fields_spec %}
         <div id="extra_fields" class="tab-pane">
@@ -1089,12 +1145,14 @@
       {% endif %}
 
       {% comment %} Notes Tab {% endcomment %}
-      <div id="notes" class="tab-pane">
-        <h4>Project Notes</h4>
+      {% if project.projectnote_set.all %}
+      <div id="legacy_comments" class="tab-pane">
+        <h4>Project Legacy Comments</h4>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a
-          Note</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">
+          Add a Comment
+        </a>
 
         {% if project.projectnote_set.all %}
           {% for note in project.projectnote_set.all reversed %}
@@ -1129,12 +1187,9 @@
           </div>
         {% endif %}
       </div>
+      {% endif %}
     </div>
   </div>
-{% endblock %}
-
-{% block tabs %}
-  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
@@ -1235,7 +1290,7 @@
 
     function expandObjective(ele) {
       ele.parent().parent().toggleClass('open');
-      let accordionRow = ele.parent().parent().next('.accordion');
+      let accordionRow = ele.parent().parent().next('.hiddenAccordion');
       if (!accordionRow.is(':visible')) {
         accordionRow.show().find('.accordion-content').slideDown();
       } else {
@@ -1951,10 +2006,30 @@
     }
 
     $(document).ready(function () {
-
       "use strict";
-
       prepareTodoList();
+    });
+
+    {% comment %} BloodHound fetch {% endcomment %}
+    $(document).ready(() => {
+      let bh_form = document.getElementById("bh-fetch-form");
+      bh_form.addEventListener("submit", e => {
+        e.preventDefault();
+
+        displayToastTop({type: "info", string: "Please wait. Fetching can take several minutes.", title: "Fetching BloodHound Info"});
+        fetch(bh_form.action, {
+          method: "POST",
+          body: new FormData(bh_form, e.submitter),
+          headers: {
+            "X-GW-Async": "True"
+          },
+        }).then(res => {
+          if(res.status === 200)
+            displayToastTop({type: "success", string: "Refresh the page to view updated results.", delay: 0, title: "Fetch Completed"});
+          else
+            displayToastTop({type: "error", string: "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
+        })
+      });
     });
   </script>
 
@@ -2058,4 +2133,7 @@
   {% for vps in project.transientserver_set.all %}
     {% include "snippets/vps_detail_modal.html" with vps=vps %}
   {% endfor %}
+
+  {% include "collab_editing/attrs_snippet.html" %}
+  <script type="module" src="{% static "assets/collab_forms_project_collabnote.js" %}"></script>
 {% endblock %}

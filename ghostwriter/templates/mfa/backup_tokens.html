@@ -1,0 +1,57 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block pagetitle %}MFA Backup Tokens{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
+      <li class="breadcrumb-item active" aria-current="page">MFA Backup Codes</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <h2>
+    {% trans "Multi-Factor Authentication Backup Tokens" %}
+  </h2>
+
+  {% if backup_tokens %}
+    {% if reveal_tokens %}
+      <div class="row justify-content-center">
+        <table id="token-table" class="table table-striped col-4">
+          {% for token in backup_tokens %}
+            <tr>
+              <td>{{ token.token }}</td>
+            </tr>
+          {% endfor %}
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
+        <p class="mb-0">{% trans 'Backup tokens are available; however, your administrator has turned off the display of the codes here for security reasons.' %}</p>
+        <p class="mb-0">{% trans 'Download the codes to view them, or press the button below to generate new ones.' %}</p>
+      </div>
+    {% endif %}
+  {% else %}
+      <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
+        {% trans 'No tokens. Press the button below to generate some.' %}
+      </div>
+  {% endif %}
+
+  <form class="mt-3" method="post">
+    {% csrf_token %}
+    <div class="btn-group d-flex offset-3 col-6" role="group" aria-label="Basic example">
+      <button class="btn btn-primary col-6 d-flex align-items-center justify-content-center" type="submit">
+        {% trans 'Generate Backup Tokens' %}
+      </button>
+      <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-secondary col-6 d-flex align-items-center justify-content-center">
+          {% translate "Download" %}
+      </a>
+    </div>
+  </form>
+
+{% endblock %}

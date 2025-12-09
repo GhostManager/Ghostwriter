@@ -92,12 +92,14 @@
     }
 }
 
-.tiptap {
-    min-height: 100px;
-    font-family: sans-serif;
-    color: #000;
-    overflow-wrap: break-word;
-    padding: 0.3rem;
+    .tiptap {
+        min-height: 100px;
+        font-family: sans-serif;
+        color: #000;
+        overflow-wrap: break-word;
+        padding: 0.3rem;
+        overflow-x: hidden;
+        position: relative;
 
     &,
     blockquote {
@@ -263,7 +265,7 @@
     }
 
     .node-evidence {
-        width: fit-content;
+        width: 100%;
     }
     .node-evidence.ProseMirror-selectednode .richtext-evidence {
         color: #fff;
@@ -273,15 +275,22 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        text-align: center;
 
+        width: 100%;
         padding: 1rem;
-        margin-left: 1rem;
-        margin-right: 1rem;
         border-radius: 0.9rem;
         background-color: #ddd;
 
+        &:has(.richtext-evidence-prefix) {
+            padding: 0.25rem;
+        }
+
         img {
             width: 300px;
+            max-height: 500px;
+            object-fit: contain;
+            cursor: pointer;
         }
         .richtext-evidence-no-preview {
             font-size: larger;
@@ -289,6 +298,37 @@
         .richtext-evidence-missing {
             font-size: larger;
             color: #f77;
+        }
+        .richtext-evidence-prefix {
+            color: #6D70A7;
+        }
+        .richtext-evidence-text-field {
+            border: 1px solid #aaa;
+            background-color: #fafafa;
+            border-radius: 0.5rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            margin-top: 0.5rem;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-break: break-word;
+
+            &:empty:before {
+                content: "Insert text here...";
+                pointer-events: none;
+                display: block;
+            }
+        }
+        .richtext-evidence-help {
+            margin-top: 0.5rem;
+        }
+        .richtext-evidence-name {
+            margin-bottom: 0.5rem;
+        }
+        .richtext-evidence-caption {
+            margin-top: 0.5rem;
         }
     }
 
@@ -381,4 +421,19 @@ ul.collab-focused-users {
 
 .ReactModal__Overlay {
     z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .ReactModal__Content.modal-dialog {
+        // Bootstrap CSS applies margin+height to center, but the overlay does this for us,
+        // and should be clickable to close, so unset bootstrap's stuff.
+        min-height: unset;
+        margin: unset;
+    }
+}
+
+.rich-text-lightbox img {
+    max-width: 95vw;
+    max-height: 95vh;
 }

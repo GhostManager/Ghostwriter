@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Editor } from "@tiptap/core";
 import { useCallback, useEffect, useState } from "react";
 import EvidenceModal from "./modal";
+import { useEditorState } from "@tiptap/react";
 
 export default function EvidenceButton({ editor }: { editor: Editor }) {
     // null = closed, "new" = inserting, number = editing with the existing ID as the number
@@ -10,13 +11,19 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
         null
     );
 
-    const enabled = editor
-        .can()
-        .chain()
-        .focus()
-        .setEvidence({ id: 1234 })
-        .run();
-    const active = editor.isActive("evidence");
+    const { enabled, active } = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            const enabled = editor
+                .can()
+                .chain()
+                .focus()
+                .setEvidence({ id: 1234 })
+                .run();
+            const active = editor.isActive("evidence");
+            return { enabled, active };
+        },
+    });
 
     const applyCb = useCallback(
         (id: number | null) => {
@@ -39,7 +46,7 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
         );
     }
 
-    const editorEl = editor.options.element;
+    const editorEl = editor.view.dom;
     useEffect(() => {
         const evl = () => setModalInitial("new");
         editorEl.addEventListener("openevidencemodal", evl);

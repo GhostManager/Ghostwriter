@@ -34,8 +34,14 @@
     </div>
   {% endif %}
 
-  <div class="container">
-    <h2>{{ client.name }}</h2>
+  <div class="container d-flex align-items-center justify-content-center">
+    {% if client.logo %}
+      <img src="{{ client.logo.url }}"
+           alt="{{ client.name }} logo"
+           class="mr-3"
+           style="max-height: 2.5rem; width: auto; object-fit: contain;" />
+    {% endif %}
+    <h2 class="mb-0">{{ client.name }}</h2>
   </div>
   {% if client.tags.names %}
     {% for tag in client.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
@@ -85,8 +91,8 @@
         </table>
 
         <div id="clientDescription" class="description-block offset-md-2 col-8">
-          {% if client.note %}
-            {{ client.note|bleach }}
+          {% if client.description %}
+            {{ client.description|bleach }}
           {% else %}
             <p class="text-center">No additional information provided for this client. <a class="clickable"
                                                                                           href="{% url 'rolodex:client_update' client.id %}">Fix
@@ -307,6 +313,7 @@
                 <th class="align-middle pr-4 text-left">Domain</th>
                 <th class="align-middle pr-4 text-left">Activity Type</th>
                 <th class="align-middle pr-4 text-left">End Date</th>
+                <th class="align-middle pr-4 text-left">Checked Out By</th>
               </tr>
               </thead>
               {% for domain in domains %}
@@ -323,6 +330,7 @@
                   </td>
                   <td class="align-middle text-left">{{ domain.activity_type }}</td>
                   <td class="align-middle text-left">{{ domain.end_date|date:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-left">{{ domain.operator }}</td>
                 </tr>
               {% endfor %}
             </table>
@@ -350,6 +358,7 @@
                 <th class="align-middle pr-4 text-left">Server</th>
                 <th class="align-middle pr-4 text-left">Activity Type</th>
                 <th class="align-middle pr-4 text-left">End Date</th>
+                <th class="align-middle text-left">Checked Out By</th>
               </tr>
               </thead>
               {% for server in servers %}
@@ -366,6 +375,7 @@
                   </td>
                   <td class="align-middle text-left">{{ server.activity_type }}</td>
                   <td class="align-middle text-left">{{ server.end_date|date:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-left">{{ server.operator }}</td>
                 </tr>
               {% endfor %}
 

@@ -5,7 +5,6 @@ import Bold from "@tiptap/extension-bold";
 import Italic from "@tiptap/extension-italic";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
-import mkElem from "./mkelem";
 
 // TinyMCE uses one span with multiple classes to represent combined bold/italic/underline/etc., but
 // Tiptap assumes one element per mark. So fake it with this `contentElement` function that strips
@@ -16,7 +15,7 @@ function unwrapClass(node: Node, cls: string): HTMLElement {
     if (n.classList.length === 0) {
         return n;
     }
-    const wrapper = mkElem("div");
+    const wrapper = node.ownerDocument!.createElement("div");
     wrapper.appendChild(node.cloneNode(true));
     return wrapper;
 }

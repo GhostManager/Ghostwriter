@@ -346,6 +346,17 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Jinja2 template. All template variables are available, plus {{now}} and {{company_name}}. The file extension is added to this. If blank, the admin-provided default will be used.",
     )
+    bloodhound_heading_offset = models.SmallIntegerField(
+        "BloodHound Heading Offset",
+        default=0,
+        blank=True,
+        help_text="Headings in BloodHound finding descriptions will have their level offset by this amount"
+    )
+    contains_bloodhound_data = models.BooleanField(
+        "Contains BloodHound Data",
+        default=False,
+        help_text="Set to true if this template is designed to include data from BloodHound",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
@@ -407,7 +418,7 @@ class ReportTemplate(models.Model):
                 )
         return result_code
 
-    def exporter(self, object):
+    def exporter(self, object, **kwargs):
         """
         Returns an ExportBase subclass instance based on the template and the passed-in object.
         Call the `run` method to generate the corresponding report.
@@ -426,6 +437,7 @@ class ReportTemplate(models.Model):
                 template_loc=self.document.path,
                 p_style=self.p_style,
                 evidence_image_width=self.evidence_image_width,
+                **kwargs
             )
         if self.doc_type.doc_type == "project_docx":
             assert isinstance(object, Project)
@@ -434,20 +446,19 @@ class ReportTemplate(models.Model):
 
             return ExportProjectDocx(
                 object,
-                template_loc=self.document.path,
-                p_style=self.p_style,
-                evidence_image_width=self.evidence_image_width,
+                report_template=self,
+                **kwargs
             )
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 
-            return ExportReportPptx(object, template_loc=self.document.path)
+            return ExportReportPptx(object, report_template=self, **kwargs)
         if self.doc_type.doc_type == "pptx" and isinstance(object, Project):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.pptx import ExportProjectPptx
 
-            return ExportProjectPptx(object, template_loc=self.document.path)
+            return ExportProjectPptx(object, report_template=self, **kwargs)
         raise RuntimeError(
             f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database."
         )
@@ -492,12 +503,12 @@ class ReportTemplate(models.Model):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 
-            return ExportReportDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+            return ExportReportDocx.lint(report_template=self)
         if self.doc_type.doc_type == "project_docx":
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 
-            return ExportProjectDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+            return ExportProjectDocx.lint(report_template=self)
         if self.doc_type.doc_type == "pptx":
             # Report PPTX exporter exports more content, so use it to lint
             # Ghostwriter Libraries
@@ -551,6 +562,7 @@ class Report(models.Model):
     )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     delivered = models.BooleanField("Delivered", default=False, help_text="Delivery status of the report")
+    include_bloodhound_data = models.BooleanField(default=False, help_text="Include data from BloodHound in the report context")
 
     class Meta:
         ordering = ["-creation", "-last_update", "project"]
@@ -1024,7 +1036,6 @@ class Observation(models.Model):
 
 
 class ReportObservationLink(models.Model):
-
     title = models.CharField(
         "Title",
         max_length=255,

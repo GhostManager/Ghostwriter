@@ -19,8 +19,8 @@ class ExportXlsxBase(ExportBase):
     output_file: io.BytesIO
     workbook: Workbook
 
-    def __init__(self, object):
-        super().__init__(object)
+    def __init__(self, object, *args, **kwargs):
+        super().__init__(object, *args, **kwargs)
         self.output = io.BytesIO()
         self.workbook = Workbook(self.output, {
             "in_memory": True,

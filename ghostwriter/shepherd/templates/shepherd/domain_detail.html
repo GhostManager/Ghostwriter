@@ -74,10 +74,10 @@
         {% endif %}
 
 
-        {% if domain.note %}
+        {% if domain.description %}
           <div id="domainDescription" class="d-flex justify-content-center description-block">
             <div>
-              {{ domain.note|strip_empty_tags|bleach }}
+              {{ domain.description|strip_empty_tags|bleach }}
             </div>
           </div>
         {% else %}
@@ -276,6 +276,7 @@
               <th class="align-middle pr-4 text-left">Project</th>
               <th class="align-middle pr-4 text-left">Activity Type</th>
               <th class="align-middle sorter-date-range-dMMMyyyy pr-4 text-left">Execution Window</th>
+              <th class="align-middle pr-4 text-left">Checked Out By</th>
               <th class="align-middle sorter-false pr-4">Options</th>
             </tr>
             </thead>

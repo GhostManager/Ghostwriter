@@ -1,25 +1,86 @@
-{% load bleach_tags %}
+{% load bleach_tags report_tags %}
 
-<div id="evidence_detail_{{ evidence.id }}" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
+<div class="modal fade" id="evidence_detail_{{ evidence.id }}" tabindex="-1" role="dialog"
+     aria-labelledby="evidence_detail_{{ evidence.id }}_label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Preview for {{ evidence.friendly_name }}</h5>
+        <h5 class="modal-title" id="evidence_detail_{{ evidence.id }}_label">
+          {{ evidence.friendly_name }}
+        </h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+          <i class="fas fa-times" aria-hidden="true"></i>
         </button>
       </div>
       <div class="modal-body">
-        <p>This is a preview of what your evidence file will look like in a report. It may not look exactly like this (depending on your template's styles), but it will give you an idea of what to expect.</p>
+        <div class="container">
+          {% if evidence|get_file_type == "image" %}
+            <div class="text-center mb-3">
+              <img
+                src="{% url 'reporting:evidence_download' evidence.id %}"
+                alt="{{ evidence.friendly_name }}"
+                class="img-fluid evidence-preview-clickable js-open-lightbox"
+                style="max-height: 400px; cursor: pointer;"
+                data-evidence-name="{{ evidence.friendly_name }}"
+                data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+                data-evidence-type="image"
+                data-modal-id="evidence_detail_{{ evidence.id }}"
+                title="Click to view full size"
+              >
+              <p class="text-muted mt-2 small">
+                <i class="fas fa-search-plus"></i> Click image to view full size
+              </p>
+            </div>
+          {% else %}
+            <div class="text-center mb-3">
+              <div
+                class="border rounded p-4 bg-light evidence-preview-clickable js-open-lightbox"
+                style="cursor: pointer; min-height: 150px; display: flex; align-items: center; justify-content: center;"
+                data-evidence-name="{{ evidence.friendly_name }}"
+                data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+                data-evidence-type="text"
+                data-modal-id="evidence_detail_{{ evidence.id }}"
+                title="Click to view full content"
+                tabindex="0" role="button"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+              >
+                <div>
+                  <i class="fas fa-file-code fa-3x text-muted mb-2"></i>
+                  <p class="text-muted mb-0 small">
+                    <i class="fas fa-search-plus"></i> Click to view full file content
+                  </p>
+                </div>
+              </div>
+            </div>
+          {% endif %}
 
-        <p>If you have borders enabled for reports, images will include a border with your configured color and width.</p>
-
-        <p>Previews also show you what captions will look like with your caption and configured labelling for figures.</p>
-
-        {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config %}
+          <table class="table table-borderless table-sm">
+            <tr>
+              <td class="text-left font-weight-bold" style="width: 30%;">Filename:</td>
+              <td class="text-left">{{ evidence.filename }}</td>
+            </tr>
+            <tr>
+              <td class="text-left font-weight-bold">Upload Date:</td>
+              <td class="text-left">{{ evidence.upload_date|date:"DATE_FORMAT" }}</td>
+            </tr>
+            <tr>
+              <td class="text-left font-weight-bold">Uploaded By:</td>
+              <td class="text-left">{{ evidence.uploaded_by }}</td>
+            </tr>
+            {% if evidence.description %}
+              <tr>
+                <td class="text-left font-weight-bold align-top">Description:</td>
+                <td class="text-left">{{ evidence.description|bleach }}</td>
+              </tr>
+            {% endif %}
+          </table>
+        </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <a href="javascript:void(0)"
+           onclick="downloadEvidence({{ evidence.id }}, '{{ evidence.filename|escapejs }}')"
+           class="btn btn-primary icon download-icon">Download</a>
       </div>
     </div>
   </div>

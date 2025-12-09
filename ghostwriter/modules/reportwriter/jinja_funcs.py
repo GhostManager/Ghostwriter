@@ -355,3 +355,50 @@ def replace_blanks(list_of_dicts, placeholder=""):
             "Invalid list of dictionaries passed into `replace_blanks()` filter; must be a list of dictionaries"
         ) from e
     return list_of_dicts
+
+
+def filter_bhe_findings_by_domain(findings, domain_sid):
+    """
+    Filter a list of BloodHound Enterprise findings to return only those associated with a given domain.
+
+    **Parameters**
+
+    ``findings``
+        List of dictionary objects (JSON) for findings
+    ``domain_sid``
+        The domain's SID to filter findings by
+    """
+    filtered_values = []
+    try:
+        for finding in findings:
+            if finding.get("environment_id", "").lower() == domain_sid.lower():
+                filtered_values.append(finding)
+    except (KeyError, TypeError, AttributeError) as e:
+        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
+        raise InvalidFilterValue(
+            "Invalid list of findings passed into `filter_bhe_findings_by_domain()` filter; must be the `{{ findings }}` object"
+        ) from e
+    return filtered_values
+
+
+def translate_domain_sid(sid: str, domains: dict):
+    """
+    Translate a domain SID to its corresponding domain name.
+
+    **Parameters**
+    ``sid``
+        The domain SID to translate
+    ``domains``
+        List of domain dictionaries with `domain_sid` and `name` keys
+    """
+    for domain in domains:
+        try:
+            if sid == domain["domain_sid"]:
+                return domain["name"]
+        except KeyError:
+            continue
+        except TypeError as e:
+            raise InvalidFilterValue(
+                "Invalid parameters passed into `translate_domain_sid()` filter; must be a domain SID string and the `{{ bloodhound.domains }}` object"
+            ) from e
+    return sid

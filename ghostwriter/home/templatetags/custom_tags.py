@@ -11,13 +11,12 @@ from django.db.models import Q
 from django.utils import timezone
 
 # 3rd Party Libraries
-from allauth_2fa.utils import user_has_valid_totp_device
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_user_is_privileged
+from ghostwriter.api.utils import verify_user_is_privileged, user_has_valid_totp_device, user_has_valid_webauthn_device
 from ghostwriter.home.models import UserProfile
 from ghostwriter.reporting.models import Finding, Observation, Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -123,6 +122,15 @@ def divide(value, arg):
 
 
 @register.filter
+def multiply(value, arg):
+    """Multiply the value by the argument."""
+    try:
+        return round(float(value) * float(arg), 2)
+    except (ValueError, TypeError):
+        return None
+
+
+@register.filter
 def has_access(project, user):
     """Check if the user has access to the project."""
     return project.user_can_view(user)
@@ -147,9 +155,15 @@ def is_privileged(user):
 
 
 @register.filter
-def has_2fa(user):
+def has_mfa(user):
     """Check if the user has a valid TOTP method configured."""
     return user_has_valid_totp_device(user)
+
+
+@register.filter
+def has_webauthn(user):
+    """Check if the user has a valid WebAuthn authenticator configured."""
+    return user_has_valid_webauthn_device(user)
 
 
 @register.filter
@@ -217,3 +231,14 @@ def is_past(value):
     if timezone.is_naive(value):
         value = timezone.make_aware(value, timezone.get_current_timezone())
     return value < now
+
+
+@register.filter(name="translate_domain_sid")
+def translate_domain_sid(sid: str, domains: dict):
+    """
+    Translate a domain SID to its corresponding domain name.
+    """
+    for domain in domains:
+        if sid == domain["domain_sid"]:
+            return domain["name"]
+    return sid

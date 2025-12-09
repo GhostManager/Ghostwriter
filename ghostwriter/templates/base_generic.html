@@ -66,6 +66,18 @@
   <!-- JSONView -->
   <script src="{% static 'js/jsonview.js' %}"></script>
   <link rel="stylesheet" type="text/css" href="{% static 'css/jsonview.css' %}">
+
+  <script>
+  (function() {
+    try {
+      var theme = localStorage.getItem('ghostwriter-theme') || 'light';
+      if (theme === 'auto') {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch(e) {}
+  })();
+  </script>
 </head>
 
 <body>
@@ -378,13 +390,50 @@
             <a href="{% url 'account_login' %}" class="btn btn-primary col-9 icon login-icon">Login</a>
           {% endif %}
 
-          <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
-                                                   alt="SpecterOps"></a>
+          <!-- Theme Toggle -->
+          {% comment %}
+          <div class="mt-2 col-9 mx-auto">
+            <label for="theme-toggle" class="d-block mb-1" style="font-size: 14px; color: var(--sidebar-text-color);">Theme</label>
+            <select id="theme-toggle" class="form-control form-control-sm" style="font-size: 14px;">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto</option>
+            </select>
+          </div>
+          {% endcomment %}
+
+          <!-- Animated Theme Toggle -->
+          <div class="mt-2 col-9 mx-auto theme-toggle-container">
+            <div class="theme-toggle-wrapper">
+              <label class="theme-switch">
+                <input type="checkbox" id="theme-toggle-switch">
+                <span class="theme-slider">
+                  <div class="sun"></div>
+                  <div class="cloud"></div>
+                  <div class="moon"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                </span>
+              </label>
+            </div>
+
+            <div class="auto-checkbox-wrapper">
+              <input type="checkbox" id="theme-auto-checkbox">
+              <label for="theme-auto-checkbox">Auto (follow system)</label>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="sidebar-footer col d-flex align-items-center justify-content-center mb-2">
+      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2">
         <span>v{{ VERSION }}, released {{ RELEASE_DATE }}</span>
+      </div>
+
+      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2"><a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
+                                                   alt="SpecterOps"></a>
       </div>
     </nav>
   {% endif %}
@@ -392,7 +441,7 @@
   <!-- Page Content Holder -->
   <div id="content">
     {% if user.is_authenticated %}
-      <div class="top-bar container-fluid align-middle">
+      <div class="top-bar container-fluid align-middle mb-3">
         <!-- Breadcrumb Links -->
         {% block breadcrumbs %}{% endblock %}
 
@@ -563,6 +612,113 @@
   $(document).ready(function () {
     $('[data-toggle="tooltip"]').tooltip({boundary: "window"});
   });
+
+  {% comment %} Theme Toggle Functionality {% endcomment %}
+  (function() {
+    const THEME_STORAGE_KEY = 'ghostwriter-theme';
+    const themeToggleSwitch = document.getElementById('theme-toggle-switch');
+    const themeAutoCheckbox = document.getElementById('theme-auto-checkbox');
+
+    // Function to get the system theme preference
+    function getSystemTheme() {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
+    }
+
+    // Function to apply the theme
+    function applyTheme(theme) {
+      let actualTheme = theme;
+      if (theme === 'auto') {
+        actualTheme = getSystemTheme();
+      }
+      document.documentElement.setAttribute('data-theme', actualTheme);
+
+      // Swap images for dark mode
+      const sidebarHeaderImg = document.querySelector('.sidebar-header img');
+      const sidebarFooterImg = document.querySelector('a[href="https://www.specterops.io"] img');
+
+      if (actualTheme === 'dark') {
+        // Switch to dark mode images (when they exist)
+        if (sidebarHeaderImg) {
+          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt.png', 'inverted_header_alt_dark.png');
+        }
+        if (sidebarFooterImg) {
+          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain.png', 'domain_dark.png');
+        }
+      } else {
+        // Switch back to light mode images
+        if (sidebarHeaderImg) {
+          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt_dark.png', 'inverted_header_alt.png');
+        }
+        if (sidebarFooterImg) {
+          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain_dark.png', 'domain.png');
+        }
+      }
+
+      // Update toggle UI based on theme
+      if (themeToggleSwitch) {
+        if (theme === 'auto') {
+          themeToggleSwitch.checked = actualTheme === 'dark';
+        } else {
+          themeToggleSwitch.checked = theme === 'dark';
+        }
+      }
+    }
+
+    // Function to get current theme preference
+    function getCurrentTheme() {
+      return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+    }
+
+    // Function to save and apply theme
+    function saveAndApplyTheme(theme) {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      applyTheme(theme);
+    }
+
+    // Initialize theme on page load
+    const savedTheme = getCurrentTheme();
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.checked = savedTheme === 'auto';
+    }
+    applyTheme(savedTheme);
+
+    // Handle toggle switch change
+    if (themeToggleSwitch) {
+      themeToggleSwitch.addEventListener('change', function() {
+        // If auto mode is enabled, disable it when user manually toggles
+        if (themeAutoCheckbox && themeAutoCheckbox.checked) {
+          themeAutoCheckbox.checked = false;
+        }
+        const selectedTheme = this.checked ? 'dark' : 'light';
+        saveAndApplyTheme(selectedTheme);
+      });
+    }
+
+    // Handle auto checkbox change
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          saveAndApplyTheme('auto');
+        } else {
+          const manualTheme = themeToggleSwitch && themeToggleSwitch.checked ? 'dark' : 'light';
+          saveAndApplyTheme(manualTheme);
+        }
+      });
+    }
+
+    // Listen for system theme changes when in auto mode
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        const currentTheme = getCurrentTheme();
+        if (currentTheme === 'auto') {
+          applyTheme('auto');
+        }
+      });
+    }
+  })();
 
   {% comment %} All of the Toastr JavaScript {% endcomment %}
   $(document).ready(function () {

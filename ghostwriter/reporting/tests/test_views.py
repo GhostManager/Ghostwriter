@@ -46,6 +46,7 @@ from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.reportwriter.jinja_funcs import (
     add_days,
     compromised,
+    filter_bhe_findings_by_domain,
     filter_severity,
     filter_tags,
     filter_type,
@@ -54,8 +55,9 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     business_days,
     get_item,
     regex_search,
-    strip_html,
     replace_blanks,
+    strip_html,
+    translate_domain_sid,
 )
 from ghostwriter.reporting.templatetags import report_tags
 
@@ -2117,9 +2119,10 @@ class ReportTemplateSwapViewTests(TestCase):
     def test_valid_templates(self):
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "success",
             "pptx_lint_result": "success",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
@@ -2130,8 +2133,9 @@ class ReportTemplateSwapViewTests(TestCase):
         # Test a negative value indicating no template is selected
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "pptx_lint_result": "success",
+            "warnings": [],
         }
         response = self.client_mgr.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
@@ -2175,13 +2179,14 @@ class ReportTemplateSwapViewTests(TestCase):
     def test_templates_with_linting_errors(self):
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "warning",
             "docx_lint_message": "Selected Word template has warnings from linter. Check the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_warning.pk}",
             "pptx_lint_result": "warning",
             "pptx_lint_message": "Selected PowerPoint template has warnings from linter. Check the template before generating a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_warning.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_warning.pk, "pptx_template": self.pptx_template_warning.pk}
@@ -2191,13 +2196,14 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "error",
             "docx_lint_message": "Selected Word template has linting errors and cannot be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_error.pk}",
             "pptx_lint_result": "error",
             "pptx_lint_message": "Selected PowerPoint template has linting errors and cannot be used to generate a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_error.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_error.pk, "pptx_template": self.pptx_template_error.pk}
@@ -2207,13 +2213,14 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "failed",
             "docx_lint_message": "Selected Word template failed basic linter checks and can't be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_failed.pk}",
             "pptx_lint_result": "failed",
             "pptx_lint_message": "Selected PowerPoint template failed basic linter checks and can't be used to generate a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_failed.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_failed.pk, "pptx_template": self.pptx_template_failed.pk}
@@ -2223,16 +2230,38 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Templates successfully updated.",
+            "message": "Template configuraton successfully updated.",
             "docx_lint_result": "unknown",
             "docx_lint_message": "Selected Word template has an unknown linter status. Check and lint the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_unknown.pk}",
             "pptx_lint_result": "unknown",
             "pptx_lint_message": "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report.",
             "pptx_url": f"/reporting/templates/{self.pptx_template_unknown.pk}",
+            "warnings": [],
         }
         response = self.client_mgr.post(
             self.uri, {"docx_template": self.docx_template_unknown.pk, "pptx_template": self.pptx_template_unknown.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_bloodhound_data_checks(self):
+        self.docx_template.contains_bloodhound_data = True
+        self.docx_template.save()
+        self.pptx_template.contains_bloodhound_data = True
+        self.pptx_template.save()
+        self.report.project.include_bloodhound_data = False
+        self.report.project.save()
+
+        data = {
+            "result": "success",
+            "message": "Template configuraton successfully updated.",
+            "docx_lint_result": "success",
+            "pptx_lint_result": "success",
+            "warnings": ["The selected Word template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence.", "The selected PowerPoint template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence."],
+        }
+        response = self.client_mgr.post(
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
@@ -2270,6 +2299,7 @@ class GenerateReportTests(TestCase):
 
     def test_view_docx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.docx_uri)
+        self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(
             response.get("Content-Type"),
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -2556,6 +2586,30 @@ class ReportTemplateFilterTests(TestCase):
         with self.assertRaises(InvalidFilterValue):
             replace_blanks("Not a list", "BLANK")
 
+    def test_filter_bhe_findings_by_domain(self):
+        findings = [
+            {"environment_id": "example.com"},
+            {"environment_id": "test.com"},
+            {"environment_id": "example.com"},
+        ]
+        filtered = filter_bhe_findings_by_domain(findings, "example.com")
+        self.assertEqual(len(filtered), 2)
+
+        with self.assertRaises(InvalidFilterValue):
+            filter_bhe_findings_by_domain("Not a list", "example.com")
+
+    def test_translate_domain_sid(self):
+        domains = [
+            {"name": "MISSINGSID"},
+            {"name": "GHOSTWRITER", "domain_sid": "S-1-5-21-1234567890-123456789-1234567890-1001"},
+            {"name": "EXAMPLE", "domain_sid": "S-1-5-21-0987654321-987654321-9876543210"},
+        ]
+        translated = translate_domain_sid("S-1-5-21-1234567890-123456789-1234567890-1001", domains)
+        self.assertEqual(translated, "GHOSTWRITER")
+
+        with self.assertRaises(InvalidFilterValue):
+            translate_domain_sid("S-1-5-21-0000000000-000000000-0000000000-1001", "Not a list")
+
 
 class LocalFindingNoteUpdateTests(TestCase):
     """Collection of tests for :view:`reporting.LocalFindingNoteUpdate`."""
@@ -2765,7 +2819,6 @@ class EvidencePreviewTests(TestCase):
         cls.deleted_evidence_file = EvidenceOnReportFactory()
         cls.unknown_evidence = EvidenceOnReportFactory(unknown=True)
         cls.uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.evidence_file.pk})
-        cls.download_uri = reverse("reporting:evidence_download", kwargs={"pk": cls.evidence_file.pk})
         cls.unknown_uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.unknown_evidence.pk})
         cls.deleted_uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.deleted_evidence_file.pk})
 
@@ -2779,10 +2832,6 @@ class EvidencePreviewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML(
-            f'<img class="img-evidence" src="{self.download_uri}"/>',
-            response.content.decode(),
-        )
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)

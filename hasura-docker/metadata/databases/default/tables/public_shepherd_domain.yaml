@@ -76,7 +76,7 @@ insert_permissions:
         - extra_fields
         - health_status_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
@@ -97,7 +97,7 @@ insert_permissions:
         - health_status_id
         - last_health_check
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
@@ -120,7 +120,7 @@ select_permissions:
         - last_health_check
         - last_used_by_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
@@ -145,7 +145,7 @@ update_permissions:
         - extra_fields
         - health_status_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
@@ -166,7 +166,7 @@ update_permissions:
         - extra_fields
         - health_status_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink

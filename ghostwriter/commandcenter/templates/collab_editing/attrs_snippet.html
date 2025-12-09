@@ -1,0 +1,16 @@
+{% load static %}
+
+<script type="text/plain" id="yjs-url">/ws-collab</script>
+<script type="text/plain" id="yjs-object-id">{{collab_model_id}}</script>
+<script type="text/plain" id="yjs-username">{{collab_user.get_username}}</script>
+<script type="text/plain" id="yjs-jwt">{{collab_jwt}}</script>
+
+{% if collab_extra_fields_spec_ser is not None %}
+    {{collab_extra_fields_spec_ser|json_script:"yjs-extra-field-specs"}}
+{% endif %}
+
+<script type="text/plain" id="graphql-path">/v1/graphql</script>
+<script type="text/plain" id="graphql-auth">{{collab_jwt}}</script>
+<script type="text/plain" id="graphql-media-url">{{collab_media_url}}</script>
+
+<link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">

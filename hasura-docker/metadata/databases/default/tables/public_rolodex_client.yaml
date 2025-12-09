@@ -71,7 +71,7 @@ insert_permissions:
         - codename
         - extra_fields
         - name
-        - note
+        - description
         - short_name
         - timezone
 select_permissions:
@@ -83,7 +83,7 @@ select_permissions:
         - extra_fields
         - id
         - name
-        - note
+        - description
         - short_name
         - timezone
       filter: {}
@@ -111,7 +111,7 @@ update_permissions:
         - codename
         - extra_fields
         - name
-        - note
+        - description
         - short_name
         - timezone
       filter: {}

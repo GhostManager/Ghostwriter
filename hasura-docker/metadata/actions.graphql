@@ -12,7 +12,7 @@ type Mutation {
     startDate: date!
     endDate: date!
     activityTypeId: Int!
-    note: String
+    description: String
   ): checkoutResponse
 }
 
@@ -24,7 +24,7 @@ type Mutation {
     endDate: date!
     activityTypeId: Int!
     serverRoleId: Int!
-    note: String
+    description: String
   ): checkoutResponse
 }
 
@@ -63,6 +63,12 @@ type Mutation {
   deleteTemplate(
     templateId: Int!
   ): deleteResponse
+}
+
+type Query {
+  downloadEvidence(
+    evidenceId: Int!
+  ): DownloadEvidenceResponse
 }
 
 type Query {
@@ -252,5 +258,13 @@ type GetReportFindingByTagsResponse {
 
 type GetOplogEntryByTagsResponse {
   id: Int!
+}
+
+type DownloadEvidenceResponse {
+  evidenceId: Int!
+  filename: String!
+  friendlyName: String!
+  downloadUrl: String!
+  fileBase64: String!
 }
 
