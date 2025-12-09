@@ -3324,6 +3324,10 @@
           return 'area-' + areaKey + '-' + subkey + '-updated';
         };
 
+        const buildAreaSubcardHeaderId = function(areaKey, subkey) {
+          return 'area-' + areaKey + '-' + subkey + '-header';
+        };
+
         const getAreaUpdateEntry = function(areaKey, subkey) {
           const select = document.getElementById(buildAreaUpdateSelectId(areaKey, subkey));
           const checkbox = document.getElementById(buildAreaUpdatedCheckboxId(areaKey, subkey));
@@ -3340,14 +3344,53 @@
           };
         };
 
+        const persistAreaUpdateEntry = function(areaKey, subkey, needsUpdate, updated) {
+          if (!workbookState.area_updates) {
+            workbookState.area_updates = {};
+          }
+          const areaState = workbookState.area_updates[areaKey] || {};
+
+          if (needsUpdate) {
+            areaState[subkey] = {needs_update: true, updated: Boolean(updated)};
+            workbookState.area_updates[areaKey] = areaState;
+            return;
+          }
+
+          delete areaState[subkey];
+          if (Object.keys(areaState).length) {
+            workbookState.area_updates[areaKey] = areaState;
+          } else {
+            delete workbookState.area_updates[areaKey];
+            if (!Object.keys(workbookState.area_updates).length) {
+              delete workbookState.area_updates;
+            }
+          }
+        };
+
+        const applyAreaUpdateStatusStyles = function(areaKey, subkey, headerEl) {
+          const header = headerEl || document.getElementById(buildAreaSubcardHeaderId(areaKey, subkey));
+          if (!header) {
+            return;
+          }
+          const state = getAreaUpdateEntry(areaKey, subkey);
+          header.classList.remove('bg-danger', 'bg-success', 'text-white');
+          if (state.needs_update && state.updated) {
+            header.classList.add('bg-success', 'text-white');
+          } else if (state.needs_update) {
+            header.classList.add('bg-danger', 'text-white');
+          }
+        };
+
         const collectAreaUpdatePayload = function(areaKey, subkeys) {
           const areaPayload = {};
           subkeys.forEach(function(subkey) {
             const state = getAreaUpdateEntry(areaKey, subkey);
-            areaPayload[subkey] = {
-              needs_update: Boolean(state.needs_update),
-              updated: Boolean(state.needs_update) && Boolean(state.updated),
-            };
+            if (state.needs_update) {
+              areaPayload[subkey] = {
+                needs_update: true,
+                updated: Boolean(state.updated),
+              };
+            }
           });
           return areaPayload;
         };
@@ -3741,7 +3784,7 @@
         };
 
         const hasPendingDocxUpdates = function() {
-          return Object.keys(scopingState).some(function(areaKey) {
+          const scopedPending = Object.keys(scopingState).some(function(areaKey) {
             const scope = scopingState[areaKey] || {};
             if (!scope.selected) {
               return false;
@@ -3751,6 +3794,25 @@
             return subkeys.some(function(subkey) {
               const state = areaPayload[subkey];
               return state && state.needs_update && !state.updated;
+            });
+          });
+
+          if (scopedPending) {
+            return true;
+          }
+
+          const storedUpdates = workbookState.area_updates || {};
+          return Object.keys(storedUpdates).some(function(areaKey) {
+            const areaState = storedUpdates[areaKey];
+            if (!areaState || typeof areaState !== 'object') {
+              return false;
+            }
+            const scope = scopingState[areaKey];
+            if (scope && scope.selected === false) {
+              return false;
+            }
+            return Object.values(areaState).some(function(entry) {
+              return entry && entry.needs_update && !entry.updated;
             });
           });
         };
@@ -6434,6 +6496,7 @@
               subCard.className = 'card mb-3 flex-fill';
               const subHeader = document.createElement('div');
               subHeader.className = 'card-header d-flex justify-content-between align-items-center flex-wrap';
+              subHeader.id = buildAreaSubcardHeaderId(areaKey, subkey);
               const titleWrap = document.createElement('span');
               titleWrap.className = 'font-weight-bold';
               const resolvedConfig = resolveAreaConfig(areaKey, subkey);
@@ -6479,12 +6542,22 @@
               updatedWrapper.appendChild(updatedLabel);
               updatedWrapper.style.display = updateState.needs_update ? '' : 'none';
 
+              persistAreaUpdateEntry(areaKey, subkey, updateState.needs_update, updateState.updated);
+              applyAreaUpdateStatusStyles(areaKey, subkey, subHeader);
+
               updateSelect.addEventListener('change', function() {
                 const needsUpdate = updateSelect.value === 'updates_needed';
                 if (!needsUpdate) {
                   updatedCheckbox.checked = false;
                 }
                 updatedWrapper.style.display = needsUpdate ? '' : 'none';
+                persistAreaUpdateEntry(areaKey, subkey, needsUpdate, updatedCheckbox.checked);
+                applyAreaUpdateStatusStyles(areaKey, subkey, subHeader);
+              });
+
+              updatedCheckbox.addEventListener('change', function() {
+                persistAreaUpdateEntry(areaKey, subkey, updateSelect.value === 'updates_needed', updatedCheckbox.checked);
+                applyAreaUpdateStatusStyles(areaKey, subkey, subHeader);
               });
 
               updateControls.appendChild(updateSelect);
