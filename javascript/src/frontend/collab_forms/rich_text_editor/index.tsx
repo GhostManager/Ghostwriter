@@ -112,7 +112,7 @@ export function Toolbar(props: {
     extra?: (editor: Editor) => React.ReactNode;
 }) {
     const editor = props.editor;
-    if (!editor) return null;
+    if (!editor || editor.isDestroyed) return null;
     return (
         <div className="control-group">
             <div className="button-group">
