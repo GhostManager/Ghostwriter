@@ -152,6 +152,7 @@ from ghostwriter.rolodex.workbook import _slugify_identifier
 from ghostwriter.rolodex.workbook_entry import OSINT_FIELDS, build_workbook_entry_payload
 from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 from ghostwriter.reporting.models import RiskScoreRangeMapping
+from ghostwriter.rolodex.risk import build_project_risk_summary
 
 # Using __name__ resolves to ghostwriter.rolodex.views
 logger = logging.getLogger(__name__)
@@ -160,16 +161,16 @@ AI_REVIEW_SECTIONS = (
     ("osint_rt", "OSINT", "external", "osint"),
     ("dns_rt", "DNS", "external", "dns"),
     ("external_nexpose_rt", "External Nexpose", "external", "nexpose"),
+    ("web_rt", "Web", "external", "web"),
+    ("ad_rt", "AD", "iam", "ad"),
+    ("password_rt", "Password", "iam", "password"),
     ("internal_nexpose_rt", "Internal Nexpose", "internal", "nexpose"),
     ("iot_iomt_nexpose_rt", "IoT/IoMT Nexpose", "internal", "iot_iomt"),
     ("endpoint_rt", "Endpoint", "internal", "endpoint"),
     ("snmp_rt", "SNMP", "internal", "snmp"),
     ("sql_rt", "SQL", "internal", "sql"),
-    ("firewall_rt", "Firewall", "firewall", "selected"),
     ("wireless_rt", "Wireless", "wireless", "selected"),
-    ("web_rt", "Web", "external", "web"),
-    ("ad_rt", "AD", "iam", "ad"),
-    ("password_rt", "Password", "iam", "password"),
+    ("firewall_rt", "Firewall", "firewall", "selected"),
 )
 
 
@@ -265,6 +266,22 @@ def _build_ai_review_prompt(
 
     normalized_key = section_key[:-3] if section_key.endswith("_rt") else section_key
 
+    project_risks = project.risks if isinstance(getattr(project, "risks", None), Mapping) else {}
+    workbook_risks: dict[str, str] = {}
+    if isinstance(workbook, Mapping):
+        try:
+            workbook_risks = build_project_risk_summary(workbook)
+        except Exception:
+            logger.warning("Failed to derive workbook risk summaries for AI review prompts", exc_info=True)
+
+    risk_lookup: dict[str, str] = {}
+    if isinstance(workbook_risks, Mapping):
+        risk_lookup.update({k: str(v) for k, v in workbook_risks.items() if v not in (None, "")})
+    if isinstance(project_risks, Mapping):
+        risk_lookup.update({k: str(v) for k, v in project_risks.items() if v not in (None, "")})
+
+    risk_value = risk_lookup.get(normalized_key)
+
     description = {
         "osint": "Open Source Intel metrics",
         "dns": "DNS configuration best practice checks",
@@ -280,6 +297,31 @@ def _build_ai_review_prompt(
         "ad": "Active Directory metrics covering privileged groups and user account hygiene",
         "password": "Password policy effectiveness, cracked credentials, and related controls",
     }.get(normalized_key, "Project review")
+
+    risk_statements = {
+        "osint": "ecfirst has determined these exposures represent a {risk} risk of sensitive information exposure.",
+        "dns": "ecfirst has determined these issues represent a {risk} risk to the availability of external systems and services.",
+        "external_nexpose": "Based on the vulnerabilities discovered, ecfirst rates the overall risk of the external network and systems as a {risk} risk.",
+        "web": "ecfirst has determined these issues represent a {risk} risk for web sites/applications.",
+        "ad": "ecfirst has determined that the deviations from best practice identified create a {risk} risk to IAM.",
+        "password": "ecfirst has determined that, based on the defined and implemented password policy, along with the number of accounts using weak passwords, the risk of account compromise is {risk}.",
+        "internal_nexpose": "Based on the vulnerabilities discovered, ecfirst rates the overall risk of the internal network and systems as a {risk} risk.",
+        "iot_iomt_nexpose": "Based on the vulnerabilities discovered, ecfirst rates the overall risk of the IoT/IoMT systems as a {risk} risk.",
+        "endpoint": "ecfirst has determined that the number of devices without current, active security software present, along with the number of connections to Open wireless networks, creates a {risk} risk of data loss and/or malware infection.",
+        "snmp": "ecfirst has determined that the number of systems utilizing default SNMP strings creates a {risk} risk to the security of the internal network and systems.",
+        "sql": "ecfirst has determined that the number of database instances allowing open access, coupled with the unsupported systems, creates a {risk} risk for unauthorized data access or data loss.",
+        "wireless": "ecfirst has determined that the risk related to the wireless networks is {risk}.",
+        "firewall": "ecfirst has determined the risk related to the Firewalls is {risk}.",
+    }
+
+    def _attach_risk(payload: Any) -> Any:
+        if risk_value is None:
+            return payload
+        if isinstance(payload, Mapping):
+            updated = dict(payload)
+            updated.setdefault("risk", risk_value)
+            return updated
+        return {"details": payload, "risk": risk_value}
 
     if normalized_key == "osint":
         metrics = workbook.get("osint") if isinstance(workbook, Mapping) else {}
@@ -298,13 +340,12 @@ def _build_ai_review_prompt(
                 value = metrics.get(metric_key)
                 if value not in (None, ""):
                     metric_lines.append(f"- {label}: {value}")
-        details = "\n".join(metric_lines) if metric_lines else "No OSINT metrics available."
+        payload = {"metrics": metric_lines} if metric_lines else {"note": "No OSINT metrics available."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "dns":
         findings = _summarize_dns_findings(artifacts.get("dns_findings", {}))
-        if findings:
-            details = json.dumps(findings, indent=2)
-        else:
-            details = "No DNS findings provided."
+        payload = {"findings": findings} if findings else {"note": "No DNS findings provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "external_nexpose":
         nexpose_metrics = artifacts.get("external_nexpose_metrics", {})
         summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
@@ -314,7 +355,7 @@ def _build_ai_review_prompt(
             "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
             "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
         }
-        details = json.dumps(relevant, indent=2)
+        details = json.dumps(_attach_risk(relevant), indent=2)
     elif normalized_key == "internal_nexpose":
         nexpose_metrics = artifacts.get("internal_nexpose_metrics", {})
         summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
@@ -324,7 +365,7 @@ def _build_ai_review_prompt(
             "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
             "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
         }
-        details = json.dumps(relevant, indent=2)
+        details = json.dumps(_attach_risk(relevant), indent=2)
     elif normalized_key == "iot_iomt_nexpose":
         nexpose_metrics = artifacts.get("iot_iomt_nexpose_metrics", {})
         summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
@@ -334,31 +375,22 @@ def _build_ai_review_prompt(
             "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
             "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
         }
-        details = json.dumps(relevant, indent=2)
+        details = json.dumps(_attach_risk(relevant), indent=2)
     elif normalized_key == "endpoint":
         endpoint_data = artifacts.get("endpoint", {})
         metrics = endpoint_data.get("metrics") if isinstance(endpoint_data, Mapping) else {}
         if isinstance(metrics, Mapping):
             metrics = {k: v for k, v in metrics.items() if k != "xlsx_base64"}
-        details = (
-            json.dumps(metrics, indent=2)
-            if isinstance(metrics, Mapping) and metrics
-            else "No endpoint metrics provided."
-        )
+        payload: Any = metrics if isinstance(metrics, Mapping) and metrics else {"note": "No endpoint metrics provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "snmp":
         snmp_data = workbook.get("snmp") if isinstance(workbook, Mapping) else {}
-        details = (
-            json.dumps(snmp_data, indent=2)
-            if isinstance(snmp_data, (Mapping, list)) and snmp_data
-            else "No SNMP data provided."
-        )
+        payload = snmp_data if isinstance(snmp_data, (Mapping, list)) and snmp_data else {"note": "No SNMP data provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "sql":
         sql_data = workbook.get("sql") if isinstance(workbook, Mapping) else {}
-        details = (
-            json.dumps(sql_data, indent=2)
-            if isinstance(sql_data, (Mapping, list)) and sql_data
-            else "No SQL data provided."
-        )
+        payload = sql_data if isinstance(sql_data, (Mapping, list)) and sql_data else {"note": "No SQL data provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "firewall":
         firewall_data = workbook.get("firewall") if isinstance(workbook, Mapping) else {}
         firewall_metrics = artifacts.get("firewall_metrics") if isinstance(artifacts, Mapping) else {}
@@ -369,11 +401,8 @@ def _build_ai_review_prompt(
             "workbook_firewall": firewall_data if isinstance(firewall_data, Mapping) else {},
             "firewall_metrics_summary": summary if isinstance(summary, Mapping) else {},
         }
-        details = (
-            json.dumps(details_map, indent=2, default=str)
-            if any(details_map.values())
-            else "No firewall workbook data or metrics summary provided."
-        )
+        payload = details_map if any(details_map.values()) else {"note": "No firewall workbook data or metrics summary provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "wireless":
         wireless_data = workbook.get("wireless") if isinstance(workbook, Mapping) else {}
         wireless_metrics: dict[str, Any] = {}
@@ -438,11 +467,8 @@ def _build_ai_review_prompt(
             "wireless_metrics": wireless_metrics,
             "wireless_responses": wireless_followup,
         }
-        details = (
-            json.dumps(details_map, indent=2, default=str)
-            if wireless_metrics or wireless_followup
-            else "No wireless workbook metrics or responses provided."
-        )
+        payload = details_map if wireless_metrics or wireless_followup else {"note": "No wireless workbook metrics or responses provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "web":
         web_metrics = artifacts.get("web_metrics", {})
         summary = web_metrics.get("summary") if isinstance(web_metrics, Mapping) else {}
@@ -452,7 +478,7 @@ def _build_ai_review_prompt(
             "high": issues.get("high") if isinstance(issues, Mapping) else {},
             "medium": issues.get("med") if isinstance(issues, Mapping) else {},
         }
-        details = json.dumps(relevant, indent=2)
+        details = json.dumps(_attach_risk(relevant), indent=2)
     elif normalized_key == "ad":
         ad_data = workbook.get("ad") if isinstance(workbook, Mapping) else {}
         domains = ad_data.get("domains") if isinstance(ad_data, Mapping) else []
@@ -496,11 +522,8 @@ def _build_ai_review_prompt(
             "domains": domain_metrics,
             "ad_entries": ad_entries,
         }
-        details = (
-            json.dumps(details_map, indent=2, default=str)
-            if domain_metrics or ad_entries
-            else "No Active Directory metrics or entries provided."
-        )
+        payload = details_map if domain_metrics or ad_entries else {"note": "No Active Directory metrics or entries provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "password":
         password_data = workbook.get("password") if isinstance(workbook, Mapping) else {}
         policies = password_data.get("policies") if isinstance(password_data, Mapping) else []
@@ -565,13 +588,18 @@ def _build_ai_review_prompt(
             "password_entries": password_entries,
             "summary": summary_fields,
         }
-        details = (
-            json.dumps(details_map, indent=2, default=str)
-            if normalized_policies or password_entries or summary_fields
-            else "No password policy or cracking data provided."
-        )
+        payload = details_map if normalized_policies or password_entries or summary_fields else {"note": "No password policy or cracking data provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
     else:
-        details = ""
+        details = json.dumps(_attach_risk({}), indent=2)
+
+    risk_statement = risk_statements.get(normalized_key)
+    risk_footer = ""
+    if risk_statement:
+        risk_footer = (
+            "\n\nEnd the paragraph with this risk statement: "
+            f"{risk_statement.format(risk=risk_value or 'unknown', risks=risk_value or 'unknown')}"
+        )
 
     return (
         "Provide an executive summary in a single paragraph for the "
@@ -581,7 +609,7 @@ def _build_ai_review_prompt(
             if normalized_key == "password"
             else ""
         )
-        + f"\n\n{details}"
+        + f"\n\n{details}{risk_footer}"
     )
 
 AD_CSV_HEADER_MAP: dict[str, dict[str, str]] = {
