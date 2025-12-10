@@ -82,6 +82,11 @@ urlpatterns += [
         name="ajax_toggle_project",
     ),
     path(
+        "ajax/project/ai-review/generate/<int:pk>",
+        views.ProjectAiReviewGenerate.as_view(),
+        name="ajax_generate_project_ai_review",
+    ),
+    path(
         "ajax/project/objective/status/<int:pk>",
         views.ProjectObjectiveStatusUpdate.as_view(),
         name="ajax_set_objective_status",
@@ -234,6 +239,11 @@ urlpatterns += [
 # URLs for :model:`Project` Class Based Views
 urlpatterns += [
     path("projects/<int:pk>", views.ProjectDetailView.as_view(), name="project_detail"),
+    path(
+        "projects/<int:pk>/ai-review/",
+        views.ProjectAiReviewSave.as_view(),
+        name="project_ai_review_update",
+    ),
     path("projects/<int:pk>/workbook/", views.ProjectWorkbookUpload.as_view(), name="project_workbook"),
     path(
         "projects/<int:pk>/workbook/data/",

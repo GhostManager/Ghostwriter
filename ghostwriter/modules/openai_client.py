@@ -78,7 +78,8 @@ def submit_prompt_to_assistant(prompt: str, config: Optional[OpenAIConfiguration
         logger.warning("Failed to initialize OpenAI assistant run: %s", exc)
         return None
 
-    deadline = time.monotonic() + 60
+    # Keep the overall request below common gateway/proxy limits to avoid client-facing timeouts.
+    deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
         try:
             status_response = requests.get(

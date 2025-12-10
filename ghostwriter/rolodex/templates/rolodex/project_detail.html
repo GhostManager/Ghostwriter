@@ -846,42 +846,42 @@
         </div>
       {% endif %}
 
-      <div id="notes" class="tab-pane">
-        <h4>Project Notes</h4>
+      <div id="ai-review" class="tab-pane">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+          <div>
+            <h4 class="mb-1">AI Review</h4>
+            <p class="text-muted mb-0">Executive summaries for in-scope scoping areas.</p>
+          </div>
+          <div class="mt-2 mt-md-0">
+            <button
+              type="button"
+              id="generateAiReviewButton"
+              class="btn btn-outline-primary mr-2"
+              data-generate-url="{% url 'rolodex:ajax_generate_project_ai_review' project.id %}"
+              data-csrf-token="{{ csrf_token }}"
+            >
+              Generate AI Review
+            </button>
+            <button type="submit" class="btn btn-primary" form="ai-review-form">Save AI Updates</button>
+          </div>
+        </div>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
-
-        {% if project.projectnote_set.all %}
-          {% for note in project.projectnote_set.all reversed %}
-            <div id="note-container-{{ note.id }}">
-              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                <div class="float-left col-10 col-md-10 col-sm-8">
-                  {{ note.note|bleach }}
-                </div>
-                <div class="float-right col-2 col-md-2 col-sm-4">
-                  <div>{% if note.operator %}<a class="note-link"
-                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
-                    <span class="note-link">Deleted</span>{% endif %}</div>
-                  <div><p class="note-time">{{ note.timestamp }}</p></div>
+        <form id="ai-review-form" method="post" action="{% url 'rolodex:project_ai_review_update' project.id %}">
+          {% csrf_token %}
+          {% if ai_review_sections %}
+            {% for section in ai_review_sections %}
+              <div class="card mb-4 ai-review-section" data-section-key="{{ section.key }}">
+                <div class="card-header text-uppercase text-muted">{{ section.label }}</div>
+                <div class="card-body">
+                  <textarea name="ai_review_{{ section.key }}" id="id_ai_review_{{ section.key }}" rows="10">{{ section.content|default_if_none:''|safe }}</textarea>
                 </div>
               </div>
-            </div>
-
-            {% if request.user == note.operator or request.user|is_privileged %}
-              <div class="pb-3">
-                <a class="note-link" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a> |
-                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
-                   data-target="#confirm-delete-modal" href="javascript:void(0);"
-                   delete-target-csrftoken="{{ csrf_token }}"
-                   delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}"
-                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-              </div>
-            {% endif %}
-          {% endfor %}
-        {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this project.</div>
-        {% endif %}
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-info" role="alert">No AI review areas are in scope for this project.</div>
+          {% endif %}
+        </form>
       </div>
     </div>
   </div>
@@ -1006,6 +1006,69 @@
           cssNone: 'none'
         });
         $('.tablesorter').trigger('update');
+
+        const refreshAiReviewEditors = function(payload) {
+          if (!payload) {
+            return;
+          }
+          Object.keys(payload).forEach(function(sectionKey) {
+            const content = payload[sectionKey] || '';
+            const textareaId = 'id_ai_review_' + sectionKey;
+            const textarea = document.getElementById(textareaId);
+            if (textarea) {
+              textarea.value = content;
+            }
+            if (window.tinymce) {
+              const editor = window.tinymce.get(textareaId);
+              if (editor) {
+                editor.setContent(content);
+              }
+            }
+          });
+        };
+
+        const setupAiReviewActions = function() {
+          const generateButton = document.getElementById('generateAiReviewButton');
+          if (!generateButton) {
+            return;
+          }
+          const csrfToken = generateButton.getAttribute('data-csrf-token');
+          const generateUrl = generateButton.getAttribute('data-generate-url');
+
+          generateButton.addEventListener('click', function() {
+            if (!generateUrl) {
+              return;
+            }
+            runWithButtonLoading(generateButton, 'Generating...', function() {
+              return fetch(generateUrl, {
+                method: 'POST',
+                headers: {
+                  'X-CSRFToken': csrfToken || '',
+                },
+              })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                  if (data && data.data) {
+                    refreshAiReviewEditors(data.data);
+                  }
+                  if (typeof displayToastTop === 'function') {
+                    const message = data && data.message ? data.message : 'AI review generation complete.';
+                    const type = data && data.result === 'warning' ? 'warning' : (data && data.result === 'error' ? 'error' : 'success');
+                    displayToastTop({type: type, string: message, title: 'AI Review'});
+                  }
+                })
+                .catch(function() {
+                  if (typeof displayToastTop === 'function') {
+                    displayToastTop({
+                      type: 'error',
+                      string: 'Unable to generate AI review at this time.',
+                      title: 'AI Review'
+                    });
+                  }
+                });
+            });
+          });
+        };
 
         const setupWorkbookUploadForm = function(context) {
           const scope = context && context.querySelector ? context : document;
@@ -1173,6 +1236,7 @@
         setupWorkbookUploadForm(document);
         setupRequiredDataForms(document);
         setupIpArtifactForms(document);
+        setupAiReviewActions();
 
         const questionnaireForms = document.querySelectorAll('.project-data-responses-form');
         questionnaireForms.forEach(function(form) {

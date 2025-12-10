@@ -674,6 +674,11 @@ class Project(models.Model):
         blank=True,
         help_text="Risk ratings derived from the uploaded workbook",
     )
+    ai_review = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="AI-generated review summaries organized by scoped subcards",
+    )
     scoping = models.JSONField(
         default=default_project_scoping,
         blank=True,

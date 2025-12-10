@@ -6,6 +6,7 @@ import binascii
 import copy
 import csv
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
 import io
 import json
@@ -26,6 +27,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
+from django.utils.html import escape
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
@@ -48,6 +50,7 @@ from ghostwriter.api.utils import (
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import codenames
+from ghostwriter.modules.openai_client import submit_prompt_to_assistant
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
@@ -151,9 +154,539 @@ from ghostwriter.rolodex.workbook import _slugify_identifier
 from ghostwriter.rolodex.workbook_entry import OSINT_FIELDS, build_workbook_entry_payload
 from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 from ghostwriter.reporting.models import RiskScoreRangeMapping
+from ghostwriter.rolodex.risk import build_project_risk_summary
 
 # Using __name__ resolves to ghostwriter.rolodex.views
 logger = logging.getLogger(__name__)
+
+AI_REVIEW_SECTIONS = (
+    ("osint_rt", "OSINT", "external", "osint"),
+    ("dns_rt", "DNS", "external", "dns"),
+    ("external_nexpose_rt", "External Nexpose", "external", "nexpose"),
+    ("web_rt", "Web", "external", "web"),
+    ("ad_rt", "AD", "iam", "ad"),
+    ("password_rt", "Password", "iam", "password"),
+    ("internal_nexpose_rt", "Internal Nexpose", "internal", "nexpose"),
+    ("iot_iomt_nexpose_rt", "IoT/IoMT Nexpose", "internal", "iot_iomt"),
+    ("endpoint_rt", "Endpoint", "internal", "endpoint"),
+    ("snmp_rt", "SNMP", "internal", "snmp"),
+    ("sql_rt", "SQL", "internal", "sql"),
+    ("wireless_rt", "Wireless", "wireless", "selected"),
+    ("firewall_rt", "Firewall", "firewall", "selected"),
+    ("cloud_management_rt", "Cloud Management", "cloud", "cloud_management"),
+    ("iam_management_rt", "IAM Management", "cloud", "iam_management"),
+    (
+        "system_configuration_rt",
+        "System Configuration",
+        "cloud",
+        "system_configuration",
+    ),
+)
+
+
+def _build_ai_review_sections(scoping_state: Mapping[str, Any], ai_review_payload: Any):
+    """Return a list of AI review sections based on ``scoping_state``."""
+
+    ai_payload = _normalize_ai_review_payload(ai_review_payload)
+    sections = []
+    normalized_scoping = scoping_state if isinstance(scoping_state, Mapping) else {}
+
+    for key, label, scoping_category, scoping_key in AI_REVIEW_SECTIONS:
+        category_scope = (
+            normalized_scoping.get(scoping_category, {})
+            if isinstance(normalized_scoping, Mapping)
+            else {}
+        )
+        if category_scope.get("selected") and category_scope.get(scoping_key):
+            sections.append(
+                {
+                    "key": key,
+                    "label": label,
+                    "content": ai_payload.get(key, ""),
+                }
+            )
+    return sections
+
+
+def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
+    """Normalize stored AI review payloads, handling legacy keys."""
+
+    if not isinstance(ai_review_payload, Mapping):
+        return {}
+
+    key_aliases = {
+        "osint": "osint_rt",
+        "dns": "dns_rt",
+        "external_nexpose": "external_nexpose_rt",
+        "nexpose": "external_nexpose_rt",
+        "internal_nexpose": "internal_nexpose_rt",
+        "iot_iomt_nexpose": "iot_iomt_nexpose_rt",
+        "iot_iomt": "iot_iomt_nexpose_rt",
+        "endpoint": "endpoint_rt",
+        "snmp": "snmp_rt",
+        "sql": "sql_rt",
+        "firewall": "firewall_rt",
+        "wireless": "wireless_rt",
+        "web": "web_rt",
+        "ad": "ad_rt",
+        "password": "password_rt",
+        "cloud_management": "cloud_management_rt",
+        "iam_management": "iam_management_rt",
+        "system_configuration": "system_configuration_rt",
+    }
+
+    normalized_payload: Dict[str, Any] = {}
+    for key, value in ai_review_payload.items():
+        normalized_key = key_aliases.get(key, key)
+        if normalized_key in normalized_payload and normalized_key != key:
+            continue
+        normalized_payload[normalized_key] = value
+
+    return normalized_payload
+
+
+def _normalize_ai_response(response_text: Optional[str]) -> str:
+    """Convert AI response text into HTML suitable for rich text editors."""
+
+    if not response_text:
+        return ""
+    safe_text = escape(response_text).replace("\n\n", "</p><p>").replace("\n", "<br />")
+    if not safe_text.strip():
+        return ""
+    return f"<p>{safe_text}</p>"
+
+
+def _summarize_dns_findings(findings: Mapping[str, Any]) -> Dict[str, Any]:
+    if not isinstance(findings, Mapping):
+        return {}
+    summary = {}
+    for domain, rows in findings.items():
+        if not isinstance(rows, list):
+            continue
+        normalized_rows = []
+        for row in rows:
+            if not isinstance(row, Mapping):
+                continue
+            normalized_rows.append({k: (v or "").strip() for k, v in row.items()})
+        summary[domain] = normalized_rows
+    return summary
+
+
+def _build_ai_review_prompt(
+    section_key: str, project: Project, workbook: Mapping[str, Any], artifacts: Mapping[str, Any]
+) -> str:
+    """Craft a prompt for the requested AI review ``section_key``."""
+
+    normalized_key = section_key[:-3] if section_key.endswith("_rt") else section_key
+
+    project_risks = project.risks if isinstance(getattr(project, "risks", None), Mapping) else {}
+    workbook_risks: dict[str, str] = {}
+    if isinstance(workbook, Mapping):
+        try:
+            workbook_risks = build_project_risk_summary(workbook)
+        except Exception:
+            logger.warning("Failed to derive workbook risk summaries for AI review prompts", exc_info=True)
+
+    risk_lookup: dict[str, str] = {}
+    if isinstance(workbook_risks, Mapping):
+        risk_lookup.update({k: str(v) for k, v in workbook_risks.items() if v not in (None, "")})
+    if isinstance(project_risks, Mapping):
+        risk_lookup.update({k: str(v) for k, v in project_risks.items() if v not in (None, "")})
+
+    risk_value = risk_lookup.get(normalized_key)
+
+    description = {
+        "osint": "Open Source Intel metrics",
+        "dns": "DNS configuration best practice checks",
+        "external_nexpose": "Vulnerability scanning results for externally accessible systems",
+        "internal_nexpose": "Vulnerability scanning results for internal systems",
+        "iot_iomt_nexpose": "Vulnerability scanning results for IoT systems/devices",
+        "endpoint": "Review of accessible AD registered computers for current Security Software and past connections to insecure WiFi",
+        "snmp": "Review of internal systems using SNMP for default or easy to guess Strings",
+        "sql": "Review of internal systems with database servers listening on default ports with a test for default credentials",
+        "firewall": "Review of firewall OS version, security configuration setting best-practice adherence and rule configuration",
+        "wireless": "Review of the Wireless networks accessible at a location, a comparison to 'approved' SSIDs, a review of the wireless security and wireless-to-internal network segmentation testing (when applicable)",
+        "web": "Web application vulnerability scan results",
+        "ad": "Active Directory metrics covering privileged groups and user account hygiene",
+        "password": "Password policy effectiveness, cracked credentials, and related controls",
+        "iam_management": "Review of the M365 configuration settings as compared to the CIS Benchmark recommendations",
+        "cloud_management": "Review of the applicable cloud provider configuration settings as compared to the CIS Benchmark recommendations",
+        "system_configuration": "Review of system configuration setting as compared to the applicable CIS Benchmark recommendations",
+    }.get(normalized_key, "Project review")
+
+    risk_statements = {
+        "osint": "ecfirst has determined these exposures represent a {risk} risk of sensitive information exposure.",
+        "dns": "ecfirst has determined these issues represent a {risk} risk to the availability of external systems and services.",
+        "external_nexpose": "Based on the vulnerabilities discovered, ecfirst rates the overall risk of the external network and systems as a {risk} risk.",
+        "web": "ecfirst has determined these issues represent a {risk} risk for web sites/applications.",
+        "ad": "ecfirst has determined that the deviations from best practice identified create a {risk} risk to IAM.",
+        "password": "ecfirst has determined that, based on the defined and implemented password policy, along with the number of accounts using weak passwords, the risk of account compromise is {risk}.",
+        "internal_nexpose": "Based on the vulnerabilities discovered, ecfirst rates the overall risk of the internal network and systems as a {risk} risk.",
+        "iot_iomt_nexpose": "Based on the vulnerabilities discovered, ecfirst rates the overall risk of the IoT/IoMT systems as a {risk} risk.",
+        "endpoint": "ecfirst has determined that the number of devices without current, active security software present, along with the number of connections to Open wireless networks, creates a {risk} risk of data loss and/or malware infection.",
+        "snmp": "ecfirst has determined that the number of systems utilizing default SNMP strings creates a {risk} risk to the security of the internal network and systems.",
+        "sql": "ecfirst has determined that the number of database instances allowing open access, coupled with the unsupported systems, creates a {risk} risk for unauthorized data access or data loss.",
+        "wireless": "ecfirst has determined that the risk related to the wireless networks is {risk}.",
+        "firewall": "ecfirst has determined the risk related to the Firewalls is {risk}.",
+        "iam_management": "ecfirst has determined the risk related to IAM management settings is {risk}.",
+        "cloud_management": "ecfirst has determined the risk related to cloud management settings is {risk}.",
+        "system_configuration": "ecfirst has determined the risk related to system configuration is {risk}.",
+    }
+
+    def _attach_risk(payload: Any) -> Any:
+        if risk_value is None:
+            return payload
+        if isinstance(payload, Mapping):
+            updated = dict(payload)
+            updated.setdefault("risk", risk_value)
+            return updated
+        return {"details": payload, "risk": risk_value}
+
+    if normalized_key == "osint":
+        metrics = workbook.get("osint") if isinstance(workbook, Mapping) else {}
+        osint_labels = {
+            "total_domains": "Total Domains",
+            "total_hostnames": "Total Hostnames",
+            "total_ips": "Total IPs",
+            "total_cloud": "Cloud Assets",
+            "total_buckets": "Storage Buckets",
+            "total_squat": "Potential Squat Domains",
+            "total_leaks": "Credential Leaks",
+        }
+        metric_lines = []
+        if isinstance(metrics, Mapping):
+            for metric_key, label in osint_labels.items():
+                value = metrics.get(metric_key)
+                if value not in (None, ""):
+                    metric_lines.append(f"- {label}: {value}")
+        payload = {"metrics": metric_lines} if metric_lines else {"note": "No OSINT metrics available."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "dns":
+        findings = _summarize_dns_findings(artifacts.get("dns_findings", {}))
+        payload = {"findings": findings} if findings else {"note": "No DNS findings provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "external_nexpose":
+        nexpose_metrics = artifacts.get("external_nexpose_metrics", {})
+        summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
+        vulnerabilities = artifacts.get("external_nexpose_vulnerabilities", {})
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
+            "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
+        }
+        details = json.dumps(_attach_risk(relevant), indent=2)
+    elif normalized_key == "internal_nexpose":
+        nexpose_metrics = artifacts.get("internal_nexpose_metrics", {})
+        summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
+        vulnerabilities = artifacts.get("internal_nexpose_vulnerabilities", {})
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
+            "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
+        }
+        details = json.dumps(_attach_risk(relevant), indent=2)
+    elif normalized_key == "iot_iomt_nexpose":
+        nexpose_metrics = artifacts.get("iot_iomt_nexpose_metrics", {})
+        summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
+        vulnerabilities = artifacts.get("iot_iomt_nexpose_vulnerabilities", {})
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
+            "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
+        }
+        details = json.dumps(_attach_risk(relevant), indent=2)
+    elif normalized_key == "endpoint":
+        endpoint_data = artifacts.get("endpoint", {})
+        metrics = endpoint_data.get("metrics") if isinstance(endpoint_data, Mapping) else {}
+        if isinstance(metrics, Mapping):
+            metrics = {k: v for k, v in metrics.items() if k != "xlsx_base64"}
+        payload: Any = metrics if isinstance(metrics, Mapping) and metrics else {"note": "No endpoint metrics provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "snmp":
+        snmp_data = workbook.get("snmp") if isinstance(workbook, Mapping) else {}
+        payload = snmp_data if isinstance(snmp_data, (Mapping, list)) and snmp_data else {"note": "No SNMP data provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "sql":
+        sql_data = workbook.get("sql") if isinstance(workbook, Mapping) else {}
+        payload = sql_data if isinstance(sql_data, (Mapping, list)) and sql_data else {"note": "No SQL data provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "firewall":
+        firewall_data = workbook.get("firewall") if isinstance(workbook, Mapping) else {}
+        firewall_metrics = artifacts.get("firewall_metrics") if isinstance(artifacts, Mapping) else {}
+        summary = (
+            firewall_metrics.get("summary") if isinstance(firewall_metrics, Mapping) else {}
+        )
+        details_map = {
+            "workbook_firewall": firewall_data if isinstance(firewall_data, Mapping) else {},
+            "firewall_metrics_summary": summary if isinstance(summary, Mapping) else {},
+        }
+        payload = details_map if any(details_map.values()) else {"note": "No firewall workbook data or metrics summary provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "wireless":
+        wireless_data = workbook.get("wireless") if isinstance(workbook, Mapping) else {}
+        wireless_metrics: dict[str, Any] = {}
+        if isinstance(wireless_data, Mapping):
+            for key, label in (
+                ("open_count", "Open Networks"),
+                ("psk_count", "PSK Networks"),
+                ("hidden_count", "Hidden Networks"),
+                ("rogue_count", "Rogue Networks"),
+                ("rogue_signals", "Rogue Signals Detected"),
+                ("weak_psks", "Weak PSKs Present"),
+                ("internal_access", "Internal Network Accessible"),
+                ("802_1x_used", "802.1x In Use"),
+            ):
+                value = wireless_data.get(key)
+                if value not in (None, ""):
+                    wireless_metrics[label] = value
+
+            wep_inuse = wireless_data.get("wep_inuse")
+            if isinstance(wep_inuse, Mapping):
+                wep_labels = {}
+                for key, label in (
+                    ("confirm", "WEP In Use"),
+                    ("key_cracked", "WEP Key Cracked"),
+                ):
+                    value = wep_inuse.get(key)
+                    if value not in (None, ""):
+                        wep_labels[label] = value
+                if wep_labels:
+                    wireless_metrics["WEP Findings"] = wep_labels
+
+        wireless_responses = (
+            project.data_responses.get("wireless") if isinstance(project.data_responses, Mapping) else {}
+        )
+        wireless_followup: dict[str, Any] = {}
+        if isinstance(wireless_responses, Mapping):
+            for key, label in (
+                ("open_risk", "Open Network Risk"),
+                ("psk_risk", "PSK Network Risk"),
+                ("hidden_risk", "Hidden Network Risk"),
+                ("rogue_risk", "Rogue Network Risk"),
+                ("psk_rotation_concern", "PSK Rotation Concern"),
+                ("psk_weak_reasons", "Weak PSK Reasons"),
+                ("psk_masterpass", "Master PSK Present"),
+                ("segmentation_tested", "Segmentation Tested"),
+                ("wep_crack_minutes", "WEP Crack Minutes"),
+            ):
+                value = wireless_responses.get(key)
+                if value not in (None, ""):
+                    wireless_followup[label] = value
+
+            for key, label in (
+                ("psk_masterpass_ssids", "Master PSK SSIDs"),
+                ("segmentation_ssids", "Segmentation SSIDs"),
+                ("wep_ssids", "WEP SSIDs"),
+            ):
+                value = wireless_responses.get(key)
+                if isinstance(value, list) and value:
+                    wireless_followup[label] = value
+
+        details_map = {
+            "wireless_metrics": wireless_metrics,
+            "wireless_responses": wireless_followup,
+        }
+        payload = details_map if wireless_metrics or wireless_followup else {"note": "No wireless workbook metrics or responses provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "iam_management":
+        iam_cloud_config = workbook.get("iam_cloud_config") if isinstance(workbook, Mapping) else {}
+        grades = workbook.get("external_internal_grades") if isinstance(workbook, Mapping) else {}
+        cloud_section = grades.get("cloud") if isinstance(grades, Mapping) else {}
+        iam_grade = cloud_section.get("iam_management") if isinstance(cloud_section, Mapping) else {}
+
+        payload: dict[str, Any] = {}
+        if iam_cloud_config not in (None, ""):
+            payload["iam_cloud_config"] = iam_cloud_config
+        if iam_grade not in (None, ""):
+            payload["iam_management_grade"] = iam_grade
+
+        if not payload:
+            payload = {"note": "No IAM management workbook data or grades provided."}
+
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "cloud_management":
+        cloud_provider = None
+        if isinstance(workbook, Mapping):
+            general_section = workbook.get("general") if isinstance(workbook.get("general"), Mapping) else {}
+            cloud_provider = general_section.get("cloud_provider")
+
+        cloud_config = workbook.get("cloud_config") if isinstance(workbook, Mapping) else {}
+        grades = workbook.get("external_internal_grades") if isinstance(workbook, Mapping) else {}
+        cloud_section = grades.get("cloud") if isinstance(grades, Mapping) else {}
+        cloud_grade = cloud_section.get("cloud_management") if isinstance(cloud_section, Mapping) else {}
+
+        payload: dict[str, Any] = {}
+        if cloud_provider not in (None, ""):
+            payload["cloud_provider"] = cloud_provider
+        if cloud_config not in (None, ""):
+            payload["cloud_config"] = cloud_config
+        if cloud_grade not in (None, ""):
+            payload["cloud_management_grade"] = cloud_grade
+
+        if not payload:
+            payload = {"note": "No cloud management workbook data or grades provided."}
+
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "system_configuration":
+        system_config = workbook.get("system_config") if isinstance(workbook, Mapping) else {}
+        grades = workbook.get("external_internal_grades") if isinstance(workbook, Mapping) else {}
+        cloud_section = grades.get("cloud") if isinstance(grades, Mapping) else {}
+        system_grade = (
+            cloud_section.get("system_configuration") if isinstance(cloud_section, Mapping) else {}
+        )
+
+        payload: dict[str, Any] = {}
+        if system_config not in (None, ""):
+            payload["system_config"] = system_config
+        if system_grade not in (None, ""):
+            payload["system_configuration_grade"] = system_grade
+
+        if not payload:
+            payload = {"note": "No system configuration workbook data or grades provided."}
+
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "web":
+        web_metrics = artifacts.get("web_metrics", {})
+        summary = web_metrics.get("summary") if isinstance(web_metrics, Mapping) else {}
+        issues = artifacts.get("web_issues", {}) if isinstance(artifacts, Mapping) else {}
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": issues.get("high") if isinstance(issues, Mapping) else {},
+            "medium": issues.get("med") if isinstance(issues, Mapping) else {},
+        }
+        details = json.dumps(_attach_risk(relevant), indent=2)
+    elif normalized_key == "ad":
+        ad_data = workbook.get("ad") if isinstance(workbook, Mapping) else {}
+        domains = ad_data.get("domains") if isinstance(ad_data, Mapping) else []
+        domain_metrics: list[dict[str, Any]] = []
+        if isinstance(domains, list):
+            for entry in domains:
+                if not isinstance(entry, Mapping):
+                    continue
+                domain_name = (entry.get("domain") or entry.get("name") or "").strip() or "Unknown Domain"
+                labeled_entry: dict[str, Any] = {"Domain": domain_name}
+                for field, label in (
+                    ("functionality_level", "Functional Level"),
+                    ("total_accounts", "Total Accounts"),
+                    ("enabled_accounts", "Enabled Accounts"),
+                    ("old_passwords", "Old Passwords"),
+                    ("inactive_accounts", "Inactive Accounts"),
+                    ("domain_admins", "Domain Admins"),
+                    ("ent_admins", "Enterprise Admins"),
+                    ("exp_passwords", "Expired Passwords"),
+                    ("passwords_never_exp", "Passwords Never Expire"),
+                    ("generic_accounts", "Generic Accounts"),
+                    ("generic_logins", "Generic Logins"),
+                ):
+                    value = entry.get(field)
+                    if value not in (None, ""):
+                        labeled_entry[label] = value
+                domain_metrics.append(labeled_entry)
+
+        ad_responses = (
+            project.data_responses.get("ad") if isinstance(project.data_responses, Mapping) else {}
+        )
+        ad_entries = (
+            ad_responses.get("entries") if isinstance(ad_responses, Mapping) else []
+        )
+        if isinstance(ad_entries, list):
+            ad_entries = [entry for entry in ad_entries if isinstance(entry, Mapping)]
+        else:
+            ad_entries = []
+
+        details_map = {
+            "domains": domain_metrics,
+            "ad_entries": ad_entries,
+        }
+        payload = details_map if domain_metrics or ad_entries else {"note": "No Active Directory metrics or entries provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "password":
+        password_data = workbook.get("password") if isinstance(workbook, Mapping) else {}
+        policies = password_data.get("policies") if isinstance(password_data, Mapping) else []
+        normalized_policies: list[dict[str, Any]] = []
+        if isinstance(policies, list):
+            for policy in policies:
+                if not isinstance(policy, Mapping):
+                    continue
+                labeled_policy: dict[str, Any] = {}
+                used_fields: set[str] = set()
+                for field, label in (
+                    ("domain", "Domain"),
+                    ("name", "Policy Name"),
+                    ("policy_name", "Policy Name"),
+                    ("description", "Description"),
+                    ("passwords_cracked", "Passwords Cracked"),
+                    ("admin_cracked", "Admin Passwords Cracked"),
+                    ("enabled_accounts", "Enabled Accounts"),
+                ):
+                    value = policy.get(field)
+                    if value not in (None, ""):
+                        labeled_policy[label] = value
+                        used_fields.add(field)
+                policy_controls = {
+                    key: value
+                    for key, value in policy.items()
+                    if key not in used_fields and value not in (None, "")
+                }
+                if policy_controls:
+                    labeled_policy["Policy Controls"] = policy_controls
+                if labeled_policy:
+                    normalized_policies.append(labeled_policy)
+
+        password_responses = (
+            project.data_responses.get("password")
+            if isinstance(project.data_responses, Mapping)
+            else {}
+        )
+        password_entries = (
+            password_responses.get("entries") if isinstance(password_responses, Mapping) else []
+        )
+        if isinstance(password_entries, list):
+            password_entries = [entry for entry in password_entries if isinstance(entry, Mapping)]
+        else:
+            password_entries = []
+
+        summary_fields = {}
+        if isinstance(password_responses, Mapping):
+            for key in (
+                "total_cracked",
+                "bad_pass_count",
+                "admin_cracked_string",
+                "cracked_count_str",
+                "admin_cracked_doms",
+            ):
+                value = password_responses.get(key)
+                if value not in (None, ""):
+                    summary_fields[key] = value
+
+        details_map = {
+            "password_policies": normalized_policies,
+            "password_entries": password_entries,
+            "summary": summary_fields,
+        }
+        payload = details_map if normalized_policies or password_entries or summary_fields else {"note": "No password policy or cracking data provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    else:
+        details = json.dumps(_attach_risk({}), indent=2)
+
+    risk_statement = risk_statements.get(normalized_key)
+    risk_footer = ""
+    if risk_statement:
+        risk_footer = (
+            "\n\nEnd the paragraph with this risk statement: "
+            f"{risk_statement.format(risk=risk_value or 'unknown', risks=risk_value or 'unknown')}"
+        )
+
+    return (
+        "Provide an executive summary in a single paragraph for the "
+        f"{description}. Use the following project data as context and keep the response concise."
+        + (
+            " Prioritize cracked password results and administrator credentials when present; address policy and FGPP settings as supporting details."
+            if normalized_key == "password"
+            else ""
+        )
+        + f"\n\n{details}{risk_footer}"
+    )
 
 AD_CSV_HEADER_MAP: dict[str, dict[str, str]] = {
     "domain_admins": {"account": "Account", "password last set": "Password Last Set"},
@@ -1003,6 +1536,166 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
         response = HttpResponse(out.getvalue(), content_type=mime)
         add_content_disposition_header(response, filename)
         return response
+
+
+class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Generate AI review summaries for in-scope project areas."""
+
+    model = Project
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        project = self.get_object()
+        try:
+            scoping_state = normalize_project_scoping(project.scoping)
+            sections = _build_ai_review_sections(
+                scoping_state, getattr(project, "ai_review", {})
+            )
+            if not sections:
+                return JsonResponse(
+                    {"result": "warning", "message": "No in-scope AI review sections are available."}
+                )
+
+            workbook = normalize_workbook_payload(getattr(project, "workbook_data", {}))
+            artifacts = normalize_nexpose_artifacts_map(
+                getattr(project, "data_artifacts", {}) or {}
+            )
+            ai_outputs: Dict[str, str] = {}
+            failed_sections: list[str] = []
+            prompts: list[tuple[str, str]] = []
+
+            for section in sections:
+                try:
+                    prompt = _build_ai_review_prompt(
+                        section["key"], project, workbook, artifacts
+                    )
+                except Exception as exc:  # pragma: no cover - defensive logging
+                    logger.warning(
+                        "Failed to build AI review prompt for %s on project %s: %s",
+                        section["key"],
+                        project.pk,
+                        exc,
+                    )
+                    failed_sections.append(section["key"])
+                    continue
+
+                if not prompt:
+                    failed_sections.append(section["key"])
+                    continue
+
+                prompts.append((section["key"], prompt))
+
+            if prompts:
+                max_workers = min(8, len(prompts))
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    future_map = {
+                        executor.submit(submit_prompt_to_assistant, prompt): key
+                        for key, prompt in prompts
+                    }
+                    for future in as_completed(future_map):
+                        section_key = future_map[future]
+                        try:
+                            ai_response = future.result()
+                        except Exception as exc:  # pragma: no cover - defensive logging
+                            logger.warning(
+                                "AI review generation failed for %s on project %s: %s",
+                                section_key,
+                                project.pk,
+                                exc,
+                            )
+                            ai_response = None
+
+                        if ai_response:
+                            ai_outputs[section_key] = _normalize_ai_response(ai_response)
+                        else:
+                            failed_sections.append(section_key)
+
+            if ai_outputs:
+                current_payload = _normalize_ai_review_payload(project.ai_review)
+                current_payload.update(ai_outputs)
+                project.ai_review = current_payload
+                project.save(update_fields=["ai_review"])
+
+            if not ai_outputs:
+                message = (
+                    "AI review generation did not return any content. "
+                    "The OpenAI run may have timed out; please try again."
+                )
+                logger.warning(
+                    "AI review generation returned no content for project %s; failed sections: %s",
+                    project.pk,
+                    failed_sections,
+                )
+                return JsonResponse(
+                    {"result": "warning", "message": message, "data": {}}, status=502
+                )
+
+            response_message = (
+                "AI review generation complete." if not failed_sections else "Some sections could not be generated."
+            )
+            if failed_sections:
+                logger.warning(
+                    "AI review generation partially completed for project %s; failed sections: %s",
+                    project.pk,
+                    failed_sections,
+                )
+            return JsonResponse(
+                {
+                    "result": "success",
+                    "message": response_message,
+                    "data": ai_outputs,
+                    "failed": failed_sections,
+                }
+            )
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception(
+                "AI review generation encountered an unexpected error for project %s",
+                project.pk,
+            )
+            return JsonResponse(
+                {
+                    "result": "error",
+                    "message": "AI review generation failed due to an internal error.",
+                },
+                status=500,
+            )
+
+
+class ProjectAiReviewSave(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Persist manual AI review updates submitted from the project page."""
+
+    model = Project
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to update this project.")
+        return redirect("home:dashboard")
+
+    def post(self, *args, **kwargs):
+        project = self.get_object()
+        scoping_state = normalize_project_scoping(project.scoping)
+        sections = _build_ai_review_sections(scoping_state, getattr(project, "ai_review", {}))
+
+        if not sections:
+            messages.warning(self.request, "No in-scope AI review sections found to update.")
+            return redirect(reverse("rolodex:project_detail", kwargs={"pk": project.pk}) + "#ai-review")
+
+        payload = _normalize_ai_review_payload(project.ai_review)
+        for section in sections:
+            field_name = f"ai_review_{section['key']}"
+            payload[section["key"]] = self.request.POST.get(field_name, "") or ""
+
+        project.ai_review = payload
+        project.save(update_fields=["ai_review"])
+        messages.success(self.request, "AI review updates saved.")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": project.pk}) + "#ai-review")
 
 
 class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -2325,7 +3018,8 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["pending_question_sections_count"] = _count_pending_question_sections(
             questions, normalized_responses
         )
-        ctx["project_scoping_json"] = normalize_project_scoping(object.scoping)
+        scoping_state = normalize_project_scoping(object.scoping)
+        ctx["project_scoping_json"] = scoping_state
         ctx["project_scoping_weights_json"] = {
             category: {option: float(weight) for option, weight in weights.items()}
             for category, weights in object.scoping_weights.items()
@@ -2334,6 +3028,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             key: {"label": value.get("label"), "options": value.get("options", {})}
             for key, value in PROJECT_SCOPING_CONFIGURATION.items()
         }
+        ctx["ai_review_sections"] = _build_ai_review_sections(scoping_state, getattr(object, "ai_review", {}))
         ctx["risk_score_map_json"] = {
             risk: {"min": float(bounds[0]), "max": float(bounds[1])}
             for risk, bounds in RiskScoreRangeMapping.get_risk_score_map().items()
