@@ -273,7 +273,7 @@ def _build_ai_review_prompt(
         if isinstance(metrics, Mapping):
             for metric_key, label in osint_labels.items():
                 value = metrics.get(metric_key)
-                if value not in {None, ""}:
+                if value not in (None, ""):
                     metric_lines.append(f"- {label}: {value}")
         details = "\n".join(metric_lines) if metric_lines else "No OSINT metrics available."
     elif normalized_key == "dns":
@@ -326,7 +326,7 @@ def _build_ai_review_prompt(
                     ("generic_logins", "Generic Logins"),
                 ):
                     value = entry.get(field)
-                    if value not in {None, ""}:
+                    if value not in (None, ""):
                         labeled_entry[label] = value
                 domain_metrics.append(labeled_entry)
 
@@ -370,13 +370,13 @@ def _build_ai_review_prompt(
                     ("enabled_accounts", "Enabled Accounts"),
                 ):
                     value = policy.get(field)
-                    if value not in {None, ""}:
+                    if value not in (None, ""):
                         labeled_policy[label] = value
                         used_fields.add(field)
                 policy_controls = {
                     key: value
                     for key, value in policy.items()
-                    if key not in used_fields and value not in {None, ""}
+                    if key not in used_fields and value not in (None, "")
                 }
                 if policy_controls:
                     labeled_policy["Policy Controls"] = policy_controls
@@ -406,7 +406,7 @@ def _build_ai_review_prompt(
                 "admin_cracked_doms",
             ):
                 value = password_responses.get(key)
-                if value not in {None, ""}:
+                if value not in (None, ""):
                     summary_fields[key] = value
 
         details_map = {
