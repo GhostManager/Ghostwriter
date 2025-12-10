@@ -165,6 +165,7 @@ AI_REVIEW_SECTIONS = (
     ("endpoint_rt", "Endpoint", "internal", "endpoint"),
     ("snmp_rt", "SNMP", "internal", "snmp"),
     ("sql_rt", "SQL", "internal", "sql"),
+    ("wireless_rt", "Wireless", "wireless", "selected"),
     ("web_rt", "Web", "external", "web"),
     ("ad_rt", "AD", "iam", "ad"),
     ("password_rt", "Password", "iam", "password"),
@@ -212,6 +213,7 @@ def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
         "endpoint": "endpoint_rt",
         "snmp": "snmp_rt",
         "sql": "sql_rt",
+        "wireless": "wireless_rt",
         "web": "web_rt",
         "ad": "ad_rt",
         "password": "password_rt",
@@ -270,6 +272,7 @@ def _build_ai_review_prompt(
         "endpoint": "Review of accessible AD registered computers for current Security Software and past connections to insecure WiFi",
         "snmp": "Review of internal systems using SNMP for default or easy to guess Strings",
         "sql": "Review of internal systems with database servers listening on default ports with a test for default credentials",
+        "wireless": "Review of the Wireless networks accessible at a location, a comparison to 'approved' SSIDs, a review of the wireless security and wireless-to-internal network segmentation testing (when applicable)",
         "web": "Web application vulnerability scan results",
         "ad": "Active Directory metrics covering privileged groups and user account hygiene",
         "password": "Password policy effectiveness, cracked credentials, and related controls",
@@ -352,6 +355,75 @@ def _build_ai_review_prompt(
             json.dumps(sql_data, indent=2)
             if isinstance(sql_data, (Mapping, list)) and sql_data
             else "No SQL data provided."
+        )
+    elif normalized_key == "wireless":
+        wireless_data = workbook.get("wireless") if isinstance(workbook, Mapping) else {}
+        wireless_metrics: dict[str, Any] = {}
+        if isinstance(wireless_data, Mapping):
+            for key, label in (
+                ("open_count", "Open Networks"),
+                ("psk_count", "PSK Networks"),
+                ("hidden_count", "Hidden Networks"),
+                ("rogue_count", "Rogue Networks"),
+                ("rogue_signals", "Rogue Signals Detected"),
+                ("weak_psks", "Weak PSKs Present"),
+                ("internal_access", "Internal Network Accessible"),
+                ("802_1x_used", "802.1x In Use"),
+            ):
+                value = wireless_data.get(key)
+                if value not in (None, ""):
+                    wireless_metrics[label] = value
+
+            wep_inuse = wireless_data.get("wep_inuse")
+            if isinstance(wep_inuse, Mapping):
+                wep_labels = {}
+                for key, label in (
+                    ("confirm", "WEP In Use"),
+                    ("key_cracked", "WEP Key Cracked"),
+                ):
+                    value = wep_inuse.get(key)
+                    if value not in (None, ""):
+                        wep_labels[label] = value
+                if wep_labels:
+                    wireless_metrics["WEP Findings"] = wep_labels
+
+        wireless_responses = (
+            project.data_responses.get("wireless") if isinstance(project.data_responses, Mapping) else {}
+        )
+        wireless_followup: dict[str, Any] = {}
+        if isinstance(wireless_responses, Mapping):
+            for key, label in (
+                ("open_risk", "Open Network Risk"),
+                ("psk_risk", "PSK Network Risk"),
+                ("hidden_risk", "Hidden Network Risk"),
+                ("rogue_risk", "Rogue Network Risk"),
+                ("psk_rotation_concern", "PSK Rotation Concern"),
+                ("psk_weak_reasons", "Weak PSK Reasons"),
+                ("psk_masterpass", "Master PSK Present"),
+                ("segmentation_tested", "Segmentation Tested"),
+                ("wep_crack_minutes", "WEP Crack Minutes"),
+            ):
+                value = wireless_responses.get(key)
+                if value not in (None, ""):
+                    wireless_followup[label] = value
+
+            for key, label in (
+                ("psk_masterpass_ssids", "Master PSK SSIDs"),
+                ("segmentation_ssids", "Segmentation SSIDs"),
+                ("wep_ssids", "WEP SSIDs"),
+            ):
+                value = wireless_responses.get(key)
+                if isinstance(value, list) and value:
+                    wireless_followup[label] = value
+
+        details_map = {
+            "wireless_metrics": wireless_metrics,
+            "wireless_responses": wireless_followup,
+        }
+        details = (
+            json.dumps(details_map, indent=2, default=str)
+            if wireless_metrics or wireless_followup
+            else "No wireless workbook metrics or responses provided."
         )
     elif normalized_key == "web":
         web_metrics = artifacts.get("web_metrics", {})
