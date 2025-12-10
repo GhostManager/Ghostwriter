@@ -6,6 +6,7 @@ from ghostwriter.modules.custom_serializers import FullProjectSerializer
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
 from ghostwriter.modules.reportwriter.base.base import ExportBase
+from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Client, Project
@@ -177,23 +178,33 @@ class ExportProjectBase(ExportBase):
                     rich_text_context,
                 )
 
-        def render_risk_rich_text_fields(container: dict | None, location: str):
+        def render_risk_rich_text_fields(container: dict | list | None, location: str):
+            if isinstance(container, list):
+                for value in container:
+                    render_risk_rich_text_fields(value, location)
+                return
+
             if not isinstance(container, dict):
                 return
+
             for key, value in list(container.items()):
-                if isinstance(value, dict):
+                if isinstance(value, (dict, list)):
                     render_risk_rich_text_fields(value, location)
+
                 if not (isinstance(key, str) and key.endswith("_rt")):
                     continue
-                if value in (None, ""):
+                if value in (None, "") or isinstance(value, LazilyRenderedTemplate):
                     continue
-                container[key] = ex.create_lazy_template(location, str(value), rich_text_context)
+
+                field_location = f"{location} ({key})" if location else None
+                container[key] = ex.create_lazy_template(field_location, str(value), rich_text_context)
 
         project_context = base_context.get("project", {}) if isinstance(base_context.get("project"), dict) else {}
         render_risk_rich_text_fields(project_context.get("risks"), "the project risk label")
 
         workbook_data = project_context.get("workbook_data") if isinstance(project_context, dict) else {}
         if isinstance(workbook_data, dict):
+            render_risk_rich_text_fields(workbook_data, "the workbook data rich text field")
             render_risk_rich_text_fields(workbook_data.get("report_card"), "the report card risk label")
 
             grades = workbook_data.get("external_internal_grades")
