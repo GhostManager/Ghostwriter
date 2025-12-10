@@ -31,6 +31,11 @@ from ghostwriter.rolodex.constants import (
     SQL_DATA_FILE_NAME_KEY,
     WIRELESS_DATA_FILE_NAME_KEY,
 )
+from ghostwriter.rolodex.ad_thresholds import (
+    AD_THRESHOLD_DEFAULTS,
+    AD_THRESHOLD_KEY_CHOICES,
+    AD_THRESHOLD_TYPE_CHOICES,
+)
 from ghostwriter.rolodex.workbook_defaults import normalize_workbook_payload
 
 User = get_user_model()
@@ -502,6 +507,47 @@ class PasswordCapMapping(models.Model):
         return f"{self.setting}"
 
 
+class ADThresholdMapping(models.Model):
+    """Store configurable thresholds for Active Directory CAP generation."""
+
+    key = models.CharField(
+        "Threshold key",
+        max_length=64,
+        unique=True,
+        choices=AD_THRESHOLD_KEY_CHOICES,
+        help_text="Identifier used by CAP generation logic.",
+    )
+    label = models.CharField(
+        "Label",
+        max_length=128,
+        help_text="Human-friendly label shown in the admin UI.",
+    )
+    issue_text = models.CharField(
+        "Issue text",
+        max_length=255,
+        help_text="Issue that will be raised when the threshold is exceeded.",
+    )
+    threshold_type = models.CharField(
+        "Threshold type",
+        max_length=32,
+        choices=AD_THRESHOLD_TYPE_CHOICES,
+        help_text="How the value should be applied (percentage, ratio, or absolute count).",
+    )
+    value = models.FloatField(
+        "Threshold value",
+        default=0.0,
+        help_text="Threshold value applied according to the threshold type.",
+    )
+
+    class Meta:
+        ordering = ["label"]
+        verbose_name = "AD threshold mapping"
+        verbose_name_plural = "AD threshold mappings"
+
+    def __str__(self):
+        return f"{self.label}"
+
+
 class VulnerabilityMatrixEntry(models.Model):
     """Store reusable remediation context for recurring Nexpose findings."""
 
@@ -784,6 +830,7 @@ class Project(models.Model):
             build_workbook_password_response,
             coerce_cap_score,
             load_dns_soa_cap_map,
+            load_ad_threshold_map,
             load_general_cap_map,
         )
 
@@ -1283,6 +1330,28 @@ class Project(models.Model):
         # allows CAP generation to respect admin overrides (for example, the
         # "Weak PSK's in use" guidance comes from the General CAP mappings).
         general_cap_map: Dict[str, Dict[str, Any]] = load_general_cap_map()
+        ad_threshold_map: Dict[str, Dict[str, Any]] = load_ad_threshold_map()
+
+        def _resolve_threshold_value(key: str) -> float:
+            default_value = AD_THRESHOLD_DEFAULTS.get(key, {}).get("value", 0)
+            entry = ad_threshold_map.get(key) if isinstance(ad_threshold_map, dict) else None
+            value = entry.get("value") if isinstance(entry, dict) else None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                try:
+                    return float(default_value)
+                except (TypeError, ValueError):
+                    return 0.0
+
+        min_enabled_ratio = _resolve_threshold_value("min_enabled_ratio")
+        generic_accounts_pct = _resolve_threshold_value("generic_accounts_pct")
+        generic_logins_pct = _resolve_threshold_value("generic_logins_pct")
+        inactive_accounts_pct = _resolve_threshold_value("inactive_accounts_pct")
+        passwords_never_exp_pct = _resolve_threshold_value("passwords_never_exp_pct")
+        exp_passwords_pct = _resolve_threshold_value("exp_passwords_pct")
+        domain_admin_pct = _resolve_threshold_value("domain_admin_pct")
+        ent_admin_abs = _resolve_threshold_value("ent_admin_absolute")
 
         def _clone_cap_entry(issue: str) -> Dict[str, Any]:
             entry = (
@@ -1366,34 +1435,38 @@ class Project(models.Model):
                 enabled_accounts = _safe_int(domain_entry.get("enabled_accounts"))
                 if total_accounts > 0:
                     enabled_ratio = enabled_accounts / float(total_accounts)
-                    if enabled_ratio < 0.9:
+                    if enabled_ratio < min_enabled_ratio:
                         _record_ad_issue("Number of Disabled Accounts")
 
                 enabled_for_threshold = max(enabled_accounts, 0)
-                threshold = enabled_for_threshold * 0.05
-                domain_admin_threshold = enabled_for_threshold * 0.005
+                threshold_generic_accounts = enabled_for_threshold * generic_accounts_pct
+                threshold_generic_logins = enabled_for_threshold * generic_logins_pct
+                threshold_inactive = enabled_for_threshold * inactive_accounts_pct
+                threshold_passwords_never_exp = enabled_for_threshold * passwords_never_exp_pct
+                threshold_exp_passwords = enabled_for_threshold * exp_passwords_pct
+                domain_admin_threshold = enabled_for_threshold * domain_admin_pct
 
-                if _safe_int(domain_entry.get("generic_accounts")) > threshold:
+                if _safe_int(domain_entry.get("generic_accounts")) > threshold_generic_accounts:
                     _record_ad_issue("Number of 'Generic Accounts'")
 
-                if _safe_int(domain_entry.get("generic_logins")) > threshold:
+                if _safe_int(domain_entry.get("generic_logins")) > threshold_generic_logins:
                     _record_ad_issue(
                         "Number of Systems with Logged in Generic Accounts"
                     )
 
-                if _safe_int(domain_entry.get("inactive_accounts")) > threshold:
+                if _safe_int(domain_entry.get("inactive_accounts")) > threshold_inactive:
                     _record_ad_issue("Potentially Inactive Accounts")
 
-                if _safe_int(domain_entry.get("passwords_never_exp")) > threshold:
+                if _safe_int(domain_entry.get("passwords_never_exp")) > threshold_passwords_never_exp:
                     _record_ad_issue("Accounts with Passwords that Never Expire")
 
-                if _safe_int(domain_entry.get("exp_passwords")) > threshold:
+                if _safe_int(domain_entry.get("exp_passwords")) > threshold_exp_passwords:
                     _record_ad_issue("Accounts with Expired Passwords")
 
                 if _safe_int(domain_entry.get("domain_admins")) > domain_admin_threshold:
                     _record_ad_issue("Number of Domain Admins")
 
-                if _safe_int(domain_entry.get("ent_admins")) > 1:
+                if _safe_int(domain_entry.get("ent_admins")) > ent_admin_abs:
                     _record_ad_issue("Number of Enterprise Admins")
 
         if ad_cap_map:
