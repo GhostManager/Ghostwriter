@@ -26,6 +26,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
+from django.utils.html import escape
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
@@ -48,6 +49,7 @@ from ghostwriter.api.utils import (
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import codenames
+from ghostwriter.modules.openai_client import submit_prompt_to_assistant
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
@@ -152,6 +154,124 @@ from ghostwriter.reporting.models import RiskScoreRangeMapping
 
 # Using __name__ resolves to ghostwriter.rolodex.views
 logger = logging.getLogger(__name__)
+
+AI_REVIEW_SECTIONS = (
+    ("osint", "OSINT"),
+    ("dns", "DNS"),
+    ("nexpose", "External Nexpose"),
+    ("web", "Web"),
+)
+
+
+def _build_ai_review_sections(scoping_state: Mapping[str, Any], ai_review_payload: Any):
+    """Return a list of AI review sections based on ``scoping_state``."""
+
+    ai_payload = ai_review_payload if isinstance(ai_review_payload, Mapping) else {}
+    sections = []
+    external_scope = scoping_state.get("external", {}) if isinstance(scoping_state, Mapping) else {}
+
+    for key, label in AI_REVIEW_SECTIONS:
+        if external_scope.get("selected") and external_scope.get(key):
+            sections.append(
+                {
+                    "key": key,
+                    "label": label,
+                    "content": ai_payload.get(key, ""),
+                }
+            )
+    return sections
+
+
+def _normalize_ai_response(response_text: Optional[str]) -> str:
+    """Convert AI response text into HTML suitable for rich text editors."""
+
+    if not response_text:
+        return ""
+    safe_text = escape(response_text).replace("\n\n", "</p><p>").replace("\n", "<br />")
+    if not safe_text.strip():
+        return ""
+    return f"<p>{safe_text}</p>"
+
+
+def _summarize_dns_findings(findings: Mapping[str, Any]) -> Dict[str, Any]:
+    if not isinstance(findings, Mapping):
+        return {}
+    summary = {}
+    for domain, rows in findings.items():
+        if not isinstance(rows, list):
+            continue
+        normalized_rows = []
+        for row in rows:
+            if not isinstance(row, Mapping):
+                continue
+            normalized_rows.append({k: (v or "").strip() for k, v in row.items()})
+        summary[domain] = normalized_rows
+    return summary
+
+
+def _build_ai_review_prompt(
+    section_key: str, project: Project, workbook: Mapping[str, Any], artifacts: Mapping[str, Any]
+) -> str:
+    """Craft a prompt for the requested AI review ``section_key``."""
+
+    description = {
+        "osint": "Open Source Intel metrics",
+        "dns": "DNS configuration best practice checks",
+        "nexpose": "Vulnerability scanning results for externally accessible systems",
+        "web": "Web application vulnerability scan results",
+    }.get(section_key, "Project review")
+
+    if section_key == "osint":
+        metrics = workbook.get("osint") if isinstance(workbook, Mapping) else {}
+        osint_labels = {
+            "total_domains": "Total Domains",
+            "total_hostnames": "Total Hostnames",
+            "total_ips": "Total IPs",
+            "total_cloud": "Cloud Assets",
+            "total_buckets": "Storage Buckets",
+            "total_squat": "Potential Squat Domains",
+            "total_leaks": "Credential Leaks",
+        }
+        metric_lines = []
+        if isinstance(metrics, Mapping):
+            for metric_key, label in osint_labels.items():
+                value = metrics.get(metric_key)
+                if value not in {None, ""}:
+                    metric_lines.append(f"- {label}: {value}")
+        details = "\n".join(metric_lines) if metric_lines else "No OSINT metrics available."
+    elif section_key == "dns":
+        findings = _summarize_dns_findings(artifacts.get("dns_findings", {}))
+        if findings:
+            details = json.dumps(findings, indent=2)
+        else:
+            details = "No DNS findings provided."
+    elif section_key == "nexpose":
+        nexpose_metrics = artifacts.get("external_nexpose_metrics", {})
+        summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
+        vulnerabilities = artifacts.get("external_nexpose_vulnerabilities", {})
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
+            "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
+        }
+        details = json.dumps(relevant, indent=2)
+    elif section_key == "web":
+        web_metrics = artifacts.get("web_metrics", {})
+        summary = web_metrics.get("summary") if isinstance(web_metrics, Mapping) else {}
+        issues = artifacts.get("web_issues", {}) if isinstance(artifacts, Mapping) else {}
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": issues.get("high") if isinstance(issues, Mapping) else {},
+            "medium": issues.get("med") if isinstance(issues, Mapping) else {},
+        }
+        details = json.dumps(relevant, indent=2)
+    else:
+        details = ""
+
+    return (
+        "Provide an executive summary in a single paragraph for the "
+        f"{description}. Use the following project data as context and keep the response concise.\n\n{details}"
+    )
 
 AD_CSV_HEADER_MAP: dict[str, dict[str, str]] = {
     "domain_admins": {"account": "Account", "password last set": "Password Last Set"},
@@ -1001,6 +1121,82 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
         response = HttpResponse(out.getvalue(), content_type=mime)
         add_content_disposition_header(response, filename)
         return response
+
+
+class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Generate AI review summaries for in-scope project areas."""
+
+    model = Project
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        project = self.get_object()
+        scoping_state = normalize_project_scoping(project.scoping)
+        sections = _build_ai_review_sections(scoping_state, getattr(project, "ai_review", {}))
+        if not sections:
+            return JsonResponse(
+                {"result": "warning", "message": "No in-scope AI review sections are available."}
+            )
+
+        workbook = normalize_workbook_payload(getattr(project, "workbook_data", {}))
+        artifacts = normalize_nexpose_artifacts_map(getattr(project, "data_artifacts", {}) or {})
+        ai_outputs: Dict[str, str] = {}
+
+        for section in sections:
+            prompt = _build_ai_review_prompt(section["key"], project, workbook, artifacts)
+            try:
+                ai_response = submit_prompt_to_assistant(prompt)
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.warning("AI review generation failed for %s: %s", section["key"], exc)
+                ai_response = None
+
+            if ai_response:
+                ai_outputs[section["key"]] = _normalize_ai_response(ai_response)
+
+        if ai_outputs:
+            current_payload = project.ai_review if isinstance(project.ai_review, Mapping) else {}
+            current_payload.update(ai_outputs)
+            project.ai_review = current_payload
+            project.save(update_fields=["ai_review"])
+
+        return JsonResponse({"result": "success", "data": ai_outputs})
+
+
+class ProjectAiReviewSave(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Persist manual AI review updates submitted from the project page."""
+
+    model = Project
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to update this project.")
+        return redirect("home:dashboard")
+
+    def post(self, *args, **kwargs):
+        project = self.get_object()
+        scoping_state = normalize_project_scoping(project.scoping)
+        sections = _build_ai_review_sections(scoping_state, getattr(project, "ai_review", {}))
+
+        if not sections:
+            messages.warning(self.request, "No in-scope AI review sections found to update.")
+            return redirect(reverse("rolodex:project_detail", kwargs={"pk": project.pk}) + "#ai-review")
+
+        payload = project.ai_review if isinstance(project.ai_review, Mapping) else {}
+        for section in sections:
+            field_name = f"ai_review_{section['key']}"
+            payload[section["key"]] = self.request.POST.get(field_name, "") or ""
+
+        project.ai_review = payload
+        project.save(update_fields=["ai_review"])
+        messages.success(self.request, "AI review updates saved.")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": project.pk}) + "#ai-review")
 
 
 class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -2323,7 +2519,8 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["pending_question_sections_count"] = _count_pending_question_sections(
             questions, normalized_responses
         )
-        ctx["project_scoping_json"] = normalize_project_scoping(object.scoping)
+        scoping_state = normalize_project_scoping(object.scoping)
+        ctx["project_scoping_json"] = scoping_state
         ctx["project_scoping_weights_json"] = {
             category: {option: float(weight) for option, weight in weights.items()}
             for category, weights in object.scoping_weights.items()
@@ -2332,6 +2529,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             key: {"label": value.get("label"), "options": value.get("options", {})}
             for key, value in PROJECT_SCOPING_CONFIGURATION.items()
         }
+        ctx["ai_review_sections"] = _build_ai_review_sections(scoping_state, getattr(object, "ai_review", {}))
         ctx["risk_score_map_json"] = {
             risk: {"min": float(bounds[0]), "max": float(bounds[1])}
             for risk, bounds in RiskScoreRangeMapping.get_risk_score_map().items()
