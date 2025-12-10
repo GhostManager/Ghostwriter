@@ -16,6 +16,7 @@ from ghostwriter.rolodex.models import (
     DNSSOACapMapping,
     DNSFindingMapping,
     DNSRecommendationMapping,
+    ADThresholdMapping,
     GeneralCapMapping,
     PasswordCapMapping,
     VulnerabilityMatrixEntry,
@@ -77,6 +78,12 @@ class DNSSOACapMappingAdmin(admin.ModelAdmin):
 class PasswordCapMappingAdmin(admin.ModelAdmin):
     list_display = ("setting", "cap_text")
     search_fields = ("setting", "cap_text")
+
+
+@admin.register(ADThresholdMapping)
+class ADThresholdMappingAdmin(admin.ModelAdmin):
+    list_display = ("label", "key", "threshold_type", "value", "issue_text")
+    search_fields = ("label", "issue_text", "key")
 
 
 @admin.register(VulnerabilityMatrixEntry)

@@ -39,6 +39,7 @@ from ghostwriter.modules.openai_client import submit_prompt_to_assistant
 from ghostwriter.rolodex.ip_artifacts import IP_ARTIFACT_DEFINITIONS, parse_ip_text
 from ghostwriter.rolodex.constants import BURP_XML_FILE_NAME_KEY, FIREWALL_XML_FILE_NAME_KEY
 from ghostwriter.rolodex.workbook import AD_DOMAIN_METRICS
+from ghostwriter.rolodex.ad_thresholds import AD_THRESHOLD_DEFAULTS
 
 logger = logging.getLogger(__name__)
 
@@ -473,6 +474,50 @@ def load_password_cap_map() -> Dict[str, str]:
         DEFAULT_PASSWORD_CAP_MAP,
         key_field="setting",
     )
+
+
+def _default_ad_threshold_map() -> Dict[str, Dict[str, Any]]:
+    """Return a copy of the default AD threshold mapping."""
+
+    return {key: dict(meta) for key, meta in AD_THRESHOLD_DEFAULTS.items()}
+
+
+def load_ad_threshold_map() -> Dict[str, Dict[str, Any]]:
+    """Return AD CAP threshold mappings from the database or fall back to defaults."""
+
+    try:
+        model = apps.get_model("rolodex", "ADThresholdMapping")
+    except LookupError:
+        return _default_ad_threshold_map()
+
+    try:
+        entries = model.objects.all().values(
+            "key", "label", "issue_text", "threshold_type", "value"
+        )
+    except (OperationalError, ProgrammingError):  # pragma: no cover - defensive guard
+        return _default_ad_threshold_map()
+
+    mapping: Dict[str, Dict[str, Any]] = {}
+    for entry in entries:
+        key = entry.get("key")
+        if not key:
+            continue
+        defaults = AD_THRESHOLD_DEFAULTS.get(key, {})
+        merged = dict(defaults)
+        merged.update(
+            {
+                "label": entry.get("label") or defaults.get("label") or key,
+                "issue": entry.get("issue_text") or defaults.get("issue"),
+                "threshold_type": entry.get("threshold_type")
+                or defaults.get("threshold_type"),
+                "value": entry.get("value")
+                if entry.get("value") is not None
+                else defaults.get("value"),
+            }
+        )
+        mapping[key] = merged
+
+    return mapping or _default_ad_threshold_map()
 
 
 def _normalize_matrix_key(value: Any) -> Optional[str]:
