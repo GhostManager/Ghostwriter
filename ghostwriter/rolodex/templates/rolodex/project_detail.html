@@ -302,6 +302,7 @@
         {{ project_scoping_config_json|json_script:"project-scoping-config" }}
         {{ risk_score_map_json|json_script:"project-risk-score-map" }}
         {{ ad_threshold_map_json|json_script:"project-ad-thresholds" }}
+        {{ password_compliance_matrix_json|json_script:"project-password-compliance-matrix" }}
       </div>
 
       <div id="supplementals" class="tab-pane">
@@ -1211,6 +1212,8 @@
           ent_admin_absolute: {value: 1, threshold_type: 'absolute'},
         };
         const adThresholdMap = Object.assign({}, adThresholdDefaults, parseJsonScript('project-ad-thresholds') || {});
+        const passwordComplianceMatrix = parseJsonScript('project-password-compliance-matrix') || {};
+        const PASSWORD_FLAG_COLOR = '#FFA99F';
         const riskLabels = Object.keys(riskScoreMap);
 
         const getNexposeMissingEntries = function(artifactKey) {
@@ -1527,6 +1530,67 @@
             return (enabled / total) < threshold.value;
           }
           return fieldValue > threshold.value;
+        };
+
+        const normalizeComplianceValue = function(value, dataType) {
+          if (dataType === 'string') {
+            if (value === null || typeof value === 'undefined') {
+              return null;
+            }
+            const text = value.toString().trim().toUpperCase();
+            return text || null;
+          }
+          const number = Number(value);
+          return Number.isFinite(number) ? number : null;
+        };
+
+        const evaluateComplianceRule = function(rule, rawValue, dataType) {
+          if (!rule || typeof rule !== 'object') {
+            return false;
+          }
+          const operator = (rule.operator || '').toString().toLowerCase();
+          const value = normalizeComplianceValue(rawValue, dataType);
+          if (operator === 'any' || operator === 'all') {
+            const rules = Array.isArray(rule.rules) ? rule.rules : [];
+            if (!rules.length) {
+              return false;
+            }
+            return operator === 'all'
+              ? rules.every(function(subRule) { return evaluateComplianceRule(subRule, rawValue, dataType); })
+              : rules.some(function(subRule) { return evaluateComplianceRule(subRule, rawValue, dataType); });
+          }
+
+          const target = normalizeComplianceValue(rule.value, dataType);
+          if (value === null || target === null) {
+            return false;
+          }
+
+          switch (operator) {
+            case 'eq':
+              return value === target;
+            case 'ne':
+              return value !== target;
+            case 'lt':
+              return value < target;
+            case 'lte':
+              return value <= target;
+            case 'gt':
+              return value > target;
+            case 'gte':
+              return value >= target;
+            default:
+              return false;
+          }
+        };
+
+        const shouldFlagPasswordField = function(key, rawValue) {
+          const entry = passwordComplianceMatrix[key];
+          if (!entry) {
+            return false;
+          }
+          const dataType = (entry.data_type || 'numeric').toString().toLowerCase();
+          const rule = entry.rule || {};
+          return evaluateComplianceRule(rule, rawValue, dataType);
         };
 
         function ensureAdState() {
@@ -4831,6 +4895,26 @@
             return Number.isNaN(parsed) ? null : parsed;
           };
 
+          let policyComplianceInputs = [];
+          const trackComplianceInput = function(key, input, getter) {
+            if (!key || !input) {
+              return;
+            }
+            policyComplianceInputs.push({
+              key: key,
+              input: input,
+              getValue: typeof getter === 'function' ? getter : function() { return input.value; },
+            });
+          };
+
+          const applyPolicyComplianceStyles = function() {
+            policyComplianceInputs.forEach(function(entry) {
+              const value = entry.getValue();
+              const flagged = shouldFlagPasswordField(entry.key, value);
+              entry.input.style.backgroundColor = flagged ? PASSWORD_FLAG_COLOR : '';
+            });
+          };
+
           const makeNumberGroup = function(labelText, value, onChange, options) {
             const group = document.createElement('div');
             group.className = 'form-group';
@@ -4849,9 +4933,11 @@
               const parsed = input.value === '' ? null : parseNumber(input.value);
               onChange(Number.isNaN(parsed) ? null : parsed);
               updateWorkbookCardProgress(areaKey);
+              applyPolicyComplianceStyles();
             });
             group.appendChild(label);
             group.appendChild(input);
+            trackComplianceInput(options && options.complianceKey, input);
             return {group: group, input: input};
           };
 
@@ -4877,9 +4963,11 @@
               const selected = select.value || null;
               onChange(selected);
               updateWorkbookCardProgress(areaKey);
+              applyPolicyComplianceStyles();
             });
             group.appendChild(label);
             group.appendChild(select);
+            trackComplianceInput('complexity_enabled', select);
             return group;
           };
 
@@ -5299,13 +5387,13 @@
                 fieldsRow.appendChild(col);
               };
 
-              addField(makeNumberGroup('Maximum Password Age (days)', policy.max_age, function(value) { policy.max_age = value; }).group);
-              addField(makeNumberGroup('Minimum Password Age (days)', policy.min_age, function(value) { policy.min_age = value; }).group);
-              addField(makeNumberGroup('Minimum Password Length', policy.min_length, function(value) { policy.min_length = value; }).group);
-              addField(makeNumberGroup('Password History', policy.history, function(value) { policy.history = value; }).group);
-              addField(makeNumberGroup('Lockout Threshold', policy.lockout_threshold, function(value) { policy.lockout_threshold = value; }).group);
-              addField(makeNumberGroup('Lockout Reset (minutes)', policy.lockout_reset, function(value) { policy.lockout_reset = value; }).group);
-              addField(makeNumberGroup('Lockout Duration (minutes)', policy.lockout_duration, function(value) { policy.lockout_duration = value; }).group);
+              addField(makeNumberGroup('Maximum Password Age (days)', policy.max_age, function(value) { policy.max_age = value; }, {complianceKey: 'max_age'}).group);
+              addField(makeNumberGroup('Minimum Password Age (days)', policy.min_age, function(value) { policy.min_age = value; }, {complianceKey: 'min_age'}).group);
+              addField(makeNumberGroup('Minimum Password Length', policy.min_length, function(value) { policy.min_length = value; }, {complianceKey: 'min_length'}).group);
+              addField(makeNumberGroup('Password History', policy.history, function(value) { policy.history = value; }, {complianceKey: 'history'}).group);
+              addField(makeNumberGroup('Lockout Threshold', policy.lockout_threshold, function(value) { policy.lockout_threshold = value; }, {complianceKey: 'lockout_threshold'}).group);
+              addField(makeNumberGroup('Lockout Reset (minutes)', policy.lockout_reset, function(value) { policy.lockout_reset = value; }, {complianceKey: 'lockout_reset'}).group);
+              addField(makeNumberGroup('Lockout Duration (minutes)', policy.lockout_duration, function(value) { policy.lockout_duration = value; }, {complianceKey: 'lockout_duration'}).group);
               addField(makeBoolSelect('Is Complexity Enabled?', policy.complexity_enabled, function(value) { policy.complexity_enabled = value; }));
 
               const passwordsCracked = makeNumberGroup('Total passwords cracked', policy.passwords_cracked, function(value) {
@@ -5502,13 +5590,13 @@
                   fgppNameGroup.appendChild(fgppNameInput);
                   addFgppField(fgppNameGroup);
 
-                  addFgppField(makeNumberGroup('Maximum Password Age (days)', entry.max_age, function(value) { entry.max_age = value; }).group);
-                  addFgppField(makeNumberGroup('Minimum Password Age (days)', entry.min_age, function(value) { entry.min_age = value; }).group);
-                  addFgppField(makeNumberGroup('Minimum Password Length', entry.min_length, function(value) { entry.min_length = value; }).group);
-                  addFgppField(makeNumberGroup('Password History', entry.history, function(value) { entry.history = value; }).group);
-                  addFgppField(makeNumberGroup('Lockout Threshold', entry.lockout_threshold, function(value) { entry.lockout_threshold = value; }).group);
-                  addFgppField(makeNumberGroup('Lockout Reset (minutes)', entry.lockout_reset, function(value) { entry.lockout_reset = value; }).group);
-                  addFgppField(makeNumberGroup('Lockout Duration (minutes)', entry.lockout_duration, function(value) { entry.lockout_duration = value; }).group);
+                  addFgppField(makeNumberGroup('Maximum Password Age (days)', entry.max_age, function(value) { entry.max_age = value; }, {complianceKey: 'max_age'}).group);
+                  addFgppField(makeNumberGroup('Minimum Password Age (days)', entry.min_age, function(value) { entry.min_age = value; }, {complianceKey: 'min_age'}).group);
+                  addFgppField(makeNumberGroup('Minimum Password Length', entry.min_length, function(value) { entry.min_length = value; }, {complianceKey: 'min_length'}).group);
+                  addFgppField(makeNumberGroup('Password History', entry.history, function(value) { entry.history = value; }, {complianceKey: 'history'}).group);
+                  addFgppField(makeNumberGroup('Lockout Threshold', entry.lockout_threshold, function(value) { entry.lockout_threshold = value; }, {complianceKey: 'lockout_threshold'}).group);
+                  addFgppField(makeNumberGroup('Lockout Reset (minutes)', entry.lockout_reset, function(value) { entry.lockout_reset = value; }, {complianceKey: 'lockout_reset'}).group);
+                  addFgppField(makeNumberGroup('Lockout Duration (minutes)', entry.lockout_duration, function(value) { entry.lockout_duration = value; }, {complianceKey: 'lockout_duration'}).group);
                   addFgppField(makeBoolSelect('Is Complexity Enabled?', entry.complexity_enabled, function(value) { entry.complexity_enabled = value; }));
 
                   fgppWrapper.appendChild(fgppRow);
@@ -5562,6 +5650,7 @@
               wrapper.appendChild(patternRow);
               container.appendChild(wrapper);
             });
+            applyPolicyComplianceStyles();
           };
 
           renderPolicies();

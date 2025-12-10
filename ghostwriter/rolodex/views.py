@@ -106,6 +106,7 @@ from ghostwriter.rolodex.data_parsers import (
     NEXPOSE_METRICS_LABELS,
     NEXPOSE_UPLOAD_REQUIREMENTS,
     NEXPOSE_UPLOAD_REQUIREMENTS_BY_SLUG,
+    load_password_compliance_matrix,
     load_ad_threshold_map,
     normalize_nexpose_artifacts_map,
     resolve_nexpose_requirement_artifact_key,
@@ -2339,6 +2340,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         }
         ctx["workbook_data_json"] = normalized_workbook
         ctx["ad_threshold_map_json"] = load_ad_threshold_map()
+        ctx["password_compliance_matrix_json"] = load_password_compliance_matrix()
         ctx["data_responses_fields"] = {
             definition["key"]: data_responses_form[definition["key"]]
             for definition in questions
