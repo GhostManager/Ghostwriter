@@ -156,10 +156,10 @@ from ghostwriter.reporting.models import RiskScoreRangeMapping
 logger = logging.getLogger(__name__)
 
 AI_REVIEW_SECTIONS = (
-    ("osint", "OSINT", "osint"),
-    ("dns", "DNS", "dns"),
-    ("external_nexpose", "External Nexpose", "nexpose"),
-    ("web", "Web", "web"),
+    ("osint_rt", "OSINT", "osint"),
+    ("dns_rt", "DNS", "dns"),
+    ("external_nexpose_rt", "External Nexpose", "nexpose"),
+    ("web_rt", "Web", "web"),
 )
 
 
@@ -185,9 +185,24 @@ def _build_ai_review_sections(scoping_state: Mapping[str, Any], ai_review_payloa
 def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
     """Normalize stored AI review payloads, handling legacy keys."""
 
-    normalized_payload = dict(ai_review_payload) if isinstance(ai_review_payload, Mapping) else {}
-    if "nexpose" in normalized_payload and "external_nexpose" not in normalized_payload:
-        normalized_payload["external_nexpose"] = normalized_payload.pop("nexpose")
+    if not isinstance(ai_review_payload, Mapping):
+        return {}
+
+    key_aliases = {
+        "osint": "osint_rt",
+        "dns": "dns_rt",
+        "external_nexpose": "external_nexpose_rt",
+        "nexpose": "external_nexpose_rt",
+        "web": "web_rt",
+    }
+
+    normalized_payload: Dict[str, Any] = {}
+    for key, value in ai_review_payload.items():
+        normalized_key = key_aliases.get(key, key)
+        if normalized_key in normalized_payload and normalized_key != key:
+            continue
+        normalized_payload[normalized_key] = value
+
     return normalized_payload
 
 
@@ -223,14 +238,16 @@ def _build_ai_review_prompt(
 ) -> str:
     """Craft a prompt for the requested AI review ``section_key``."""
 
+    normalized_key = section_key[:-3] if section_key.endswith("_rt") else section_key
+
     description = {
         "osint": "Open Source Intel metrics",
         "dns": "DNS configuration best practice checks",
         "external_nexpose": "Vulnerability scanning results for externally accessible systems",
         "web": "Web application vulnerability scan results",
-    }.get(section_key, "Project review")
+    }.get(normalized_key, "Project review")
 
-    if section_key == "osint":
+    if normalized_key == "osint":
         metrics = workbook.get("osint") if isinstance(workbook, Mapping) else {}
         osint_labels = {
             "total_domains": "Total Domains",
@@ -248,13 +265,13 @@ def _build_ai_review_prompt(
                 if value not in {None, ""}:
                     metric_lines.append(f"- {label}: {value}")
         details = "\n".join(metric_lines) if metric_lines else "No OSINT metrics available."
-    elif section_key == "dns":
+    elif normalized_key == "dns":
         findings = _summarize_dns_findings(artifacts.get("dns_findings", {}))
         if findings:
             details = json.dumps(findings, indent=2)
         else:
             details = "No DNS findings provided."
-    elif section_key == "external_nexpose":
+    elif normalized_key == "external_nexpose":
         nexpose_metrics = artifacts.get("external_nexpose_metrics", {})
         summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
         vulnerabilities = artifacts.get("external_nexpose_vulnerabilities", {})
@@ -264,7 +281,7 @@ def _build_ai_review_prompt(
             "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
         }
         details = json.dumps(relevant, indent=2)
-    elif section_key == "web":
+    elif normalized_key == "web":
         web_metrics = artifacts.get("web_metrics", {})
         summary = web_metrics.get("summary") if isinstance(web_metrics, Mapping) else {}
         issues = artifacts.get("web_issues", {}) if isinstance(artifacts, Mapping) else {}
