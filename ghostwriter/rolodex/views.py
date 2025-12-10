@@ -1356,50 +1356,92 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
 
     def post(self, *args, **kwargs):
         project = self.get_object()
-        scoping_state = normalize_project_scoping(project.scoping)
-        sections = _build_ai_review_sections(scoping_state, getattr(project, "ai_review", {}))
-        if not sections:
+        try:
+            scoping_state = normalize_project_scoping(project.scoping)
+            sections = _build_ai_review_sections(
+                scoping_state, getattr(project, "ai_review", {})
+            )
+            if not sections:
+                return JsonResponse(
+                    {"result": "warning", "message": "No in-scope AI review sections are available."}
+                )
+
+            workbook = normalize_workbook_payload(getattr(project, "workbook_data", {}))
+            artifacts = normalize_nexpose_artifacts_map(
+                getattr(project, "data_artifacts", {}) or {}
+            )
+            ai_outputs: Dict[str, str] = {}
+            failed_sections: list[str] = []
+
+            for section in sections:
+                prompt = _build_ai_review_prompt(
+                    section["key"], project, workbook, artifacts
+                )
+                try:
+                    ai_response = submit_prompt_to_assistant(prompt)
+                except Exception as exc:  # pragma: no cover - defensive logging
+                    logger.warning(
+                        "AI review generation failed for %s on project %s: %s",
+                        section["key"],
+                        project.pk,
+                        exc,
+                    )
+                    ai_response = None
+
+                if ai_response:
+                    ai_outputs[section["key"]] = _normalize_ai_response(ai_response)
+                else:
+                    failed_sections.append(section["key"])
+
+            if ai_outputs:
+                current_payload = _normalize_ai_review_payload(project.ai_review)
+                current_payload.update(ai_outputs)
+                project.ai_review = current_payload
+                project.save(update_fields=["ai_review"])
+
+            if not ai_outputs:
+                message = (
+                    "AI review generation did not return any content. "
+                    "The OpenAI run may have timed out; please try again."
+                )
+                logger.warning(
+                    "AI review generation returned no content for project %s; failed sections: %s",
+                    project.pk,
+                    failed_sections,
+                )
+                return JsonResponse(
+                    {"result": "warning", "message": message, "data": {}}, status=502
+                )
+
+            response_message = (
+                "AI review generation complete." if not failed_sections else "Some sections could not be generated."
+            )
+            if failed_sections:
+                logger.warning(
+                    "AI review generation partially completed for project %s; failed sections: %s",
+                    project.pk,
+                    failed_sections,
+                )
             return JsonResponse(
-                {"result": "warning", "message": "No in-scope AI review sections are available."}
+                {
+                    "result": "success",
+                    "message": response_message,
+                    "data": ai_outputs,
+                    "failed": failed_sections,
+                }
             )
-
-        workbook = normalize_workbook_payload(getattr(project, "workbook_data", {}))
-        artifacts = normalize_nexpose_artifacts_map(getattr(project, "data_artifacts", {}) or {})
-        ai_outputs: Dict[str, str] = {}
-        failed_sections: list[str] = []
-
-        for section in sections:
-            prompt = _build_ai_review_prompt(section["key"], project, workbook, artifacts)
-            try:
-                ai_response = submit_prompt_to_assistant(prompt)
-            except Exception as exc:  # pragma: no cover - defensive logging
-                logger.warning("AI review generation failed for %s: %s", section["key"], exc)
-                ai_response = None
-
-            if ai_response:
-                ai_outputs[section["key"]] = _normalize_ai_response(ai_response)
-            else:
-                failed_sections.append(section["key"])
-
-        if ai_outputs:
-            current_payload = _normalize_ai_review_payload(project.ai_review)
-            current_payload.update(ai_outputs)
-            project.ai_review = current_payload
-            project.save(update_fields=["ai_review"])
-
-        if not ai_outputs:
-            message = (
-                "AI review generation did not return any content. "
-                "The OpenAI run may have timed out; please try again."
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception(
+                "AI review generation encountered an unexpected error for project %s",
+                project.pk,
             )
-            return JsonResponse({"result": "warning", "message": message, "data": {}})
-
-        response_message = (
-            "AI review generation complete." if not failed_sections else "Some sections could not be generated."
-        )
-        return JsonResponse(
-            {"result": "success", "message": response_message, "data": ai_outputs, "failed": failed_sections}
-        )
+            return JsonResponse(
+                {
+                    "result": "error",
+                    "message": "AI review generation failed due to an internal error.",
+                },
+                status=500,
+            )
 
 
 class ProjectAiReviewSave(RoleBasedAccessControlMixin, SingleObjectMixin, View):

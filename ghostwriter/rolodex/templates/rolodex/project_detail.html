@@ -1051,7 +1051,7 @@
                   }
                   if (typeof displayToastTop === 'function') {
                     const message = data && data.message ? data.message : 'AI review generation complete.';
-                    const type = data && data.result === 'warning' ? 'warning' : 'success';
+                    const type = data && data.result === 'warning' ? 'warning' : (data && data.result === 'error' ? 'error' : 'success');
                     displayToastTop({type: type, string: message, title: 'AI Review'});
                   }
                 })
