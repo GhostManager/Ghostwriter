@@ -156,22 +156,22 @@ from ghostwriter.reporting.models import RiskScoreRangeMapping
 logger = logging.getLogger(__name__)
 
 AI_REVIEW_SECTIONS = (
-    ("osint", "OSINT"),
-    ("dns", "DNS"),
-    ("nexpose", "External Nexpose"),
-    ("web", "Web"),
+    ("osint", "OSINT", "osint"),
+    ("dns", "DNS", "dns"),
+    ("external_nexpose", "External Nexpose", "nexpose"),
+    ("web", "Web", "web"),
 )
 
 
 def _build_ai_review_sections(scoping_state: Mapping[str, Any], ai_review_payload: Any):
     """Return a list of AI review sections based on ``scoping_state``."""
 
-    ai_payload = ai_review_payload if isinstance(ai_review_payload, Mapping) else {}
+    ai_payload = _normalize_ai_review_payload(ai_review_payload)
     sections = []
     external_scope = scoping_state.get("external", {}) if isinstance(scoping_state, Mapping) else {}
 
-    for key, label in AI_REVIEW_SECTIONS:
-        if external_scope.get("selected") and external_scope.get(key):
+    for key, label, scoping_key in AI_REVIEW_SECTIONS:
+        if external_scope.get("selected") and external_scope.get(scoping_key):
             sections.append(
                 {
                     "key": key,
@@ -180,6 +180,15 @@ def _build_ai_review_sections(scoping_state: Mapping[str, Any], ai_review_payloa
                 }
             )
     return sections
+
+
+def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
+    """Normalize stored AI review payloads, handling legacy keys."""
+
+    normalized_payload = dict(ai_review_payload) if isinstance(ai_review_payload, Mapping) else {}
+    if "nexpose" in normalized_payload and "external_nexpose" not in normalized_payload:
+        normalized_payload["external_nexpose"] = normalized_payload.pop("nexpose")
+    return normalized_payload
 
 
 def _normalize_ai_response(response_text: Optional[str]) -> str:
@@ -217,7 +226,7 @@ def _build_ai_review_prompt(
     description = {
         "osint": "Open Source Intel metrics",
         "dns": "DNS configuration best practice checks",
-        "nexpose": "Vulnerability scanning results for externally accessible systems",
+        "external_nexpose": "Vulnerability scanning results for externally accessible systems",
         "web": "Web application vulnerability scan results",
     }.get(section_key, "Project review")
 
@@ -245,7 +254,7 @@ def _build_ai_review_prompt(
             details = json.dumps(findings, indent=2)
         else:
             details = "No DNS findings provided."
-    elif section_key == "nexpose":
+    elif section_key == "external_nexpose":
         nexpose_metrics = artifacts.get("external_nexpose_metrics", {})
         summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
         vulnerabilities = artifacts.get("external_nexpose_vulnerabilities", {})
@@ -1159,7 +1168,7 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
                 ai_outputs[section["key"]] = _normalize_ai_response(ai_response)
 
         if ai_outputs:
-            current_payload = project.ai_review if isinstance(project.ai_review, Mapping) else {}
+            current_payload = _normalize_ai_review_payload(project.ai_review)
             current_payload.update(ai_outputs)
             project.ai_review = current_payload
             project.save(update_fields=["ai_review"])
@@ -1188,7 +1197,7 @@ class ProjectAiReviewSave(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             messages.warning(self.request, "No in-scope AI review sections found to update.")
             return redirect(reverse("rolodex:project_detail", kwargs={"pk": project.pk}) + "#ai-review")
 
-        payload = project.ai_review if isinstance(project.ai_review, Mapping) else {}
+        payload = _normalize_ai_review_payload(project.ai_review)
         for section in sections:
             field_name = f"ai_review_{section['key']}"
             payload[section["key"]] = self.request.POST.get(field_name, "") or ""

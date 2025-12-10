@@ -28,6 +28,12 @@ LINTER_CONTEXT = {
         "start_time": "09:00:00",
         "end_time": "17:00:00",
         "tags": ["tag1", "tag2", "tag3"],
+        "ai_review": {
+            "osint": "<p>OSINT executive summary</p>",
+            "dns": "<p>DNS best practice summary</p>",
+            "external_nexpose": "<p>External Nexpose vulnerability overview</p>",
+            "web": "<p>Web application findings summary</p>",
+        },
         "scoping": {
             "external": {
                 "selected": True,
