@@ -165,6 +165,7 @@ AI_REVIEW_SECTIONS = (
     ("endpoint_rt", "Endpoint", "internal", "endpoint"),
     ("snmp_rt", "SNMP", "internal", "snmp"),
     ("sql_rt", "SQL", "internal", "sql"),
+    ("firewall_rt", "Firewall", "firewall", "selected"),
     ("wireless_rt", "Wireless", "wireless", "selected"),
     ("web_rt", "Web", "external", "web"),
     ("ad_rt", "AD", "iam", "ad"),
@@ -213,6 +214,7 @@ def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
         "endpoint": "endpoint_rt",
         "snmp": "snmp_rt",
         "sql": "sql_rt",
+        "firewall": "firewall_rt",
         "wireless": "wireless_rt",
         "web": "web_rt",
         "ad": "ad_rt",
@@ -272,6 +274,7 @@ def _build_ai_review_prompt(
         "endpoint": "Review of accessible AD registered computers for current Security Software and past connections to insecure WiFi",
         "snmp": "Review of internal systems using SNMP for default or easy to guess Strings",
         "sql": "Review of internal systems with database servers listening on default ports with a test for default credentials",
+        "firewall": "Review of firewall OS version, security configuration setting best-practice adherence and rule configuration",
         "wireless": "Review of the Wireless networks accessible at a location, a comparison to 'approved' SSIDs, a review of the wireless security and wireless-to-internal network segmentation testing (when applicable)",
         "web": "Web application vulnerability scan results",
         "ad": "Active Directory metrics covering privileged groups and user account hygiene",
@@ -355,6 +358,21 @@ def _build_ai_review_prompt(
             json.dumps(sql_data, indent=2)
             if isinstance(sql_data, (Mapping, list)) and sql_data
             else "No SQL data provided."
+        )
+    elif normalized_key == "firewall":
+        firewall_data = workbook.get("firewall") if isinstance(workbook, Mapping) else {}
+        firewall_metrics = artifacts.get("firewall_metrics") if isinstance(artifacts, Mapping) else {}
+        summary = (
+            firewall_metrics.get("summary") if isinstance(firewall_metrics, Mapping) else {}
+        )
+        details_map = {
+            "workbook_firewall": firewall_data if isinstance(firewall_data, Mapping) else {},
+            "firewall_metrics_summary": summary if isinstance(summary, Mapping) else {},
+        }
+        details = (
+            json.dumps(details_map, indent=2, default=str)
+            if any(details_map.values())
+            else "No firewall workbook data or metrics summary provided."
         )
     elif normalized_key == "wireless":
         wireless_data = workbook.get("wireless") if isinstance(workbook, Mapping) else {}

@@ -37,6 +37,7 @@ LINTER_CONTEXT = {
             "endpoint_rt": "<p>Endpoint security software and WiFi review</p>",
             "snmp_rt": "<p>SNMP default string review summary</p>",
             "sql_rt": "<p>SQL default credential review summary</p>",
+            "firewall_rt": "<p>Firewall configuration and rule review summary</p>",
             "wireless_rt": "<p>Wireless network assessment summary</p>",
             "web_rt": "<p>Web application findings summary</p>",
             "ad_rt": "<p>Active Directory review summary</p>",
