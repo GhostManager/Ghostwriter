@@ -171,6 +171,14 @@ AI_REVIEW_SECTIONS = (
     ("sql_rt", "SQL", "internal", "sql"),
     ("wireless_rt", "Wireless", "wireless", "selected"),
     ("firewall_rt", "Firewall", "firewall", "selected"),
+    ("cloud_management_rt", "Cloud Management", "cloud", "cloud_management"),
+    ("iam_management_rt", "IAM Management", "cloud", "iam_management"),
+    (
+        "system_configuration_rt",
+        "System Configuration",
+        "cloud",
+        "system_configuration",
+    ),
 )
 
 
@@ -220,6 +228,9 @@ def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
         "web": "web_rt",
         "ad": "ad_rt",
         "password": "password_rt",
+        "cloud_management": "cloud_management_rt",
+        "iam_management": "iam_management_rt",
+        "system_configuration": "system_configuration_rt",
     }
 
     normalized_payload: Dict[str, Any] = {}
@@ -296,6 +307,9 @@ def _build_ai_review_prompt(
         "web": "Web application vulnerability scan results",
         "ad": "Active Directory metrics covering privileged groups and user account hygiene",
         "password": "Password policy effectiveness, cracked credentials, and related controls",
+        "iam_management": "Review of the M365 configuration settings as compared to the CIS Benchmark recommendations",
+        "cloud_management": "Review of the applicable cloud provider configuration settings as compared to the CIS Benchmark recommendations",
+        "system_configuration": "Review of system configuration setting as compared to the applicable CIS Benchmark recommendations",
     }.get(normalized_key, "Project review")
 
     risk_statements = {
@@ -312,6 +326,9 @@ def _build_ai_review_prompt(
         "sql": "ecfirst has determined that the number of database instances allowing open access, coupled with the unsupported systems, creates a {risk} risk for unauthorized data access or data loss.",
         "wireless": "ecfirst has determined that the risk related to the wireless networks is {risk}.",
         "firewall": "ecfirst has determined the risk related to the Firewalls is {risk}.",
+        "iam_management": "ecfirst has determined the risk related to IAM management settings is {risk}.",
+        "cloud_management": "ecfirst has determined the risk related to cloud management settings is {risk}.",
+        "system_configuration": "ecfirst has determined the risk related to system configuration is {risk}.",
     }
 
     def _attach_risk(payload: Any) -> Any:
@@ -468,6 +485,63 @@ def _build_ai_review_prompt(
             "wireless_responses": wireless_followup,
         }
         payload = details_map if wireless_metrics or wireless_followup else {"note": "No wireless workbook metrics or responses provided."}
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "iam_management":
+        iam_cloud_config = workbook.get("iam_cloud_config") if isinstance(workbook, Mapping) else {}
+        grades = workbook.get("external_internal_grades") if isinstance(workbook, Mapping) else {}
+        cloud_section = grades.get("cloud") if isinstance(grades, Mapping) else {}
+        iam_grade = cloud_section.get("iam_management") if isinstance(cloud_section, Mapping) else {}
+
+        payload: dict[str, Any] = {}
+        if iam_cloud_config not in (None, ""):
+            payload["iam_cloud_config"] = iam_cloud_config
+        if iam_grade not in (None, ""):
+            payload["iam_management_grade"] = iam_grade
+
+        if not payload:
+            payload = {"note": "No IAM management workbook data or grades provided."}
+
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "cloud_management":
+        cloud_provider = None
+        if isinstance(workbook, Mapping):
+            general_section = workbook.get("general") if isinstance(workbook.get("general"), Mapping) else {}
+            cloud_provider = general_section.get("cloud_provider")
+
+        cloud_config = workbook.get("cloud_config") if isinstance(workbook, Mapping) else {}
+        grades = workbook.get("external_internal_grades") if isinstance(workbook, Mapping) else {}
+        cloud_section = grades.get("cloud") if isinstance(grades, Mapping) else {}
+        cloud_grade = cloud_section.get("cloud_management") if isinstance(cloud_section, Mapping) else {}
+
+        payload: dict[str, Any] = {}
+        if cloud_provider not in (None, ""):
+            payload["cloud_provider"] = cloud_provider
+        if cloud_config not in (None, ""):
+            payload["cloud_config"] = cloud_config
+        if cloud_grade not in (None, ""):
+            payload["cloud_management_grade"] = cloud_grade
+
+        if not payload:
+            payload = {"note": "No cloud management workbook data or grades provided."}
+
+        details = json.dumps(_attach_risk(payload), indent=2, default=str)
+    elif normalized_key == "system_configuration":
+        system_config = workbook.get("system_config") if isinstance(workbook, Mapping) else {}
+        grades = workbook.get("external_internal_grades") if isinstance(workbook, Mapping) else {}
+        cloud_section = grades.get("cloud") if isinstance(grades, Mapping) else {}
+        system_grade = (
+            cloud_section.get("system_configuration") if isinstance(cloud_section, Mapping) else {}
+        )
+
+        payload: dict[str, Any] = {}
+        if system_config not in (None, ""):
+            payload["system_config"] = system_config
+        if system_grade not in (None, ""):
+            payload["system_configuration_grade"] = system_grade
+
+        if not payload:
+            payload = {"note": "No system configuration workbook data or grades provided."}
+
         details = json.dumps(_attach_risk(payload), indent=2, default=str)
     elif normalized_key == "web":
         web_metrics = artifacts.get("web_metrics", {})
