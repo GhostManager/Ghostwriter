@@ -1366,6 +1366,7 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
         workbook = normalize_workbook_payload(getattr(project, "workbook_data", {}))
         artifacts = normalize_nexpose_artifacts_map(getattr(project, "data_artifacts", {}) or {})
         ai_outputs: Dict[str, str] = {}
+        failed_sections: list[str] = []
 
         for section in sections:
             prompt = _build_ai_review_prompt(section["key"], project, workbook, artifacts)
@@ -1377,6 +1378,8 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
 
             if ai_response:
                 ai_outputs[section["key"]] = _normalize_ai_response(ai_response)
+            else:
+                failed_sections.append(section["key"])
 
         if ai_outputs:
             current_payload = _normalize_ai_review_payload(project.ai_review)
@@ -1384,7 +1387,19 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
             project.ai_review = current_payload
             project.save(update_fields=["ai_review"])
 
-        return JsonResponse({"result": "success", "data": ai_outputs})
+        if not ai_outputs:
+            message = (
+                "AI review generation did not return any content. "
+                "The OpenAI run may have timed out; please try again."
+            )
+            return JsonResponse({"result": "warning", "message": message, "data": {}})
+
+        response_message = (
+            "AI review generation complete." if not failed_sections else "Some sections could not be generated."
+        )
+        return JsonResponse(
+            {"result": "success", "message": response_message, "data": ai_outputs, "failed": failed_sections}
+        )
 
 
 class ProjectAiReviewSave(RoleBasedAccessControlMixin, SingleObjectMixin, View):
