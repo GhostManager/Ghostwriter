@@ -301,6 +301,7 @@
         {{ project_scoping_weights_json|json_script:"project-scoping-weights" }}
         {{ project_scoping_config_json|json_script:"project-scoping-config" }}
         {{ risk_score_map_json|json_script:"project-risk-score-map" }}
+        {{ ad_threshold_map_json|json_script:"project-ad-thresholds" }}
       </div>
 
       <div id="supplementals" class="tab-pane">
@@ -1199,6 +1200,17 @@
         const scopingWeights = parseJsonScript('project-scoping-weights') || {};
         const scopingConfig = parseJsonScript('project-scoping-config') || {};
         const riskScoreMap = parseJsonScript('project-risk-score-map') || {};
+        const adThresholdDefaults = {
+          min_enabled_ratio: {value: 0.9, threshold_type: 'min_ratio'},
+          generic_accounts_pct: {value: 0.05, threshold_type: 'percent_of_enabled'},
+          generic_logins_pct: {value: 0.05, threshold_type: 'percent_of_enabled'},
+          inactive_accounts_pct: {value: 0.05, threshold_type: 'percent_of_enabled'},
+          passwords_never_exp_pct: {value: 0.05, threshold_type: 'percent_of_enabled'},
+          exp_passwords_pct: {value: 0.05, threshold_type: 'percent_of_enabled'},
+          domain_admin_pct: {value: 0.005, threshold_type: 'percent_of_enabled'},
+          ent_admin_absolute: {value: 1, threshold_type: 'absolute'},
+        };
+        const adThresholdMap = Object.assign({}, adThresholdDefaults, parseJsonScript('project-ad-thresholds') || {});
         const riskLabels = Object.keys(riskScoreMap);
 
         const getNexposeMissingEntries = function(artifactKey) {
@@ -1457,6 +1469,64 @@
           '2_year': null,
           '3_year': null,
           never: null,
+        };
+
+        const adFieldThresholdMap = {
+          domain_admins: 'domain_admin_pct',
+          ent_admins: 'ent_admin_absolute',
+          exp_passwords: 'exp_passwords_pct',
+          passwords_never_exp: 'passwords_never_exp_pct',
+          inactive_accounts: 'inactive_accounts_pct',
+          generic_accounts: 'generic_accounts_pct',
+          generic_logins: 'generic_logins_pct',
+          enabled_accounts: 'min_enabled_ratio',
+        };
+
+        const normalizeNumber = function(value) {
+          const num = Number(value);
+          return Number.isFinite(num) ? num : null;
+        };
+
+        const resolveAdThreshold = function(key) {
+          const entry = adThresholdMap[key] || adThresholdDefaults[key] || {};
+          const value = normalizeNumber(entry.value);
+          const type = entry.threshold_type || (adThresholdDefaults[key] && adThresholdDefaults[key].threshold_type) || 'absolute';
+          const fallbackValue = normalizeNumber(adThresholdDefaults[key] && adThresholdDefaults[key].value);
+          return {
+            value: value !== null ? value : (fallbackValue !== null ? fallbackValue : 0),
+            type: type,
+          };
+        };
+
+        const shouldFlagAdField = function(domain, fieldKey) {
+          const thresholdKey = adFieldThresholdMap[fieldKey];
+          if (!thresholdKey) {
+            return false;
+          }
+          const threshold = resolveAdThreshold(thresholdKey);
+          if (!Number.isFinite(threshold.value)) {
+            return false;
+          }
+          const fieldValue = normalizeNumber(domain[fieldKey]);
+          if (fieldValue === null) {
+            return false;
+          }
+          if (threshold.type === 'percent_of_enabled') {
+            const enabled = normalizeNumber(domain.enabled_accounts);
+            if (!enabled || enabled <= 0) {
+              return false;
+            }
+            return fieldValue > enabled * threshold.value;
+          }
+          if (threshold.type === 'min_ratio') {
+            const enabled = normalizeNumber(domain.enabled_accounts);
+            const total = normalizeNumber(domain.total_accounts);
+            if (!enabled || !total || total <= 0) {
+              return false;
+            }
+            return (enabled / total) < threshold.value;
+          }
+          return fieldValue > threshold.value;
         };
 
         function ensureAdState() {
@@ -6066,6 +6136,14 @@
 
               const metricsRow = document.createElement('div');
               metricsRow.className = 'form-row';
+              const metricInputs = [];
+
+              const applyAdThresholdStyles = function() {
+                metricInputs.forEach(function(entry) {
+                  const flagged = shouldFlagAdField(domain, entry.key);
+                  entry.input.style.backgroundColor = flagged ? '#E87A69' : '';
+                });
+              };
 
               const makeMetricGroup = function(labelText, fieldKey, uploadMetric) {
                 const group = document.createElement('div');
@@ -6136,7 +6214,9 @@
                   const value = input.value === '' ? null : Number(input.value);
                   domain[fieldKey] = Number.isNaN(value) ? null : value;
                   updateWorkbookCardProgress(areaKey);
+                  applyAdThresholdStyles();
                 });
+                metricInputs.push({key: fieldKey, input: input});
                 group.appendChild(input);
                 if (uploadMetric) {
                   group.appendChild(fileInfo);
@@ -6157,6 +6237,7 @@
               metricsRow.appendChild(makeMetricGroup('Enabled Accounts', 'enabled_accounts', null));
               metricsRow.appendChild(makeMetricGroup('Total Accounts', 'total_accounts', null));
               wrapper.appendChild(metricsRow);
+              applyAdThresholdStyles();
 
               const oldCountsSection = document.createElement('div');
               oldCountsSection.className = 'mt-3';
