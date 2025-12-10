@@ -3996,8 +3996,10 @@ class DNSDataParserTests(TestCase):
                             {
                                 "fgpp_name": "Tiered Policy",
                                 "lockout_threshold": 0,
+                                "complexity_enabled": "TRUE",
                             }
                         ],
+                        "complexity_enabled": "TRUE",
                     }
                 ]
             }
@@ -4013,9 +4015,17 @@ class DNSDataParserTests(TestCase):
             '<p><span class="bold" style="color: #ee0000;">5</span></p>',
         )
         self.assertEqual(policy_entry.get("min_length_rt"), "<p>12</p>")
+        self.assertEqual(
+            policy_entry.get("complexity_enabled_rt"),
+            '<p><span class="bold" style="color: #ed7d31;">TRUE</span></p>',
+        )
 
         fgpp_entry = policy_entry.get("fgpp", [])[0]
         self.assertEqual(
             fgpp_entry.get("lockout_threshold_rt"),
             '<p><span class="bold" style="color: #ee0000;">0</span></p>',
+        )
+        self.assertEqual(
+            fgpp_entry.get("complexity_enabled_rt"),
+            '<p><span class="bold" style="color: #ed7d31;">TRUE</span></p>',
         )

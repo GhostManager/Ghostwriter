@@ -5825,7 +5825,9 @@ def build_workbook_password_response(
 
         return failures
 
-    def _format_policy_rich_text(raw_value: Any, is_non_compliant: bool) -> Optional[str]:
+    def _format_policy_rich_text(
+        raw_value: Any, is_non_compliant: bool, setting: str
+    ) -> Optional[str]:
         if raw_value in (None, ""):
             return None
 
@@ -5834,7 +5836,10 @@ def build_workbook_password_response(
             return None
 
         if is_non_compliant:
-            return f'<p><span class="bold" style="color: #ee0000;">{text_value}</span></p>'
+            highlight_color = "#ed7d31" if setting == "complexity_enabled" else "#ee0000"
+            return (
+                f'<p><span class="bold" style="color: {highlight_color};">{text_value}</span></p>'
+            )
 
         return f"<p>{text_value}</p>"
 
@@ -5850,7 +5855,7 @@ def build_workbook_password_response(
             if normalized_value is not None:
                 matches_rule = _value_is_non_compliant(field, normalized_value)
 
-            rich_text_value = _format_policy_rich_text(raw_value, matches_rule)
+            rich_text_value = _format_policy_rich_text(raw_value, matches_rule, field)
             if rich_text_value is not None:
                 entry[f"{field}_rt"] = rich_text_value
 
