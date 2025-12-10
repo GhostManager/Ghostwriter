@@ -1470,14 +1470,21 @@ class RiskScoreRangeMapping(models.Model):
         prevent export failures.
         """
 
-        soup = BeautifulSoup(html, "html.parser")
-        block_tags = ("p", "div", "ul", "ol", "table", "blockquote", "pre")
-        if any(soup.find(tag) for tag in block_tags):
+        if html is None:
             return html
 
-        stripped = html.strip()
+        text = str(html)
+        stripped = text.strip()
         if not stripped:
-            return html
+            return text
+
+        if "<" not in stripped and ">" not in stripped:
+            return f"<p>{stripped}</p>"
+
+        soup = BeautifulSoup(text, "html.parser")
+        block_tags = ("p", "div", "ul", "ol", "table", "blockquote", "pre")
+        if any(soup.find(tag) for tag in block_tags):
+            return text
 
         return f"<p>{stripped}</p>"
 

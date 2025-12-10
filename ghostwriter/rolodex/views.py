@@ -6,6 +6,7 @@ import binascii
 import copy
 import csv
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
 import io
 import json
@@ -1372,26 +1373,53 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
             )
             ai_outputs: Dict[str, str] = {}
             failed_sections: list[str] = []
+            prompts: list[tuple[str, str]] = []
 
             for section in sections:
-                prompt = _build_ai_review_prompt(
-                    section["key"], project, workbook, artifacts
-                )
                 try:
-                    ai_response = submit_prompt_to_assistant(prompt)
+                    prompt = _build_ai_review_prompt(
+                        section["key"], project, workbook, artifacts
+                    )
                 except Exception as exc:  # pragma: no cover - defensive logging
                     logger.warning(
-                        "AI review generation failed for %s on project %s: %s",
+                        "Failed to build AI review prompt for %s on project %s: %s",
                         section["key"],
                         project.pk,
                         exc,
                     )
-                    ai_response = None
-
-                if ai_response:
-                    ai_outputs[section["key"]] = _normalize_ai_response(ai_response)
-                else:
                     failed_sections.append(section["key"])
+                    continue
+
+                if not prompt:
+                    failed_sections.append(section["key"])
+                    continue
+
+                prompts.append((section["key"], prompt))
+
+            if prompts:
+                max_workers = min(8, len(prompts))
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    future_map = {
+                        executor.submit(submit_prompt_to_assistant, prompt): key
+                        for key, prompt in prompts
+                    }
+                    for future in as_completed(future_map):
+                        section_key = future_map[future]
+                        try:
+                            ai_response = future.result()
+                        except Exception as exc:  # pragma: no cover - defensive logging
+                            logger.warning(
+                                "AI review generation failed for %s on project %s: %s",
+                                section_key,
+                                project.pk,
+                                exc,
+                            )
+                            ai_response = None
+
+                        if ai_response:
+                            ai_outputs[section_key] = _normalize_ai_response(ai_response)
+                        else:
+                            failed_sections.append(section_key)
 
             if ai_outputs:
                 current_payload = _normalize_ai_review_payload(project.ai_review)
