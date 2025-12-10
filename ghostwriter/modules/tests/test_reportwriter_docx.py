@@ -1,5 +1,6 @@
 from django.test import SimpleTestCase
 
+from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter.base.docx import _lint_context_has_variable
 
 
@@ -22,4 +23,17 @@ class LintContextHasVariableTests(SimpleTestCase):
         context = {}
         self.assertFalse(
             _lint_context_has_variable(context, "project.data_responses.general.scope_count")
+        )
+
+    def test_password_policy_rich_text_fields_present_for_linting(self):
+        self.assertTrue(
+            _lint_context_has_variable(
+                LINTER_CONTEXT, "project.workbook_data.password.policies[0].history_rt"
+            )
+        )
+        self.assertTrue(
+            _lint_context_has_variable(
+                LINTER_CONTEXT,
+                "project.workbook_data.password.policies[0].fgpp[1].lockout_threshold_rt",
+            )
         )
