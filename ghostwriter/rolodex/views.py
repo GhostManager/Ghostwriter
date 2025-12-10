@@ -159,6 +159,11 @@ AI_REVIEW_SECTIONS = (
     ("osint_rt", "OSINT", "external", "osint"),
     ("dns_rt", "DNS", "external", "dns"),
     ("external_nexpose_rt", "External Nexpose", "external", "nexpose"),
+    ("internal_nexpose_rt", "Internal Nexpose", "internal", "nexpose"),
+    ("iot_iomt_nexpose_rt", "IoT/IoMT Nexpose", "internal", "iot_iomt"),
+    ("endpoint_rt", "Endpoint", "internal", "endpoint"),
+    ("snmp_rt", "SNMP", "internal", "snmp"),
+    ("sql_rt", "SQL", "internal", "sql"),
     ("web_rt", "Web", "external", "web"),
     ("ad_rt", "AD", "iam", "ad"),
     ("password_rt", "Password", "iam", "password"),
@@ -200,6 +205,12 @@ def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
         "dns": "dns_rt",
         "external_nexpose": "external_nexpose_rt",
         "nexpose": "external_nexpose_rt",
+        "internal_nexpose": "internal_nexpose_rt",
+        "iot_iomt_nexpose": "iot_iomt_nexpose_rt",
+        "iot_iomt": "iot_iomt_nexpose_rt",
+        "endpoint": "endpoint_rt",
+        "snmp": "snmp_rt",
+        "sql": "sql_rt",
         "web": "web_rt",
         "ad": "ad_rt",
         "password": "password_rt",
@@ -253,6 +264,11 @@ def _build_ai_review_prompt(
         "osint": "Open Source Intel metrics",
         "dns": "DNS configuration best practice checks",
         "external_nexpose": "Vulnerability scanning results for externally accessible systems",
+        "internal_nexpose": "Vulnerability scanning results for internal systems",
+        "iot_iomt_nexpose": "Vulnerability scanning results for IoT systems/devices",
+        "endpoint": "Review of accessible AD registered computers for current Security Software and past connections to insecure WiFi",
+        "snmp": "Review of internal systems using SNMP for default or easy to guess Strings",
+        "sql": "Review of internal systems with database servers listening on default ports with a test for default credentials",
         "web": "Web application vulnerability scan results",
         "ad": "Active Directory metrics covering privileged groups and user account hygiene",
         "password": "Password policy effectiveness, cracked credentials, and related controls",
@@ -292,6 +308,50 @@ def _build_ai_review_prompt(
             "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
         }
         details = json.dumps(relevant, indent=2)
+    elif normalized_key == "internal_nexpose":
+        nexpose_metrics = artifacts.get("internal_nexpose_metrics", {})
+        summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
+        vulnerabilities = artifacts.get("internal_nexpose_vulnerabilities", {})
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
+            "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
+        }
+        details = json.dumps(relevant, indent=2)
+    elif normalized_key == "iot_iomt_nexpose":
+        nexpose_metrics = artifacts.get("iot_iomt_nexpose_metrics", {})
+        summary = nexpose_metrics.get("summary") if isinstance(nexpose_metrics, Mapping) else {}
+        vulnerabilities = artifacts.get("iot_iomt_nexpose_vulnerabilities", {})
+        relevant = {
+            "summary": summary if isinstance(summary, Mapping) else {},
+            "high": vulnerabilities.get("high") if isinstance(vulnerabilities, Mapping) else {},
+            "medium": vulnerabilities.get("med") if isinstance(vulnerabilities, Mapping) else {},
+        }
+        details = json.dumps(relevant, indent=2)
+    elif normalized_key == "endpoint":
+        endpoint_data = artifacts.get("endpoint", {})
+        metrics = endpoint_data.get("metrics") if isinstance(endpoint_data, Mapping) else {}
+        if isinstance(metrics, Mapping):
+            metrics = {k: v for k, v in metrics.items() if k != "xlsx_base64"}
+        details = (
+            json.dumps(metrics, indent=2)
+            if isinstance(metrics, Mapping) and metrics
+            else "No endpoint metrics provided."
+        )
+    elif normalized_key == "snmp":
+        snmp_data = workbook.get("snmp") if isinstance(workbook, Mapping) else {}
+        details = (
+            json.dumps(snmp_data, indent=2)
+            if isinstance(snmp_data, (Mapping, list)) and snmp_data
+            else "No SNMP data provided."
+        )
+    elif normalized_key == "sql":
+        sql_data = workbook.get("sql") if isinstance(workbook, Mapping) else {}
+        details = (
+            json.dumps(sql_data, indent=2)
+            if isinstance(sql_data, (Mapping, list)) and sql_data
+            else "No SQL data provided."
+        )
     elif normalized_key == "web":
         web_metrics = artifacts.get("web_metrics", {})
         summary = web_metrics.get("summary") if isinstance(web_metrics, Mapping) else {}
