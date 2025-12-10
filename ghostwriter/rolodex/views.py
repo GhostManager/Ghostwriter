@@ -156,10 +156,12 @@ from ghostwriter.reporting.models import RiskScoreRangeMapping
 logger = logging.getLogger(__name__)
 
 AI_REVIEW_SECTIONS = (
-    ("osint_rt", "OSINT", "osint"),
-    ("dns_rt", "DNS", "dns"),
-    ("external_nexpose_rt", "External Nexpose", "nexpose"),
-    ("web_rt", "Web", "web"),
+    ("osint_rt", "OSINT", "external", "osint"),
+    ("dns_rt", "DNS", "external", "dns"),
+    ("external_nexpose_rt", "External Nexpose", "external", "nexpose"),
+    ("web_rt", "Web", "external", "web"),
+    ("ad_rt", "AD", "iam", "ad"),
+    ("password_rt", "Password", "iam", "password"),
 )
 
 
@@ -168,10 +170,15 @@ def _build_ai_review_sections(scoping_state: Mapping[str, Any], ai_review_payloa
 
     ai_payload = _normalize_ai_review_payload(ai_review_payload)
     sections = []
-    external_scope = scoping_state.get("external", {}) if isinstance(scoping_state, Mapping) else {}
+    normalized_scoping = scoping_state if isinstance(scoping_state, Mapping) else {}
 
-    for key, label, scoping_key in AI_REVIEW_SECTIONS:
-        if external_scope.get("selected") and external_scope.get(scoping_key):
+    for key, label, scoping_category, scoping_key in AI_REVIEW_SECTIONS:
+        category_scope = (
+            normalized_scoping.get(scoping_category, {})
+            if isinstance(normalized_scoping, Mapping)
+            else {}
+        )
+        if category_scope.get("selected") and category_scope.get(scoping_key):
             sections.append(
                 {
                     "key": key,
@@ -194,6 +201,8 @@ def _normalize_ai_review_payload(ai_review_payload: Any) -> Dict[str, Any]:
         "external_nexpose": "external_nexpose_rt",
         "nexpose": "external_nexpose_rt",
         "web": "web_rt",
+        "ad": "ad_rt",
+        "password": "password_rt",
     }
 
     normalized_payload: Dict[str, Any] = {}
@@ -245,6 +254,8 @@ def _build_ai_review_prompt(
         "dns": "DNS configuration best practice checks",
         "external_nexpose": "Vulnerability scanning results for externally accessible systems",
         "web": "Web application vulnerability scan results",
+        "ad": "Active Directory metrics covering privileged groups and user account hygiene",
+        "password": "Password policy effectiveness, cracked credentials, and related controls",
     }.get(normalized_key, "Project review")
 
     if normalized_key == "osint":
@@ -291,12 +302,135 @@ def _build_ai_review_prompt(
             "medium": issues.get("med") if isinstance(issues, Mapping) else {},
         }
         details = json.dumps(relevant, indent=2)
+    elif normalized_key == "ad":
+        ad_data = workbook.get("ad") if isinstance(workbook, Mapping) else {}
+        domains = ad_data.get("domains") if isinstance(ad_data, Mapping) else []
+        domain_metrics: list[dict[str, Any]] = []
+        if isinstance(domains, list):
+            for entry in domains:
+                if not isinstance(entry, Mapping):
+                    continue
+                domain_name = (entry.get("domain") or entry.get("name") or "").strip() or "Unknown Domain"
+                labeled_entry: dict[str, Any] = {"Domain": domain_name}
+                for field, label in (
+                    ("functionality_level", "Functional Level"),
+                    ("total_accounts", "Total Accounts"),
+                    ("enabled_accounts", "Enabled Accounts"),
+                    ("old_passwords", "Old Passwords"),
+                    ("inactive_accounts", "Inactive Accounts"),
+                    ("domain_admins", "Domain Admins"),
+                    ("ent_admins", "Enterprise Admins"),
+                    ("exp_passwords", "Expired Passwords"),
+                    ("passwords_never_exp", "Passwords Never Expire"),
+                    ("generic_accounts", "Generic Accounts"),
+                    ("generic_logins", "Generic Logins"),
+                ):
+                    value = entry.get(field)
+                    if value not in {None, ""}:
+                        labeled_entry[label] = value
+                domain_metrics.append(labeled_entry)
+
+        ad_responses = (
+            project.data_responses.get("ad") if isinstance(project.data_responses, Mapping) else {}
+        )
+        ad_entries = (
+            ad_responses.get("entries") if isinstance(ad_responses, Mapping) else []
+        )
+        if isinstance(ad_entries, list):
+            ad_entries = [entry for entry in ad_entries if isinstance(entry, Mapping)]
+        else:
+            ad_entries = []
+
+        details_map = {
+            "domains": domain_metrics,
+            "ad_entries": ad_entries,
+        }
+        details = (
+            json.dumps(details_map, indent=2, default=str)
+            if domain_metrics or ad_entries
+            else "No Active Directory metrics or entries provided."
+        )
+    elif normalized_key == "password":
+        password_data = workbook.get("password") if isinstance(workbook, Mapping) else {}
+        policies = password_data.get("policies") if isinstance(password_data, Mapping) else []
+        normalized_policies: list[dict[str, Any]] = []
+        if isinstance(policies, list):
+            for policy in policies:
+                if not isinstance(policy, Mapping):
+                    continue
+                labeled_policy: dict[str, Any] = {}
+                used_fields: set[str] = set()
+                for field, label in (
+                    ("domain", "Domain"),
+                    ("name", "Policy Name"),
+                    ("policy_name", "Policy Name"),
+                    ("description", "Description"),
+                    ("passwords_cracked", "Passwords Cracked"),
+                    ("admin_cracked", "Admin Passwords Cracked"),
+                    ("enabled_accounts", "Enabled Accounts"),
+                ):
+                    value = policy.get(field)
+                    if value not in {None, ""}:
+                        labeled_policy[label] = value
+                        used_fields.add(field)
+                policy_controls = {
+                    key: value
+                    for key, value in policy.items()
+                    if key not in used_fields and value not in {None, ""}
+                }
+                if policy_controls:
+                    labeled_policy["Policy Controls"] = policy_controls
+                if labeled_policy:
+                    normalized_policies.append(labeled_policy)
+
+        password_responses = (
+            project.data_responses.get("password")
+            if isinstance(project.data_responses, Mapping)
+            else {}
+        )
+        password_entries = (
+            password_responses.get("entries") if isinstance(password_responses, Mapping) else []
+        )
+        if isinstance(password_entries, list):
+            password_entries = [entry for entry in password_entries if isinstance(entry, Mapping)]
+        else:
+            password_entries = []
+
+        summary_fields = {}
+        if isinstance(password_responses, Mapping):
+            for key in (
+                "total_cracked",
+                "bad_pass_count",
+                "admin_cracked_string",
+                "cracked_count_str",
+                "admin_cracked_doms",
+            ):
+                value = password_responses.get(key)
+                if value not in {None, ""}:
+                    summary_fields[key] = value
+
+        details_map = {
+            "password_policies": normalized_policies,
+            "password_entries": password_entries,
+            "summary": summary_fields,
+        }
+        details = (
+            json.dumps(details_map, indent=2, default=str)
+            if normalized_policies or password_entries or summary_fields
+            else "No password policy or cracking data provided."
+        )
     else:
         details = ""
 
     return (
         "Provide an executive summary in a single paragraph for the "
-        f"{description}. Use the following project data as context and keep the response concise.\n\n{details}"
+        f"{description}. Use the following project data as context and keep the response concise."
+        + (
+            " Prioritize cracked password results and administrator credentials when present; address policy and FGPP settings as supporting details."
+            if normalized_key == "password"
+            else ""
+        )
+        + f"\n\n{details}"
     )
 
 AD_CSV_HEADER_MAP: dict[str, dict[str, str]] = {

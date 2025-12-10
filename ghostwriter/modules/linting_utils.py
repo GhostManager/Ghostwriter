@@ -33,6 +33,8 @@ LINTER_CONTEXT = {
             "dns_rt": "<p>DNS best practice summary</p>",
             "external_nexpose_rt": "<p>External Nexpose vulnerability overview</p>",
             "web_rt": "<p>Web application findings summary</p>",
+            "ad_rt": "<p>Active Directory review summary</p>",
+            "password_rt": "<p>Password policy and cracking summary</p>",
         },
         "scoping": {
             "external": {
