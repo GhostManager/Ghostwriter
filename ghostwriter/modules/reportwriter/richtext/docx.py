@@ -252,11 +252,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def tag_span(self, el, *, par, **kwargs):
         """Override tag_span to handle footnotes."""
         if "footnote" in el.attrs.get("class", []):
-            self.tag_footnote(el, par=par, **kwargs)
+            self.make_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
 
-    def tag_footnote(self, el, *, par=None, **kwargs):
+    def make_footnote(self, el, *, par=None, **kwargs):
         """
         Handle <span class="footnote"> elements by creating a Word footnote.
 
@@ -380,7 +380,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
         elif "footnote" in el.attrs.get("class", []):
-            self.tag_footnote(el, par=par, **kwargs)
+            self.make_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
 
