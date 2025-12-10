@@ -225,6 +225,10 @@ class ExportProjectBase(ExportBase):
             project_context.get("data_responses"), "the workbook response risk label"
         )
 
+        render_risk_rich_text_fields(
+            project_context.get("ai_review"), "the AI review rich text field"
+        )
+
     @classmethod
     def generate_lint_data(cls):
         context = {
