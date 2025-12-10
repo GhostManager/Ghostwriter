@@ -5787,6 +5787,17 @@ def build_workbook_password_response(
         if definition.get("data_type") == "numeric"
     }
 
+    rich_text_policy_fields: Set[str] = {
+        "history",
+        "max_age",
+        "min_age",
+        "min_length",
+        "lockout_reset",
+        "lockout_duration",
+        "lockout_threshold",
+        "complexity_enabled",
+    }
+
     def _normalize_policy_value(entry: Dict[str, Any], key: str) -> Any:
         value = entry.get(key)
         if key in numeric_policy_fields:
@@ -5813,6 +5824,35 @@ def build_workbook_password_response(
                 failures[setting] = normalized_value
 
         return failures
+
+    def _format_policy_rich_text(raw_value: Any, is_non_compliant: bool) -> Optional[str]:
+        if raw_value in (None, ""):
+            return None
+
+        text_value = str(raw_value).strip()
+        if not text_value:
+            return None
+
+        if is_non_compliant:
+            return f'<p><span class="bold" style="color: #ee0000;">{text_value}</span></p>'
+
+        return f"<p>{text_value}</p>"
+
+    def _apply_policy_rich_text(entry: Dict[str, Any]) -> None:
+        if not isinstance(entry, dict):
+            return
+
+        for field in rich_text_policy_fields:
+            raw_value = entry.get(field)
+            normalized_value = _normalize_policy_value(entry, field)
+            matches_rule = False
+
+            if normalized_value is not None:
+                matches_rule = _value_is_non_compliant(field, normalized_value)
+
+            rich_text_value = _format_policy_rich_text(raw_value, matches_rule)
+            if rich_text_value is not None:
+                entry[f"{field}_rt"] = rich_text_value
 
     def _iter_fgpp_entries(entry: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
         raw_fgpp = entry.get("fgpp")
@@ -5847,6 +5887,8 @@ def build_workbook_password_response(
         normalized_entry = entry if isinstance(entry, dict) else {}
         domain_entry = domain_values.setdefault(domain_text, {})
 
+        _apply_policy_rich_text(normalized_entry)
+
         cracked_value = _coerce_int(normalized_entry.get("passwords_cracked"))
         if cracked_value is not None:
             total_cracked += cracked_value
@@ -5867,6 +5909,7 @@ def build_workbook_password_response(
         for index, fgpp_entry in enumerate(
             _iter_fgpp_entries(normalized_entry), start=1
         ):
+            _apply_policy_rich_text(fgpp_entry)
             fgpp_failures = _collect_policy_failures(fgpp_entry)
             if not fgpp_failures:
                 continue

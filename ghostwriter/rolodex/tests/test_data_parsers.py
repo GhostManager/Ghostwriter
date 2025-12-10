@@ -3983,3 +3983,39 @@ class DNSDataParserTests(TestCase):
         updated_entry = updated_domain_values.get("corp.example.com")
         self.assertIsInstance(updated_entry, dict)
         self.assertNotIn("max_age", updated_entry.get("policy_cap_fields", []))
+
+    def test_password_policy_rich_text_uses_compliance_matrix(self):
+        workbook_payload = {
+            "password": {
+                "policies": [
+                    {
+                        "domain_name": "corp.example.com",
+                        "history": 5,
+                        "min_length": 12,
+                        "fgpp": [
+                            {
+                                "fgpp_name": "Tiered Policy",
+                                "lockout_threshold": 0,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+
+        _summary, _domain_values, _domains = build_workbook_password_response(
+            workbook_payload
+        )
+
+        policy_entry = workbook_payload["password"]["policies"][0]
+        self.assertEqual(
+            policy_entry.get("history_rt"),
+            '<p><span class="bold" style="color: #ee0000;">5</span></p>',
+        )
+        self.assertEqual(policy_entry.get("min_length_rt"), "<p>12</p>")
+
+        fgpp_entry = policy_entry.get("fgpp", [])[0]
+        self.assertEqual(
+            fgpp_entry.get("lockout_threshold_rt"),
+            '<p><span class="bold" style="color: #ee0000;">0</span></p>',
+        )
