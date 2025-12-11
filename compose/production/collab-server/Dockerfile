@@ -1,4 +1,4 @@
-FROM node:21-alpine
+FROM node:25-alpine
 
 COPY ./javascript /app/
 RUN --mount=type=cache,target=/root/.npm cd /app/ && npm ci && npm run build-collab-server-prod

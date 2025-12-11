@@ -1,9 +1,9 @@
-FROM node:21-alpine AS frontendbuild
+FROM node:25-alpine AS frontendbuild
 
 COPY ./javascript /app
 RUN --mount=type=cache,target=/root/.npm cd /app && npm ci && npm run build-frontend-prod
 
-FROM python:3.10.9-alpine3.17 AS build
+FROM python:3.10-alpine AS build
 
 COPY ./requirements /requirements
 RUN \
@@ -25,7 +25,7 @@ RUN \
     pip install wheel \
     && pip wheel --wheel-dir=/wheels --no-binary psycopg2 -r /requirements/production.txt
 
-FROM python:3.10.9-alpine3.17
+FROM python:3.10-alpine
 
 RUN \
   --mount=type=cache,target=/var/cache/apk/ \
