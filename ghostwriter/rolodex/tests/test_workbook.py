@@ -9,13 +9,10 @@ from ghostwriter.rolodex.forms_workbook import ProjectDataResponsesForm, Summary
 from ghostwriter.rolodex.views import _build_grouped_data_responses
 from ghostwriter.rolodex.workbook import (
     DNS_SOA_FIELD_CHOICES,
-    SCOPE_CHOICES,
     WEAK_PSK_SUMMARY_MAP,
-    YES_NO_CHOICES,
     build_data_configuration,
     build_scope_summary,
     build_workbook_sections,
-    normalize_scope_selection,
     prepare_data_responses_initial,
 )
 from ghostwriter.rolodex.workbook_entry import build_workbook_entry_payload
@@ -88,41 +85,11 @@ class WorkbookHelpersTests(SimpleTestCase):
         self.assertIn("slug", required_files[0])
         self.assertEqual(required_files[0]["slug"], "required_dns-report-csv_example-com")
 
-    def test_scope_question_added_with_defaults(self):
-        questions, _ = build_data_configuration({}, project_type="Gold")
-
-        self.assertGreaterEqual(len(questions), 2)
-        scope_question = questions[0]
-        self.assertEqual(scope_question["key"], "assessment_scope")
-        self.assertEqual(scope_question["field_kwargs"].get("choices"), SCOPE_CHOICES)
-        self.assertEqual(
-            scope_question["field_kwargs"].get("initial"),
-            ["external", "internal", "firewall"],
-        )
-
-        followup = next((q for q in questions if q["key"] == "assessment_scope_cloud_on_prem"), None)
-        self.assertIsNotNone(followup)
-        assert followup is not None  # pragma: no cover - typing aid
-        self.assertEqual(followup["field_kwargs"].get("choices"), YES_NO_CHOICES)
-
-    def test_prepare_data_responses_initial_applies_scope_defaults(self):
+    def test_prepare_data_responses_initial_applies_defaults(self):
         normalized = prepare_data_responses_initial({}, project_type="Silver")
 
-        general = normalized.get("general")
-        self.assertIsInstance(general, dict)
-        assert isinstance(general, dict)  # pragma: no cover - typing hint
-        self.assertEqual(general.get("assessment_scope"), ["external", "firewall"])
-
-    def test_prepare_data_responses_initial_preserves_existing_scope(self):
-        normalized = prepare_data_responses_initial(
-            {"general": {"assessment_scope": ["cloud"]}},
-            project_type="Gold",
-        )
-
-        general = normalized.get("general")
-        self.assertIsInstance(general, dict)
-        assert isinstance(general, dict)  # pragma: no cover - typing hint
-        self.assertEqual(general.get("assessment_scope"), ["cloud"])
+        self.assertIn("general", normalized)
+        self.assertIn("password", normalized)
 
     def test_nexpose_requirements_added_for_positive_totals(self):
         workbook_data = {
@@ -137,21 +104,6 @@ class WorkbookHelpersTests(SimpleTestCase):
         self.assertIn("external_nexpose_xml.xml", labels)
         self.assertIn("internal_nexpose_xml.xml", labels)
         self.assertIn("iot_nexpose_xml.xml", labels)
-
-    def test_iot_testing_question_added_by_default(self):
-        questions, _ = build_data_configuration({})
-
-        iot_question = next(
-            (q for q in questions if q["key"] == "iot_testing_confirm"),
-            None,
-        )
-
-        self.assertIsNotNone(iot_question)
-        assert iot_question is not None  # pragma: no cover - clarify typing
-        self.assertEqual(iot_question["label"], "Was Internal IoT/IoMT testing performed?")
-        self.assertEqual(iot_question["section"], "IoT/IoMT")
-        self.assertEqual(iot_question["field_kwargs"].get("choices"), YES_NO_CHOICES)
-        self.assertEqual(iot_question["field_kwargs"].get("initial"), "no")
 
     def test_dns_soa_question_added_when_issue_present(self):
         data_artifacts = {
@@ -309,10 +261,7 @@ class WorkbookHelpersTests(SimpleTestCase):
         defaults = ensure_data_responses_defaults({})
 
         self.assertIn("general", defaults)
-        self.assertEqual(defaults["general"]["assessment_scope"], [])
         self.assertIn("password", defaults)
-        self.assertIn("hashes_obtained", defaults["password"])
-        self.assertIsNone(defaults["password"]["hashes_obtained"])
         self.assertEqual(defaults["password"]["entries"], [])
         self.assertEqual(defaults["firewall"].get("ood_count"), 0)
         self.assertEqual(defaults["firewall"].get("ood_name_list"), "")
@@ -334,28 +283,17 @@ class WorkbookHelpersTests(SimpleTestCase):
         self.assertEqual(weak_reason["field_kwargs"].get("summary_map"), WEAK_PSK_SUMMARY_MAP)
 
     def test_scope_summary_generation(self):
-        summary = build_scope_summary(["external", "internal", "firewall"], None)
+        summary = build_scope_summary(["external", "internal", "firewall"])
         self.assertEqual(
             summary,
             "External network and systems, Internal network and systems and Firewall configuration(s) & rules",
         )
 
-        cloud_on_prem = build_scope_summary(["external", "cloud"], "yes")
-        self.assertEqual(
-            cloud_on_prem,
-            "External network and systems, Cloud/On-Prem network and systems and Cloud management configuration",
-        )
-
-        cloud_only = build_scope_summary(["external", "cloud"], "no")
+        cloud_only = build_scope_summary(["cloud", "external"])
         self.assertEqual(
             cloud_only,
-            "External network and systems, Cloud systems and Cloud management configuration",
+            "External network and systems and Cloud Management & configuration",
         )
-
-    def test_scope_selection_normalization(self):
-        ordered = normalize_scope_selection(["cloud", "external", "wireless"])
-        self.assertEqual(ordered, ["external", "wireless", "cloud"])
-        self.assertEqual(normalize_scope_selection("internal"), ["internal"])
 
 
 class ProjectDataResponsesFormTests(SimpleTestCase):

@@ -250,15 +250,11 @@ WORKBOOK_DEFAULTS: Dict[str, Any] = {
 
 DATA_RESPONSES_DEFAULTS: Dict[str, Any] = {
     "general": {
-        "assessment_scope": [],
-        "assessment_scope_cloud_on_prem": None,
         "general_first_ca": None,
         "general_scope_changed": None,
         "general_anonymous_ephi": None,
-        "scope_count": None,
         "scope_string": None,
     },
-    "iot_iomt": {"iot_testing_confirm": None},
     "intelligence": {
         "osint_squat_concern": None,
         "osint_bucket_risk": None,

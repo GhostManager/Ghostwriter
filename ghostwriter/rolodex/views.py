@@ -130,7 +130,7 @@ from ghostwriter.rolodex.workbook import (
     build_data_configuration,
     build_scope_summary,
     build_workbook_sections,
-    normalize_scope_selection,
+    SCOPE_OPTION_ORDER,
     prepare_data_responses_initial,
     CLOUD_MANAGEMENT_REQUIREMENT_LABEL,
     CLOUD_MANAGEMENT_REQUIREMENT_SLUG,
@@ -6876,33 +6876,16 @@ class ProjectDataResponsesUpdate(RoleBasedAccessControlMixin, SingleObjectMixin,
         form = ProjectDataResponsesForm(request.POST, question_definitions=questions)
         if form.is_valid():
             responses = dict(form.cleaned_data)
-            scope_selection = responses.get("assessment_scope")
-            normalized_scope = normalize_scope_selection(scope_selection)
-
-            if normalized_scope:
-                responses["assessment_scope"] = normalized_scope
-                responses["scope_count"] = len(normalized_scope)
-
-                raw_on_prem = responses.get("assessment_scope_cloud_on_prem")
-                if "cloud" not in normalized_scope:
-                    responses.pop("assessment_scope_cloud_on_prem", None)
-                    on_prem_value: Optional[str] = None
-                else:
-                    on_prem_value = raw_on_prem if raw_on_prem in {"yes", "no"} else None
-                    if on_prem_value is None:
-                        responses.pop("assessment_scope_cloud_on_prem", None)
-                    else:
-                        responses["assessment_scope_cloud_on_prem"] = on_prem_value
-
-                scope_summary = build_scope_summary(normalized_scope, on_prem_value)
-                if scope_summary:
-                    responses["scope_string"] = scope_summary
-                else:
-                    responses.pop("scope_string", None)
+            scoping_state = normalize_project_scoping(getattr(project, "scoping", {}))
+            selected_scope = [
+                key for key in SCOPE_OPTION_ORDER if scoping_state.get(key, {}).get("selected")
+            ]
+            if selected_scope:
+                responses["scope_count"] = len(selected_scope)
+            scope_summary = build_scope_summary(selected_scope)
+            if scope_summary:
+                responses["scope_string"] = scope_summary
             else:
-                responses.pop("assessment_scope", None)
-                responses.pop("assessment_scope_cloud_on_prem", None)
-                responses.pop("scope_count", None)
                 responses.pop("scope_string", None)
 
             first_ca_value = responses.get("general_first_ca")
