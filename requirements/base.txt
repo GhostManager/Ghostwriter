@@ -22,6 +22,7 @@ djangorestframework==3.15.2  # https://github.com/encode/django-rest-framework
 django-health-check==3.18.3  # https://github.com/KristianOellegaard/django-health-check
 
 # Ghostwriter specific
+psycopg2==2.9.6 # https://github.com/psycopg/psycopg2
 boto3==1.35.17
 botocore==1.35.17
 beautifulsoup4==4.12.3
