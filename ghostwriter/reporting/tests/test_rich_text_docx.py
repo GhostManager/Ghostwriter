@@ -681,8 +681,8 @@ class FootnoteToDocxTests(TestCase):
     maxDiff = None
 
     def test_footnote_creates_footnote_in_document(self):
-        """Test that <footnote> elements create Word footnotes."""
-        html = "<p>Text with a footnote<footnote>This is the footnote content.</footnote> and more text.</p>"
+        """Test that <span class="footnote"> elements create Word footnotes."""
+        html = '<p>Text with a footnote<span class="footnote">This is the footnote content.</span> and more text.</p>'
         doc = docx.Document()
         HtmlToDocx.run(html, doc, None)
 
@@ -699,8 +699,8 @@ class FootnoteToDocxTests(TestCase):
     def test_multiple_footnotes(self):
         """Test that multiple footnotes are created correctly."""
         html = """
-            <p>First footnote<footnote>Footnote one.</footnote> and
-            second footnote<footnote>Footnote two.</footnote> in same paragraph.</p>
+            <p>First footnote<span class="footnote">Footnote one.</span> and
+            second footnote<span class="footnote">Footnote two.</span> in same paragraph.</p>
         """
         doc = docx.Document()
         HtmlToDocx.run(html, doc, None)
@@ -716,7 +716,7 @@ class FootnoteToDocxTests(TestCase):
 
     def test_footnote_with_formatted_content(self):
         """Test that footnotes preserve basic text content."""
-        html = "<p>Text<footnote>Footnote with content.</footnote></p>"
+        html = '<p>Text<span class="footnote">Footnote with content.</span></p>'
         doc = docx.Document()
         HtmlToDocx.run(html, doc, None)
 
@@ -730,7 +730,7 @@ class FootnoteToDocxTests(TestCase):
 
     def test_footnote_reference_in_document(self):
         """Test that footnote reference is inserted in the document."""
-        html = "<p>Text with footnote<footnote>The footnote.</footnote> here.</p>"
+        html = '<p>Text with footnote<span class="footnote">The footnote.</span> here.</p>'
         doc = docx.Document()
         HtmlToDocx.run(html, doc, None)
 
