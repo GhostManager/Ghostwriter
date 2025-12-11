@@ -249,6 +249,60 @@ class HtmlToDocx(BaseHtmlToOOXML):
         else:
             super().tag_div(el, **kwargs)
 
+    def tag_span(self, el, *, par, **kwargs):
+        """Override tag_span to handle footnotes."""
+        if "footnote" in el.attrs.get("class", []):
+            self.make_footnote(el, par=par, **kwargs)
+        else:
+            super().tag_span(el, par=par, **kwargs)
+
+    def make_footnote(self, el, *, par=None, **kwargs):
+        """
+        Handle <span class="footnote"> elements by creating a Word footnote.
+
+        The footnote content is the text content of the element.
+        A footnote reference is inserted at the current position in the paragraph.
+        """
+        if par is None:
+            logger.warning("Footnote found outside of a paragraph, skipping")
+            return
+
+        # Get the footnote content from the element's text
+        footnote_content = el.get_text().strip()
+        if not footnote_content:
+            return
+
+        # Emit any pending segment break before adding footnote
+        self.text_tracking.force_emit_pending_segment_break()
+
+        # Calculate the next footnote ID by finding the max existing ID
+        # This is simpler and more reliable than the paragraph-based algorithm
+        # which doesn't work well for table cells or dynamically-built documents
+        max_existing_id = 0
+        for footnote in self.doc.footnotes:
+            max_existing_id = max(max_existing_id, footnote.id)
+        next_footnote_id = max_existing_id + 1
+
+        # Add footnote reference to the run and create the footnote
+        paragraph_element = par._p.add_r()
+        paragraph_element.add_footnoteReference(next_footnote_id)
+        new_footnote = self.doc._add_footnote(next_footnote_id)
+
+        # Add the footnote paragraph with the footnote reference mark at the start
+        # This is required for Word to properly display the footnote number
+        footnote_paragraph = new_footnote.add_paragraph()
+        # Create a run with footnoteRef element (displays the footnote number)
+        footnote_run = footnote_paragraph._p.add_r()
+        run_properties = OxmlElement("w:rPr")
+        style_element = OxmlElement("w:rStyle")
+        style_element.set(qn("w:val"), "FootnoteReference")
+        run_properties.append(style_element)
+        footnote_run.insert(0, run_properties)
+        footnote_ref_element = OxmlElement("w:footnoteRef")
+        footnote_run.append(footnote_ref_element)
+        # Add a space and the footnote text
+        footnote_paragraph.add_run(" " + footnote_content)
+
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         table.autofit = True
@@ -325,6 +379,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
+        elif "footnote" in el.attrs.get("class", []):
+            self.make_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
 
@@ -503,17 +559,17 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             try:
                 self._make_image(par, file_path)
             except UnrecognizedImageError as e:
-               logger.exception(
-                   "Evidence file known as %s (%s) was not recognized as a %s file.",
-                   evidence["friendly_name"],
-                   file_path,
-                   extension,
-               )
-               error_msg = (
-                   f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
-                   "Try opening it, exporting as desired type, and re-uploading it."
-               )
-               raise ReportExportTemplateError(error_msg) from e
+                logger.exception(
+                    "Evidence file known as %s (%s) was not recognized as a %s file.",
+                    evidence["friendly_name"],
+                    file_path,
+                    extension,
+                )
+                error_msg = (
+                    f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
+                    "Try opening it, exporting as desired type, and re-uploading it."
+                )
+                raise ReportExportTemplateError(error_msg) from e
 
             if self.global_report_config.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()

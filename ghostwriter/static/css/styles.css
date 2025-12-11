@@ -4449,6 +4449,22 @@ input:checked + .theme-slider .star {
 }
 
 /* ---------------------------------------------------
+    Footnote styling for rich text previews
+-----------------------------------------------------*/
+span.footnote {
+    vertical-align: super;
+    font-size: 0.75em;
+    color: #0066cc;
+    cursor: help;
+    font-weight: 500;
+}
+
+span.footnote:hover {
+    color: #0052a3;
+    text-decoration: underline;
+}
+
+/* ---------------------------------------------------
     Evidence lightbox modal styles
 ----------------------------------------------------- */
 

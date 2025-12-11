@@ -557,3 +557,27 @@ class RichTextToPptxTests(TestCase):
         """,
         add_suffix=False,
     )
+
+    # Footnotes are not supported in PowerPoint - they should be silently ignored
+    test_footnote_ignored = mk_test_pptx(
+        "test_footnote_ignored",
+        "<p>Text with footnote<footnote>This footnote should be ignored.</footnote> continues here.</p>",
+        """
+            <a:p>
+                <a:r><a:t>Text with footnote</a:t></a:r>
+                <a:r><a:t> continues here.</a:t></a:r>
+            </a:p>
+        """,
+    )
+
+    test_multiple_footnotes_ignored = mk_test_pptx(
+        "test_multiple_footnotes_ignored",
+        "<p>First<footnote>Note 1</footnote> and second<footnote>Note 2</footnote> footnotes.</p>",
+        """
+            <a:p>
+                <a:r><a:t>First</a:t></a:r>
+                <a:r><a:t> and second</a:t></a:r>
+                <a:r><a:t> footnotes.</a:t></a:r>
+            </a:p>
+        """,
+    )
