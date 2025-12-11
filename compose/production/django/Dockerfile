@@ -3,19 +3,15 @@ FROM node:21-alpine AS frontendbuild
 COPY ./javascript /app
 RUN --mount=type=cache,target=/root/.npm cd /app && npm ci && npm run build-frontend-prod
 
-FROM python:3.10.9-alpine3.17
+FROM python:3.10.9-alpine3.17 AS build
 
-ENV PYTHONUNBUFFERED=1
-
-ENV PYTHONPATH="$PYTHONPATH:/app/config"
-
+COPY ./requirements /requirements
 RUN \
     --mount=type=cache,target=/var/cache/apk/ \
-    --mount=type=cache,target=/root/.cache/pip \
     apk add build-base curl \
     # psycopg2 dependencies
     && apk add --virtual build-deps gcc python3-dev musl-dev \
-    && apk add postgresql-dev \
+    && apk add libpq-dev \
     # Pillow dependencies
     && apk add jpeg-dev zlib-dev freetype-dev lcms2-dev openjpeg-dev tiff-dev tk-dev tcl-dev \
     # CFFI dependencies
@@ -23,15 +19,25 @@ RUN \
     # XLSX dependencies
     && apk add libxml2-dev libxslt-dev \
     # Rust and Cargo required by the ``cryptography`` Python package
-    && apk add rust cargo \
-    && addgroup -S django \
-    && adduser -S -G django django \
-    && pip install -U setuptools pip
+    && apk add rust cargo
+RUN \
+    --mount=type=cache,target=/root/.cache/pip \
+    pip install wheel \
+    && pip wheel --wheel-dir=/wheels --no-binary psycopg2 -r /requirements/production.txt
 
-COPY ./requirements /requirements
+FROM python:3.10.9-alpine3.17
 
-RUN --mount=type=cache,target=/root/.cache/pip pip install -r /requirements/production.txt \
-    && rm -rf /requirements
+RUN \
+  --mount=type=cache,target=/var/cache/apk/ \
+  apk add libpq
+
+RUN \
+  --mount=type=bind,target=/wheels,source=/wheels,from=build \
+  --mount=type=bind,target=/requirements,source=/requirements,from=build \
+  --mount=type=cache,target=/root/.cache/pip \
+  pip install --find-links=/wheels -r /requirements/production.txt
+
+RUN addgroup -S django && adduser -S -G django django
 
 COPY ./compose/production/django/entrypoint /entrypoint
 
