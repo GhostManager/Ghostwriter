@@ -54,15 +54,14 @@ YES_NO_CHOICES = (
     ("no", "No"),
 )
 
-SCOPE_CHOICES = (
-    ("external", "External"),
-    ("internal", "Internal"),
-    ("wireless", "Wireless"),
-    ("firewall", "Firewall"),
-    ("cloud", "Cloud"),
-)
-
-SCOPE_OPTION_ORDER = [choice for choice, _ in SCOPE_CHOICES]
+SCOPE_OPTION_ORDER = [
+    "external",
+    "iam",
+    "internal",
+    "cloud",
+    "wireless",
+    "firewall",
+]
 
 _SCOPE_PRESET_MAP = {
     "silver": {"external", "firewall"},
@@ -74,7 +73,9 @@ _SCOPE_PRESET_MAP = {
 
 _SCOPE_SUMMARY_MAP = {
     "external": "External network and systems",
+    "iam": "Identity & Access Management",
     "internal": "Internal network and systems",
+    "cloud": "Cloud Management & configuration",
     "wireless": "Wireless network and systems",
     "firewall": "Firewall configuration(s) & rules",
 }
@@ -182,71 +183,21 @@ def _get_nested(data: Dict[str, Any], path: Iterable[str], default: Any = None) 
     return result if result is not None else default
 
 
-def get_scope_initial(project_type: Optional[str]) -> List[str]:
-    """Return default scope selections for the provided ``project_type``."""
-
-    if not project_type:
-        return []
-    normalized = project_type.replace(" ", "").strip().lower()
-    preset = _SCOPE_PRESET_MAP.get(normalized, set())
-    if not preset:
-        return []
-    return [key for key in SCOPE_OPTION_ORDER if key in preset]
-
-
-def prepare_data_responses_initial(
-    responses: Optional[Mapping[str, Any]], project_type: Optional[str]
-) -> Dict[str, Any]:
-    """Return normalized responses with scope defaults applied for the ``project_type``."""
-
-    normalized = ensure_data_responses_defaults(
-        responses if isinstance(responses, Mapping) else {}
-    )
-    if not project_type:
-        return normalized
-
-    default_scope = get_scope_initial(project_type)
-    if not default_scope:
-        return normalized
-
-    general_values = normalized.setdefault("general", {})
-    existing_scope = general_values.get("assessment_scope")
-    if not existing_scope:
-        general_values["assessment_scope"] = list(default_scope)
-
-    return normalized
-
-
-def normalize_scope_selection(selection: Iterable[str]) -> List[str]:
-    """Return scope choices in canonical order, removing invalid entries."""
-
-    if selection is None:
-        return []
-    if isinstance(selection, str):
-        normalized_set = {selection}
-    else:
-        normalized_set = {value for value in selection if isinstance(value, str)}
-    normalized_set = {value for value in normalized_set if value in SCOPE_OPTION_ORDER}
-    return [key for key in SCOPE_OPTION_ORDER if key in normalized_set]
-
-
-def build_scope_summary(selection: Iterable[str], on_prem: Optional[str]) -> str:
+def build_scope_summary(selection: Iterable[str]) -> str:
     """Build a human-readable description of the selected assessment scope."""
 
-    ordered_selection = normalize_scope_selection(selection)
+    if selection is None:
+        return ""
+
+    normalized_set = {value for value in selection if isinstance(value, str)}
+    normalized_set = {value for value in normalized_set if value in SCOPE_OPTION_ORDER}
+    ordered_selection = [key for key in SCOPE_OPTION_ORDER if key in normalized_set]
     if not ordered_selection:
         return ""
 
     segments: List[str] = []
-    include_on_prem = str(on_prem or "").strip().lower() == "yes"
 
     for key in ordered_selection:
-        if key == "cloud":
-            segments.append(
-                "Cloud/On-Prem network and systems" if include_on_prem else "Cloud systems"
-            )
-            segments.append("Cloud management configuration")
-            continue
         summary = _SCOPE_SUMMARY_MAP.get(key)
         if summary:
             segments.append(summary)
@@ -258,6 +209,15 @@ def build_scope_summary(selection: Iterable[str], on_prem: Optional[str]) -> str
     if len(segments) == 2:
         return " and ".join(segments)
     return ", ".join(segments[:-1]) + " and " + segments[-1]
+
+
+def prepare_data_responses_initial(
+    responses: Optional[Mapping[str, Any]], project_type: Optional[str]
+) -> Dict[str, Any]:
+    """Return normalized responses with default structure applied."""
+
+    # ``project_type`` is retained for compatibility with the existing call sites.
+    return ensure_data_responses_defaults(responses if isinstance(responses, Mapping) else {})
 
 
 def _humanize_section_name(raw_key: str) -> str:
@@ -429,31 +389,6 @@ def build_data_configuration(
             question_definition["storage_key"] = storage_key
         questions.append(question_definition)
 
-    # Project scope confirmation
-    scope_initial = get_scope_initial(project_type)
-    scope_field_kwargs: Dict[str, Any] = {}
-    if scope_initial:
-        scope_field_kwargs["initial"] = scope_initial
-
-    add_question(
-        key="assessment_scope",
-        label="Confirm the assessment scope",
-        field_class=forms.MultipleChoiceField,
-        section="General",
-        choices=SCOPE_CHOICES,
-        widget=forms.CheckboxSelectMultiple,
-        field_kwargs=scope_field_kwargs or None,
-    )
-
-    add_question(
-        key="assessment_scope_cloud_on_prem",
-        label="Was on-prem testing included?",
-        field_class=forms.ChoiceField,
-        section="General",
-        choices=YES_NO_CHOICES,
-        widget=forms.RadioSelect,
-    )
-
     add_question(
         key="general_first_ca",
         label="Is this the first CA for this client?",
@@ -479,27 +414,6 @@ def build_data_configuration(
         section="General",
         choices=YES_NO_CHOICES,
         widget=forms.RadioSelect,
-    )
-
-    add_question(
-        key="hashes_obtained",
-        label="Were password hashes obtained?",
-        field_class=forms.ChoiceField,
-        section="General",
-        choices=YES_NO_CHOICES,
-        widget=forms.RadioSelect,
-        storage_section_key="password",
-        storage_key="hashes_obtained",
-    )
-
-    add_question(
-        key="iot_testing_confirm",
-        label="Was Internal IoT/IoMT testing performed?",
-        field_class=forms.ChoiceField,
-        section="IoT/IoMT",
-        choices=YES_NO_CHOICES,
-        widget=forms.RadioSelect,
-        initial="no",
     )
 
     # Intelligence questions

@@ -2139,47 +2139,36 @@ class ProjectDataResponsesUpdateTests(TestCase):
         self.assertTrue(self.client_mgr.login(username=self.manager.username, password=PASSWORD))
 
     def test_scope_string_and_count_saved(self):
-        payload = {
-            "assessment_scope": ["external", "cloud"],
-            "assessment_scope_cloud_on_prem": "yes",
+        self.project.scoping = {
+            "external": {"selected": True},
+            "cloud": {"selected": True},
         }
+        self.project.save(update_fields=["scoping"])
 
-        response = self.client_mgr.post(self.url, payload)
+        response = self.client_mgr.post(self.url, {})
 
         self.assertEqual(response.status_code, 302)
         self.project.refresh_from_db()
         data = self.project.data_responses
         general = data.get("general", {})
-        self.assertEqual(general.get("assessment_scope"), ["external", "cloud"])
         self.assertEqual(general.get("scope_count"), 2)
-        self.assertEqual(general.get("assessment_scope_cloud_on_prem"), "yes")
         self.assertEqual(
             general.get("scope_string"),
-            "External network and systems, Cloud/On-Prem network and systems and Cloud management configuration",
+            "External network and systems and Cloud Management & configuration",
         )
 
-    def test_followup_removed_when_cloud_unselected(self):
-        self.project.data_responses = {
-            "general": {
-                "assessment_scope": ["external", "cloud"],
-                "assessment_scope_cloud_on_prem": "yes",
-                "scope_string": "Existing",
-                "scope_count": 2,
-            }
-        }
-        self.project.save(update_fields=["data_responses"])
+    def test_scope_string_uses_selected_scoping(self):
+        self.project.scoping = {"external": {"selected": True}}
+        self.project.save(update_fields=["scoping"])
 
-        payload = {"assessment_scope": ["external"]}
-        response = self.client_mgr.post(self.url, payload)
+        response = self.client_mgr.post(self.url, {})
 
         self.assertEqual(response.status_code, 302)
         self.project.refresh_from_db()
         data = self.project.data_responses
         general = data.get("general", {})
-        self.assertEqual(general.get("assessment_scope"), ["external"])
         self.assertEqual(general.get("scope_count"), 1)
         self.assertEqual(general.get("scope_string"), "External network and systems")
-        self.assertNotIn("assessment_scope_cloud_on_prem", general)
 
     def test_password_domain_responses_preserved_after_rebuild(self):
         workbook_password_response = {"hashes_obtained": "yes"}

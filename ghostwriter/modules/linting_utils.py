@@ -515,8 +515,6 @@ LINTER_CONTEXT = {
                 "jack.donaghy@example.com",
             ],
             "general": {
-                "assessment_scope": ["external", "internal", "firewall"],
-                "assessment_scope_cloud_on_prem": "yes",
                 "general_first_ca": "no",
                 "general_scope_changed": "yes",
                 "general_anonymous_ephi": "no",
@@ -524,7 +522,6 @@ LINTER_CONTEXT = {
                     "External network and systems, Internal network and systems and "
                     "Firewall configuration(s) & rules"
                 ),
-                "scope_count": 3,
             },
             "intelligence": {
                 "osint_squat_concern": "example.com",
