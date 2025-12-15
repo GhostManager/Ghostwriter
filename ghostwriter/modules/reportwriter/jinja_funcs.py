@@ -283,6 +283,27 @@ def raw_mk_evidence(evidence_id) -> Markup:
     return Markup('<span data-gw-evidence="' + html.escape(str(evidence_id)) + '"></span>')
 
 
+@jinja2.pass_context
+def mk_logo(context: jinja2.runtime.Context, logo_name: str) -> Markup:
+    """
+    Insert a client logo placeholder into a template.
+
+    The placeholder is replaced with the requested logo during export.
+    """
+
+    logos = context.get("_logos")
+    if logos is None:
+        raise ReportExportTemplateError("No logos are available in this context")
+    logo = logos.get(logo_name)
+    if logo is None:
+        raise ReportExportTemplateError(f"No such logo with name '{logo_name}'")
+    return raw_mk_logo(logo_name)
+
+
+def raw_mk_logo(logo_name: str) -> Markup:
+    return Markup('<span data-gw-logo="' + html.escape(str(logo_name)) + '"></span>')
+
+
 def replace_blanks(list_of_dicts, placeholder=""):
     """
     Replace blank strings in a dictionary with a placeholder string.

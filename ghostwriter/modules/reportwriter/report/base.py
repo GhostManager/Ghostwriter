@@ -54,6 +54,7 @@ class ExportReportBase(ExportBase):
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)
         rich_text_overlay = ExportProjectBase.rich_text_jinja_overlay(self.data)
+        self._apply_logo_context(base_context, rich_text_overlay)
         rich_text_overlay["mk_evidence"] = jinja_funcs.mk_evidence
         rich_text_overlay["_evidences"] = self.create_evidences_lookup(self.data["evidence"])
         rich_text_overlay["_old_dot_vars"].update(

@@ -285,6 +285,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         p_style,
         evidence_image_width,
         evidences,
+        logos,
         figure_label: str,
         figure_prefix: str,
         figure_caption_location: str,
@@ -297,6 +298,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     ):
         super().__init__(doc, p_style)
         self.evidences = evidences
+        self.logos = logos
         self.figure_label = figure_label
         self.figure_prefix = figure_prefix
         self.figure_caption_location = figure_caption_location
@@ -322,6 +324,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             except (KeyError, ValueError):
                 return
             self.make_evidence(par, evidence)
+        elif "data-gw-logo" in el.attrs:
+            logo_name = el.attrs["data-gw-logo"]
+            try:
+                logo = self.logos[logo_name]
+            except (KeyError, TypeError):
+                return
+            self.make_logo(par, logo)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
             self.make_caption(par, self.figure_label, ref_name or None)
@@ -541,6 +550,19 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             if self.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+
+    def make_logo(self, par, logo):
+        file_path = settings.MEDIA_ROOT + "/" + logo["path"]
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(file_path)
+
+        par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = par.add_run()
+        try:
+            run.add_picture(file_path)
+        except UnrecognizedImageError as e:
+            logger.exception("Logo file could not be recognized: %s", file_path)
+            raise ReportExportTemplateError("The provided logo file could not be recognized as an image") from e
 
     def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
         self.make_caption(par_caption, self.figure_label, ref)

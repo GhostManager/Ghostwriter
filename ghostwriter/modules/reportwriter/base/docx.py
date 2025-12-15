@@ -328,6 +328,7 @@ class ExportDocxBase(ExportBase):
                     p_style=self.p_style,
                     evidence_image_width=self.evidence_image_width,
                     evidences=self.evidences_by_id,
+                    logos=self.logos_by_name,
                     figure_label=self.label_figure,
                     figure_prefix=self.prefix_figure,
                     figure_caption_location=self.figure_caption_location,
