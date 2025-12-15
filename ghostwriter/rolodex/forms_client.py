@@ -327,6 +327,9 @@ class ClientForm(forms.ModelForm):
         self.fields["logo_header"].required = False
         self.fields["logo"].widget = forms.HiddenInput()
         self.fields["logo_header"].widget = forms.HiddenInput()
+        # Prevent Django from binding existing file paths back into the hidden inputs
+        self.initial["logo"] = None
+        self.initial["logo_header"] = None
         self.fields["logo_cover_scale"].initial = 100
         self.fields["logo_header_scale"].initial = 100
         self.fields["logo_cover_width_px"].initial = None
