@@ -437,7 +437,7 @@ class APIClient:
                 if "properties" in value and "operatingsystem" in value["properties"]
             )
             domain_out["computers"] = {
-                "count": len(domain_computers),
+                "count": len(domain_computers["nodes"]),
                 "operating_systems": domain_oses,
             }
 
