@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added report filters for managing business day calculations (PR #780 from @DeveloperMarius; Closes #775)
-  * `business_days` calculates how many business days are between two dates (e.g., 1 Dec - 12 Dec, 2025 retuerns `10`)
+  * `business_days` calculates how many business days are between two dates (e.g., 1 Dec - 12 Dec, 2025 returns `10`)
   * `to_datetime` accepts a date string and format string to create a date object to enable further date calculations
 
 ### Changed
