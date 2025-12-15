@@ -12,7 +12,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.opc.exceptions import PackageNotFoundError
 from docx.shared import Inches, Pt
-from docxtpl import RichText
+from docxtpl import InlineImage, RichText
 from docxtpl.template import DocxTemplate
 from docx.image.exceptions import UnrecognizedImageError
 
@@ -358,33 +358,17 @@ class ExportDocxBase(ExportBase):
         return LazySubdocRender(render)
 
     def render_logo_subdoc(self, logo_name: str):
-        """Render a standalone logo into a DOCX subdocument for inline template usage."""
+        """Render a logo as an inline image for direct template usage (including headers/footers)."""
 
-        def render():
-            doc = self.word_doc.new_subdoc()
-            ReportExportTemplateError.map_errors(
-                lambda: HtmlToDocxWithEvidence.run(
-                    Markup(f"<p><span data-gw-logo=\"{html.escape(logo_name)}\"></span></p>"),
-                    doc=doc,
-                    p_style=self.p_style,
-                    evidence_image_width=self.evidence_image_width,
-                    evidences=self.evidences_by_id,
-                    logos=self.logos_by_name,
-                    figure_label=self.label_figure,
-                    figure_prefix=self.prefix_figure,
-                    figure_caption_location=self.figure_caption_location,
-                    table_label=self.label_table,
-                    table_prefix=self.prefix_table,
-                    table_caption_location=self.table_caption_location,
-                    title_case_captions=self.title_case_captions,
-                    title_case_exceptions=self.title_case_exceptions,
-                    border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
-                ),
-                "inline logo",
-            )
-            return doc
+        logo = self.logos_by_name.get(logo_name)
+        if logo is None:
+            raise ReportExportTemplateError(f"No such logo with name '{logo_name}'")
 
-        return LazySubdocRender(render)
+        file_path = HtmlToDocxWithEvidence._resolve_media_path(logo.get("path", ""))
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(file_path)
+
+        return InlineImage(self.word_doc, file_path)
 
     @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
