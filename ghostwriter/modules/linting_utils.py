@@ -518,6 +518,7 @@ LINTER_CONTEXT = {
                 "general_first_ca": "no",
                 "general_scope_changed": "yes",
                 "general_anonymous_ephi": "no",
+                "scope_count": 3,
                 "scope_string": (
                     "External network and systems, Internal network and systems and "
                     "Firewall configuration(s) & rules"
