@@ -1,8 +1,13 @@
 """This contains all client-related forms used by the Rolodex application."""
 
+# Standard Libraries
+import base64
+import io
+
 # Django Imports
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
@@ -20,6 +25,7 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
+from PIL import Image
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 
 # Ghostwriter Libraries
@@ -279,6 +285,21 @@ class ClientForm(forms.ModelForm):
     """
 
     extra_fields = ExtraFieldsField(Client._meta.label)
+    logo_cover_data = forms.CharField(required=False, widget=forms.HiddenInput())
+    logo_header_data = forms.CharField(required=False, widget=forms.HiddenInput())
+    logo_source_data = forms.CharField(required=False, widget=forms.HiddenInput())
+    logo_cover_scale = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_header_scale = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_cover_width_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_cover_height_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_header_width_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_header_height_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_cover_aspect_locked = forms.BooleanField(
+        required=False, widget=forms.HiddenInput(), initial=True
+    )
+    logo_header_aspect_locked = forms.BooleanField(
+        required=False, widget=forms.HiddenInput(), initial=True
+    )
 
     class Meta:
         model = Client
@@ -302,6 +323,73 @@ class ClientForm(forms.ModelForm):
         self.fields["note"].label = "Notes"
         self.fields["tags"].label = "Tags"
         self.fields["extra_fields"].label = ""
+        self.fields["logo"].required = False
+        self.fields["logo_header"].required = False
+        self.fields["logo"].widget = forms.HiddenInput()
+        self.fields["logo_header"].widget = forms.HiddenInput()
+        self.fields["logo_cover_scale"].initial = 100
+        self.fields["logo_header_scale"].initial = 100
+        self.fields["logo_cover_width_px"].initial = None
+        self.fields["logo_cover_height_px"].initial = None
+        self.fields["logo_header_width_px"].initial = None
+        self.fields["logo_header_height_px"].initial = None
+
+        def _file_to_data(file_field):
+            if not file_field:
+                return None, None, None
+
+            try:
+                file_field.open("rb")
+                content = file_field.read()
+            except Exception:
+                return None, None, None
+            finally:
+                try:
+                    file_field.close()
+                except Exception:
+                    pass
+
+            if not content:
+                return None, None, None
+
+            mime = getattr(file_field, "file", None)
+            mime_type = None
+            if mime and hasattr(mime, "content_type"):
+                mime_type = mime.content_type
+            if not mime_type:
+                import mimetypes
+
+                mime_type, _ = mimetypes.guess_type(file_field.name)
+            mime_type = mime_type or "image/png"
+
+            data_url = f"data:{mime_type};base64,{base64.b64encode(content).decode('utf-8')}"
+            width = height = None
+            try:
+                with Image.open(io.BytesIO(content)) as img:
+                    width, height = img.size
+            except Exception:
+                pass
+            return data_url, width, height
+
+        cover_data_url, cover_width, cover_height = _file_to_data(self.instance.logo)
+        header_data_url, header_width, header_height = _file_to_data(
+            self.instance.logo_header
+        )
+
+        if cover_data_url:
+            self.initial.setdefault("logo_cover_data", cover_data_url)
+            self.initial.setdefault("logo_source_data", cover_data_url)
+            if cover_width and cover_height:
+                self.fields["logo_cover_width_px"].initial = cover_width
+                self.fields["logo_cover_height_px"].initial = cover_height
+
+        if header_data_url:
+            self.initial.setdefault("logo_header_data", header_data_url)
+            if not self.initial.get("logo_source_data"):
+                self.initial["logo_source_data"] = header_data_url
+            if header_width and header_height:
+                self.fields["logo_header_width_px"].initial = header_width
+                self.fields["logo_header_height_px"].initial = header_height
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
@@ -364,15 +452,102 @@ class ClientForm(forms.ModelForm):
                     css_id="contacts",
                 ),
                 CustomTab(
-                    "Invites",
-                    Formset("invites", object_context_name="Invite"),
-                    Button(
-                        "add-invite",
-                        "Add Invite",
-                        css_class="btn-block btn-secondary formset-add-invite mb-2 offset-4 col-4",
+                    "Logo",
+                    Field("logo"),
+                    Field("logo_header"),
+                    Field("logo_cover_data"),
+                    Field("logo_header_data"),
+                    Field("logo_source_data"),
+                    Field("logo_cover_scale"),
+                    Field("logo_header_scale"),
+                    Field("logo_cover_width_px"),
+                    Field("logo_cover_height_px"),
+                    Field("logo_header_width_px"),
+                    Field("logo_header_height_px"),
+                    Field("logo_cover_aspect_locked"),
+                    Field("logo_header_aspect_locked"),
+                    HTML(
+                        """
+                        <div class="mb-3">
+                            <button type="button" id="upload-client-logo" class="btn btn-secondary">
+                                Upload Client Logo
+                            </button>
+                            <input
+                                type="file"
+                                id="client-logo-input"
+                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                                style="display: none;"
+                            />
+                            <p class="text-muted mt-2 mb-0">Supported formats: png, jpg, jpeg, gif, webp, svg</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Cover Page</h5>
+                                <canvas id="client-logo-cover" class="border rounded w-100" height="168" aria-label="Cover Page Logo Preview"></canvas>
+                                <div class="form-row mt-2">
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="cover-width">Width</label>
+                                                <div class="input-group">
+                                            <input type="number" class="form-control" id="cover-width" min="0.01" step="0.01" value="2" />
+                                                    <div class="input-group-append">
+                                                        <select id="cover-unit" class="custom-select">
+                                                            <option value="in" selected>in</option>
+                                                            <option value="px">px</option>
+                                                            <option value="cm">cm</option>
+                                                    <option value="mm">mm</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="cover-height">Height</label>
+                                        <input type="number" class="form-control" id="cover-height" min="0.01" step="0.01" value="" />
+                                            </div>
+                                    <div class="form-group col-md-4 d-flex align-items-end">
+                                        <button type="button" id="cover-aspect" class="btn btn-outline-secondary w-100" data-locked="true">
+                                            <i class="fas fa-lock"></i> Aspect Locked
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Header</h5>
+                                <canvas id="client-logo-header" class="border rounded w-100" height="72" aria-label="Header Logo Preview"></canvas>
+                                <div class="form-row mt-2">
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="header-width">Width</label>
+                                                <div class="input-group">
+                                            <input type="number" class="form-control" id="header-width" min="0.01" step="0.01" value="1" />
+                                                    <div class="input-group-append">
+                                                        <select id="header-unit" class="custom-select">
+                                                            <option value="in" selected>in</option>
+                                                            <option value="px">px</option>
+                                                            <option value="cm">cm</option>
+                                                    <option value="mm">mm</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="header-height">Height</label>
+                                        <input type="number" class="form-control" id="header-height" min="0.01" step="0.01" value="" />
+                                            </div>
+                                    <div class="form-group col-md-4 d-flex align-items-end">
+                                        <button type="button" id="header-aspect" class="btn btn-outline-secondary w-100" data-locked="true">
+                                            <i class="fas fa-lock"></i> Aspect Locked
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex justify-content-between align-items-center">
+                            <div class="text-muted">Adjust sizes using inches, pixels, or metric units. Unlock the aspect ratio to stretch if needed.</div>
+                            <button type="button" id="save-logos" class="btn btn-primary">Save Logo's</button>
+                        </div>
+                        """
                     ),
-                    link_css_class="tab-icon users-icon",
-                    css_id="invites",
+                    link_css_class="tab-icon file-icon",
+                    css_id="logo",
                 ),
                 template="tab.html",
                 css_class="nav-justified",
@@ -387,6 +562,133 @@ class ClientForm(forms.ModelForm):
                 ),
             ),
         )
+
+    def _decode_image_bytes(self, data_string):
+        if not data_string:
+            return None, None
+
+        content_type = "image/png"
+        if ";base64," in data_string:
+            header, data = data_string.split(";base64,", 1)
+            content_type = header.split(":")[-1]
+        else:
+            data = data_string
+
+        try:
+            decoded_file = base64.b64decode(data)
+        except (base64.binascii.Error, ValueError):
+            return None, None
+
+        if "svg" in content_type:
+            try:
+                import cairosvg
+
+                decoded_file = cairosvg.svg2png(bytestring=decoded_file)
+                content_type = "image/png"
+            except Exception:
+                return None, None
+
+        return decoded_file, content_type.split("/")[-1]
+
+    def _resample_logo(
+        self,
+        source_bytes,
+        filename_prefix,
+        target_width_px=None,
+        target_height_px=None,
+        max_width=None,
+        max_height=None,
+        scale_percent=None,
+    ):
+        if not source_bytes:
+            return None
+
+        try:
+            with Image.open(io.BytesIO(source_bytes)) as img:
+                if not img.width or not img.height:
+                    return None
+                img = img.convert("RGBA")
+                width = target_width_px
+                height = target_height_px
+
+                if width and height:
+                    width = int(round(width))
+                    height = int(round(height))
+                else:
+                    scale_percent = scale_percent or 100
+                    scale_multiplier = scale_percent / 100
+                    ratio = 1
+                    if max_width and max_height:
+                        ratio = min(max_width / img.width, max_height / img.height)
+                    width = max(1, int(img.width * ratio * scale_multiplier))
+                    height = max(1, int(img.height * ratio * scale_multiplier))
+
+                resized = img.resize((width, height), Image.Resampling.LANCZOS)
+                buffer = io.BytesIO()
+                resized.save(buffer, format="PNG", dpi=(300, 300), optimize=True)
+                return ContentFile(buffer.getvalue(), name=f"{filename_prefix}.png")
+        except Exception:
+            return None
+
+    def _save_logo_from_data(self, data_string, filename_prefix):
+        decoded_file, file_ext = self._decode_image_bytes(data_string)
+        if not decoded_file or not file_ext:
+            return None
+
+        return ContentFile(decoded_file, name=f"{filename_prefix}.{file_ext}")
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        source_bytes, _ = self._decode_image_bytes(self.cleaned_data.get("logo_source_data"))
+        cover_scale = self.cleaned_data.get("logo_cover_scale") or 100
+        header_scale = self.cleaned_data.get("logo_header_scale") or 100
+        cover_width_px = self.cleaned_data.get("logo_cover_width_px")
+        cover_height_px = self.cleaned_data.get("logo_cover_height_px")
+        header_width_px = self.cleaned_data.get("logo_header_width_px")
+        header_height_px = self.cleaned_data.get("logo_header_height_px")
+
+        cover_logo_file = None
+        header_logo_file = None
+
+        if source_bytes:
+            cover_logo_file = self._resample_logo(
+                source_bytes,
+                "client_logo_cover",
+                target_width_px=cover_width_px,
+                target_height_px=cover_height_px,
+                max_width=600,
+                max_height=1200,
+                scale_percent=cover_scale,
+            )
+            header_logo_file = self._resample_logo(
+                source_bytes,
+                "client_logo_header",
+                target_width_px=header_width_px,
+                target_height_px=header_height_px,
+                max_width=300,
+                max_height=600,
+                scale_percent=header_scale,
+            )
+
+        if not cover_logo_file:
+            cover_logo_file = self._save_logo_from_data(
+                self.cleaned_data.get("logo_cover_data"), "client_logo_cover"
+            )
+        if not header_logo_file:
+            header_logo_file = self._save_logo_from_data(
+                self.cleaned_data.get("logo_header_data"), "client_logo_header"
+            )
+
+        if cover_logo_file:
+            instance.logo.save(cover_logo_file.name, cover_logo_file, save=False)
+        if header_logo_file:
+            instance.logo_header.save(header_logo_file.name, header_logo_file, save=False)
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class ClientNoteForm(forms.ModelForm):

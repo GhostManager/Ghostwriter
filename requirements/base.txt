@@ -1,5 +1,6 @@
 python-slugify==8.0.4  # https://github.com/un33k/python-slugify
 Pillow==10.4.0  # https://github.com/python-pillow/Pillow
+CairoSVG==2.7.1  # https://github.com/Kozea/CairoSVG
 rcssmin==1.1.1  # https://github.com/ndparker/rcssmin
 argon2-cffi==23.1.0  # https://github.com/hynek/argon2_cffi
 redis==5.0.8  # https://github.com/antirez/redis
