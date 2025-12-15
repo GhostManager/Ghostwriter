@@ -81,6 +81,9 @@
     const saveLogosButton = document.getElementById('save-logos');
     const coverDataInput = document.getElementById('id_logo_cover_data');
     const headerDataInput = document.getElementById('id_logo_header_data');
+    const sourceDataInput = document.getElementById('id_logo_source_data');
+    const coverScalePersistInput = document.getElementById('id_logo_cover_scale');
+    const headerScalePersistInput = document.getElementById('id_logo_header_scale');
     const form = document.querySelector('form');
     let baseImage = null;
 
@@ -93,6 +96,8 @@
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(baseImage, 0, 0, width, height);
     }
@@ -103,6 +108,8 @@
 
     function persistLogos() {
       if (!baseImage) { return; }
+      if (coverScalePersistInput) { coverScalePersistInput.value = coverScale?.value || '100'; }
+      if (headerScalePersistInput) { headerScalePersistInput.value = headerScale?.value || '100'; }
       if (coverCanvas && coverDataInput) {
         coverDataInput.value = coverCanvas.toDataURL('image/png');
       }
@@ -118,6 +125,9 @@
         const img = new Image();
         img.onload = function () {
           baseImage = img;
+          if (sourceDataInput) { sourceDataInput.value = event.target.result; }
+          if (coverScalePersistInput) { coverScalePersistInput.value = coverScale?.value || '100'; }
+          if (headerScalePersistInput) { headerScalePersistInput.value = headerScale?.value || '100'; }
           renderLogo(coverCanvas, 120, 168, coverScale);
           renderLogo(headerCanvas, 48, 72, headerScale);
         };
@@ -131,10 +141,12 @@
 
     coverScale?.addEventListener('input', () => {
       updateScaleValue(coverScaleValue, coverScale);
+      if (coverScalePersistInput) { coverScalePersistInput.value = coverScale.value; }
       renderLogo(coverCanvas, 120, 168, coverScale);
     });
     headerScale?.addEventListener('input', () => {
       updateScaleValue(headerScaleValue, headerScale);
+      if (headerScalePersistInput) { headerScalePersistInput.value = headerScale.value; }
       renderLogo(headerCanvas, 48, 72, headerScale);
     });
 

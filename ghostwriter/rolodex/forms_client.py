@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import base64
+import io
 
 # Django Imports
 from django import forms
@@ -24,6 +25,7 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
+from PIL import Image
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 
 # Ghostwriter Libraries
@@ -285,6 +287,9 @@ class ClientForm(forms.ModelForm):
     extra_fields = ExtraFieldsField(Client._meta.label)
     logo_cover_data = forms.CharField(required=False, widget=forms.HiddenInput())
     logo_header_data = forms.CharField(required=False, widget=forms.HiddenInput())
+    logo_source_data = forms.CharField(required=False, widget=forms.HiddenInput())
+    logo_cover_scale = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_header_scale = forms.IntegerField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = Client
@@ -312,6 +317,8 @@ class ClientForm(forms.ModelForm):
         self.fields["logo_header"].required = False
         self.fields["logo"].widget = forms.HiddenInput()
         self.fields["logo_header"].widget = forms.HiddenInput()
+        self.fields["logo_cover_scale"].initial = 100
+        self.fields["logo_header_scale"].initial = 100
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
@@ -379,6 +386,9 @@ class ClientForm(forms.ModelForm):
                     Field("logo_header"),
                     Field("logo_cover_data"),
                     Field("logo_header_data"),
+                    Field("logo_source_data"),
+                    Field("logo_cover_scale"),
+                    Field("logo_header_scale"),
                     HTML(
                         """
                         <div class="mb-3">
@@ -388,10 +398,10 @@ class ClientForm(forms.ModelForm):
                             <input
                                 type="file"
                                 id="client-logo-input"
-                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
                                 style="display: none;"
                             />
-                            <p class="text-muted mt-2 mb-0">Supported formats: png, jpg, jpeg, gif, webp</p>
+                            <p class="text-muted mt-2 mb-0">Supported formats: png, jpg, jpeg, gif, webp, svg</p>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -439,19 +449,57 @@ class ClientForm(forms.ModelForm):
             ),
         )
 
-    def _save_logo_from_data(self, data_string, filename_prefix):
+    def _decode_image_bytes(self, data_string):
         if not data_string:
-            return None
+            return None, None
+
+        content_type = "image/png"
         if ";base64," in data_string:
             header, data = data_string.split(";base64,", 1)
-            file_ext = header.split("/")[-1]
+            content_type = header.split(":")[-1]
         else:
             data = data_string
-            file_ext = "png"
 
         try:
             decoded_file = base64.b64decode(data)
         except (base64.binascii.Error, ValueError):
+            return None, None
+
+        if "svg" in content_type:
+            try:
+                import cairosvg
+
+                decoded_file = cairosvg.svg2png(bytestring=decoded_file)
+                content_type = "image/png"
+            except Exception:
+                return None, None
+
+        return decoded_file, content_type.split("/")[-1]
+
+    def _resample_logo(self, source_bytes, filename_prefix, max_width, max_height, scale_percent):
+        if not source_bytes:
+            return None
+
+        try:
+            scale_percent = scale_percent or 100
+            scale_multiplier = max(1, scale_percent) / 100
+            with Image.open(io.BytesIO(source_bytes)) as img:
+                if not img.width or not img.height:
+                    return None
+                img = img.convert("RGBA")
+                ratio = min(max_width / img.width, max_height / img.height)
+                width = max(1, int(img.width * ratio * scale_multiplier))
+                height = max(1, int(img.height * ratio * scale_multiplier))
+                resized = img.resize((width, height), Image.Resampling.LANCZOS)
+                buffer = io.BytesIO()
+                resized.save(buffer, format="PNG", dpi=(300, 300))
+                return ContentFile(buffer.getvalue(), name=f"{filename_prefix}.png")
+        except Exception:
+            return None
+
+    def _save_logo_from_data(self, data_string, filename_prefix):
+        decoded_file, file_ext = self._decode_image_bytes(data_string)
+        if not decoded_file or not file_ext:
             return None
 
         return ContentFile(decoded_file, name=f"{filename_prefix}.{file_ext}")
@@ -459,12 +507,29 @@ class ClientForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        cover_logo_file = self._save_logo_from_data(
-            self.cleaned_data.get("logo_cover_data"), "client_logo_cover"
-        )
-        header_logo_file = self._save_logo_from_data(
-            self.cleaned_data.get("logo_header_data"), "client_logo_header"
-        )
+        source_bytes, _ = self._decode_image_bytes(self.cleaned_data.get("logo_source_data"))
+        cover_scale = self.cleaned_data.get("logo_cover_scale") or 100
+        header_scale = self.cleaned_data.get("logo_header_scale") or 100
+
+        cover_logo_file = None
+        header_logo_file = None
+
+        if source_bytes:
+            cover_logo_file = self._resample_logo(
+                source_bytes, "client_logo_cover", 375, 525, cover_scale
+            )
+            header_logo_file = self._resample_logo(
+                source_bytes, "client_logo_header", 150, 225, header_scale
+            )
+
+        if not cover_logo_file:
+            cover_logo_file = self._save_logo_from_data(
+                self.cleaned_data.get("logo_cover_data"), "client_logo_cover"
+            )
+        if not header_logo_file:
+            header_logo_file = self._save_logo_from_data(
+                self.cleaned_data.get("logo_header_data"), "client_logo_header"
+            )
 
         if cover_logo_file:
             instance.logo.save(cover_logo_file.name, cover_logo_file, save=False)
