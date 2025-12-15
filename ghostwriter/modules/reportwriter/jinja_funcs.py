@@ -190,6 +190,57 @@ def format_datetime(date, new_format=None):
     return formatted_date
 
 
+def to_datetime(date, format_str):
+    """
+    Convert a date string to a datetime object using the given format.
+
+    **Parameters**
+
+    ``date``
+        Date string to convert
+    ``format_str``
+        Format string to use for conversion
+    """
+    try:
+        return datetime.strptime(date, format_str)
+    except ValueError as e:
+        logger.exception("Error parsing ``date`` with the provided format: %s", date)
+        raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter') from e
+
+
+def business_days(start_date, end_date):
+    """
+    Calculate the number of business days between two dates.
+
+    **Parameters**
+
+    ``start_date``
+        Start date string or datetime object
+    ``end_date``
+        End date string or datetime object
+    """
+    try:
+        start_date = start_date if isinstance(start_date, datetime) else parse_datetime(start_date)
+        end_date = end_date if isinstance(end_date, datetime) else parse_datetime(end_date)
+    except ParserError as e:
+        logger.exception("Error parsing dates with the provided format: %s, %s", start_date, end_date)
+        raise InvalidFilterValue(f'Invalid date strings ("{start_date}", "{end_date}") passed into the `business_days()` filter') from e
+
+    # If user passed the dates in the wrong order, swap them
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    # Count business days
+    business_days_count = 0
+    current_date = start_date
+    while current_date <= end_date:
+        if current_date.weekday() < 5:
+            business_days_count += 1
+        current_date += timedelta(days=1)
+
+    return business_days_count
+
+
 def get_item(lst, index):
     """
     Get the item at the specified index in a list.
