@@ -7,6 +7,7 @@ from ghostwriter.rolodex.data_parsers import normalize_nexpose_artifacts_map
 LINTER_CONTEXT = {
     "report_date": "Mar. 25, 2021",
     "tags": ["tag1", "tag2", "tag3"],
+    "mk_logo": "",
     "project": {
         "id": 1,
         "name": "2021-03-01 Kabletown, Inc. Red Team (KABLE-01)",

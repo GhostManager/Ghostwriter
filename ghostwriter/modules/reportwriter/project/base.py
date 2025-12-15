@@ -276,6 +276,7 @@ class ExportProjectBase(ExportBase):
                 "tools",
                 "recipient",
                 "extra_fields",
+                "mk_logo",
             ]
         }
 
