@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.1] - 15 December 2025
+
+### Added
+
+* Added report filters for managing business day calculations (PR #780 from @DeveloperMarius; Closes #775)
+  * `business_days` calculates how many business days are between two dates (e.g., 1 Dec - 12 Dec, 2025 retuerns `10`)
+  * `to_datetime` accepts a date string and format string to create a date object to enable further date calculations
+
+### Changed
+
+* Updated some dependencies to use the latest (PR #786)
+
+### Fixed
+
+* Fixed an issue that could cause the collaborative editor to not load (PR #784)
+* Fixed an incorrect count on the project dashboard for the number of computers in a BloodHound domain collection
+
 ## [6.1.0] - 5 December 2025
 
 ### Added
