@@ -290,6 +290,16 @@ class ClientForm(forms.ModelForm):
     logo_source_data = forms.CharField(required=False, widget=forms.HiddenInput())
     logo_cover_scale = forms.IntegerField(required=False, widget=forms.HiddenInput())
     logo_header_scale = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_cover_width_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_cover_height_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_header_width_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_header_height_px = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    logo_cover_aspect_locked = forms.BooleanField(
+        required=False, widget=forms.HiddenInput(), initial=True
+    )
+    logo_header_aspect_locked = forms.BooleanField(
+        required=False, widget=forms.HiddenInput(), initial=True
+    )
 
     class Meta:
         model = Client
@@ -319,6 +329,10 @@ class ClientForm(forms.ModelForm):
         self.fields["logo_header"].widget = forms.HiddenInput()
         self.fields["logo_cover_scale"].initial = 100
         self.fields["logo_header_scale"].initial = 100
+        self.fields["logo_cover_width_px"].initial = 375
+        self.fields["logo_cover_height_px"].initial = 525
+        self.fields["logo_header_width_px"].initial = 150
+        self.fields["logo_header_height_px"].initial = 225
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
@@ -389,6 +403,12 @@ class ClientForm(forms.ModelForm):
                     Field("logo_source_data"),
                     Field("logo_cover_scale"),
                     Field("logo_header_scale"),
+                    Field("logo_cover_width_px"),
+                    Field("logo_cover_height_px"),
+                    Field("logo_header_width_px"),
+                    Field("logo_header_height_px"),
+                    Field("logo_cover_aspect_locked"),
+                    Field("logo_header_aspect_locked"),
                     HTML(
                         """
                         <div class="mb-3">
@@ -407,27 +427,64 @@ class ClientForm(forms.ModelForm):
                             <div class="col-md-6">
                                 <h5>Cover Page</h5>
                                 <canvas id="client-logo-cover" class="border rounded w-100" height="168" aria-label="Cover Page Logo Preview"></canvas>
-                                <div class="mt-2">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <label class="mb-0" for="cover-scale">Resize</label>
-                                        <span id="cover-scale-value">100%</span>
+                                <div class="form-row mt-2">
+                                    <div class="form-group col-md-4">
+                                        <label class="mb-1" for="cover-width">Width</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="cover-width" min="0.01" step="0.01" value="1.25" />
+                                            <div class="input-group-append">
+                                                <select id="cover-unit" class="custom-select">
+                                                    <option value="in" selected>in</option>
+                                                    <option value="px">px</option>
+                                                    <option value="cm">cm</option>
+                                                    <option value="mm">mm</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <input type="range" class="form-range" id="cover-scale" min="10" max="200" value="100" />
+                                    <div class="form-group col-md-4">
+                                        <label class="mb-1" for="cover-height">Height</label>
+                                        <input type="number" class="form-control" id="cover-height" min="0.01" step="0.01" value="1.75" />
+                                    </div>
+                                    <div class="form-group col-md-4 d-flex align-items-end">
+                                        <button type="button" id="cover-aspect" class="btn btn-outline-secondary w-100" data-locked="true">
+                                            <i class="fas fa-lock"></i> Aspect Locked
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <h5>Header</h5>
                                 <canvas id="client-logo-header" class="border rounded w-100" height="72" aria-label="Header Logo Preview"></canvas>
-                                <div class="mt-2">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <label class="mb-0" for="header-scale">Resize</label>
-                                        <span id="header-scale-value">100%</span>
+                                <div class="form-row mt-2">
+                                    <div class="form-group col-md-4">
+                                        <label class="mb-1" for="header-width">Width</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="header-width" min="0.01" step="0.01" value="0.5" />
+                                            <div class="input-group-append">
+                                                <select id="header-unit" class="custom-select">
+                                                    <option value="in" selected>in</option>
+                                                    <option value="px">px</option>
+                                                    <option value="cm">cm</option>
+                                                    <option value="mm">mm</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <input type="range" class="form-range" id="header-scale" min="10" max="200" value="100" />
+                                    <div class="form-group col-md-4">
+                                        <label class="mb-1" for="header-height">Height</label>
+                                        <input type="number" class="form-control" id="header-height" min="0.01" step="0.01" value="0.75" />
+                                    </div>
+                                    <div class="form-group col-md-4 d-flex align-items-end">
+                                        <button type="button" id="header-aspect" class="btn btn-outline-secondary w-100" data-locked="true">
+                                            <i class="fas fa-lock"></i> Aspect Locked
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-3">
+                        <div class="mt-3 d-flex justify-content-between align-items-center">
+                            <div class="text-muted">Adjust sizes using inches, pixels, or metric units. Unlock the aspect ratio to stretch if needed.</div>
                             <button type="button" id="save-logos" class="btn btn-primary">Save Logo's</button>
                         </div>
                         """
@@ -476,23 +533,42 @@ class ClientForm(forms.ModelForm):
 
         return decoded_file, content_type.split("/")[-1]
 
-    def _resample_logo(self, source_bytes, filename_prefix, max_width, max_height, scale_percent):
+    def _resample_logo(
+        self,
+        source_bytes,
+        filename_prefix,
+        target_width_px=None,
+        target_height_px=None,
+        max_width=None,
+        max_height=None,
+        scale_percent=None,
+    ):
         if not source_bytes:
             return None
 
         try:
-            scale_percent = scale_percent or 100
-            scale_multiplier = max(1, scale_percent) / 100
             with Image.open(io.BytesIO(source_bytes)) as img:
                 if not img.width or not img.height:
                     return None
                 img = img.convert("RGBA")
-                ratio = min(max_width / img.width, max_height / img.height)
-                width = max(1, int(img.width * ratio * scale_multiplier))
-                height = max(1, int(img.height * ratio * scale_multiplier))
+                width = target_width_px
+                height = target_height_px
+
+                if width and height:
+                    width = int(round(width))
+                    height = int(round(height))
+                else:
+                    scale_percent = scale_percent or 100
+                    scale_multiplier = scale_percent / 100
+                    ratio = 1
+                    if max_width and max_height:
+                        ratio = min(max_width / img.width, max_height / img.height)
+                    width = max(1, int(img.width * ratio * scale_multiplier))
+                    height = max(1, int(img.height * ratio * scale_multiplier))
+
                 resized = img.resize((width, height), Image.Resampling.LANCZOS)
                 buffer = io.BytesIO()
-                resized.save(buffer, format="PNG", dpi=(300, 300))
+                resized.save(buffer, format="PNG", dpi=(300, 300), optimize=True)
                 return ContentFile(buffer.getvalue(), name=f"{filename_prefix}.png")
         except Exception:
             return None
@@ -510,16 +586,32 @@ class ClientForm(forms.ModelForm):
         source_bytes, _ = self._decode_image_bytes(self.cleaned_data.get("logo_source_data"))
         cover_scale = self.cleaned_data.get("logo_cover_scale") or 100
         header_scale = self.cleaned_data.get("logo_header_scale") or 100
+        cover_width_px = self.cleaned_data.get("logo_cover_width_px")
+        cover_height_px = self.cleaned_data.get("logo_cover_height_px")
+        header_width_px = self.cleaned_data.get("logo_header_width_px")
+        header_height_px = self.cleaned_data.get("logo_header_height_px")
 
         cover_logo_file = None
         header_logo_file = None
 
         if source_bytes:
             cover_logo_file = self._resample_logo(
-                source_bytes, "client_logo_cover", 375, 525, cover_scale
+                source_bytes,
+                "client_logo_cover",
+                target_width_px=cover_width_px,
+                target_height_px=cover_height_px,
+                max_width=375,
+                max_height=525,
+                scale_percent=cover_scale,
             )
             header_logo_file = self._resample_logo(
-                source_bytes, "client_logo_header", 150, 225, header_scale
+                source_bytes,
+                "client_logo_header",
+                target_width_px=header_width_px,
+                target_height_px=header_height_px,
+                max_width=150,
+                max_height=225,
+                scale_percent=header_scale,
             )
 
         if not cover_logo_file:

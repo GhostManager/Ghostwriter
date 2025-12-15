@@ -74,25 +74,66 @@
     const logoInput = document.getElementById('client-logo-input');
     const coverCanvas = document.getElementById('client-logo-cover');
     const headerCanvas = document.getElementById('client-logo-header');
-    const coverScale = document.getElementById('cover-scale');
-    const headerScale = document.getElementById('header-scale');
-    const coverScaleValue = document.getElementById('cover-scale-value');
-    const headerScaleValue = document.getElementById('header-scale-value');
+    const coverWidthInput = document.getElementById('cover-width');
+    const coverHeightInput = document.getElementById('cover-height');
+    const headerWidthInput = document.getElementById('header-width');
+    const headerHeightInput = document.getElementById('header-height');
+    const coverUnitSelect = document.getElementById('cover-unit');
+    const headerUnitSelect = document.getElementById('header-unit');
+    const coverAspectButton = document.getElementById('cover-aspect');
+    const headerAspectButton = document.getElementById('header-aspect');
     const saveLogosButton = document.getElementById('save-logos');
     const coverDataInput = document.getElementById('id_logo_cover_data');
     const headerDataInput = document.getElementById('id_logo_header_data');
     const sourceDataInput = document.getElementById('id_logo_source_data');
     const coverScalePersistInput = document.getElementById('id_logo_cover_scale');
     const headerScalePersistInput = document.getElementById('id_logo_header_scale');
+    const coverWidthPersistInput = document.getElementById('id_logo_cover_width_px');
+    const coverHeightPersistInput = document.getElementById('id_logo_cover_height_px');
+    const headerWidthPersistInput = document.getElementById('id_logo_header_width_px');
+    const headerHeightPersistInput = document.getElementById('id_logo_header_height_px');
+    const coverLockPersistInput = document.getElementById('id_logo_cover_aspect_locked');
+    const headerLockPersistInput = document.getElementById('id_logo_header_aspect_locked');
     const form = document.querySelector('form');
     let baseImage = null;
+    let coverControls = null;
+    let headerControls = null;
 
-    function renderLogo(canvas, maxWidth, maxHeight, scaleInput) {
-      if (!canvas || !baseImage) { return; }
-      const scaleValue = parseFloat(scaleInput?.value || '100') / 100;
-      const ratio = Math.min(maxWidth / baseImage.width, maxHeight / baseImage.height);
-      const width = Math.max(1, baseImage.width * ratio * scaleValue);
-      const height = Math.max(1, baseImage.height * ratio * scaleValue);
+    const DPI = 300;
+    const unitFactors = {
+      px: 1,
+      in: DPI,
+      cm: DPI / 2.54,
+      mm: DPI / 25.4,
+    };
+
+    function pxToUnit(px, unit) {
+      const factor = unitFactors[unit] || 1;
+      return px / factor;
+    }
+
+    function unitToPx(value, unit) {
+      const factor = unitFactors[unit] || 1;
+      return value * factor;
+    }
+
+    function toggleAspect(button, persistInput, forceLocked) {
+      const locked = button?.dataset.locked === 'true';
+      const newValue = typeof forceLocked === 'boolean' ? forceLocked : !locked;
+      if (button) {
+        button.dataset.locked = String(newValue);
+        button.innerHTML = newValue ? '<i class="fas fa-lock"></i> Aspect Locked' : '<i class="fas fa-lock-open"></i> Aspect Unlocked';
+        button.classList.toggle('btn-outline-secondary', newValue);
+        button.classList.toggle('btn-warning', !newValue);
+      }
+      if (persistInput) { persistInput.value = newValue ? 'true' : 'false'; }
+      return newValue;
+    }
+
+    function renderLogo(canvas, widthPx, heightPx) {
+      if (!canvas || !baseImage || !widthPx || !heightPx) { return; }
+      const width = Math.max(1, Math.round(widthPx));
+      const height = Math.max(1, Math.round(heightPx));
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
@@ -102,20 +143,80 @@
       ctx.drawImage(baseImage, 0, 0, width, height);
     }
 
-    function updateScaleValue(label, input) {
-      if (label && input) { label.innerText = `${input.value}%`; }
-    }
-
     function persistLogos() {
       if (!baseImage) { return; }
-      if (coverScalePersistInput) { coverScalePersistInput.value = coverScale?.value || '100'; }
-      if (headerScalePersistInput) { headerScalePersistInput.value = headerScale?.value || '100'; }
+      if (coverScalePersistInput) { coverScalePersistInput.value = '100'; }
+      if (headerScalePersistInput) { headerScalePersistInput.value = '100'; }
+      if (coverWidthPersistInput) { coverWidthPersistInput.value = Math.round(coverCanvas?.width || 0); }
+      if (coverHeightPersistInput) { coverHeightPersistInput.value = Math.round(coverCanvas?.height || 0); }
+      if (headerWidthPersistInput) { headerWidthPersistInput.value = Math.round(headerCanvas?.width || 0); }
+      if (headerHeightPersistInput) { headerHeightPersistInput.value = Math.round(headerCanvas?.height || 0); }
+      if (coverLockPersistInput && coverAspectButton) { coverLockPersistInput.value = coverAspectButton.dataset.locked; }
+      if (headerLockPersistInput && headerAspectButton) { headerLockPersistInput.value = headerAspectButton.dataset.locked; }
       if (coverCanvas && coverDataInput) {
         coverDataInput.value = coverCanvas.toDataURL('image/png');
       }
       if (headerCanvas && headerDataInput) {
         headerDataInput.value = headerCanvas.toDataURL('image/png');
       }
+    }
+
+    function applyInitialSizing(targetWidthInches, targetHeightInches, inputs) {
+      const unit = inputs.unitSelect.value;
+      const targetWidthPx = unitToPx(targetWidthInches, 'in');
+      const targetHeightPx = unitToPx(targetHeightInches, 'in');
+      const ratio = Math.min(targetWidthPx / baseImage.width, targetHeightPx / baseImage.height);
+      const widthPx = Math.max(1, baseImage.width * ratio);
+      const heightPx = Math.max(1, baseImage.height * ratio);
+      inputs.widthInput.value = pxToUnit(widthPx, unit).toFixed(2);
+      inputs.heightInput.value = pxToUnit(heightPx, unit).toFixed(2);
+      renderLogo(inputs.canvas, widthPx, heightPx);
+    }
+
+    function bindResizer(prefix, inputs) {
+      const { widthInput, heightInput, unitSelect, lockButton, canvas, persistWidth, persistHeight, persistLock } = inputs;
+      if (!widthInput || !heightInput || !unitSelect || !lockButton || !canvas) { return; }
+
+      const baseAspect = () => baseImage ? baseImage.width / baseImage.height : 1;
+
+      function refreshFromInputs(changed) {
+        if (!baseImage) { return; }
+        const unit = unitSelect.value;
+        const locked = lockButton.dataset.locked === 'true';
+        let widthValue = parseFloat(widthInput.value) || 0;
+        let heightValue = parseFloat(heightInput.value) || 0;
+        if (widthValue <= 0 && heightValue > 0) { widthValue = heightValue * baseAspect(); }
+        if (heightValue <= 0 && widthValue > 0) { heightValue = widthValue / baseAspect(); }
+
+        let widthPx = unitToPx(widthValue, unit);
+        let heightPx = unitToPx(heightValue, unit);
+
+        if (locked && changed === 'width') {
+          heightPx = widthPx / baseAspect();
+          heightValue = pxToUnit(heightPx, unit);
+          heightInput.value = heightValue.toFixed(2);
+        } else if (locked && changed === 'height') {
+          widthPx = heightPx * baseAspect();
+          widthValue = pxToUnit(widthPx, unit);
+          widthInput.value = widthValue.toFixed(2);
+        }
+
+        renderLogo(canvas, widthPx, heightPx);
+
+        if (persistWidth) { persistWidth.value = Math.round(canvas.width); }
+        if (persistHeight) { persistHeight.value = Math.round(canvas.height); }
+        if (persistLock) { persistLock.value = lockButton.dataset.locked === 'true' ? 'true' : 'false'; }
+      }
+
+      widthInput.addEventListener('input', () => refreshFromInputs('width'));
+      heightInput.addEventListener('input', () => refreshFromInputs('height'));
+      unitSelect.addEventListener('change', () => refreshFromInputs());
+      lockButton.addEventListener('click', () => toggleAspect(lockButton, persistLock));
+
+      return {
+        renderDefault: (widthInches, heightInches) => applyInitialSizing(widthInches, heightInches, inputs),
+        refresh: () => refreshFromInputs(),
+      };
     }
 
     function handleImage(file) {
@@ -126,10 +227,38 @@
         img.onload = function () {
           baseImage = img;
           if (sourceDataInput) { sourceDataInput.value = event.target.result; }
-          if (coverScalePersistInput) { coverScalePersistInput.value = coverScale?.value || '100'; }
-          if (headerScalePersistInput) { headerScalePersistInput.value = headerScale?.value || '100'; }
-          renderLogo(coverCanvas, 120, 168, coverScale);
-          renderLogo(headerCanvas, 48, 72, headerScale);
+          if (!coverControls) {
+            coverControls = bindResizer('cover', {
+              widthInput: coverWidthInput,
+              heightInput: coverHeightInput,
+              unitSelect: coverUnitSelect,
+              lockButton: coverAspectButton,
+              canvas: coverCanvas,
+              persistWidth: coverWidthPersistInput,
+              persistHeight: coverHeightPersistInput,
+              persistLock: coverLockPersistInput,
+            });
+          }
+          if (!headerControls) {
+            headerControls = bindResizer('header', {
+              widthInput: headerWidthInput,
+              heightInput: headerHeightInput,
+              unitSelect: headerUnitSelect,
+              lockButton: headerAspectButton,
+              canvas: headerCanvas,
+              persistWidth: headerWidthPersistInput,
+              persistHeight: headerHeightPersistInput,
+              persistLock: headerLockPersistInput,
+            });
+          }
+
+          toggleAspect(coverAspectButton, coverLockPersistInput, true);
+          toggleAspect(headerAspectButton, headerLockPersistInput, true);
+
+          coverControls?.renderDefault(1.25, 1.75);
+          headerControls?.renderDefault(0.5, 0.75);
+          coverControls?.refresh();
+          headerControls?.refresh();
         };
         img.src = event.target.result;
       };
@@ -138,17 +267,6 @@
 
     uploadButton?.addEventListener('click', () => logoInput?.click());
     logoInput?.addEventListener('change', (event) => handleImage(event.target.files[0]));
-
-    coverScale?.addEventListener('input', () => {
-      updateScaleValue(coverScaleValue, coverScale);
-      if (coverScalePersistInput) { coverScalePersistInput.value = coverScale.value; }
-      renderLogo(coverCanvas, 120, 168, coverScale);
-    });
-    headerScale?.addEventListener('input', () => {
-      updateScaleValue(headerScaleValue, headerScale);
-      if (headerScalePersistInput) { headerScalePersistInput.value = headerScale.value; }
-      renderLogo(headerCanvas, 48, 72, headerScale);
-    });
 
     saveLogosButton?.addEventListener('click', () => {
       persistLogos();
