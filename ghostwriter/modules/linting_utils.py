@@ -7,6 +7,7 @@ from ghostwriter.rolodex.data_parsers import normalize_nexpose_artifacts_map
 LINTER_CONTEXT = {
     "report_date": "Mar. 25, 2021",
     "tags": ["tag1", "tag2", "tag3"],
+    "mk_logo": "",
     "project": {
         "id": 1,
         "name": "2021-03-01 Kabletown, Inc. Red Team (KABLE-01)",
@@ -1705,6 +1706,8 @@ LINTER_CONTEXT = {
         "note_rt": "",
         "address": "30 Rockefeller Plaza New York City, New York 10112",
         "address_rt": "",
+        "logo": "client_logos/client_logo_cover.png",
+        "logo_header": "client_logos/headers/client_logo_header.png",
         "tags": ["tag1", "tag2", "tag3"],
         "extra_fields": {},
     },

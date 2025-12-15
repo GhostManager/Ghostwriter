@@ -31,9 +31,11 @@ class ExportBase:
     jinja_undefined_variables: set[str] | None
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
     evidences_by_id: dict
+    logos_by_name: dict
 
     def __init__(self, input_object: Any, *, is_raw=False, jinja_debug=False):
         self.evidences_by_id = {}
+        self.logos_by_name = {}
         self.extra_fields_spec_cache = {}
 
         if jinja_debug:

@@ -3,13 +3,16 @@ import io
 import logging
 import os
 import re
+import html
+
+from markupsafe import Markup
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.opc.exceptions import PackageNotFoundError
 from docx.shared import Inches, Pt
-from docxtpl import RichText
+from docxtpl import InlineImage, RichText
 from docxtpl.template import DocxTemplate
 from docx.image.exceptions import UnrecognizedImageError
 
@@ -315,7 +318,17 @@ class ExportDocxBase(ExportBase):
         """
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
         """
-        inline_rich_text = _render_inline_rich_text(str(rich_text.render_html()))
+        was_rendering = rich_text.context.get("_rendering_rich_text")
+        rich_text.context["_rendering_rich_text"] = True
+
+        try:
+            inline_rich_text = _render_inline_rich_text(str(rich_text.render_html()))
+        finally:
+            if was_rendering is None:
+                rich_text.context.pop("_rendering_rich_text", None)
+            else:
+                rich_text.context["_rendering_rich_text"] = was_rendering
+
         if inline_rich_text is not None:
             return inline_rich_text
 
@@ -328,6 +341,7 @@ class ExportDocxBase(ExportBase):
                     p_style=self.p_style,
                     evidence_image_width=self.evidence_image_width,
                     evidences=self.evidences_by_id,
+                    logos=self.logos_by_name,
                     figure_label=self.label_figure,
                     figure_prefix=self.prefix_figure,
                     figure_caption_location=self.figure_caption_location,
@@ -342,6 +356,19 @@ class ExportDocxBase(ExportBase):
             )
             return doc
         return LazySubdocRender(render)
+
+    def render_logo_subdoc(self, logo_name: str):
+        """Render a logo as an inline image for direct template usage (including headers/footers)."""
+
+        logo = self.logos_by_name.get(logo_name)
+        if logo is None:
+            raise ReportExportTemplateError(f"No such logo with name '{logo_name}'")
+
+        file_path = HtmlToDocxWithEvidence._resolve_media_path(logo.get("path", ""))
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(file_path)
+
+        return InlineImage(self.word_doc, file_path)
 
     @classmethod
     def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:

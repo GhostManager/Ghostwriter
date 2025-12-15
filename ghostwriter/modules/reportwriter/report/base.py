@@ -54,6 +54,7 @@ class ExportReportBase(ExportBase):
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)
         rich_text_overlay = ExportProjectBase.rich_text_jinja_overlay(self.data)
+        self._apply_logo_context(base_context, rich_text_overlay)
         rich_text_overlay["mk_evidence"] = jinja_funcs.mk_evidence
         rich_text_overlay["_evidences"] = self.create_evidences_lookup(self.data["evidence"])
         rich_text_overlay["_old_dot_vars"].update(
@@ -144,6 +145,30 @@ class ExportReportBase(ExportBase):
         #     self.process_extra_fields("the evidence", evidence["extra_fields"], Evidence, rich_text_context)
 
         return base_context
+
+    def _apply_logo_context(self, base_context: dict, rich_text_overlay: dict):
+        logos = self.create_logos_lookup(base_context.get("client"))
+        rich_text_overlay["mk_logo"] = jinja_funcs.mk_logo
+        rich_text_overlay["_logos"] = logos
+        rich_text_overlay["_mk_logo_renderer"] = getattr(self, "render_logo_subdoc", None)
+        rich_text_overlay["_old_dot_vars"].update({name: jinja_funcs.raw_mk_logo(name) for name in logos})
+        base_context["_logos"] = logos
+        base_context["_mk_logo_renderer"] = getattr(self, "render_logo_subdoc", None)
+        base_context["mk_logo"] = jinja_funcs.mk_logo
+
+    def create_logos_lookup(self, client: dict | None) -> dict:
+        logos: dict[str, dict] = {}
+        self.logos_by_name = {}
+
+        if isinstance(client, dict):
+            for logo_name in ("logo", "logo_header"):
+                logo_path = client.get(logo_name)
+                if logo_path:
+                    logo = {"path": logo_path}
+                    logos[logo_name] = logo
+                    self.logos_by_name[logo_name] = logo
+
+        return logos
 
     @classmethod
     def generate_lint_data(cls):

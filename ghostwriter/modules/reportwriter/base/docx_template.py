@@ -108,6 +108,29 @@ class GhostwriterDocxTemplate(DocxTemplate):
         }
     )
 
+    def get_headers_footers(self, uri):  # type: ignore[override]
+        """
+        Safely yield header/footer parts even when new relationships are added during rendering.
+
+        ``docxtpl`` iterates ``rels.items()`` directly, which raises ``RuntimeError`` if the
+        relationship dictionary grows mid-iteration (e.g., when a template inserts new subdocs
+        via helpers such as ``mk_logo`` inside headers/footers). By snapshotting the relationships
+        before the loop we avoid the mutation error while preserving the upstream behaviour.
+        """
+
+        rels = getattr(self.docx._part, "rels", None)
+        rel_items = list(rels.items()) if hasattr(rels, "items") else []
+
+        for rel_key, val in rel_items:
+            try:
+                if val.reltype != uri:
+                    continue
+                target_part = getattr(val, "_target", None)
+            except Exception:
+                continue
+            if target_part is not None:
+                yield rel_key, target_part
+
     def render(self, context, jinja_env=None, autoescape: bool = False) -> None:  # type: ignore[override]
         """Render the template, including SmartArt diagram XML parts."""
 
