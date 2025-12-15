@@ -428,6 +428,7 @@ class APIClient:
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
                     # No results
+                    logger.info(f"No computers found for domain {domain['name']}")
                     domain_computers = {"nodes": {}}
                 else:
                     raise
@@ -437,7 +438,7 @@ class APIClient:
                 if "properties" in value and "operatingsystem" in value["properties"]
             )
             domain_out["computers"] = {
-                "count": len(domain_computers),
+                "count": len(domain_computers["nodes"]),
                 "operating_systems": domain_oses,
             }
 
@@ -449,6 +450,7 @@ class APIClient:
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
                     # No results
+                    logger.info(f"No users found for domain {domain['name']}")
                     domain_users = {"nodes": {}}
                 else:
                     raise
