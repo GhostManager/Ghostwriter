@@ -253,6 +253,20 @@ class Client(models.Model):
         blank=True,
         help_text="An address to be used for reports or shipping",
     )
+    logo = models.ImageField(
+        "Client Logo",
+        upload_to="client_logos/",
+        blank=True,
+        null=True,
+        help_text="Upload a logo to be used for cover pages",
+    )
+    logo_header = models.ImageField(
+        "Client Header Logo",
+        upload_to="client_logos/headers/",
+        blank=True,
+        null=True,
+        help_text="Upload a logo to be used for report headers",
+    )
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
 

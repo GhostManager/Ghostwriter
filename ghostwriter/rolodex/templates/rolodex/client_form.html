@@ -57,17 +57,6 @@
       tinymce.execCommand('mceAddEditor', false, target);
     });
 
-    $('.formset-add-{{ invites.prefix }}').click(function () {
-      let form_idx = $('#id_{{ invites.prefix }}-TOTAL_FORMS').val();
-      $('#formset-{{ invites.prefix }}').append($('#empty-form-{{ invites.prefix }}').html().replace(/__prefix__/g, form_idx));
-      $('#id_{{ invites.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-      let new_form = $('#formset-{{ invites.prefix }}').find('div.formset-container').last()
-      new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-      let target = 'id_{{ invites.prefix }}-' + parseInt(form_idx) + '-comment'
-      tinymce.execCommand('mceAddEditor', false, target);
-    });
-
     {% comment %} Roll Codename with AJAX {% endcomment %}
     $('.js-roll-codename').click(function () {
       let url = $(this).attr('roll-codename-url');
@@ -79,5 +68,85 @@
         }
       });
     });
+
+    {% comment %} Logo upload & resizing {% endcomment %}
+    const uploadButton = document.getElementById('upload-client-logo');
+    const logoInput = document.getElementById('client-logo-input');
+    const coverCanvas = document.getElementById('client-logo-cover');
+    const headerCanvas = document.getElementById('client-logo-header');
+    const coverScale = document.getElementById('cover-scale');
+    const headerScale = document.getElementById('header-scale');
+    const coverScaleValue = document.getElementById('cover-scale-value');
+    const headerScaleValue = document.getElementById('header-scale-value');
+    const saveLogosButton = document.getElementById('save-logos');
+    const coverDataInput = document.getElementById('id_logo_cover_data');
+    const headerDataInput = document.getElementById('id_logo_header_data');
+    const form = document.querySelector('form');
+    let baseImage = null;
+
+    function renderLogo(canvas, maxWidth, maxHeight, scaleInput) {
+      if (!canvas || !baseImage) { return; }
+      const scaleValue = parseFloat(scaleInput?.value || '100') / 100;
+      const ratio = Math.min(maxWidth / baseImage.width, maxHeight / baseImage.height);
+      const width = Math.max(1, baseImage.width * ratio * scaleValue);
+      const height = Math.max(1, baseImage.height * ratio * scaleValue);
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(baseImage, 0, 0, width, height);
+    }
+
+    function updateScaleValue(label, input) {
+      if (label && input) { label.innerText = `${input.value}%`; }
+    }
+
+    function persistLogos() {
+      if (!baseImage) { return; }
+      if (coverCanvas && coverDataInput) {
+        coverDataInput.value = coverCanvas.toDataURL('image/png');
+      }
+      if (headerCanvas && headerDataInput) {
+        headerDataInput.value = headerCanvas.toDataURL('image/png');
+      }
+    }
+
+    function handleImage(file) {
+      if (!file) { return; }
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const img = new Image();
+        img.onload = function () {
+          baseImage = img;
+          renderLogo(coverCanvas, 120, 168, coverScale);
+          renderLogo(headerCanvas, 48, 72, headerScale);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    uploadButton?.addEventListener('click', () => logoInput?.click());
+    logoInput?.addEventListener('change', (event) => handleImage(event.target.files[0]));
+
+    coverScale?.addEventListener('input', () => {
+      updateScaleValue(coverScaleValue, coverScale);
+      renderLogo(coverCanvas, 120, 168, coverScale);
+    });
+    headerScale?.addEventListener('input', () => {
+      updateScaleValue(headerScaleValue, headerScale);
+      renderLogo(headerCanvas, 48, 72, headerScale);
+    });
+
+    saveLogosButton?.addEventListener('click', () => {
+      persistLogos();
+      if (!baseImage) {
+        displayToastTop({type: 'warning', string: 'Upload a logo before saving.', context: 'form'});
+      } else {
+        displayToastTop({type: 'success', string: 'Logo images are ready to save.', context: 'form'});
+      }
+    });
+
+    form?.addEventListener('submit', () => persistLogos());
   </script>
 {% endblock %}

@@ -57,12 +57,7 @@ from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
-from ghostwriter.rolodex.forms_client import (
-    ClientContactFormSet,
-    ClientForm,
-    ClientInviteFormSet,
-    ClientNoteForm,
-)
+from ghostwriter.rolodex.forms_client import ClientContactFormSet, ClientForm, ClientNoteForm
 from ghostwriter.rolodex.forms_project import (
     DeconflictionForm,
     ProjectAssignmentFormSet,
@@ -2648,21 +2643,17 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("rolodex:clients")
         ctx["contacts"] = self.contacts
-        ctx["invites"] = self.invites
         return ctx
 
     def get(self, request, *args, **kwargs):
         self.contacts = ClientContactFormSet(prefix="poc")
         self.contacts.extra = 1
-        self.invites = ClientInviteFormSet(prefix="invite")
-        self.invites.extra = 1
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         form = self.get_form()
         self.contacts = ClientContactFormSet(request.POST, prefix="poc")
-        self.invites = ClientInviteFormSet(request.POST, prefix="invite")
-        if form.is_valid() and self.contacts.is_valid() and self.invites.is_valid():
+        if form.is_valid() and self.contacts.is_valid():
             return self.form_valid(form)
         return self.form_invalid(form)
 
@@ -2677,14 +2668,10 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
                     for i in self.contacts.save(commit=False):
                         i.client = obj
                         i.save()
-                    for i in self.invites.save(commit=False):
-                        i.client = obj
-                        i.save()
                     self.contacts.save_m2m()
-                    self.invites.save_m2m()
                     form.save_m2m()
                 except IntegrityError:  # pragma: no cover
-                    form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
+                    form.add_error(None, "You cannot have duplicate contacts for a client.")
                     return self.form_invalid(form)
                 return HttpResponseRedirect(self.get_success_url())
         except Exception as exception:  # pragma: no cover
@@ -2749,23 +2736,17 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
         ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc", instance=self.object)
-            ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite", instance=self.object)
         else:
             contacts = ClientContactFormSet(prefix="poc", instance=self.object)
             if self.object.clientcontact_set.all().count() < 1:
                 contacts.extra = 1
             ctx["contacts"] = contacts
-            invites = ClientInviteFormSet(prefix="invite", instance=self.object)
-            if self.object.clientinvite_set.all().count() < 1:
-                invites.extra = 1
-            ctx["invites"] = invites
         return ctx
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
-        invites = ctx["invites"]
 
         # Now validate inline formsets
         try:
@@ -2773,15 +2754,13 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save(commit=False)
 
-                formsets_valid = contacts.is_valid() and invites.is_valid()
+                formsets_valid = contacts.is_valid()
                 if formsets_valid:
                     contacts.instance = obj
-                    invites.instance = obj
                     try:
                         contacts.save()
-                        invites.save()
                     except IntegrityError:  # pragma: no cover
-                        form.add_error(None, "You cannot have duplicate contacts or invites for a client.")
+                        form.add_error(None, "You cannot have duplicate contacts for a client.")
 
                 if form.is_valid() and formsets_valid:
                     obj.save()

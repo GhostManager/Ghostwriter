@@ -1,8 +1,12 @@
 """This contains all client-related forms used by the Rolodex application."""
 
+# Standard Libraries
+import base64
+
 # Django Imports
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
@@ -279,6 +283,8 @@ class ClientForm(forms.ModelForm):
     """
 
     extra_fields = ExtraFieldsField(Client._meta.label)
+    logo_cover_data = forms.CharField(required=False, widget=forms.HiddenInput())
+    logo_header_data = forms.CharField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = Client
@@ -302,6 +308,10 @@ class ClientForm(forms.ModelForm):
         self.fields["note"].label = "Notes"
         self.fields["tags"].label = "Tags"
         self.fields["extra_fields"].label = ""
+        self.fields["logo"].required = False
+        self.fields["logo_header"].required = False
+        self.fields["logo"].widget = forms.HiddenInput()
+        self.fields["logo_header"].widget = forms.HiddenInput()
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
@@ -364,15 +374,56 @@ class ClientForm(forms.ModelForm):
                     css_id="contacts",
                 ),
                 CustomTab(
-                    "Invites",
-                    Formset("invites", object_context_name="Invite"),
-                    Button(
-                        "add-invite",
-                        "Add Invite",
-                        css_class="btn-block btn-secondary formset-add-invite mb-2 offset-4 col-4",
+                    "Logo",
+                    Field("logo"),
+                    Field("logo_header"),
+                    Field("logo_cover_data"),
+                    Field("logo_header_data"),
+                    HTML(
+                        """
+                        <div class="mb-3">
+                            <button type="button" id="upload-client-logo" class="btn btn-secondary">
+                                Upload Client Logo
+                            </button>
+                            <input
+                                type="file"
+                                id="client-logo-input"
+                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                                style="display: none;"
+                            />
+                            <p class="text-muted mt-2 mb-0">Supported formats: png, jpg, jpeg, gif, webp</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Cover Page</h5>
+                                <canvas id="client-logo-cover" class="border rounded w-100" height="168" aria-label="Cover Page Logo Preview"></canvas>
+                                <div class="mt-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="mb-0" for="cover-scale">Resize</label>
+                                        <span id="cover-scale-value">100%</span>
+                                    </div>
+                                    <input type="range" class="form-range" id="cover-scale" min="10" max="200" value="100" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Header</h5>
+                                <canvas id="client-logo-header" class="border rounded w-100" height="72" aria-label="Header Logo Preview"></canvas>
+                                <div class="mt-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="mb-0" for="header-scale">Resize</label>
+                                        <span id="header-scale-value">100%</span>
+                                    </div>
+                                    <input type="range" class="form-range" id="header-scale" min="10" max="200" value="100" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" id="save-logos" class="btn btn-primary">Save Logo's</button>
+                        </div>
+                        """
                     ),
-                    link_css_class="tab-icon users-icon",
-                    css_id="invites",
+                    link_css_class="tab-icon file-icon",
+                    css_id="logo",
                 ),
                 template="tab.html",
                 css_class="nav-justified",
@@ -387,6 +438,43 @@ class ClientForm(forms.ModelForm):
                 ),
             ),
         )
+
+    def _save_logo_from_data(self, data_string, filename_prefix):
+        if not data_string:
+            return None
+        if ";base64," in data_string:
+            header, data = data_string.split(";base64,", 1)
+            file_ext = header.split("/")[-1]
+        else:
+            data = data_string
+            file_ext = "png"
+
+        try:
+            decoded_file = base64.b64decode(data)
+        except (base64.binascii.Error, ValueError):
+            return None
+
+        return ContentFile(decoded_file, name=f"{filename_prefix}.{file_ext}")
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        cover_logo_file = self._save_logo_from_data(
+            self.cleaned_data.get("logo_cover_data"), "client_logo_cover"
+        )
+        header_logo_file = self._save_logo_from_data(
+            self.cleaned_data.get("logo_header_data"), "client_logo_header"
+        )
+
+        if cover_logo_file:
+            instance.logo.save(cover_logo_file.name, cover_logo_file, save=False)
+        if header_logo_file:
+            instance.logo_header.save(header_logo_file.name, header_logo_file, save=False)
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class ClientNoteForm(forms.ModelForm):
