@@ -3,6 +3,9 @@ import io
 import logging
 import os
 import re
+import html
+
+from markupsafe import Markup
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from docx.enum.style import WD_STYLE_TYPE
@@ -315,7 +318,17 @@ class ExportDocxBase(ExportBase):
         """
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
         """
-        inline_rich_text = _render_inline_rich_text(str(rich_text.render_html()))
+        was_rendering = rich_text.context.get("_rendering_rich_text")
+        rich_text.context["_rendering_rich_text"] = True
+
+        try:
+            inline_rich_text = _render_inline_rich_text(str(rich_text.render_html()))
+        finally:
+            if was_rendering is None:
+                rich_text.context.pop("_rendering_rich_text", None)
+            else:
+                rich_text.context["_rendering_rich_text"] = was_rendering
+
         if inline_rich_text is not None:
             return inline_rich_text
 
@@ -342,6 +355,35 @@ class ExportDocxBase(ExportBase):
                 getattr(rich_text, "location", None),
             )
             return doc
+        return LazySubdocRender(render)
+
+    def render_logo_subdoc(self, logo_name: str):
+        """Render a standalone logo into a DOCX subdocument for inline template usage."""
+
+        def render():
+            doc = self.word_doc.new_subdoc()
+            ReportExportTemplateError.map_errors(
+                lambda: HtmlToDocxWithEvidence.run(
+                    Markup(f"<p><span data-gw-logo=\"{html.escape(logo_name)}\"></span></p>"),
+                    doc=doc,
+                    p_style=self.p_style,
+                    evidence_image_width=self.evidence_image_width,
+                    evidences=self.evidences_by_id,
+                    logos=self.logos_by_name,
+                    figure_label=self.label_figure,
+                    figure_prefix=self.prefix_figure,
+                    figure_caption_location=self.figure_caption_location,
+                    table_label=self.label_table,
+                    table_prefix=self.prefix_table,
+                    table_caption_location=self.table_caption_location,
+                    title_case_captions=self.title_case_captions,
+                    title_case_exceptions=self.title_case_exceptions,
+                    border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                ),
+                "inline logo",
+            )
+            return doc
+
         return LazySubdocRender(render)
 
     @classmethod

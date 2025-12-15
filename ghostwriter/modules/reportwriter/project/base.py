@@ -54,8 +54,10 @@ class ExportProjectBase(ExportBase):
         logos = self.create_logos_lookup(base_context.get("client"))
         rich_text_overlay["mk_logo"] = jinja_funcs.mk_logo
         rich_text_overlay["_logos"] = logos
+        rich_text_overlay["_mk_logo_renderer"] = getattr(self, "render_logo_subdoc", None)
         rich_text_overlay["_old_dot_vars"].update({name: jinja_funcs.raw_mk_logo(name) for name in logos})
         base_context["_logos"] = logos
+        base_context["_mk_logo_renderer"] = getattr(self, "render_logo_subdoc", None)
         base_context["mk_logo"] = jinja_funcs.mk_logo
 
     def create_logos_lookup(self, client: dict | None) -> dict:

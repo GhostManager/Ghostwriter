@@ -297,6 +297,11 @@ def mk_logo(context: jinja2.runtime.Context, logo_name: str) -> Markup:
     logo = logos.get(logo_name)
     if logo is None:
         raise ReportExportTemplateError(f"No such logo with name '{logo_name}'")
+
+    renderer = context.get("_mk_logo_renderer")
+    if renderer is not None and not context.get("_rendering_rich_text"):
+        return renderer(logo_name)
+
     return raw_mk_logo(logo_name)
 
 
