@@ -518,6 +518,7 @@ LINTER_CONTEXT = {
                 "general_first_ca": "no",
                 "general_scope_changed": "yes",
                 "general_anonymous_ephi": "no",
+                "scope_count": 3,
                 "scope_string": (
                     "External network and systems, Internal network and systems and "
                     "Firewall configuration(s) & rules"
@@ -816,37 +817,176 @@ LINTER_CONTEXT = {
                     ],
                 }
             ],
-        "web_issues": {
-            "low_sample_string": "",
-            "med_sample_string": "'Reveals stack traces that aid targeted exploitation attempts.'",
-            "ai_response": None,
-            "high": {
-                "total_unique": 2,
-                "items": [
+            "dns_findings": {
+                "example.com": [
                     {
-                        "issue": "Reflected Cross-Site Scripting",
-                        "impact": "Enables theft of user credentials through malicious scripts.",
-                        "count": 3,
+                        "Record": "TXT",
+                        "Status": "FAIL",
+                        "Test": "SPF Record Present",
+                        "Details": "No SPF record configured for example.com.",
                     },
                     {
-                        "issue": "Missing HTTP security headers",
-                        "impact": "Allows clickjacking and content injection attacks against users.",
-                        "count": 2,
+                        "Record": "MX",
+                        "Status": "WARN",
+                        "Test": "MX Record TTL",
+                        "Details": "TTL below recommended minimum of 3600 seconds.",
+                    },
+                ]
+            },
+            "web_issues": {
+                "low_sample_string": "",
+                "med_sample_string": "'Reveals stack traces that aid targeted exploitation attempts.'",
+                "ai_response": None,
+                "high": {
+                    "total_unique": 2,
+                    "items": [
+                        {
+                            "issue": "Reflected Cross-Site Scripting",
+                            "impact": "Enables theft of user credentials through malicious scripts.",
+                            "count": 3,
+                        },
+                        {
+                            "issue": "Missing HTTP security headers",
+                            "impact": "Allows clickjacking and content injection attacks against users.",
+                            "count": 2,
+                        },
+                    ],
+                },
+                "med": {
+                    "total_unique": 1,
+                    "items": [
+                        {
+                            "issue": "Verbose error messages exposed",
+                            "impact": "Reveals stack traces that aid targeted exploitation attempts.",
+                            "count": 1,
+                        }
+                    ],
+                },
+                "low": {"total_unique": 0, "items": []},
+            },
+            "web_metrics": {
+                "summary": {
+                    "total": 7,
+                    "unique": 4,
+                    "total_high": 2,
+                    "total_med": 3,
+                    "total_low": 2,
+                    "unique_high": 2,
+                    "unique_med": 1,
+                    "unique_low": 1,
+                    "host_risk_counts": [
+                        {"host": "portal.example.com", "high": 2, "medium": 1, "low": 0},
+                        {"host": "intranet.example.com", "high": 0, "medium": 1, "low": 1},
+                    ],
+                    "uniquelow": 1,
+                },
+                "unique_issues": [
+                    {
+                        "Issue": "Missing HTTP security headers",
+                        "Impact": "Allows clickjacking attacks",
+                        "Risk": "Medium",
+                        "Score": 6.5,
+                    },
+                    {
+                        "Issue": "Reflected Cross-Site Scripting",
+                        "Impact": "Session theft",
+                        "Risk": "High",
+                        "Score": 8.1,
                     },
                 ],
-            },
-            "med": {
-                "total_unique": 1,
-                "items": [
+                "all_issues": [
                     {
-                        "issue": "Verbose error messages exposed",
-                        "impact": "Reveals stack traces that aid targeted exploitation attempts.",
-                        "count": 1,
+                        "Issue": "Missing HTTP security headers",
+                        "Risk": "Medium",
+                        "Score": 6.5,
+                        "Host": "portal.example.com",
+                        "Path": "/",
+                    },
+                    {
+                        "Issue": "Reflected Cross-Site Scripting",
+                        "Risk": "High",
+                        "Score": 8.6,
+                        "Host": "portal.example.com",
+                        "Path": "/login",
+                    },
+                ],
+                "high_issues": [
+                    {
+                        "Issue": "Reflected Cross-Site Scripting",
+                        "Risk": "High",
+                        "Score": 8.6,
+                        "Host": "portal.example.com",
+                        "Path": "/login",
                     }
                 ],
+                "med_issues": [
+                    {
+                        "Issue": "Missing HTTP security headers",
+                        "Risk": "Medium",
+                        "Score": 6.5,
+                        "Host": "portal.example.com",
+                        "Path": "/",
+                    }
+                ],
+                "low_issues": [
+                    {
+                        "Issue": "Verbose error messages exposed",
+                        "Risk": "Low",
+                        "Score": 3.5,
+                        "Host": "api.example.com",
+                        "Path": "/debug",
+                    }
+                ],
+                "top_impacts": [
+                    {"impact": "Session hijacking", "count": 3},
+                    {"impact": "Information disclosure", "count": 1},
+                ],
+                "tab_index_entries": [
+                    "Unique Issues  -:-  Unique issues found across all scanned systems",
+                    "All Issues  -:-  All issues identified.",
+                    "High Risk Issues  -:-  All 'High' risk issues identified",
+                    "Medium Risk Issues  -:-  All 'Medium' risk issues identified",
+                    "Low Risk Issues  -:-  All 'Low' risk issues identified",
+                ],
+                "xlsx_filename": "burp_data.xlsx",
+                "xlsx_base64": "UEsDBBQAAgAIACJwZW5jaABXZWJNZXRyaWNz",
             },
-            "low": {"total_unique": 0, "items": []},
-        },
+            "web_findings": [
+                {
+                    "Issue": "Missing HTTP security headers",
+                    "Impact": "Clickjacking risk",
+                    "Risk": "Medium",
+                    "Host": "portal.example.com",
+                    "Path": "/",
+                    "Score": 6.5,
+                },
+                {
+                    "Issue": "Reflected Cross-Site Scripting",
+                    "Impact": "Session hijacking",
+                    "Risk": "High",
+                    "Host": "portal.example.com",
+                    "Path": "/login",
+                    "Score": 8.6,
+                },
+            ],
+            "web_cap_map": [
+                {
+                    "issue": "Missing HTTP security headers",
+                    "risk": "Medium",
+                    "finding_score": 6.5,
+                    "recommendation": "Implement X-Frame-Options, X-Content-Type-Options, and Content-Security-Policy headers.",
+                    "score": 4,
+                }
+            ],
+            "web_issue_matrix_gaps": {
+                "entries": [
+                    {
+                        "issue": "Legacy HTTP Authentication",
+                        "impact": "Allows brute-force attacks without throttling.",
+                        "fix": "Enforce lockouts and enable MFA for the application.",
+                    }
+                ]
+            },
             "external_ips": [
                 "203.0.113.10",
                 "203.0.113.11",
@@ -959,6 +1099,103 @@ LINTER_CONTEXT = {
                     "items": [],
                 },
             },
+            "external_nexpose_findings": {
+                "findings": [
+                    {
+                        "Asset IP Address": "203.0.113.10",
+                        "Hostname(s)": "edge.example.com",
+                        "Service Port": "443",
+                        "Protocol": "tcp",
+                        "Vulnerability Title": "OpenSSL Padding Oracle (CVE-2016-2107)",
+                        "Impact": "Allows attackers to decrypt TLS traffic and impersonate the server.",
+                        "Solution": "Update OpenSSL to a supported release.",
+                        "Category": "OOD",
+                        "Details": "Server negotiates vulnerable OpenSSL build.",
+                        "Evidence": "Observed server certificate during scan.",
+                        "Detailed Remediation": "Upgrade to OpenSSL 1.1.1 or later.",
+                    }
+                ],
+                "software": [
+                    {"Software": "OpenSSL", "Version": "1.0.2", "Instances": 3},
+                    {"Software": "Apache HTTPD", "Version": "2.4.38", "Instances": 2},
+                ],
+            },
+            "external_nexpose_metrics": {
+                "summary": {
+                    "total": 12,
+                    "total_high": 4,
+                    "total_med": 5,
+                    "total_low": 3,
+                    "unique": 6,
+                    "unique_high": 3,
+                    "unique_med": 2,
+                    "unique_low": 1,
+                    "unique_high_med": 5,
+                    "total_ood": 2,
+                    "total_isc": 3,
+                    "total_iwc": 1,
+                    "majority_count": 3,
+                    "minority_count": 1,
+                },
+                "host_counts": [
+                    {"host": "edge.example.com", "high": 2, "med": 1, "low": 0},
+                    {"host": "vpn.example.com", "high": 1, "med": 2, "low": 1},
+                ],
+                "top_hosts": [
+                    {"host": "edge.example.com", "high": 2, "med": 1, "low": 0, "total": 3, "score": 8},
+                    {"host": "vpn.example.com", "high": 1, "med": 2, "low": 1, "total": 4, "score": 7},
+                ],
+                "top_hosts_high": 3,
+                "top_hosts_med": 3,
+                "top_hosts_low": 1,
+                "top_hosts_total": 7,
+                "top_impacts": [
+                    {"impact": "Remote code execution", "count": 3},
+                    {"impact": "Credential theft", "count": 2},
+                ],
+                "tab_index_entries": [
+                    "All Issues  -:-  All issues identified",
+                    "High Risk Issues  -:-  All 'High' risk issues identified",
+                    "Medium Risk Issues  -:-  All 'Medium' risk issues identified",
+                    "Low Risk Issues  -:-  All 'Low' risk issues identified",
+                ],
+                "unique_issues": [
+                    {
+                        "risk": "High",
+                        "issue": "OpenSSL Padding Oracle (CVE-2016-2107)",
+                        "impact": "Permits decryption of TLS sessions.",
+                        "remediation": "Upgrade OpenSSL library.",
+                        "category": "OOD",
+                        "severity": 9,
+                    }
+                ],
+                "majority_type": "ISC",
+                "minority_type": "IWC",
+                "majority_unique": [
+                    {
+                        "risk": "Medium",
+                        "issue": "SMB Signing Not Required",
+                        "impact": "Permits MITM attacks.",
+                        "remediation": "Require SMB signing.",
+                        "category": "ISC",
+                        "severity": 6,
+                    }
+                ],
+                "majority_subset": [
+                    {
+                        "ip": "203.0.113.10",
+                        "hostnames": "edge.example.com",
+                        "issue": "SMB Signing Not Required",
+                        "impact": "Permits MITM attacks.",
+                        "remediation": "Require SMB signing.",
+                        "risk": "Medium",
+                        "category": "ISC",
+                        "severity": 6,
+                    }
+                ],
+                "xlsx_filename": "external_nexpose.xlsx",
+                "xlsx_base64": "UEsDBBQAAgAIACJFeGFtTmV4cG9zZQ",
+            },
             "internal_nexpose_vulnerabilities": {
                 "label": "Internal Nexpose Vulnerabilities",
                 "high": {
@@ -1028,6 +1265,388 @@ LINTER_CONTEXT = {
                             "count": 4,
                         }
                     ],
+                },
+            },
+            "internal_nexpose_findings": {
+                "findings": [
+                    {
+                        "Asset IP Address": "10.20.30.40",
+                        "Hostname(s)": "file01.corp.example.com",
+                        "Service Port": "445",
+                        "Protocol": "tcp",
+                        "Vulnerability Title": "SMB Signing Not Required",
+                        "Impact": "Permits attackers to relay SMB authentication.",
+                        "Solution": "Require SMB signing on all systems.",
+                        "Category": "ISC",
+                        "Details": "Signing disabled on host.",
+                        "Evidence": "SMB negotiation captured.",
+                        "Detailed Remediation": "Apply GPO to enforce SMB signing.",
+                    }
+                ],
+                "software": [
+                    {"Software": "Windows Server 2012 R2", "Version": "6.3.9600", "Instances": 4}
+                ],
+            },
+            "internal_nexpose_metrics": {
+                "summary": {
+                    "total": 15,
+                    "total_high": 6,
+                    "total_med": 5,
+                    "total_low": 4,
+                    "unique": 8,
+                    "unique_high": 3,
+                    "unique_med": 3,
+                    "unique_low": 2,
+                    "unique_high_med": 6,
+                    "total_ood": 1,
+                    "total_isc": 5,
+                    "total_iwc": 2,
+                    "majority_count": 5,
+                    "minority_count": 2,
+                },
+                "host_counts": [
+                    {"host": "file01.corp.example.com", "high": 1, "med": 2, "low": 1},
+                    {"host": "db02.corp.example.com", "high": 2, "med": 1, "low": 0},
+                ],
+                "top_hosts": [
+                    {"host": "db02.corp.example.com", "high": 2, "med": 1, "low": 0, "total": 3, "score": 7},
+                    {"host": "file01.corp.example.com", "high": 1, "med": 2, "low": 1, "total": 4, "score": 6},
+                ],
+                "top_hosts_high": 3,
+                "top_hosts_med": 3,
+                "top_hosts_low": 1,
+                "top_hosts_total": 7,
+                "top_impacts": [
+                    {"impact": "Privilege escalation", "count": 2},
+                    {"impact": "Lateral movement", "count": 2},
+                ],
+                "tab_index_entries": [
+                    "All Issues  -:-  All issues identified",
+                    "High Risk Issues  -:-  All 'High' risk issues identified",
+                    "Medium Risk Issues  -:-  All 'Medium' risk issues identified",
+                    "Low Risk Issues  -:-  All 'Low' risk issues identified",
+                ],
+                "unique_issues": [
+                    {
+                        "risk": "High",
+                        "issue": "Unsupported Windows Server",
+                        "impact": "Legacy operating systems permit trivial remote exploitation.",
+                        "remediation": "Upgrade to a supported Windows Server release.",
+                        "category": "OOD",
+                        "severity": 9,
+                    }
+                ],
+                "majority_type": "ISC",
+                "minority_type": "IWC",
+                "majority_unique": [
+                    {
+                        "risk": "Medium",
+                        "issue": "SMB Signing Not Required",
+                        "impact": "Permits MITM attacks.",
+                        "remediation": "Require SMB signing.",
+                        "category": "ISC",
+                        "severity": 6,
+                    }
+                ],
+                "majority_subset": [
+                    {
+                        "ip": "10.20.30.40",
+                        "hostnames": "file01.corp.example.com",
+                        "issue": "SMB Signing Not Required",
+                        "impact": "Permits MITM attacks.",
+                        "remediation": "Require SMB signing.",
+                        "risk": "Medium",
+                        "category": "ISC",
+                        "severity": 6,
+                    }
+                ],
+                "xlsx_filename": "internal_nexpose.xlsx",
+                "xlsx_base64": "UEsDBBQAAgAIACJJbnRlcm5hbE5leHBvc2U",
+            },
+            "iot_iomt_nexpose_findings": {
+                "findings": [
+                    {
+                        "Asset IP Address": "10.55.88.23",
+                        "Hostname(s)": "mri01.med.example.com",
+                        "Service Port": "80",
+                        "Protocol": "tcp",
+                        "Vulnerability Title": "Default Credentials Enabled",
+                        "Impact": "Shared vendor passwords allow unauthorized access to device management.",
+                        "Solution": "Change default credentials and enforce MFA on management portals.",
+                        "Category": "ISC",
+                        "Details": "Device uses manufacturer default password.",
+                        "Evidence": "Successful login via vendor defaults.",
+                        "Detailed Remediation": "Rotate credentials and integrate with PAM tooling.",
+                    }
+                ],
+                "software": [
+                    {"Software": "MedTech Controller", "Version": "3.2.1", "Instances": 5}
+                ],
+            },
+            "iot_iomt_nexpose_metrics": {
+                "summary": {
+                    "total": 5,
+                    "total_high": 2,
+                    "total_med": 2,
+                    "total_low": 1,
+                    "unique": 3,
+                    "unique_high": 1,
+                    "unique_med": 1,
+                    "unique_low": 1,
+                    "unique_high_med": 2,
+                    "total_ood": 1,
+                    "total_isc": 2,
+                    "total_iwc": 0,
+                    "majority_count": 2,
+                    "minority_count": 1,
+                },
+                "host_counts": [
+                    {"host": "mri01.med.example.com", "high": 1, "med": 1, "low": 0},
+                    {"host": "nurse01.med.example.com", "high": 0, "med": 1, "low": 1},
+                ],
+                "top_hosts": [
+                    {"host": "mri01.med.example.com", "high": 1, "med": 1, "low": 0, "total": 2, "score": 5},
+                    {"host": "nurse01.med.example.com", "high": 0, "med": 1, "low": 1, "total": 2, "score": 3},
+                ],
+                "top_hosts_high": 1,
+                "top_hosts_med": 2,
+                "top_hosts_low": 1,
+                "top_hosts_total": 4,
+                "top_impacts": [
+                    {"impact": "Unauthorized device control", "count": 2},
+                ],
+                "tab_index_entries": [
+                    "All Issues  -:-  All issues identified",
+                    "High Risk Issues  -:-  All 'High' risk issues identified",
+                    "Medium Risk Issues  -:-  All 'Medium' risk issues identified",
+                    "Low Risk Issues  -:-  All 'Low' risk issues identified",
+                ],
+                "unique_issues": [
+                    {
+                        "risk": "High",
+                        "issue": "Unpatched Medical Device Firmware",
+                        "impact": "Outdated firmware enables arbitrary code execution on clinical systems.",
+                        "remediation": "Coordinate firmware upgrades with the vendor.",
+                        "category": "OOD",
+                        "severity": 9,
+                    }
+                ],
+                "majority_type": "ISC",
+                "minority_type": "OOD",
+                "majority_unique": [
+                    {
+                        "risk": "Medium",
+                        "issue": "Default Credentials Enabled",
+                        "impact": "Shared vendor passwords allow unauthorized access to device management.",
+                        "remediation": "Rotate credentials and restrict access.",
+                        "category": "ISC",
+                        "severity": 6,
+                    }
+                ],
+                "majority_subset": [
+                    {
+                        "ip": "10.55.88.23",
+                        "hostnames": "mri01.med.example.com",
+                        "issue": "Default Credentials Enabled",
+                        "impact": "Shared vendor passwords allow unauthorized access to device management.",
+                        "remediation": "Rotate credentials and restrict access.",
+                        "risk": "Medium",
+                        "category": "ISC",
+                        "severity": 6,
+                    }
+                ],
+                "xlsx_filename": "iot_nexpose.xlsx",
+                "xlsx_base64": "UEsDBBQAAgAIACJJb3ROZXhwb3Nl",
+            },
+            "nexpose_matrix_gaps": {
+                "missing_by_artifact": {
+                    "external_nexpose_findings": {
+                        "entries": [
+                            {
+                                "Vulnerability": "Legacy TLS Support",
+                                "Action Required": "Confirm if TLS 1.0 can be disabled.",
+                                "Remediation Impact": "May affect legacy clients.",
+                                "Vulnerability Threat": "Downgrade and MITM attacks",
+                                "Category": "IWC",
+                                "CVE": "CVE-2021-0001",
+                            }
+                        ]
+                    }
+                }
+            },
+            "password": {
+                "file_name": "password_dump.csv",
+                "xlsx_filename": "KTOWN_Password_Report.xlsx",
+                "xlsx_base64": "UEsDBBQAAgAIACJQYXNzd29yZHM",
+                "raw": [
+                    {
+                        "Domain": "corp.example.com",
+                        "Username": "svc-backup",
+                        "NTLM Hash": "aad3b435b51404eeaad3b435b51404ee",
+                        "NTLM Password": "Welcome1",
+                        "NTLM State": "Cracked",
+                        "User Info": "Backup service account",
+                        "Last Changed Time": "2024-01-05",
+                        "Lockout": "N",
+                        "Disabled": "N",
+                        "Expired": "N",
+                        "No Expire": "Y",
+                        "LM Hash": "",
+                    },
+                    {
+                        "Domain": "lab.example.com",
+                        "Username": "admin",
+                        "NTLM Hash": "31d6cfe0d16ae931b73c59d7e0c089c0",
+                        "NTLM Password": "Winter2023!",
+                        "NTLM State": "Cracked",
+                        "User Info": "Lab administrator",
+                        "Last Changed Time": "2024-02-10",
+                        "Lockout": "N",
+                        "Disabled": "N",
+                        "Expired": "N",
+                        "No Expire": "N",
+                        "LM Hash": "aad3b435b51404eeaad3b435b51404ee",
+                    },
+                ],
+                "domains": {
+                    "corp.example.com": {
+                        "domain": "corp.example.com",
+                        "sheets": {
+                            "cracked": "cracked-corp.example.com",
+                            "admin": "admin-corp.example.com",
+                            "enabled": "enabled-corp.example.com",
+                            "lanman": "LANMAN-corp.example.com",
+                            "duplicates": "duplicates-corp.example.com",
+                        },
+                        "cracked": [
+                            {
+                                "Domain": "corp.example.com",
+                                "Username": "svc-backup",
+                                "NTLM Password": "Welcome1",
+                                "NTLM State": "Cracked",
+                            }
+                        ],
+                        "admin": [
+                            {
+                                "Domain": "corp.example.com",
+                                "Username": "svc-backup",
+                                "NTLM Password": "Welcome1",
+                                "NTLM State": "Cracked",
+                            }
+                        ],
+                        "enabled": [
+                            {
+                                "Domain": "corp.example.com",
+                                "Username": "svc-helpdesk",
+                                "NTLM Password": "Password123!",
+                                "NTLM State": "Cracked",
+                            }
+                        ],
+                        "lanman": [
+                            {
+                                "Domain": "corp.example.com",
+                                "Username": "legacy",
+                                "LM Hash": "aad3b435b51404eeaad3b435b51404ee",
+                            }
+                        ],
+                        "duplicates": [
+                            {"NTLM Password": "Welcome1", "Count": 6},
+                            {"NTLM Password": "Password123!", "Count": 3},
+                        ],
+                    },
+                    "lab.example.com": {
+                        "domain": "lab.example.com",
+                        "sheets": {
+                            "cracked": "cracked-lab.example.com",
+                            "admin": "admin-lab.example.com",
+                            "enabled": "enabled-lab.example.com",
+                            "lanman": "LANMAN-lab.example.com",
+                            "duplicates": "duplicates-lab.example.com",
+                        },
+                        "cracked": [
+                            {
+                                "Domain": "lab.example.com",
+                                "Username": "admin",
+                                "NTLM Password": "Winter2023!",
+                                "NTLM State": "Cracked",
+                            }
+                        ],
+                        "admin": [
+                            {
+                                "Domain": "lab.example.com",
+                                "Username": "admin",
+                                "NTLM Password": "Winter2023!",
+                                "NTLM State": "Cracked",
+                            }
+                        ],
+                        "enabled": [
+                            {
+                                "Domain": "lab.example.com",
+                                "Username": "jane",
+                                "NTLM Password": "Spring2024!",
+                                "NTLM State": "Cracked",
+                            }
+                        ],
+                        "lanman": [],
+                        "duplicates": [
+                            {"NTLM Password": "Winter2023!", "Count": 4},
+                        ],
+                    },
+                },
+                "metrics": {
+                    "corp.example.com": {
+                        "domain_name": "corp.example.com",
+                        "passwords_cracked": 17,
+                        "admin_count": 2,
+                        "lanman_stored": "Yes",
+                        "enabled_accounts": 210,
+                    },
+                    "lab.example.com": {
+                        "domain_name": "lab.example.com",
+                        "passwords_cracked": 9,
+                        "admin_count": 1,
+                        "lanman_stored": "No",
+                        "enabled_accounts": 75,
+                    },
+                },
+            },
+            "endpoint": {
+                "domains": [
+                    {
+                        "domain": "corp.example.com",
+                        "computers": [
+                            {
+                                "Computer": "CORP-LAP-01",
+                                "Online_Status": "Online",
+                                "securityproducts": [
+                                    {
+                                        "SecurityProduct": "Windows Defender",
+                                        "Version": "4.18.230",
+                                        "Status": "Enabled, UpToDate",
+                                        "LastUpdated": "2024-04-15",
+                                        "Running": "Yes",
+                                        "VTP_Enabled": "Yes",
+                                    }
+                                ],
+                                "usernames": ["corp\\jdoe"],
+                                "ssids": ["CorpSecure"],
+                            }
+                        ],
+                    }
+                ],
+                "metrics": {
+                    "corp.example.com": {
+                        "domain": "corp.example.com",
+                        "summary": {
+                            "total_computers": 25,
+                            "online_count": 22,
+                            "systems_ood": 3,
+                            "wifi_count": 5,
+                            "file_name": "corp_endpoint.csv",
+                        },
+                        "xlsx_filename": "endpoint_data_corp_example_com.xlsx",
+                        "xlsx_base64": "UEsDBBQAAgAIACJFbmRwb2ludA",
+                    }
                 },
             },
         },

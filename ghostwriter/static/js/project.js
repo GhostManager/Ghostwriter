@@ -10,10 +10,8 @@ function displayToastTop({
                              context = null,
                              url = '',
                          }) {
-    if (context !== null) {
-        if (context === 'form') {
-            title = 'Form Validation Error';
-        }
+    if (context === 'form' && type === 'error') {
+        title = 'Form Validation Error';
     }
     delay = delay * 1000;
     toastr.options.timeOut = delay.toString();
@@ -202,4 +200,3 @@ function update_project_contacts() {
     });
   }
 }
-
