@@ -552,7 +552,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
 
     def make_logo(self, par, logo):
-        file_path = settings.MEDIA_ROOT + "/" + logo["path"]
+        file_path = self._resolve_media_path(logo.get("path", ""))
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
 
@@ -563,6 +563,19 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         except UnrecognizedImageError as e:
             logger.exception("Logo file could not be recognized: %s", file_path)
             raise ReportExportTemplateError("The provided logo file could not be recognized as an image") from e
+
+    @staticmethod
+    def _resolve_media_path(path: str) -> str:
+        """Return an absolute path for media files regardless of MEDIA_URL prefixing."""
+
+        normalized_path = path or ""
+
+        if settings.MEDIA_URL and normalized_path.startswith(settings.MEDIA_URL):
+            normalized_path = normalized_path[len(settings.MEDIA_URL) :]
+
+        normalized_path = normalized_path.lstrip("/")
+
+        return os.path.join(settings.MEDIA_ROOT, normalized_path)
 
     def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
         self.make_caption(par_caption, self.figure_label, ref)
