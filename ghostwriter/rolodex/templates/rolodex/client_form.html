@@ -164,8 +164,10 @@
     function applyInitialSizing(targetWidthInches, targetHeightInches, inputs) {
       const unit = inputs.unitSelect.value;
       const targetWidthPx = unitToPx(targetWidthInches, 'in');
-      const targetHeightPx = unitToPx(targetHeightInches, 'in');
-      const ratio = Math.min(targetWidthPx / baseImage.width, targetHeightPx / baseImage.height);
+      const targetHeightPx = targetHeightInches ? unitToPx(targetHeightInches, 'in') : Infinity;
+      const ratioWidth = targetWidthPx / baseImage.width;
+      const ratioHeight = targetHeightPx / baseImage.height;
+      const ratio = Math.min(ratioWidth, ratioHeight);
       const widthPx = Math.max(1, baseImage.width * ratio);
       const heightPx = Math.max(1, baseImage.height * ratio);
       inputs.widthInput.value = pxToUnit(widthPx, unit).toFixed(2);
@@ -219,51 +221,93 @@
       };
     }
 
+    function renderFromPersisted(widthPx, heightPx, inputs) {
+      const unit = inputs.unitSelect.value;
+      const baseAspect = baseImage ? baseImage.width / baseImage.height : 1;
+      const resolvedWidthPx = widthPx || unitToPx(1, unit);
+      const resolvedHeightPx = heightPx || resolvedWidthPx / baseAspect;
+      inputs.widthInput.value = pxToUnit(resolvedWidthPx, unit).toFixed(2);
+      inputs.heightInput.value = pxToUnit(resolvedHeightPx, unit).toFixed(2);
+      renderLogo(inputs.canvas, resolvedWidthPx, resolvedHeightPx);
+    }
+
+    function configureImage(sourceData) {
+      const img = new Image();
+      img.onload = function () {
+        baseImage = img;
+        if (sourceDataInput) { sourceDataInput.value = sourceData; }
+        if (!coverControls) {
+          coverControls = bindResizer('cover', {
+            widthInput: coverWidthInput,
+            heightInput: coverHeightInput,
+            unitSelect: coverUnitSelect,
+            lockButton: coverAspectButton,
+            canvas: coverCanvas,
+            persistWidth: coverWidthPersistInput,
+            persistHeight: coverHeightPersistInput,
+            persistLock: coverLockPersistInput,
+          });
+        }
+        if (!headerControls) {
+          headerControls = bindResizer('header', {
+            widthInput: headerWidthInput,
+            heightInput: headerHeightInput,
+            unitSelect: headerUnitSelect,
+            lockButton: headerAspectButton,
+            canvas: headerCanvas,
+            persistWidth: headerWidthPersistInput,
+            persistHeight: headerHeightPersistInput,
+            persistLock: headerLockPersistInput,
+          });
+        }
+
+        const coverLocked = (coverLockPersistInput?.value || 'true') === 'true';
+        const headerLocked = (headerLockPersistInput?.value || 'true') === 'true';
+        toggleAspect(coverAspectButton, coverLockPersistInput, coverLocked);
+        toggleAspect(headerAspectButton, headerLockPersistInput, headerLocked);
+
+        const baseAspect = baseImage.width / baseImage.height;
+
+        const coverWidthPx = parseFloat(coverWidthPersistInput?.value) || unitToPx(2, 'in');
+        const coverHeightPx = parseFloat(coverHeightPersistInput?.value) || (coverWidthPx / baseAspect);
+        renderFromPersisted(coverWidthPx, coverHeightPx, {
+          unitSelect: coverUnitSelect,
+          widthInput: coverWidthInput,
+          heightInput: coverHeightInput,
+          canvas: coverCanvas,
+        });
+
+        const headerWidthPx = parseFloat(headerWidthPersistInput?.value) || unitToPx(1, 'in');
+        const headerHeightPx = parseFloat(headerHeightPersistInput?.value) || (headerWidthPx / baseAspect);
+        renderFromPersisted(headerWidthPx, headerHeightPx, {
+          unitSelect: headerUnitSelect,
+          widthInput: headerWidthInput,
+          heightInput: headerHeightInput,
+          canvas: headerCanvas,
+        });
+
+        persistLogos();
+      };
+      img.src = sourceData;
+    }
+
     function handleImage(file) {
       if (!file) { return; }
       const reader = new FileReader();
       reader.onload = function (event) {
-        const img = new Image();
-        img.onload = function () {
-          baseImage = img;
-          if (sourceDataInput) { sourceDataInput.value = event.target.result; }
-          if (!coverControls) {
-            coverControls = bindResizer('cover', {
-              widthInput: coverWidthInput,
-              heightInput: coverHeightInput,
-              unitSelect: coverUnitSelect,
-              lockButton: coverAspectButton,
-              canvas: coverCanvas,
-              persistWidth: coverWidthPersistInput,
-              persistHeight: coverHeightPersistInput,
-              persistLock: coverLockPersistInput,
-            });
-          }
-          if (!headerControls) {
-            headerControls = bindResizer('header', {
-              widthInput: headerWidthInput,
-              heightInput: headerHeightInput,
-              unitSelect: headerUnitSelect,
-              lockButton: headerAspectButton,
-              canvas: headerCanvas,
-              persistWidth: headerWidthPersistInput,
-              persistHeight: headerHeightPersistInput,
-              persistLock: headerLockPersistInput,
-            });
-          }
-
-          toggleAspect(coverAspectButton, coverLockPersistInput, true);
-          toggleAspect(headerAspectButton, headerLockPersistInput, true);
-
-          coverControls?.renderDefault(1.25, 1.75);
-          headerControls?.renderDefault(0.5, 0.75);
-          coverControls?.refresh();
-          headerControls?.refresh();
-        };
-        img.src = event.target.result;
+        configureImage(event.target.result);
       };
       reader.readAsDataURL(file);
     }
+
+    function loadExisting() {
+      const existing = sourceDataInput?.value || coverDataInput?.value || headerDataInput?.value;
+      if (existing) {
+        configureImage(existing);
+      }
+    }
+
+    loadExisting();
 
     uploadButton?.addEventListener('click', () => logoInput?.click());
     logoInput?.addEventListener('change', (event) => handleImage(event.target.files[0]));

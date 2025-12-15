@@ -329,10 +329,67 @@ class ClientForm(forms.ModelForm):
         self.fields["logo_header"].widget = forms.HiddenInput()
         self.fields["logo_cover_scale"].initial = 100
         self.fields["logo_header_scale"].initial = 100
-        self.fields["logo_cover_width_px"].initial = 375
-        self.fields["logo_cover_height_px"].initial = 525
-        self.fields["logo_header_width_px"].initial = 150
-        self.fields["logo_header_height_px"].initial = 225
+        self.fields["logo_cover_width_px"].initial = None
+        self.fields["logo_cover_height_px"].initial = None
+        self.fields["logo_header_width_px"].initial = None
+        self.fields["logo_header_height_px"].initial = None
+
+        def _file_to_data(file_field):
+            if not file_field:
+                return None, None, None
+
+            try:
+                file_field.open("rb")
+                content = file_field.read()
+            except Exception:
+                return None, None, None
+            finally:
+                try:
+                    file_field.close()
+                except Exception:
+                    pass
+
+            if not content:
+                return None, None, None
+
+            mime = getattr(file_field, "file", None)
+            mime_type = None
+            if mime and hasattr(mime, "content_type"):
+                mime_type = mime.content_type
+            if not mime_type:
+                import mimetypes
+
+                mime_type, _ = mimetypes.guess_type(file_field.name)
+            mime_type = mime_type or "image/png"
+
+            data_url = f"data:{mime_type};base64,{base64.b64encode(content).decode('utf-8')}"
+            width = height = None
+            try:
+                with Image.open(io.BytesIO(content)) as img:
+                    width, height = img.size
+            except Exception:
+                pass
+            return data_url, width, height
+
+        cover_data_url, cover_width, cover_height = _file_to_data(self.instance.logo)
+        header_data_url, header_width, header_height = _file_to_data(
+            self.instance.logo_header
+        )
+
+        if cover_data_url:
+            self.initial.setdefault("logo_cover_data", cover_data_url)
+            self.initial.setdefault("logo_source_data", cover_data_url)
+            if cover_width and cover_height:
+                self.fields["logo_cover_width_px"].initial = cover_width
+                self.fields["logo_cover_height_px"].initial = cover_height
+
+        if header_data_url:
+            self.initial.setdefault("logo_header_data", header_data_url)
+            if not self.initial.get("logo_source_data"):
+                self.initial["logo_source_data"] = header_data_url
+            if header_width and header_height:
+                self.fields["logo_header_width_px"].initial = header_width
+                self.fields["logo_header_height_px"].initial = header_height
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
@@ -428,24 +485,24 @@ class ClientForm(forms.ModelForm):
                                 <h5>Cover Page</h5>
                                 <canvas id="client-logo-cover" class="border rounded w-100" height="168" aria-label="Cover Page Logo Preview"></canvas>
                                 <div class="form-row mt-2">
-                                    <div class="form-group col-md-4">
-                                        <label class="mb-1" for="cover-width">Width</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" id="cover-width" min="0.01" step="0.01" value="1.25" />
-                                            <div class="input-group-append">
-                                                <select id="cover-unit" class="custom-select">
-                                                    <option value="in" selected>in</option>
-                                                    <option value="px">px</option>
-                                                    <option value="cm">cm</option>
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="cover-width">Width</label>
+                                                <div class="input-group">
+                                            <input type="number" class="form-control" id="cover-width" min="0.01" step="0.01" value="2" />
+                                                    <div class="input-group-append">
+                                                        <select id="cover-unit" class="custom-select">
+                                                            <option value="in" selected>in</option>
+                                                            <option value="px">px</option>
+                                                            <option value="cm">cm</option>
                                                     <option value="mm">mm</option>
                                                 </select>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="form-group col-md-4">
-                                        <label class="mb-1" for="cover-height">Height</label>
-                                        <input type="number" class="form-control" id="cover-height" min="0.01" step="0.01" value="1.75" />
-                                    </div>
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="cover-height">Height</label>
+                                        <input type="number" class="form-control" id="cover-height" min="0.01" step="0.01" value="" />
+                                            </div>
                                     <div class="form-group col-md-4 d-flex align-items-end">
                                         <button type="button" id="cover-aspect" class="btn btn-outline-secondary w-100" data-locked="true">
                                             <i class="fas fa-lock"></i> Aspect Locked
@@ -457,24 +514,24 @@ class ClientForm(forms.ModelForm):
                                 <h5>Header</h5>
                                 <canvas id="client-logo-header" class="border rounded w-100" height="72" aria-label="Header Logo Preview"></canvas>
                                 <div class="form-row mt-2">
-                                    <div class="form-group col-md-4">
-                                        <label class="mb-1" for="header-width">Width</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" id="header-width" min="0.01" step="0.01" value="0.5" />
-                                            <div class="input-group-append">
-                                                <select id="header-unit" class="custom-select">
-                                                    <option value="in" selected>in</option>
-                                                    <option value="px">px</option>
-                                                    <option value="cm">cm</option>
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="header-width">Width</label>
+                                                <div class="input-group">
+                                            <input type="number" class="form-control" id="header-width" min="0.01" step="0.01" value="1" />
+                                                    <div class="input-group-append">
+                                                        <select id="header-unit" class="custom-select">
+                                                            <option value="in" selected>in</option>
+                                                            <option value="px">px</option>
+                                                            <option value="cm">cm</option>
                                                     <option value="mm">mm</option>
                                                 </select>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="form-group col-md-4">
-                                        <label class="mb-1" for="header-height">Height</label>
-                                        <input type="number" class="form-control" id="header-height" min="0.01" step="0.01" value="0.75" />
-                                    </div>
+                                            <div class="form-group col-md-4">
+                                                <label class="mb-1" for="header-height">Height</label>
+                                        <input type="number" class="form-control" id="header-height" min="0.01" step="0.01" value="" />
+                                            </div>
                                     <div class="form-group col-md-4 d-flex align-items-end">
                                         <button type="button" id="header-aspect" class="btn btn-outline-secondary w-100" data-locked="true">
                                             <i class="fas fa-lock"></i> Aspect Locked
@@ -600,8 +657,8 @@ class ClientForm(forms.ModelForm):
                 "client_logo_cover",
                 target_width_px=cover_width_px,
                 target_height_px=cover_height_px,
-                max_width=375,
-                max_height=525,
+                max_width=600,
+                max_height=1200,
                 scale_percent=cover_scale,
             )
             header_logo_file = self._resample_logo(
@@ -609,8 +666,8 @@ class ClientForm(forms.ModelForm):
                 "client_logo_header",
                 target_width_px=header_width_px,
                 target_height_px=header_height_px,
-                max_width=150,
-                max_height=225,
+                max_width=300,
+                max_height=600,
                 scale_percent=header_scale,
             )
 
