@@ -84,6 +84,7 @@ class UserChangeFormTests(TestCase):
     def form_data(
         self,
         name=None,
+        bio=None,
         phone=None,
         timezone=None,
         **kwargs,
@@ -91,6 +92,7 @@ class UserChangeFormTests(TestCase):
         return UserChangeForm(
             data={
                 "name": name,
+                "bio": bio,
                 "timezone": timezone,
                 "phone": phone,
             },

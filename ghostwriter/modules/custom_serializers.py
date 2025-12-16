@@ -426,6 +426,7 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
     end_date = SerializerMethodField("get_end_date")
     phone = SerializerMethodField("get_phone")
     timezone = SerializerMethodField("get_timezone")
+    bio = SerializerMethodField("get_bio")
 
     class Meta:
         model = ProjectAssignment
@@ -452,6 +453,9 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
     def get_timezone(self, obj):
         tz = zoneinfo.ZoneInfo(str(obj.operator.timezone))
         return str(tz)
+
+    def get_bio(self, obj):
+        return strip_html(obj.operator.bio)
 
 
 class ProjectSubTaskSerializer(CustomModelSerializer):

@@ -7,6 +7,7 @@ from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm, ModelMultipleChoiceField
+from django.utils.html import strip_tags
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
@@ -25,21 +26,21 @@ class UserChangeForm(UserChangeForm):
 
     class Meta:
         model = get_user_model()
-        fields = (
-            "name",
-            "timezone",
-            "phone",
-        )
+        fields = ("name", "bio", "timezone", "phone")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["phone"].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
+        self.fields["bio"].widget.attrs["autocomplete"] = "off"
         self.fields["phone"].widget.attrs["placeholder"] = "(212) 555-2368"
         self.fields["phone"].help_text = "Work phone number for work contacts"
         self.fields["timezone"].help_text = "Timezone in which you work"
         self.fields["name"].help_text = "Your full name as it should appear in reports"
         self.fields["name"].label = "Your Full Name"
+        self.fields["bio"].label = "Bio"
+        self.fields["bio"].help_text = "Share a short professional background for teammates"
+        self.fields["bio"].widget.attrs["rows"] = 4
         self.fields["timezone"].label = "Your Timezone"
         self.fields["phone"].label = "Your Contact Number"
         self.helper = FormHelper()
@@ -48,6 +49,10 @@ class UserChangeForm(UserChangeForm):
             Row(
                 Column("name", css_class="form-group col-md-12 mb-0"),
                 css_class="form-row mt-4",
+            ),
+            Row(
+                Column("bio", css_class="form-group col-md-12 mb-0"),
+                css_class="form-row",
             ),
             Row(
                 Column("phone", css_class="form-group col-md-6 mb-0"),
@@ -63,6 +68,15 @@ class UserChangeForm(UserChangeForm):
                 ),
             ),
         )
+
+    def clean_bio(self):
+        """
+        Ensure the biography stays plain text (no HTML) even if copied from rich sources.
+        """
+        bio = self.cleaned_data.get("bio", "")
+        # Replace common HTML line breaks with newlines before stripping tags
+        bio = bio.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+        return strip_tags(bio).strip()
 
 
 class UserCreationForm(forms.UserCreationForm):  # pragma: no cover
