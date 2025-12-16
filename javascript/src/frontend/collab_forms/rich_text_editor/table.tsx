@@ -12,8 +12,11 @@ export function TableCaptionBookmarkButton({ editor }: { editor: Editor }) {
 
     const enabled = useEditorState({
         editor,
-        selector: ({ editor }) =>
-            editor.can().setTableCaptionBookmark("example"),
+        selector: ({ editor }) => {
+            if (!editor.isInitialized)
+                return { enabled: false, active: false };
+            return editor.can().setTableCaptionBookmark("example");
+        }
     });
 
     return (

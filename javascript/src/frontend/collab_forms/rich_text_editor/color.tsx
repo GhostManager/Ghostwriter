@@ -78,6 +78,9 @@ export default function ColorButton({ editor }: { editor: Editor }) {
     const { enabled, active } = useEditorState({
         editor,
         selector: ({ editor }) => {
+            if (!editor.isInitialized)
+                return { enabled: false, active: false };
+
             const enabled = editor
                 .can()
                 .chain()
