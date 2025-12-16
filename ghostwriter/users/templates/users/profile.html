@@ -35,6 +35,19 @@
 
     <div class="row align-items-center text-left">
       <div class="col-sm">
+        <p class="bold icon info-icon">Bio</p>
+      </div>
+      <div class="col-sm">
+        {% if user.bio %}
+          <p class="text-left">{{ user.bio|linebreaksbr }}</p>
+        {% else %}
+          <p class="text-left text-muted">Add a short professional bio so teammates know your background.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="row align-items-center text-left">
+      <div class="col-sm">
         <p class="bold icon user-icon-ninja">Username</p>
       </div>
       <div class="col-sm">
