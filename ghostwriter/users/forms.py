@@ -7,6 +7,7 @@ from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm, ModelMultipleChoiceField
+from django.utils.html import strip_tags
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
@@ -67,6 +68,15 @@ class UserChangeForm(UserChangeForm):
                 ),
             ),
         )
+
+    def clean_bio(self):
+        """
+        Ensure the biography stays plain text (no HTML) even if copied from rich sources.
+        """
+        bio = self.cleaned_data.get("bio", "")
+        # Replace common HTML line breaks with newlines before stripping tags
+        bio = bio.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+        return strip_tags(bio).strip()
 
 
 class UserCreationForm(forms.UserCreationForm):  # pragma: no cover

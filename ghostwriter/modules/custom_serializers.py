@@ -455,7 +455,7 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
         return str(tz)
 
     def get_bio(self, obj):
-        return obj.operator.bio
+        return strip_html(obj.operator.bio)
 
 
 class ProjectSubTaskSerializer(CustomModelSerializer):
