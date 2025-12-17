@@ -303,21 +303,28 @@ class ExportDocxBase(ExportBase):
         """
         Renders a `RichTextBase`, converting the HTML from the rich text editor, to a Word subdoc.
         """
-        was_rendering = rich_text.context.get("_rendering_rich_text")
-        rich_text.context["_rendering_rich_text"] = True
+        if isinstance(rich_text, HtmlAndObject):
+            return rich_text.obj
+
+        context = getattr(rich_text, "context", None)
+        was_rendering = None
+        if context is not None:
+            was_rendering = context.get("_rendering_rich_text")
+            context["_rendering_rich_text"] = True
 
         try:
-            inline_rich_text = _render_inline_rich_text(str(rich_text.render_html()))
+            render_html = getattr(rich_text, "render_html", None)
+            html_value = render_html() if callable(render_html) else rich_text.__html__()
+            inline_rich_text = _render_inline_rich_text(str(html_value))
         finally:
-            if was_rendering is None:
-                rich_text.context.pop("_rendering_rich_text", None)
-            else:
-                rich_text.context["_rendering_rich_text"] = was_rendering
+            if context is not None:
+                if was_rendering is None:
+                    context.pop("_rendering_rich_text", None)
+                else:
+                    context["_rendering_rich_text"] = was_rendering
 
         if inline_rich_text is not None:
             return inline_rich_text
-        if isinstance(rich_text, HtmlAndObject):
-            return rich_text.obj
 
         def render():
             doc = self.word_doc.new_subdoc()
