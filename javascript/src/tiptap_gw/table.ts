@@ -3,8 +3,7 @@
 import { Attributes, mergeAttributes, Node } from "@tiptap/core";
 import { Fragment, ResolvedPos, Slice } from "@tiptap/pm/model";
 import { ReplaceAroundStep } from "@tiptap/pm/transform";
-import TableCell from "@tiptap/extension-table-cell";
-import mkElem from "./mkelem";
+import { TableCell } from "@tiptap/extension-table";
 
 declare module "@tiptap/core" {
     interface Commands<ReturnType> {
@@ -47,20 +46,19 @@ export const TableWithCaption = Node.create<{}>({
                 },
                 contentElement: (node) => {
                     // Convert to wrapped format
-                    node = node.cloneNode(true);
-                    const caption = (node as HTMLElement).getElementsByTagName(
-                        "caption"
-                    )[0];
+                    node = node.cloneNode(true) as HTMLElement;
+                    const caption = node.getElementsByTagName("caption")[0];
                     caption.remove();
 
-                    const container = mkElem("div");
+                    const container = node.ownerDocument.createElement("div");
                     container.appendChild(node);
 
-                    const captionP = mkElem("p");
+                    const captionP = node.ownerDocument.createElement("p");
                     captionP.classList.add("collab-table-caption");
                     container.appendChild(captionP);
 
-                    const captionSpan = mkElem("span");
+                    const captionSpan =
+                        node.ownerDocument.createElement("span");
                     captionSpan.classList.add("collab-table-caption-content");
                     for (const node of Array.from(caption.childNodes)) {
                         captionSpan.appendChild(node);

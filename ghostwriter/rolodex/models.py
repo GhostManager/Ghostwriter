@@ -21,6 +21,7 @@ from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink, ScopingWeightCategory
+from ghostwriter.commandcenter.models import validate_endpoint
 from ghostwriter.rolodex.validators import validate_ip_range
 from ghostwriter.rolodex.constants import (
     BURP_XML_FILE_NAME_KEY,
@@ -236,8 +237,8 @@ class Client(models.Model):
         blank=True,
         help_text="Give the client a codename (might be a ticket number, CMS reference, or something else)",
     )
-    note = models.TextField(
-        "Client Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Describe the client or provide some additional information",
@@ -266,6 +267,18 @@ class Client(models.Model):
         blank=True,
         null=True,
         help_text="Upload a logo to be used for report headers",
+    )
+    logo_width = models.IntegerField(
+        "Logo Width",
+        blank=True,
+        null=True,
+        editable=False,
+    )
+    logo_height = models.IntegerField(
+        "Logo Height",
+        blank=True,
+        null=True,
+        editable=False,
     )
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
@@ -344,8 +357,8 @@ class ClientContact(models.Model):
         default="America/Los_Angeles",
         help_text="The contact's timezone",
     )
-    note = models.TextField(
-        "Contact Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the contact",
@@ -650,8 +663,8 @@ class Project(models.Model):
     )
     start_date = models.DateField("Start Date", max_length=12, help_text="Enter the start date of this project")
     end_date = models.DateField("End Date", max_length=12, help_text="Enter the end date of this project")
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the project and planning",
@@ -725,7 +738,45 @@ class Project(models.Model):
         blank=True,
         help_text="Select the end time for each day",
     )
+    collab_note = models.TextField(
+        "Collaborative Notes",
+        default="",
+        blank=True,
+        null=False,
+    )
     tags = TaggableManager(blank=True)
+
+    bloodhound_api_root_url = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API URL",
+        help_text="The URL of the BloodHound instance",
+        default="",
+        blank=True,
+        validators=[validate_endpoint],
+    )
+
+    bloodhound_api_key_id = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API Key ID",
+        help_text="The ID portion of a BloodHound API Key",
+        default="",
+        blank=True,
+    )
+
+    bloodhound_api_key_token = models.CharField(
+        max_length=255,
+        verbose_name="BloodHound API Key Token",
+        help_text="The token portion of a BloodHound API Key",
+        default="",
+        blank=True,
+    )
+
+    bloodhound_results = models.JSONField(
+        null=True,
+        verbose_name="Bloodhound Data",
+        editable=False,
+    )
+
     # Foreign keys
     client = models.ForeignKey(
         "Client",
@@ -766,9 +817,27 @@ class Project(models.Model):
         ordering = ["-start_date", "end_date", "client", "project_type"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
+        # constraints = [
+        #     models.CheckConstraint(
+        #         check=models.Q(
+        #             bloodhound_api_root_url="",
+        #             bloodhound_api_key_id="",
+        #             bloodhound_api_key_token=""
+        #         ) | models.Q(
+        #             ~models.Q(bloodhound_api_root_url="") &
+        #             ~models.Q(bloodhound_api_key_id="") &
+        #             ~models.Q(bloodhound_api_key_token="")
+        #         ),
+        #         name="rolodex_project_bloodhound_all_or_none_set",
+        #         #violation_error_message="Incomplete BloodHound API Configuration",
+        #     ),
+        # ]
 
     def get_absolute_url(self):
         return reverse("rolodex:project_detail", args=[str(self.id)])
+
+    def has_bloodhound_api(self) -> bool:
+        return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
 
     def __str__(self):
         return f"{self.start_date} {self.client} {self.project_type} ({self.codename})"
@@ -2626,8 +2695,8 @@ class ProjectAssignment(models.Model):
         blank=True,
         help_text="Enter the end date of the project",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the project role and assignment",
@@ -2691,8 +2760,8 @@ class ProjectContact(models.Model):
         default="America/Los_Angeles",
         help_text="The contact's timezone",
     )
-    note = models.TextField(
-        "Contact Note",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the contact",
@@ -2928,7 +2997,11 @@ class ClientNote(models.Model):
 
 
 class ProjectNote(models.Model):
-    """Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`."""
+    """
+    Stores an individual comment, related to :model:`rolodex.Project` and :model:`users.User`.
+
+    While this is named Project "Note" for legacy reasons, it functions more like a comment.
+    """
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
@@ -3024,8 +3097,8 @@ class ProjectTarget(models.Model):
         blank=True,
         help_text="Provide the target's hostname, fully qualified domain name, or other identifier",
     )
-    note = models.TextField(
-        "Notes",
+    description = models.TextField(
+        "Description",
         default="",
         blank=True,
         help_text="Provide additional information about the target(s) or the environment",

@@ -1,6 +1,7 @@
 # Standard Libraries
 import logging
 from datetime import datetime
+from unittest.mock import Mock
 
 # Django Imports
 from django.test import TestCase
@@ -14,6 +15,9 @@ from ghostwriter.factories import (
     ProjectInviteFactory,
     UserFactory,
 )
+
+# 3rd Party Libraries
+from allauth.mfa.models import Authenticator
 
 logging.disable(logging.CRITICAL)
 
@@ -67,3 +71,110 @@ class JwtUtilsTests(TestCase):
             self.assertEqual(user_obj, self.user)
         except AttributeError:
             self.fail("get_user_from_token() raised an AttributeError unexpectedly!")
+
+
+class TestUserHasValidWebAuthnDevice(TestCase):
+    """Test cases for the user_has_valid_webauthn_device function."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user = UserFactory(password="testpass123")
+
+    def test_unauthenticated_user_returns_false(self):
+        """Test that unauthenticated user returns False."""
+        unauthenticated_user = Mock()
+        unauthenticated_user.is_authenticated = False
+
+        result = utils.user_has_valid_webauthn_device(unauthenticated_user)
+
+        self.assertFalse(result)
+
+    def test_authenticated_user_with_no_webauthn_device_returns_false(self):
+        """Test that authenticated user with no WebAuthn device returns False."""
+        # Ensure no WebAuthn authenticators exist for this user
+        Authenticator.objects.filter(user=self.user, type=Authenticator.Type.WEBAUTHN).delete()
+
+        result = utils.user_has_valid_webauthn_device(self.user)
+
+        self.assertFalse(result)
+
+    def test_authenticated_user_with_webauthn_device_returns_true(self):
+        """Test that authenticated user with WebAuthn device returns True."""
+        # Create a WebAuthn authenticator for the user
+        Authenticator.objects.create(
+            user=self.user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={"credential_id": "test_credential_id"}
+        )
+
+        result = utils.user_has_valid_webauthn_device(self.user)
+
+        self.assertTrue(result)
+
+    def test_authenticated_user_with_totp_only_returns_false(self):
+        """Test that authenticated user with only TOTP device returns False."""
+        # Create a TOTP authenticator (not WebAuthn)
+        Authenticator.objects.create(
+            user=self.user,
+            type=Authenticator.Type.TOTP,
+            data={"secret": "test_secret"}
+        )
+
+        result = utils.user_has_valid_webauthn_device(self.user)
+
+        self.assertFalse(result)
+
+    def test_authenticated_user_with_multiple_webauthn_devices_returns_true(self):
+        """Test that authenticated user with multiple WebAuthn devices returns True."""
+        # Create multiple WebAuthn authenticators
+        Authenticator.objects.create(
+            user=self.user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={"credential_id": "test_credential_id_1"}
+        )
+        Authenticator.objects.create(
+            user=self.user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={"credential_id": "test_credential_id_2"}
+        )
+
+        result = utils.user_has_valid_webauthn_device(self.user)
+
+        self.assertTrue(result)
+
+    def test_authenticated_user_with_mixed_authenticators_returns_true(self):
+        """Test that authenticated user with both TOTP and WebAuthn returns True."""
+        # Create both TOTP and WebAuthn authenticators
+        Authenticator.objects.create(
+            user=self.user,
+            type=Authenticator.Type.TOTP,
+            data={"secret": "test_secret"}
+        )
+        Authenticator.objects.create(
+            user=self.user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={"credential_id": "test_credential_id"}
+        )
+
+        result = utils.user_has_valid_webauthn_device(self.user)
+
+        self.assertTrue(result)
+
+    def test_different_user_webauthn_device_isolation(self):
+        """Test that WebAuthn devices are properly isolated between users."""
+        # Create another user with WebAuthn device
+        other_user = UserFactory(password="otherpass123")
+        
+        Authenticator.objects.create(
+            user=other_user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={"credential_id": "other_credential_id"}
+        )
+
+        # Test that our user still returns False
+        result = utils.user_has_valid_webauthn_device(self.user)
+        self.assertFalse(result)
+
+        # Test that other user returns True
+        other_result = utils.user_has_valid_webauthn_device(other_user)
+        self.assertTrue(other_result)

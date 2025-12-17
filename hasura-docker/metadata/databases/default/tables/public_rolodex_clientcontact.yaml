@@ -25,7 +25,7 @@ insert_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - timezone
   - role: user
@@ -49,7 +49,7 @@ insert_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - timezone
 select_permissions:
@@ -63,7 +63,7 @@ select_permissions:
         - timezone
         - client_id
         - id
-        - note
+        - description
       filter: {}
   - role: user
     permission:
@@ -90,7 +90,7 @@ update_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - timezone
       filter: {}
@@ -102,7 +102,7 @@ update_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - timezone
       filter:

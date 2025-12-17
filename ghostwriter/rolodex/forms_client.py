@@ -80,7 +80,7 @@ class ClientContactForm(forms.ModelForm):
         exclude = ("client",)
         field_classes = {
             "email": forms.EmailField,
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -95,7 +95,7 @@ class ClientContactForm(forms.ModelForm):
         self.fields["job_title"].widget.attrs["placeholder"] = "COO"
         self.fields["phone"].widget.attrs["placeholder"] = "(212) 897-1964"
         self.fields["phone"].label = "Phone Number"
-        self.fields["note"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
+        self.fields["description"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
         self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
         # Disable the <form> tags because this will be part of an instance of `ClientForm()`
@@ -138,7 +138,7 @@ class ClientContactForm(forms.ModelForm):
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
-                    "note",
+                    "description",
                     Row(
                         Column(
                             Button(
@@ -305,7 +305,7 @@ class ClientForm(forms.ModelForm):
         model = Client
         fields = "__all__"
         field_classes = {
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
             "address": JinjaRichTextField,
         }
 
@@ -320,7 +320,7 @@ class ClientForm(forms.ModelForm):
         self.fields["address"].widget.attrs["placeholder"] = "14 N Moore St, New York, NY 10013"
         self.fields["timezone"].initial = general_config.default_timezone
         self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
-        self.fields["note"].label = "Notes"
+        self.fields["description"].label = "Description"
         self.fields["tags"].label = "Tags"
         self.fields["extra_fields"].label = ""
         self.fields["logo"].required = False
@@ -432,7 +432,8 @@ class ClientForm(forms.ModelForm):
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                     ),
                     "address",
-                    "note",
+                    Field("logo", wrapper_class="file-field"),
+                    "description",
                     HTML(
                         """
                         <h4 class="icon custom-field-icon">Extra Fields</h4>

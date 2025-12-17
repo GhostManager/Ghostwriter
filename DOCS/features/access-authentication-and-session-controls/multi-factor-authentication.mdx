@@ -1,0 +1,57 @@
+---
+title: "Multi-Factor Authentication"
+description: "Using Ghostwriter's support for TOTP and WebAuthn MFA"
+---
+
+Ghostwriter v4+ supports multi-factor authentication (MFA) using both time-based one-time passwords (TOTP) and WebAuthn security keys/passkeys.
+
+## Authenticator App (TOTP)
+
+To enroll a TOTP device, visit your account profile and click the **Set Up Authenticator App** button. Ghostwriter will provide you with a QR code to scan with 1Password, Google Authenticator, or any other TOTP app you prefer. The setup page also provides a secret if you want to configure an app manually.
+
+<Frame>
+  <img src="/images/features/image-2.avif" alt="TOTP Setup"/>
+</Frame>
+
+## Security Keys and Passkeys (WebAuthn)
+
+Ghostwriter also supports WebAuthn authentication using:
+- **Hardware security keys** (like YubiKey, Titan Security Key)
+- **Platform authenticators** (Touch ID, Face ID, Windows Hello)
+- **Passkeys** stored in password managers or devices
+
+To set up a security key:
+
+1. Visit your account profile and click **Set Up Security Key**
+2. Choose whether to create a **passkey** (for passwordless login) or a **security key** (for two-factor authentication)
+3. Follow your browser's prompts to register your authenticator
+4. Give your key a memorable name for easy identification
+
+<Frame>
+  <img src="/images/features/image-64.png" alt="Security Key Setup"/>
+</Frame>
+
+### Passkey Login
+
+When passkey login is enabled, you'll see a **"Sign in with a passkey"** button on the login page. This allows you to authenticate using your registered passkey without entering a username and password.
+
+### Managing Your Authentication Methods
+
+From your profile page, you can:
+- **Authenticator App**: Set up or remove TOTP authentication
+- **Security Key**: Add, edit, or remove WebAuthn devices
+- **Backup Codes**: Generate recovery codes for account access
+
+You can use both TOTP and WebAuthn methods simultaneously for maximum flexibility.
+
+## Administrative Controls
+
+Administrators can configure accounts to require MFA before the user can access Ghostwriter. Requiring MFA is configurable on a per-user basis. With this option enabled, accounts without a valid MFA method can only log in, log out, change their password, and access the MFA setup pages.
+
+## Backup and Recovery
+
+Ghostwriter's MFA supports backup codes that work with both TOTP and WebAuthn authentication. You can generate and retrieve your backup codes from your profile page at any time after configuring any MFA method.
+
+## Browser Compatibility
+
+WebAuthn features require modern browsers that support the WebAuthn standard. Most current versions of Chrome, Firefox, Safari, and Edge support these features. Older browsers will fall back to traditional username/password and TOTP authentication.

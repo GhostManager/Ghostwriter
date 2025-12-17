@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HocuspocusProvider } from "@hocuspocus/provider";
+import {
+    HocuspocusProvider,
+    HocuspocusProviderWebsocket,
+} from "@hocuspocus/provider";
 import * as Y from "yjs";
 
 export type ConnectionStatus =
@@ -50,8 +53,10 @@ export function usePageConnection(settings: {
         const jwt = document.getElementById("yjs-jwt")!.innerHTML;
 
         provider.current = new HocuspocusProvider({
-            connect: false,
-            url,
+            websocketProvider: new HocuspocusProviderWebsocket({
+                url,
+                autoConnect: false,
+            }),
             name: settings.model + "/" + id,
             token() {
                 let tok = jwt;
@@ -100,7 +105,8 @@ export function usePageConnection(settings: {
     }
 
     useEffect(() => {
-        provider.current!.connect();
+        provider.current!.attach();
+        provider.current!.configuration.websocketProvider.connect();
         return () => {
             provider.current?.destroy();
             (window as any).gwDebugYjsProvider = null;
@@ -141,21 +147,30 @@ function useDebounced(initial: boolean): [boolean, (v: boolean) => void] {
     const raw = useRef(initial);
     const [debounced, setDebounced] = useState(initial);
     const timerRef = useRef<null | ReturnType<typeof setTimeout>>(null);
-    useEffect(() => () => {
-        if (timerRef.current !== null) clearTimeout(timerRef.current);
-    });
+    useEffect(
+        () => () => {
+            if (timerRef.current !== null) {
+                clearTimeout(timerRef.current);
+            }
+        },
+        [timerRef]
+    );
 
     const set = useCallback(
         (v: boolean) => {
             if (v) {
-                if (raw.current || timerRef.current !== null) return;
+                if (raw.current || timerRef.current !== null) {
+                    return;
+                }
                 raw.current = true;
                 timerRef.current = setTimeout(() => {
                     setDebounced(true);
                     timerRef.current = null;
                 }, 500);
             } else {
-                if (!raw.current) return;
+                if (!raw.current) {
+                    return;
+                }
                 raw.current = false;
                 setDebounced(false);
                 if (timerRef.current !== null) {
@@ -180,22 +195,22 @@ function hsv_to_rgb(h: number, s: number, v: number) {
     let r, g, b;
     switch (i % 6) {
         case 0:
-            (r = v), (g = t), (b = p);
+            ((r = v), (g = t), (b = p));
             break;
         case 1:
-            (r = q), (g = v), (b = p);
+            ((r = q), (g = v), (b = p));
             break;
         case 2:
-            (r = p), (g = v), (b = t);
+            ((r = p), (g = v), (b = t));
             break;
         case 3:
-            (r = p), (g = q), (b = v);
+            ((r = p), (g = q), (b = v));
             break;
         case 4:
-            (r = t), (g = p), (b = v);
+            ((r = t), (g = p), (b = v));
             break;
         case 5:
-            (r = v), (g = p), (b = q);
+            ((r = v), (g = p), (b = q));
             break;
     }
 

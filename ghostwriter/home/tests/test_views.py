@@ -12,7 +12,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 # 3rd Party Libraries
-from django_otp.plugins.otp_static.models import StaticToken
+from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -157,11 +157,10 @@ class TemplateTagTests(TestCase):
         self.user.save()
         self.assertTrue(custom_tags.can_create_observation(self.user))
 
-        self.assertFalse(custom_tags.has_2fa(self.user))
-        self.user.totpdevice_set.create()
-        static_model = self.user.staticdevice_set.create()
-        static_model.token_set.create(token=StaticToken.random_token())
-        self.assertTrue(custom_tags.has_2fa(self.user))
+        self.assertFalse(custom_tags.has_mfa(self.user))
+        secret = generate_totp_secret()
+        TOTP.activate(self.user, secret)
+        self.assertTrue(custom_tags.has_mfa(self.user))
 
         test_string = "test,example,sample"
         result = custom_tags.split_and_join(test_string, ",")
@@ -184,6 +183,24 @@ class TemplateTagTests(TestCase):
         future_datetime = datetime.max
         self.assertTrue(custom_tags.is_past(past_datetime))
         self.assertFalse(custom_tags.is_past(future_datetime))
+
+        # Test custom_tags.multiply
+        result = custom_tags.multiply(10, 5)
+        self.assertEqual(result, 50)
+        result = custom_tags.multiply(10, -2)
+        self.assertEqual(result, -20)
+        result = custom_tags.multiply("A", 5)
+        self.assertEqual(result, None)
+
+        # Test custom_tags.translate_domain_sid
+        domains = [
+            {"domain_sid": "S-1-5-21-1000", "name": "EXAMPLE_DOMAIN"},
+            {"domain_sid": "S-1-5-21-2000", "name": "ANOTHER_DOMAIN"},
+        ]
+        result = custom_tags.translate_domain_sid("S-1-5-21-1000", domains)
+        self.assertEqual(result, "EXAMPLE_DOMAIN")
+        result = custom_tags.translate_domain_sid("S-1-5-21-3000", domains)
+        self.assertEqual(result, "S-1-5-21-3000")
 
 
 class DashboardTests(TestCase):

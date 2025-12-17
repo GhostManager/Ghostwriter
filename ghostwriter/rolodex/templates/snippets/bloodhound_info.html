@@ -1,0 +1,214 @@
+{% load custom_tags %}
+
+{% if res.findings or res.finding_assets or res.domains %}
+    {% if res.domains %}
+        <h5>BloodHound Domain Information</h5>
+        <hr />
+        <p>Expand the sections below to view detailed information about each domain.</p>
+        <div id="bh_domains_accordion" class="finding-accordion">
+            {% for domain in res.domains %}
+            <div class="card">
+                <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#bh_domain_{{ forloop.counter }}">
+                    <div>
+                        <strong>{{ domain.name }}</strong>
+                        <span class="badge badge-secondary ml-2">{{ domain.functional_level|default:"Unknown" }}</span>
+                    </div>
+                    <div class="ml-auto mr-2">
+                        <span class="mr-3"><i class="fas fa-users"></i> {{ domain.users.count }} users</span>
+                        <span class="mr-3"><i class="fas fa-desktop"></i> {{ domain.computers.count }} computers</span>
+                        <span><i class="fas fa-users-cog"></i> {{ domain.data_quality.groups|default:0 }} groups</span>
+                    </div>
+                </div>
+                <div id="bh_domain_{{ forloop.counter }}" class="collapse" data-parent="#bh_domains_accordion">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted text-left">Domain Information</h6>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-6 text-left">Distinguished Name:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.distinguished_name|default:"N/A" }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Domain SID:</dt>
+                                    <dd class="col-sm-6 text-left"><code class="small">{{ domain.domain_sid|default:"N/A" }}</code></dd>
+
+                                    <dt class="col-sm-6 text-left">Functional Level:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.functional_level|default:"Unknown" }}</dd>
+                                </dl>
+
+                                {% if domain.inbound_trusts or domain.outbound_trusts %}
+                                <h6 class="text-muted mt-3 text-left">Trust Relationships</h6>
+                                <dl class="row mb-0">
+                                    {% if domain.inbound_trusts %}
+                                    <dt class="col-sm-6 text-left">Inbound Trusts:</dt>
+                                    <dd class="col-sm-6 text-left">
+                                        {% for trust in domain.inbound_trusts %}
+                                        <span class="badge badge-primary">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
+                                        {% endfor %}
+                                    </dd>
+                                    {% endif %}
+
+                                    {% if domain.outbound_trusts %}
+                                    <dt class="col-sm-6 text-left">Outbound Trusts:</dt>
+                                    <dd class="col-sm-6 text-left">
+                                        {% for trust in domain.outbound_trusts %}
+                                        <span class="badge badge-warning">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
+                                        {% endfor %}
+                                    </dd>
+                                    {% endif %}
+                                </dl>
+                                {% endif %}
+
+                                {% if domain.computers.operating_systems %}
+                                <h6 class="text-muted mt-3 text-left">Operating Systems</h6>
+                                <ul class="list-unstyled mb-0 text-left">
+                                    {% for os, count in domain.computers.operating_systems.items %}
+                                    {% if os != "null" %}
+                                    <li><span class="badge badge-secondary">{{ os|title }}</span> <span class="text-muted">({{ count }})</span></li>
+                                    {% endif %}
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6 class="text-muted text-left">Statistics</h6>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-6 text-left">Total Users:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.users.count }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Users with Old Passwords:</dt>
+                                    <dd class="col-sm-6 text-left">
+                                        {{ domain.users.with_old_pw }}
+                                        {% if domain.users.count > 0 %}
+                                        {% widthratio domain.users.with_old_pw domain.users.count 100 as percentage %}
+                                        <span class="text-muted small">({{ percentage }}%)</span>
+                                        {% endif %}
+                                    </dd>
+
+                                    <dt class="col-sm-6 text-left">Total Computers:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.computers.count }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Total Groups:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.groups|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Sessions:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.sessions|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">GPOs:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.gpos|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">ACLs:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.acls|default:0 }}</dd>
+
+                                    <dt class="col-sm-6 text-left">Relationships:</dt>
+                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.relationships|default:0 }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if res.findings %}
+        <h5 class="mt-3">BloodHound Enterprise Findings</h5>
+        <hr />
+        <p>Expand the section below to view detailed findings from BloodHound Enterprise.</p>
+        <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
+        <table id="bheFindingsTable" class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th class="sortable align-middle text-left">Severity</th>
+                    <th class="sortable align-middle text-left">Environment</th>
+                    <th class="sortable align-middle text-left">Name</th>
+                    <th class="sortable align-middle text-left">Type</th>
+                    <th class="sortable align-middle text-left">Targets</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for finding in res.findings %}
+                <tr>
+                    <td class="align-middle text-left">
+
+                        {% comment %}
+                            Use data-text attribute for proper sorting with a severity weight + impact percentage
+                            This method properly sorts Critical @ 100% above Critical @ 99.99% and so on
+                        {% endcomment %}
+                        <span class="
+                            {% if finding.severity == 'Critical' %}critical" data-text="1"
+                            {% elif finding.severity == 'High' %}high" data-text="2"
+                            {% elif finding.severity == 'Moderate' %}medium" data-text="3"
+                            {% else %}low" data-text="4"
+                            {% endif %}>
+                        {{ finding.severity }}
+                        </span>
+
+                    </td>
+                    <td class="align-middle text-left">{{ finding.environment_id|translate_domain_sid:res.domains }}</td>
+                    <td class="align-middle text-left">
+                        {% if finding.assets.title %}
+                            {{ finding.assets.title|striptags }}
+                        {% else %}
+                            {{ finding.finding_name }}
+                        {% endif %}
+                    </td>
+                    <td class="align-middle text-left">
+                        {% if finding.assets.type %}
+                            {{ finding.assets.type|striptags }}
+                        {% else %}
+                            --
+                        {% endif %}</td>
+                    <td class="align-middle text-left">{{ finding.principals|length }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% else %}
+  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">
+    <h4 style="margin-top: 0;" class="alert-heading">BloodHound Info Unavailable</h4>
+      <p>Configure a connection to BloodHound and then fetch data to view information here.</p>
+  </div>
+{% endif %}
+
+<script>
+    $(document).ready(function () {
+      $('#bheFindingsTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+          headers: {
+            0: { sorter: 'digit' }
+          },
+          widgets: ['saveSort'],
+          widgetOptions: {
+            saveSort: true,
+            storage_page: 'bheFindingsTable'
+          },
+        textExtraction: function(node) {
+            // Check if the node or its children have a data-text attribute
+            var $node = $(node);
+            var $dataElement = $node.find('[data-text]').first();
+            if ($dataElement.length && $dataElement.attr('data-text')) {
+                // Return the data-text value for sorting
+                return $dataElement.attr('data-text');
+            }
+            // Fallback to default text extraction if no data-text attribute
+            return $node.text();
+        }
+        }
+      );
+
+      $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#bheFindingsTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
+      });
+    });
+</script>

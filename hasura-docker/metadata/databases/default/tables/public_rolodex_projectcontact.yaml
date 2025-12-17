@@ -21,7 +21,7 @@ insert_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id
@@ -45,7 +45,7 @@ insert_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id
@@ -62,7 +62,7 @@ select_permissions:
         - name
         - phone
         - timezone
-        - note
+        - description
       filter: {}
   - role: user
     permission:
@@ -75,7 +75,7 @@ select_permissions:
         - name
         - phone
         - timezone
-        - note
+        - description
       filter:
         project:
           _or:
@@ -96,7 +96,7 @@ update_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id
@@ -109,7 +109,7 @@ update_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id

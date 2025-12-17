@@ -80,6 +80,18 @@ actions:
       - role: user
       - role: manager
     comment: Delete the specified template file and remove the associated file from the filesystem
+  - name: downloadEvidence
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/downloadEvidence'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Request the specified evidence file to receive a download URL or base64-encoded blob
   - name: finding_by_tag
     definition:
       kind: ""
@@ -329,4 +341,5 @@ custom_types:
             schema: public
           source: default
           type: object
+    - name: DownloadEvidenceResponse
   scalars: []

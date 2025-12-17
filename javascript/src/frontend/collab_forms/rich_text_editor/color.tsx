@@ -4,6 +4,7 @@ import { Editor } from "@tiptap/core";
 import { useState } from "react";
 import ReactModal from "react-modal";
 import { Sketch } from "@uiw/react-color";
+import { useEditorState } from "@tiptap/react";
 
 export type ColorModalMode = null | "new" | "edit";
 export function ColorModal(props: {
@@ -74,13 +75,19 @@ export default function ColorButton({ editor }: { editor: Editor }) {
     const [modalMode, setModalMode] = useState<null | "new" | "edit">(null);
     const [formColor, setFormColor] = useState<string>("#f00");
 
-    const enabled = editor
-        .can()
-        .chain()
-        .focus()
-        .setColor({ color: "#fff" })
-        .run();
-    const active = editor.isActive("color");
+    const { enabled, active } = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            const enabled = editor
+                .can()
+                .chain()
+                .focus()
+                .setColor({ color: "#fff" })
+                .run();
+            const active = editor.isActive("color");
+            return { enabled, active };
+        },
+    });
 
     return (
         <>
