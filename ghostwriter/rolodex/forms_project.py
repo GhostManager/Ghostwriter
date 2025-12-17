@@ -1330,7 +1330,9 @@ class ProjectForm(forms.ModelForm):
         self.fields["end_date"].widget.input_type = "date"
         self.fields["start_time"].widget.input_type = "time"
         self.fields["end_time"].widget.input_type = "time"
-        self.fields["note"].widget.attrs["placeholder"] = "This project is..."
+        note_field = self.fields.get("note")
+        if note_field:
+            note_field.widget.attrs["placeholder"] = "This project is..."
         self.fields["timezone"].initial = general_config.default_timezone
         self.fields["tags"].widget.attrs["placeholder"] = "evasive, on-site, travel, ..."
         self.fields["project_type"].label = "Project Type"
