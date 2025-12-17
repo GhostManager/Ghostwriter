@@ -8,6 +8,7 @@ import PageGraphqlProvider from "../../graphql/client";
 import { ProvidePageEvidence } from "../../graphql/evidence";
 import EvidenceButton from "../rich_text_editor/evidence";
 import RichTextEditor from "../rich_text_editor";
+import ErrorBoundary from "../error_boundary";
 
 const renderToolbarExtra = (editor: Editor) => (
     <EvidenceButton editor={editor} />
@@ -59,10 +60,12 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     const root = createRoot(document.getElementById("collab-form-container")!);
     root.render(
-        <PageGraphqlProvider>
-            <ProvidePageEvidence>
-                <ReportFindingLinkForm />
-            </ProvidePageEvidence>
-        </PageGraphqlProvider>
+        <ErrorBoundary>
+            <PageGraphqlProvider>
+                <ProvidePageEvidence>
+                    <ReportFindingLinkForm />
+                </ProvidePageEvidence>
+            </PageGraphqlProvider>
+        </ErrorBoundary>
     );
 });

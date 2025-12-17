@@ -2,6 +2,7 @@ import ReactModal from "react-modal";
 import { ConnectionStatus, usePageConnection } from "../connection";
 import { createRoot, Root } from "react-dom/client";
 import RichTextEditor from "../rich_text_editor";
+import ErrorBoundary from "../error_boundary";
 
 function ProjectCollabNoteForm() {
     const { provider, status, connected } = usePageConnection({
@@ -37,7 +38,11 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#id_collab_notes").on("shown.bs.tab", () => {
         if (root !== null) return;
         root = createRoot(document.getElementById("collab_notes_container")!);
-        root.render(<ProjectCollabNoteForm />);
+        root.render(
+            <ErrorBoundary>
+                <ProjectCollabNoteForm />
+            </ErrorBoundary>
+        );
     });
 
     $("#id_collab_notes").on("hidden.bs.tab", () => {

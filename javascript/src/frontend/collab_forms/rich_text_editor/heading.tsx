@@ -11,9 +11,8 @@ export default function HeadingIdButton({ editor }: { editor: Editor }) {
 
     const enabled = useEditorState({
         editor,
-        selector: ({ editor }) => {;
-            if (!editor.isInitialized)
-                return false;
+        selector: ({ editor }) => {
+            if (!editor.isInitialized) return false;
             return editor.can().setHeadingBookmark("example");
         },
     });
