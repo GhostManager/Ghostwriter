@@ -436,7 +436,27 @@ class ClientForm(forms.ModelForm):
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                     ),
                     "address",
-                    Field("logo", wrapper_class="file-field"),
+                    HTML(
+                        """
+                        <div class="form-group">
+                            <label class="d-block font-weight-bold">Client Logo</label>
+                            <div class="border rounded p-3 text-center" id="client-logo-preview-wrapper">
+                                <img
+                                    id="client-logo-preview"
+                                    class="img-fluid {% if not form.initial.logo_source_data %}d-none{% endif %}"
+                                    src="{{ form.initial.logo_source_data|default_if_none:'' }}"
+                                    alt="Client logo preview"
+                                />
+                                <span
+                                    id="client-logo-preview-placeholder"
+                                    class="text-muted {% if form.initial.logo_source_data %}d-none{% endif %}"
+                                >
+                                    Upload a logo on the Logo tab to preview it here.
+                                </span>
+                            </div>
+                        </div>
+                        """
+                    ),
                     "description",
                     HTML(
                         """

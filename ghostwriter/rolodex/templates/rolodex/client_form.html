@@ -94,6 +94,8 @@
     const headerHeightPersistInput = document.getElementById('id_logo_header_height_px');
     const coverLockPersistInput = document.getElementById('id_logo_cover_aspect_locked');
     const headerLockPersistInput = document.getElementById('id_logo_header_aspect_locked');
+    const logoPreviewImg = document.getElementById('client-logo-preview');
+    const logoPreviewPlaceholder = document.getElementById('client-logo-preview-placeholder');
     const form = document.querySelector('form');
     let baseImage = null;
     let coverControls = null;
@@ -115,6 +117,18 @@
     function unitToPx(value, unit) {
       const factor = unitFactors[unit] || 1;
       return value * factor;
+    }
+
+    function updateLogoPreview(sourceData) {
+      if (!logoPreviewImg || !logoPreviewPlaceholder) { return; }
+      if (sourceData) {
+        logoPreviewImg.src = sourceData;
+        logoPreviewImg.classList.remove('d-none');
+        logoPreviewPlaceholder.classList.add('d-none');
+      } else {
+        logoPreviewImg.classList.add('d-none');
+        logoPreviewPlaceholder.classList.remove('d-none');
+      }
     }
 
     function toggleAspect(button, persistInput, forceLocked) {
@@ -287,6 +301,7 @@
         });
 
         persistLogos();
+        updateLogoPreview(sourceData);
       };
       img.src = sourceData;
     }
@@ -304,6 +319,8 @@
       const existing = sourceDataInput?.value || coverDataInput?.value || headerDataInput?.value;
       if (existing) {
         configureImage(existing);
+      } else {
+        updateLogoPreview(null);
       }
     }
 
