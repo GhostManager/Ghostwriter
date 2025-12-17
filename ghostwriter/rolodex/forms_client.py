@@ -316,7 +316,11 @@ class ClientForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "ecfirst"
         self.fields["short_name"].widget.attrs["placeholder"] = "ecfirst"
-        self.fields["note"].widget.attrs["placeholder"] = "This client approached us with concerns in these areas ..."
+        note_field = self.fields.get("note")
+        if note_field:
+            note_field.widget.attrs[
+                "placeholder"
+            ] = "This client approached us with concerns in these areas ..."
         self.fields["address"].widget.attrs["placeholder"] = "14 N Moore St, New York, NY 10013"
         self.fields["timezone"].initial = general_config.default_timezone
         self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
