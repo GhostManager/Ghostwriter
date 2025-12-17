@@ -888,8 +888,10 @@ class ProjectTargetForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "172.67.179.71"
         self.fields["hostname"].widget.attrs["placeholder"] = "ecfirst.com"
-        self.fields["note"].widget.attrs["rows"] = 5
-        self.fields["note"].widget.attrs["placeholder"] = "This host is a web server related to objective ..."
+        self.fields["description"].widget.attrs["rows"] = 5
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "This host is a web server related to objective ..."
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -1330,9 +1332,10 @@ class ProjectForm(forms.ModelForm):
         self.fields["end_date"].widget.input_type = "date"
         self.fields["start_time"].widget.input_type = "time"
         self.fields["end_time"].widget.input_type = "time"
-        note_field = self.fields.get("note")
-        if note_field:
-            note_field.widget.attrs["placeholder"] = "This project is..."
+        collab_note_field = self.fields.get("collab_note")
+        if collab_note_field:
+            collab_note_field.widget.attrs["placeholder"] = "This project is..."
+            collab_note_field.widget.attrs.setdefault("rows", 5)
         self.fields["timezone"].initial = general_config.default_timezone
         self.fields["tags"].widget.attrs["placeholder"] = "evasive, on-site, travel, ..."
         self.fields["project_type"].label = "Project Type"
@@ -1406,7 +1409,7 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     HTML("""{% include 'rolodex/includes/project_scoping.html' %}"""),
-                    "note",
+                    Field("collab_note") if "collab_note" in self.fields else None,
                     link_css_class="project-icon",
                     css_id="project",
                 ),
