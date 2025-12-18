@@ -7,7 +7,7 @@ import * as apollo from "@apollo/client/core";
 const { ApolloClient, createHttpLink, InMemoryCache } = apollo;
 
 import { randomUUID } from "node:crypto";
-import { Hocuspocus } from "@hocuspocus/server";
+import { Server } from "@hocuspocus/server";
 import { setContext } from "@apollo/client/link/context";
 import { env } from "node:process";
 import * as Y from "yjs";
@@ -20,15 +20,18 @@ import ReportObservationLinkHandler from "./handlers/report_observation_link";
 import FindingHandler from "./handlers/finding";
 import ReportFindingLinkHandler from "./handlers/report_finding_link";
 import ReportHandler from "./handlers/report";
+import ProjectHandler from "./handlers/project";
 
 // Extend this with your model handlers. See how-to-collab.md.
-const HANDLERS: Map<string, ModelHandler<any>> = new Map([
+const HANDLERS_ARR: [string, ModelHandler<any>][] = [
     ["observation", ObservationHandler],
     ["report_observation_link", ReportObservationLinkHandler],
     ["finding", FindingHandler],
     ["report_finding_link", ReportFindingLinkHandler],
     ["report", ReportHandler],
-]);
+    ["project", ProjectHandler],
+];
+const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
 // Graphql Client
 
@@ -82,7 +85,7 @@ class AuthError extends Error {
 const BASE_LOGGER = pino({});
 const documentData = new Map<string, unknown>();
 
-const server = new Hocuspocus({
+const server = new Server({
     port: 8000,
 
     async onConnect(data) {

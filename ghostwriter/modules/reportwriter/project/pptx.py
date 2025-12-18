@@ -91,7 +91,7 @@ class ProjectSlidesMixin:
 
         finding_body_shape = shapes.placeholders[1]
         self.render_rich_text_pptx(
-            base_context["project"]["note_rt"],
+            base_context["project"]["description_rt"],
             slide=slide,
             shape=finding_body_shape,
         )

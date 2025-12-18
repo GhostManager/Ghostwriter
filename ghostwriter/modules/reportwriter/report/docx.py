@@ -7,11 +7,11 @@ from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 
 class ExportReportDocx(ExportDocxBase, ExportReportBase):
     def __init__(self, object, **kwargs):
-        if kwargs.get("p_style") is None and not kwargs.get("is_raw"):
-            kwargs["p_style"] = object.docx_template.p_style
-        if kwargs.get("evidence_image_width") is None:
-            kwargs["evidence_image_width"] = object.docx_template.evidence_image_width
-        super().__init__(object, **kwargs)
+        image_replacements = kwargs.get("image_replacements", {})
+        if not kwargs.get("is_raw"):
+            if object.project.client.logo:
+                image_replacements["CLIENT_LOGO"] = object.project.client.logo.path
+        super().__init__(object, image_replacements=image_replacements, **kwargs)
 
     def severity_rich_text(self, text, severity_color):
         return RichText(text, color=severity_color)

@@ -9,15 +9,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
+        migrations.AlterField(
             model_name="client",
             name="logo",
             field=models.ImageField(
-                blank=True,
                 help_text="Upload a logo to be used for cover pages",
-                null=True,
                 upload_to="client_logos/",
-                verbose_name="Client Logo",
             ),
         ),
         migrations.AddField(

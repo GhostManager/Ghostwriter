@@ -61,7 +61,7 @@ insert_permissions:
         - extra_fields
         - ip_address
         - name
-        - note
+        - description
         - server_provider_id
         - server_status_id
   - role: user
@@ -71,7 +71,7 @@ insert_permissions:
         - extra_fields
         - ip_address
         - name
-        - note
+        - description
         - server_provider_id
         - server_status_id
 select_permissions:
@@ -83,7 +83,7 @@ select_permissions:
         - ip_address
         - last_used_by_id
         - name
-        - note
+        - description
         - server_provider_id
         - server_status_id
       filter: {}
@@ -98,7 +98,7 @@ update_permissions:
         - extra_fields
         - ip_address
         - name
-        - note
+        - description
         - server_provider_id
         - server_status_id
       filter: {}
@@ -109,7 +109,7 @@ update_permissions:
         - extra_fields
         - ip_address
         - name
-        - note
+        - description
         - server_provider_id
         - server_status_id
       filter: {}

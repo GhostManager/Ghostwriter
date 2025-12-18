@@ -1,0 +1,25 @@
+{% extends "account/base_reauthenticate.html" %}
+{% load i18n %}
+{% load allauth %}
+{% load crispy_forms_tags %}
+
+{% block reauthenticate_content %}
+    <form method="post" action="{% url 'mfa_reauthenticate_webauthn' %}">
+        {% csrf_token %}
+        {{ form|crispy }}
+        {{ redirect_field }}
+        <button id="mfa_webauthn_reauthenticate" type="submit" class="btn btn-primary">
+            {% trans "Use a security key" %}
+        </button>
+    </form>
+    {{ js_data|json_script:"js_data" }}
+    {% include "mfa/webauthn/snippets/scripts.html" %}
+    <script data-allauth-onload="allauth.webauthn.forms.authenticateForm" type="application/json">{
+    "ids": {
+        "authenticate": "mfa_webauthn_reauthenticate",
+        "credential": "{{ form.credential.auto_id }}",
+        "data": "js_data"
+    }
+}
+    </script>
+{% endblock %}

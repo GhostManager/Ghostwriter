@@ -24,7 +24,7 @@ insert_permissions:
         - compromised
         - hostname
         - ip_address
-        - note
+        - description
         - project_id
   - role: user
     permission:
@@ -45,7 +45,7 @@ insert_permissions:
         - compromised
         - hostname
         - ip_address
-        - note
+        - description
         - project_id
 select_permissions:
   - role: manager
@@ -56,7 +56,7 @@ select_permissions:
         - compromised
         - hostname
         - ip_address
-        - note
+        - description
       filter: {}
   - role: user
     permission:
@@ -81,7 +81,7 @@ update_permissions:
         - compromised
         - hostname
         - ip_address
-        - note
+        - description
         - project_id
       filter: {}
       check: {}
@@ -91,7 +91,7 @@ update_permissions:
         - compromised
         - hostname
         - ip_address
-        - note
+        - description
         - project_id
       filter:
         project:

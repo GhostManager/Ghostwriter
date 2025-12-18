@@ -1,0 +1,64 @@
+{% extends "base_generic_empty.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Add Security Key{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Add Security Key</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <h2>
+    {% trans "Add Security Key" %}
+  </h2>
+
+
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
+
+  <!-- Form Section -->
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <form method="post" action="{% url 'mfa_add_webauthn' %}">
+            {% csrf_token %}
+            {% crispy form %}
+            <button id="mfa_webauthn_add" type="button" class="btn btn-primary col-3">
+                {% trans "Add" %}
+            </button>
+        </form>
+    </div>
+</div>
+
+  <!-- WebAuthn Scripts -->
+  {% include "mfa/webauthn/snippets/scripts.html" %}
+  {{ js_data|json_script:"js_data" }}
+  <script data-allauth-onload="allauth.webauthn.forms.addForm" type="application/json">{
+    "ids": {
+        "add": "mfa_webauthn_add",
+        "passwordless": "{{ form.passwordless.auto_id }}",
+        "credential": "{{ form.credential.auto_id }}",
+        "data": "js_data"
+    }
+  }
+  </script>
+
+{% endblock %}

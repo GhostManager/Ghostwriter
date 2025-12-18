@@ -8,6 +8,9 @@ import html
 from markupsafe import Markup
 
 from bs4 import BeautifulSoup, NavigableString, Tag
+
+from docxtpl import DocxTemplate, RichText as DocxRichText
+from docx.opc.exceptions import PackageNotFoundError
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.opc.exceptions import PackageNotFoundError
@@ -20,13 +23,13 @@ from ghostwriter.commandcenter.models import CompanyInformation, ReportConfigura
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import (
-    HtmlAndRich,
-    LazilyRenderedTemplate,
+    HtmlAndObject,
+    RichTextBase,
     LazySubdocRender,
-    deep_copy_with_copiers,
 )
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocxWithEvidence
 from ghostwriter.modules.reportwriter.base.docx_template import GhostwriterDocxTemplate
+from ghostwriter.reporting.models import ReportTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +114,7 @@ EXPECTED_STYLES = [
     "Blockquote",
 ] + [f"Heading {i}" for i in range(1, 7)]
 
+_img_desc_replace_re = re.compile(r"^\s*\[\s*([a-zA-Z0-9_]+)\s*\]\s*(.*)$")
 
 class ExportDocxBase(ExportBase):
     """
@@ -119,7 +123,7 @@ class ExportDocxBase(ExportBase):
     The basic flow for this exporter is:
 
     1. Serialize the object into a plain JSON-compatible representation. This is optional - the plain data may be provided directly.
-    2. Add/replace rich text objects in the data with a `LazilyRenderedTemplate` instance containing the compiled template or `HtmlAndRich` objects.
+    2. Add/replace rich text objects in the data with a `RichTextBase` subclass instance.
        The context used for those templates is usually the serialized data augmented with a few jinja functions and variables.
     3. Copy the context. In the copy, render each template, and replace it with the template render, converting the HTML to
        a format appropriate for export. The jinja templates will access the old context without the converted templates, and
@@ -130,10 +134,11 @@ class ExportDocxBase(ExportBase):
     """
 
     word_doc: DocxTemplate
+    report_template: ReportTemplate
+    global_report_config: ReportConfiguration
     company_config: CompanyInformation
     linting: bool
-    p_style: str | None
-    evidence_image_width: float | None
+    image_replacements: dict[str, str]
 
     @classmethod
     def mime_type(cls) -> str:
@@ -147,62 +152,41 @@ class ExportDocxBase(ExportBase):
         self,
         object,
         *,
-        template_loc: str,
-        p_style: str | None,
+        report_template: ReportTemplate,
         linting: bool = False,
-        evidence_image_width: float | None,
+        image_replacements: dict[str, str] | None,
         **kwargs,
     ):
         if "jinja_debug" not in kwargs:
             kwargs["jinja_debug"] = linting
         super().__init__(object, **kwargs)
         self.linting = linting
-        self.p_style = p_style
-        self.evidence_image_width = evidence_image_width
+        self.report_template = report_template
+        self.image_replacements = image_replacements or {}
 
         # Create Word document writer using the specified template file
         try:
-            self.word_doc = GhostwriterDocxTemplate(template_loc)
+            self.word_doc = GhostwriterDocxTemplate(report_template.document.path)
+            #self.word_doc = DocxTemplate(report_template.document.path) # Original line before custom GhostwriterDocxTemplate
         except PackageNotFoundError as err:
-            logger.exception("Failed to load the provided template document: %s", template_loc)
+            logger.exception("Failed to load the provided template document: %s", report_template.document.path)
             raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
         except Exception:
-            logger.exception("Failed to load the provided template document: %s", template_loc)
+            logger.exception("Failed to load the provided template document: %s", report_template.document.path)
             raise
 
-        global_report_config = ReportConfiguration.get_solo()
+        self.global_report_config = ReportConfiguration.get_solo()
         self.company_config = CompanyInformation.get_solo()
-
-        # Picture border settings for Word
-        self.enable_borders = global_report_config.enable_borders
-        self.border_color = global_report_config.border_color
-        self.border_weight = global_report_config.border_weight
-
-        # Caption options
-        prefix_figure = global_report_config.prefix_figure
-        self.prefix_figure = f"{prefix_figure}"
-        label_figure = global_report_config.label_figure
-        self.label_figure = f"{label_figure}"
-        prefix_table = global_report_config.prefix_table
-        self.prefix_table = f"{prefix_table}"
-        self.figure_caption_location = global_report_config.figure_caption_location
-        label_table = global_report_config.label_table
-        self.label_table = f"{label_table}"
-        self.table_caption_location = global_report_config.table_caption_location
-        self.title_case_captions = global_report_config.title_case_captions
-        self.title_case_exceptions = global_report_config.title_case_exceptions.split(",")
 
     def run(self) -> io.BytesIO:
         try:
             self.create_styles()
+            self.replace_images()
 
             rich_text_context = self.map_rich_texts()
-            docx_context = deep_copy_with_copiers(
+            docx_context = RichTextBase.deep_copy_process_html(
                 rich_text_context,
-                {
-                    LazilyRenderedTemplate: self.render_rich_text_docx,
-                    HtmlAndRich: lambda v: v.rich,
-                },
+                self.render_rich_text_docx,
             )
 
             ReportExportTemplateError.map_errors(
@@ -218,6 +202,7 @@ class ExportDocxBase(ExportBase):
                 "The word template could not be found on the server – try uploading it again.", "the DOCX template"
             ) from err
         except FileNotFoundError as err:
+            logger.exception("Missing file")
             raise ReportExportTemplateError(
                 "An evidence file was missing – try uploading it again.", "the DOCX template"
             ) from err
@@ -314,20 +299,29 @@ class ExportDocxBase(ExportBase):
             )
             setattr(self.word_doc.core_properties, attr, out)
 
-    def render_rich_text_docx(self, rich_text: LazilyRenderedTemplate):
+    def render_rich_text_docx(self, rich_text: RichTextBase) -> LazySubdocRender | DocxRichText:
         """
-        Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a Word subdoc.
+        Renders a `RichTextBase`, converting the HTML from the rich text editor, to a Word subdoc.
         """
-        was_rendering = rich_text.context.get("_rendering_rich_text")
-        rich_text.context["_rendering_rich_text"] = True
+        if isinstance(rich_text, HtmlAndObject):
+            return rich_text.obj
+
+        context = getattr(rich_text, "context", None)
+        was_rendering = None
+        if context is not None:
+            was_rendering = context.get("_rendering_rich_text")
+            context["_rendering_rich_text"] = True
 
         try:
-            inline_rich_text = _render_inline_rich_text(str(rich_text.render_html()))
+            render_html = getattr(rich_text, "render_html", None)
+            html_value = render_html() if callable(render_html) else rich_text.__html__()
+            inline_rich_text = _render_inline_rich_text(str(html_value))
         finally:
-            if was_rendering is None:
-                rich_text.context.pop("_rendering_rich_text", None)
-            else:
-                rich_text.context["_rendering_rich_text"] = was_rendering
+            if context is not None:
+                if was_rendering is None:
+                    context.pop("_rendering_rich_text", None)
+                else:
+                    context["_rendering_rich_text"] = was_rendering
 
         if inline_rich_text is not None:
             return inline_rich_text
@@ -336,10 +330,8 @@ class ExportDocxBase(ExportBase):
             doc = self.word_doc.new_subdoc()
             ReportExportTemplateError.map_errors(
                 lambda: HtmlToDocxWithEvidence.run(
-                    rich_text.render_html(),
+                    rich_text.__html__(),
                     doc=doc,
-                    p_style=self.p_style,
-                    evidence_image_width=self.evidence_image_width,
                     evidences=self.evidences_by_id,
                     logos=self.logos_by_name,
                     figure_label=self.label_figure,
@@ -351,6 +343,9 @@ class ExportDocxBase(ExportBase):
                     title_case_captions=self.title_case_captions,
                     title_case_exceptions=self.title_case_exceptions,
                     border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                    report_template=self.report_template,
+                    global_report_config=self.global_report_config,
+                    images=self.image_replacements,
                 ),
                 getattr(rich_text, "location", None),
             )
@@ -370,8 +365,73 @@ class ExportDocxBase(ExportBase):
 
         return InlineImage(self.word_doc, file_path)
 
+    def replace_images(self):
+        """
+        Replaces images whose alt text contains an item from `self.image_replacements`.
+        """
+        if not self.image_replacements:
+            return
+
+        # Collect elements to search in, including the main body and any defined headers/footers
+        toplevels = [(self.word_doc.docx.part, self.word_doc.docx._element)]
+        for section in self.word_doc.docx.sections:
+            headers_and_footers = [
+                section.header,
+                section.footer,
+                section.first_page_header,
+                section.first_page_footer,
+                section.even_page_header,
+                section.even_page_footer,
+            ]
+
+            for hp in headers_and_footers:
+                if not hp._has_definition:
+                    continue
+                toplevels.append((
+                    hp.part,
+                    hp.part._element,
+                ))
+
+        # Go through each part and replace matcing drawings
+        image_rids_and_objs = {}
+        for (part, element) in toplevels:
+            for drawing in element.xpath(".//w:drawing"):
+                docpr = next(iter(drawing.xpath(".//wp:docPr")), None)
+                if docpr is None:
+                    continue
+
+                blip = next(iter(drawing.xpath(".//pic:pic//a:blip")), None)
+                if blip is None:
+                    continue
+                if "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed" not in blip.attrib:
+                    continue
+
+                # Get image name from alt text
+                descr = docpr.attrib.get("descr")
+                if not descr:
+                    continue
+                match = _img_desc_replace_re.search(descr)
+                if match is None:
+                    continue
+                img_name = match[1]
+                if img_name not in self.image_replacements:
+                    continue
+                docpr.attrib["descr"] = match[2]
+
+                # Add image to oc
+                key = (id(part), img_name)
+                if key in image_rids_and_objs:
+                    rid = image_rids_and_objs[key]
+                else:
+                    rid, _ = part.get_or_add_image(self.image_replacements[img_name])
+                    image_rids_and_objs[key] = rid
+
+                # Replace image
+                blip.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"] = rid
+
+
     @classmethod
-    def lint(cls, template_loc: str, p_style: str | None) -> Tuple[List[str], List[str]]:
+    def lint(cls, report_template: ReportTemplate) -> Tuple[List[str], List[str]]:
         """
         Checks a Word template to help ensure that it will export properly.
 
@@ -381,10 +441,10 @@ class ExportDocxBase(ExportBase):
         warnings = []
         errors = []
 
-        logger.info("Linting docx file %r", template_loc)
+        logger.info("Linting docx file %r", report_template.document.path)
         try:
-            if not os.path.exists(template_loc):
-                logger.error("Template file path did not exist: %r", template_loc)
+            if not os.path.exists(report_template.document.path):
+                logger.error("Template file path did not exist: %r", report_template.document.path)
                 errors.append("Template file does not exist – upload it again")
                 return warnings, errors
 
@@ -393,9 +453,7 @@ class ExportDocxBase(ExportBase):
                 lint_data,
                 is_raw=True,
                 linting=True,
-                template_loc=template_loc,
-                p_style=p_style,
-                evidence_image_width=6.5,  # Value doesn't matter for linting
+                report_template=report_template,
             )
             logger.info("Template loaded for linting")
 
@@ -428,8 +486,8 @@ class ExportDocxBase(ExportBase):
                             warnings.append("List Paragraph style is not a paragraph style (see documentation)")
             if "Table Grid" not in document_styles:
                 errors.append("Template is missing a required style (see documentation): Table Grid")
-            if p_style and p_style not in document_styles:
-                warnings.append("Template is missing your configured default paragraph style: " + p_style)
+            if report_template.p_style and report_template.p_style not in document_styles:
+                warnings.append("Template is missing your configured default paragraph style: " + report_template.p_style)
 
             exporter.run()
 

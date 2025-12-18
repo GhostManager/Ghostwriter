@@ -87,7 +87,7 @@ class ClientContactFormTests(TestCase):
         email=None,
         job_title=None,
         phone=None,
-        note=None,
+        description=None,
         client_id=None,
         timezone=None,
         **kwargs,
@@ -98,7 +98,7 @@ class ClientContactFormTests(TestCase):
                 "email": email,
                 "job_title": job_title,
                 "phone": phone,
-                "note": note,
+                "description": description,
                 "client": client_id,
                 "timezone": timezone,
             },
@@ -211,7 +211,7 @@ class ClientFormTests(TestCase):
         name=None,
         short_name=None,
         codename=None,
-        note=None,
+        description=None,
         timezone=None,
         address=None,
         tags=None,
@@ -222,7 +222,7 @@ class ClientFormTests(TestCase):
                 "name": name,
                 "short_name": short_name,
                 "codename": codename,
-                "note": note,
+                "description": description,
                 "timezone": timezone,
                 "address": address,
                 "tags": tags,
@@ -344,7 +344,7 @@ class ProjectAssignmentFormTests(TestCase):
         operator=None,
         start_date=None,
         end_date=None,
-        note=None,
+        description=None,
         project_id=None,
         **kwargs,
     ):
@@ -354,7 +354,7 @@ class ProjectAssignmentFormTests(TestCase):
                 "start_date": start_date,
                 "end_date": end_date,
                 "project": project_id,
-                "note": note,
+                "description": description,
             },
         )
 
@@ -457,14 +457,14 @@ class ProjectTargetFormTests(TestCase):
         self,
         ip_address=None,
         hostname=None,
-        note=None,
+        description=None,
         **kwargs,
     ):
         return ProjectTargetForm(
             data={
                 "ip_address": ip_address,
                 "hostname": hostname,
-                "note": note,
+                "description": description,
             },
         )
 
@@ -663,7 +663,7 @@ class ProjectAssignmentFormSetTests(TestCase):
         form = self.form_data(data)
         errors = form.errors[0]
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors["note"].as_data()[0].code, "incomplete")
+        self.assertEqual(errors["description"].as_data()[0].code, "incomplete")
 
     def test_missing_operator(self):
         assignment_1 = self.assignment_1.__dict__.copy()
@@ -908,13 +908,13 @@ class ProjectTargetFormSetTests(TestCase):
         target_2 = self.target_2.__dict__.copy()
         target_1["hostname"] = None
         target_1["ip_address"] = None
-        target_1["note"] = "Only a note"
+        target_1["description"] = "Only a description"
 
         data = [target_1, target_2]
         form = self.form_data(data)
         errors = form.errors[0]
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors["note"].as_data()[0].code, "incomplete")
+        self.assertEqual(errors["description"].as_data()[0].code, "incomplete")
 
 
 class WhiteCardFormSetTests(TestCase):
@@ -1090,7 +1090,7 @@ class ProjectContactFormTests(TestCase):
         email=None,
         job_title=None,
         phone=None,
-        note=None,
+        description=None,
         client_id=None,
         timezone=None,
         primary=None,
@@ -1102,7 +1102,7 @@ class ProjectContactFormTests(TestCase):
                 "email": email,
                 "job_title": job_title,
                 "phone": phone,
-                "note": note,
+                "description": description,
                 "client": client_id,
                 "timezone": timezone,
                 "primary": primary,

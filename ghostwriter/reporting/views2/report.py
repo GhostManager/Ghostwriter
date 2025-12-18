@@ -26,7 +26,7 @@ from channels.layers import get_channel_layer
 from taggit.models import Tag
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
-from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
@@ -182,7 +182,10 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        form = SelectReportTemplateForm(instance=self.object)
+        form = SelectReportTemplateForm(
+            instance=self.object,
+            has_bloodhound=self.object.project.has_bloodhound_api() or BloodHoundConfiguration.get_solo().has_bloodhound_api(),
+        )
         form.fields["docx_template"].queryset = (
             ReportTemplate.objects.filter(
                 doc_type__doc_type="docx",
@@ -206,7 +209,6 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["form"] = form
 
         ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
-
         ctx["report_config"] = ReportConfiguration.get_solo()
 
         ctx["missing_supplemental_files"] = self._build_missing_supplemental_files(self.object.project)
@@ -827,6 +829,9 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         "project__oplog_set__entries__tags",
     ).select_related()
 
+    object: Report
+    include_bloodhound: bool
+
     def test_func(self):
         return self.get_object().user_can_view(self.request.user)
 
@@ -836,6 +841,7 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
+        self.include_bloodhound = self.object.include_bloodhound_data
         return super().dispatch(request, *args, **kwargs)
 
 class GenerateReportJSON(GenerateReportBase):
@@ -851,7 +857,7 @@ class GenerateReportJSON(GenerateReportBase):
             self.request.user,
         )
 
-        json_report = ExportReportJson(obj).run()
+        json_report = ExportReportJson(obj, include_bloodhound=self.include_bloodhound).run()
         return HttpResponse(json_report.getvalue(), "application/json")
 
 
@@ -918,7 +924,6 @@ class GenerateReportDOCX(GenerateReportBase):
                     extra_tags="alert-danger",
                 )
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
-        template_loc = report_template.document.path
 
         # Check template's linting status
         template_status = report_template.get_status()
@@ -933,7 +938,7 @@ class GenerateReportDOCX(GenerateReportBase):
         # Template available and passes linting checks, so proceed with generation
 
         try:
-            exporter = ExportReportDocx(obj, template_loc=template_loc)
+            exporter = ExportReportDocx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             docx = exporter.run()
         except ReportExportTemplateError as error:
@@ -1089,7 +1094,6 @@ class GenerateReportPPTX(GenerateReportBase):
                 report_template = report_config.default_pptx_template
                 if not report_template:
                     raise MissingTemplate
-            template_loc = report_template.document.path
 
             # Check template's linting status
             template_status = report_template.get_status()
@@ -1102,7 +1106,7 @@ class GenerateReportPPTX(GenerateReportBase):
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
             # Template available and passes linting checks, so proceed with generation
-            exporter = ExportReportPptx(obj, template_loc=template_loc)
+            exporter = ExportReportPptx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             pptx = exporter.run()
             response = HttpResponse(
@@ -1185,15 +1189,15 @@ class GenerateReportAll(GenerateReportBase):
 
             exporters_and_filename_templates = [
                 (
-                    ExportReportDocx(obj, template_loc=docx_template.document.path),
+                    ExportReportDocx(obj, report_template=docx_template, include_bloodhound=self.include_bloodhound),
                     docx_template.filename_override or report_config.report_filename,
                 ),
                 (
-                    ExportReportPptx(obj, template_loc=pptx_template.document.path),
+                    ExportReportPptx(obj, report_template=pptx_template, include_bloodhound=self.include_bloodhound),
                     pptx_template.filename_override or report_config.report_filename,
                 ),
-                (ExportReportXlsx(obj), report_config.report_filename),
-                (ExportReportJson(obj), report_config.report_filename),
+                (ExportReportXlsx(obj, include_bloodhound=self.include_bloodhound), report_config.report_filename),
+                (ExportReportJson(obj, include_bloodhound=self.include_bloodhound), report_config.report_filename),
             ]
 
             zip_filename = exporters_and_filename_templates[0][0].render_filename(

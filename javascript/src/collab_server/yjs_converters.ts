@@ -3,8 +3,9 @@ import {
     prosemirrorToYXmlFragment,
     yXmlFragmentToProseMirrorRootNode,
 } from "y-prosemirror";
-import { createHTMLDocument, parseHTML, VHTMLDocument } from "zeed-dom";
+//import { createHTMLDocument, parseHTML, VHTMLDocument } from "zeed-dom";
 import { DOMParser, DOMSerializer } from "@tiptap/pm/model";
+import { Window } from "happy-dom";
 
 import { SCHEMA } from "./tiptap_extensions";
 
@@ -16,10 +17,19 @@ import { SCHEMA } from "./tiptap_extensions";
 export function htmlToYjs(html: string, frag: Y.XmlFragment) {
     // Partially copied from `@tiptap/html` `generateJSON`, but using the constant SCHEMA
     // and not converting to JSON just to read it again.
-    const dom = parseHTML(html) as any;
-    const node = DOMParser.fromSchema(SCHEMA).parse(dom);
-
-    prosemirrorToYXmlFragment(node, frag);
+    const window = new Window();
+    const parser = new window.DOMParser();
+    try {
+        const fullHtml = `<!DOCTYPE html><html><body>${html}</body></html>`;
+        const doc = parser.parseFromString(fullHtml, "text/html");
+        if (!doc) throw new Error("Could not parse HTML doc");
+        const ttNode = DOMParser.fromSchema(SCHEMA).parse(
+            doc.body as unknown as Node
+        );
+        prosemirrorToYXmlFragment(ttNode, frag);
+    } finally {
+        window.happyDOM.close();
+    }
 }
 
 /**
@@ -30,15 +40,21 @@ export function htmlToYjs(html: string, frag: Y.XmlFragment) {
 export function yjsToHtml(frag: Y.XmlFragment): string {
     const node = yXmlFragmentToProseMirrorRootNode(frag, SCHEMA);
 
-    // Partially copied from `@tiptap/html` `getHTMLFromFragment`
-    const doc = DOMSerializer.fromSchema(SCHEMA).serializeFragment(
-        node.content,
-        {
-            document: createHTMLDocument() as any,
-        }
-    ) as unknown as VHTMLDocument;
-
-    return doc.render();
+    // Partially copied from `@tiptap/html` `getHTMLFromFragment`,
+    // but using the constant SCHEMA.
+    const window = new Window();
+    try {
+        const doc = DOMSerializer.fromSchema(SCHEMA).serializeFragment(
+            node.content,
+            {
+                document: window.document as unknown as Document,
+            }
+        );
+        const serializer = new window.XMLSerializer();
+        return serializer.serializeToString(doc as any);
+    } finally {
+        window.happyDOM.close();
+    }
 }
 
 /**

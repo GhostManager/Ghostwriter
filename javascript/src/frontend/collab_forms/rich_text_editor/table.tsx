@@ -1,17 +1,20 @@
 import { useId, useState } from "react";
 import ReactModal from "react-modal";
-import { useCurrentEditor } from "@tiptap/react";
+import { Editor, useEditorState } from "@tiptap/react";
 import { MenuItem } from "@szhsin/react-menu";
 import { GwTableCell, TableCaption } from "../../../tiptap_gw/table";
 import { ColorModal, ColorModalMode } from "./color";
 
-export function TableCaptionBookmarkButton() {
-    const editor = useCurrentEditor().editor!;
+export function TableCaptionBookmarkButton({ editor }: { editor: Editor }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [bookmark, setBookmark] = useState("");
     const fieldId = useId();
 
-    const enabled = editor.can().setTableCaptionBookmark("example");
+    const enabled = useEditorState({
+        editor,
+        selector: ({ editor }) =>
+            editor.can().setTableCaptionBookmark("example"),
+    });
 
     return (
         <>
@@ -85,8 +88,7 @@ export function TableCaptionBookmarkButton() {
     );
 }
 
-export function TableCellBackgroundColor() {
-    const editor = useCurrentEditor().editor!;
+export function TableCellBackgroundColor({ editor }: { editor: Editor }) {
     const [modalMode, setModalMode] = useState<ColorModalMode>(null);
     const [formColor, setFormColor] = useState<string>("#f00");
 

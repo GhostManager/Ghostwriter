@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -109,8 +109,8 @@
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">
-          {% if project.note %}
-            {{ project.note|bleach }}
+          {% if project.description %}
+            {{ project.description|bleach }}
           {% else %}
             <p class="text-center">No one has added a description of this project. <a class="clickable"
                                                                                           href="{% url 'rolodex:project_update' project.id %}">Add one here.</a></p>
@@ -8078,6 +8078,28 @@
       if (event && event.persisted) {
         restoreProjectScrollPosition();
       }
+    });
+
+    {% comment %} BloodHound fetch {% endcomment %}
+    $(document).ready(() => {
+      let bh_form = document.getElementById("bh-fetch-form");
+      bh_form.addEventListener("submit", e => {
+        e.preventDefault();
+
+        displayToastTop({type: "info", string: "Please wait. Fetching can take several minutes.", title: "Fetching BloodHound Info"});
+        fetch(bh_form.action, {
+          method: "POST",
+          body: new FormData(bh_form, e.submitter),
+          headers: {
+            "X-GW-Async": "True"
+          },
+        }).then(res => {
+          if(res.status === 200)
+            displayToastTop({type: "success", string: "Refresh the page to view updated results.", delay: 0, title: "Fetch Completed"});
+          else
+            displayToastTop({type: "error", string: "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
+        })
+      });
     });
   </script>
 {% endblock %}

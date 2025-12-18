@@ -250,6 +250,7 @@ class ApiReportTemplateFormTests(TestCase):
         filename=None,
         file_base64=None,
         user_obj=None,
+        bloodhound_heading_offset=None,
         **kwargs,
     ):
         return ApiReportTemplateForm(
@@ -266,6 +267,7 @@ class ApiReportTemplateFormTests(TestCase):
                 "p_style": p_style,
                 "filename": filename,
                 "file_base64": file_base64,
+                "bloodhound_heading_offset": bloodhound_heading_offset,
             },
             user_obj=user_obj,
         )
@@ -341,6 +343,7 @@ class ApiReportTemplateFormTests(TestCase):
             filename="test.txt",
             file_base64="dGVzdA==",
             user_obj=self.user,
+            bloodhound_heading_offset=0,
         )
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())
@@ -382,6 +385,7 @@ class ApiReportTemplateFormTests(TestCase):
             filename="test.docx",
             file_base64=self.valid_pptx,
             user_obj=self.user,
+            bloodhound_heading_offset=0,
         )
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())
@@ -402,6 +406,7 @@ class ApiReportTemplateFormTests(TestCase):
             filename="test.pptx",
             file_base64=self.valid_docx,
             user_obj=self.user,
+            bloodhound_heading_offset=0,
         )
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())

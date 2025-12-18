@@ -1,6 +1,7 @@
 import { mergeAttributes, Node, NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
+import ReactModal from "react-modal";
 
 declare module "@tiptap/core" {
     interface Commands<ReturnType> {
@@ -73,7 +74,7 @@ const Evidence = Node.create<EvidenceOptions>({
     addKeyboardShortcuts() {
         return {
             "Mod-Shift-d": () =>
-                this.editor.options.element.dispatchEvent(
+                this.editor.view.dom.dispatchEvent(
                     new CustomEvent("openevidencemodal")
                 ),
         };
@@ -103,6 +104,8 @@ function EvidenceView(props: NodeViewProps) {
         ghostwriterEvidences &&
         ghostwriterEvidences.evidence.find((v) => v.id === id);
 
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+
     if (!evidence) {
         return (
             <NodeViewWrapper className="richtext-evidence">
@@ -119,8 +122,19 @@ function EvidenceView(props: NodeViewProps) {
         evidence.document.endsWith(".jpg") ||
         evidence.document.endsWith(".jpeg")
     ) {
+        const url = ghostwriterEvidences.mediaUrl + evidence["document"];
         img = (
-            <img src={ghostwriterEvidences.mediaUrl + evidence["document"]} />
+            <>
+                <img src={url} onClick={() => setLightboxOpen(true)} />
+                <ReactModal
+                    isOpen={lightboxOpen}
+                    onRequestClose={() => setLightboxOpen(false)}
+                    contentLabel="Lightbox"
+                    className="rich-text-lightbox"
+                >
+                    <img src={url} />
+                </ReactModal>
+            </>
         );
     }
 

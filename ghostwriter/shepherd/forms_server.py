@@ -204,7 +204,7 @@ class ServerForm(forms.ModelForm):
         model = StaticServer
         exclude = ("last_used_by",)
         field_classes = {
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -218,7 +218,7 @@ class ServerForm(forms.ModelForm):
         self.fields["server_status"].label = "Server Status"
         self.fields["server_provider"].empty_label = "-- Select a Server Provider --"
         self.fields["server_provider"].label = "Server Provider"
-        self.fields["note"].widget.attrs["placeholder"] = "This server has 8 GPUs, hashcat installed, and ..."
+        self.fields["description"].widget.attrs["placeholder"] = "This server has 8 GPUs, hashcat installed, and ..."
         self.fields["tags"].widget.attrs["placeholder"] = "hashcat, GPU:8, ..."
         self.fields["extra_fields"].label = ""
 
@@ -248,7 +248,7 @@ class ServerForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     "tags",
-                    "note",
+                    "description",
                     HTML(
                         """
                         <h4 class="icon custom-field-icon">Extra Fields</h4>
@@ -309,7 +309,7 @@ class TransientServerForm(forms.ModelForm):
         model = TransientServer
         exclude = ("project",)
         field_classes = {
-            "note": JinjaRichTextField,
+            "description": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -318,7 +318,7 @@ class TransientServerForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "18.231.194.9"
         self.fields["name"].widget.attrs["placeholder"] = "mail.legitdomain.com"
-        self.fields["note"].widget.attrs[
+        self.fields["description"].widget.attrs[
             "placeholder"
         ] = "This is the SMTP host for the first phishing campaign and ..."
         self.fields["activity_type"].empty_label = "-- Select an Activity --"
@@ -364,7 +364,7 @@ class TransientServerForm(forms.ModelForm):
                 <hr>
                 """
             ),
-            "note",
+            "description",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -459,7 +459,7 @@ class ServerCheckoutForm(forms.ModelForm):
         self.fields["project"].queryset = Project.objects.none()
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs["placeholder"] = "This server will host Mythic C2 and ..."
+        self.fields["description"].widget.attrs["placeholder"] = "This server will host Mythic C2 and ..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.attrs = {
@@ -489,7 +489,7 @@ class ServerCheckoutForm(forms.ModelForm):
                 <hr>
                 """
             ),
-            "note",
+            "description",
             "server",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),

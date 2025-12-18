@@ -116,7 +116,7 @@ class ClientAdmin(admin.ModelAdmin):
             "General Information",
             {"fields": ("name", "short_name", "codename", "timezone", "address")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
     def get_queryset(self, request):
@@ -136,7 +136,7 @@ class ClientContactAdmin(admin.ModelAdmin):
             "Contact Information",
             {"fields": ("client", "name", "job_title", "email", "phone", "timezone")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
 
@@ -168,7 +168,7 @@ class ProjectAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Misc", {"fields": ("slack_channel", "note")}),
+        ("Misc", {"fields": ("slack_channel", "description")}),
     )
 
     def get_queryset(self, request):
@@ -194,7 +194,7 @@ class ProjectAssignmentAdmin(admin.ModelAdmin):
             "Assignment Dates",
             {"fields": ("start_date", "end_date")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
 
@@ -323,5 +323,5 @@ class ProjectContactAdmin(admin.ModelAdmin):
             "Contact Information",
             {"fields": ("project", "name", "job_title", "email", "phone", "timezone", "primary")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )

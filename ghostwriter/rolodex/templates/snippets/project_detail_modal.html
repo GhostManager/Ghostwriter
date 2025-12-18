@@ -13,9 +13,9 @@
 
         {%  for tag in project.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
 
-        <h5>Project Note</h5>
-        {% if project.note %}
-          {{ project.note|bleach|safe }}
+        <h5>Project Description</h5>
+        {% if project.description %}
+          {{ project.description|bleach|safe }}
         {% else %}
           <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
         {% endif %}
