@@ -22,7 +22,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.core.files.base import ContentFile
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -2585,6 +2585,16 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
 
     model = Client
 
+    def get_queryset(self):
+        projects = Project.objects.select_related("project_type", "client").prefetch_related(
+            "projectassignment_set__operator"
+        )
+        return Client.objects.prefetch_related(
+            "clientcontact_set",
+            "clientnote_set__operator",
+            Prefetch("project_set", queryset=projects),
+        )
+
     def test_func(self):
         return self.get_object().user_can_view(self.request.user)
 
@@ -2595,11 +2605,23 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         client_instance = self.get_object()
-        domain_history = History.objects.select_related("domain").filter(client=client_instance)
-        server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
-        projects = Project.objects.filter(client=client_instance)
+        domain_history = (
+            History.objects.select_related("domain", "project", "activity_type", "operator")
+            .filter(client=client_instance)
+        )
+        server_history = (
+            ServerHistory.objects.select_related("server", "project", "activity_type", "operator", "server_role")
+            .filter(client=client_instance)
+        )
+        projects = client_instance.project_set.all()
 
-        client_vps = TransientServer.objects.filter(project__in=projects)
+        client_vps = TransientServer.objects.select_related(
+            "project",
+            "activity_type",
+            "server_role",
+            "server_provider",
+            "operator",
+        ).filter(project__in=projects)
         ctx["domains"] = domain_history
         ctx["servers"] = server_history
         ctx["vps"] = client_vps
