@@ -99,7 +99,18 @@
           <tr>
             <td class="text-left bold">Project Description</td>
             <td class="text-left">
-              <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
+              <a
+                href="javascript:void(0);"
+                id="projectDescriptionDropdown"
+                class="align-icon icon {% if project.description %}sub-icon{% else %}add-icon{% endif %}"
+                data-default-open="{% if project.description %}true{% else %}false{% endif %}"
+                data-open-text="Show Description"
+                data-close-text="Hide Description"
+              >
+                <span id="projectDescriptionToggleText">
+                  {% if project.description %}Hide Description{% else %}Show Description{% endif %}
+                </span>
+              </a>
             </td>
           </tr>
         </table>
@@ -990,10 +1001,39 @@
 
         const $projectDescription = $('#projectDescription');
         const $projectDescDropdown = $('#projectDescriptionDropdown');
-        $projectDescription.hide();
+        const $projectDescText = $('#projectDescriptionToggleText');
+        const defaultOpen = Boolean($projectDescDropdown.data('default-open'));
+        const openLabel = $projectDescDropdown.data('close-text') || 'Hide Description';
+        const closedLabel = $projectDescDropdown.data('open-text') || 'Show Description';
+
+        function setProjectDescriptionState(shouldOpen, animate) {
+          const action = shouldOpen ? 'slideDown' : 'slideUp';
+          if (animate) {
+            $projectDescription.stop(true, true)[action]('slow');
+          } else if (shouldOpen) {
+            $projectDescription.show();
+          } else {
+            $projectDescription.hide();
+          }
+
+          if (shouldOpen) {
+            $projectDescDropdown.addClass('sub-icon').removeClass('add-icon');
+            if ($projectDescText.length) {
+              $projectDescText.text(openLabel);
+            }
+          } else {
+            $projectDescDropdown.addClass('add-icon').removeClass('sub-icon');
+            if ($projectDescText.length) {
+              $projectDescText.text(closedLabel);
+            }
+          }
+        }
+
+        setProjectDescriptionState(defaultOpen, false);
+
         $projectDescDropdown.on('click', function() {
-          $projectDescription.slideToggle('slow');
-          $projectDescDropdown.toggleClass('add-icon sub-icon');
+          const shouldOpen = !$projectDescription.is(':visible');
+          setProjectDescriptionState(shouldOpen, true);
         });
 
         $('#reportTable').tablesorter({
