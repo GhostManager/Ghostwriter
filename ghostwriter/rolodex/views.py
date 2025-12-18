@@ -1552,10 +1552,22 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
     def post(self, *args, **kwargs):
         project = self.get_object()
         try:
+            requested_section = self.request.POST.get("section")
             scoping_state = normalize_project_scoping(project.scoping)
             sections = _build_ai_review_sections(
                 scoping_state, getattr(project, "ai_review", {})
             )
+            if requested_section:
+                sections = [section for section in sections if section["key"] == requested_section]
+                if not sections:
+                    return JsonResponse(
+                        {
+                            "result": "warning",
+                            "message": "The requested AI review section is not available.",
+                            "data": {},
+                        },
+                        status=404,
+                    )
             if not sections:
                 return JsonResponse(
                     {"result": "warning", "message": "No in-scope AI review sections are available."}
@@ -1635,9 +1647,14 @@ class ProjectAiReviewGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
                     {"result": "warning", "message": message, "data": {}}, status=502
                 )
 
-            response_message = (
-                "AI review generation complete." if not failed_sections else "Some sections could not be generated."
-            )
+            if requested_section:
+                success_message = "AI review generation complete."
+                failure_message = "Unable to generate the requested AI review."
+                response_message = success_message if not failed_sections else failure_message
+            else:
+                response_message = (
+                    "AI review generation complete." if not failed_sections else "Some sections could not be generated."
+                )
             if failed_sections:
                 logger.warning(
                     "AI review generation partially completed for project %s; failed sections: %s",
