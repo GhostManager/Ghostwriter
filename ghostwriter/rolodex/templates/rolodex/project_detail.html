@@ -866,8 +866,10 @@
               class="btn btn-outline-primary mr-2"
               data-generate-url="{% url 'rolodex:ajax_generate_project_ai_review' project.id %}"
               data-csrf-token="{{ csrf_token }}"
+              data-section-key=""
+              data-loading-text="Generating..."
             >
-              Generate AI Review
+              Generate All AI Reviews
             </button>
             <button type="submit" class="btn btn-primary" form="ai-review-form">Save AI Updates</button>
           </div>
@@ -879,7 +881,19 @@
           {% if ai_review_sections %}
             {% for section in ai_review_sections %}
               <div class="card mb-4 ai-review-section" data-section-key="{{ section.key }}">
-                <div class="card-header text-uppercase text-muted">{{ section.label }}</div>
+                <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                  <span class="text-uppercase text-muted">{{ section.label }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary mt-2 mt-md-0 js-generate-ai-section"
+                    data-section-key="{{ section.key }}"
+                    data-generate-url="{% url 'rolodex:ajax_generate_project_ai_review' project.id %}"
+                    data-csrf-token="{{ csrf_token }}"
+                    data-loading-text="Generating..."
+                  >
+                    Generate AI Review
+                  </button>
+                </div>
                 <div class="card-body">
                   <textarea name="ai_review_{{ section.key }}" id="id_ai_review_{{ section.key }}" rows="10">{{ section.content|default_if_none:''|safe }}</textarea>
                 </div>
@@ -1064,45 +1078,65 @@
         };
 
         const setupAiReviewActions = function() {
-          const generateButton = document.getElementById('generateAiReviewButton');
-          if (!generateButton) {
-            return;
-          }
-          const csrfToken = generateButton.getAttribute('data-csrf-token');
-          const generateUrl = generateButton.getAttribute('data-generate-url');
-
-          generateButton.addEventListener('click', function() {
+          const attachHandler = function(button) {
+            if (!button) {
+              return;
+            }
+            const generateUrl = button.getAttribute('data-generate-url');
             if (!generateUrl) {
               return;
             }
-            runWithButtonLoading(generateButton, 'Generating...', function() {
-              return fetch(generateUrl, {
-                method: 'POST',
-                headers: {
-                  'X-CSRFToken': csrfToken || '',
-                },
-              })
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                  if (data && data.data) {
-                    refreshAiReviewEditors(data.data);
-                  }
-                  if (typeof displayToastTop === 'function') {
-                    const message = data && data.message ? data.message : 'AI review generation complete.';
-                    const type = data && data.result === 'warning' ? 'warning' : (data && data.result === 'error' ? 'error' : 'success');
-                    displayToastTop({type: type, string: message, title: 'AI Review'});
-                  }
+            const csrfToken = button.getAttribute('data-csrf-token');
+            const sectionKey = button.getAttribute('data-section-key') || '';
+            const loadingText = button.getAttribute('data-loading-text') || 'Generating...';
+
+            button.addEventListener('click', function() {
+              const params = new URLSearchParams();
+              if (sectionKey) {
+                params.append('section', sectionKey);
+              }
+              return runWithButtonLoading(button, loadingText, function() {
+                return fetch(generateUrl, {
+                  method: 'POST',
+                  headers: {
+                    'X-CSRFToken': csrfToken || '',
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                  },
+                  body: params.toString(),
                 })
-                .catch(function() {
-                  if (typeof displayToastTop === 'function') {
-                    displayToastTop({
-                      type: 'error',
-                      string: 'Unable to generate AI review at this time.',
-                      title: 'AI Review'
-                    });
-                  }
-                });
+                  .then(function(response) { return response.json(); })
+                  .then(function(data) {
+                    if (data && data.data) {
+                      refreshAiReviewEditors(data.data);
+                    }
+                    if (typeof displayToastTop === 'function') {
+                      const message = data && data.message ? data.message : 'AI review generation complete.';
+                      let type = 'success';
+                      if (data && data.result === 'warning') {
+                        type = 'warning';
+                      } else if (data && data.result === 'error') {
+                        type = 'error';
+                      }
+                      displayToastTop({type: type, string: message, title: 'AI Review'});
+                    }
+                  })
+                  .catch(function() {
+                    if (typeof displayToastTop === 'function') {
+                      displayToastTop({
+                        type: 'error',
+                        string: 'Unable to generate AI review at this time.',
+                        title: 'AI Review'
+                      });
+                    }
+                  });
+              });
             });
+          };
+
+          attachHandler(document.getElementById('generateAiReviewButton'));
+          const sectionButtons = document.querySelectorAll('.js-generate-ai-section');
+          sectionButtons.forEach(function(button) {
+            attachHandler(button);
           });
         };
 
