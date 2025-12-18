@@ -97,10 +97,6 @@
             </td>
           </tr>
           <tr>
-            <td class="text-left bold">Slack Channel</td>
-            <td class="text-left">{% if project.slack_channel %}{{ project.slack_channel }}{% else %}No Slack Channel{% endif %}</td>
-          </tr>
-          <tr>
             <td class="text-left bold">Project Description</td>
             <td class="text-left">
               <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
@@ -774,7 +770,7 @@
           <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
         {% endif %}
 
-        <p>View and edit findings by opening the related report (click the link).</p>
+        <p>Generate Reports, CAPs & Docs by opening the related report (click the link).</p>
 
         {% if project.report_set.all %}
           <table id="reportTable" class="tablesorter table">
@@ -850,7 +846,7 @@
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
           <div>
             <h4 class="mb-1">AI Review</h4>
-            <p class="text-muted mb-0">Executive summaries for in-scope scoping areas.</p>
+            <p class="text-muted mb-0">Generate, review & update Executive Summaries for in-scope areas.</p>
           </div>
           <div class="mt-2 mt-md-0">
             <button
