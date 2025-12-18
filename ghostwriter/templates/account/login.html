@@ -27,6 +27,17 @@
       </ul>
 
       <div class="login-or">{% trans 'or' %}</div>
+      <div class="text-center mt-2">
+        <button
+          type="button"
+          id="toggle-local-login"
+          class="btn btn-outline-primary"
+          aria-controls="local-login-section"
+          aria-expanded="false"
+        >
+          Local
+        </button>
+      </div>
     </div>
 
     {% include "socialaccount/snippets/login_extra.html" %}
@@ -54,21 +65,45 @@
   {% endif %}
 
   <!-- Form Section -->
-  <form class="login" method="POST" action="{% url 'account_login' %}" novalidate>
-    {% crispy form form.helper %}
-    {% if redirect_field_value %}
-      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
-    {% endif %}
-    <button class="btn btn-primary col-md-4" type="submit">{% trans "Sign In" %}</button>
-  </form>
+  <div id="local-login-section" class="{% if socialaccount_providers %}d-none{% endif %}">
+    <form class="login" method="POST" action="{% url 'account_login' %}" novalidate>
+      {% crispy form form.helper %}
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+      {% endif %}
+      <button class="btn btn-primary col-md-4" type="submit">{% trans "Sign In" %}</button>
+    </form>
 
-  <!-- WebAuthn/Passkey Login Section -->
-  {% if PASSKEY_LOGIN_ENABLED %}
-  <div class="mt-3">
-    <button form="mfa_login" type="button" id="passkey_login" class="btn btn-outline-primary col-md-4">
-      {% trans "Sign in with a Passkey" %}
-    </button>
-    {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
+    <!-- WebAuthn/Passkey Login Section -->
+    {% if PASSKEY_LOGIN_ENABLED %}
+    <div class="mt-3">
+      <button form="mfa_login" type="button" id="passkey_login" class="btn btn-outline-primary col-md-4">
+        {% trans "Sign in with a Passkey" %}
+      </button>
+      {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
+    </div>
+    {% endif %}
   </div>
+
+  {% if socialaccount_providers %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var toggleButton = document.getElementById('toggle-local-login');
+        var localSection = document.getElementById('local-login-section');
+        if (!toggleButton || !localSection) {
+          return;
+        }
+        toggleButton.addEventListener('click', function() {
+          var hidden = localSection.classList.contains('d-none');
+          if (hidden) {
+            localSection.classList.remove('d-none');
+            toggleButton.setAttribute('aria-expanded', 'true');
+          } else {
+            localSection.classList.add('d-none');
+            toggleButton.setAttribute('aria-expanded', 'false');
+          }
+        });
+      });
+    </script>
   {% endif %}
 {% endblock %}
