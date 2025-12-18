@@ -1332,6 +1332,14 @@ class ProjectForm(forms.ModelForm):
         self.fields["end_date"].widget.input_type = "date"
         self.fields["start_time"].widget.input_type = "time"
         self.fields["end_time"].widget.input_type = "time"
+        description_field = self.fields.get("description")
+        if description_field:
+            description_field.label = "Project Description"
+            description_field.widget.attrs.setdefault("rows", 6)
+            description_field.widget.attrs.setdefault(
+                "placeholder",
+                "Share background details, goals, or other context for this project.",
+            )
         collab_note_field = self.fields.get("collab_note")
         if collab_note_field:
             collab_note_field.widget.attrs["placeholder"] = "This project is..."
@@ -1409,6 +1417,7 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     HTML("""{% include 'rolodex/includes/project_scoping.html' %}"""),
+                    Field("description") if "description" in self.fields else None,
                     Field("collab_note") if "collab_note" in self.fields else None,
                     link_css_class="project-icon",
                     css_id="project",
