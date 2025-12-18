@@ -6773,6 +6773,30 @@
           renderDomains();
         };
 
+        const orderAreaKeysForDisplay = function(areaKeys) {
+          if (!Array.isArray(areaKeys)) {
+            return [];
+          }
+          const keys = areaKeys.slice();
+          const iamIndex = keys.indexOf('iam');
+          if (iamIndex === -1) {
+            return keys;
+          }
+          const iamKey = keys.splice(iamIndex, 1)[0];
+          const externalIndex = keys.indexOf('external');
+          if (externalIndex !== -1) {
+            keys.splice(externalIndex + 1, 0, iamKey);
+            return keys;
+          }
+          const internalIndex = keys.indexOf('internal');
+          if (internalIndex !== -1) {
+            keys.splice(internalIndex, 0, iamKey);
+            return keys;
+          }
+          keys.push(iamKey);
+          return keys;
+        };
+
         const renderAreaCards = function() {
           const cardContainer = document.getElementById('workbook-area-cards');
           const modalContainer = document.getElementById('workbook-area-modals');
@@ -6785,7 +6809,8 @@
           const deck = document.createElement('div');
           deck.className = 'row workbook-area-grid';
           const modalFragment = document.createDocumentFragment();
-          Object.keys(scopingState).forEach(function(areaKey) {
+          const orderedAreaKeys = orderAreaKeysForDisplay(Object.keys(scopingState));
+          orderedAreaKeys.forEach(function(areaKey) {
             if (!scopeSelected(areaKey)) {
               return;
             }
