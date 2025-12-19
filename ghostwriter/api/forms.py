@@ -112,15 +112,13 @@ class ApiEvidenceForm(forms.ModelForm):
 
     class Meta:
         model = Evidence
-        fields = ("friendly_name", "description", "caption", "tags", "finding", "report")
+        fields = ("friendly_name", "description", "caption", "tags", "report")
 
     def __init__(self, *args, **kwargs):
         self.user_obj = kwargs.pop("user_obj")
         report_queryset = kwargs.pop("report_queryset")
-        finding_queryset = ReportFindingLink.objects.filter(report__in=report_queryset)
         super().__init__(*args, **kwargs)
         self.fields["report"].queryset = report_queryset
-        self.fields["finding"].queryset = finding_queryset
 
     def clean_filename(self):
         _, ext = splitext(self.cleaned_data["filename"])
@@ -132,22 +130,13 @@ class ApiEvidenceForm(forms.ModelForm):
         cleaned_data = super().clean()
 
         report = None
-        if "finding" in cleaned_data and "report" in cleaned_data:
-            # Ensure only one of `finding` or `report` is specified
-            finding = cleaned_data["finding"]
+        if "report" in cleaned_data:
             report = cleaned_data["report"]
-            if (finding is None) == (report is None):
-                # Above is effectively XOR.
-                msg = _("Must specify only one of either 'finding' or 'report'")
-                self.add_error("finding", msg)
-                self.add_error("report", msg)
-            elif finding is not None:
-                report = finding.report
 
         if report is not None and "friendly_name" in cleaned_data:
             # Validate that evidence name is unique
             name = cleaned_data["friendly_name"]
-            if report.all_evidences().filter(friendly_name=name).exists():
+            if report.evidence_set.filter(friendly_name=name).exists():
                 self.add_error(
                     "friendly_name",
                     ValidationError(
