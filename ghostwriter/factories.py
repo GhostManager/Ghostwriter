@@ -500,7 +500,7 @@ class BlankReportFindingLinkFactory(factory.django.DjangoModelFactory):
     report = factory.SubFactory(ReportFactory)
 
 
-class BaseEvidenceFactory(factory.django.DjangoModelFactory):
+class EvidenceFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.Evidence"
 
@@ -509,6 +509,7 @@ class BaseEvidenceFactory(factory.django.DjangoModelFactory):
     caption = Faker("sentence")
     description = Faker("sentence")
     uploaded_by = factory.SubFactory(UserFactory)
+    report = factory.SubFactory(ReportFactory)
 
     class Params:
         img = factory.Trait(document=factory.django.FileField(filename="evidence.png", data=b"lorem ipsum"))
@@ -523,14 +524,6 @@ class BaseEvidenceFactory(factory.django.DjangoModelFactory):
         if extracted:
             for tag in extracted:
                 self.tags.add(tag)
-
-
-class EvidenceOnFindingFactory(BaseEvidenceFactory):
-    finding = factory.SubFactory(ReportFindingLinkFactory)
-
-
-class EvidenceOnReportFactory(BaseEvidenceFactory):
-    report = factory.SubFactory(ReportFactory)
 
 
 class ArchiveFactory(factory.django.DjangoModelFactory):

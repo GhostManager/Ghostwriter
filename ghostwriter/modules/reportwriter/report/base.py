@@ -85,7 +85,7 @@ class ExportReportBase(ExportBase):
             finding_overlay = {
                 "finding": finding,
                 "_old_dot_vars": rich_text_overlay["_old_dot_vars"].copy(),
-                "_evidences": self.create_evidences_lookup(finding["evidence"], rich_text_overlay["_evidences"]),
+                "_evidences": rich_text_overlay["_evidences"],
             }
             finding_overlay["_old_dot_vars"].update(
                 {name: jinja_funcs.raw_mk_evidence(id) for name, id in finding_overlay["_evidences"].items()}

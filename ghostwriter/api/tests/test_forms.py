@@ -13,7 +13,7 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     DocTypeFactory,
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     ProjectAssignmentFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -91,7 +91,6 @@ class ApiEvidenceFormTests(TestCase):
         description=None,
         caption=None,
         tags=None,
-        finding=None,
         report=None,
         filename=None,
         file_base64=None,
@@ -105,7 +104,6 @@ class ApiEvidenceFormTests(TestCase):
                 "description": description,
                 "caption": caption,
                 "tags": tags,
-                "finding": finding,
                 "report": report,
                 "file_base64": file_base64,
                 "filename": filename,
@@ -120,7 +118,6 @@ class ApiEvidenceFormTests(TestCase):
             description="Test Description",
             caption="Test Caption",
             tags="Test, Tag",
-            finding=None,
             report=self.report,
             filename="test.txt",
             file_base64="dGVzdA==",
@@ -128,39 +125,6 @@ class ApiEvidenceFormTests(TestCase):
             report_queryset=get_reports_list(self.user),
         )
         self.assertTrue(form.is_valid())
-
-    def test_finding_and_report(self):
-        form = self.form_data(
-            friendly_name="Test Finding & Report",
-            description="Test Description",
-            caption="Test Caption",
-            tags="Test, Tag",
-            finding=None,
-            report=None,
-            filename="test.txt",
-            file_base64="dGVzdA==",
-            user_obj=self.user,
-            report_queryset=get_reports_list(self.user),
-        )
-        errors = form.errors.as_data()
-        self.assertFalse(form.is_valid())
-        self.assertEqual(len(errors), 2)
-
-        form = self.form_data(
-            friendly_name="Test Finding & Report",
-            description="Test Description",
-            caption="Test Caption",
-            tags="Test, Tag",
-            finding=self.finding,
-            report=self.report,
-            filename="test.txt",
-            file_base64="dGVzdA==",
-            user_obj=self.user,
-            report_queryset=get_reports_list(self.user),
-        )
-        errors = form.errors.as_data()
-        self.assertFalse(form.is_valid())
-        self.assertEqual(len(errors), 1)
 
     def test_invalid_extension(self):
         form = self.form_data(
@@ -198,7 +162,7 @@ class ApiEvidenceFormTests(TestCase):
         self.assertEqual(len(errors), 1)
 
     def test_duplicate_friendly_name(self):
-        evidence = EvidenceOnReportFactory(report=self.report, friendly_name="Duplicate Test")
+        evidence = EvidenceFactory(report=self.report, friendly_name="Duplicate Test")
         form = self.form_data(
             friendly_name="Duplicate Test",
             description="Test Description",

@@ -18,7 +18,7 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
         cls.uri = reverse("status:healthcheck")
 
     def setUp(self):
-        self.client = Client()
+        self.client = Client(raise_request_exception=True)
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client.get(self.uri)

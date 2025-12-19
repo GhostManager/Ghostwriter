@@ -288,7 +288,7 @@
         <p>Upload evidence here to make it accessible to all findings and report sections.</p>
 
         <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
-                           href="{% url 'reporting:upload_evidence' 'report' report.id %}" data-toggle="tooltip"
+                           href="{% url 'reporting:upload_evidence' report.id %}" data-toggle="tooltip"
                            data-placement="top" title="Upload evidence, attaching to a report">Upload Evidence</a></p>
 
         {% if report.evidence_set.all %}
