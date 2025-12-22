@@ -10,6 +10,7 @@ import ReactModal from "react-modal";
 import { ProvidePageEvidence } from "../../graphql/evidence";
 import PageGraphqlProvider from "../../graphql/client";
 import { Editor } from "@tiptap/core";
+import ErrorBoundary from "../error_boundary";
 
 const renderToolbarExtra = (editor: Editor) => (
     <EvidenceButton editor={editor} />
@@ -91,8 +92,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     const root = createRoot(document.getElementById("collab-form-container")!);
     root.render(
-        <PageGraphqlProvider>
-            <ReportObservationLinkForm />
-        </PageGraphqlProvider>
+        <ErrorBoundary>
+            <PageGraphqlProvider>
+                <ReportObservationLinkForm />
+            </PageGraphqlProvider>
+        </ErrorBoundary>
     );
 });
