@@ -6,6 +6,7 @@ import { Editor } from "@tiptap/core";
 import EvidenceButton from "../rich_text_editor/evidence";
 import PageGraphqlProvider from "../../graphql/client";
 import { ProvidePageEvidence } from "../../graphql/evidence";
+import ErrorBoundary from "../error_boundary";
 
 const renderToolbarExtra = (editor: Editor) => (
     <EvidenceButton editor={editor} />
@@ -52,10 +53,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const fieldName = el.getAttribute("data-extra-field-name")!;
     const root = createRoot(el);
     root.render(
-        <PageGraphqlProvider>
-            <ProvidePageEvidence>
-                <ReportExtraFieldForm field={fieldName} />
-            </ProvidePageEvidence>
-        </PageGraphqlProvider>
+        <ErrorBoundary>
+            <PageGraphqlProvider>
+                <ProvidePageEvidence>
+                    <ReportExtraFieldForm field={fieldName} />
+                </ProvidePageEvidence>
+            </PageGraphqlProvider>
+        </ErrorBoundary>
     );
 });
