@@ -1,5 +1,5 @@
 import { Node, NodeViewProps } from "@tiptap/core";
-import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import { NodeViewWrapper, ReactNodeViewRenderer, useEditorState } from "@tiptap/react";
 
 declare module "@tiptap/core" {
     interface Commands<ReturnType> {
@@ -22,25 +22,40 @@ type FootnoteOptions = Record<string, never>;
 
 // Simple view component for footnotes in the editor
 function FootnoteView({ node, getPos, editor }: NodeViewProps) {
-    // Calculate footnote number by counting footnotes before this one
-    let footnoteNumber = 1;
-    if (typeof getPos === "function") {
-        const pos = getPos();
-        if (pos !== undefined) {
-            editor.state.doc.nodesBetween(0, pos, (n) => {
-                if (n.type.name === "footnote") {
-                    footnoteNumber++;
+    // Use useEditorState to recalculate footnote number when document changes
+    const footnoteNumber = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            // Calculate footnote number by counting footnotes before this one
+            let number = 1;
+            if (typeof getPos === "function") {
+                const pos = getPos();
+                if (pos !== undefined) {
+                    editor.state.doc.nodesBetween(0, pos, (n) => {
+                        if (n.type.name === "footnote") {
+                            number++;
+                        }
+                    });
                 }
-            });
-        }
-    }
+            }
+            return number;
+        },
+    });
+
+    // Get footnote content for tooltip (the text inside the span element)
+    const footnoteContent = node.textContent || "Empty footnote";
 
     return (
         <NodeViewWrapper as="span" className="footnote-marker">
             <sup
                 className="footnote-ref"
-                title={node.attrs.content || "Empty footnote"}
-                style={{ cursor: "pointer", color: "#0066cc" }}
+                title={footnoteContent}
+                style={{
+                    cursor: "default",
+                    userSelect: "none",
+                    color: "#0066cc",
+                    fontWeight: "bold"
+                }}
             >
                 {footnoteNumber}
             </sup>

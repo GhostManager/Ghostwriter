@@ -291,6 +291,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
         # Add the footnote paragraph with the footnote reference mark at the start
         # This is required for Word to properly display the footnote number
         footnote_paragraph = new_footnote.add_paragraph()
+
+        # Apply "Footnote Text" style to the paragraph
+        try:
+            footnote_paragraph.style = "Footnote Text"
+        except KeyError:
+            # Style doesn't exist in template, continue without it
+            pass
+
         # Create a run with footnoteRef element (displays the footnote number)
         footnote_run = footnote_paragraph._p.add_r()
         run_properties = OxmlElement("w:rPr")
@@ -300,8 +308,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
         footnote_run.insert(0, run_properties)
         footnote_ref_element = OxmlElement("w:footnoteRef")
         footnote_run.append(footnote_ref_element)
-        # Add a space and the footnote text
-        footnote_paragraph.add_run(" " + footnote_content)
+
+        # Add a space and the footnote text with "Footnote Text" character style
+        text_run = footnote_paragraph.add_run(" " + footnote_content)
+        try:
+            text_run.style = "Footnote Text"
+        except KeyError:
+            # Style doesn't exist in template, continue without it
+            pass
 
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
