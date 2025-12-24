@@ -63,6 +63,12 @@ class HtmlToPptx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = PptxRGBColor(*style["font_color"])
 
+    def tag_footnote(self, el, **kwargs):  # pylint: disable=unused-argument
+        """
+        Handle <span class="footnote"> elements - PowerPoint doesn't support footnotes,
+        so we silently ignore them.
+        """
+
     def tag_br(self, el, *, par=None, **kwargs):
         self.text_tracking.new_block()
         if par is not None:
@@ -187,6 +193,8 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
             run = par.add_run()
             run.text = f"See {ref_name}"
             run.font.italic = True
+        elif "footnote" in el.attrs.get("class", []):
+            self.tag_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
 

@@ -42,6 +42,7 @@ import HeadingIdButton from "./heading";
 import ColorButton from "./color";
 import { TableCaptionBookmarkButton, TableCellBackgroundColor } from "./table";
 import CaptionButton from "./caption";
+import FootnoteButton from "./footnote";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -475,6 +476,7 @@ export function Toolbar(props: {
                     </FormatButton>
                     <MenuDivider />
                     <CaptionButton editor={editor} />
+                    <FootnoteButton editor={editor} />
                     <FormatButton
                         menuItem
                         editor={editor}

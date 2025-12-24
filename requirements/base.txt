@@ -35,7 +35,8 @@ docutils==0.18.1
 docxtpl==0.18.0
 dnspython==2.6.1
 jinja2==3.1.5
-python-docx==1.1.2
+# Forked version of python-docx with additional features for Ghostwriter
+python-docx @ git+https://github.com/GhostManager/python-docx.git@4542c1915895b376ef3ed7a149af15147b3509b2
 python-nmap==0.7.1
 python-pptx==1.0.2
 requests==2.32.3
