@@ -302,9 +302,17 @@ class HtmlToDocx(BaseHtmlToOOXML):
         # Create a run with footnoteRef element (displays the footnote number)
         footnote_run = footnote_paragraph._p.add_r()
         run_properties = OxmlElement("w:rPr")
+
+        # Apply "Footnote Reference" style if available
         style_element = OxmlElement("w:rStyle")
         style_element.set(qn("w:val"), "FootnoteReference")
         run_properties.append(style_element)
+
+        # Always apply superscript formatting as fallback
+        vert_align = OxmlElement("w:vertAlign")
+        vert_align.set(qn("w:val"), "superscript")
+        run_properties.append(vert_align)
+
         footnote_run.insert(0, run_properties)
         footnote_ref_element = OxmlElement("w:footnoteRef")
         footnote_run.append(footnote_ref_element)
@@ -314,8 +322,8 @@ class HtmlToDocx(BaseHtmlToOOXML):
         try:
             text_run.style = "Footnote Text"
         except KeyError:
-            # Style doesn't exist in template, continue without it
-            pass
+            # Style doesn't exist in template, apply default 10pt formatting
+            text_run.font.size = Pt(10)
 
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
