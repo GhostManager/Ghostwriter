@@ -57,6 +57,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
+      - NMAP_PRIVILEGED=""
     healthcheck:
       test: curl --insecure --fail https://nginx/status/simple/ || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
