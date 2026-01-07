@@ -34,7 +34,8 @@ EXPECTED_STYLES = [
     "Caption",
     "List Paragraph",
     "Blockquote",
-    "Footnote Reference",
+    "footnote text",        # Lowercase to match style name
+    "footnote reference"    # Lowercase to match style name
 ] + [f"Heading {i}" for i in range(1, 7)]
 
 _img_desc_replace_re = re.compile(r"^\s*\[\s*([a-zA-Z0-9_]+)\s*\]\s*(.*)$")
@@ -420,6 +421,12 @@ class ExportDocxBase(ExportBase):
                     if style == "List Paragraph":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
                             warnings.append("List Paragraph style is not a paragraph style (see documentation)")
+                    if style == "footnote text":
+                        if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
+                            warnings.append("Footnote Text style is not a character style (see documentation)")
+                    if style == "footnote reference":
+                        if document_styles[style].type != WD_STYLE_TYPE.CHARACTER:
+                            warnings.append("Footnote Reference style is not a character style (see documentation)")
             if "Table Grid" not in document_styles:
                 errors.append("Template is missing a required style (see documentation): Table Grid")
             if report_template.p_style and report_template.p_style not in document_styles:
