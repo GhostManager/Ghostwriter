@@ -34,6 +34,7 @@ EXPECTED_STYLES = [
     "Caption",
     "List Paragraph",
     "Blockquote",
+    "Footnote Reference",
 ] + [f"Heading {i}" for i in range(1, 7)]
 
 _img_desc_replace_re = re.compile(r"^\s*\[\s*([a-zA-Z0-9_]+)\s*\]\s*(.*)$")

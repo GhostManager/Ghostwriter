@@ -292,38 +292,57 @@ class HtmlToDocx(BaseHtmlToOOXML):
         # This is required for Word to properly display the footnote number
         footnote_paragraph = new_footnote.add_paragraph()
 
-        # Apply "Footnote Text" style to the paragraph
+        # Track if either style is missing
+        missing_footnote_text = False
+        missing_footnote_ref = False
+
+        # Try to apply "Footnote Text" style to the paragraph
         try:
             footnote_paragraph.style = "Footnote Text"
         except KeyError:
-            # Style doesn't exist in template, continue without it
-            pass
+            missing_footnote_text = True
 
-        # Create a run with footnoteRef element (displays the footnote number)
-        footnote_run = footnote_paragraph._p.add_r()
-        run_properties = OxmlElement("w:rPr")
+        # Create a run for the footnote reference number
+        try:
+            footnote_ref_run = footnote_paragraph.add_run()
+            footnote_ref_run.style = "Footnote Reference"
+            footnote_ref_run.font.superscript = True
+        except KeyError:
+            missing_footnote_ref = True
+            footnote_ref_run = footnote_paragraph._p.add_r()
+            run_properties = OxmlElement("w:rPr")
+            style_element = OxmlElement("w:rStyle")
+            style_element.set(qn("w:val"), "FootnoteReference")
+            run_properties.append(style_element)
+            vert_align = OxmlElement("w:vertAlign")
+            vert_align.set(qn("w:val"), "superscript")
+            run_properties.append(vert_align)
+            footnote_ref_run.insert(0, run_properties)
 
-        # Apply "Footnote Reference" style if available
-        style_element = OxmlElement("w:rStyle")
-        style_element.set(qn("w:val"), "FootnoteReference")
-        run_properties.append(style_element)
-
-        # Always apply superscript formatting as fallback
-        vert_align = OxmlElement("w:vertAlign")
-        vert_align.set(qn("w:val"), "superscript")
-        run_properties.append(vert_align)
-
-        footnote_run.insert(0, run_properties)
+        # Add the footnote reference mark
         footnote_ref_element = OxmlElement("w:footnoteRef")
-        footnote_run.append(footnote_ref_element)
+        if hasattr(footnote_ref_run, "_r"):
+            footnote_ref_run._r.append(footnote_ref_element)
+        else:
+            footnote_ref_run.append(footnote_ref_element)
 
         # Add a space and the footnote text with "Footnote Text" character style
         text_run = footnote_paragraph.add_run(" " + footnote_content)
         try:
             text_run.style = "Footnote Text"
         except KeyError:
-            # Style doesn't exist in template, apply default 10pt formatting
+            missing_footnote_text = True
             text_run.font.size = Pt(10)
+
+        # If either style is missing, apply default formatting to the paragraph
+        if missing_footnote_text or missing_footnote_ref:
+            pf = footnote_paragraph.paragraph_format
+            pf.line_spacing = 1.0
+            pf.space_before = 0
+            for run in footnote_paragraph.runs:
+                run.font.size = Pt(10)
+
+        # ...existing code...
 
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
