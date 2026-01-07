@@ -59,6 +59,8 @@ function FormatButton(props: {
     const { enabled, active } = useEditorState({
         editor,
         selector: ({ editor }) => {
+            if (!editor.isInitialized) return { enabled: false, active: false };
+
             let enabled = false;
             if (typeof props.enable === "function")
                 enabled = props.enable(editor);

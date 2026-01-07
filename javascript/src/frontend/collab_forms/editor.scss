@@ -92,14 +92,14 @@
     }
 }
 
-    .tiptap {
-        min-height: 100px;
-        font-family: sans-serif;
-        color: #000;
-        overflow-wrap: break-word;
-        padding: 0.3rem;
-        overflow-x: hidden;
-        position: relative;
+.tiptap {
+    min-height: 100px;
+    font-family: sans-serif;
+    color: #000;
+    overflow-wrap: break-word;
+    padding: 0.3rem;
+    overflow-x: hidden;
+    position: relative;
 
     &,
     blockquote {
@@ -300,7 +300,7 @@
             color: #f77;
         }
         .richtext-evidence-prefix {
-            color: #6D70A7;
+            color: #6d70a7;
         }
         .richtext-evidence-text-field {
             border: 1px solid #aaa;

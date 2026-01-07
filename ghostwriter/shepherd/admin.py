@@ -167,7 +167,7 @@ class DomainAdmin(ImportExportModelAdmin):
                 )
             },
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
     def get_queryset(self, request):

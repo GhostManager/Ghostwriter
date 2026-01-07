@@ -3,7 +3,7 @@ Pillow==10.4.0  # https://github.com/python-pillow/Pillow
 rcssmin==1.1.1  # https://github.com/ndparker/rcssmin
 argon2-cffi==23.1.0  # https://github.com/hynek/argon2_cffi
 redis==5.0.8  # https://github.com/antirez/redis
-uvicorn[standard]==0.22.0  # https://github.com/encode/uvicorn
+uvicorn[standard]==0.38.0  # https://github.com/Kludex/uvicorn
 tzdata==2024.1
 
 # Django
@@ -41,7 +41,7 @@ python-nmap==0.7.1
 python-pptx==1.0.2
 requests==2.32.3
 django-timezone-field==7.0.0
-pyjwt[crypto]==2.9.0
+pyjwt[crypto]==2.10.1
 psutil==6.0.0
 django-taggit==6.1.0
 croniter==3.0.3
