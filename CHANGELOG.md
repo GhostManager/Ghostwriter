@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The removal also generally improves security by closing ports that do not need to be exposed by default
   * This change may adversely affect anyone who uses the PostgreSQL port for remote administration
   * Users may choose to re-expose ports, but you can execute `pgsql` commands inside the container
-  * This is a precursor to a larger change coming that introduces publisherd Docker images
+  * This is a precursor to a larger change coming that introduces published Docker images
 * Adjusted the dark mode colors for inactive tabs to improve blending
 
 ## Fixed
