@@ -1,4 +1,4 @@
-FROM python:3.10.9-alpine3.17
+FROM python:3.10-alpine
 
 ENV PYTHONUNBUFFERED=1
 
@@ -27,7 +27,7 @@ RUN apk --no-cache add build-base curl \
 
 COPY ./requirements /requirements
 
-RUN pip install --no-cache-dir -r /requirements/local.txt
+RUN pip install --no-cache-dir -r /requirements/local.txt --no-binary psycopg2
 
 COPY ./compose/production/django/entrypoint /entrypoint
 
