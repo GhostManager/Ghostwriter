@@ -19,7 +19,10 @@ RUN \
     # XLSX dependencies
     && apk add libxml2-dev libxslt-dev \
     # Rust and Cargo required by the ``cryptography`` Python package
-    && apk add rust cargo
+    && apk --no-cache add rust cargo \
+    # Git for installing packages from GitHub
+    && apk --no-cache add git
+
 RUN \
     --mount=type=cache,target=/root/.cache/pip \
     pip install wheel \

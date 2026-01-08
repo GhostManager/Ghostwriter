@@ -551,7 +551,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Assignment",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-md-3",
                         ),
@@ -673,7 +673,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Objective",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -767,7 +767,7 @@ class ProjectScopeForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete List",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -850,7 +850,7 @@ class ProjectTargetForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Target",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -946,7 +946,7 @@ class WhiteCardForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete White Card",
-                                css_class="btn-outline-danger formset-del-button col-5",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -1039,7 +1039,7 @@ class ProjectContactForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Contact",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -1104,7 +1104,7 @@ class ProjectInviteForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Invite",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),

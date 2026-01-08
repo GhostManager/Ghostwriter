@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.0] - 8 January 2026
+
+### Added
+
+* Added support for inserting footnote objects in the collaborative editor (PR #783)
+  * Footnotes will appear in the editor as they do in Word (e.g., as superscript numbers)
+  * The text you set for your footnote will appear in Word as your footnote text
+  * We recommend adding Word's _Footnote Reference_ and _Footnote Text_ styles to templates, but this is not required
+
+### Changed
+
+* Updated Docker files to remove some of the exposed ports (Fixes #768)
+  * Removing the exposed ports addresses issues some individuals experienced with Docker v20
+  * The removal also generally improves security by closing ports that do not need to be exposed by default
+  * This change may adversely affect anyone who uses the PostgreSQL port for remote administration
+  * Users may choose to re-expose ports, but you can execute `pgsql` commands inside the container
+  * This is a precursor to a larger change coming that introduces publisherd Docker images
+* Adjusted the dark mode colors for inactive tabs to improve blending
+
+## Fixed
+
+* Fixed some fields not appearing with a WYSIWYG editor when adding them as a new formset
+
 ## [6.1.1] - 15 December 2025
 
 ### Added
