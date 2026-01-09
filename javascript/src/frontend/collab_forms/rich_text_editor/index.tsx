@@ -32,7 +32,7 @@ import {
     MenuItem,
     MenuDivider,
 } from "@szhsin/react-menu";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCarent from "@tiptap/extension-collaboration-caret";
@@ -43,6 +43,8 @@ import ColorButton from "./color";
 import { TableCaptionBookmarkButton, TableCellBackgroundColor } from "./table";
 import CaptionButton from "./caption";
 import FootnoteButton from "./footnote";
+import TextExpansionModal from "./text_expansion_modal";
+import type { AcronymExpansion } from "../../../tiptap_gw/text_expansion";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -516,9 +518,53 @@ export default function RichTextEditor(props: {
         extensions,
     });
 
+    // Text expansion modal state
+    const [expansionModal, setExpansionModal] = useState<{
+        word: string;
+        matches: AcronymExpansion[];
+    } | null>(null);
+
+    // Listen for expansion modal events from TipTap extension
+    useEffect(() => {
+        if (!editor) return;
+
+        const handler = ({
+            word,
+            matches,
+        }: {
+            word: string;
+            matches: AcronymExpansion[];
+        }) => {
+            setExpansionModal({ word, matches });
+        };
+
+        editor.on("showExpansionModal", handler);
+        return () => {
+            editor.off("showExpansionModal", handler);
+        };
+    }, [editor]);
+
     useEffect(() => {
         editor?.setEditable(props.connected);
     }, [editor, props.connected]);
+
+    const handleExpansionSelect = (expansion: AcronymExpansion) => {
+        if (!editor || !expansionModal) return;
+
+        // Replace the acronym with the expansion
+        const { state } = editor;
+        const { $from } = state.selection;
+        const from = $from.pos - expansionModal.word.length;
+        const to = $from.pos;
+
+        editor
+            .chain()
+            .focus()
+            .insertContentAt({ from, to }, expansion.full)
+            .run();
+
+        setExpansionModal(null);
+    };
 
     return (
         <div
@@ -531,6 +577,14 @@ export default function RichTextEditor(props: {
                 <Toolbar editor={editor} extra={props.toolbarExtra} />
                 <EditorContent editor={editor} />
             </EditorContext.Provider>
+            {expansionModal && (
+                <TextExpansionModal
+                    word={expansionModal.word}
+                    matches={expansionModal.matches}
+                    onSelect={handleExpansionSelect}
+                    onCancel={() => setExpansionModal(null)}
+                />
+            )}
         </div>
     );
 }

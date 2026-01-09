@@ -15,6 +15,7 @@
         "@graphql-codegen/cli": "^5.0.3",
         "@graphql-codegen/client-preset": "^4.5.1",
         "@graphql-typed-document-node/core": "^3.2.0",
+        "@rollup/plugin-yaml": "^4.1.2",
         "@types/node": "^22.8.1",
         "@types/react": "^19.0.7",
         "@types/react-dom": "^19.0.3",
