@@ -25,6 +25,7 @@ import Image from "./image";
 import TextAlign from "./text_align";
 import Caption from "./caption";
 import Footnote from "./footnote";
+import { PassiveVoiceMark } from "./passive_voice_mark";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -71,6 +72,7 @@ const EXTENSIONS: Extensions = [
     CaseChange,
     Caption,
     Footnote,
+    PassiveVoiceMark,
 ];
 
 export default EXTENSIONS;

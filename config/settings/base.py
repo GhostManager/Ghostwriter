@@ -530,6 +530,12 @@ REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
 # ------------------------------------------------------------------------------
 TAGGIT_CASE_INSENSITIVE = True
 
+# spaCy NLP Configuration
+# ------------------------------------------------------------------------------
+# https://spacy.io/usage/models
+SPACY_MODEL = env("SPACY_MODEL", default="en_core_web_sm")
+SPACY_MAX_TEXT_LENGTH = env.int("SPACY_MAX_TEXT_LENGTH", default=100000)
+
 
 def include_settings(py_glob):
     """

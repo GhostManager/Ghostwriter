@@ -40,6 +40,9 @@ RUN \
   --mount=type=cache,target=/root/.cache/pip \
   pip install --find-links=/wheels -r /requirements/production.txt
 
+# Download spaCy model for passive voice detection
+RUN python -m spacy download en_core_web_sm --no-cache-dir
+
 RUN addgroup -S django && adduser -S -G django django
 
 COPY ./compose/production/django/entrypoint /entrypoint

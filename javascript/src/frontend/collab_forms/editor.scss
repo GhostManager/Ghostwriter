@@ -437,3 +437,15 @@ ul.collab-focused-users {
     max-width: 95vw;
     max-height: 95vh;
 }
+
+// Passive Voice Highlighting
+.passive-voice-highlight {
+    background-color: #fff3cd;
+    border-bottom: 2px wavy #ff6b6b;
+    padding: 2px 0;
+
+    &:hover {
+        background-color: #ffe69c;
+    }
+}
+

@@ -29,6 +29,9 @@ COPY ./requirements /requirements
 
 RUN pip install --no-cache-dir -r /requirements/local.txt --no-binary psycopg2
 
+# Download spaCy model for passive voice detection
+RUN python -m spacy download en_core_web_sm --no-cache-dir
+
 COPY ./compose/production/django/entrypoint /entrypoint
 
 RUN sed -i 's/\r$//g' /entrypoint \

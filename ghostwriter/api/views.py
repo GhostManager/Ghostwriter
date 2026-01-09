@@ -1480,3 +1480,95 @@ class ObjectsByTag(HasuraActionView):
         objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
         objs = objs.filter(tags__name=self.input["tag"])
         return JsonResponse([{"id": obj.pk} for obj in objs], safe=False)
+
+
+######################
+# Passive Voice API  #
+######################
+
+
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+def detect_passive_voice(request):
+    """
+    Detect passive voice sentences in provided text using spaCy NLP.
+
+    POST /api/v1/passive-voice/detect
+    Authentication: Required (Session or API Key)
+
+    Request body:
+        {
+            "text": "The report was written by the team."
+        }
+
+    Response (200 OK):
+        {
+            "ranges": [[0, 37]],
+            "count": 1
+        }
+
+    Response (400 Bad Request):
+        {
+            "error": "Text field is required"
+        }
+
+    Response (413 Request Entity Too Large):
+        {
+            "error": "Text exceeds maximum length of 100000 characters"
+        }
+
+    Response (500 Internal Server Error):
+        {
+            "error": "Failed to analyze text",
+            "detail": "..."
+        }
+    """
+    # Import here to avoid circular imports and only load when needed
+    from ghostwriter.modules.passive_voice.detector import get_detector
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Only POST method is allowed"}, status=HTTPStatus.METHOD_NOT_ALLOWED
+        )
+
+    try:
+        data = json.loads(request.body)
+    except JSONDecodeError:
+        return JsonResponse(
+            {"error": "Invalid JSON in request body"}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    text = data.get("text", "")
+
+    if not text:
+        return JsonResponse(
+            {"error": "Text field is required"}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    # Enforce max length from settings
+    max_length = settings.SPACY_MAX_TEXT_LENGTH
+    if len(text) > max_length:
+        return JsonResponse(
+            {"error": f"Text exceeds maximum length of {max_length} characters"},
+            status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+        )
+
+    try:
+        detector = get_detector()
+        ranges = detector.detect_passive_sentences(text)
+
+        return JsonResponse(
+            {
+                "ranges": ranges,
+                "count": len(ranges),
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Passive voice detection failed")
+        return JsonResponse(
+            {"error": "Failed to analyze text", "detail": str(e)},
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
