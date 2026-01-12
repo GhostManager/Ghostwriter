@@ -71,7 +71,7 @@ def submit_prompt_to_assistant(prompt: str, config: Optional[OpenAIConfiguration
     try:
         client = OpenAI(api_key=api_key)
         response = client.responses.create(
-            prompt=prompt_id,
+            prompt={"id": prompt_id},
             input=prompt,
         )
     except Exception as exc:  # pragma: no cover - network safety

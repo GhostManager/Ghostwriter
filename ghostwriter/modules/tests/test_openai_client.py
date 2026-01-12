@@ -23,4 +23,4 @@ class OpenAIClientTests(TestCase):
         response = submit_prompt_to_assistant("Prompt", config=config)
         self.assertEqual(response, "First Second")
         mock_openai.assert_called_once_with(api_key="sk-test")
-        client.responses.create.assert_called_once_with(prompt="prompt_123", input="Prompt")
+        client.responses.create.assert_called_once_with(prompt={"id": "prompt_123"}, input="Prompt")
