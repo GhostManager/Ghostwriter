@@ -3502,7 +3502,7 @@ class NexposeDataParserTests(TestCase):
 
     @mock.patch("ghostwriter.rolodex.data_parsers.submit_prompt_to_assistant")
     def test_web_issue_ai_response_generated_for_high_severity(self, mock_prompt):
-        OpenAIConfigurationFactory(enable=True, assistant_id="asst_123", api_key="sk-test")
+        OpenAIConfigurationFactory(enable=True, prompt_id="prompt_123", api_key="sk-test")
         csv_lines = [
             "Host,Risk,Issue,Impact",
             "portal.example.com,High,SQL Injection,This may lead to compromise.",

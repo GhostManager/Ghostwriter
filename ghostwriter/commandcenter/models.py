@@ -398,13 +398,13 @@ class VirusTotalConfiguration(SingletonModel):
 class OpenAIConfiguration(SingletonModel):
     enable = models.BooleanField(
         default=False,
-        help_text="Enable to allow CyberWriter to query the OpenAI Assistants API",
+        help_text="Enable to allow CyberWriter to query the OpenAI Responses API",
     )
-    assistant_id = models.CharField(
+    prompt_id = models.CharField(
         max_length=255,
         default="",
         blank=True,
-        help_text="OpenAI Assistant identifier to process remediation prompts",
+        help_text="OpenAI Prompt identifier to process remediation prompts",
     )
     api_key = encrypt(
         models.CharField(
