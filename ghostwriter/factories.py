@@ -894,7 +894,7 @@ class OpenAIConfigurationFactory(factory.django.DjangoModelFactory):
         model = "commandcenter.OpenAIConfiguration"
 
     enable = Faker("boolean")
-    assistant_id = Faker("bothify", text="asst_########")
+    prompt_id = Faker("bothify", text="prompt_########")
     api_key = Faker("password", length=32)
 
 

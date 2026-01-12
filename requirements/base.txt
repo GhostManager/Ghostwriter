@@ -40,6 +40,7 @@ python-docx==1.1.2
 python-nmap==0.7.1
 python-pptx==1.0.2
 requests==2.32.3
+openai==2.9.0
 django-timezone-field==7.0.0
 pyjwt[crypto]==2.10.1
 psutil==6.0.0

@@ -280,13 +280,13 @@ class OpenAIConfigurationTests(TestCase):
         self.assertEqual(entry.pk, 1)
 
         entry.enable = True
-        entry.assistant_id = "asst_test"
+        entry.prompt_id = "prompt_test"
         entry.api_key = "sk-test"
         entry.save()
         entry.refresh_from_db()
 
         self.assertEqual(entry.enable, True)
-        self.assertEqual(entry.assistant_id, "asst_test")
+        self.assertEqual(entry.prompt_id, "prompt_test")
         self.assertEqual(entry.api_key, "sk-test")
 
         entry.delete()
