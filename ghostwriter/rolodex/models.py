@@ -121,7 +121,7 @@ class Client(models.Model):
         return user.is_privileged
 
     def user_can_view(self, user) -> bool:
-        return self in self.for_user(user)
+        return self.for_user(user).contains(self)
 
     def user_can_edit(self, user) -> bool:
         return self.user_can_view(user)
@@ -368,7 +368,7 @@ class Project(models.Model):
         return user.is_privileged
 
     def user_can_view(self, user) -> bool:
-        return self in self.for_user(user)
+        return self.for_user(user).contains(self)
 
     @classmethod
     def user_viewable(cls, user):
