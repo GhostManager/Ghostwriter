@@ -1206,11 +1206,11 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         client_instance = self.get_object()
-        domain_history = History.objects.select_related("domain").filter(client=client_instance)
-        server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
-        projects = Project.objects.filter(client=client_instance)
+        domain_history = History.objects.select_related("domain", "project", "operator", "activity_type").filter(client=client_instance)
+        server_history = ServerHistory.objects.select_related("server", "project", "activity_type").filter(client=client_instance)
+        projects = Project.objects.filter(client=client_instance).prefetch_related("projectassignment_set", "projectassignment_set__operator").select_related("project_type", "client")
+        client_vps = TransientServer.objects.select_related("project", "activity_type").filter(project__in=projects)
 
-        client_vps = TransientServer.objects.filter(project__in=projects)
         ctx["domains"] = domain_history
         ctx["servers"] = server_history
         ctx["vps"] = client_vps
