@@ -35,7 +35,7 @@ const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
 // Graphql Client
 
-const graphql_engine_hostname: string = env["GRAPHQL_HOST"] || "graphql_engine";
+const graphql_engine_hostname: string = env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
 
 const httpLink = createHttpLink({
     uri: "http://" + graphql_engine_hostname + ":8080/v1/graphql"
