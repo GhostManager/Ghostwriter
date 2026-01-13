@@ -1561,9 +1561,9 @@ def detect_passive_voice(request):
             }
         )
 
-    except (OSError, RuntimeError, ValueError) as e:
+    except (OSError, RuntimeError, ValueError):
         logger.exception("Passive voice detection failed")
         return JsonResponse(
-            {"error": "Failed to analyze text", "detail": str(e)},
+            {"error": "Failed to analyze text"},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
