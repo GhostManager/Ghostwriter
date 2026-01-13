@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed some BloodHound domain queries taking too long to complete and causing a timeout error
   * Added the `?count=false` parameter to domain queries to drop unnecessary calculations
-  * Also, increased the response timeout from 10s to 30s for occasions ther emay be extra latency
+  * Also, increased the response timeout from 10s to 30s for occasions there may be extra latency
 * Fixed an issue with cloud infrastructure descriptions that could cause an error
 
 ## [6.2.0] - 8 January 2026
