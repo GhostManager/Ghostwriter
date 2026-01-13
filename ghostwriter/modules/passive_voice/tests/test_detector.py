@@ -1,8 +1,7 @@
 """Tests for passive voice detector."""
 
 # Django Imports
-from django.conf import settings
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.modules.passive_voice.detector import PassiveVoiceDetector
@@ -17,6 +16,7 @@ class PassiveVoiceDetectorTests(TestCase):
 
     def test_uses_configured_model(self):
         """Test that detector uses model from settings."""
+        # pylint: disable=protected-access
         self.assertIsNotNone(self.detector._nlp)
         # Model name accessible via _nlp.meta
         self.assertIn("en_core_web", self.detector._nlp.meta["name"])

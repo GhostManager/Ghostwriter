@@ -15,7 +15,8 @@ from socket import gaierror
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
-from django.core.exceptions import ValidationError
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
@@ -24,7 +25,6 @@ from django.urls import reverse
 from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView
-from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
@@ -39,6 +39,7 @@ from ghostwriter.api.models import APIKey
 from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
+from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
@@ -1487,9 +1488,6 @@ class ObjectsByTag(HasuraActionView):
 ######################
 
 
-from django.contrib.auth.decorators import login_required
-
-
 @login_required
 def detect_passive_voice(request):
     """
@@ -1525,9 +1523,6 @@ def detect_passive_voice(request):
             "detail": "..."
         }
     """
-    # Import here to avoid circular imports and only load when needed
-    from ghostwriter.modules.passive_voice.detector import get_detector
-
     if request.method != "POST":
         return JsonResponse(
             {"error": "Only POST method is allowed"}, status=HTTPStatus.METHOD_NOT_ALLOWED
@@ -1566,7 +1561,7 @@ def detect_passive_voice(request):
             }
         )
 
-    except Exception as e:
+    except (OSError, RuntimeError, ValueError) as e:
         logger.exception("Passive voice detection failed")
         return JsonResponse(
             {"error": "Failed to analyze text", "detail": str(e)},

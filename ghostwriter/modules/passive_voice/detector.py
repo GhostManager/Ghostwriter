@@ -30,14 +30,15 @@ class PassiveVoiceDetector:
         """Load spaCy model once at initialization using Django settings."""
         try:
             model_name = settings.SPACY_MODEL
-            logger.info(f"Loading spaCy model from settings: {model_name}")
+            logger.info("Loading spaCy model from settings: %s", model_name)
             self._nlp = spacy.load(model_name)
             logger.info("spaCy model loaded successfully")
         except OSError as e:
-            logger.error(f"Failed to load spaCy model '{settings.SPACY_MODEL}': {e}")
+            logger.error("Failed to load spaCy model '%s': %s", settings.SPACY_MODEL, e)
             logger.error(
                 "Run: docker compose -f local.yml run --rm django "
-                f"python -m spacy download {settings.SPACY_MODEL}"
+                "python -m spacy download %s",
+                settings.SPACY_MODEL
             )
             raise
 
@@ -119,7 +120,7 @@ def get_detector() -> PassiveVoiceDetector:
         >>> detector.detect_passive_sentences("The bug was fixed.")
         [(0, 18)]
     """
-    global _detector_instance
+    global _detector_instance  # pylint: disable=global-statement
     if _detector_instance is None:
         _detector_instance = PassiveVoiceDetector()
     return _detector_instance
