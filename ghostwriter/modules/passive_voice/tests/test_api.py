@@ -29,7 +29,8 @@ class PassiveVoiceAPITests(TestCase):
             self.url, {"text": "Test text."}, content_type="application/json"
         )
 
-        self.assertEqual(response.status_code, 403)
+        # @login_required redirects to login page (302) for unauthenticated requests
+        self.assertEqual(response.status_code, 302)
 
     def test_detects_passive_voice(self):
         """Test successful passive voice detection."""
@@ -142,3 +143,13 @@ class PassiveVoiceAPITests(TestCase):
         """Test that only POST method is accepted."""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)  # Method Not Allowed
+
+    def test_handles_invalid_json(self):
+        """Test handling of malformed JSON."""
+        response = self.client.post(
+            self.url, "invalid json", content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn("error", data)
