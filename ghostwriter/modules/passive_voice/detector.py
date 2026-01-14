@@ -31,15 +31,12 @@ class PassiveVoiceDetector:
         try:
             model_name = settings.SPACY_MODEL
             logger.info("Loading spaCy model from settings: %s", model_name)
-            self._nlp = spacy.load(model_name)
+            # Disable unused pipeline components for performance
+            # Only need tagger (POS) and parser (dependencies + sentence segmentation)
+            self._nlp = spacy.load(model_name, disable=["ner", "lemmatizer"])
             logger.info("spaCy model loaded successfully")
         except OSError as e:
-            logger.error("Failed to load spaCy model '%s': %s", settings.SPACY_MODEL, e)
-            logger.error(
-                "Run: docker compose -f local.yml run --rm django "
-                "python -m spacy download %s",
-                settings.SPACY_MODEL
-            )
+            logger.exception("Failed to load spaCy model '%s': %s", settings.SPACY_MODEL, e)
             raise
 
     def detect_passive_sentences(self, text: str) -> List[Tuple[int, int]]:
@@ -100,16 +97,12 @@ class PassiveVoiceDetector:
         return False
 
 
-# Module-level instance getter
-_detector_instance = None
-
-
 def get_detector() -> PassiveVoiceDetector:
     """
-    Get or create the singleton detector instance.
+    Get the singleton detector instance.
 
-    This function provides a module-level interface to the detector,
-    ensuring only one instance exists across the application.
+    The PassiveVoiceDetector class implements singleton pattern via __new__,
+    so calling this function always returns the same instance.
 
     Returns:
         PassiveVoiceDetector: The singleton detector instance
@@ -120,7 +113,4 @@ def get_detector() -> PassiveVoiceDetector:
         >>> detector.detect_passive_sentences("The bug was fixed.")
         [(0, 18)]
     """
-    global _detector_instance  # pylint: disable=global-statement
-    if _detector_instance is None:
-        _detector_instance = PassiveVoiceDetector()
-    return _detector_instance
+    return PassiveVoiceDetector()

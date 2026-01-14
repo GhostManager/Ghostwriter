@@ -439,13 +439,16 @@ ul.collab-focused-users {
 }
 
 // Passive Voice Highlighting
-.passive-voice-highlight {
+mark.passive-voice-highlight {
     background-color: #fff3cd;
     border-bottom: 2px wavy #ff6b6b;
     padding: 2px 0;
+    transition: background-color 0.15s ease;
+    cursor: text;
+}
 
-    &:hover {
-        background-color: #ffe69c;
-    }
+// Hover state applied via JavaScript to all segments in same group
+mark.passive-voice-highlight.passive-voice-hover {
+    background-color: #ffe69c;
 }
 

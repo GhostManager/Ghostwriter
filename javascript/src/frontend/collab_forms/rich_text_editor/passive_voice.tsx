@@ -9,7 +9,8 @@ interface PassiveVoiceButtonProps {
 
 /**
  * Button to scan editor content for passive voice.
- * All detection happens server-side; client just applies highlighting.
+ * All detection happens server-side; client applies visual-only decorations.
+ * Decorations don't affect the document data and won't be saved/exported.
  */
 export default function PassiveVoiceButton({ editor }: PassiveVoiceButtonProps) {
     const [isScanning, setIsScanning] = useState(false);
@@ -23,8 +24,8 @@ export default function PassiveVoiceButton({ editor }: PassiveVoiceButtonProps) 
         setError(null);
         setLastCount(null);
 
-        // Clear existing passive voice marks
-        editor.commands.unsetMark("passiveVoice");
+        // Clear existing passive voice highlights
+        editor.commands.clearPassiveVoice();
 
         // Get plain text - no client-side processing
         const text = editor.getText();
@@ -38,36 +39,10 @@ export default function PassiveVoiceButton({ editor }: PassiveVoiceButtonProps) 
             // Server does all NLP work, returns character indices
             const ranges = await detectPassiveVoice(text);
 
-            if (ranges.length === 0) {
-                setLastCount(0);
-            } else {
-                setLastCount(ranges.length);
+            setLastCount(ranges.length);
 
-                // Apply all marks in a single transaction
-                const { state } = editor;
-                const { tr, schema } = state;
-                const markType = schema.marks.passiveVoice;
-
-                if (markType) {
-                    // TipTap uses 1-based indexing, server uses 0-based
-                    ranges.forEach(({ start, end }) => {
-                        const from = start + 1;
-                        const to = end + 1;
-
-                        // Apply mark directly to transaction
-                        tr.addMark(from, to, markType.create());
-                    });
-
-                    // Dispatch the transaction with all marks applied
-                    editor.view.dispatch(tr);
-
-                    // Clear storedMarks in a separate transaction to ensure it takes effect
-                    const { state: newState } = editor;
-                    const clearTr = newState.tr;
-                    clearTr.removeStoredMark(markType);
-                    editor.view.dispatch(clearTr);
-                }
-            }
+            // Apply decorations (visual-only, not part of document)
+            editor.commands.setPassiveVoiceRanges(ranges);
         } catch (err) {
             console.error("Passive voice detection failed:", err);
             setError(
@@ -82,7 +57,7 @@ export default function PassiveVoiceButton({ editor }: PassiveVoiceButtonProps) 
 
     const handleClear = () => {
         if (!editor) return;
-        editor.commands.unsetMark("passiveVoice");
+        editor.commands.clearPassiveVoice();
         setLastCount(null);
         setError(null);
     };
@@ -96,6 +71,15 @@ export default function PassiveVoiceButton({ editor }: PassiveVoiceButtonProps) 
             >
                 {isScanning ? "Scanning..." : "Check Passive Voice"}
             </MenuItem>
+            {lastCount !== null && lastCount > 0 && (
+                <MenuItem
+                    title="Clear passive voice highlights"
+                    disabled={!editor}
+                    onClick={handleClear}
+                >
+                    Clear Highlights ({lastCount})
+                </MenuItem>
+            )}
             {error && (
                 <MenuItem disabled>
                     <span style={{ color: "#dc3545" }}>Error: {error}</span>

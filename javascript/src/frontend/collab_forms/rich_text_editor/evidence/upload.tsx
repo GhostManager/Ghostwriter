@@ -1,5 +1,6 @@
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { EvidencesContext } from "../../../../tiptap_gw/evidence";
+import { getCsrfToken } from "../../../../services/csrf";
 
 type DjangoFormErrors = Record<string, string[]>;
 
@@ -27,13 +28,10 @@ export default function EvidenceUploadForm(props: {
                 const data = new FormData(formRef.current!);
 
                 (async () => {
-                    const csrf = document.cookie
-                        .split("; ")
-                        .find((row) => row.startsWith("csrftoken="))
-                        ?.split("=")[1];
+                    const csrf = getCsrfToken();
                     const headers = new Headers();
                     headers.append("Accept", "application/json");
-                    headers.append("X-CSRFToken", csrf!);
+                    headers.append("X-CSRFToken", csrf);
                     const res = await fetch(evidences.uploadUrl, {
                         method: "POST",
                         headers,

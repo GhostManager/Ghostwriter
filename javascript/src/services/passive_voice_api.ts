@@ -3,6 +3,8 @@
  * Server does all NLP processing, returns character ranges only.
  */
 
+import { getCsrfToken } from "./csrf";
+
 export interface PassiveVoiceRange {
     start: number;
     end: number;
@@ -41,11 +43,4 @@ export async function detectPassiveVoice(
 
     // Convert server ranges to client format
     return data.ranges.map(([start, end]) => ({ start, end }));
-}
-
-function getCsrfToken(): string {
-    const cookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("csrftoken="));
-    return cookie ? cookie.split("=")[1] : "";
 }
