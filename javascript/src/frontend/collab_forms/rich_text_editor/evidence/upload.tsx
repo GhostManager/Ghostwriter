@@ -29,6 +29,11 @@ export default function EvidenceUploadForm(props: {
 
                 (async () => {
                     const csrf = getCsrfToken();
+                    if (!csrf) {
+                        console.error("CSRF token is missing; aborting evidence upload.");
+                        setState({ form: ["CSRF token not found. Please refresh the page."] });
+                        return;
+                    }
                     const headers = new Headers();
                     headers.append("Accept", "application/json");
                     headers.append("X-CSRFToken", csrf);

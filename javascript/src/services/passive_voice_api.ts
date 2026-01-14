@@ -23,11 +23,17 @@ export interface PassiveVoiceResponse {
 export async function detectPassiveVoice(
     text: string
 ): Promise<PassiveVoiceRange[]> {
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        console.error("CSRF token not found in cookies");
+        throw new Error("CSRF token not found. Please refresh the page.");
+    }
+
     const response = await fetch("/api/v1/passive-voice/detect", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken(),
+            "X-CSRFToken": csrfToken,
         },
         body: JSON.stringify({ text }),
     });
