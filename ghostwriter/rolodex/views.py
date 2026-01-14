@@ -17,9 +17,11 @@ from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
+from django.views import View
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
-from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.db.models import Exists, OuterRef
 
 # 3rd Party Libraries
 from taggit.models import Tag
@@ -1206,10 +1208,31 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         client_instance = self.get_object()
-        domain_history = History.objects.select_related("domain", "project", "operator", "activity_type").filter(client=client_instance)
-        server_history = ServerHistory.objects.select_related("server", "project", "activity_type").filter(client=client_instance)
-        projects = Project.objects.filter(client=client_instance).prefetch_related("projectassignment_set", "projectassignment_set__operator").select_related("project_type", "client")
-        client_vps = TransientServer.objects.select_related("project", "activity_type").filter(project__in=projects)
+        domain_history = (
+            History.objects
+            .filter(client=client_instance)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("project__pk"))))
+            .select_related("domain", "project", "operator", "activity_type")
+        )
+        server_history = (
+            ServerHistory.objects
+            .filter(client=client_instance)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("project__pk"))))
+            .select_related("server", "project", "activity_type", "operator")
+        )
+        projects = (
+            Project.objects
+            .filter(client=client_instance)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("pk"))))
+            .prefetch_related("projectassignment_set", "projectassignment_set__operator")
+            .select_related("project_type", "client")
+        )
+        client_vps = (
+            TransientServer.objects
+            .filter(project__in=projects)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("project__pk"))))
+            .select_related("project", "activity_type")
+        )
 
         ctx["domains"] = domain_history
         ctx["servers"] = server_history
@@ -1564,7 +1587,17 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = get_project_list(user).defer("extra_fields")
+        queryset = (
+            get_project_list(user)
+            .prefetch_related(
+                "tags",
+                "client__tags",
+                "projectassignment_set",
+                "projectassignment_set__operator",
+            )
+            .select_related()
+            .defer("extra_fields")
+        )
         self.autocomplete = queryset
         return queryset
 
