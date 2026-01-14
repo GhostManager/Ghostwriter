@@ -132,7 +132,7 @@ class APIClient:
                 "Content-Type": "application/json",
             },
             data=body,
-            timeout=(3, 10),
+            timeout=(3, 30),
         )
 
         if response.status_code < 200:
@@ -400,7 +400,7 @@ class APIClient:
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
         for domain in available_domains:
-            domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}").json()["data"]
+            domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}?counts=false").json()["data"]
             domain_out = {
                 "name": domain_data["props"]["name"],
                 "domain": domain_data["props"].get("domain"),
