@@ -26,8 +26,7 @@ def get_primary_address(value):
         Individual :model:`shepherd.StaticServer` entry
     """
     primary_address = value.ip_address
-    aux_addresses = AuxServerAddress.objects.filter(static_server=value)
-    for address in aux_addresses:
+    for address in value.auxserveraddress_set.all():
         if address.primary:
             primary_address = address.ip_address
     return primary_address

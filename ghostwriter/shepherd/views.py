@@ -967,7 +967,12 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         search_term = ""
-        servers = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+        servers = (
+            StaticServer.objects
+            .select_related("server_status", "server_provider")
+            .prefetch_related("tags", "auxserveraddress_set")
+            .order_by("ip_address")
+        )
 
         # Build autocomplete list
         for server in servers:
