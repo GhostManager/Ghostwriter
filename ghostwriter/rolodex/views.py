@@ -1587,7 +1587,17 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = get_project_list(user).prefetch_related("tags", "client__tags", "projectassignment_set", "projectassignment_set__operator").select_related().defer("extra_fields")
+        queryset = (
+            get_project_list(user)
+            .prefetch_related(
+                "tags",
+                "client__tags",
+                "projectassignment_set",
+                "projectassignment_set__operator",
+            )
+            .select_related()
+            .defer("extra_fields")
+        )
         self.autocomplete = queryset
         return queryset
 
