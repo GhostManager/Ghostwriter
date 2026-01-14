@@ -21,7 +21,7 @@ from django.views import View
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
-from django.db.models import Exists, OuterRef, Prefetch
+from django.db.models import Exists, OuterRef
 
 # 3rd Party Libraries
 from taggit.models import Tag

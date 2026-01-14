@@ -9,7 +9,6 @@ from django import template
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex.models import ObjectivePriority
-from ghostwriter.shepherd.models import AuxServerAddress
 
 register = template.Library()
 
