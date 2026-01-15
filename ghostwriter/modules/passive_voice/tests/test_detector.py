@@ -19,7 +19,7 @@ class PassiveVoiceDetectorTests(TestCase):
         # pylint: disable=protected-access
         self.assertIsNotNone(self.detector._nlp)
         # Model name accessible via _nlp.meta
-        self.assertIn("en_core_web", self.detector._nlp.meta["name"])
+        self.assertIn("core_web_sm", self.detector._nlp.meta["name"])
 
     def test_detects_simple_passive_sentence(self):
         """Test detection of simple passive voice."""
