@@ -98,7 +98,7 @@
       $(function () {
         let availableClients = [
           {% for entry in autocomplete %}
-            '{{ entry.client.name|escapejs }}{% if entry.client.tags.names %} ({{ entry.client.tags.names|get_tags_list|escapejs }}){% endif %}',
+            '{{ entry.client.name|escapejs }}{% for tag in entry.client.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
           {% endfor %}
         ];
         uniqueClients = Array.from(new Set(availableClients));
@@ -112,7 +112,7 @@
       $(function () {
         let availableCodenames = [
           {% for entry in autocomplete %}
-            '{{ entry.codename|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+            '{{ entry.codename|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
           {% endfor %}
         ];
         $('#id_codename').autocomplete({

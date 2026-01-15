@@ -52,8 +52,11 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         else:
             findings = Finding.objects.all()
 
+        findings = findings.prefetch_related("tags")
+
         self.autocomplete = findings
-        findings = findings.select_related("severity", "finding_type").order_by("severity__weight", "-cvss_score", "finding_type", "title")
+
+        findings = findings.select_related("severity", "finding_type")
 
         search_term = self.request.GET.get("finding", "").strip()
         if search_term:
@@ -64,7 +67,8 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
             )
             findings = findings.filter(
                 Q(title__icontains=search_term) | Q(description__icontains=search_term)
-            ).order_by("severity__weight", "-cvss_score", "finding_type", "title")
+            )
+        findings = findings.order_by("severity__weight", "-cvss_score", "finding_type", "title")
         return findings
 
     def get(self, request, *args, **kwarg):
