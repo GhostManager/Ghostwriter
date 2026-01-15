@@ -154,6 +154,7 @@ services:
       name: ghostwriter_frontend
     environment:
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
 
   collab-server:
     build:
