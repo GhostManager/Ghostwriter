@@ -93,8 +93,8 @@
             </td>
 
             <td class="align-middle text-left">
-              {% for tag in domain.tags.names %}
-                <span class="badge badge-secondary mb-3">{{ tag }}</span>
+              {% for tag in domain.tags.all %}
+                <span class="badge badge-secondary mb-3">{{ tag.name }}</span>
               {% endfor %}
             </td>
 

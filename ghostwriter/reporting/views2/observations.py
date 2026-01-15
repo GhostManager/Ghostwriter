@@ -31,7 +31,7 @@ class ObservationList(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         search_term = ""
-        observations = Observation.objects.all().order_by("title")
+        observations = Observation.objects.all().order_by("title").prefetch_related("tags")
 
         # Build autocomplete list
         for observation in observations:

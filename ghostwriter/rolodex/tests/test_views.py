@@ -14,6 +14,8 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     ClientNoteFactory,
+    DomainFactory,
+    HistoryFactory,
     ObjectiveStatusFactory,
     ProjectFactory,
     ProjectInviteFactory,
@@ -21,7 +23,9 @@ from ghostwriter.factories import (
     ProjectAssignmentFactory,
     ProjectObjectiveFactory,
     ProjectScopeFactory,
+    ServerHistoryFactory,
     StaticServerFactory,
+    TransientServerFactory,
     UserFactory,
 )
 from ghostwriter.rolodex.forms_project import (
@@ -699,10 +703,16 @@ class ClientDetailViewTest(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.invited_user = UserFactory(password=PASSWORD)
-        cls.project_assigned = ProjectFactory(client=cls.client)
-        cls.project_unassigned = ProjectFactory(client=cls.client)
+        cls.project_assigned = ProjectFactory(client=cls.client, codename="ASSIGNED_PROJECT")
+        cls.project_unassigned = ProjectFactory(client=cls.client, codename="SUPER_SECRET_PROJECT_NO_REGULAR_USERS")
         ProjectAssignmentFactory(project=cls.project_assigned, operator=cls.user)
         ClientInviteFactory(client=cls.client, user=cls.invited_user)
+        cls.domain_assigned = HistoryFactory(client=cls.client, project=cls.project_assigned)
+        cls.domain_unassigned = HistoryFactory(client=cls.client, project=cls.project_unassigned)
+        cls.server_assigend = ServerHistoryFactory(client=cls.client, project=cls.project_assigned)
+        cls.server_unassigend = ServerHistoryFactory(client=cls.client, project=cls.project_unassigned)
+        cls.vps_assigned = TransientServerFactory(project=cls.project_assigned)
+        cls.vps_unassigned = TransientServerFactory(project=cls.project_unassigned)
         cls.uri = reverse("rolodex:client_detail", kwargs={"pk": cls.client.pk})
 
     def setUp(self):
@@ -713,22 +723,25 @@ class ClientDetailViewTest(TestCase):
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
         self.assertTrue(self.client_invited.login(username=self.invited_user.username, password=PASSWORD))
 
-    # This test is valid, but we are currently passing all projects to the template
-    # Projects the user cannot access are filtered in the template
-    # def test_projects_assigned_only(self):
-    #     response = self.client.get(self.uri)
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(set(response.context["projects"]), {self.project_assigned})
+    def test_projects_assigned_only(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.project_assigned.codename)
+        self.assertNotContains(response, self.project_unassigned.codename)
 
     def test_projects_staff_all(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(set(response.context["projects"]), {self.project_assigned, self.project_unassigned})
+        self.assertContains(response, self.project_assigned.codename)
+        self.assertContains(response, self.project_unassigned.codename)
 
     def test_projects_invited_all(self):
         response = self.client_invited.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(set(response.context["projects"]), {self.project_assigned, self.project_unassigned})
+        self.assertContains(response, self.project_assigned.codename)
+        self.assertContains(response, self.project_unassigned.codename)
 
 
 class ProjectListViewTests(TestCase):
@@ -811,11 +824,11 @@ class ProjectListViewTests(TestCase):
         """Test that execution window cells have data-text attribute for locale-independent sorting."""
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        
+
         # Check that the response contains data-text attribute with ISO date format
         content = response.content.decode('utf-8')
         self.assertIn('data-text="', content, "data-text attribute should be present in the template")
-        
+
         # Verify each project in the queryset has its start_date in the data-text attribute
         for project in response.context["filter"].qs:
             expected_sort_value = project.start_date.strftime("%Y-%m-%d")

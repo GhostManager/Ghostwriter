@@ -651,7 +651,7 @@
       let availableFindingTitles = [
         {% for entry in finding_autocomplete %}
           {
-            value: '{{  entry.severity }} : {{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+            value: '{{  entry.severity }} : {{ entry.title|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
             id: '{{ entry.id }}',
             url: '{% url 'reporting:ajax_assign_finding' entry.id %}',
             csrftoken: '{{ csrf_token }}'
@@ -706,7 +706,7 @@
       let availableObservationTitles = [
         {% for entry in observation_autocomplete %}
           {
-            value: '{{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+            value: '{{ entry.title|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
             id: '{{ entry.id }}',
             url: '{% url 'reporting:ajax_assign_observation' entry.id %}',
             csrftoken: '{{ csrf_token }}'
