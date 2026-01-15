@@ -1,5 +1,8 @@
 """Tests for passive voice API endpoint."""
 
+# Standard Libraries
+from unittest.mock import patch
+
 # Django Imports
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -152,3 +155,23 @@ class PassiveVoiceAPITests(TestCase):
         self.assertEqual(response.status_code, 400)
         data = response.json()
         self.assertIn("error", data)
+
+    @patch("ghostwriter.api.views.get_detector")
+    def test_handles_detector_failure(self, mock_get_detector):
+        """Test handling of detector failures."""
+        # Mock detector to raise an exception during processing
+        mock_detector = mock_get_detector.return_value
+        mock_detector.detect_passive_sentences.side_effect = RuntimeError(
+            "spaCy processing error"
+        )
+
+        response = self.client.post(
+            self.url,
+            {"text": "The report was written."},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 500)
+        data = response.json()
+        self.assertIn("error", data)
+        self.assertEqual(data["error"], "Failed to analyze text")
