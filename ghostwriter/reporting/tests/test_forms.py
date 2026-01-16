@@ -6,12 +6,9 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    EvidenceOnFindingFactory,
-    EvidenceOnReportFactory,
-    FindingFactory,
+    EvidenceFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
-    ObservationFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
@@ -138,38 +135,15 @@ class ReportObservationLinkUpdateFormTests(TestCase):
         self.assertTrue(self.blank_observation.added_as_blank)
 
 
-class BaseEvidenceFormTests:
+class EvidenceFormTests(TestCase):
     """Collection of tests for :form:`reporting.EvidenceForm`."""
 
     @classmethod
-    def factory(cls):
-        raise NotImplementedError()
-
-    @classmethod
-    def querySet(cls):
-        raise NotImplementedError()
-
-    @classmethod
     def setUpTestData(cls):
-        cls.Factory = cls.factory()
-        cls.Evidence = cls.Factory._meta.model
-        cls.evidence = cls.Factory()
+        cls.Evidence = EvidenceFactory._meta.model
+        cls.evidence = EvidenceFactory(friendly_name="Test Evidence")
         cls.evidence_dict = cls.evidence.__dict__
-        cls.evidence_queryset = cls.querySet(cls.evidence)
-
-        cls.other_finding = ReportFindingLinkFactory()
-        cls.other_finding.report = cls.evidence.associated_report
-        cls.other_finding.save()
-
-        cls.other_finding_evidence = EvidenceOnFindingFactory()
-        cls.other_finding_evidence.friendly_name = "EvidenceOnFinding"
-        cls.other_finding_evidence.finding = cls.other_finding
-        cls.other_finding_evidence.save()
-
-        cls.other_report_finding = EvidenceOnReportFactory()
-        cls.other_report_finding.friendly_name = "EvidenceOnReport"
-        cls.other_report_finding.report = cls.evidence.associated_report
-        cls.other_report_finding.save()
+        cls.evidence_queryset = cls.evidence.report.evidence_set
 
     def setUp(self):
         pass
@@ -226,24 +200,6 @@ class BaseEvidenceFormTests:
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "duplicate")
 
-    def test_duplicate_friendly_name_on_diff_finding(self):
-        new_evidence = self.evidence_dict.copy()
-        new_evidence["friendly_name"] = "EvidenceOnFinding"
-
-        form = self.form_data(**new_evidence)
-        errors = form["friendly_name"].errors.as_data()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "duplicate")
-
-    def test_duplicate_friendly_name_on_report(self):
-        new_evidence = self.evidence_dict.copy()
-        new_evidence["friendly_name"] = "EvidenceOnReport"
-
-        form = self.form_data(**new_evidence)
-        errors = form["friendly_name"].errors.as_data()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].code, "duplicate")
-
     def test_modal_argument(self):
         modal_evidence = self.evidence_dict.copy()
         modal_evidence["friendly_name"] = "Modal Evidence"
@@ -257,27 +213,6 @@ class BaseEvidenceFormTests:
 
         form = self.form_data(**evidence, evidence_queryset=None)
         self.assertTrue(form.is_valid())
-
-
-class EvidenceFormForFindingTests(BaseEvidenceFormTests, TestCase):
-    @classmethod
-    def factory(cls):
-        return EvidenceOnFindingFactory
-
-    @classmethod
-    def querySet(cls, evidence):
-        return evidence.finding.report.all_evidences()
-
-
-class EvidenceFormForReportTests(BaseEvidenceFormTests, TestCase):
-    @classmethod
-    def factory(cls):
-        return EvidenceOnReportFactory
-
-    @classmethod
-    def querySet(cls, evidence):
-        return evidence.report.all_evidences()
-
 
 class FindingNoteFormTests(TestCase):
     """Collection of tests for :form:`reporting.FindingNoteForm`."""

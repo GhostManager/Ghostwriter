@@ -148,7 +148,6 @@ type Mutation {
     description: String
     tags: String
     report: Int
-    finding: Int
   ): UploadEvidenceResult!
 }
 
