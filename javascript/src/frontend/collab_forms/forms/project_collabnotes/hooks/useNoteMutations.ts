@@ -134,7 +134,8 @@ export function useNoteMutations() {
             const data = await graphqlMutate(query, variables);
             const maxPos =
                 data.projectCollabNote_aggregate.aggregate.max.position;
-            return maxPos !== null ? maxPos + 1 : 0;
+            // Use 1000-gap to allow room for reordering between items
+            return maxPos !== null ? maxPos + 1000 : 0;
         },
         []
     );

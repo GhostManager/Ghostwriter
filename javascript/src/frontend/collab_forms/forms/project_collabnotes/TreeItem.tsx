@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NoteTreeNode } from "./types";
+import { useState, forwardRef } from "react";
+import { NoteTreeNode, DropPosition } from "./types";
 
 interface TreeItemProps {
     item: NoteTreeNode;
@@ -9,6 +9,12 @@ interface TreeItemProps {
     onDelete: (id: number) => void;
     onRename: (id: number, title: string) => void;
     onCreateChild: (parentId: number, type: "note" | "folder") => void;
+    // DnD props
+    isDragging?: boolean;
+    dropPosition?: DropPosition | null;
+    dragHandleProps?: Record<string, unknown>;
+    dragAttributes?: Record<string, unknown>;
+    renderChildren?: (children: NoteTreeNode[], depth: number) => React.ReactNode;
 }
 
 export default function TreeItem({
@@ -19,6 +25,11 @@ export default function TreeItem({
     onDelete,
     onRename,
     onCreateChild,
+    isDragging = false,
+    dropPosition = null,
+    dragHandleProps,
+    dragAttributes,
+    renderChildren,
 }: TreeItemProps) {
     const [expanded, setExpanded] = useState(true);
     const [isRenaming, setIsRenaming] = useState(false);
@@ -83,18 +94,27 @@ export default function TreeItem({
         setExpanded(true);
     };
 
+    // Build class names for DnD visual states
+    const dropClass = dropPosition
+        ? `tree-item-drop-${dropPosition}`
+        : "";
+
     return (
-        <div className="tree-item-container">
+        <div
+            className={`tree-item-container ${dropClass}`}
+            {...dragAttributes}
+        >
             <div
                 className={`tree-item d-flex align-items-center py-1 px-2 ${
                     isSelected ? "bg-primary text-white" : ""
-                }`}
+                } ${isDragging ? "tree-item-dragging" : ""}`}
                 style={{
                     paddingLeft: `${depth * 16 + 8}px`,
-                    cursor: "pointer",
+                    cursor: isDragging ? "grabbing" : "grab",
                     borderRadius: "4px",
                 }}
                 onClick={handleClick}
+                {...dragHandleProps}
             >
                 {/* Expand/collapse icon for folders */}
                 <span
@@ -186,18 +206,20 @@ export default function TreeItem({
             {/* Children */}
             {isFolder && expanded && item.children.length > 0 && (
                 <div className="tree-children">
-                    {item.children.map((child) => (
-                        <TreeItem
-                            key={child.id}
-                            item={child}
-                            depth={depth + 1}
-                            selectedId={selectedId}
-                            onSelect={onSelect}
-                            onDelete={onDelete}
-                            onRename={onRename}
-                            onCreateChild={onCreateChild}
-                        />
-                    ))}
+                    {renderChildren
+                        ? renderChildren(item.children, depth + 1)
+                        : item.children.map((child) => (
+                              <TreeItem
+                                  key={child.id}
+                                  item={child}
+                                  depth={depth + 1}
+                                  selectedId={selectedId}
+                                  onSelect={onSelect}
+                                  onDelete={onDelete}
+                                  onRename={onRename}
+                                  onCreateChild={onCreateChild}
+                              />
+                          ))}
                 </div>
             )}
         </div>

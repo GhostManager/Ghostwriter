@@ -14,3 +14,11 @@ export interface FlatNote {
     parentId: number | null;
     position: number;
 }
+
+export type DropPosition = "before" | "after" | "inside";
+
+export interface DragState {
+    activeId: number | null;
+    overId: number | null;
+    dropPosition: DropPosition | null;
+}

@@ -1,8 +1,25 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import {
+    DndContext,
+    DragOverlay,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useNoteTree } from "./hooks/useNoteTree";
 import { useNoteMutations } from "./hooks/useNoteMutations";
+import { useTreeDnd } from "./hooks/useTreeDnd";
+import SortableTreeItem from "./SortableTreeItem";
 import TreeItem from "./TreeItem";
 import CreateModal from "./CreateModal";
+import "./tree.css";
 
 interface NoteTreeViewProps {
     projectId: number;
@@ -15,13 +32,52 @@ export default function NoteTreeView({
     selectedId,
     onSelect,
 }: NoteTreeViewProps) {
-    const { tree, loading, error, refetch } = useNoteTree(projectId);
-    const { createNote, createFolder, deleteNote, renameNote } =
+    const { tree, flatNodes, loading, error, refetch } = useNoteTree(projectId);
+    const { createNote, createFolder, deleteNote, renameNote, moveNote } =
         useNoteMutations();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createType, setCreateType] = useState<"note" | "folder">("note");
     const [createParentId, setCreateParentId] = useState<number | null>(null);
+
+    // DnD setup
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Prevent accidental drags
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const {
+        dragState,
+        handleDragStart,
+        handleDragOver,
+        handleDragEnd,
+        handleDragCancel,
+    } = useTreeDnd({ flatNodes, moveNote, refetch });
+
+    // Get all item IDs for SortableContext (flat list of all IDs)
+    const allItemIds = useMemo(() => flatNodes.map((n) => n.id), [flatNodes]);
+
+    // Find the currently dragged item for the drag overlay
+    const activeItem = useMemo(() => {
+        if (!dragState.activeId) return null;
+        const findItem = (nodes: typeof tree): typeof tree[0] | null => {
+            for (const node of nodes) {
+                if (node.id === dragState.activeId) return node;
+                if (node.children.length > 0) {
+                    const found = findItem(node.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return findItem(tree);
+    }, [dragState.activeId, tree]);
 
     const handleCreate = async (title: string) => {
         if (createType === "folder") {
@@ -106,26 +162,58 @@ export default function NoteTreeView({
                 </button>
             </div>
 
-            {/* Tree Items */}
-            <div className="tree-items p-2" style={{ overflowY: "auto" }}>
-                {tree.map((item) => (
-                    <TreeItem
-                        key={item.id}
-                        item={item}
-                        depth={0}
-                        selectedId={selectedId}
-                        onSelect={onSelect}
-                        onDelete={handleDelete}
-                        onRename={handleRename}
-                        onCreateChild={handleCreateChild}
-                    />
-                ))}
-                {tree.length === 0 && (
-                    <div className="text-muted small p-2">
-                        No notes yet. Create one using the buttons above.
+            {/* Tree Items with DnD */}
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+            >
+                <SortableContext
+                    items={allItemIds}
+                    strategy={verticalListSortingStrategy}
+                >
+                    <div className="tree-items p-2" style={{ overflowY: "auto" }}>
+                        {tree.map((item) => (
+                            <SortableTreeItem
+                                key={item.id}
+                                item={item}
+                                depth={0}
+                                selectedId={selectedId}
+                                onSelect={onSelect}
+                                onDelete={handleDelete}
+                                onRename={handleRename}
+                                onCreateChild={handleCreateChild}
+                                dragState={dragState}
+                            />
+                        ))}
+                        {tree.length === 0 && (
+                            <div className="text-muted small p-2">
+                                No notes yet. Create one using the buttons above.
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+                </SortableContext>
+
+                {/* Drag Overlay - shows preview of dragged item */}
+                <DragOverlay>
+                    {activeItem && (
+                        <div className="tree-drag-overlay">
+                            <TreeItem
+                                item={activeItem}
+                                depth={0}
+                                selectedId={null}
+                                onSelect={() => {}}
+                                onDelete={() => {}}
+                                onRename={() => {}}
+                                onCreateChild={() => {}}
+                            />
+                        </div>
+                    )}
+                </DragOverlay>
+            </DndContext>
 
             {/* Create Modal */}
             <CreateModal
