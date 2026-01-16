@@ -105,11 +105,12 @@ export default function TreeItem({
             {...dragAttributes}
         >
             <div
-                className={`tree-item d-flex align-items-center py-1 px-2 ${
+                className={`tree-item d-flex align-items-center py-1 ${
                     isSelected ? "bg-primary text-white" : ""
                 } ${isDragging ? "tree-item-dragging" : ""}`}
                 style={{
-                    paddingLeft: `${depth * 16 + 8}px`,
+                    paddingLeft: `${depth * 20 + 8}px`,
+                    paddingRight: "8px",
                     cursor: isDragging ? "grabbing" : "grab",
                     borderRadius: "4px",
                 }}
