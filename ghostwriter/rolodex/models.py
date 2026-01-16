@@ -747,6 +747,96 @@ class ProjectNote(models.Model):
         return f"{self.project}: {self.timestamp} - {self.note}"
 
 
+class ProjectCollabNoteType(models.TextChoices):
+    """Choices for the type of collaborative note node."""
+
+    FOLDER = "folder", "Folder"
+    NOTE = "note", "Note"
+
+
+class ProjectCollabNote(models.Model):
+    """
+    Stores hierarchical collaborative notes for a project.
+
+    Folders are containers only; notes are leaf nodes with rich text content.
+    Related to :model:`rolodex.Project`.
+    """
+
+    # Parent relationships
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="collab_notes",
+        help_text="The project this note belongs to",
+    )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="children",
+        help_text="Parent folder (null for root-level items)",
+    )
+
+    # Node properties
+    title = models.CharField(
+        "Title",
+        max_length=255,
+        help_text="Title of the note or folder",
+    )
+    node_type = models.CharField(
+        "Type",
+        max_length=10,
+        choices=ProjectCollabNoteType.choices,
+        default=ProjectCollabNoteType.NOTE,
+        help_text="Whether this is a folder or a note",
+    )
+    content = models.TextField(
+        "Content",
+        default="",
+        blank=True,
+        help_text="Rich text content (for notes only, empty for folders)",
+    )
+
+    # Ordering
+    position = models.PositiveIntegerField(
+        "Position",
+        default=0,
+        help_text="Order within parent (lower values first)",
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "title"]
+        verbose_name = "Project collaborative note"
+        verbose_name_plural = "Project collaborative notes"
+        constraints = [
+            # Ensure folders have no content
+            models.CheckConstraint(
+                check=Q(node_type="note") | Q(content=""),
+                name="folder_has_no_content",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.node_type})"
+
+    def get_absolute_url(self):
+        return reverse("rolodex:project_detail", args=[str(self.project.id)])
+
+    def user_can_view(self, user) -> bool:
+        return self.project.user_can_view(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.project.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.project.user_can_delete(user)
+
+
 class ProjectScope(models.Model):
     """Stores an individual scope list, related to an individual :model:`rolodex.Project`."""
 

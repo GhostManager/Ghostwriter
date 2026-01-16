@@ -1,0 +1,205 @@
+import { useState } from "react";
+import { NoteTreeNode } from "./types";
+
+interface TreeItemProps {
+    item: NoteTreeNode;
+    depth: number;
+    selectedId: number | null;
+    onSelect: (id: number | null) => void;
+    onDelete: (id: number) => void;
+    onRename: (id: number, title: string) => void;
+    onCreateChild: (parentId: number, type: "note" | "folder") => void;
+}
+
+export default function TreeItem({
+    item,
+    depth,
+    selectedId,
+    onSelect,
+    onDelete,
+    onRename,
+    onCreateChild,
+}: TreeItemProps) {
+    const [expanded, setExpanded] = useState(true);
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [renameValue, setRenameValue] = useState(item.title);
+
+    const isFolder = item.nodeType === "folder";
+    const isSelected = selectedId === item.id;
+    const hasChildren = item.children.length > 0;
+
+    const handleClick = () => {
+        if (isFolder) {
+            setExpanded(!expanded);
+        } else {
+            onSelect(item.id);
+        }
+    };
+
+    const handleRenameSubmit = () => {
+        if (renameValue.trim() && renameValue !== item.title) {
+            onRename(item.id, renameValue.trim());
+        }
+        setIsRenaming(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleRenameSubmit();
+        } else if (e.key === "Escape") {
+            setRenameValue(item.title);
+            setIsRenaming(false);
+        }
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (
+            confirm(
+                isFolder
+                    ? `Delete folder "${item.title}" and all its contents?`
+                    : `Delete note "${item.title}"?`
+            )
+        ) {
+            onDelete(item.id);
+        }
+    };
+
+    const handleRenameClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setRenameValue(item.title);
+        setIsRenaming(true);
+    };
+
+    const handleAddNote = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onCreateChild(item.id, "note");
+        setExpanded(true);
+    };
+
+    const handleAddFolder = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onCreateChild(item.id, "folder");
+        setExpanded(true);
+    };
+
+    return (
+        <div className="tree-item-container">
+            <div
+                className={`tree-item d-flex align-items-center py-1 px-2 ${
+                    isSelected ? "bg-primary text-white" : ""
+                }`}
+                style={{
+                    paddingLeft: `${depth * 16 + 8}px`,
+                    cursor: "pointer",
+                    borderRadius: "4px",
+                }}
+                onClick={handleClick}
+            >
+                {/* Expand/collapse icon for folders */}
+                <span
+                    className="me-1"
+                    style={{ width: "16px", textAlign: "center" }}
+                >
+                    {isFolder ? (
+                        hasChildren ? (
+                            expanded ? (
+                                <i className="fas fa-chevron-down fa-xs"></i>
+                            ) : (
+                                <i className="fas fa-chevron-right fa-xs"></i>
+                            )
+                        ) : null
+                    ) : null}
+                </span>
+
+                {/* Icon */}
+                <span className="me-2">
+                    {isFolder ? (
+                        <i
+                            className={`fas ${
+                                expanded ? "fa-folder-open" : "fa-folder"
+                            }`}
+                        ></i>
+                    ) : (
+                        <i className="fas fa-file-alt"></i>
+                    )}
+                </span>
+
+                {/* Title */}
+                {isRenaming ? (
+                    <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onBlur={handleRenameSubmit}
+                        onKeyDown={handleKeyDown}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                        style={{ maxWidth: "150px" }}
+                    />
+                ) : (
+                    <span className="flex-grow-1 text-truncate">
+                        {item.title}
+                    </span>
+                )}
+
+                {/* Actions */}
+                {!isRenaming && (
+                    <span className="tree-item-actions ms-auto">
+                        {isFolder && (
+                            <>
+                                <button
+                                    className="btn btn-link btn-sm p-0 me-1"
+                                    onClick={handleAddNote}
+                                    title="Add note"
+                                >
+                                    <i className="fas fa-plus fa-xs"></i>
+                                </button>
+                                <button
+                                    className="btn btn-link btn-sm p-0 me-1"
+                                    onClick={handleAddFolder}
+                                    title="Add subfolder"
+                                >
+                                    <i className="fas fa-folder-plus fa-xs"></i>
+                                </button>
+                            </>
+                        )}
+                        <button
+                            className="btn btn-link btn-sm p-0 me-1"
+                            onClick={handleRenameClick}
+                            title="Rename"
+                        >
+                            <i className="fas fa-edit fa-xs"></i>
+                        </button>
+                        <button
+                            className="btn btn-link btn-sm p-0 text-danger"
+                            onClick={handleDeleteClick}
+                            title="Delete"
+                        >
+                            <i className="fas fa-trash fa-xs"></i>
+                        </button>
+                    </span>
+                )}
+            </div>
+
+            {/* Children */}
+            {isFolder && expanded && item.children.length > 0 && (
+                <div className="tree-children">
+                    {item.children.map((child) => (
+                        <TreeItem
+                            key={child.id}
+                            item={child}
+                            depth={depth + 1}
+                            selectedId={selectedId}
+                            onSelect={onSelect}
+                            onDelete={onDelete}
+                            onRename={onRename}
+                            onCreateChild={onCreateChild}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}

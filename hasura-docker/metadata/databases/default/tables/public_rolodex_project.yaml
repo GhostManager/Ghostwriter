@@ -156,6 +156,13 @@ array_relationships:
         table:
           name: rolodex_whitecard
           schema: public
+  - name: collabNotes
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          name: rolodex_projectcollabnote
+          schema: public
 insert_permissions:
   - role: manager
     permission:

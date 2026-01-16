@@ -21,6 +21,7 @@ import FindingHandler from "./handlers/finding";
 import ReportFindingLinkHandler from "./handlers/report_finding_link";
 import ReportHandler from "./handlers/report";
 import ProjectHandler from "./handlers/project";
+import ProjectCollabNoteItemHandler from "./handlers/project_collab_note";
 
 // Extend this with your model handlers. See how-to-collab.md.
 const HANDLERS_ARR: [string, ModelHandler<any>][] = [
@@ -30,6 +31,7 @@ const HANDLERS_ARR: [string, ModelHandler<any>][] = [
     ["report_finding_link", ReportFindingLinkHandler],
     ["report", ReportHandler],
     ["project", ProjectHandler],
+    ["project_collab_note", ProjectCollabNoteItemHandler],
 ];
 const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
