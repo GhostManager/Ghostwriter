@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+      args:
+        - SPACY_MODEL=${SPACY_MODEL:-en_core_web_sm}
     image: ghostwriter_local_django
     depends_on:
       postgres:

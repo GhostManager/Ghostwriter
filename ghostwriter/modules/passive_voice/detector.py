@@ -3,6 +3,7 @@
 # Standard Libraries
 import logging
 import threading
+import time
 from typing import List, Tuple
 
 # 3rd Party Libraries
@@ -43,7 +44,10 @@ class PassiveVoiceDetector:
 
             try:
                 model_name = settings.SPACY_MODEL
-                logger.info("Loading spaCy model from settings: %s", model_name)
+                logger.info("Loading spaCy model: %s", model_name)
+
+                start_time = time.perf_counter()
+
                 # Optimize: disable unused components for 30-40% speed improvement
                 # Only need: tagger (POS tags), parser (dependencies + sentences)
                 # Disable: ner (named entities), lemmatizer, textcat, etc.
@@ -57,15 +61,22 @@ class PassiveVoiceDetector:
                 if self._nlp.has_pipe("attribute_ruler"):
                     self._nlp.remove_pipe("attribute_ruler")
 
-                # 2. Disable unnecessary token attributes for faster processing
+                # 2. Intern strings for faster lookups
                 # This reduces memory usage and improves cache locality
                 self._nlp.vocab.strings.add("auxpass")
                 self._nlp.vocab.strings.add("VBN")
 
+                load_time = (time.perf_counter() - start_time) * 1000
+                logger.info("spaCy model '%s' loaded in %.2fms with optimizations", model_name, load_time)
+
                 self._initialized = True
-                logger.info("spaCy model loaded successfully with optimizations")
             except OSError as e:
-                logger.exception("Failed to load spaCy model '%s': %s", settings.SPACY_MODEL, e)
+                logger.exception(
+                    "Failed to load spaCy model '%s'. "
+                    "Ensure the model is installed: python -m spacy download %s",
+                    settings.SPACY_MODEL,
+                    settings.SPACY_MODEL
+                )
                 raise
 
     def detect_passive_sentences(self, text: str) -> List[Tuple[int, int]]:

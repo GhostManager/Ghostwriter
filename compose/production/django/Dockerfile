@@ -41,8 +41,11 @@ RUN \
   pip install --find-links=/wheels -r /requirements/production.txt
 
 # Download spaCy model for passive voice detection
+# Default to English, can be overridden via SPACY_MODEL build arg
+# Available models: https://spacy.io/models
+ARG SPACY_MODEL=en_core_web_sm
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m spacy download en_core_web_sm
+    python -m spacy download ${SPACY_MODEL}
 
 RUN addgroup -S django && adduser -S -G django django
 
