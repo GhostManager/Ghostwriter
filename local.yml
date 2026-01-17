@@ -156,6 +156,7 @@ services:
       name: ghostwriter_frontend
     environment:
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
 
   collab-server:
     build:
@@ -175,6 +176,7 @@ services:
     environment:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
     ports:
       - "8001:8000" # HTTP. Also reverse-proxied through nginx
       - "9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
