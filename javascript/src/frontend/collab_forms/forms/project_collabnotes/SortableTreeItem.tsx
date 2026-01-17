@@ -1,5 +1,4 @@
 import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import TreeItem from "./TreeItem";
 import { NoteTreeNode, DropPosition, DragState } from "./types";
 
@@ -28,14 +27,13 @@ export default function SortableTreeItem({
         attributes,
         listeners,
         setNodeRef,
-        transform,
-        transition,
         isDragging,
     } = useSortable({ id: item.id });
 
+    // For tree structures with DragOverlay, don't apply transforms
+    // The DragOverlay handles the visual preview; items stay in place
     const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
+        opacity: isDragging ? 0 : 1,
     };
 
     // Determine if this item is the current drop target

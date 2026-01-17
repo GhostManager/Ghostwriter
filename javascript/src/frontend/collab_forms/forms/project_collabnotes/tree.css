@@ -1,8 +1,8 @@
 /* Drag and drop styles for note tree */
 
-/* Item being dragged */
+/* Item being dragged - hidden since DragOverlay shows the preview */
 .tree-item-dragging {
-    opacity: 0.5;
+    visibility: hidden;
 }
 
 /* Drop position indicators */
