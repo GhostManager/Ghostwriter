@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/django/Dockerfile
+      args:
+        - SPACY_MODEL=${SPACY_MODEL:-en_core_web_sm}
     image: ghostwriter_production_django
     restart: unless-stopped
     depends_on:

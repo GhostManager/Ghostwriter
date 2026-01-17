@@ -43,6 +43,7 @@ import ColorButton from "./color";
 import { TableCaptionBookmarkButton, TableCellBackgroundColor } from "./table";
 import CaptionButton from "./caption";
 import FootnoteButton from "./footnote";
+import PassiveVoiceButton from "./passive_voice";
 
 // For debugging
 //(window as any).tiptapSchema = getSchema(EXTENSIONS);
@@ -477,6 +478,7 @@ export function Toolbar(props: {
                     <MenuDivider />
                     <CaptionButton editor={editor} />
                     <FootnoteButton editor={editor} />
+                    <PassiveVoiceButton editor={editor} />
                     <FormatButton
                         menuItem
                         editor={editor}
