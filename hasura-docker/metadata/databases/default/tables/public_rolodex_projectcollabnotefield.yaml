@@ -1,0 +1,177 @@
+table:
+  name: rolodex_projectcollabnotefield
+  schema: public
+configuration:
+  column_config:
+    note_id:
+      custom_name: noteId
+    field_type:
+      custom_name: fieldType
+    image_width:
+      custom_name: imageWidth
+    image_height:
+      custom_name: imageHeight
+    created_at:
+      custom_name: createdAt
+    updated_at:
+      custom_name: updatedAt
+  custom_column_names:
+    note_id: noteId
+    field_type: fieldType
+    image_width: imageWidth
+    image_height: imageHeight
+    created_at: createdAt
+    updated_at: updatedAt
+  custom_name: projectCollabNoteField
+  custom_root_fields: {}
+object_relationships:
+  - name: note
+    using:
+      foreign_key_constraint_on: note_id
+insert_permissions:
+  - role: admin
+    permission:
+      check: {}
+      columns:
+        - note_id
+        - field_type
+        - content
+        - image
+        - position
+  - role: manager
+    permission:
+      check: {}
+      columns:
+        - note_id
+        - field_type
+        - content
+        - image
+        - position
+  - role: user
+    permission:
+      check:
+        note:
+          project:
+            _or:
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+      columns:
+        - note_id
+        - field_type
+        - content
+        - image
+        - position
+select_permissions:
+  - role: admin
+    permission:
+      columns: '*'
+      filter: {}
+      allow_aggregations: true
+  - role: manager
+    permission:
+      columns: '*'
+      filter: {}
+      allow_aggregations: true
+  - role: user
+    permission:
+      columns: '*'
+      filter:
+        note:
+          project:
+            _or:
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: admin
+    permission:
+      columns:
+        - field_type
+        - content
+        - image
+        - position
+      filter: {}
+      check: {}
+  - role: manager
+    permission:
+      columns:
+        - field_type
+        - content
+        - image
+        - position
+      filter: {}
+      check: {}
+  - role: user
+    permission:
+      columns:
+        - field_type
+        - content
+        - image
+        - position
+      filter:
+        note:
+          project:
+            _or:
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+      check:
+        note:
+          project:
+            _or:
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+delete_permissions:
+  - role: admin
+    permission:
+      filter: {}
+  - role: manager
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter:
+        note:
+          project:
+            _or:
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id

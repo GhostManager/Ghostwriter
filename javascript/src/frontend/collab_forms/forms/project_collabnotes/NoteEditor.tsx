@@ -1,8 +1,29 @@
+import { useEffect, useState, useCallback } from "react";
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import * as Y from "yjs";
 import {
     ConnectionStatus,
     usePageConnection,
 } from "../../connection";
-import RichTextEditor from "../../rich_text_editor";
+import NoteFieldEditor from "./NoteFieldEditor";
+import AddFieldToolbar from "./AddFieldToolbar";
+import { useFieldMutations } from "./hooks/useFieldMutations";
+import { useImageUpload } from "./hooks/useImageUpload";
+import type { NoteField } from "./types";
 
 interface NoteEditorProps {
     noteId: number;
@@ -14,16 +35,243 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
         id: noteId.toString(),
     });
 
+    const [fields, setFields] = useState<NoteField[]>([]);
+    const { createRichTextField, deleteField, reorderFields } = useFieldMutations();
+    const { uploading, error, uploadImage, handlePaste } = useImageUpload();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Require 8px movement before drag starts
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // Sync fields from Yjs document meta
+    useEffect(() => {
+        if (!connected) return;
+
+        const updateFields = () => {
+            const meta = provider.document.getMap("meta");
+            const fieldsArray = meta.get("fields");
+            if (fieldsArray) {
+                const fieldsList: NoteField[] = [];
+                for (let i = 0; i < fieldsArray.length; i++) {
+                    fieldsList.push(fieldsArray.get(i));
+                }
+                setFields(fieldsList);
+            }
+        };
+
+        // Initial update
+        updateFields();
+
+        // Listen for changes
+        const meta = provider.document.getMap("meta");
+        const observer = () => updateFields();
+        meta.observe(observer);
+
+        return () => {
+            meta.unobserve(observer);
+        };
+    }, [provider, connected]);
+
+    // Handle clipboard paste for images
+    useEffect(() => {
+        const handlePasteEvent = async (event: ClipboardEvent) => {
+            const result = await handlePaste(noteId, event);
+            if (result) {
+                // Field will be created server-side and synced via Yjs
+                console.log("Image uploaded:", result);
+            }
+        };
+
+        document.addEventListener("paste", handlePasteEvent);
+        return () => {
+            document.removeEventListener("paste", handlePasteEvent);
+        };
+    }, [noteId, handlePaste]);
+
+    // Helper to sync field additions to Yjs document
+    const addFieldToYjsDoc = useCallback(
+        (fieldId: string, fieldType: string, position: number, image: string | null = null) => {
+            if (!connected) return;
+            const meta = provider.document.getMap("meta");
+            const existingFields = meta.get("fields") as Y.Array<NoteField> | undefined;
+
+            const newField: NoteField = {
+                id: fieldId,
+                fieldType,
+                image,
+                position,
+            };
+
+            if (existingFields) {
+                existingFields.push([newField]);
+            } else {
+                const newFieldsArray = new Y.Array<NoteField>();
+                newFieldsArray.push([newField]);
+                meta.set("fields", newFieldsArray);
+            }
+        },
+        [provider, connected]
+    );
+
+    // Helper to remove field from Yjs document
+    const removeFieldFromYjsDoc = useCallback(
+        (fieldId: string) => {
+            if (!connected) return;
+            const meta = provider.document.getMap("meta");
+            const existingFields = meta.get("fields") as Y.Array<NoteField> | undefined;
+
+            if (existingFields) {
+                for (let i = 0; i < existingFields.length; i++) {
+                    const field = existingFields.get(i);
+                    if (field && field.id === fieldId) {
+                        existingFields.delete(i, 1);
+                        break;
+                    }
+                }
+            }
+        },
+        [provider, connected]
+    );
+
+    const handleAddRichText = useCallback(async () => {
+        try {
+            const result = await createRichTextField(noteId);
+            // Update local state directly for immediate UI feedback
+            const newField: NoteField = {
+                id: result.id,
+                fieldType: "rich_text",
+                image: null,
+                position: result.position,
+            };
+            setFields((prev) => [...prev, newField]);
+            // Also sync to Yjs document for other clients
+            addFieldToYjsDoc(result.id, "rich_text", result.position);
+            console.log("Created rich text field:", result);
+        } catch (err) {
+            console.error("Failed to create rich text field:", err);
+        }
+    }, [noteId, createRichTextField, addFieldToYjsDoc]);
+
+    const handleAddImage = useCallback(
+        async (file: File) => {
+            try {
+                const result = await uploadImage(noteId, file);
+                if (result) {
+                    console.log("Image uploaded:", result);
+                }
+            } catch (err) {
+                console.error("Failed to upload image:", err);
+            }
+        },
+        [noteId, uploadImage]
+    );
+
+    const handleDeleteField = useCallback(
+        async (fieldId: string) => {
+            try {
+                await deleteField(fieldId);
+                // Update local state directly for immediate UI feedback
+                setFields((prev) => prev.filter((f) => f.id !== fieldId));
+                // Also sync to Yjs document for other clients
+                removeFieldFromYjsDoc(fieldId);
+            } catch (err) {
+                console.error("Failed to delete field:", err);
+            }
+        },
+        [deleteField, removeFieldFromYjsDoc]
+    );
+
+    const handleDragEnd = useCallback(
+        async (event: DragEndEvent) => {
+            const { active, over } = event;
+
+            if (!over || active.id === over.id) {
+                return;
+            }
+
+            const oldIndex = fields.findIndex((f) => f.id === active.id);
+            const newIndex = fields.findIndex((f) => f.id === over.id);
+
+            if (oldIndex === -1 || newIndex === -1) return;
+
+            const newFields = arrayMove(fields, oldIndex, newIndex);
+
+            // Update positions
+            const updates = newFields.map((field, index) => ({
+                id: field.id,
+                position: index * 1000,
+                noteId,
+            }));
+
+            setFields(newFields);
+
+            try {
+                await reorderFields(updates);
+            } catch (err) {
+                console.error("Failed to reorder fields:", err);
+                // Revert on error
+                setFields(fields);
+            }
+        },
+        [fields, noteId, reorderFields]
+    );
+
     return (
         <div className="note-editor-container">
             <ConnectionStatus status={status} />
-            <div className="form-group">
-                <RichTextEditor
-                    connected={connected}
-                    provider={provider}
-                    fragment={provider.document.getXmlFragment("content")}
-                />
-            </div>
+
+            {error && (
+                <div className="alert alert-danger" role="alert">
+                    {error}
+                </div>
+            )}
+
+            <AddFieldToolbar
+                onAddRichText={handleAddRichText}
+                onAddImage={handleAddImage}
+                uploading={uploading}
+            />
+
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext
+                    items={fields.map((f) => f.id)}
+                    strategy={verticalListSortingStrategy}
+                >
+                    {fields.map((field) => (
+                        <NoteFieldEditor
+                            key={field.id}
+                            field={field}
+                            provider={provider}
+                            connected={connected}
+                            onDelete={() => handleDeleteField(field.id)}
+                        />
+                    ))}
+                </SortableContext>
+            </DndContext>
+
+            {fields.length === 0 && connected && (
+                <div
+                    style={{
+                        padding: "2rem",
+                        textAlign: "center",
+                        color: "#666",
+                        fontSize: "14px",
+                    }}
+                >
+                    No fields yet. Add a text field or image above to get started.
+                </div>
+            )}
         </div>
     );
 }

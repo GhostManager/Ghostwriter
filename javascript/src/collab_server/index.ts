@@ -174,22 +174,21 @@ const server = new Server({
                 const existingDoc = conn.instance.documents.get(
                     conn.documentName
                 );
-                if (!existingDoc) {
-                    throw new AuthError("client expecting a loaded document");
-                }
+                if (existingDoc) {
+                    let instanceId;
+                    existingDoc.transact(() => {
+                        instanceId = existingDoc
+                            .get("serverInfo", Y.Map)
+                            .get("instanceId");
+                    });
 
-                let instanceId;
-                existingDoc.transact(() => {
-                    instanceId = existingDoc
-                        .get("serverInfo", Y.Map)
-                        .get("instanceId");
-                });
-
-                if (expectedInstanceId !== instanceId) {
-                    throw new AuthError(
-                        "expected document instance ID mismatch"
-                    );
+                    if (expectedInstanceId !== instanceId) {
+                        throw new AuthError(
+                            "expected document instance ID mismatch"
+                        );
+                    }
                 }
+                // If document is not loaded yet, that's fine - onLoadDocument will load it fresh
             }
 
             log.info("Client authenticated");

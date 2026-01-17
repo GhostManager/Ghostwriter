@@ -22,3 +22,11 @@ export interface DragState {
     overId: number | null;
     dropPosition: DropPosition | null;
 }
+
+export interface NoteField {
+    id: string;
+    fieldType: "rich_text" | "image";
+    content?: string;
+    image?: string;
+    position: number;
+}

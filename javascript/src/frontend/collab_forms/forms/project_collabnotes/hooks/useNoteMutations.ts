@@ -59,6 +59,14 @@ const DELETE_MUTATION = `
     }
 `;
 
+const DELETE_NOTE_FIELDS_MUTATION = `
+    mutation DeleteNoteFields($noteId: bigint!) {
+        delete_projectCollabNoteField(where: { noteId: { _eq: $noteId } }) {
+            affected_rows
+        }
+    }
+`;
+
 const MOVE_MUTATION = `
     mutation MoveProjectCollabNote($id: bigint!, $parentId: bigint, $position: Int!) {
         update_projectCollabNote_by_pk(
@@ -182,6 +190,9 @@ export function useNoteMutations() {
     );
 
     const deleteNote = useCallback(async (id: number): Promise<void> => {
+        // First delete all fields associated with this note (cascade delete)
+        await graphqlMutate(DELETE_NOTE_FIELDS_MUTATION, { noteId: id });
+        // Then delete the note itself
         await graphqlMutate(DELETE_MUTATION, { id });
     }, []);
 

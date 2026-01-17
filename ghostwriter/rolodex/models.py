@@ -837,6 +837,96 @@ class ProjectCollabNote(models.Model):
         return self.project.user_can_delete(user)
 
 
+class ProjectCollabNoteFieldType(models.TextChoices):
+    """Choices for the type of collaborative note field."""
+
+    RICH_TEXT = "rich_text", "Rich Text"
+    IMAGE = "image", "Image"
+
+
+class ProjectCollabNoteField(models.Model):
+    """
+    Stores individual fields within a collaborative note.
+
+    Each ProjectCollabNote can have multiple fields that are reorderable.
+    Fields can be rich text or images.
+    Related to :model:`rolodex.ProjectCollabNote`.
+    """
+
+    note = models.ForeignKey(
+        ProjectCollabNote,
+        on_delete=models.CASCADE,
+        related_name="fields",
+        help_text="The note this field belongs to",
+    )
+    field_type = models.CharField(
+        "Field Type",
+        max_length=10,
+        choices=ProjectCollabNoteFieldType.choices,
+        default=ProjectCollabNoteFieldType.RICH_TEXT,
+        help_text="Type of content in this field",
+    )
+    content = models.TextField(
+        "Content",
+        default="",
+        blank=True,
+        help_text="HTML content for rich text fields",
+    )
+    image_width = models.IntegerField(
+        "Image Width",
+        blank=True,
+        null=True,
+        editable=False,
+    )
+    image_height = models.IntegerField(
+        "Image Height",
+        blank=True,
+        null=True,
+        editable=False,
+    )
+    image = models.ImageField(
+        "Image",
+        upload_to="collab_note_images/%Y/%m/%d/",
+        blank=True,
+        null=True,
+        width_field="image_width",
+        height_field="image_height",
+        help_text="Image file for image fields",
+    )
+    position = models.PositiveIntegerField(
+        "Position",
+        default=0,
+        help_text="Order within note (lower values first)",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["note", "position"]
+        verbose_name = "Project collaborative note field"
+        verbose_name_plural = "Project collaborative note fields"
+        constraints = [
+            # Ensure image fields have an image and rich_text fields don't
+            models.CheckConstraint(
+                check=(Q(field_type="rich_text") & Q(image=""))
+                | (Q(field_type="image") & ~Q(image="")),
+                name="field_type_matches_content",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.note.title} - {self.field_type} field #{self.position}"
+
+    def user_can_view(self, user) -> bool:
+        return self.note.user_can_view(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.note.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.note.user_can_delete(user)
+
+
 class ProjectScope(models.Model):
     """Stores an individual scope list, related to an individual :model:`rolodex.Project`."""
 

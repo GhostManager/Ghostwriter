@@ -11212,6 +11212,10 @@ export type Mutation_Root = {
   delete_projectAssignment_by_pk?: Maybe<ProjectAssignment>;
   /** delete data from the table: "rolodex_projectcollabnote" */
   delete_projectCollabNote?: Maybe<ProjectCollabNote_Mutation_Response>;
+  /** delete data from the table: "rolodex_projectcollabnotefield" */
+  delete_projectCollabNoteField?: Maybe<ProjectCollabNoteField_Mutation_Response>;
+  /** delete single row from the table: "rolodex_projectcollabnotefield" */
+  delete_projectCollabNoteField_by_pk?: Maybe<ProjectCollabNoteField>;
   /** delete single row from the table: "rolodex_projectcollabnote" */
   delete_projectCollabNote_by_pk?: Maybe<ProjectCollabNote>;
   /** delete data from the table: "rolodex_projectcontact" */
@@ -11484,6 +11488,10 @@ export type Mutation_Root = {
   insert_projectAssignment_one?: Maybe<ProjectAssignment>;
   /** insert data into the table: "rolodex_projectcollabnote" */
   insert_projectCollabNote?: Maybe<ProjectCollabNote_Mutation_Response>;
+  /** insert data into the table: "rolodex_projectcollabnotefield" */
+  insert_projectCollabNoteField?: Maybe<ProjectCollabNoteField_Mutation_Response>;
+  /** insert a single row into the table: "rolodex_projectcollabnotefield" */
+  insert_projectCollabNoteField_one?: Maybe<ProjectCollabNoteField>;
   /** insert a single row into the table: "rolodex_projectcollabnote" */
   insert_projectCollabNote_one?: Maybe<ProjectCollabNote>;
   /** insert data into the table: "rolodex_projectcontact" */
@@ -11827,6 +11835,12 @@ export type Mutation_Root = {
   update_projectAssignment_many?: Maybe<Array<Maybe<ProjectAssignment_Mutation_Response>>>;
   /** update data of the table: "rolodex_projectcollabnote" */
   update_projectCollabNote?: Maybe<ProjectCollabNote_Mutation_Response>;
+  /** update data of the table: "rolodex_projectcollabnotefield" */
+  update_projectCollabNoteField?: Maybe<ProjectCollabNoteField_Mutation_Response>;
+  /** update single row of the table: "rolodex_projectcollabnotefield" */
+  update_projectCollabNoteField_by_pk?: Maybe<ProjectCollabNoteField>;
+  /** update multiples rows of table: "rolodex_projectcollabnotefield" */
+  update_projectCollabNoteField_many?: Maybe<Array<Maybe<ProjectCollabNoteField_Mutation_Response>>>;
   /** update single row of the table: "rolodex_projectcollabnote" */
   update_projectCollabNote_by_pk?: Maybe<ProjectCollabNote>;
   /** update multiples rows of table: "rolodex_projectcollabnote" */
@@ -12522,6 +12536,18 @@ export type Mutation_RootDelete_ProjectAssignment_By_PkArgs = {
 /** mutation root */
 export type Mutation_RootDelete_ProjectCollabNoteArgs = {
   where: ProjectCollabNote_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_ProjectCollabNoteFieldArgs = {
+  where: ProjectCollabNoteField_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_ProjectCollabNoteField_By_PkArgs = {
+  id: Scalars['bigint']['input'];
 };
 
 
@@ -13406,6 +13432,20 @@ export type Mutation_RootInsert_ProjectAssignment_OneArgs = {
 export type Mutation_RootInsert_ProjectCollabNoteArgs = {
   objects: Array<ProjectCollabNote_Insert_Input>;
   on_conflict?: InputMaybe<ProjectCollabNote_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_ProjectCollabNoteFieldArgs = {
+  objects: Array<ProjectCollabNoteField_Insert_Input>;
+  on_conflict?: InputMaybe<ProjectCollabNoteField_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_ProjectCollabNoteField_OneArgs = {
+  object: ProjectCollabNoteField_Insert_Input;
+  on_conflict?: InputMaybe<ProjectCollabNoteField_On_Conflict>;
 };
 
 
@@ -14692,6 +14732,28 @@ export type Mutation_RootUpdate_ProjectCollabNoteArgs = {
   _inc?: InputMaybe<ProjectCollabNote_Inc_Input>;
   _set?: InputMaybe<ProjectCollabNote_Set_Input>;
   where: ProjectCollabNote_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_ProjectCollabNoteFieldArgs = {
+  _inc?: InputMaybe<ProjectCollabNoteField_Inc_Input>;
+  _set?: InputMaybe<ProjectCollabNoteField_Set_Input>;
+  where: ProjectCollabNoteField_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_ProjectCollabNoteField_By_PkArgs = {
+  _inc?: InputMaybe<ProjectCollabNoteField_Inc_Input>;
+  _set?: InputMaybe<ProjectCollabNoteField_Set_Input>;
+  pk_columns: ProjectCollabNoteField_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_ProjectCollabNoteField_ManyArgs = {
+  updates: Array<ProjectCollabNoteField_Updates>;
 };
 
 
@@ -18751,6 +18813,10 @@ export type ProjectCollabNote = {
   children_aggregate: ProjectCollabNote_Aggregate;
   content: Scalars['String']['output'];
   createdAt: Scalars['timestamptz']['output'];
+  /** An array relationship */
+  fields: Array<ProjectCollabNoteField>;
+  /** An aggregate relationship */
+  fields_aggregate: ProjectCollabNoteField_Aggregate;
   id: Scalars['bigint']['output'];
   nodeType: Scalars['String']['output'];
   /** An object relationship */
@@ -18782,6 +18848,493 @@ export type ProjectCollabNoteChildren_AggregateArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<ProjectCollabNote_Order_By>>;
   where?: InputMaybe<ProjectCollabNote_Bool_Exp>;
+};
+
+
+/** columns and relationships of "rolodex_projectcollabnote" */
+export type ProjectCollabNoteFieldsArgs = {
+  distinct_on?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ProjectCollabNoteField_Order_By>>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+};
+
+
+/** columns and relationships of "rolodex_projectcollabnote" */
+export type ProjectCollabNoteFields_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ProjectCollabNoteField_Order_By>>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+};
+
+/** columns and relationships of "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField = {
+  __typename?: 'projectCollabNoteField';
+  content: Scalars['String']['output'];
+  createdAt: Scalars['timestamptz']['output'];
+  fieldType: Scalars['String']['output'];
+  id: Scalars['bigint']['output'];
+  image?: Maybe<Scalars['String']['output']>;
+  imageHeight?: Maybe<Scalars['Int']['output']>;
+  imageWidth?: Maybe<Scalars['Int']['output']>;
+  /** An object relationship */
+  note: ProjectCollabNote;
+  noteId: Scalars['bigint']['output'];
+  position: Scalars['Int']['output'];
+  updatedAt: Scalars['timestamptz']['output'];
+};
+
+/** aggregated selection of "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Aggregate = {
+  __typename?: 'projectCollabNoteField_aggregate';
+  aggregate?: Maybe<ProjectCollabNoteField_Aggregate_Fields>;
+  nodes: Array<ProjectCollabNoteField>;
+};
+
+export type ProjectCollabNoteField_Aggregate_Bool_Exp = {
+  count?: InputMaybe<ProjectCollabNoteField_Aggregate_Bool_Exp_Count>;
+};
+
+export type ProjectCollabNoteField_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
+/** aggregate fields of "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Aggregate_Fields = {
+  __typename?: 'projectCollabNoteField_aggregate_fields';
+  avg?: Maybe<ProjectCollabNoteField_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<ProjectCollabNoteField_Max_Fields>;
+  min?: Maybe<ProjectCollabNoteField_Min_Fields>;
+  stddev?: Maybe<ProjectCollabNoteField_Stddev_Fields>;
+  stddev_pop?: Maybe<ProjectCollabNoteField_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<ProjectCollabNoteField_Stddev_Samp_Fields>;
+  sum?: Maybe<ProjectCollabNoteField_Sum_Fields>;
+  var_pop?: Maybe<ProjectCollabNoteField_Var_Pop_Fields>;
+  var_samp?: Maybe<ProjectCollabNoteField_Var_Samp_Fields>;
+  variance?: Maybe<ProjectCollabNoteField_Variance_Fields>;
+};
+
+
+/** aggregate fields of "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** order by aggregate values of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Aggregate_Order_By = {
+  avg?: InputMaybe<ProjectCollabNoteField_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<ProjectCollabNoteField_Max_Order_By>;
+  min?: InputMaybe<ProjectCollabNoteField_Min_Order_By>;
+  stddev?: InputMaybe<ProjectCollabNoteField_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<ProjectCollabNoteField_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<ProjectCollabNoteField_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<ProjectCollabNoteField_Sum_Order_By>;
+  var_pop?: InputMaybe<ProjectCollabNoteField_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<ProjectCollabNoteField_Var_Samp_Order_By>;
+  variance?: InputMaybe<ProjectCollabNoteField_Variance_Order_By>;
+};
+
+/** input type for inserting array relation for remote table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Arr_Rel_Insert_Input = {
+  data: Array<ProjectCollabNoteField_Insert_Input>;
+  /** upsert condition */
+  on_conflict?: InputMaybe<ProjectCollabNoteField_On_Conflict>;
+};
+
+/** aggregate avg on columns */
+export type ProjectCollabNoteField_Avg_Fields = {
+  __typename?: 'projectCollabNoteField_avg_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  imageHeight?: Maybe<Scalars['Float']['output']>;
+  imageWidth?: Maybe<Scalars['Float']['output']>;
+  noteId?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Avg_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+};
+
+/** Boolean expression to filter rows from the table "rolodex_projectcollabnotefield". All fields are combined with a logical 'AND'. */
+export type ProjectCollabNoteField_Bool_Exp = {
+  _and?: InputMaybe<Array<ProjectCollabNoteField_Bool_Exp>>;
+  _not?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+  _or?: InputMaybe<Array<ProjectCollabNoteField_Bool_Exp>>;
+  content?: InputMaybe<String_Comparison_Exp>;
+  createdAt?: InputMaybe<Timestamptz_Comparison_Exp>;
+  fieldType?: InputMaybe<String_Comparison_Exp>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  image?: InputMaybe<String_Comparison_Exp>;
+  imageHeight?: InputMaybe<Int_Comparison_Exp>;
+  imageWidth?: InputMaybe<Int_Comparison_Exp>;
+  note?: InputMaybe<ProjectCollabNote_Bool_Exp>;
+  noteId?: InputMaybe<Bigint_Comparison_Exp>;
+  position?: InputMaybe<Int_Comparison_Exp>;
+  updatedAt?: InputMaybe<Timestamptz_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "rolodex_projectcollabnotefield" */
+export enum ProjectCollabNoteField_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  RolodexProjectcollabnotefieldPkey = 'rolodex_projectcollabnotefield_pkey'
+}
+
+/** input type for incrementing numeric columns in table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Inc_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  imageHeight?: InputMaybe<Scalars['Int']['input']>;
+  imageWidth?: InputMaybe<Scalars['Int']['input']>;
+  noteId?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** input type for inserting data into table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Insert_Input = {
+  content?: InputMaybe<Scalars['String']['input']>;
+  createdAt?: InputMaybe<Scalars['timestamptz']['input']>;
+  fieldType?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  image?: InputMaybe<Scalars['String']['input']>;
+  imageHeight?: InputMaybe<Scalars['Int']['input']>;
+  imageWidth?: InputMaybe<Scalars['Int']['input']>;
+  note?: InputMaybe<ProjectCollabNote_Obj_Rel_Insert_Input>;
+  noteId?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
+  updatedAt?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate max on columns */
+export type ProjectCollabNoteField_Max_Fields = {
+  __typename?: 'projectCollabNoteField_max_fields';
+  content?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['timestamptz']['output']>;
+  fieldType?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  image?: Maybe<Scalars['String']['output']>;
+  imageHeight?: Maybe<Scalars['Int']['output']>;
+  imageWidth?: Maybe<Scalars['Int']['output']>;
+  noteId?: Maybe<Scalars['bigint']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+  updatedAt?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** order by max() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Max_Order_By = {
+  content?: InputMaybe<Order_By>;
+  createdAt?: InputMaybe<Order_By>;
+  fieldType?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  image?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+  updatedAt?: InputMaybe<Order_By>;
+};
+
+/** aggregate min on columns */
+export type ProjectCollabNoteField_Min_Fields = {
+  __typename?: 'projectCollabNoteField_min_fields';
+  content?: Maybe<Scalars['String']['output']>;
+  createdAt?: Maybe<Scalars['timestamptz']['output']>;
+  fieldType?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  image?: Maybe<Scalars['String']['output']>;
+  imageHeight?: Maybe<Scalars['Int']['output']>;
+  imageWidth?: Maybe<Scalars['Int']['output']>;
+  noteId?: Maybe<Scalars['bigint']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+  updatedAt?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** order by min() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Min_Order_By = {
+  content?: InputMaybe<Order_By>;
+  createdAt?: InputMaybe<Order_By>;
+  fieldType?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  image?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+  updatedAt?: InputMaybe<Order_By>;
+};
+
+/** response of any mutation on the table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Mutation_Response = {
+  __typename?: 'projectCollabNoteField_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<ProjectCollabNoteField>;
+};
+
+/** on_conflict condition type for table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_On_Conflict = {
+  constraint: ProjectCollabNoteField_Constraint;
+  update_columns?: Array<ProjectCollabNoteField_Update_Column>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "rolodex_projectcollabnotefield". */
+export type ProjectCollabNoteField_Order_By = {
+  content?: InputMaybe<Order_By>;
+  createdAt?: InputMaybe<Order_By>;
+  fieldType?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  image?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  note?: InputMaybe<ProjectCollabNote_Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+  updatedAt?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: rolodex_projectcollabnotefield */
+export type ProjectCollabNoteField_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** select columns of table "rolodex_projectcollabnotefield" */
+export enum ProjectCollabNoteField_Select_Column {
+  /** column name */
+  Content = 'content',
+  /** column name */
+  CreatedAt = 'createdAt',
+  /** column name */
+  FieldType = 'fieldType',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  Image = 'image',
+  /** column name */
+  ImageHeight = 'imageHeight',
+  /** column name */
+  ImageWidth = 'imageWidth',
+  /** column name */
+  NoteId = 'noteId',
+  /** column name */
+  Position = 'position',
+  /** column name */
+  UpdatedAt = 'updatedAt'
+}
+
+/** input type for updating data in table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Set_Input = {
+  content?: InputMaybe<Scalars['String']['input']>;
+  createdAt?: InputMaybe<Scalars['timestamptz']['input']>;
+  fieldType?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  image?: InputMaybe<Scalars['String']['input']>;
+  imageHeight?: InputMaybe<Scalars['Int']['input']>;
+  imageWidth?: InputMaybe<Scalars['Int']['input']>;
+  noteId?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
+  updatedAt?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type ProjectCollabNoteField_Stddev_Fields = {
+  __typename?: 'projectCollabNoteField_stddev_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  imageHeight?: Maybe<Scalars['Float']['output']>;
+  imageWidth?: Maybe<Scalars['Float']['output']>;
+  noteId?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Stddev_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_pop on columns */
+export type ProjectCollabNoteField_Stddev_Pop_Fields = {
+  __typename?: 'projectCollabNoteField_stddev_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  imageHeight?: Maybe<Scalars['Float']['output']>;
+  imageWidth?: Maybe<Scalars['Float']['output']>;
+  noteId?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_pop() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Stddev_Pop_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_samp on columns */
+export type ProjectCollabNoteField_Stddev_Samp_Fields = {
+  __typename?: 'projectCollabNoteField_stddev_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  imageHeight?: Maybe<Scalars['Float']['output']>;
+  imageWidth?: Maybe<Scalars['Float']['output']>;
+  noteId?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Stddev_Samp_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+};
+
+/** Streaming cursor of the table "projectCollabNoteField" */
+export type ProjectCollabNoteField_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: ProjectCollabNoteField_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type ProjectCollabNoteField_Stream_Cursor_Value_Input = {
+  content?: InputMaybe<Scalars['String']['input']>;
+  createdAt?: InputMaybe<Scalars['timestamptz']['input']>;
+  fieldType?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  image?: InputMaybe<Scalars['String']['input']>;
+  imageHeight?: InputMaybe<Scalars['Int']['input']>;
+  imageWidth?: InputMaybe<Scalars['Int']['input']>;
+  noteId?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
+  updatedAt?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate sum on columns */
+export type ProjectCollabNoteField_Sum_Fields = {
+  __typename?: 'projectCollabNoteField_sum_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  imageHeight?: Maybe<Scalars['Int']['output']>;
+  imageWidth?: Maybe<Scalars['Int']['output']>;
+  noteId?: Maybe<Scalars['bigint']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
+};
+
+/** order by sum() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Sum_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+};
+
+/** update columns of table "rolodex_projectcollabnotefield" */
+export enum ProjectCollabNoteField_Update_Column {
+  /** column name */
+  Content = 'content',
+  /** column name */
+  CreatedAt = 'createdAt',
+  /** column name */
+  FieldType = 'fieldType',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  Image = 'image',
+  /** column name */
+  ImageHeight = 'imageHeight',
+  /** column name */
+  ImageWidth = 'imageWidth',
+  /** column name */
+  NoteId = 'noteId',
+  /** column name */
+  Position = 'position',
+  /** column name */
+  UpdatedAt = 'updatedAt'
+}
+
+export type ProjectCollabNoteField_Updates = {
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<ProjectCollabNoteField_Inc_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<ProjectCollabNoteField_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: ProjectCollabNoteField_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type ProjectCollabNoteField_Var_Pop_Fields = {
+  __typename?: 'projectCollabNoteField_var_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  imageHeight?: Maybe<Scalars['Float']['output']>;
+  imageWidth?: Maybe<Scalars['Float']['output']>;
+  noteId?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_pop() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Var_Pop_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_samp on columns */
+export type ProjectCollabNoteField_Var_Samp_Fields = {
+  __typename?: 'projectCollabNoteField_var_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  imageHeight?: Maybe<Scalars['Float']['output']>;
+  imageWidth?: Maybe<Scalars['Float']['output']>;
+  noteId?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_samp() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Var_Samp_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
+};
+
+/** aggregate variance on columns */
+export type ProjectCollabNoteField_Variance_Fields = {
+  __typename?: 'projectCollabNoteField_variance_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  imageHeight?: Maybe<Scalars['Float']['output']>;
+  imageWidth?: Maybe<Scalars['Float']['output']>;
+  noteId?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "rolodex_projectcollabnotefield" */
+export type ProjectCollabNoteField_Variance_Order_By = {
+  id?: InputMaybe<Order_By>;
+  imageHeight?: InputMaybe<Order_By>;
+  imageWidth?: InputMaybe<Order_By>;
+  noteId?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
 };
 
 /** aggregated selection of "rolodex_projectcollabnote" */
@@ -18873,6 +19426,8 @@ export type ProjectCollabNote_Bool_Exp = {
   children_aggregate?: InputMaybe<ProjectCollabNote_Aggregate_Bool_Exp>;
   content?: InputMaybe<String_Comparison_Exp>;
   createdAt?: InputMaybe<Timestamptz_Comparison_Exp>;
+  fields?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+  fields_aggregate?: InputMaybe<ProjectCollabNoteField_Aggregate_Bool_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   nodeType?: InputMaybe<String_Comparison_Exp>;
   parent?: InputMaybe<ProjectCollabNote_Bool_Exp>;
@@ -18903,6 +19458,7 @@ export type ProjectCollabNote_Insert_Input = {
   children?: InputMaybe<ProjectCollabNote_Arr_Rel_Insert_Input>;
   content?: InputMaybe<Scalars['String']['input']>;
   createdAt?: InputMaybe<Scalars['timestamptz']['input']>;
+  fields?: InputMaybe<ProjectCollabNoteField_Arr_Rel_Insert_Input>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   nodeType?: InputMaybe<Scalars['String']['input']>;
   parent?: InputMaybe<ProjectCollabNote_Obj_Rel_Insert_Input>;
@@ -18996,6 +19552,7 @@ export type ProjectCollabNote_Order_By = {
   children_aggregate?: InputMaybe<ProjectCollabNote_Aggregate_Order_By>;
   content?: InputMaybe<Order_By>;
   createdAt?: InputMaybe<Order_By>;
+  fields_aggregate?: InputMaybe<ProjectCollabNoteField_Aggregate_Order_By>;
   id?: InputMaybe<Order_By>;
   nodeType?: InputMaybe<Order_By>;
   parent?: InputMaybe<ProjectCollabNote_Order_By>;
@@ -21774,6 +22331,12 @@ export type Query_Root = {
   projectAssignment_by_pk?: Maybe<ProjectAssignment>;
   /** fetch data from the table: "rolodex_projectcollabnote" */
   projectCollabNote: Array<ProjectCollabNote>;
+  /** fetch data from the table: "rolodex_projectcollabnotefield" */
+  projectCollabNoteField: Array<ProjectCollabNoteField>;
+  /** fetch aggregated fields from the table: "rolodex_projectcollabnotefield" */
+  projectCollabNoteField_aggregate: ProjectCollabNoteField_Aggregate;
+  /** fetch data from the table: "rolodex_projectcollabnotefield" using primary key columns */
+  projectCollabNoteField_by_pk?: Maybe<ProjectCollabNoteField>;
   /** fetch aggregated fields from the table: "rolodex_projectcollabnote" */
   projectCollabNote_aggregate: ProjectCollabNote_Aggregate;
   /** fetch data from the table: "rolodex_projectcollabnote" using primary key columns */
@@ -22834,6 +23397,29 @@ export type Query_RootProjectCollabNoteArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<ProjectCollabNote_Order_By>>;
   where?: InputMaybe<ProjectCollabNote_Bool_Exp>;
+};
+
+
+export type Query_RootProjectCollabNoteFieldArgs = {
+  distinct_on?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ProjectCollabNoteField_Order_By>>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+};
+
+
+export type Query_RootProjectCollabNoteField_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ProjectCollabNoteField_Order_By>>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+};
+
+
+export type Query_RootProjectCollabNoteField_By_PkArgs = {
+  id: Scalars['bigint']['input'];
 };
 
 
@@ -29799,6 +30385,14 @@ export type Subscription_Root = {
   projectAssignment_stream: Array<ProjectAssignment>;
   /** fetch data from the table: "rolodex_projectcollabnote" */
   projectCollabNote: Array<ProjectCollabNote>;
+  /** fetch data from the table: "rolodex_projectcollabnotefield" */
+  projectCollabNoteField: Array<ProjectCollabNoteField>;
+  /** fetch aggregated fields from the table: "rolodex_projectcollabnotefield" */
+  projectCollabNoteField_aggregate: ProjectCollabNoteField_Aggregate;
+  /** fetch data from the table: "rolodex_projectcollabnotefield" using primary key columns */
+  projectCollabNoteField_by_pk?: Maybe<ProjectCollabNoteField>;
+  /** fetch data from the table in a streaming manner: "rolodex_projectcollabnotefield" */
+  projectCollabNoteField_stream: Array<ProjectCollabNoteField>;
   /** fetch aggregated fields from the table: "rolodex_projectcollabnote" */
   projectCollabNote_aggregate: ProjectCollabNote_Aggregate;
   /** fetch data from the table: "rolodex_projectcollabnote" using primary key columns */
@@ -31141,6 +31735,36 @@ export type Subscription_RootProjectCollabNoteArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<ProjectCollabNote_Order_By>>;
   where?: InputMaybe<ProjectCollabNote_Bool_Exp>;
+};
+
+
+export type Subscription_RootProjectCollabNoteFieldArgs = {
+  distinct_on?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ProjectCollabNoteField_Order_By>>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+};
+
+
+export type Subscription_RootProjectCollabNoteField_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ProjectCollabNoteField_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ProjectCollabNoteField_Order_By>>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
+};
+
+
+export type Subscription_RootProjectCollabNoteField_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootProjectCollabNoteField_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<ProjectCollabNoteField_Stream_Cursor_Input>>;
+  where?: InputMaybe<ProjectCollabNoteField_Bool_Exp>;
 };
 
 
@@ -36871,7 +37495,7 @@ export type Get_Project_Collab_NoteQueryVariables = Exact<{
 }>;
 
 
-export type Get_Project_Collab_NoteQuery = { __typename?: 'query_root', projectCollabNote_by_pk?: { __typename?: 'projectCollabNote', content: string, title: string, nodeType: string } | null };
+export type Get_Project_Collab_NoteQuery = { __typename?: 'query_root', projectCollabNote_by_pk?: { __typename?: 'projectCollabNote', content: string, title: string, nodeType: string, fields: Array<{ __typename?: 'projectCollabNoteField', id: any, fieldType: string, content: string, image?: string | null, position: number }> } | null };
 
 export type Set_Project_Collab_NoteMutationVariables = Exact<{
   id: Scalars['bigint']['input'];
@@ -36954,8 +37578,9 @@ export const Get_ObservationDocument = {"kind":"Document","definitions":[{"kind"
 export const Set_ObservationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SET_OBSERVATION"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"description"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"tags"}},"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"jsonb"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_reporting_observation_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"description"},"value":{"kind":"Variable","name":{"kind":"Name","value":"description"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"extraFields"},"value":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}},{"kind":"Field","name":{"kind":"Name","value":"setTags"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"model"},"value":{"kind":"StringValue","value":"observation","block":false}},{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"tags"},"value":{"kind":"Variable","name":{"kind":"Name","value":"tags"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tags"}}]}}]}}]} as unknown as DocumentNode<Set_ObservationMutation, Set_ObservationMutationVariables>;
 export const Get_ProjectDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_PROJECT"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"collab_note"}}]}}]}}]} as unknown as DocumentNode<Get_ProjectQuery, Get_ProjectQueryVariables>;
 export const Set_ProjectDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SET_PROJECT"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"collabNote"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_project_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"collab_note"},"value":{"kind":"Variable","name":{"kind":"Name","value":"collabNote"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<Set_ProjectMutation, Set_ProjectMutationVariables>;
-export const Get_Project_Collab_NoteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_PROJECT_COLLAB_NOTE"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectCollabNote_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"content"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"nodeType"}}]}}]}}]} as unknown as DocumentNode<Get_Project_Collab_NoteQuery, Get_Project_Collab_NoteQueryVariables>;
+export const Get_Project_Collab_NoteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_PROJECT_COLLAB_NOTE"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectCollabNote_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"content"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"nodeType"}},{"kind":"Field","name":{"kind":"Name","value":"fields"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"order_by"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"position"},"value":{"kind":"EnumValue","value":"asc"}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"fieldType"}},{"kind":"Field","name":{"kind":"Name","value":"content"}},{"kind":"Field","name":{"kind":"Name","value":"image"}},{"kind":"Field","name":{"kind":"Name","value":"position"}}]}}]}}]}}]} as unknown as DocumentNode<Get_Project_Collab_NoteQuery, Get_Project_Collab_NoteQueryVariables>;
 export const Set_Project_Collab_NoteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SET_PROJECT_COLLAB_NOTE"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"content"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_projectCollabNote_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"content"},"value":{"kind":"Variable","name":{"kind":"Name","value":"content"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<Set_Project_Collab_NoteMutation, Set_Project_Collab_NoteMutationVariables>;
+export const Set_Project_Collab_Note_FieldsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SET_PROJECT_COLLAB_NOTE_FIELDS"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"updates"}},"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"projectCollabNoteField_updates"}}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_projectCollabNoteField_many"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"updates"},"value":{"kind":"Variable","name":{"kind":"Name","value":"updates"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"affected_rows"}}]}}]}}]} as unknown as DocumentNode<any, any>;
 export const Get_ReportDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_REPORT"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"report_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"extraFields"}}]}},{"kind":"Field","name":{"kind":"Name","value":"extraFieldSpec"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"targetModel"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"_eq"},"value":{"kind":"StringValue","value":"reporting.Report","block":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"internalName"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}}]}}]} as unknown as DocumentNode<Get_ReportQuery, Get_ReportQueryVariables>;
 export const EviDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"evi"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"jsonb"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"update_report_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"pk_columns"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"_set"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"extraFields"},"value":{"kind":"Variable","name":{"kind":"Name","value":"extraFields"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<EviMutation, EviMutationVariables>;
 export const Get_Report_Finding_LinkDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GET_REPORT_FINDING_LINK"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"bigint"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"reportedFinding_by_pk"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"impact"}},{"kind":"Field","name":{"kind":"Name","value":"mitigation"}},{"kind":"Field","name":{"kind":"Name","value":"replication_steps"}},{"kind":"Field","name":{"kind":"Name","value":"hostDetectionTechniques"}},{"kind":"Field","name":{"kind":"Name","value":"networkDetectionTechniques"}},{"kind":"Field","name":{"kind":"Name","value":"references"}},{"kind":"Field","name":{"kind":"Name","value":"findingGuidance"}},{"kind":"Field","name":{"kind":"Name","value":"cvssScore"}},{"kind":"Field","name":{"kind":"Name","value":"cvssVector"}},{"kind":"Field","name":{"kind":"Name","value":"severity"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}},{"kind":"Field","name":{"kind":"Name","value":"findingTypeId"}},{"kind":"Field","name":{"kind":"Name","value":"affectedEntities"}},{"kind":"Field","name":{"kind":"Name","value":"extraFields"}}]}},{"kind":"Field","name":{"kind":"Name","value":"tags"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"model"},"value":{"kind":"StringValue","value":"report_finding_link","block":false}},{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"tags"}}]}},{"kind":"Field","name":{"kind":"Name","value":"extraFieldSpec"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"targetModel"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"_eq"},"value":{"kind":"StringValue","value":"reporting.Finding","block":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"internalName"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}}]}}]} as unknown as DocumentNode<Get_Report_Finding_LinkQuery, Get_Report_Finding_LinkQueryVariables>;
