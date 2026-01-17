@@ -70,7 +70,7 @@ class PassiveVoiceDetector:
                 logger.info("spaCy model '%s' loaded in %.2fms with optimizations", model_name, load_time)
 
                 self._initialized = True
-            except OSError as e:
+            except OSError:
                 logger.exception(
                     "Failed to load spaCy model '%s'. "
                     "Ensure the model is installed: python -m spacy download %s",
