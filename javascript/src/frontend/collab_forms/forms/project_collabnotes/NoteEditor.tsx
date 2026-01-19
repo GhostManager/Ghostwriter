@@ -79,22 +79,6 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
         };
     }, [provider, connected]);
 
-    // Handle clipboard paste for images
-    useEffect(() => {
-        const handlePasteEvent = async (event: ClipboardEvent) => {
-            const result = await handlePaste(noteId, event);
-            if (result) {
-                // Field will be created server-side and synced via Yjs
-                console.log("Image uploaded:", result);
-            }
-        };
-
-        document.addEventListener("paste", handlePasteEvent);
-        return () => {
-            document.removeEventListener("paste", handlePasteEvent);
-        };
-    }, [noteId, handlePaste]);
-
     // Helper to sync field additions to Yjs document
     const addFieldToYjsDoc = useCallback(
         (fieldId: string, fieldType: string, position: number, image: string | null = null) => {
@@ -140,6 +124,31 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
         [provider, connected]
     );
 
+    // Handle clipboard paste for images
+    useEffect(() => {
+        const handlePasteEvent = async (event: ClipboardEvent) => {
+            const result = await handlePaste(noteId, event);
+            if (result) {
+                // Update local state directly for immediate UI feedback
+                const newField: NoteField = {
+                    id: result.id,
+                    fieldType: "image",
+                    image: result.imageUrl,
+                    position: result.position,
+                };
+                setFields((prev) => [...prev, newField]);
+                // Also sync to Yjs document for other clients
+                addFieldToYjsDoc(result.id, "image", result.position, result.imageUrl);
+                console.log("Image uploaded via paste:", result);
+            }
+        };
+
+        document.addEventListener("paste", handlePasteEvent);
+        return () => {
+            document.removeEventListener("paste", handlePasteEvent);
+        };
+    }, [noteId, handlePaste, addFieldToYjsDoc]);
+
     const handleAddRichText = useCallback(async () => {
         try {
             const result = await createRichTextField(noteId);
@@ -164,13 +173,23 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
             try {
                 const result = await uploadImage(noteId, file);
                 if (result) {
+                    // Update local state directly for immediate UI feedback
+                    const newField: NoteField = {
+                        id: result.id,
+                        fieldType: "image",
+                        image: result.imageUrl,
+                        position: result.position,
+                    };
+                    setFields((prev) => [...prev, newField]);
+                    // Also sync to Yjs document for other clients
+                    addFieldToYjsDoc(result.id, "image", result.position, result.imageUrl);
                     console.log("Image uploaded:", result);
                 }
             } catch (err) {
                 console.error("Failed to upload image:", err);
             }
         },
-        [noteId, uploadImage]
+        [noteId, uploadImage, addFieldToYjsDoc]
     );
 
     const handleDeleteField = useCallback(
