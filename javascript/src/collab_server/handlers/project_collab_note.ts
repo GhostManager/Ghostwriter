@@ -65,10 +65,12 @@ const ProjectCollabNoteItemHandler = simpleModelHandler(
         } else {
             // Process all fields
             obj.fields.forEach((field) => {
+                // Prepend /media/ to image paths from database
+                const imageUrl = field.image ? `/media/${field.image}` : null;
                 const fieldData: FieldData = {
                     id: field.id.toString(),
                     fieldType: field.fieldType,
-                    image: field.image,
+                    image: imageUrl,
                     position: field.position
                 };
                 fieldsArray.push([fieldData]);
@@ -89,7 +91,7 @@ const ProjectCollabNoteItemHandler = simpleModelHandler(
         return obj.fields.map(f => ({
             id: f.id.toString(),
             fieldType: f.fieldType,
-            image: f.image,
+            image: f.image ? `/media/${f.image}` : null,
             position: f.position
         }));
     },
