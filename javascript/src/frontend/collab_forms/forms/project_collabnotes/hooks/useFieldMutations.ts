@@ -14,6 +14,20 @@ const CREATE_RICH_TEXT_FIELD_MUTATION = `
     }
 `;
 
+const CREATE_IMAGE_FIELD_MUTATION = `
+    mutation CreateImageField($noteId: bigint!, $position: Int!) {
+        insert_projectCollabNoteField_one(object: {
+            noteId: $noteId,
+            fieldType: "image",
+            content: "",
+            position: $position
+        }) {
+            id
+            position
+        }
+    }
+`;
+
 const DELETE_FIELD_MUTATION = `
     mutation DeleteProjectCollabNoteField($id: bigint!) {
         delete_projectCollabNoteField_by_pk(id: $id) {
@@ -107,6 +121,21 @@ export function useFieldMutations() {
         [getNextPosition]
     );
 
+    const createImageField = useCallback(
+        async (noteId: number): Promise<{ id: string; position: number }> => {
+            const position = await getNextPosition(noteId);
+            const data = await graphqlMutate(CREATE_IMAGE_FIELD_MUTATION, {
+                noteId,
+                position,
+            });
+            return {
+                id: data.insert_projectCollabNoteField_one.id.toString(),
+                position: data.insert_projectCollabNoteField_one.position,
+            };
+        },
+        [getNextPosition]
+    );
+
     const deleteField = useCallback(async (id: string): Promise<void> => {
         await graphqlMutate(DELETE_FIELD_MUTATION, { id: parseInt(id) });
     }, []);
@@ -137,6 +166,7 @@ export function useFieldMutations() {
 
     return {
         createRichTextField,
+        createImageField,
         deleteField,
         updateFieldPosition,
         reorderFields,

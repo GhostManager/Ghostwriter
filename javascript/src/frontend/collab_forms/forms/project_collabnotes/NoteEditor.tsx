@@ -38,8 +38,8 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
 
     const [fields, setFields] = useState<NoteField[]>([]);
     const [pendingDeleteField, setPendingDeleteField] = useState<NoteField | null>(null);
-    const { createRichTextField, deleteField, reorderFields } = useFieldMutations();
-    const { uploading, error, uploadImage, handlePaste } = useImageUpload();
+    const { createRichTextField, createImageField, deleteField, reorderFields } = useFieldMutations();
+    const { uploading, uploadingFieldId, error, uploadImage, uploadToField, handlePaste } = useImageUpload();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -102,7 +102,7 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
 
     // Helper to sync field additions to Yjs document
     const addFieldToYjsDoc = useCallback(
-        (fieldId: string, fieldType: string, position: number, image: string | null = null) => {
+        (fieldId: string, fieldType: "rich_text" | "image", position: number, image: string | null = null) => {
             if (!connected) return;
             const meta = provider.document.getMap("meta");
             const existingFields = meta.get("fields") as Y.Array<NoteField> | undefined;
@@ -137,6 +137,31 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
                     const field = existingFields.get(i);
                     if (field && field.id === fieldId) {
                         existingFields.delete(i, 1);
+                        break;
+                    }
+                }
+            }
+        },
+        [provider, connected]
+    );
+
+    // Helper to update field image in Yjs document
+    const updateFieldImageInYjsDoc = useCallback(
+        (fieldId: string, imageUrl: string) => {
+            if (!connected) return;
+            const meta = provider.document.getMap("meta");
+            const existingFields = meta.get("fields") as Y.Array<NoteField> | undefined;
+
+            if (existingFields) {
+                for (let i = 0; i < existingFields.length; i++) {
+                    const field = existingFields.get(i);
+                    if (field && field.id === fieldId) {
+                        const updatedField: NoteField = {
+                            ...field,
+                            image: imageUrl,
+                        };
+                        existingFields.delete(i, 1);
+                        existingFields.insert(i, [updatedField]);
                         break;
                     }
                 }
@@ -189,28 +214,45 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
         }
     }, [noteId, createRichTextField, addFieldToYjsDoc]);
 
-    const handleAddImage = useCallback(
-        async (file: File) => {
+    const handleAddImage = useCallback(async () => {
+        try {
+            const result = await createImageField(noteId);
+            // Create placeholder field with null image
+            const newField: NoteField = {
+                id: result.id,
+                fieldType: "image",
+                image: null,
+                position: result.position,
+            };
+            setFields((prev) => [...prev, newField]);
+            // Sync to Yjs document for other clients
+            addFieldToYjsDoc(result.id, "image", result.position, null);
+            console.log("Created image placeholder field:", result);
+        } catch (err) {
+            console.error("Failed to create image field:", err);
+        }
+    }, [noteId, createImageField, addFieldToYjsDoc]);
+
+    const handleUploadToField = useCallback(
+        async (fieldId: string, file: File) => {
             try {
-                const result = await uploadImage(noteId, file);
+                const result = await uploadToField(noteId, fieldId, file);
                 if (result) {
-                    // Update local state directly for immediate UI feedback
-                    const newField: NoteField = {
-                        id: result.id,
-                        fieldType: "image",
-                        image: result.imageUrl,
-                        position: result.position,
-                    };
-                    setFields((prev) => [...prev, newField]);
+                    // Update local state with the image URL
+                    setFields((prev) =>
+                        prev.map((f) =>
+                            f.id === fieldId ? { ...f, image: result.imageUrl } : f
+                        )
+                    );
                     // Also sync to Yjs document for other clients
-                    addFieldToYjsDoc(result.id, "image", result.position, result.imageUrl);
-                    console.log("Image uploaded:", result);
+                    updateFieldImageInYjsDoc(fieldId, result.imageUrl);
+                    console.log("Image uploaded to field:", result);
                 }
             } catch (err) {
-                console.error("Failed to upload image:", err);
+                console.error("Failed to upload image to field:", err);
             }
         },
-        [noteId, uploadImage, addFieldToYjsDoc]
+        [noteId, uploadToField, updateFieldImageInYjsDoc]
     );
 
     const requestDeleteField = useCallback(
@@ -290,7 +332,6 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
             <AddFieldToolbar
                 onAddRichText={handleAddRichText}
                 onAddImage={handleAddImage}
-                uploading={uploading}
             />
 
             <DndContext
@@ -309,6 +350,8 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
                             provider={provider}
                             connected={connected}
                             onDelete={() => requestDeleteField(field)}
+                            onUploadImage={handleUploadToField}
+                            uploadingFieldId={uploadingFieldId}
                         />
                     ))}
                 </SortableContext>

@@ -173,6 +173,11 @@ urlpatterns += [
         views.ajax_upload_note_field_image,
         name="ajax_upload_note_field_image",
     ),
+    path(
+        "ajax/note/<int:note_pk>/field/<int:field_pk>/image",
+        views.ajax_upload_to_existing_field,
+        name="ajax_upload_to_existing_field",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views

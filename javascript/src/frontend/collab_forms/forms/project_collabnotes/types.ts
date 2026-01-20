@@ -27,6 +27,6 @@ export interface NoteField {
     id: string;
     fieldType: "rich_text" | "image";
     content?: string;
-    image?: string;
+    image?: string | null;
     position: number;
 }

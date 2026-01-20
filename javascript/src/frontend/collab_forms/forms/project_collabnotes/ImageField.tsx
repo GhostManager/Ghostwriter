@@ -1,12 +1,29 @@
 import { useState } from "react";
+import ImageFieldPlaceholder from "./ImageFieldPlaceholder";
 
 interface ImageFieldProps {
-    imageUrl: string;
+    imageUrl: string | null | undefined;
     onDelete: () => void;
+    onUpload?: (file: File) => void;
+    uploading?: boolean;
 }
 
-export default function ImageField({ imageUrl, onDelete }: ImageFieldProps) {
+export default function ImageField({
+    imageUrl,
+    onDelete,
+    onUpload,
+    uploading = false,
+}: ImageFieldProps) {
     const [showDeleteOverlay, setShowDeleteOverlay] = useState(false);
+
+    if (!imageUrl) {
+        return (
+            <ImageFieldPlaceholder
+                onUpload={onUpload || (() => {})}
+                uploading={uploading}
+            />
+        );
+    }
 
     return (
         <div

@@ -2359,3 +2359,82 @@ def ajax_upload_note_field_image(request, pk):
             {"result": "error", "message": "Failed to upload image"},
             status=500
         )
+
+
+@login_required
+def ajax_upload_to_existing_field(request, note_pk, field_pk):
+    """
+    Upload an image to an existing :model:`rolodex.ProjectCollabNoteField`.
+
+    Updates an existing image field with the uploaded image.
+    """
+    if request.method != "POST":
+        return JsonResponse({"result": "error", "message": "Invalid request method"}, status=405)
+
+    # Import here to avoid circular imports
+    from ghostwriter.rolodex.models import ProjectCollabNote, ProjectCollabNoteField
+
+    try:
+        note = get_object_or_404(ProjectCollabNote, pk=note_pk)
+        field = get_object_or_404(ProjectCollabNoteField, pk=field_pk, note=note)
+
+        # Check permissions
+        if not note.user_can_edit(request.user):
+            return ForbiddenJsonResponse()
+
+        # Verify field is an image type
+        if field.field_type != 'image':
+            return JsonResponse(
+                {"result": "error", "message": "Field is not an image field"},
+                status=400
+            )
+
+        # Validate file exists
+        if 'image' not in request.FILES:
+            return JsonResponse({"result": "error", "message": "No image file provided"}, status=400)
+
+        image_file = request.FILES['image']
+
+        # Validate file type
+        allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+        if image_file.content_type not in allowed_types:
+            return JsonResponse(
+                {"result": "error", "message": f"Invalid file type: {image_file.content_type}. Allowed types: png, jpg, jpeg, gif, webp"},
+                status=400
+            )
+
+        # Validate file size (10 MB max)
+        max_size = 10 * 1024 * 1024  # 10 MB in bytes
+        if image_file.size > max_size:
+            return JsonResponse(
+                {"result": "error", "message": f"File too large: {image_file.size / 1024 / 1024:.1f} MB. Maximum size: 10 MB"},
+                status=400
+            )
+
+        # Update the existing field with the new image
+        field.image = image_file
+        field.save()
+
+        # Build the image URL
+        image_url = request.build_absolute_uri(field.image.url)
+
+        logger.info(
+            "User %s uploaded image to existing field %s for note %s",
+            request.user,
+            field.id,
+            note.id
+        )
+
+        return JsonResponse({
+            "result": "success",
+            "imageUrl": image_url
+        })
+
+    except Exception as exception:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        log_message = template.format(type(exception).__name__, exception.args)
+        logger.error(log_message)
+        return JsonResponse(
+            {"result": "error", "message": "Failed to upload image"},
+            status=500
+        )

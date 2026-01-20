@@ -10,6 +10,8 @@ interface NoteFieldEditorProps {
     provider: HocuspocusProvider;
     connected: boolean;
     onDelete: () => void;
+    onUploadImage?: (fieldId: string, file: File) => void;
+    uploadingFieldId?: string | null;
 }
 
 export default function NoteFieldEditor({
@@ -17,6 +19,8 @@ export default function NoteFieldEditor({
     provider,
     connected,
     onDelete,
+    onUploadImage,
+    uploadingFieldId,
 }: NoteFieldEditorProps) {
     const {
         attributes,
@@ -80,12 +84,18 @@ export default function NoteFieldEditor({
                         fragment={provider.document.getXmlFragment(`field_${field.id}`)}
                     />
                 </div>
-            ) : field.image ? (
+            ) : (
                 <ImageField
                     imageUrl={field.image}
                     onDelete={onDelete}
+                    onUpload={
+                        onUploadImage
+                            ? (file: File) => onUploadImage(field.id, file)
+                            : undefined
+                    }
+                    uploading={uploadingFieldId === field.id}
                 />
-            ) : null}
+            )}
         </div>
     );
 }
