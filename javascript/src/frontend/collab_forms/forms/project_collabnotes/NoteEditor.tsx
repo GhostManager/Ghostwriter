@@ -21,6 +21,7 @@ import {
 } from "../../connection";
 import NoteFieldEditor from "./NoteFieldEditor";
 import AddFieldToolbar from "./AddFieldToolbar";
+import DeleteConfirmModal from "./DeleteConfirmModal";
 import { useFieldMutations } from "./hooks/useFieldMutations";
 import { useImageUpload } from "./hooks/useImageUpload";
 import type { NoteField } from "./types";
@@ -36,6 +37,7 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
     });
 
     const [fields, setFields] = useState<NoteField[]>([]);
+    const [pendingDeleteField, setPendingDeleteField] = useState<NoteField | null>(null);
     const { createRichTextField, deleteField, reorderFields } = useFieldMutations();
     const { uploading, error, uploadImage, handlePaste } = useImageUpload();
 
@@ -192,8 +194,18 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
         [noteId, uploadImage, addFieldToYjsDoc]
     );
 
-    const handleDeleteField = useCallback(
-        async (fieldId: string) => {
+    const requestDeleteField = useCallback(
+        (field: NoteField) => {
+            setPendingDeleteField(field);
+        },
+        []
+    );
+
+    const handleConfirmDelete = useCallback(
+        async () => {
+            if (!pendingDeleteField) return;
+            const fieldId = pendingDeleteField.id;
+            setPendingDeleteField(null);
             try {
                 await deleteField(fieldId);
                 // Update local state directly for immediate UI feedback
@@ -204,8 +216,12 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
                 console.error("Failed to delete field:", err);
             }
         },
-        [deleteField, removeFieldFromYjsDoc]
+        [pendingDeleteField, deleteField, removeFieldFromYjsDoc]
     );
+
+    const handleCancelDelete = useCallback(() => {
+        setPendingDeleteField(null);
+    }, []);
 
     const handleDragEnd = useCallback(
         async (event: DragEndEvent) => {
@@ -273,7 +289,7 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
                             field={field}
                             provider={provider}
                             connected={connected}
-                            onDelete={() => handleDeleteField(field.id)}
+                            onDelete={() => requestDeleteField(field)}
                         />
                     ))}
                 </SortableContext>
@@ -291,6 +307,13 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
                     No fields yet. Add a text field or image above to get started.
                 </div>
             )}
+
+            <DeleteConfirmModal
+                isOpen={pendingDeleteField !== null}
+                fieldType={pendingDeleteField?.fieldType as "rich_text" | "image" | null}
+                onClose={handleCancelDelete}
+                onConfirm={handleConfirmDelete}
+            />
         </div>
     );
 }
