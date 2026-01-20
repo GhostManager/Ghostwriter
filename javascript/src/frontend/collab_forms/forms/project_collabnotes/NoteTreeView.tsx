@@ -20,6 +20,8 @@ import { useTreeSync } from "./hooks/useTreeSync";
 import SortableTreeItem from "./SortableTreeItem";
 import TreeItem from "./TreeItem";
 import CreateModal from "./CreateModal";
+import DeleteConfirmModal from "./DeleteConfirmModal";
+import type { NoteTreeNode } from "./types";
 import "./tree.css";
 
 interface NoteTreeViewProps {
@@ -46,6 +48,7 @@ export default function NoteTreeView({
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createType, setCreateType] = useState<"note" | "folder">("note");
     const [createParentId, setCreateParentId] = useState<number | null>(null);
+    const [pendingDeleteItem, setPendingDeleteItem] = useState<NoteTreeNode | null>(null);
 
     // DnD setup
     const sensors = useSensors(
@@ -99,13 +102,24 @@ export default function NoteTreeView({
         setShowCreateModal(false);
     };
 
-    const handleDelete = async (id: number) => {
+    const requestDelete = (item: NoteTreeNode) => {
+        setPendingDeleteItem(item);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!pendingDeleteItem) return;
+        const id = pendingDeleteItem.id;
+        setPendingDeleteItem(null);
         if (selectedId === id) {
             onSelect(null);
         }
         await deleteNote(id);
         await refetch();
         notifyTreeChanged();
+    };
+
+    const handleCancelDelete = () => {
+        setPendingDeleteItem(null);
     };
 
     const handleRename = async (id: number, title: string) => {
@@ -193,7 +207,7 @@ export default function NoteTreeView({
                                 depth={0}
                                 selectedId={selectedId}
                                 onSelect={onSelect}
-                                onDelete={handleDelete}
+                                onRequestDelete={requestDelete}
                                 onRename={handleRename}
                                 onCreateChild={handleCreateChild}
                                 dragState={dragState}
@@ -216,7 +230,7 @@ export default function NoteTreeView({
                                 depth={0}
                                 selectedId={null}
                                 onSelect={() => {}}
-                                onDelete={() => {}}
+                                onRequestDelete={() => {}}
                                 onRename={() => {}}
                                 onCreateChild={() => {}}
                             />
@@ -231,6 +245,15 @@ export default function NoteTreeView({
                 type={createType}
                 onClose={() => setShowCreateModal(false)}
                 onCreate={handleCreate}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={pendingDeleteItem !== null}
+                itemType={pendingDeleteItem?.nodeType as "note" | "folder" | null}
+                itemTitle={pendingDeleteItem?.title}
+                onClose={handleCancelDelete}
+                onConfirm={handleConfirmDelete}
             />
         </div>
     );

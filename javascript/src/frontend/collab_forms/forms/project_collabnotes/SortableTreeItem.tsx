@@ -7,7 +7,7 @@ interface SortableTreeItemProps {
     depth: number;
     selectedId: number | null;
     onSelect: (id: number | null) => void;
-    onDelete: (id: number) => void;
+    onRequestDelete: (item: NoteTreeNode) => void;
     onRename: (id: number, title: string) => void;
     onCreateChild: (parentId: number, type: "note" | "folder") => void;
     dragState: DragState;
@@ -18,7 +18,7 @@ export default function SortableTreeItem({
     depth,
     selectedId,
     onSelect,
-    onDelete,
+    onRequestDelete,
     onRename,
     onCreateChild,
     dragState,
@@ -51,7 +51,7 @@ export default function SortableTreeItem({
                 depth={childDepth}
                 selectedId={selectedId}
                 onSelect={onSelect}
-                onDelete={onDelete}
+                onRequestDelete={onRequestDelete}
                 onRename={onRename}
                 onCreateChild={onCreateChild}
                 dragState={dragState}
@@ -66,7 +66,7 @@ export default function SortableTreeItem({
                 depth={depth}
                 selectedId={selectedId}
                 onSelect={onSelect}
-                onDelete={onDelete}
+                onRequestDelete={onRequestDelete}
                 onRename={onRename}
                 onCreateChild={onCreateChild}
                 isDragging={isDragging}

@@ -67,6 +67,29 @@ const DELETE_NOTE_FIELDS_MUTATION = `
     }
 `;
 
+const GET_DESCENDANTS_QUERY = `
+    query GetDescendants($id: bigint!) {
+        projectCollabNote_by_pk(id: $id) {
+            id
+            children {
+                id
+                children {
+                    id
+                    children {
+                        id
+                        children {
+                            id
+                            children {
+                                id
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+`;
+
 const MOVE_MUTATION = `
     mutation MoveProjectCollabNote($id: bigint!, $parentId: bigint, $position: Int!) {
         update_projectCollabNote_by_pk(
@@ -190,10 +213,34 @@ export function useNoteMutations() {
     );
 
     const deleteNote = useCallback(async (id: number): Promise<void> => {
-        // First delete all fields associated with this note (cascade delete)
-        await graphqlMutate(DELETE_NOTE_FIELDS_MUTATION, { noteId: id });
-        // Then delete the note itself
-        await graphqlMutate(DELETE_MUTATION, { id });
+        // Helper to collect all descendant IDs from nested structure
+        interface NoteNode {
+            id: number;
+            children?: NoteNode[];
+        }
+
+        const collectIds = (node: NoteNode | null, ids: number[] = []): number[] => {
+            if (!node) return ids;
+            // First collect children's IDs (depth-first, so children come before parents)
+            if (node.children) {
+                for (const child of node.children) {
+                    collectIds(child, ids);
+                }
+            }
+            // Then add this node's ID
+            ids.push(node.id);
+            return ids;
+        };
+
+        // Get all descendants
+        const data = await graphqlMutate(GET_DESCENDANTS_QUERY, { id });
+        const idsToDelete = collectIds(data.projectCollabNote_by_pk);
+
+        // Delete fields and notes for each ID (children first due to collectIds order)
+        for (const noteId of idsToDelete) {
+            await graphqlMutate(DELETE_NOTE_FIELDS_MUTATION, { noteId });
+            await graphqlMutate(DELETE_MUTATION, { id: noteId });
+        }
     }, []);
 
     const moveNote = useCallback(

@@ -372,7 +372,7 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
 
             <DeleteConfirmModal
                 isOpen={pendingDeleteField !== null}
-                fieldType={pendingDeleteField?.fieldType as "rich_text" | "image" | null}
+                itemType={pendingDeleteField?.fieldType as "rich_text" | "image" | null}
                 onClose={handleCancelDelete}
                 onConfirm={handleConfirmDelete}
             />

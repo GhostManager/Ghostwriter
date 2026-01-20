@@ -6,7 +6,7 @@ interface TreeItemProps {
     depth: number;
     selectedId: number | null;
     onSelect: (id: number | null) => void;
-    onDelete: (id: number) => void;
+    onRequestDelete: (item: NoteTreeNode) => void;
     onRename: (id: number, title: string) => void;
     onCreateChild: (parentId: number, type: "note" | "folder") => void;
     // DnD props
@@ -22,7 +22,7 @@ export default function TreeItem({
     depth,
     selectedId,
     onSelect,
-    onDelete,
+    onRequestDelete,
     onRename,
     onCreateChild,
     isDragging = false,
@@ -65,15 +65,7 @@ export default function TreeItem({
 
     const handleDeleteClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (
-            confirm(
-                isFolder
-                    ? `Delete folder "${item.title}" and all its contents?`
-                    : `Delete note "${item.title}"?`
-            )
-        ) {
-            onDelete(item.id);
-        }
+        onRequestDelete(item);
     };
 
     const handleRenameClick = (e: React.MouseEvent) => {
@@ -216,7 +208,7 @@ export default function TreeItem({
                                   depth={depth + 1}
                                   selectedId={selectedId}
                                   onSelect={onSelect}
-                                  onDelete={onDelete}
+                                  onRequestDelete={onRequestDelete}
                                   onRename={onRename}
                                   onCreateChild={onCreateChild}
                               />
