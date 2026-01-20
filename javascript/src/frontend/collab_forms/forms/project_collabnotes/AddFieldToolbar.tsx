@@ -52,15 +52,17 @@ export default function AddFieldToolbar({
 
     return (
         <div
-            className="add-field-toolbar"
+            className={`add-field-toolbar ${dragActive ? "drag-active" : ""}`}
             style={{
                 display: "flex",
                 gap: "8px",
                 padding: "12px",
-                borderTop: "1px solid #ddd",
-                borderBottom: "1px solid #ddd",
+                borderTop: "1px solid var(--bs-border-color)",
+                borderBottom: "1px solid var(--bs-border-color)",
                 marginBottom: "16px",
-                backgroundColor: dragActive ? "#f0f8ff" : "#f8f9fa",
+                backgroundColor: dragActive
+                    ? "var(--bs-primary-bg-subtle)"
+                    : "var(--bs-tertiary-bg)",
                 transition: "background-color 0.2s",
             }}
             onDragEnter={handleDrag}
@@ -98,7 +100,7 @@ export default function AddFieldToolbar({
                 style={{
                     marginLeft: "auto",
                     fontSize: "12px",
-                    color: "#666",
+                    color: "var(--bs-secondary-color)",
                     alignSelf: "center",
                 }}
             >
