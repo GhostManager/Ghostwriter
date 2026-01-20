@@ -56,28 +56,47 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
     useEffect(() => {
         if (!connected) return;
 
+        const meta = provider.document.getMap("meta");
+        let fieldsArray: Y.Array<NoteField> | null = null;
+        let fieldsObserver: (() => void) | null = null;
+
         const updateFields = () => {
-            const meta = provider.document.getMap("meta");
-            const fieldsArray = meta.get("fields");
-            if (fieldsArray) {
+            const currentFieldsArray = meta.get("fields") as Y.Array<NoteField> | undefined;
+            if (currentFieldsArray) {
                 const fieldsList: NoteField[] = [];
-                for (let i = 0; i < fieldsArray.length; i++) {
-                    fieldsList.push(fieldsArray.get(i));
+                for (let i = 0; i < currentFieldsArray.length; i++) {
+                    fieldsList.push(currentFieldsArray.get(i));
                 }
                 setFields(fieldsList);
+
+                // If the fields array changed, update the observer
+                if (currentFieldsArray !== fieldsArray) {
+                    // Remove old observer if exists
+                    if (fieldsArray && fieldsObserver) {
+                        fieldsArray.unobserve(fieldsObserver);
+                    }
+                    // Observe the new fields array for changes (add/remove items)
+                    fieldsArray = currentFieldsArray;
+                    fieldsObserver = () => updateFields();
+                    fieldsArray.observe(fieldsObserver);
+                }
+            } else {
+                setFields([]);
             }
         };
 
         // Initial update
         updateFields();
 
-        // Listen for changes
-        const meta = provider.document.getMap("meta");
-        const observer = () => updateFields();
-        meta.observe(observer);
+        // Listen for changes to meta (e.g., when fields array is first created)
+        const metaObserver = () => updateFields();
+        meta.observe(metaObserver);
 
         return () => {
-            meta.unobserve(observer);
+            meta.unobserve(metaObserver);
+            if (fieldsArray && fieldsObserver) {
+                fieldsArray.unobserve(fieldsObserver);
+            }
         };
     }, [provider, connected]);
 
