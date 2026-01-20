@@ -6,9 +6,10 @@ interface UseTreeDndProps {
     flatNodes: FlatNote[];
     moveNote: (id: number, parentId: number | null, position: number) => Promise<void>;
     refetch: () => Promise<void>;
+    notifyTreeChanged?: () => void;
 }
 
-export function useTreeDnd({ flatNodes, moveNote, refetch }: UseTreeDndProps) {
+export function useTreeDnd({ flatNodes, moveNote, refetch, notifyTreeChanged }: UseTreeDndProps) {
     const [dragState, setDragState] = useState<DragState>({
         activeId: null,
         overId: null,
@@ -206,11 +207,12 @@ export function useTreeDnd({ flatNodes, moveNote, refetch }: UseTreeDndProps) {
             try {
                 await moveNote(activeId, newParentId, newPosition);
                 await refetch();
+                notifyTreeChanged?.();
             } catch (error) {
                 console.error("Failed to move note:", error);
             }
         },
-        [dragState, flatNodes, calculateNewPosition, moveNote, refetch]
+        [dragState, flatNodes, calculateNewPosition, moveNote, refetch, notifyTreeChanged]
     );
 
     const handleDragCancel = useCallback(() => {

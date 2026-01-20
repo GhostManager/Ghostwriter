@@ -22,6 +22,7 @@ import ReportFindingLinkHandler from "./handlers/report_finding_link";
 import ReportHandler from "./handlers/report";
 import ProjectHandler from "./handlers/project";
 import ProjectCollabNoteItemHandler from "./handlers/project_collab_note";
+import ProjectTreeSyncHandler from "./handlers/project_tree_sync";
 
 // Extend this with your model handlers. See how-to-collab.md.
 const HANDLERS_ARR: [string, ModelHandler<any>][] = [
@@ -32,6 +33,7 @@ const HANDLERS_ARR: [string, ModelHandler<any>][] = [
     ["report", ReportHandler],
     ["project", ProjectHandler],
     ["project_collab_note", ProjectCollabNoteItemHandler],
+    ["project_tree_sync", ProjectTreeSyncHandler],
 ];
 const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
@@ -258,6 +260,14 @@ const server = new Server({
 
     async afterUnloadDocument(data) {
         documentData.delete(data.documentName);
+    },
+
+    async onStateless(data) {
+        const { documentName, document, payload } = data;
+        // Broadcast tree change notifications to all connected clients
+        if (documentName.startsWith("project_tree_sync/")) {
+            document.broadcastStateless(payload);
+        }
     },
 });
 

@@ -16,6 +16,7 @@ import {
 import { useNoteTree } from "./hooks/useNoteTree";
 import { useNoteMutations } from "./hooks/useNoteMutations";
 import { useTreeDnd } from "./hooks/useTreeDnd";
+import { useTreeSync } from "./hooks/useTreeSync";
 import SortableTreeItem from "./SortableTreeItem";
 import TreeItem from "./TreeItem";
 import CreateModal from "./CreateModal";
@@ -35,6 +36,12 @@ export default function NoteTreeView({
     const { tree, flatNodes, loading, error, refetch } = useNoteTree(projectId);
     const { createNote, createFolder, deleteNote, renameNote, moveNote } =
         useNoteMutations();
+
+    // Real-time tree sync with other clients
+    const { notifyTreeChanged } = useTreeSync({
+        projectId,
+        onTreeChanged: refetch,
+    });
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createType, setCreateType] = useState<"note" | "folder">("note");
@@ -58,7 +65,7 @@ export default function NoteTreeView({
         handleDragOver,
         handleDragEnd,
         handleDragCancel,
-    } = useTreeDnd({ flatNodes, moveNote, refetch });
+    } = useTreeDnd({ flatNodes, moveNote, refetch, notifyTreeChanged });
 
     // Get all item IDs for SortableContext (flat list of all IDs)
     const allItemIds = useMemo(() => flatNodes.map((n) => n.id), [flatNodes]);
@@ -88,6 +95,7 @@ export default function NoteTreeView({
             onSelect(newId);
         }
         await refetch();
+        notifyTreeChanged();
         setShowCreateModal(false);
     };
 
@@ -97,11 +105,13 @@ export default function NoteTreeView({
         }
         await deleteNote(id);
         await refetch();
+        notifyTreeChanged();
     };
 
     const handleRename = async (id: number, title: string) => {
         await renameNote(id, title);
         await refetch();
+        notifyTreeChanged();
     };
 
     const handleCreateChild = (parentId: number, type: "note" | "folder") => {
