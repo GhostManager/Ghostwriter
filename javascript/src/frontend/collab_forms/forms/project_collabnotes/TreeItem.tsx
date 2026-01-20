@@ -91,6 +91,15 @@ export default function TreeItem({
         ? `tree-item-drop-${dropPosition}`
         : "";
 
+    // Dynamic button classes based on selection state
+    const actionButtonClass = isSelected
+        ? "btn btn-sm p-0 me-1 text-white"
+        : "btn btn-link btn-sm p-0 me-1";
+
+    const deleteButtonClass = isSelected
+        ? "btn btn-sm p-0 text-white"
+        : "btn btn-link btn-sm p-0 text-danger";
+
     return (
         <div
             className={`tree-item-container ${dropClass}`}
@@ -105,6 +114,7 @@ export default function TreeItem({
                     paddingRight: "8px",
                     cursor: isDragging ? "grabbing" : "grab",
                     borderRadius: "4px",
+                    overflow: "hidden",
                 }}
                 onClick={handleClick}
                 {...dragHandleProps}
@@ -152,45 +162,45 @@ export default function TreeItem({
                         style={{ maxWidth: "150px" }}
                     />
                 ) : (
-                    <span className="flex-grow-1 text-truncate">
+                    <span className="flex-grow-1 text-truncate" style={{ minWidth: 0 }}>
                         {item.title}
                     </span>
                 )}
 
                 {/* Actions */}
                 {!isRenaming && (
-                    <span className="tree-item-actions ms-auto">
+                    <span className="tree-item-actions flex-shrink-0">
                         {isFolder && (
                             <>
                                 <button
-                                    className="btn btn-link btn-sm p-0 me-1"
+                                    className={actionButtonClass}
                                     onClick={handleAddNote}
                                     title="Add note"
                                 >
-                                    <i className="fas fa-plus fa-xs"></i>
+                                    <i className="fas fa-plus"></i>
                                 </button>
                                 <button
-                                    className="btn btn-link btn-sm p-0 me-1"
+                                    className={actionButtonClass}
                                     onClick={handleAddFolder}
                                     title="Add subfolder"
                                 >
-                                    <i className="fas fa-folder-plus fa-xs"></i>
+                                    <i className="fas fa-folder-plus"></i>
                                 </button>
                             </>
                         )}
                         <button
-                            className="btn btn-link btn-sm p-0 me-1"
+                            className={actionButtonClass}
                             onClick={handleRenameClick}
                             title="Rename"
                         >
-                            <i className="fas fa-edit fa-xs"></i>
+                            <i className="fas fa-edit"></i>
                         </button>
                         <button
-                            className="btn btn-link btn-sm p-0 text-danger"
+                            className={deleteButtonClass}
                             onClick={handleDeleteClick}
                             title="Delete"
                         >
-                            <i className="fas fa-trash fa-xs"></i>
+                            <i className="fas fa-trash"></i>
                         </button>
                     </span>
                 )}

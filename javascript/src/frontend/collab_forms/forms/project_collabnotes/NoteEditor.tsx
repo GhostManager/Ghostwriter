@@ -170,6 +170,29 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
         [provider, connected]
     );
 
+    // Helper to reorder fields in Yjs document
+    const reorderFieldsInYjsDoc = useCallback(
+        (reorderedFields: NoteField[]) => {
+            if (!connected) return;
+            const meta = provider.document.getMap("meta");
+            const existingFields = meta.get("fields") as Y.Array<NoteField> | undefined;
+
+            if (existingFields) {
+                provider.document.transact(() => {
+                    // Clear the existing array
+                    existingFields.delete(0, existingFields.length);
+                    // Insert fields in new order with updated positions
+                    const updatedFields = reorderedFields.map((field, index) => ({
+                        ...field,
+                        position: index * 1000,
+                    }));
+                    existingFields.push(updatedFields);
+                });
+            }
+        },
+        [provider, connected]
+    );
+
     // Handle clipboard paste for images
     useEffect(() => {
         const handlePasteEvent = async (event: ClipboardEvent) => {
@@ -307,6 +330,8 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
             }));
 
             setFields(newFields);
+            // Sync reorder to Yjs document for other clients
+            reorderFieldsInYjsDoc(newFields);
 
             try {
                 await reorderFields(updates);
@@ -314,9 +339,10 @@ export default function NoteEditor({ noteId }: NoteEditorProps) {
                 console.error("Failed to reorder fields:", err);
                 // Revert on error
                 setFields(fields);
+                reorderFieldsInYjsDoc(fields);
             }
         },
-        [fields, noteId, reorderFields]
+        [fields, noteId, reorderFields, reorderFieldsInYjsDoc]
     );
 
     return (

@@ -47,19 +47,33 @@ const UPDATE_FIELD_POSITION_MUTATION = `
     }
 `;
 
-const REORDER_FIELDS_MUTATION = `
-    mutation ReorderFields($updates: [projectCollabNoteField_insert_input!]!) {
-        insert_projectCollabNoteField(
-            objects: $updates,
-            on_conflict: {
-                constraint: projectcollabnotefield_pkey,
-                update_columns: [position]
-            }
-        ) {
-            affected_rows
+// Build dynamic mutation for reordering multiple fields
+function buildReorderMutation(
+    fields: Array<{ id: string; position: number }>
+): { query: string; variables: Record<string, unknown> } {
+    const mutations = fields.map(
+        (field, index) =>
+            `field${index}: update_projectCollabNoteField_by_pk(
+                pk_columns: { id: $id${index} },
+                _set: { position: $position${index} }
+            ) { id }`
+    );
+
+    const variables: Record<string, unknown> = {};
+    const variableDeclarations = fields.map((field, index) => {
+        variables[`id${index}`] = parseInt(field.id);
+        variables[`position${index}`] = field.position;
+        return `$id${index}: bigint!, $position${index}: Int!`;
+    });
+
+    const query = `
+        mutation ReorderFields(${variableDeclarations.join(", ")}) {
+            ${mutations.join("\n            ")}
         }
-    }
-`;
+    `;
+
+    return { query, variables };
+}
 
 const GET_MAX_POSITION = `
     query GetMaxFieldPosition($noteId: bigint!) {
@@ -154,12 +168,9 @@ export function useFieldMutations() {
         async (
             fields: Array<{ id: string; position: number; noteId: number }>
         ): Promise<void> => {
-            const updates = fields.map((field) => ({
-                id: parseInt(field.id),
-                noteId: field.noteId,
-                position: field.position,
-            }));
-            await graphqlMutate(REORDER_FIELDS_MUTATION, { updates });
+            if (fields.length === 0) return;
+            const { query, variables } = buildReorderMutation(fields);
+            await graphqlMutate(query, variables);
         },
         []
     );
