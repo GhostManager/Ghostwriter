@@ -4,6 +4,10 @@
 import datetime
 import json
 import logging
+import re
+import tempfile
+import zipfile
+from pathlib import Path
 from urllib.parse import urlparse
 
 # Django Imports
@@ -22,6 +26,7 @@ from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
+from markdownify import markdownify as md
 from taggit.models import Tag
 
 # Ghostwriter Libraries
@@ -2438,3 +2443,103 @@ def ajax_upload_to_existing_field(request, note_pk, field_pk):
             {"result": "error", "message": "Failed to upload image"},
             status=500
         )
+
+
+def sanitize_filename(name):
+    """Sanitize a string for use as a filename."""
+    # Remove or replace invalid characters
+    sanitized = re.sub(r'[<>:"/\\|?*]', '_', name)
+    # Collapse multiple underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Remove leading/trailing spaces and underscores
+    sanitized = sanitized.strip(' _')
+    # Limit length
+    if len(sanitized) > 200:
+        sanitized = sanitized[:200]
+    return sanitized or 'untitled'
+
+
+@login_required
+def export_collab_notes_zip(request, pk):
+    """Export all collab notes for a project as a zip file."""
+    from ghostwriter.rolodex.models import ProjectCollabNote, ProjectCollabNoteField
+
+    project = get_object_or_404(Project, pk=pk)
+
+    # Permission check
+    if not project.user_can_edit(request.user):
+        return ForbiddenJsonResponse()
+
+    notes = ProjectCollabNote.objects.filter(project=project).prefetch_related('fields')
+
+    # Build lookup for quick child access
+    notes_by_parent = {}
+    for note in notes:
+        parent_id = note.parent_id
+        if parent_id not in notes_by_parent:
+            notes_by_parent[parent_id] = []
+        notes_by_parent[parent_id].append(note)
+
+    # Sort children by position
+    for parent_id in notes_by_parent:
+        notes_by_parent[parent_id].sort(key=lambda n: n.position)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp:
+        with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zf:
+            def process_node(note, path_prefix=""):
+                safe_title = sanitize_filename(note.title)
+                if note.node_type == "folder":
+                    folder_path = f"{path_prefix}{safe_title}/"
+                    # Process children
+                    children = notes_by_parent.get(note.id, [])
+                    for child in children:
+                        process_node(child, folder_path)
+                else:
+                    # Note - create markdown file
+                    md_content = f"# {note.title}\n\n"
+                    image_num = 1
+                    fields = list(note.fields.all())
+                    fields.sort(key=lambda f: f.position)
+                    for field in fields:
+                        if field.field_type == "rich_text":
+                            # Convert HTML to markdown
+                            converted = md(field.content or "")
+                            md_content += converted + "\n\n"
+                        elif field.field_type == "image" and field.image:
+                            # Copy image to zip
+                            try:
+                                img_filename = f"image_{image_num}{Path(field.image.name).suffix}"
+                                img_folder = f"{path_prefix}{safe_title}_images/"
+                                zf.write(field.image.path, f"{img_folder}{img_filename}")
+                                md_content += f"![Image {image_num}](./{safe_title}_images/{img_filename})\n\n"
+                                image_num += 1
+                            except (FileNotFoundError, OSError) as e:
+                                logger.warning(
+                                    "Could not include image for field %s: %s",
+                                    field.id,
+                                    str(e)
+                                )
+                                md_content += f"![Image {image_num}](missing)\n\n"
+                                image_num += 1
+
+                    zf.writestr(f"{path_prefix}{safe_title}.md", md_content)
+
+            # Process root-level items
+            root_notes = notes_by_parent.get(None, [])
+            for note in root_notes:
+                process_node(note)
+
+        # Read the zip file content
+        tmp.seek(0)
+        zip_content = tmp.read()
+
+    # Clean up temp file
+    try:
+        Path(tmp.name).unlink()
+    except OSError:
+        pass
+
+    response = HttpResponse(zip_content, content_type='application/zip')
+    safe_codename = sanitize_filename(project.codename)
+    add_content_disposition_header(response, f"{safe_codename}_notes.zip")
+    return response

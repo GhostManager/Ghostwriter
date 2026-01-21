@@ -178,6 +178,11 @@ urlpatterns += [
         views.ajax_upload_to_existing_field,
         name="ajax_upload_to_existing_field",
     ),
+    path(
+        "ajax/project/<int:pk>/notes/export",
+        views.export_collab_notes_zip,
+        name="export_collab_notes_zip",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views

@@ -95,10 +95,24 @@ const ProjectCollabNoteItemHandler = simpleModelHandler(
             position: f.position
         }));
     },
-    (doc, id, fieldData: FieldData[]) => {
+    (doc, id, _fieldData: FieldData[]) => {
+        // Read current fields from Y.js meta (includes dynamically added fields)
+        const meta = doc.get("meta", Y.Map) as Y.Map<unknown>;
+        const fieldsArray = meta.get("fields") as Y.Array<FieldData> | undefined;
+
+        if (!fieldsArray) {
+            return { updates: [] };
+        }
+
+        // Convert Y.Array to regular array
+        const currentFields: FieldData[] = [];
+        for (let i = 0; i < fieldsArray.length; i++) {
+            currentFields.push(fieldsArray.get(i));
+        }
+
         // Build updates for all rich_text fields
-        const updates = fieldData
-            .filter(f => f.fieldType === "rich_text")
+        const updates = currentFields
+            .filter(f => f.fieldType === "rich_text" && f.id !== "legacy")
             .map(f => ({
                 where: { id: { _eq: parseInt(f.id) } },
                 _set: { content: yjsToHtml(doc.get(`field_${f.id}`, Y.XmlFragment)) }

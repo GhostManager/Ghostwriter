@@ -91,6 +91,9 @@ const documentData = new Map<string, unknown>();
 
 const server = new Server({
     port: 8000,
+    // Save document content to database periodically (5 seconds after last change)
+    // This ensures content is synced even if clients stay connected
+    debounce: 5000,
 
     async onConnect(data) {
         BASE_LOGGER.info({

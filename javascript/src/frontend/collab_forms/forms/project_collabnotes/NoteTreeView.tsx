@@ -184,6 +184,13 @@ export default function NoteTreeView({
                     <i className="fas fa-folder-plus me-1"></i>
                     Folder
                 </button>
+                <button
+                    className="btn btn-sm btn-outline-secondary ms-auto"
+                    onClick={() => window.location.href = `/rolodex/ajax/project/${projectId}/notes/export`}
+                    title="Download all notes as ZIP"
+                >
+                    <i className="fas fa-download"></i>
+                </button>
             </div>
 
             {/* Tree Items with DnD */}
