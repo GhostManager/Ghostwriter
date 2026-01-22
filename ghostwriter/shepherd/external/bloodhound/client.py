@@ -400,47 +400,53 @@ class APIClient:
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
         for domain in available_domains:
-            domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}?counts=false").json()["data"]
-            domain_out = {
-                "name": domain_data["props"]["name"],
-                "domain": domain_data["props"].get("domain"),
-                "distinguished_name": domain_data["props"].get("distinguishedname"),
-                "domain_sid": domain_data["props"].get("domainsid"),
-                "functional_level": domain_data["props"].get("functionallevel"),
-                "data_quality": self.get_data_quality(domain),
-                "inbound_trusts": [],
-                "outbound_trusts": [],
-            }
-            if domain_data.get("inboundTrusts", 0) > 0:
-                domain_out["inbound_trusts"] = [{
-                    "name": v["name"],
-                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/inbound-trusts").json()["data"]]
-            if domain_data.get("outboundTrusts", 0) > 0:
-                domain_out["outbound_trusts"] = [{
-                    "name": v["name"],
-                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts").json()["data"]]
-
+            logger.info(f"Processing domain {domain['name']}")
+            # A domain lookup may 404 if the domain is an Azure tenant without AD data collected
             try:
-                domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                    "query": 'MATCH (n:Computer) WHERE n.domain = "{}" RETURN n'.format(domain['name']),
-                    "include_properties": True,
-                }).encode("utf-8")).json()["data"]
+                domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}?counts=false").json()["data"]
+                domain_out = {
+                    "name": domain_data["props"]["name"],
+                    "domain": domain_data["props"].get("domain"),
+                    "distinguished_name": domain_data["props"].get("distinguishedname"),
+                    "domain_sid": domain_data["props"].get("domainsid"),
+                    "functional_level": domain_data["props"].get("functionallevel"),
+                    "data_quality": self.get_data_quality(domain),
+                    "inbound_trusts": [],
+                    "outbound_trusts": [],
+                }
+                if domain_data.get("inboundTrusts", 0) > 0:
+                    domain_out["inbound_trusts"] = [{
+                        "name": v["name"],
+                    } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/inbound-trusts").json()["data"]]
+                if domain_data.get("outboundTrusts", 0) > 0:
+                    domain_out["outbound_trusts"] = [{
+                        "name": v["name"],
+                    } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts").json()["data"]]
+
+                try:
+                    domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
+                        "query": 'MATCH (n:Computer) WHERE n.domain = "{}" RETURN n'.format(domain['name']),
+                        "include_properties": True,
+                    }).encode("utf-8")).json()["data"]
+                except APIException as err:
+                    if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
+                        # No results
+                        logger.info(f"No computers found for domain {domain['name']}")
+                        domain_computers = {"nodes": {}}
+                    else:
+                        raise
+                domain_oses = Counter(
+                    value["properties"]["operatingsystem"]
+                    for value in domain_computers["nodes"].values()
+                    if "properties" in value and "operatingsystem" in value["properties"]
+                )
+                domain_out["computers"] = {
+                    "count": len(domain_computers["nodes"]),
+                    "operating_systems": domain_oses,
+                }
             except APIException as err:
-                if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
-                    # No results
-                    logger.info(f"No computers found for domain {domain['name']}")
-                    domain_computers = {"nodes": {}}
-                else:
-                    raise
-            domain_oses = Counter(
-                value["properties"]["operatingsystem"]
-                for value in domain_computers["nodes"].values()
-                if "properties" in value and "operatingsystem" in value["properties"]
-            )
-            domain_out["computers"] = {
-                "count": len(domain_computers["nodes"]),
-                "operating_systems": domain_oses,
-            }
+                logger.error(f"Error retrieving data for domain {domain['name']}: {err}")
+                continue
 
             try:
                 domain_users = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
