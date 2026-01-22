@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-* Removed an unneeded view that could allow someone to download a file without the proer permissions if they knew the report ID and full filename
+* Removed an unneeded view that could allow someone to download a file without the proper permissions if they knew the report ID and full filename
 
 ## [6.2.1] - 13 January 2026
 
