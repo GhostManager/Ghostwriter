@@ -40,7 +40,7 @@ jinja2==3.1.5
 python-docx @ git+https://github.com/GhostManager/python-docx.git@4542c1915895b376ef3ed7a149af15147b3509b2
 python-nmap==0.7.1
 python-pptx==1.0.2
-requests==2.32.3
+requests==2.32.4
 django-timezone-field==7.0.0
 pyjwt[crypto]==2.10.1
 psutil==6.0.0
