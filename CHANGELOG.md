@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added severity color values to BloodHound Enterprise findings data
   * These values mirror the color values provided for Ghostwriter findings (e.g., `color`, `color_rgb`, and `color_hex`)
   * You can use these values in report templates with Jinja2 templating lie `cellbg`
-  * Examples are in the sample BloodHOund report document
+  * Examples are in the sample BloodHound report document
 
 ### Fixed
 
