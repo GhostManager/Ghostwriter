@@ -366,7 +366,7 @@ class APIClient:
             if severity_obj is not None:
                 finding_value["severity_color"] = severity_obj.color
                 finding_value["severity_color_rgb"] = severity_obj.color_rgb
-                grouped[finding_key]["severity_color_hex"] = severity_obj.color_hex
+                finding_value["severity_color_hex"] = severity_obj.color_hex
 
         # Convert to list and sort by severity
         result = list(grouped.values())
