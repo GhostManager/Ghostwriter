@@ -362,7 +362,7 @@ class APIClient:
             finding_value["severity"] = highest_severity
 
             # Add severity ``color``, ``color_rgb``, and ``color_hex`` from Ghostwriter ``Severity`` model and ``severities`` dict
-            severity_obj = severities.get(highest_severity, "Low")
+            severity_obj = severities.get(highest_severity) or severities.get("Low")
             if severity_obj is not None:
                 finding_value["severity_color"] = severity_obj.color
                 finding_value["severity_color_rgb"] = severity_obj.color_rgb
@@ -418,7 +418,7 @@ class APIClient:
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
         for domain in available_domains:
-            logger.info(f"Processing domain {domain['name']}")
+            logger.debug(f"Processing domain {domain['name']}")
             # A domain lookup may 404 if the domain is an Azure tenant without AD data collected
             try:
                 domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}?counts=false").json()["data"]
