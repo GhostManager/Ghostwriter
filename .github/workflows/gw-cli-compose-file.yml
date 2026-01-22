@@ -1,0 +1,25 @@
+name: Build GW-CLI Docker Compose File
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build-compose-file:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          set -euxo pipefail
+          cd ${{github.workspace}}
+          VERSION=$(head -n 1 VERSION)
+          sed -i "s/<VERSION>/$VERSION/" gw-cli.yml
+          gh release upload ${{github.event.release.tag_name}} gw-cli.yml
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
