@@ -359,13 +359,13 @@ class APIClient:
                 target_severity = target.get("severity", "Low")
                 if severity_order.get(target_severity, 0) > severity_order.get(highest_severity, 0):
                     highest_severity = target_severity
-            grouped[finding_key]["severity"] = highest_severity
+            finding_value["severity"] = highest_severity
 
             # Add severity ``color``, ``color_rgb``, and ``color_hex`` from Ghostwriter ``Severity`` model and ``severities`` dict
             severity_obj = severities.get(highest_severity, "Low")
             if severity_obj is not None:
-                grouped[finding_key]["severity_color"] = severity_obj.color
-                grouped[finding_key]["severity_color_rgb"] = severity_obj.color_rgb
+                finding_value["severity_color"] = severity_obj.color
+                finding_value["severity_color_rgb"] = severity_obj.color_rgb
                 grouped[finding_key]["severity_color_hex"] = severity_obj.color_hex
 
         # Convert to list and sort by severity
