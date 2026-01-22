@@ -1,0 +1,196 @@
+# NOTE: This docker compose file is NOT intended to work standalone!
+# Please use Ghostwriter-CLI to ensure that essential setup steps are
+# done.
+
+name: ghostwriter_sys
+
+volumes:
+  production_postgres_data: {}
+  production_postgres_data_backups: {}
+  production_staticfiles: {}
+  production_data: {}
+
+services:
+  django: &django
+    image: ghcr.io/ghostmanager/ghostwriter_django:<VERSION>
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      name: ghostwriter_django
+    environment:
+      - USE_DOCKER=${USE_DOCKER}
+      - IPYTHONDIR=${IPYTHONDIR}
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS=${DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS}
+      - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION}
+      - DJANGO_ACCOUNT_EMAIL_VERIFICATION=${DJANGO_ACCOUNT_EMAIL_VERIFICATION}
+      - DJANGO_ADMIN_URL=${DJANGO_ADMIN_URL}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DJANGO_CSRF_COOKIE_SECURE=${DJANGO_CSRF_COOKIE_SECURE}
+      - DJANGO_CSRF_TRUSTED_ORIGINS=${DJANGO_CSRF_TRUSTED_ORIGINS}
+      - DJANGO_DATE_FORMAT=${DJANGO_DATE_FORMAT}
+      - DJANGO_JWT_SECRET_KEY=${DJANGO_JWT_SECRET_KEY}
+      - DJANGO_QCLUSTER_NAME=${DJANGO_QCLUSTER_NAME}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_SECURE_SSL_REDIRECT=${DJANGO_SECURE_SSL_REDIRECT}
+      - DJANGO_SESSION_COOKIE_AGE=${DJANGO_SESSION_COOKIE_AGE}
+      - DJANGO_SESSION_COOKIE_SECURE=${DJANGO_SESSION_COOKIE_SECURE}
+      - DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE=${DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE}
+      - DJANGO_SESSION_SAVE_EVERY_REQUEST=${DJANGO_SESSION_SAVE_EVERY_REQUEST}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
+      - DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION}
+      - DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST=${DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST}
+      - DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET=${DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
+      - HEALTHCHECK_DISK_USAGE_MAX=${HEALTHCHECK_DISK_USAGE_MAX}
+      - HEALTHCHECK_MEM_MIN=${HEALTHCHECK_MEM_MIN}
+      - MAILGUN_API_KEY=${DJANGO_MAILGUN_API_KEY}
+      - MAILGUN_DOMAIN=${DJANGO_MAILGUN_DOMAIN}
+      - NO_PROXY=graphql_engine
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
+      - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
+    healthcheck:
+      test: curl --insecure --fail https://nginx/status/simple/ || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
+    command: /start
+    volumes:
+      - production_staticfiles:/app/staticfiles
+      - production_data:/app/ghostwriter/media
+
+  postgres:
+    image: ghcr.io/ghostmanager/ghostwriter_postgres:<VERSION>
+    restart: unless-stopped
+    volumes:
+      - production_postgres_data:/var/lib/postgresql/data
+      - production_postgres_data_backups:/backups
+    labels:
+      name: ghostwriter_postgres
+    environment:
+      - NO_PROXY=django,graphql_engine
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+    healthcheck:
+      test: pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
+
+  nginx:
+    image: ghcr.io/ghostmanager/ghostwriter_nginx:<VERSION>
+    restart: unless-stopped
+    depends_on:
+      - django
+    volumes:
+      - production_data:/app/media
+      - production_staticfiles:/app/staticfiles
+      - ./ssl:/ssl
+    labels:
+      name: ghostwriter_nginx
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    environment:
+      - NO_PROXY=django,graphql_engine
+    healthcheck:
+      test: curl --insecure --fail https://localhost/accounts/login || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
+
+  redis:
+    image: ghcr.io/ghostmanager/ghostwriter_redis:<VERSION>
+    labels:
+      name: ghostwriter_redis
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli --raw incr ping || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
+
+  queue:
+    <<: *django
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      name: ghostwriter_queue
+    command: /start-queue
+
+  graphql_engine:
+    image: ghcr.io/ghostmanager/ghostwriter_hasura:<VERSION>
+    depends_on:
+      postgres:
+        condition: service_healthy
+      django:
+        condition: service_started
+    restart: unless-stopped
+    volumes:
+      - ./ssl:/etc/ssl/certs
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "1"
+        max-size: "10m"
+    labels:
+      name: ghostwriter_graphql
+    environment:
+      - ACTIONS_URL_BASE=http://django:8000/api
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      - HASURA_GRAPHQL_AUTH_HOOK=http://django:8000/api/webhook
+      - HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=/srv/console-assets
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - HASURA_GRAPHQL_DEV_MODE=${HASURA_GRAPHQL_DEV_MODE}
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=${HASURA_GRAPHQL_ENABLE_CONSOLE}
+      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=${HASURA_GRAPHQL_ENABLED_LOG_TYPES}
+      - HASURA_GRAPHQL_ENABLE_TELEMETRY=${HASURA_GRAPHQL_ENABLE_TELEMETRY}
+      - HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=${HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY}
+      - HASURA_GRAPHQL_LOG_LEVEL=${HASURA_GRAPHQL_LOG_LEVEL}
+      - HASURA_GRAPHQL_METADATA_DIR=${HASURA_GRAPHQL_METADATA_DIR}
+      - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR}
+      - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
+      - NO_PROXY=django
+    healthcheck:
+      test: curl --insecure --fail http://graphql_engine:8080/healthz || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
+
+  collab-server:
+    image: ghcr.io/ghostmanager/ghostwriter_collab_server:<VERSION>
+    restart: unless-stopped
+    depends_on:
+      - graphql_engine
+      - django
+    labels:
+      name: ghostwriter_collab
+    environment:
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
