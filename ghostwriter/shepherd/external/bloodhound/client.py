@@ -362,7 +362,7 @@ class APIClient:
             grouped[finding_key]["severity"] = highest_severity
 
             # Add severity ``color``, ``color_rgb``, and ``color_hex`` from Ghostwriter ``Severity`` model and ``severities`` dict
-            severity_obj = severities.get(highest_severity, "Low")
+            severity_obj = severities.get(highest_severity) or severities.get("Low")
             if severity_obj is not None:
                 grouped[finding_key]["severity_color"] = severity_obj.color
                 grouped[finding_key]["severity_color_rgb"] = severity_obj.color_rgb
