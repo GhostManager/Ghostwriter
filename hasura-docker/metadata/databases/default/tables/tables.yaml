@@ -36,6 +36,8 @@
 - "!include public_rolodex_projectcontact.yaml"
 - "!include public_rolodex_projectinvite.yaml"
 - "!include public_rolodex_projectnote.yaml"
+- "!include public_rolodex_projectcollabnote.yaml"
+- "!include public_rolodex_projectcollabnotefield.yaml"
 - "!include public_rolodex_projectobjective.yaml"
 - "!include public_rolodex_projectrole.yaml"
 - "!include public_rolodex_projectscope.yaml"

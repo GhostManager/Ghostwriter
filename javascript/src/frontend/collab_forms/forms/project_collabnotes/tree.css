@@ -1,0 +1,56 @@
+/* Drag and drop styles for note tree */
+
+/* Item being dragged - hidden since DragOverlay shows the preview */
+.tree-item-dragging {
+    visibility: hidden;
+}
+
+/* Drop position indicators */
+.tree-item-container {
+    position: relative;
+}
+
+.tree-item-drop-before::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #0d6efd;
+    z-index: 10;
+}
+
+.tree-item-drop-after::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #0d6efd;
+    z-index: 10;
+}
+
+.tree-item-drop-inside > .tree-item {
+    background-color: #cfe2ff;
+    border-radius: 4px;
+}
+
+/* Drag overlay (preview of dragged item) */
+.tree-drag-overlay {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    padding: 2px;
+    opacity: 0.9;
+}
+
+/* Cursor styles */
+.tree-item {
+    cursor: grab;
+}
+
+.tree-item:active {
+    cursor: grabbing;
+}

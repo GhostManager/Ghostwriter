@@ -53,6 +53,7 @@ from ghostwriter.reporting.models import (
 from ghostwriter.reporting.views2.report_finding_link import get_position
 from ghostwriter.rolodex.models import (
     Project,
+    ProjectCollabNote,
     ProjectContact,
     ProjectObjective,
     ProjectSubTask,
@@ -1373,10 +1374,24 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
         "report_finding_link": ReportFindingLink,
         "report": Report,
         "project": Project,
+        "project_collab_note": ProjectCollabNote,
     }
 
     def post(self, request):
-        cls = self.available_models.get(self.input["model"])
+        model = self.input["model"]
+
+        # Special case: project_tree_sync uses project_id as id
+        # and checks if user can access the project
+        if model == "project_tree_sync":
+            try:
+                project = Project.objects.get(id=self.input["id"])
+            except ObjectDoesNotExist:
+                return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+            if not project.user_can_edit(self.user_obj):
+                return JsonResponse(utils.generate_hasura_error_payload("Not allowed to edit", "Unauthorized"), status=403)
+            return JsonResponse(self.user_obj.username, status=200, safe=False)
+
+        cls = self.available_models.get(model)
         if cls is None:
             return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
 

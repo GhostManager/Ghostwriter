@@ -91,7 +91,7 @@ services:
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
 
   nginx:
     build:
@@ -109,7 +109,7 @@ services:
     labels:
       name: ghostwriter_nginx
     ports:
-      - "8000:80"
+      - "${NGINX_PORT:-8000}:80"
     environment:
       - NO_PROXY=django,graphql_engine
 
@@ -190,7 +190,7 @@ services:
       django:
         condition: service_started
     ports:
-      - "${HASURA_GRAPHQL_SERVER_PORT}:8080"
+      - "${HASURA_GRAPHQL_HOST_PORT:-8080}:8080"
       - "9691:9691"
     volumes:
       - ./hasura-docker/metadata:/metadata

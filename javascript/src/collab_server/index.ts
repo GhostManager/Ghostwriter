@@ -21,6 +21,8 @@ import FindingHandler from "./handlers/finding";
 import ReportFindingLinkHandler from "./handlers/report_finding_link";
 import ReportHandler from "./handlers/report";
 import ProjectHandler from "./handlers/project";
+import ProjectCollabNoteItemHandler from "./handlers/project_collab_note";
+import ProjectTreeSyncHandler from "./handlers/project_tree_sync";
 
 // Extend this with your model handlers. See how-to-collab.md.
 const HANDLERS_ARR: [string, ModelHandler<any>][] = [
@@ -30,6 +32,8 @@ const HANDLERS_ARR: [string, ModelHandler<any>][] = [
     ["report_finding_link", ReportFindingLinkHandler],
     ["report", ReportHandler],
     ["project", ProjectHandler],
+    ["project_collab_note", ProjectCollabNoteItemHandler],
+    ["project_tree_sync", ProjectTreeSyncHandler],
 ];
 const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
@@ -89,6 +93,9 @@ const documentData = new Map<string, unknown>();
 
 const server = new Server({
     port: 8000,
+    // Save document content to database periodically (2 seconds after last change)
+    // This ensures content is synced even if clients stay connected
+    debounce: 2000,
 
     async onConnect(data) {
         BASE_LOGGER.info({
@@ -174,22 +181,21 @@ const server = new Server({
                 const existingDoc = conn.instance.documents.get(
                     conn.documentName
                 );
-                if (!existingDoc) {
-                    throw new AuthError("client expecting a loaded document");
-                }
+                if (existingDoc) {
+                    let instanceId;
+                    existingDoc.transact(() => {
+                        instanceId = existingDoc
+                            .get("serverInfo", Y.Map)
+                            .get("instanceId");
+                    });
 
-                let instanceId;
-                existingDoc.transact(() => {
-                    instanceId = existingDoc
-                        .get("serverInfo", Y.Map)
-                        .get("instanceId");
-                });
-
-                if (expectedInstanceId !== instanceId) {
-                    throw new AuthError(
-                        "expected document instance ID mismatch"
-                    );
+                    if (expectedInstanceId !== instanceId) {
+                        throw new AuthError(
+                            "expected document instance ID mismatch"
+                        );
+                    }
                 }
+                // If document is not loaded yet, that's fine - onLoadDocument will load it fresh
             }
 
             log.info("Client authenticated");
@@ -259,6 +265,14 @@ const server = new Server({
 
     async afterUnloadDocument(data) {
         documentData.delete(data.documentName);
+    },
+
+    async onStateless(data) {
+        const { documentName, document, payload } = data;
+        // Broadcast tree change notifications to all connected clients
+        if (documentName.startsWith("project_tree_sync/")) {
+            document.broadcastStateless(payload);
+        }
     },
 });
 
