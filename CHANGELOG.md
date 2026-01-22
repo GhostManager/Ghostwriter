@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Added handling for an error that could occur when fetching BloodHound domains with an Azure tenant reported as an available domain
 
+### Security
+
+* Removed an unneeded view that could allow someone to download a file without the proer permissions if they knew the report ID and full filename
+
 ## [6.2.1] - 13 January 2026
 
 ### Changed
