@@ -24,6 +24,9 @@ from django.conf import settings
 import requests
 from markdown import markdown
 
+# Ghostwriter Libraries
+from ghostwriter.reporting.models import Severity
+
 logger = logging.getLogger(__name__)
 
 
@@ -188,6 +191,20 @@ class APIClient:
         """
         Gets findings from BHEE
         """
+        # Get ``Severity`` objects based on their ``weight`` for later use (single query)
+        # We map weights to BloodHound severity names
+        severity_weight_map = {4: "Low", 3: "Moderate", 2: "High", 1: "Critical"}
+        severity_objects = Severity.objects.filter(weight__in=[1, 2, 3, 4])
+        severities = {severity_weight_map[s.weight]: s for s in severity_objects}
+
+        # BloodHound's severity names to order mapping
+        severity_order = {
+            "Low": 1,
+            "Moderate": 2,
+            "High": 3,
+            "Critical": 4,
+        }
+
         def _calculate_severity(finding: dict) -> str:
             """
             Calculate severity based on ``impact_percentage`` or ``exposure_percentage``.
@@ -336,12 +353,6 @@ class APIClient:
                     grouped[unique_key]["principals"].append(_build_target_entry(finding, severity))
 
         # Now we set the ``severity`` at the top level based on the highest severity of its target(s)
-        severity_order = {
-            "Low": 1,
-            "Moderate": 2,
-            "High": 3,
-            "Critical": 4,
-        }
         for finding_key, finding_value in grouped.items():
             highest_severity = "Low"
             for target in finding_value["principals"]:
@@ -349,6 +360,13 @@ class APIClient:
                 if severity_order.get(target_severity, 0) > severity_order.get(highest_severity, 0):
                     highest_severity = target_severity
             grouped[finding_key]["severity"] = highest_severity
+
+            # Add severity ``color``, ``color_rgb``, and ``color_hex`` from Ghostwriter ``Severity`` model and ``severities`` dict
+            severity_obj = severities.get(highest_severity, "Low")
+            if severity_obj is not None:
+                grouped[finding_key]["severity_color"] = severity_obj.color
+                grouped[finding_key]["severity_color_rgb"] = severity_obj.color_rgb
+                grouped[finding_key]["severity_color_hex"] = severity_obj.color_hex
 
         # Convert to list and sort by severity
         result = list(grouped.values())
