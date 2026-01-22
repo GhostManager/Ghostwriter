@@ -25,7 +25,7 @@ def archive_report(report: Report):
     if not pptx_template:
         raise MissingTemplate()
     filename = "archives/" + "".join(c for c in report.title if c.isalpha() or c.isdigit() or c == ' ') + ".zip"
-    evidences = report.all_evidences()
+    evidences = report.evidence_set.all()
 
     with tempfile.TemporaryFile("w+b") as arcfile:
         with zipfile.ZipFile(arcfile, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
