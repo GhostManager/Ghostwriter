@@ -1048,10 +1048,35 @@ ul.dashboard-checklist {
   padding-left: .5rem;
 }
 
+/* Button text wrapping for narrow containers */
+.btn-text-wrap {
+  white-space: normal !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 .btn:focus {
   box-shadow: 0 0 0 0.1rem var(--primary-color)
 }
 
+/* Button group with consistent heights */
+.btn-group-equal-height {
+  display: flex;
+  align-items: stretch;
+}
+
+.btn-group-equal-height > * {
+  flex: 1;
+}
+
+.btn-group-equal-height .btn {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Button hover effects */
 .button:hover {
   background-color: var(--button-hover-color);
   color: #fff;

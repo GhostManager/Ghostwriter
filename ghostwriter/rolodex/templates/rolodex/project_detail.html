@@ -1094,26 +1094,24 @@
             {% endif %}
           </p>
 
-          <div class="d-flex justify-content-center mb-3" role="group" aria-label="BloodHound buttons">
-            <div class="row justify-content-center w-100">
-              <div class="col-3 pr-1">
-                <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
-                  {% csrf_token %}
-                  <input class="btn btn-secondary w-100" type="submit" value="Test BloodHound Connectivity" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound" />
-                </form>
-              </div>
-              <div class="col-3 pl-1">
-                <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
-                  {% csrf_token %}
-                  <input class="btn btn-primary w-100" type="submit" value="Fetch BloodHound Data" data-toggle="tooltip"
-                    {% if project.has_bloodhound_api %}
-                    title="Fetch data from the project's configured BloodHound API"
-                    {% else %}
-                    title="Fetch data from the globally configured BloodHound API"
-                    {% endif %}
-                  />
-                </form>
-              </div>
+          <div class="btn-group-equal-height justify-content-center mb-3 row" role="group" aria-label="BloodHound buttons">
+            <div class="col-md-4 col-sm-4 px-1 mb-2">
+              <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" class="h-100">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary w-100 btn-text-wrap h-100" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound">Test BloodHound Connectivity</button>
+              </form>
+            </div>
+            <div class="col-md-4 col-sm-4 px-1 mb-2">
+              <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST" class="h-100">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary w-100 btn-text-wrap h-100" data-toggle="tooltip"
+                  {% if project.has_bloodhound_api %}
+                  title="Fetch data from the project's configured BloodHound API"
+                  {% else %}
+                  title="Fetch data from the globally configured BloodHound API"
+                  {% endif %}
+                >Fetch BloodHound Data</button>
+              </form>
             </div>
           </div>
 

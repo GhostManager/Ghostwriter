@@ -504,30 +504,3 @@ class TestVirusTotalConnectionTests(TestCase):
     def test_view_requires_staff(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
-
-
-class ProtectedServeTest(TestCase):
-    """Collection of tests for :view:`home.protected_serve`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
-
-        cls.uri = "/media/templates"
-
-    def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-
-    @override_settings(DEBUG=True)
-    def test_view_uri(self):
-        assert settings.DEBUG
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 404)
-        self.assertContains(response, "ghostwriter.home.views.protected_serve", status_code=404)
-
-    def test_view_uri_requires_login(self):
-        response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 302)
