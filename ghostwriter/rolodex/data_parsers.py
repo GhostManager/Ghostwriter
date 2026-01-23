@@ -2789,12 +2789,42 @@ def iter_report_findings(root: "ElementTree.Element") -> Iterable["ElementTree.E
 def _extract_report_cvss_score(section: "ElementTree.Element") -> Any:
     """Return CVSS score for report-root section if present."""
 
-    cvss_node = _find_child_element(section, "cvssv3.1")
+    cvss_node = _find_child_element(section, "cvssv3.1") or _find_child_element(section, "cvssv3")
+    if cvss_node is None:
+        return ""
+
     base_node = _find_child_element(cvss_node, "base")
+    base_metrics_node = _find_child_element(cvss_node, "base_metrics") or _find_child_element(cvss_node, "base-metrics")
+
     score_node = _find_child_element(base_node, "score")
     if score_node is None:
+        score_node = _find_child_element(base_metrics_node, "base-score")
+    if score_node is None:
+        score_node = _find_child_element(cvss_node, "base-score") or _find_child_element(cvss_node, "score")
+    if score_node is None:
         return ""
-    return _safe_float(_element_text(score_node))
+    score_text = _element_text(score_node)
+    if not score_text:
+        return ""
+    return _safe_float(score_text)
+
+
+def _extract_report_cvss_severity(section: "ElementTree.Element") -> str:
+    """Return CVSS severity text for report-root section if present."""
+
+    cvss_node = _find_child_element(section, "cvssv3.1") or _find_child_element(section, "cvssv3")
+    if cvss_node is None:
+        return ""
+
+    base_node = _find_child_element(cvss_node, "base")
+    base_metrics_node = _find_child_element(cvss_node, "base_metrics") or _find_child_element(cvss_node, "base-metrics")
+
+    severity_node = _find_child_element(base_node, "severity")
+    if severity_node is None:
+        severity_node = _find_child_element(base_metrics_node, "base-severity")
+    if severity_node is None:
+        severity_node = _find_child_element(cvss_node, "base-severity")
+    return _element_text(severity_node)
 
 
 def parse_nipper_firewall_report_report_root(
@@ -2840,6 +2870,8 @@ def parse_nipper_firewall_report_report_root(
         risk = normalize_risk(_get_element_field(nipper_block, "summary"))
         if not risk:
             risk = normalize_risk(_get_element_field(nipper_block, "impact"))
+        if not risk:
+            risk = normalize_risk(_extract_report_cvss_severity(section))
 
         details = get_subsection_text(section, "Finding") or get_extra(section, "CON")
         impact = get_subsection_text(section, "Impact") or details
@@ -2875,6 +2907,8 @@ def parse_nipper_firewall_report_report_root(
             risk = normalize_risk(_get_element_field(nipper_block, "summary"))
             if not risk:
                 risk = normalize_risk(_get_element_field(nipper_block, "impact"))
+            if not risk:
+                risk = normalize_risk(_extract_report_cvss_severity(section))
 
             issue = _get_element_field(section, "title")
             devices = get_devices(section)
