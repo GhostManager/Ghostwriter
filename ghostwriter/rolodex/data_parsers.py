@@ -2726,6 +2726,58 @@ def get_devices(section: Optional["ElementTree.Element"]) -> str:
     return "\n".join(dict.fromkeys([name for name in device_names if name]))
 
 
+def _render_report_content(content: Optional["ElementTree.Element"]) -> List[str]:
+    """Return a text rendering of a content node, including tables."""
+
+    if content is None:
+        return []
+    content_type = (content.attrib.get("type") or "").strip().lower()
+    if content_type == "table":
+        lines: List[str] = []
+        title = _get_element_field(content, "title")
+        if title:
+            lines.append(title)
+
+        headings_node = _find_child_element(content, "headings")
+        headings = [_element_text(header) for header in _find_child_elements(headings_node, "header")]
+        if any(headings):
+            lines.append(" | ".join([heading for heading in headings if heading]))
+
+        rows_node = _find_child_element(content, "rows")
+        for row in _find_child_elements(rows_node, "row"):
+            cells: List[str] = []
+            for cell in _find_child_elements(row, "cell"):
+                cell_items = [_element_text(item) for item in _find_child_elements(cell, "cell-item")]
+                cell_text = " ".join([item for item in cell_items if item]) or _element_text(cell)
+                cells.append(cell_text)
+            if cells:
+                lines.append(" | ".join(cells))
+        return [line for line in lines if line]
+
+    rendered = _element_text(content)
+    return [rendered] if rendered else []
+
+
+def _gather_report_section_text(section: Optional["ElementTree.Element"]) -> List[str]:
+    """Return all text for a report-root section, including nested subsections."""
+
+    if section is None:
+        return []
+    parts: List[str] = []
+    contents = _find_child_element(section, "contents")
+    for content in _find_child_elements(contents, "content"):
+        parts.extend(_render_report_content(content))
+
+    subsections = _find_child_element(section, "subsections")
+    for subsection in _find_child_elements(subsections, "section"):
+        subtitle = (_get_element_field(subsection, "title") or "").strip()
+        if subtitle:
+            parts.append(subtitle)
+        parts.extend(_gather_report_section_text(subsection))
+
+    return [part for part in parts if part]
+
+
 def get_subsection_text(section: Optional["ElementTree.Element"], title_name: str) -> str:
     """Return concatenated ``content`` text for matching subsection titles."""
 
@@ -2737,11 +2789,7 @@ def get_subsection_text(section: Optional["ElementTree.Element"], title_name: st
         title = (_get_element_field(candidate, "title") or "").strip()
         if title != title_name:
             continue
-        contents = _find_child_element(candidate, "contents")
-        for content in _find_child_elements(contents, "content"):
-            content_text = _element_text(content)
-            if content_text:
-                text_parts.append(content_text)
+        text_parts.extend(_gather_report_section_text(candidate))
     return "\n".join(text_parts)
 
 
@@ -2755,6 +2803,12 @@ def normalize_risk(text: Optional[str]) -> str:
     if lower_value == "critical":
         return "High"
     if lower_value == "informational":
+        return "Low"
+    if lower_value in {"high"}:
+        return "High"
+    if lower_value in {"medium", "med"}:
+        return "Medium"
+    if lower_value in {"low"}:
         return "Low"
     return value
 
@@ -2772,6 +2826,14 @@ def iter_report_findings(root: "ElementTree.Element") -> Iterable["ElementTree.E
             finding_text = get_subsection_text(candidate, "Finding")
             recommendation_text = get_subsection_text(candidate, "Recommendation")
             lower_title = title.lower() if title else ""
+            skip_titles = {
+                "introduction",
+                "conclusions",
+                "recommendations",
+                "mitigation classification",
+            }
+            if lower_title in skip_titles:
+                continue
             if (
                 (
                     not title
@@ -2789,7 +2851,11 @@ def iter_report_findings(root: "ElementTree.Element") -> Iterable["ElementTree.E
 def _extract_report_cvss_score(section: "ElementTree.Element") -> Any:
     """Return CVSS score for report-root section if present."""
 
-    cvss_node = _find_child_element(section, "cvssv3.1") or _find_child_element(section, "cvssv3")
+    cvss_node = (
+        _find_child_element(section, "cvssv3.1")
+        or _find_child_element(section, "cvssv3.0")
+        or _find_child_element(section, "cvssv3")
+    )
     if cvss_node is None:
         return ""
 
@@ -2812,7 +2878,11 @@ def _extract_report_cvss_score(section: "ElementTree.Element") -> Any:
 def _extract_report_cvss_severity(section: "ElementTree.Element") -> str:
     """Return CVSS severity text for report-root section if present."""
 
-    cvss_node = _find_child_element(section, "cvssv3.1") or _find_child_element(section, "cvssv3")
+    cvss_node = (
+        _find_child_element(section, "cvssv3.1")
+        or _find_child_element(section, "cvssv3.0")
+        or _find_child_element(section, "cvssv3")
+    )
     if cvss_node is None:
         return ""
 
@@ -2825,6 +2895,44 @@ def _extract_report_cvss_severity(section: "ElementTree.Element") -> str:
     if severity_node is None:
         severity_node = _find_child_element(cvss_node, "base-severity")
     return _element_text(severity_node)
+
+
+def _extract_common_weakness_impact(section: "ElementTree.Element") -> str:
+    """Return paragraph text paired with an infobox under 'Common Weakness Information'."""
+
+    if section is None:
+        return ""
+
+    subsections = _find_child_element(section, "subsections")
+    for candidate in _find_child_elements(subsections, "section"):
+        title = (_get_element_field(candidate, "title") or "").strip()
+        if title != "Common Weakness Information":
+            continue
+
+        def _paragraphs_with_infobox(node: Optional["ElementTree.Element"]) -> str:
+            contents = _find_child_element(node, "contents")
+            content_nodes = _find_child_elements(contents, "content")
+            has_infobox = any((content.attrib.get("type") or "").strip().lower() == "infobox" for content in content_nodes)
+            if not has_infobox:
+                return ""
+            paragraphs = [
+                _element_text(content)
+                for content in content_nodes
+                if (content.attrib.get("type") or "").strip().lower() == "paragraph"
+            ]
+            return "\n".join([text for text in paragraphs if text])
+
+        impact_text = _paragraphs_with_infobox(candidate)
+        if impact_text:
+            return impact_text
+
+        nested_subsections = _find_child_element(candidate, "subsections")
+        for nested in _find_child_elements(nested_subsections, "section"):
+            impact_text = _paragraphs_with_infobox(nested)
+            if impact_text:
+                return impact_text
+
+    return ""
 
 
 def parse_nipper_firewall_report_report_root(
@@ -2873,8 +2981,12 @@ def parse_nipper_firewall_report_report_root(
         if not risk:
             risk = normalize_risk(_extract_report_cvss_severity(section))
 
-        details = get_subsection_text(section, "Finding") or get_extra(section, "CON")
-        impact = get_subsection_text(section, "Impact") or details
+        details = (
+            get_subsection_text(section, "Description")
+            or get_subsection_text(section, "Finding")
+            or get_extra(section, "CON")
+        )
+        impact = _extract_common_weakness_impact(section) or get_subsection_text(section, "Impact") or details
         score = _extract_report_cvss_score(section)
 
         issue = _get_element_field(section, "title")
@@ -2921,7 +3033,11 @@ def parse_nipper_firewall_report_report_root(
             solution = get_subsection_text(section, "Recommendation") or get_extra(section, "REC")
             score = _extract_report_cvss_score(section)
             classification = (get_extra(section, "CLASSIFICATION") or "").upper()
-            section_type = "Rule" if classification.startswith("FILTER") or "FILTER" in classification else "Config"
+            section_type = "Config"
+            if classification.startswith("FILTER") or "FILTER" in classification or "FILTERING" in classification:
+                section_type = "Rule"
+            elif not classification and (issue or "").lower().startswith("rules "):
+                section_type = "Rule"
 
             findings.append(
                 {
