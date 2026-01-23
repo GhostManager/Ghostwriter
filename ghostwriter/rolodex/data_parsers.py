@@ -2831,6 +2831,7 @@ def iter_report_findings(root: "ElementTree.Element") -> Iterable["ElementTree.E
                 "conclusions",
                 "recommendations",
                 "mitigation classification",
+                "configuration",
             }
             if lower_title in skip_titles:
                 continue
