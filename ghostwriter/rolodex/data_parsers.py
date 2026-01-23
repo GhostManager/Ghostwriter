@@ -2818,6 +2818,9 @@ def iter_report_findings(root: "ElementTree.Element") -> Iterable["ElementTree.E
 
     sections_node = _find_child_element(root, "sections")
     for section in _find_child_elements(sections_node, "section"):
+        parent_title = (_get_element_field(section, "title") or "").strip().lower()
+        if parent_title == "configuration":
+            continue
         subsections = _find_child_element(section, "subsections")
         for candidate in _find_child_elements(subsections, "section"):
             title = (_get_element_field(candidate, "title") or "").strip()
