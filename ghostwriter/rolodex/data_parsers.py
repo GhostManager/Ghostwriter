@@ -2984,6 +2984,8 @@ def parse_nipper_firewall_report_report_root(
             risk = normalize_risk(_get_element_field(nipper_block, "impact"))
         if not risk:
             risk = normalize_risk(_extract_report_cvss_severity(section))
+        if not risk:
+            risk = "Low"
 
         details = (
             get_subsection_text(section, "Description")
@@ -3025,6 +3027,8 @@ def parse_nipper_firewall_report_report_root(
                 risk = normalize_risk(_get_element_field(nipper_block, "impact"))
             if not risk:
                 risk = normalize_risk(_extract_report_cvss_severity(section))
+            if not risk:
+                risk = "Low"
 
             issue = _get_element_field(section, "title")
             devices = get_devices(section)
