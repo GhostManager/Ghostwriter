@@ -2678,6 +2678,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
 
             cells = []
             parsed_rows: list[int] = []
+            parsed_cols: list[int] = []
             removed_cells = False
             for cell in row.findall(f"{prefix}c"):
                 if not self._cell_has_value(cell, prefix):
@@ -2690,6 +2691,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
                     col_index, parsed_row = parsed
                     parsed_row = max(1, parsed_row - row_offset)
                     parsed = (col_index, parsed_row)
+                    parsed_cols.append(col_index)
                 cells.append((cell, parsed))
                 if parsed is not None:
                     parsed_rows.append(parsed[1])
@@ -2701,6 +2703,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 continue
 
             unique_rows = {value for value in parsed_rows}
+            reindex_columns = len(parsed_cols) != len(set(parsed_cols))
             if candidate is None and parsed_rows:
                 candidate = min(parsed_rows)
                 if row_index > candidate:
@@ -2712,7 +2715,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
             row_rows: list[int] = []
             next_col = 0
             for cell, parsed in cells:
-                if parsed is None or removed_cells:
+                if parsed is None or removed_cells or reindex_columns:
                     col_index = next_col + 1
                     cell_row = row_index
                     if parsed is not None:
@@ -3685,4 +3688,3 @@ class GhostwriterDocxTemplate(DocxTemplate):
             changed = True
 
         return changed
-
