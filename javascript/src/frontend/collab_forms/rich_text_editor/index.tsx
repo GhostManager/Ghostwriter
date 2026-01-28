@@ -43,6 +43,7 @@ import ColorButton from "./color";
 import { TableCaptionBookmarkButton, TableCellBackgroundColor } from "./table";
 import CaptionButton from "./caption";
 import FootnoteButton from "./footnote";
+import TextExpansionButton from "./text_expansion_button";
 import TextExpansionModal from "./text_expansion_modal";
 import type { AcronymExpansion } from "../../../tiptap_gw/text_expansion";
 
@@ -479,6 +480,7 @@ export function Toolbar(props: {
                     <MenuDivider />
                     <CaptionButton editor={editor} />
                     <FootnoteButton editor={editor} />
+                    <TextExpansionButton editor={editor} />
                     <FormatButton
                         menuItem
                         editor={editor}
@@ -522,6 +524,8 @@ export default function RichTextEditor(props: {
     const [expansionModal, setExpansionModal] = useState<{
         word: string;
         matches: AcronymExpansion[];
+        from: number;
+        to: number;
     } | null>(null);
 
     // Listen for expansion modal events from TipTap extension
@@ -531,11 +535,15 @@ export default function RichTextEditor(props: {
         const handler = ({
             word,
             matches,
+            from,
+            to,
         }: {
             word: string;
             matches: AcronymExpansion[];
+            from: number;
+            to: number;
         }) => {
-            setExpansionModal({ word, matches });
+            setExpansionModal({ word, matches, from, to });
         };
 
         editor.on("showExpansionModal", handler);
@@ -552,15 +560,14 @@ export default function RichTextEditor(props: {
         if (!editor || !expansionModal) return;
 
         // Replace the acronym with the expansion
-        const { state } = editor;
-        const { $from } = state.selection;
-        const from = $from.pos - expansionModal.word.length;
-        const to = $from.pos;
-
         editor
             .chain()
             .focus()
-            .insertContentAt({ from, to }, expansion.full)
+            .insertContentAt(
+                { from: expansionModal.from, to: expansionModal.to },
+                expansion.full
+            )
+            .clearExpansionHighlights() // Clear all highlights after expansion
             .run();
 
         setExpansionModal(null);

@@ -45,14 +45,15 @@ export default function TextExpansionModal({
             className="modal-dialog modal-dialog-centered"
             onAfterOpen={() => {
                 // Focus the modal for keyboard navigation
-                document.querySelector(".modal-content")?.querySelector("input")?.focus();
+                document
+                    .querySelector(".modal-content")
+                    ?.querySelector("input")
+                    ?.focus();
             }}
         >
             <div className="modal-content" onKeyDown={handleKeyDown}>
                 <div className="modal-header">
-                    <h5 className="modal-title">
-                        Expand &ldquo;{word}&rdquo;
-                    </h5>
+                    <h5 className="modal-title">Expand &ldquo;{word}&rdquo;</h5>
                     <button
                         type="button"
                         className="close"
@@ -85,11 +86,6 @@ export default function TextExpansionModal({
                                     style={{ marginRight: "0.5rem" }}
                                 />
                                 <strong>{match.full}</strong>
-                                {match.category && (
-                                    <span className="badge badge-secondary ml-2">
-                                        {match.category}
-                                    </span>
-                                )}
                             </label>
                         ))}
                     </div>

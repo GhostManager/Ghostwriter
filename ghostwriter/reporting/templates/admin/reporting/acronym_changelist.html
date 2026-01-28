@@ -1,0 +1,11 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+  <li>
+    <a href="upload-yaml/" class="addlink">
+      {% trans 'Upload YAML' %}
+    </a>
+  </li>
+  {{ block.super }}
+{% endblock %}

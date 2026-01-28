@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  {{ form.media }}
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:reporting_acronym_changelist' %}">Acronyms</a>
+  &rsaquo; {% trans 'Upload YAML' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="form-row">
+      {{ form.as_p }}
+    </div>
+    
+    <div class="submit-row">
+      <input type="submit" value="{% trans 'Upload and Import' %}" class="default" />
+      <a href="{% url 'admin:reporting_acronym_changelist' %}" class="button cancel-link">{% trans 'Cancel' %}</a>
+    </div>
+  </form>
+</div>
+
+<div class="module" style="margin-top: 20px;">
+  <h2>YAML Format</h2>
+  <p>Upload a YAML file with the following structure:</p>
+  <pre style="background: #fff; color: #000; padding: 10px; border: 1px solid #ccc;">
+API:
+  - full: Application Programming Interface
+
+CIA:
+  - full: Central Intelligence Agency
+  - full: Confidentiality, Integrity, and Availability
+  </pre>
+  
+  <h3>Options</h3>
+  <ul>
+    <li><strong>Override Existing:</strong> If checked, deactivates all existing acronyms and creates new ones from the YAML file. Useful for replacing the entire acronym database.</li>
+    <li><strong>Normal Mode:</strong> If unchecked, creates new acronyms and skips existing ones.</li>
+  </ul>
+</div>
+{% endblock %}

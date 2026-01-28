@@ -1,32 +1,40 @@
-
-from datetime import datetime
+# Standard Libraries
 import io
-import os
 import logging
+import os
 import zipfile
-from socket import gaierror
 from asgiref.sync import async_to_sync
+from datetime import datetime
+from socket import gaierror
 
+# Django Imports
+from django.conf import settings
+from django.contrib import messages
 from django.db.models import Q
-from django.http import (
-    FileResponse,
-    Http404,
-    HttpResponse,
-    HttpResponseRedirect,
-)
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.generic import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
-from django.views.generic import View
-from django.conf import settings
-from django.contrib import messages
+
+# 3rd Party Libraries
 from channels.layers import get_channel_layer
 from taggit.models import Tag
 
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
-from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
+# Ghostwriter Libraries
+from ghostwriter.api.utils import (
+    RoleBasedAccessControlMixin,
+    get_reports_list,
+    get_templates_list,
+    verify_user_is_privileged,
+)
+from ghostwriter.commandcenter.models import (
+    BloodHoundConfiguration,
+    ExtraFieldSpec,
+    ReportConfiguration,
+)
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
@@ -38,12 +46,23 @@ from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
-from ghostwriter.reporting.forms import ReportForm, ReportTemplateForm, SelectReportTemplateForm
-from ghostwriter.reporting.models import Archive, Finding, Observation, Report, ReportTemplate
+from ghostwriter.reporting.forms import (
+    ReportForm,
+    ReportTemplateForm,
+    SelectReportTemplateForm,
+)
+from ghostwriter.reporting.models import (
+    Archive,
+    Finding,
+    Observation,
+    Report,
+    ReportTemplate,
+)
 from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
+
 
 class ReportListView(RoleBasedAccessControlMixin, ListView):
     """
@@ -65,7 +84,7 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
         return render(
             request,
             "reporting/report_list.html",
-            {"filter": reports_filter, "tags": Tag.objects.all()}
+            {"filter": reports_filter, "tags": Tag.objects.all()},
         )
 
 
@@ -89,7 +108,9 @@ class ArchiveView(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        ctx["cancel_link"] = reverse(
+            "rolodex:project_detail", kwargs={"pk": self.object.project.pk}
+        )
         return ctx
 
     def post(self, *args, **kwargs):
@@ -121,7 +142,9 @@ class ArchiveView(RoleBasedAccessControlMixin, DetailView):
                 "Failed to generate one or more documents for the archive.",
                 extra_tags="alert-danger",
             )
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report_instance.id}))
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": report_instance.id})
+        )
 
 
 class ArchiveDownloadView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -138,10 +161,14 @@ class ArchiveDownloadView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         archive_instance = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, archive_instance.report_archive.path)
+        file_path = os.path.join(
+            settings.MEDIA_ROOT, archive_instance.report_archive.path
+        )
         if os.path.exists(file_path):
             with open(file_path, "rb") as archive_file:
-                response = HttpResponse(archive_file.read(), content_type="application/x-zip-compressed")
+                response = HttpResponse(
+                    archive_file.read(), content_type="application/x-zip-compressed"
+                )
                 add_content_disposition_header(response, os.path.basename(file_path))
                 return response
         raise Http404
@@ -174,7 +201,8 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         form = SelectReportTemplateForm(
             instance=self.object,
-            has_bloodhound=self.object.project.has_bloodhound_api() or BloodHoundConfiguration.get_solo().has_bloodhound_api(),
+            has_bloodhound=self.object.project.has_bloodhound_api()
+            or BloodHoundConfiguration.get_solo().has_bloodhound_api(),
         )
         form.fields["docx_template"].queryset = (
             ReportTemplate.objects.filter(
@@ -212,7 +240,9 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         for obs in observations:
             self.observation_autocomplete.append(obs)
         ctx["observation_autocomplete"] = self.observation_autocomplete
-        ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
+        ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(
+            target_model=Report._meta.label
+        )
         ctx["report_config"] = ReportConfiguration.get_solo()
 
         return ctx
@@ -265,7 +295,9 @@ class ReportCreate(RoleBasedAccessControlMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.project
         if self.project:
-            ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.project.pk})
+            ctx["cancel_link"] = reverse(
+                "rolodex:project_detail", kwargs={"pk": self.project.pk}
+            )
         else:
             ctx["cancel_link"] = reverse("reporting:reports")
         return ctx
@@ -293,7 +325,9 @@ class ReportCreate(RoleBasedAccessControlMixin, CreateView):
 
     def get_initial(self):
         if self.project:
-            title = "{} {} ({}) Report".format(self.project.client, self.project.project_type, self.project.start_date)
+            title = "{} {} ({}) Report".format(
+                self.project.client, self.project.project_type, self.project.start_date
+            )
             return {"title": title, "project": self.project.id}
         return super().get_initial()
 
@@ -345,7 +379,9 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.object.project
-        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
+        ctx["cancel_link"] = reverse(
+            "reporting:report_detail", kwargs={"pk": self.object.pk}
+        )
         return ctx
 
     def form_valid(self, form):
@@ -356,7 +392,9 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        messages.success(self.request, "Successfully updated the report", extra_tags="alert-success")
+        messages.success(
+            self.request, "Successfully updated the report", extra_tags="alert-success"
+        )
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
 
 
@@ -400,12 +438,16 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
             "Successfully deleted the report and associated evidence files",
             extra_tags="alert-warning",
         )
-        return "{}#reports".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
+        return "{}#reports".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        ctx["cancel_link"] = reverse(
+            "rolodex:project_detail", kwargs={"pk": self.object.project.pk}
+        )
         ctx["object_type"] = "entire report, evidence and all"
         ctx["object_to_be_deleted"] = queryset.title
         return ctx
@@ -425,7 +467,9 @@ class ReportExtraFieldEdit(CollabModelUpdate):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        field = get_object_or_404(ExtraFieldSpec.for_model(self.model), internal_name=self.extra_field_name)
+        field = get_object_or_404(
+            ExtraFieldSpec.for_model(self.model), internal_name=self.extra_field_name
+        )
         ctx["target_field"] = field
         return ctx
 
@@ -448,8 +492,14 @@ class ReportTemplateListView(RoleBasedAccessControlMixin, ListView):
         return queryset
 
     def get(self, request, *args, **kwarg):
-        templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset())
-        return render(request, "reporting/report_templates_list.html", {"filter": templates_filter})
+        templates_filter = ReportTemplateFilter(
+            request.GET, queryset=self.get_queryset()
+        )
+        return render(
+            request,
+            "reporting/report_templates_list.html",
+            {"filter": templates_filter},
+        )
 
 
 class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
@@ -554,7 +604,9 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def handle_no_permission(self):
         obj = self.get_object()
-        messages.error(self.request, "That template is protected – only an admin can edit it.")
+        messages.error(
+            self.request, "That template is protected – only an admin can edit it."
+        )
         return HttpResponseRedirect(
             reverse(
                 "reporting:template_detail",
@@ -644,7 +696,9 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse("reporting:template_detail", kwargs={"pk": queryset.pk})
+        ctx["cancel_link"] = reverse(
+            "reporting:template_detail", kwargs={"pk": queryset.pk}
+        )
         ctx["object_type"] = "report template file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.filename
         return ctx
@@ -666,19 +720,25 @@ class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
             )
         raise Http404
 
+
 class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Base class for report generation"""
+
     model = Report
-    queryset = Report.objects.all().prefetch_related(
-        "tags",
-        "reportfindinglink_set",
-        "reportfindinglink_set__evidence_set",
-        "reportobservationlink_set",
-        "evidence_set",
-        "project__oplog_set",
-        "project__oplog_set__entries",
-        "project__oplog_set__entries__tags",
-    ).select_related()
+    queryset = (
+        Report.objects.all()
+        .prefetch_related(
+            "tags",
+            "reportfindinglink_set",
+            "reportfindinglink_set__evidence_set",
+            "reportobservationlink_set",
+            "evidence_set",
+            "project__oplog_set",
+            "project__oplog_set__entries",
+            "project__oplog_set__entries__tags",
+        )
+        .select_related()
+    )
 
     object: Report
     include_bloodhound: bool
@@ -695,6 +755,7 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         self.include_bloodhound = self.object.include_bloodhound_data
         return super().dispatch(request, *args, **kwargs)
 
+
 class GenerateReportJSON(GenerateReportBase):
     """Generate a JSON report for an individual :model:`reporting.Report`."""
 
@@ -708,7 +769,9 @@ class GenerateReportJSON(GenerateReportBase):
             self.request.user,
         )
 
-        json_report = ExportReportJson(obj, include_bloodhound=self.include_bloodhound).run()
+        json_report = ExportReportJson(
+            obj, include_bloodhound=self.include_bloodhound
+        ).run()
         return HttpResponse(json_report.getvalue(), "application/json")
 
 
@@ -753,7 +816,9 @@ class GenerateReportDOCX(GenerateReportBase):
                     "You do not have a Word template selected and have not configured a default template.",
                     extra_tags="alert-danger",
                 )
-                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
+                return HttpResponseRedirect(
+                    reverse("reporting:report_detail", kwargs={"pk": obj.id})
+                )
 
         # Check template's linting status
         template_status = report_template.get_status()
@@ -763,13 +828,21 @@ class GenerateReportDOCX(GenerateReportBase):
                 "The selected report template has linting errors and cannot be used to render a DOCX document",
                 extra_tags="alert-danger",
             )
-            return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
+            return HttpResponseRedirect(
+                reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate"
+            )
 
         # Template available and passes linting checks, so proceed with generation
 
         try:
-            exporter = ExportReportDocx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
-            report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
+            exporter = ExportReportDocx(
+                obj,
+                report_template=report_template,
+                include_bloodhound=self.include_bloodhound,
+            )
+            report_name = exporter.render_filename(
+                report_template.filename_override or report_config.report_filename
+            )
             docx = exporter.run()
         except ReportExportTemplateError as error:
             logger.error(
@@ -784,10 +857,13 @@ class GenerateReportDOCX(GenerateReportBase):
                 f"Error: {error}",
                 extra_tags="alert-danger",
             )
-            return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
+            return HttpResponseRedirect(
+                reverse("reporting:report_detail", kwargs={"pk": obj.id})
+            )
 
         response = HttpResponse(
-            docx.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            docx.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
         add_content_disposition_header(response, report_name)
 
@@ -823,7 +899,9 @@ class GenerateReportXLSX(GenerateReportBase):
         try:
             report_config = ReportConfiguration.get_solo()
             exporter = ExportReportXlsx(obj, include_bloodhound=self.include_bloodhound)
-            report_name = exporter.render_filename(report_config.report_filename, ext="xlsx")
+            report_name = exporter.render_filename(
+                report_config.report_filename, ext="xlsx"
+            )
             output = exporter.run()
             response = HttpResponse(
                 output.getvalue(),
@@ -845,7 +923,9 @@ class GenerateReportXLSX(GenerateReportBase):
                 "Encountered an error generating the spreadsheet: {}".format(error),
                 extra_tags="alert-danger",
             )
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate"
+        )
 
 
 class GenerateReportPPTX(GenerateReportBase):
@@ -880,11 +960,20 @@ class GenerateReportPPTX(GenerateReportBase):
                     "The selected report template has linting errors and cannot be used to render a PPTX document.",
                     extra_tags="alert-danger",
                 )
-                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
+                return HttpResponseRedirect(
+                    reverse("reporting:report_detail", kwargs={"pk": obj.pk})
+                    + "#generate"
+                )
 
             # Template available and passes linting checks, so proceed with generation
-            exporter = ExportReportPptx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
-            report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
+            exporter = ExportReportPptx(
+                obj,
+                report_template=report_template,
+                include_bloodhound=self.include_bloodhound,
+            )
+            report_name = exporter.render_filename(
+                report_template.filename_override or report_config.report_filename
+            )
             pptx = exporter.run()
             response = HttpResponse(
                 pptx.getvalue(),
@@ -915,11 +1004,15 @@ class GenerateReportPPTX(GenerateReportBase):
             )
             messages.error(
                 self.request,
-                "Encountered an error generating the document: {}".format(error).replace('"', "").replace("'", "`"),
+                "Encountered an error generating the document: {}".format(error)
+                .replace('"', "")
+                .replace("'", "`"),
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate"
+        )
 
 
 class GenerateReportAll(GenerateReportBase):
@@ -955,15 +1048,29 @@ class GenerateReportAll(GenerateReportBase):
 
             exporters_and_filename_templates = [
                 (
-                    ExportReportDocx(obj, report_template=docx_template, include_bloodhound=self.include_bloodhound),
+                    ExportReportDocx(
+                        obj,
+                        report_template=docx_template,
+                        include_bloodhound=self.include_bloodhound,
+                    ),
                     docx_template.filename_override or report_config.report_filename,
                 ),
                 (
-                    ExportReportPptx(obj, report_template=pptx_template, include_bloodhound=self.include_bloodhound),
+                    ExportReportPptx(
+                        obj,
+                        report_template=pptx_template,
+                        include_bloodhound=self.include_bloodhound,
+                    ),
                     pptx_template.filename_override or report_config.report_filename,
                 ),
-                (ExportReportXlsx(obj, include_bloodhound=self.include_bloodhound), report_config.report_filename),
-                (ExportReportJson(obj, include_bloodhound=self.include_bloodhound), report_config.report_filename),
+                (
+                    ExportReportXlsx(obj, include_bloodhound=self.include_bloodhound),
+                    report_config.report_filename,
+                ),
+                (
+                    ExportReportJson(obj, include_bloodhound=self.include_bloodhound),
+                    report_config.report_filename,
+                ),
             ]
 
             zip_filename = exporters_and_filename_templates[0][0].render_filename(
@@ -973,7 +1080,7 @@ class GenerateReportAll(GenerateReportBase):
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "a") as zf:
-                for (exporter, filename_template) in exporters_and_filename_templates:
+                for exporter, filename_template in exporters_and_filename_templates:
                     filename = exporter.render_filename(filename_template)
                     doc = exporter.run()
                     zf.writestr(filename, doc.getvalue())
@@ -1010,7 +1117,9 @@ class GenerateReportAll(GenerateReportBase):
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate"
+        )
 
 
 def zip_directory(path, zip_handler):
@@ -1023,3 +1132,89 @@ def zip_directory(path, zip_handler):
             absname = os.path.abspath(os.path.join(root, file))
             arcname = absname[len(abs_src) + 1 :]
             zip_handler.write(os.path.join(root, file), "evidence/" + arcname)
+
+
+class AcronymYAMLUploadView(RoleBasedAccessControlMixin, View):
+    """View for uploading and importing acronyms from a YAML file."""
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check if user is authenticated and is admin/staff before allowing access."""
+        if not request.user.is_authenticated:
+            return HttpResponseRedirect(
+                f"{reverse('account_login')}?next={request.path}"
+            )
+
+        if not (request.user.is_staff or request.user.is_superuser):
+            messages.error(
+                request,
+                "Only administrators can upload acronyms.",
+                extra_tags="alert-danger",
+            )
+            return HttpResponseRedirect(reverse("home:dashboard"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        """Display the upload form."""
+        # Ghostwriter Libraries
+        from ghostwriter.reporting.forms import AcronymYAMLUploadForm
+
+        form = AcronymYAMLUploadForm()
+        return render(request, "reporting/acronym_yaml_upload.html", {"form": form})
+
+    def post(self, request):
+        """Process the uploaded YAML file."""
+        # Ghostwriter Libraries
+        from ghostwriter.reporting.forms import AcronymYAMLUploadForm
+        from ghostwriter.reporting.utils import import_acronyms_from_yaml
+
+        form = AcronymYAMLUploadForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            yaml_file = form.cleaned_data["yaml_file"]
+            override = form.cleaned_data["override_existing"]
+
+            try:
+                # Read and import acronyms
+                content = yaml_file.read().decode("utf-8")
+                stats = import_acronyms_from_yaml(
+                    content, override=override, user=request.user
+                )
+
+                # Build success message
+                msg_parts = []
+                if stats["created"] > 0:
+                    msg_parts.append(f"{stats['created']} acronym(s) created")
+                if stats["updated"] > 0:
+                    msg_parts.append(f"{stats['updated']} acronym(s) updated")
+                if stats["skipped"] > 0:
+                    msg_parts.append(f"{stats['skipped']} acronym(s) skipped")
+
+                message = "Successfully imported acronyms: " + ", ".join(msg_parts)
+
+                if stats["errors"]:
+                    message += f". {len(stats['errors'])} error(s) encountered."
+                    for error in stats["errors"][:5]:  # Show first 5 errors
+                        messages.warning(request, error, extra_tags="alert-warning")
+
+                messages.success(request, message, extra_tags="alert-success")
+
+                # Redirect to admin acronym list
+                return HttpResponseRedirect(
+                    reverse("admin:reporting_acronym_changelist")
+                )
+
+            except ValueError as e:
+                messages.error(
+                    request,
+                    f"Failed to import acronyms: {str(e)}",
+                    extra_tags="alert-danger",
+                )
+            except Exception as e:
+                logger.exception("Unexpected error during acronym import")
+                messages.error(
+                    request,
+                    f"An unexpected error occurred: {str(e)}",
+                    extra_tags="alert-danger",
+                )
+
+        return render(request, "reporting/acronym_yaml_upload.html", {"form": form})

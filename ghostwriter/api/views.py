@@ -15,7 +15,7 @@ from socket import gaierror
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
@@ -24,13 +24,12 @@ from django.urls import reverse
 from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView
-from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
+import pytz
 from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
-import pytz
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
@@ -117,7 +116,10 @@ class HasuraView(View):
                         utils.jwt_decode_no_verification(self.encoded_token),
                     )
                     return JsonResponse(
-                        utils.generate_hasura_error_payload("Received invalid API token", "JWTInvalid"), status=401
+                        utils.generate_hasura_error_payload(
+                            "Received invalid API token", "JWTInvalid"
+                        ),
+                        status=401,
                     )
             else:
                 payload = utils.get_jwt_payload(self.encoded_token)
@@ -125,19 +127,32 @@ class HasuraView(View):
                     try:
                         self.user_obj = User.objects.get(id=payload["sub"])
                     except User.DoesNotExist:  # pragma: no cover
-                        logger.warning("Received JWT for a user that does not exist: %s", payload)
+                        logger.warning(
+                            "Received JWT for a user that does not exist: %s", payload
+                        )
                         return JsonResponse(
-                            utils.generate_hasura_error_payload("Received invalid API token", "JWTInvalid"), status=401
+                            utils.generate_hasura_error_payload(
+                                "Received invalid API token", "JWTInvalid"
+                            ),
+                            status=401,
                         )
                 else:
                     return JsonResponse(
-                        utils.generate_hasura_error_payload("Received invalid API token", "JWTInvalid"), status=401
+                        utils.generate_hasura_error_payload(
+                            "Received invalid API token", "JWTInvalid"
+                        ),
+                        status=401,
                     )
             # Only proceed if user is still active
             if not self.user_obj.is_active:
-                logger.warning("Received JWT for inactive user: %s", self.user_obj.username)
+                logger.warning(
+                    "Received JWT for inactive user: %s", self.user_obj.username
+                )
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Received invalid API token", "JWTInvalid"), status=401
+                    utils.generate_hasura_error_payload(
+                        "Received invalid API token", "JWTInvalid"
+                    ),
+                    status=401,
                 )
         # JWT may be legitimately missing for actions like ``login``, so we proceed with dispatch either way
         return super().dispatch(request, *args, **kwargs)
@@ -155,7 +170,10 @@ class JwtRequiredMixin:
             return super().dispatch(request, *args, **kwargs)
 
         return JsonResponse(
-            utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+            utils.generate_hasura_error_payload(
+                "No ``Authorization`` header found", "JWTMissing"
+            ),
+            status=400,
         )
 
 
@@ -182,7 +200,10 @@ class HasuraActionView(HasuraView):
             if "input" in data:
                 self.input = data["input"]
         except JSONDecodeError:
-            logger.exception("Failed to decode JSON data from supposed Hasura Action request: %s", request.body)
+            logger.exception(
+                "Failed to decode JSON data from supposed Hasura Action request: %s",
+                request.body,
+            )
         return super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
@@ -191,7 +212,10 @@ class HasuraActionView(HasuraView):
             # Return 400 if no input was found but some input is required
             if not self.input and self.required_inputs:
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Missing all required inputs", "InvalidRequestBody"), status=400
+                    utils.generate_hasura_error_payload(
+                        "Missing all required inputs", "InvalidRequestBody"
+                    ),
+                    status=400,
                 )
             # Hasura checks for required values, but we check here in case of a discrepancy between the GraphQL schema and the view
             for required_input in self.required_inputs:
@@ -205,7 +229,10 @@ class HasuraActionView(HasuraView):
             return super().dispatch(request, *args, **kwargs)
 
         return JsonResponse(
-            utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized"), status=403
+            utils.generate_hasura_error_payload(
+                "Unauthorized access method", "Unauthorized"
+            ),
+            status=403,
         )
 
 
@@ -233,7 +260,12 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
         try:
             self.project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
         if self.project.user_can_edit(self.user_obj):
             # Get the target object – :model:`shepherd.Domain` or :model:`shepherd.StaticServer``
             if "domainId" in self.input:
@@ -245,22 +277,33 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
             except (Domain.DoesNotExist, StaticServer.DoesNotExist):
                 return JsonResponse(
                     utils.generate_hasura_error_payload(
-                        f"{self.model.__name__} does not exist", f"{self.model.__name__}DoesNotExist"
+                        f"{self.model.__name__} does not exist",
+                        f"{self.model.__name__}DoesNotExist",
                     ),
                     status=400,
                 )
             # Verify the target object is currently marked as available
             if self.status_model == DomainStatus:
-                self.unavailable_status = DomainStatus.objects.get(domain_status="Unavailable")
+                self.unavailable_status = DomainStatus.objects.get(
+                    domain_status="Unavailable"
+                )
                 if self.object.domain_status == self.unavailable_status:
                     return JsonResponse(
-                        utils.generate_hasura_error_payload("Domain is unavailable", "DomainUnavailable"), status=400
+                        utils.generate_hasura_error_payload(
+                            "Domain is unavailable", "DomainUnavailable"
+                        ),
+                        status=400,
                     )
             else:
-                self.unavailable_status = ServerStatus.objects.get(server_status="Unavailable")
+                self.unavailable_status = ServerStatus.objects.get(
+                    server_status="Unavailable"
+                )
                 if self.object.server_status == self.unavailable_status:
                     return JsonResponse(
-                        utils.generate_hasura_error_payload("Server is unavailable", "ServerUnavailable"), status=400
+                        utils.generate_hasura_error_payload(
+                            "Server is unavailable", "ServerUnavailable"
+                        ),
+                        status=400,
                     )
             # Get the requested :model:`shepherd.ActivityType` object
             activity_id = self.input["activityTypeId"]
@@ -268,7 +311,9 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
                 self.activity_type = ActivityType.objects.get(id=activity_id)
             except ActivityType.DoesNotExist:
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Activity Type does not exist", "ActivityTypeDoesNotExist"),
+                    utils.generate_hasura_error_payload(
+                        "Activity Type does not exist", "ActivityTypeDoesNotExist"
+                    ),
                     status=400,
                 )
             # Validate the provided dates are properly formatted and the start date is before the end date
@@ -277,18 +322,28 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
                 self.end_date = parse_date(self.input["endDate"])
             except ParserError:
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Invalid date values (must be YYYY-MM-DD)", "InvalidDates"),
+                    utils.generate_hasura_error_payload(
+                        "Invalid date values (must be YYYY-MM-DD)", "InvalidDates"
+                    ),
                     status=400,
                 )
             if self.end_date < self.start_date:
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("End date is before start date", "InvalidDates"), status=400
+                    utils.generate_hasura_error_payload(
+                        "End date is before start date", "InvalidDates"
+                    ),
+                    status=400,
                 )
             # Set the optional inputs (keys will not always exist)
             if "description" in self.input:
                 self.description = self.input["description"]
         else:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
 
 
 class HasuraCheckoutDeleteView(JwtRequiredMixin, HasuraActionView):
@@ -308,7 +363,9 @@ class HasuraCheckoutDeleteView(JwtRequiredMixin, HasuraActionView):
             instance = self.model.objects.get(id=checkout_id)
         except self.model.DoesNotExist:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Checkout does not exist", f"{self.model.__name__}DoesNotExist"),
+                utils.generate_hasura_error_payload(
+                    "Checkout does not exist", f"{self.model.__name__}DoesNotExist"
+                ),
                 status=400,
             )
         if instance.project.user_can_edit(self.user_obj):
@@ -319,7 +376,10 @@ class HasuraCheckoutDeleteView(JwtRequiredMixin, HasuraActionView):
             }
             return JsonResponse(data, status=self.status)
 
-        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+        return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+            status=401,
+        )
 
 
 class HasuraEventView(View):
@@ -345,21 +405,30 @@ class HasuraEventView(View):
                 self.old_data = self.data["event"]["data"]["old"]
                 self.new_data = self.data["event"]["data"]["new"]
         except JSONDecodeError:
-            logger.exception("Failed to decode JSON data from supposed Hasura Event trigger: %s", request.body)
+            logger.exception(
+                "Failed to decode JSON data from supposed Hasura Event trigger: %s",
+                request.body,
+            )
         super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
         # Return 400 if no input was found
         if not self.data:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Missing event data", "InvalidRequestBody"), status=400
+                utils.generate_hasura_error_payload(
+                    "Missing event data", "InvalidRequestBody"
+                ),
+                status=400,
             )
 
         if utils.verify_graphql_request(request.headers):
             return super().dispatch(request, *args, **kwargs)
 
         return JsonResponse(
-            utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized"), status=403
+            utils.generate_hasura_error_payload(
+                "Unauthorized access method", "Unauthorized"
+            ),
+            status=403,
         )
 
 
@@ -455,7 +524,9 @@ class GraphqlLoginAction(HasuraActionView):
                 data = {"token": f"{jwt_token}", "expires": payload["exp"]}
         else:
             self.status = 401
-            data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
+            data = utils.generate_hasura_error_payload(
+                "Invalid credentials", "InvalidCredentials"
+            )
 
         return JsonResponse(data, status=self.status)
 
@@ -530,7 +601,10 @@ class GraphqlGetExtraFieldSpecAction(JwtRequiredMixin, HasuraActionView):
             model = self.internal_models[model]
         else:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Model does not exist", "ModelDoesNotExist"), status=400
+                utils.generate_hasura_error_payload(
+                    "Model does not exist", "ModelDoesNotExist"
+                ),
+                status=400,
             )
 
         # Get the extra field model and its extra field specs to return to Hasura
@@ -562,7 +636,12 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
         try:
             report = Report.objects.get(id=report_id)
         except Report.DoesNotExist:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
 
         if report.user_can_view(self.user_obj):
             report_bytes = ExportReportJson(report).run().getvalue()
@@ -576,7 +655,10 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
             }
             return JsonResponse(data, status=self.status)
 
-        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+        return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+            status=401,
+        )
 
 
 class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
@@ -600,16 +682,20 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
             evidence = Evidence.objects.get(id=evidence_id)
         except Evidence.DoesNotExist:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Evidence not found", "EvidenceNotFound"),
-                status=HTTPStatus.NOT_FOUND
+                utils.generate_hasura_error_payload(
+                    "Evidence not found", "EvidenceNotFound"
+                ),
+                status=HTTPStatus.NOT_FOUND,
             )
 
         # Check if user has permission to view the evidence
         project = evidence.associated_report.project
         if not project.user_can_view(self.user_obj):
             return JsonResponse(
-            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
-            status=HTTPStatus.FORBIDDEN
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=HTTPStatus.FORBIDDEN,
             )
 
         # Get the configured hostname from GeneralConfiguration
@@ -620,40 +706,52 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
         base_url = f"{protocol}://{config.hostname}"
 
         # Generate download URL using configured hostname
-        evidence_path = reverse("reporting:evidence_download", kwargs={"pk": evidence.id})
+        evidence_path = reverse(
+            "reporting:evidence_download", kwargs={"pk": evidence.id}
+        )
         download_url = f"{base_url}{evidence_path}"
 
         # Read and encode file content
         try:
             file_data = evidence.document.read()
-            encoded_data = b64encode(file_data).decode('utf-8')
+            encoded_data = b64encode(file_data).decode("utf-8")
         except FileNotFoundError:
-            logger.error("Evidence file not found during read: %s", evidence.document.path)
+            logger.error(
+                "Evidence file not found during read: %s", evidence.document.path
+            )
             return JsonResponse(
-                utils.generate_hasura_error_payload("Evidence file not found on server", "EvidenceFileNotFound"),
-                status=HTTPStatus.NOT_FOUND
+                utils.generate_hasura_error_payload(
+                    "Evidence file not found on server", "EvidenceFileNotFound"
+                ),
+                status=HTTPStatus.NOT_FOUND,
             )
         except (IOError, OSError) as e:
             logger.exception("Failed to read evidence file: %s", e)
             return JsonResponse(
-                utils.generate_hasura_error_payload("Failed to read evidence file", "FileReadError"),
-                status=HTTPStatus.INTERNAL_SERVER_ERROR
+                utils.generate_hasura_error_payload(
+                    "Failed to read evidence file", "FileReadError"
+                ),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
         except Exception as e:
             logger.exception("Unexpected error encoding evidence file: %s", e)
             return JsonResponse(
-                utils.generate_hasura_error_payload("Failed to encode evidence file", "FileEncodeError"),
-                status=HTTPStatus.INTERNAL_SERVER_ERROR
+                utils.generate_hasura_error_payload(
+                    "Failed to encode evidence file", "FileEncodeError"
+                ),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
 
         # Return both download URL and base64 content
-        return JsonResponse({
-            "evidenceId": evidence.id,
-            "filename": evidence.filename,
-            "friendlyName": evidence.friendly_name,
-            "downloadUrl": download_url,
-            "fileBase64": encoded_data,
-        })
+        return JsonResponse(
+            {
+                "evidenceId": evidence.id,
+                "filename": evidence.filename,
+                "friendlyName": evidence.friendly_name,
+                "downloadUrl": download_url,
+                "fileBase64": encoded_data,
+            }
+        )
 
 
 class GraphqlCheckoutDomain(HasuraCheckoutView):
@@ -678,7 +776,12 @@ class GraphqlCheckoutDomain(HasuraCheckoutView):
         # Otherwise, continue with the logic specific to this checkout action
         expired = self.object.expiration < date.today()
         if expired:
-            return JsonResponse(utils.generate_hasura_error_payload("Domain is expired", "DomainExpired"), status=400)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Domain is expired", "DomainExpired"
+                ),
+                status=400,
+            )
 
         try:
             if not self.description:
@@ -704,7 +807,10 @@ class GraphqlCheckoutDomain(HasuraCheckoutView):
             return JsonResponse(data, status=self.status)
         except ValidationError:  # pragma: no cover
             return JsonResponse(
-                utils.generate_hasura_error_payload("Could not create new checkout", "ValidationError"), status=422
+                utils.generate_hasura_error_payload(
+                    "Could not create new checkout", "ValidationError"
+                ),
+                status=422,
             )
 
 
@@ -733,7 +839,9 @@ class GraphqlCheckoutServer(HasuraCheckoutView):
             server_role = ServerRole.objects.get(id=role_id)
         except ServerRole.DoesNotExist:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Server Role Type does not exist", "ServerRoleDoesNotExist"),
+                utils.generate_hasura_error_payload(
+                    "Server Role Type does not exist", "ServerRoleDoesNotExist"
+                ),
                 status=400,
             )
 
@@ -762,7 +870,10 @@ class GraphqlCheckoutServer(HasuraCheckoutView):
             return JsonResponse(data, status=self.status)
         except ValidationError:  # pragma: no cover
             return JsonResponse(
-                utils.generate_hasura_error_payload("Could not create new checkout", "ValidationError"), status=422
+                utils.generate_hasura_error_payload(
+                    "Could not create new checkout", "ValidationError"
+                ),
+                status=422,
             )
 
 
@@ -802,19 +913,28 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
             template = ReportTemplate.objects.get(id=template_id)
         except ReportTemplate.DoesNotExist:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Template does not exist", "ReportTemplateDoesNotExist"), status=400
+                utils.generate_hasura_error_payload(
+                    "Template does not exist", "ReportTemplateDoesNotExist"
+                ),
+                status=400,
             )
 
         if template.protected:
             if not utils.verify_user_is_privileged(self.user_obj):
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
+                    utils.generate_hasura_error_payload(
+                        "Unauthorized access", "Unauthorized"
+                    ),
+                    status=401,
                 )
 
         if template.client:
             if not template.client.user_can_edit(self.user_obj):
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
+                    utils.generate_hasura_error_payload(
+                        "Unauthorized access", "Unauthorized"
+                    ),
+                    status=401,
                 )
 
         template.delete()
@@ -842,13 +962,19 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
             report = Report.objects.get(id=report_id)
         except Report.DoesNotExist:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Report does not exist", "ReportDoesNotExist"), status=400
+                utils.generate_hasura_error_payload(
+                    "Report does not exist", "ReportDoesNotExist"
+                ),
+                status=400,
             )
         try:
             finding = Finding.objects.get(id=finding_id)
         except Finding.DoesNotExist:
             return JsonResponse(
-                utils.generate_hasura_error_payload("Finding does not exist", "FindingDoesNotExist"), status=400
+                utils.generate_hasura_error_payload(
+                    "Finding does not exist", "FindingDoesNotExist"
+                ),
+                status=400,
             )
 
         if report.user_can_edit(self.user_obj):
@@ -870,7 +996,10 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
             }
             return JsonResponse(data, status=self.status)
 
-        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+        return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+            status=401,
+        )
 
 
 class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
@@ -878,7 +1007,12 @@ class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
 
     def post(self, request):
         if self.user_obj is None:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
 
         form = ApiEvidenceForm(
             self.input,
@@ -888,14 +1022,23 @@ class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
         if form.is_valid():
             instance = form.save()
             return JsonResponse({"id": instance.pk}, status=201)
-        message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
-        return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
+        message = "\n\n".join(
+            f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items()
+        )
+        return JsonResponse(
+            utils.generate_hasura_error_payload(message, "Invalid"), status=401
+        )
 
 
 class GraphqlUploadReportTemplateView(JwtRequiredMixin, HasuraActionView):
     def post(self, request):
         if self.user_obj is None or not self.user_obj.is_active:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
 
         form = ApiReportTemplateForm(
             self.input,
@@ -904,8 +1047,12 @@ class GraphqlUploadReportTemplateView(JwtRequiredMixin, HasuraActionView):
         if form.is_valid():
             instance = form.save()
             return JsonResponse({"id": instance.pk}, status=201)
-        message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
-        return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
+        message = "\n\n".join(
+            f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items()
+        )
+        return JsonResponse(
+            utils.generate_hasura_error_payload(message, "Invalid"), status=401
+        )
 
 
 class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):
@@ -935,20 +1082,31 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
     def post(self, request, *args, **kwargs):
         logger.info(self.input)
         if not utils.verify_user_is_privileged(self.user_obj):
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
 
         try:
             # Check if the provided role is one of the active roles
             role = self.input["role"].lower()
             if role not in ["user", "manager", "admin"]:
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Invalid user role", "InvalidUserRole"), status=400
+                    utils.generate_hasura_error_payload(
+                        "Invalid user role", "InvalidUserRole"
+                    ),
+                    status=400,
                 )
 
             # If the user is not an admin, they cannot create users with higher privileges than user
             if self.user_obj.role != "admin" and role in ["manager", "admin"]:
                 return JsonResponse(
-                    utils.generate_hasura_error_payload("Unauthorized to create user with this role", "Unauthorized"), status=401
+                    utils.generate_hasura_error_payload(
+                        "Unauthorized to create user with this role", "Unauthorized"
+                    ),
+                    status=401,
                 )
 
             timezone = None
@@ -957,7 +1115,10 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
 
                 if timezone not in pytz.all_timezones:
                     return JsonResponse(
-                        utils.generate_hasura_error_payload("Invalid timezone", "InvalidTimezone"), status=400
+                        utils.generate_hasura_error_payload(
+                            "Invalid timezone", "InvalidTimezone"
+                        ),
+                        status=400,
                     )
 
             user_data = {
@@ -1007,7 +1168,10 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
             user.save()
         except IntegrityError:
             return JsonResponse(
-                utils.generate_hasura_error_payload("A user with that username already exists", "UserAlreadyExists"), status=400
+                utils.generate_hasura_error_payload(
+                    "A user with that username already exists", "UserAlreadyExists"
+                ),
+                status=400,
             )
 
         data = {
@@ -1064,7 +1228,8 @@ class GraphqlOplogEntryDeleteEvent(HasuraEventView):
             channel_layer = get_channel_layer()
             json_message = json.dumps({"action": "delete", "data": self.old_data["id"]})
             async_to_sync(channel_layer.group_send)(
-                str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
+                str(self.old_data["oplog_id_id"]),
+                {"type": "send_oplog_entry", "text": json_message},
             )
         except gaierror:  # pragma: no cover
             # WebSocket are unavailable (unit testing)
@@ -1111,7 +1276,8 @@ class GraphqlReportFindingDeleteEvent(HasuraEventView):
     def post(self, request, *args, **kwargs):
         try:
             findings_queryset = ReportFindingLink.objects.filter(
-                Q(report=self.old_data["report_id"]) & Q(severity=self.old_data["severity_id"])
+                Q(report=self.old_data["report_id"])
+                & Q(severity=self.old_data["severity_id"])
             )
             if findings_queryset:
                 counter = 1
@@ -1167,7 +1333,9 @@ class GraphqlProjectSubTaskUpdateEvent(HasuraEventView):
     """Event webhook to make database updates when :model:`rolodex.ProjectSubTask` entries change."""
 
     def post(self, request, *args, **kwargs):
-        instance = ProjectSubTask.objects.select_related("parent").get(id=self.new_data["id"])
+        instance = ProjectSubTask.objects.select_related("parent").get(
+            id=self.new_data["id"]
+        )
         if instance.deadline > instance.parent.deadline:
             instance.deadline = instance.parent.deadline
             instance.save()
@@ -1201,7 +1369,9 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
             if os.path.exists(path):
                 try:
                     os.remove(path)
-                    logger.info("Deleted old evidence file %s", self.old_data["document"])
+                    logger.info(
+                        "Deleted old evidence file %s", self.old_data["document"]
+                    )
                 except Exception:  # pragma: no cover
                     logger.exception(
                         "Failed deleting old evidence file for %s event: %s",
@@ -1239,14 +1409,15 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
             prev_friendly_ref = f"{{{{.ref {self.old_data['friendly_name']}}}}}"
 
             logger.info(
-                "Updating content of ReportFindingLink instances with updated name for Evidence %s", self.old_data["id"]
+                "Updating content of ReportFindingLink instances with updated name for Evidence %s",
+                self.old_data["id"],
             )
 
             update_instances = []
             if self.old_data["finding_id"]:
-                finding_instance = ReportFindingLink.objects.select_related("report").get(
-                    id=self.old_data["finding_id"]
-                )
+                finding_instance = ReportFindingLink.objects.select_related(
+                    "report"
+                ).get(id=self.old_data["finding_id"])
                 update_instances.append(finding_instance)
 
             if self.old_data["report_id"]:
@@ -1269,7 +1440,10 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
                                 setattr(instance, field.name, new)
                     instance.save()
                 except ReportFindingLink.DoesNotExist:
-                    logger.exception("Could not find ReportFindingLink for Evidence %s", self.data["id"])
+                    logger.exception(
+                        "Could not find ReportFindingLink for Evidence %s",
+                        self.data["id"],
+                    )
 
         return JsonResponse(self.data, status=self.status)
 
@@ -1334,14 +1508,18 @@ class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("users:user_detail", kwargs={"username": self.request.user.username})
+        ctx["cancel_link"] = reverse(
+            "users:user_detail", kwargs={"username": self.request.user.username}
+        )
         return ctx
 
     def form_valid(self, form):
         name = form.cleaned_data["name"]
         expiry = form.cleaned_data["expiry_date"]
         try:
-            _, token = APIKey.objects.create_token(name=name, user=self.request.user, expiry_date=expiry)
+            _, token = APIKey.objects.create_token(
+                name=name, user=self.request.user, expiry_date=expiry
+            )
             messages.info(
                 self.request,
                 token,
@@ -1378,15 +1556,28 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
     def post(self, request):
         cls = self.available_models.get(self.input["model"])
         if cls is None:
-            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unrecognized model type", "InvalidRequestBody"
+                ),
+                status=401,
+            )
 
         try:
             obj = cls.objects.get(id=self.input["id"])
         except ObjectDoesNotExist:
-            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"),
+                status=404,
+            )
 
         if not obj.user_can_edit(self.user_obj):
-            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to edit", "Unauthorized"), status=403)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Not allowed to edit", "Unauthorized"
+                ),
+                status=403,
+            )
         return JsonResponse(self.user_obj.username, status=200, safe=False)
 
 
@@ -1405,22 +1596,43 @@ class GetTags(HasuraActionView):
         is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
         if not self.encoded_token and not is_admin:
             return JsonResponse(
-                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+                utils.generate_hasura_error_payload(
+                    "No ``Authorization`` header found", "JWTMissing"
+                ),
+                status=400,
             )
 
         cls = self.available_models.get(self.input["model"])
         if cls is None:
-            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unrecognized model type", "InvalidRequestBody"
+                ),
+                status=401,
+            )
 
         try:
             obj = cls.objects.get(id=self.input["id"])
         except ObjectDoesNotExist:
-            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"),
+                status=404,
+            )
 
-        if not is_admin and hasattr(obj, "user_can_view") and not obj.user_can_view(self.user_obj):
-            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to view", "Unauthorized"), status=403)
+        if (
+            not is_admin
+            and hasattr(obj, "user_can_view")
+            and not obj.user_can_view(self.user_obj)
+        ):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Not allowed to view", "Unauthorized"
+                ),
+                status=403,
+            )
 
         return JsonResponse({"tags": list(obj.tags.names())})
+
 
 class SetTags(HasuraActionView):
     required_inputs = ["model", "id", "tags"]
@@ -1437,23 +1649,40 @@ class SetTags(HasuraActionView):
         is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
         if not self.encoded_token and not is_admin:
             return JsonResponse(
-                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+                utils.generate_hasura_error_payload(
+                    "No ``Authorization`` header found", "JWTMissing"
+                ),
+                status=400,
             )
 
         cls = self.available_models.get(self.input["model"])
         if cls is None:
-            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unrecognized model type", "InvalidRequestBody"
+                ),
+                status=401,
+            )
 
         try:
             obj = cls.objects.get(id=self.input["id"])
         except ObjectDoesNotExist:
-            return JsonResponse(utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"), status=404)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"),
+                status=404,
+            )
 
         if not is_admin and not obj.user_can_edit(self.user_obj):
-            return JsonResponse(utils.generate_hasura_error_payload("Not allowed to edit", "Unauthorized"), status=403)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Not allowed to edit", "Unauthorized"
+                ),
+                status=403,
+            )
 
         obj.tags.set(self.input["tags"])
         return JsonResponse({"tags": self.input["tags"]})
+
 
 class ObjectsByTag(HasuraActionView):
     required_inputs = ["tag"]
@@ -1470,13 +1699,72 @@ class ObjectsByTag(HasuraActionView):
         is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
         if not self.encoded_token and not is_admin:
             return JsonResponse(
-                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
+                utils.generate_hasura_error_payload(
+                    "No ``Authorization`` header found", "JWTMissing"
+                ),
+                status=400,
             )
 
         cls = self.available_models.get(model)
         if cls is None:
-            return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unrecognized model type", "InvalidRequestBody"
+                ),
+                status=401,
+            )
 
         objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
         objs = objs.filter(tags__name=self.input["tag"])
         return JsonResponse([{"id": obj.pk} for obj in objs], safe=False)
+
+
+class GraphqlGetAcronymsAction(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for retrieving acronyms with optional filtering."""
+
+    def post(self, request, *args, **kwargs):
+        # Ghostwriter Libraries
+        from ghostwriter.reporting.models import Acronym
+
+        # Start with all acronyms, default to active only
+        queryset = Acronym.objects.all()
+
+        # Apply filters from input
+        if "acronym" in self.input and self.input["acronym"]:
+            queryset = queryset.filter(acronym__iexact=self.input["acronym"])
+
+        if "is_active" in self.input and self.input["is_active"] is not None:
+            queryset = queryset.filter(is_active=self.input["is_active"])
+        else:
+            # Default to active only if not explicitly specified
+            queryset = queryset.filter(is_active=True)
+
+        # Apply ordering by priority descending (higher priority first)
+        queryset = queryset.order_by("-priority", "acronym")
+
+        # Apply limit if provided and greater than 0
+        limit = self.input.get("limit", 0)
+        if limit and limit > 0:
+            queryset = queryset[:limit]
+
+        # Serialize acronyms
+        acronyms = []
+        for acronym in queryset:
+            acronyms.append(
+                {
+                    "id": acronym.id,
+                    "acronym": acronym.acronym,
+                    "expansion": acronym.expansion,
+                    "is_active": acronym.is_active,
+                    "priority": acronym.priority,
+                    "override_builtin": acronym.override_builtin,
+                    "created_at": acronym.created_at.isoformat()
+                    if acronym.created_at
+                    else None,
+                    "updated_at": acronym.updated_at.isoformat()
+                    if acronym.updated_at
+                    else None,
+                }
+            )
+
+        return JsonResponse({"acronyms": acronyms}, status=self.status)

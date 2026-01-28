@@ -437,3 +437,18 @@ ul.collab-focused-users {
     max-width: 95vw;
     max-height: 95vh;
 }
+
+// Text expansion: highlight multi-definition acronyms
+.acronym-multi-definition {
+    background-color: #fff3cd;
+    border-bottom: 2px dotted #ffc107;
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 2px;
+    transition: background-color 0.15s ease-in-out;
+
+    &:hover {
+        background-color: #ffe69c;
+        border-bottom-color: #ff9800;
+    }
+}
