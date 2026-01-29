@@ -2678,6 +2678,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
 
             cells = []
             parsed_rows: list[int] = []
+            parsed_cols: list[int] = []
             removed_cells = False
             for cell in row.findall(f"{prefix}c"):
                 if not self._cell_has_value(cell, prefix):
@@ -2690,6 +2691,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
                     col_index, parsed_row = parsed
                     parsed_row = max(1, parsed_row - row_offset)
                     parsed = (col_index, parsed_row)
+                    parsed_cols.append(col_index)
                 cells.append((cell, parsed))
                 if parsed is not None:
                     parsed_rows.append(parsed[1])
@@ -2701,6 +2703,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 continue
 
             unique_rows = {value for value in parsed_rows}
+            reindex_columns = len(parsed_cols) != len(set(parsed_cols))
             if candidate is None and parsed_rows:
                 candidate = min(parsed_rows)
                 if row_index > candidate:
@@ -2712,7 +2715,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
             row_rows: list[int] = []
             next_col = 0
             for cell, parsed in cells:
-                if parsed is None or removed_cells:
+                if parsed is None or removed_cells or reindex_columns:
                     col_index = next_col + 1
                     cell_row = row_index
                     if parsed is not None:
@@ -2940,6 +2943,10 @@ class GhostwriterDocxTemplate(DocxTemplate):
             table_columns = etree.SubElement(table_tree, tag)
 
         existing_columns = list(table_columns.findall(f"{prefix}tableColumn"))
+        original_order = [
+            column.get("name") or column.get("id") or f"Column{index + 1}"
+            for index, column in enumerate(existing_columns)
+        ]
         desired_count = end_col - start_col + 1
         max_id = 0
         for column in existing_columns:
@@ -2979,6 +2986,7 @@ class GhostwriterDocxTemplate(DocxTemplate):
             "sheet": sheet_name,
             "columns": {},
             "order": column_names,
+            "original_order": original_order,
         }
 
         data_end_row = end_row - totals_rows if totals_rows else end_row
@@ -3185,9 +3193,14 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 formula = self._find_chart_formula(num_ref)
                 if not formula:
                     continue
-                values = self._extract_range_values(formula, workbook_data)
+                values, resolved_formula = self._resolve_chart_values(
+                    formula,
+                    workbook_data,
+                )
                 if values is None:
                     continue
+                if resolved_formula != formula:
+                    self._set_chart_formula(num_ref, resolved_formula)
                 cache = self._find_or_create_cache(num_ref, "numCache")
                 self._write_cache(cache, values)
                 self._write_literal_cache(num_ref, "numLit", values)
@@ -3197,13 +3210,21 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 formula = self._find_chart_formula(str_ref)
                 if not formula:
                     continue
-                values = self._extract_range_values(formula, workbook_data)
+                values, resolved_formula = self._resolve_chart_values(
+                    formula,
+                    workbook_data,
+                )
                 if values is None:
                     continue
+                if resolved_formula != formula:
+                    self._set_chart_formula(str_ref, resolved_formula)
                 cache = self._find_or_create_cache(str_ref, "strCache")
                 self._write_cache(cache, values)
                 self._write_literal_cache(str_ref, "strLit", values)
                 updated = True
+
+        if self._reindex_chart_series(tree):
+            updated = True
 
         repaired = self._repair_chart_caches(tree)
 
@@ -3234,6 +3255,23 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 return workbook_data
         return None
 
+    def _resolve_chart_values(
+        self,
+        formula: str,
+        workbook_data: dict[str, dict[str, str]],
+    ) -> tuple[list[str] | None, str]:
+        values = self._extract_range_values(formula, workbook_data)
+        if values is not None:
+            return values, formula
+
+        remapped = self._remap_structured_reference(formula, workbook_data)
+        if remapped and remapped != formula:
+            values = self._extract_range_values(remapped, workbook_data)
+            if values is not None:
+                return values, remapped
+
+        return None, formula
+
     def _find_chart_formula(self, ref_node) -> str | None:
         for child in ref_node:
             qname = etree.QName(child)
@@ -3243,6 +3281,13 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 return None
             return child.text.strip()
         return None
+
+    def _set_chart_formula(self, ref_node, formula: str) -> None:
+        for child in ref_node:
+            qname = etree.QName(child)
+            if qname.localname == "f":
+                child.text = formula
+                return
 
     def _find_or_create_cache(self, ref_node, local_name: str):
         for child in ref_node:
@@ -3270,6 +3315,19 @@ class GhostwriterDocxTemplate(DocxTemplate):
             literal = etree.SubElement(parent, tag)
 
         self._write_cache(literal, values)
+
+    def _reindex_chart_series(self, tree: etree._Element) -> bool:
+        updated = False
+        series = tree.findall(".//{*}ser")
+        for idx, series_node in enumerate(series):
+            for child in series_node:
+                local = etree.QName(child).localname
+                if local not in {"idx", "order"}:
+                    continue
+                if child.get("val") != str(idx):
+                    child.set("val", str(idx))
+                    updated = True
+        return updated
 
     def _extract_range_values(
         self,
@@ -3441,6 +3499,100 @@ class GhostwriterDocxTemplate(DocxTemplate):
 
         return values or None
 
+    def _remap_structured_reference(
+        self,
+        formula: str,
+        workbook_data: dict[str, dict[str, str]],
+    ) -> str | None:
+        if not formula:
+            return None
+
+        tables = workbook_data.get("__tables__")
+        if not isinstance(tables, dict):
+            return None
+
+        stripped = formula.strip()
+        prefix = ""
+        if stripped.startswith("="):
+            prefix = "="
+            stripped = stripped[1:].strip()
+
+        sheet_part = None
+        ref_part = stripped
+        if "!" in stripped:
+            sheet_part, ref_part = stripped.rsplit("!", 1)
+
+        if "[" not in ref_part or "]" not in ref_part:
+            return None
+
+        table_name, tokens = self._parse_structured_reference(ref_part)
+        if not table_name:
+            return None
+
+        table_info = tables.get(table_name)
+        if table_info is None:
+            lower_lookup = tables.get("__lower__")
+            if isinstance(lower_lookup, dict):
+                resolved = lower_lookup.get(table_name.lower())
+                if resolved:
+                    table_info = tables.get(resolved)
+        if not isinstance(table_info, dict):
+            return None
+
+        order = table_info.get("order")
+        original_order = table_info.get("original_order")
+        if not isinstance(order, list) or not isinstance(original_order, list):
+            return None
+
+        mapping: dict[str, str] = {}
+        for idx, name in enumerate(original_order):
+            if not isinstance(name, str) or idx >= len(order):
+                continue
+            new_name = order[idx]
+            if isinstance(new_name, str):
+                mapping[name] = new_name
+
+        if not mapping:
+            return None
+
+        def map_token(value: str) -> tuple[str, bool]:
+            if not value or value.startswith("#"):
+                return value, False
+            if value in order:
+                return value, False
+            mapped = mapping.get(value)
+            return (mapped, True) if mapped else (value, False)
+
+        updated_tokens: list[str] = []
+        changed = False
+        for token in tokens:
+            if isinstance(token, tuple):
+                start, end = token
+                if not isinstance(start, str) or not isinstance(end, str):
+                    continue
+                start_value, start_changed = map_token(start)
+                end_value, end_changed = map_token(end)
+                updated_tokens.append(f"{start_value}:{end_value}")
+                changed = changed or start_changed or end_changed
+                continue
+
+            if isinstance(token, str):
+                value, token_changed = map_token(token)
+                updated_tokens.append(value)
+                changed = changed or token_changed
+
+        if not changed:
+            return None
+
+        rebuilt = table_name
+        if updated_tokens:
+            rebuilt = f"{table_name}[{','.join(updated_tokens)}]"
+
+        if sheet_part:
+            rebuilt = f"{sheet_part}!{rebuilt}"
+
+        return f"{prefix}{rebuilt}"
+
     def _parse_structured_reference(
         self,
         reference: str,
@@ -3522,7 +3674,15 @@ class GhostwriterDocxTemplate(DocxTemplate):
         order = table_info.get("order")
         if not isinstance(order, list):
             order = []
+        original_order = table_info.get("original_order")
+        if not isinstance(original_order, list):
+            original_order = []
         order_lookup = {name: idx for idx, name in enumerate(order) if isinstance(name, str)}
+        for idx, name in enumerate(original_order):
+            if not isinstance(name, str) or name in order_lookup:
+                continue
+            if idx < len(order):
+                order_lookup[name] = idx
 
         qualifier_flags: set[str] = set()
         selected_indices: list[int] = []
@@ -3685,4 +3845,3 @@ class GhostwriterDocxTemplate(DocxTemplate):
             changed = True
 
         return changed
-

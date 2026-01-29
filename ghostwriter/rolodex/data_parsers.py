@@ -2707,6 +2707,427 @@ def _iter_nipper_sections(root: "ElementTree.Element", ref: str) -> List["Elemen
     return matches
 
 
+def get_extra(section: Optional["ElementTree.Element"], key: str) -> str:
+    """Return text from a report-root ``extra-info`` block."""
+
+    extra_info = _find_child_element(section, "extra-info")
+    return _get_element_field(extra_info, key)
+
+
+def get_devices(section: Optional["ElementTree.Element"]) -> str:
+    """Return newline-delimited device names for the provided section."""
+
+    devices_node = _find_child_element(section, "devices")
+    device_names = [
+        device.attrib.get("name") or _get_element_field(device, "name")
+        for device in _find_child_elements(devices_node, "device")
+        if device is not None
+    ]
+    return "\n".join(dict.fromkeys([name for name in device_names if name]))
+
+
+def _render_report_content(content: Optional["ElementTree.Element"]) -> List[str]:
+    """Return a text rendering of a content node, including tables."""
+
+    if content is None:
+        return []
+    content_type = (content.attrib.get("type") or "").strip().lower()
+    if content_type == "table":
+        lines: List[str] = []
+        title = _get_element_field(content, "title")
+        if title:
+            lines.append(title)
+
+        headings_node = _find_child_element(content, "headings")
+        headings = [_element_text(header) for header in _find_child_elements(headings_node, "header")]
+        if any(headings):
+            lines.append(" | ".join([heading for heading in headings if heading]))
+
+        rows_node = _find_child_element(content, "rows")
+        for row in _find_child_elements(rows_node, "row"):
+            cells: List[str] = []
+            for cell in _find_child_elements(row, "cell"):
+                cell_items = [_element_text(item) for item in _find_child_elements(cell, "cell-item")]
+                cell_text = " ".join([item for item in cell_items if item]) or _element_text(cell)
+                cells.append(cell_text)
+            if cells:
+                lines.append(" | ".join(cells))
+        return [line for line in lines if line]
+
+    rendered = _element_text(content)
+    return [rendered] if rendered else []
+
+
+def _gather_report_section_text(section: Optional["ElementTree.Element"]) -> List[str]:
+    """Return all text for a report-root section, including nested subsections."""
+
+    if section is None:
+        return []
+    parts: List[str] = []
+    contents = _find_child_element(section, "contents")
+    for content in _find_child_elements(contents, "content"):
+        parts.extend(_render_report_content(content))
+
+    subsections = _find_child_element(section, "subsections")
+    for subsection in _find_child_elements(subsections, "section"):
+        subtitle = (_get_element_field(subsection, "title") or "").strip()
+        if subtitle:
+            parts.append(subtitle)
+        parts.extend(_gather_report_section_text(subsection))
+
+    return [part for part in parts if part]
+
+
+def get_subsection_text(section: Optional["ElementTree.Element"], title_name: str) -> str:
+    """Return concatenated ``content`` text for matching subsection titles."""
+
+    if section is None:
+        return ""
+    text_parts: List[str] = []
+    subsections = _find_child_element(section, "subsections")
+    for candidate in _find_child_elements(subsections, "section"):
+        title = (_get_element_field(candidate, "title") or "").strip()
+        if title != title_name:
+            continue
+        text_parts.extend(_gather_report_section_text(candidate))
+    return "\n".join(text_parts)
+
+
+def normalize_risk(text: Optional[str]) -> str:
+    """Normalize report risk strings to match legacy mapping."""
+
+    value = (text or "").strip()
+    if not value:
+        return ""
+    lower_value = value.lower()
+    if lower_value == "critical":
+        return "High"
+    if lower_value == "informational":
+        return "Low"
+    if lower_value in {"high"}:
+        return "High"
+    if lower_value in {"medium", "med"}:
+        return "Medium"
+    if lower_value in {"low"}:
+        return "Low"
+    return value
+
+
+def iter_report_findings(root: "ElementTree.Element") -> Iterable["ElementTree.Element"]:
+    """Yield candidate finding sections from a report-root Nipper export."""
+
+    sections_node = _find_child_element(root, "sections")
+    for section in _find_child_elements(sections_node, "section"):
+        parent_title = (_get_element_field(section, "title") or "").strip().lower()
+        if parent_title == "configuration" or parent_title.endswith(" configuration report"):
+            continue
+        subsections = _find_child_element(section, "subsections")
+        for candidate in _find_child_elements(subsections, "section"):
+            title = (_get_element_field(candidate, "title") or "").strip()
+            devices = get_devices(candidate)
+            audit_text = get_extra(candidate, "AUDIT")
+            finding_text = get_subsection_text(candidate, "Finding")
+            recommendation_text = get_subsection_text(candidate, "Recommendation")
+            lower_title = title.lower() if title else ""
+            skip_titles = {
+                "introduction",
+                "conclusions",
+                "recommendations",
+                "mitigation classification",
+                "configuration",
+            }
+            if lower_title in skip_titles:
+                continue
+            if (
+                (
+                    not title
+                    or any(keyword in lower_title for keyword in ("introduction", "conclusions", "recommendations"))
+                )
+                and not audit_text
+                and not devices
+                and not finding_text
+                and not recommendation_text
+            ):
+                continue
+            yield candidate
+
+
+def _extract_report_cvss_score(section: "ElementTree.Element") -> Any:
+    """Return CVSS score for report-root section if present."""
+
+    cvss_node = (
+        _find_child_element(section, "cvssv3.1")
+        or _find_child_element(section, "cvssv3.0")
+        or _find_child_element(section, "cvssv3")
+    )
+    if cvss_node is None:
+        return ""
+
+    base_node = _find_child_element(cvss_node, "base")
+    base_metrics_node = _find_child_element(cvss_node, "base_metrics") or _find_child_element(cvss_node, "base-metrics")
+
+    score_node = _find_child_element(base_node, "score")
+    if score_node is None:
+        score_node = _find_child_element(base_metrics_node, "base-score")
+    if score_node is None:
+        score_node = _find_child_element(cvss_node, "base-score") or _find_child_element(cvss_node, "score")
+    if score_node is None:
+        return ""
+    score_text = _element_text(score_node)
+    if not score_text:
+        return ""
+    return _safe_float(score_text)
+
+
+def _extract_report_cvss_severity(section: "ElementTree.Element") -> str:
+    """Return CVSS severity text for report-root section if present."""
+
+    cvss_node = (
+        _find_child_element(section, "cvssv3.1")
+        or _find_child_element(section, "cvssv3.0")
+        or _find_child_element(section, "cvssv3")
+    )
+    if cvss_node is None:
+        return ""
+
+    base_node = _find_child_element(cvss_node, "base")
+    base_metrics_node = _find_child_element(cvss_node, "base_metrics") or _find_child_element(cvss_node, "base-metrics")
+
+    severity_node = _find_child_element(base_node, "severity")
+    if severity_node is None:
+        severity_node = _find_child_element(base_metrics_node, "base-severity")
+    if severity_node is None:
+        severity_node = _find_child_element(cvss_node, "base-severity")
+    return _element_text(severity_node)
+
+
+def _extract_common_weakness_impact(section: "ElementTree.Element") -> str:
+    """Return paragraph text paired with an infobox under 'Common Weakness Information'."""
+
+    if section is None:
+        return ""
+
+    subsections = _find_child_element(section, "subsections")
+    for candidate in _find_child_elements(subsections, "section"):
+        title = (_get_element_field(candidate, "title") or "").strip()
+        if title != "Common Weakness Information":
+            continue
+
+        def _paragraphs_with_infobox(node: Optional["ElementTree.Element"]) -> str:
+            contents = _find_child_element(node, "contents")
+            content_nodes = _find_child_elements(contents, "content")
+            has_infobox = any((content.attrib.get("type") or "").strip().lower() == "infobox" for content in content_nodes)
+            if not has_infobox:
+                return ""
+            paragraphs = [
+                _element_text(content)
+                for content in content_nodes
+                if (content.attrib.get("type") or "").strip().lower() == "paragraph"
+            ]
+            return "\n".join([text for text in paragraphs if text])
+
+        impact_text = _paragraphs_with_infobox(candidate)
+        if impact_text:
+            return impact_text
+
+        nested_subsections = _find_child_element(candidate, "subsections")
+        for nested in _find_child_elements(nested_subsections, "section"):
+            impact_text = _paragraphs_with_infobox(nested)
+            if impact_text:
+                return impact_text
+
+    return ""
+
+
+def parse_nipper_firewall_report_report_root(
+    root: "ElementTree.Element", project_type: Optional[str], raw_bytes: Optional[bytes] = None
+) -> List[Dict[str, Any]]:
+    """Parse report-root Nipper firewall exports into normalized findings."""
+
+    tier_map = {
+        "silver": 1,
+        "gold": 2,
+        "cloudfirst": 2,
+        "platinum": 3,
+        "titanium": 3,
+    }
+    normalized_tier = (project_type or "").strip().lower()
+    tier = tier_map.get(normalized_tier, 3)
+
+    logger.info(
+        "Parsing Nipper firewall report (report-root; tier=%s); bytes_read=%s",
+        normalized_tier or "auto",
+        len(raw_bytes or b""),
+    )
+
+    findings: List[Dict[str, Any]] = []
+    applicable_refs = ["VULNAUDIT"]
+    if tier >= 2:
+        applicable_refs.append("SECURITYAUDIT")
+    if tier >= 3:
+        applicable_refs.append("COMPLEXITY")
+
+    candidate_sections = list(iter_report_findings(root))
+
+    vulnaudit_count = 0
+    security_count = 0
+    complexity_count = 0
+
+    for section in candidate_sections:
+        audit_text = (get_extra(section, "AUDIT") or "").lower()
+        if not any(keyword in audit_text for keyword in ("nvd", "vuln", "vulnerability", "nist")):
+            continue
+
+        nipper_block = _find_child_element(section, "nipper")
+        risk = normalize_risk(_get_element_field(nipper_block, "summary"))
+        if not risk:
+            risk = normalize_risk(_get_element_field(nipper_block, "impact"))
+        if not risk:
+            risk = normalize_risk(_extract_report_cvss_severity(section))
+        if not risk:
+            risk = "Low"
+
+        details = (
+            get_subsection_text(section, "Description")
+            or get_subsection_text(section, "Finding")
+            or get_extra(section, "CON")
+        )
+        impact = _extract_common_weakness_impact(section) or get_subsection_text(section, "Impact") or details
+        score = _extract_report_cvss_score(section)
+
+        issue = _get_element_field(section, "title")
+        devices = get_devices(section)
+        reference = _build_cve_links(issue)
+
+        findings.append(
+            {
+                "Risk": risk,
+                "Issue": issue,
+                "Devices": devices,
+                "Solution": "Apply a patch, upgrade the OS or apply vendor mitigations",
+                "Impact": impact,
+                "Details": details,
+                "Reference": reference,
+                "Score": score,
+                "Accepted": "No",
+                "Type": "Vuln",
+            }
+        )
+        vulnaudit_count += 1
+
+    if "SECURITYAUDIT" in applicable_refs:
+        for section in candidate_sections:
+            audit_text = (get_extra(section, "AUDIT") or "").lower()
+            if not any(keyword in audit_text for keyword in ("best practice", "security", "configuration", "audit")):
+                continue
+
+            nipper_block = _find_child_element(section, "nipper")
+            risk = normalize_risk(_get_element_field(nipper_block, "summary"))
+            if not risk:
+                risk = normalize_risk(_get_element_field(nipper_block, "impact"))
+            if not risk:
+                risk = normalize_risk(_extract_report_cvss_severity(section))
+            if not risk:
+                risk = "Low"
+
+            issue = _get_element_field(section, "title")
+            devices = get_devices(section)
+            impact = (
+                get_subsection_text(section, "Impact")
+                or get_extra(section, "CON")
+                or get_subsection_text(section, "Finding")
+            )
+            details = get_subsection_text(section, "Finding") or get_extra(section, "CON")
+            solution = get_subsection_text(section, "Recommendation") or get_extra(section, "REC")
+            score = _extract_report_cvss_score(section)
+            classification = (get_extra(section, "CLASSIFICATION") or "").upper()
+            section_type = "Config"
+            if classification.startswith("FILTER") or "FILTER" in classification or "FILTERING" in classification:
+                section_type = "Rule"
+            elif not classification and (issue or "").lower().startswith("rules "):
+                section_type = "Rule"
+
+            findings.append(
+                {
+                    "Risk": risk,
+                    "Issue": issue,
+                    "Devices": devices,
+                    "Solution": solution,
+                    "Impact": impact,
+                    "Details": details,
+                    "Reference": "N/A",
+                    "Score": score,
+                    "Accepted": "No",
+                    "Type": section_type,
+                }
+            )
+            security_count += 1
+
+    if "COMPLEXITY" in applicable_refs:
+        default_impact = (
+            "While not a technical vulnerability, adherence to best practice calls for these items to be addressed"
+        )
+        default_solution = "Review these items and address them appropriately"
+
+        for section in candidate_sections:
+            audit_text = (get_extra(section, "AUDIT") or "").lower()
+            classification_text = (get_extra(section, "CLASSIFICATION") or "").lower()
+            related_text = (get_extra(section, "RELATED") or "").lower()
+            if (
+                "complexity" not in audit_text
+                and "complexity" not in classification_text
+                and "complexity" not in related_text
+            ):
+                continue
+
+            issue = _get_element_field(section, "title")
+            devices = get_devices(section)
+
+            details_parts: List[str] = []
+            finding_text = get_subsection_text(section, "Finding")
+            if finding_text:
+                details_parts.append(finding_text)
+            else:
+                subsections = _find_child_element(section, "subsections")
+                for subsection in _find_child_elements(subsections, "section"):
+                    contents = _find_child_element(subsection, "contents")
+                    for content in _find_child_elements(contents, "content"):
+                        content_text = _element_text(content)
+                        if content_text:
+                            details_parts.append(content_text)
+
+            findings.append(
+                {
+                    "Risk": "Low",
+                    "Issue": issue,
+                    "Devices": devices,
+                    "Solution": default_solution,
+                    "Impact": default_impact,
+                    "Details": "\n".join([part for part in details_parts if part]),
+                    "Reference": "N/A",
+                    "Score": 1,
+                    "Accepted": "No",
+                    "Type": "Complexity",
+                }
+            )
+            complexity_count += 1
+
+    logger.info(
+        (
+            "Finished Nipper firewall parsing (report-root): tier=%s bytes_read=%s "
+            "vulnaudit_findings=%d security_findings=%d complexity_findings=%d findings=%d"
+        ),
+        normalized_tier or "auto",
+        len(raw_bytes or b""),
+        vulnaudit_count,
+        security_count,
+        complexity_count,
+        len(findings),
+    )
+
+    return findings
+
+
 def parse_nipper_firewall_report(
     file_obj: File, project_type: Optional[str] = None
 ) -> List[Dict[str, Any]]:
@@ -2734,7 +3155,14 @@ def parse_nipper_firewall_report(
         logger.info("Unable to parse Nipper firewall XML", exc_info=True)
         return []
 
-    document = _find_child_element(root, "document") or root
+    root_tag = getattr(root, "tag", "")
+    normalized_root_tag = _normalize_xml_tag(root_tag)
+    document_node = _find_child_element(root, "document")
+    if not (root_tag == "document" or normalized_root_tag == "document" or document_node is not None):
+        if root_tag == "report" or normalized_root_tag == "report":
+            return parse_nipper_firewall_report_report_root(root, project_type, raw_bytes=raw_bytes)
+
+    document = document_node or root
     info_block = _find_child_element(document, "information")
     devices_node = _find_child_element(info_block, "devices")
     device_names = [
