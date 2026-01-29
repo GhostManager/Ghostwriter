@@ -1399,6 +1399,8 @@ class GetTags(HasuraActionView):
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
         "oplog_entry": OplogEntry,
+        "report": Report,
+        "project": Project,
     }
 
     def post(self, request: HttpRequest):
@@ -1431,6 +1433,8 @@ class SetTags(HasuraActionView):
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
         "oplog_entry": OplogEntry,
+        "report": Report,
+        "project": Project,
     }
 
     def post(self, request: HttpRequest):
@@ -1464,6 +1468,8 @@ class ObjectsByTag(HasuraActionView):
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
         "oplog_entry": OplogEntry,
+        "report": Report,
+        "project": Project,
     }
 
     def post(self, request: HttpRequest, model: str):
