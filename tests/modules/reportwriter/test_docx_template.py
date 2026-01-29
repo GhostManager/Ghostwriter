@@ -478,6 +478,28 @@ WORKSHEET_TABLE_XML = (
     "</worksheet>"
 )
 
+WORKSHEET_TABLE_RENAME_XML = (
+    '<?xml version="1.0" encoding="UTF-8"?>'
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+    "<sheetData>"
+    "<row r=\"1\">"
+    "<c r=\"A1\" t=\"inlineStr\"><is><t>{{ first_header }}</t></is></c>"
+    "<c r=\"B1\" t=\"inlineStr\"><is><t>{{ second_header }}</t></is></c>"
+    "</row>"
+    "<row r=\"2\">"
+    "<c r=\"A2\"><v>{{ first_number }}</v></c>"
+    "<c r=\"B2\" t=\"inlineStr\"><is><t>{{ first_label }}</t></is></c>"
+    "</row>"
+    "<row r=\"3\">"
+    "<c r=\"A3\"><v>{{ second_number }}</v></c>"
+    "<c r=\"B3\" t=\"inlineStr\"><is><t>{{ second_label }}</t></is></c>"
+    "</row>"
+    "</sheetData>"
+    "<tableParts count=\"1\"><tablePart r:id=\"rId1\"/></tableParts>"
+    "</worksheet>"
+)
+
 WORKSHEET_TABLE_LOOP_XML = (
     '<?xml version="1.0" encoding="UTF-8"?>'
     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
@@ -505,6 +527,18 @@ TABLE_XML = (
     '<tableColumns count="2">'
     '<tableColumn id="1" name="Numbers"/>'
     '<tableColumn id="2" name="Labels"/>'
+    '</tableColumns>'
+    '<autoFilter ref="A1:B3"/>'
+    '</table>'
+)
+
+TABLE_PLACEHOLDER_XML = (
+    '<?xml version="1.0" encoding="UTF-8"?>'
+    '<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+    'id="1" name="Table1" displayName="Table1" ref="A1:B3" headerRowCount="1">'
+    '<tableColumns count="2">'
+    '<tableColumn id="1" name="Column1"/>'
+    '<tableColumn id="2" name="Column2"/>'
     '</tableColumns>'
     '<autoFilter ref="A1:B3"/>'
     '</table>'
@@ -555,6 +589,31 @@ CHART_TABLE_XML = (
     "<c:pt idx=\"1\"><c:v>2</c:v></c:pt>"
     "</c:numCache></c:numRef></c:val>"
     "<c:cat><c:strRef><c:f>Sheet1!Table1[Labels]</c:f>"
+    "<c:strCache><c:ptCount val=\"2\"/>"
+    "<c:pt idx=\"0\"><c:v>First</c:v></c:pt>"
+    "<c:pt idx=\"1\"><c:v>Second</c:v></c:pt>"
+    "</c:strCache></c:strRef></c:cat>"
+    "</c:ser>"
+    "</c:lineChart>"
+    "</c:plotArea>"
+    "</c:chart>"
+    "<c:externalData r:id=\"rId1\"><c:autoUpdate val=\"0\"/></c:externalData>"
+    "</c:chartSpace>"
+)
+
+CHART_TABLE_PLACEHOLDER_XML = (
+    '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" '
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+    "<c:chart>"
+    "<c:plotArea>"
+    "<c:lineChart>"
+    "<c:ser>"
+    "<c:val><c:numRef><c:f>Sheet1!Table1[Column1]</c:f>"
+    "<c:numCache><c:ptCount val=\"2\"/>"
+    "<c:pt idx=\"0\"><c:v>1</c:v></c:pt>"
+    "<c:pt idx=\"1\"><c:v>2</c:v></c:pt>"
+    "</c:numCache></c:numRef></c:val>"
+    "<c:cat><c:strRef><c:f>Sheet1!Table1[Column2]</c:f>"
     "<c:strCache><c:ptCount val=\"2\"/>"
     "<c:pt idx=\"0\"><c:v>First</c:v></c:pt>"
     "<c:pt idx=\"1\"><c:v>Second</c:v></c:pt>"
@@ -1440,6 +1499,47 @@ def test_render_additional_parts_updates_chart_cache_structured_ref(monkeypatch)
 
     assert "ref=\"A1:B3\"" in table_xml
     assert "{{" not in table_xml
+
+
+def test_render_additional_parts_updates_chart_cache_structured_ref_headers(monkeypatch):
+    template = GhostwriterDocxTemplate("DOCS/sample_reports/template.docx")
+    template.init_docx()
+
+    excel = FakeXlsxPart(
+        "/word/embeddings/Microsoft_Excel_Worksheet1.xlsx",
+        WORKSHEET_TABLE_RENAME_XML,
+        None,
+        content_types_xml=CONTENT_TYPES_WITH_TABLE_XML,
+        extra_files={
+            "xl/worksheets/_rels/sheet1.xml.rels": SHEET_TABLE_RELS_XML,
+            "xl/tables/table1.xml": TABLE_PLACEHOLDER_XML,
+        },
+    )
+    chart = FakeChartPart(
+        "/word/charts/chart1.xml",
+        CHART_TABLE_PLACEHOLDER_XML,
+        excel,
+    )
+
+    monkeypatch.setattr(template, "_iter_additional_parts", lambda: iter([excel, chart]))
+
+    template._render_additional_parts(
+        {
+            "first_header": "Numbers",
+            "second_header": "Labels",
+            "first_number": 5,
+            "second_number": 7,
+            "first_label": "One",
+            "second_label": "Two",
+        },
+        None,
+    )
+
+    chart_xml = etree.tostring(chart._element, encoding="unicode")
+    assert "Table1[Numbers]" in chart_xml
+    assert "Table1[Labels]" in chart_xml
+    assert "<c:pt idx=\"0\"><c:v>5</c:v></c:pt>" in chart_xml
+    assert "<c:pt idx=\"1\"><c:v>7</c:v></c:pt>" in chart_xml
 
 
 def test_render_additional_parts_updates_chart_cache_extensions(monkeypatch):
