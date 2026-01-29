@@ -3223,6 +3223,9 @@ class GhostwriterDocxTemplate(DocxTemplate):
                 self._write_literal_cache(str_ref, "strLit", values)
                 updated = True
 
+        if self._reindex_chart_series(tree):
+            updated = True
+
         repaired = self._repair_chart_caches(tree)
 
         if not updated and not repaired:
@@ -3312,6 +3315,19 @@ class GhostwriterDocxTemplate(DocxTemplate):
             literal = etree.SubElement(parent, tag)
 
         self._write_cache(literal, values)
+
+    def _reindex_chart_series(self, tree: etree._Element) -> bool:
+        updated = False
+        series = tree.findall(".//{*}ser")
+        for idx, series_node in enumerate(series):
+            for child in series_node:
+                local = etree.QName(child).localname
+                if local not in {"idx", "order"}:
+                    continue
+                if child.get("val") != str(idx):
+                    child.set("val", str(idx))
+                    updated = True
+        return updated
 
     def _extract_range_values(
         self,

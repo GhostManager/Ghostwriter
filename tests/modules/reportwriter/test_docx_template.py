@@ -626,6 +626,19 @@ CHART_TABLE_PLACEHOLDER_XML = (
     "</c:chartSpace>"
 )
 
+CHART_SERIES_DUPLICATE_XML = (
+    '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">'
+    "<c:chart>"
+    "<c:plotArea>"
+    "<c:barChart>"
+    "<c:ser><c:idx val=\"0\"/><c:order val=\"0\"/></c:ser>"
+    "<c:ser><c:idx val=\"0\"/><c:order val=\"0\"/></c:ser>"
+    "</c:barChart>"
+    "</c:plotArea>"
+    "</c:chart>"
+    "</c:chartSpace>"
+)
+
 CHART_NUMCACHE_MISMATCH_XML = (
     '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" '
     'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
@@ -1609,6 +1622,29 @@ def test_sync_chart_cache_repairs_mismatched_point_counts():
     pt_count = num_cache.find("{*}ptCount")
     assert pt_count is not None
     assert pt_count.get("val") == "3"
+
+
+def test_sync_chart_cache_reindexes_series():
+    template = GhostwriterDocxTemplate("DOCS/sample_reports/template.docx")
+    template.init_docx()
+
+    workbook = FakeWorkbookPart("/word/embeddings/Microsoft_Excel_Worksheet1.xlsx")
+    chart = FakeChartPart(
+        "/word/charts/chart1.xml",
+        CHART_SERIES_DUPLICATE_XML,
+        workbook,
+    )
+
+    reindexed_xml = template._sync_chart_cache(
+        CHART_SERIES_DUPLICATE_XML,
+        chart,
+        {},
+    )
+
+    tree = etree.fromstring(reindexed_xml.encode("utf-8"))
+    series = tree.findall(".//{*}ser")
+    assert [ser.find("{*}idx").get("val") for ser in series] == ["0", "1"]
+    assert [ser.find("{*}order").get("val") for ser in series] == ["0", "1"]
 
 
 def test_get_undeclared_variables_includes_diagram_parts(monkeypatch):
