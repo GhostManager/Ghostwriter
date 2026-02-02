@@ -2,6 +2,7 @@
 // tinymce compatibility
 
 import Bold from "@tiptap/extension-bold";
+import Code from "@tiptap/extension-code";
 import Italic from "@tiptap/extension-italic";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
@@ -63,6 +64,19 @@ export const HighlightCompat = Highlight.extend({
             tag: "span",
             getAttrs: (node) => node.classList.contains("highlight") && null,
             contentElement: (node) => unwrapClass(node, "highlight"),
+        });
+        return arr;
+    },
+});
+
+export const CodeCompat = Code.extend({
+    excludes: '',
+    parseHTML() {
+        const arr = Array.from(Code.config.parseHTML!.call(this)!);
+        arr.push({
+            tag: "span",
+            getAttrs: (node) => node.classList.contains("code") && null,
+            contentElement: (node) => unwrapClass(node, "code"),
         });
         return arr;
     },
