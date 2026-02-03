@@ -11,7 +11,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         count = Acronym.objects.count()
         self.stdout.write(f"Total acronyms: {count}\n")
-        
+
         if count > 0:
             self.stdout.write("\nFirst 10 acronyms:")
             for acronym in Acronym.objects.all()[:10]:

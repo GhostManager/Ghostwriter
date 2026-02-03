@@ -7,55 +7,55 @@ from django.db import migrations
 def load_default_acronyms(apps, schema_editor):
     """Load bundled acronyms from YAML file into database."""
     import sys
-    
+
     # Skip loading during tests
     if 'test' in sys.argv:
         return
-    
+
     Acronym = apps.get_model('reporting', 'Acronym')
-    
+
     # Skip if acronyms already exist (don't overwrite user data)
     if Acronym.objects.exists():
         return
-    
+
     # Read bundled YAML file
     yaml_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
         'javascript', 'src', 'data', 'acronyms.yml'
     )
-    
+
     if not os.path.exists(yaml_path):
         print(f"Warning: Bundled acronyms file not found at {yaml_path}")
         return
-    
+
     try:
         import yaml
-        
+
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
-        
+
         if not isinstance(data, dict):
             print("Warning: Invalid YAML structure in bundled acronyms")
             return
-        
+
         created_count = 0
         for acronym_text, expansions in data.items():
             if not isinstance(expansions, list):
                 continue
-            
+
             # Process each expansion with priority based on order
             for index, expansion_data in enumerate(expansions):
                 if not isinstance(expansion_data, dict):
                     continue
-                
+
                 if 'full' not in expansion_data:
                     continue
-                
+
                 expansion_text = expansion_data['full']
-                
+
                 # Higher priority for earlier entries (reverse index)
                 priority = len(expansions) - index
-                
+
                 # Create acronym
                 Acronym.objects.create(
                     acronym=acronym_text,
@@ -65,9 +65,9 @@ def load_default_acronyms(apps, schema_editor):
                     is_active=True,
                 )
                 created_count += 1
-        
+
         print(f"Loaded {created_count} default acronym(s) from bundled YAML")
-    
+
     except Exception as e:
         print(f"Warning: Failed to load default acronyms: {e}")
 
@@ -83,7 +83,7 @@ def reverse_load_default_acronyms(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reporting', '0065_alter_acronym_options_remove_acronym_category'),
+        ('reporting', '0064_acronym_reporting_a_acronym_f840a2_idx_and_more'),
     ]
 
     operations = [

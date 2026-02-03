@@ -41,16 +41,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "category",
-                    models.CharField(
-                        blank=True,
-                        default="custom",
-                        help_text="Category of the acronym (e.g., security, business, custom)",
-                        max_length=100,
-                        verbose_name="Category",
-                    ),
-                ),
-                (
                     "override_builtin",
                     models.BooleanField(
                         default=False,
@@ -104,7 +94,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Acronym",
                 "verbose_name_plural": "Acronyms",
-                "ordering": ["acronym", "-priority", "category"],
+                "ordering": ["acronym", "-priority"],
             },
         ),
     ]

@@ -6,7 +6,6 @@
 API:
     - full: "Application Programming Interface"
 CIA:
-    - full: "Central Intelligence Agency"
     - full: "Confidentiality, Integrity, and Availability"
 CSRF:
     - full: "Cross-Site Request Forgery"

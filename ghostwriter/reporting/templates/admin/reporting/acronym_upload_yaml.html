@@ -18,11 +18,11 @@
 <div class="module">
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    
+
     <div class="form-row">
       {{ form.as_p }}
     </div>
-    
+
     <div class="submit-row">
       <input type="submit" value="{% trans 'Upload and Import' %}" class="default" />
       <a href="{% url 'admin:reporting_acronym_changelist' %}" class="button cancel-link">{% trans 'Cancel' %}</a>
@@ -41,7 +41,7 @@ CIA:
   - full: Central Intelligence Agency
   - full: Confidentiality, Integrity, and Availability
   </pre>
-  
+
   <h3>Options</h3>
   <ul>
     <li><strong>Override Existing:</strong> If checked, deactivates all existing acronyms and creates new ones from the YAML file. Useful for replacing the entire acronym database.</li>

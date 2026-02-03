@@ -22,16 +22,12 @@
             <p>Your YAML file should follow this format:</p>
             <pre><code>CIA:
   - full: Central Intelligence Agency
-    category: government
+  - full: Confidentiality, Integrity, and Availability
 NSA:
   - full: National Security Agency
-    category: government
 API:
-  - full: Application Programming Interface
-    category: technology
-  - full: Advanced Persistent Infrastructure
-    category: security</code></pre>
-            <p>Each acronym can have multiple expansions. The <code>category</code> field is optional (defaults to "imported").</p>
+  - full: Application Programming Interface</code></pre>
+            <p>Each acronym can have multiple expansions (separate list items).</p>
         </div>
 
         {% if messages %}
