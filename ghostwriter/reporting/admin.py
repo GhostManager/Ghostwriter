@@ -1,8 +1,5 @@
 """This contains customizations for displaying the Reporting application models in the admin panel."""
 
-# Standard Libraries
-import logging
-
 # Django Imports
 from django.contrib import admin, messages
 from django.shortcuts import redirect, render
