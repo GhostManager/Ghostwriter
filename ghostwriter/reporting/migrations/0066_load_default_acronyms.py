@@ -9,7 +9,7 @@ def load_default_acronyms(apps, schema_editor):
     import sys
 
     # Skip loading during tests
-    if 'test' in sys.argv:
+    if any(arg == "test" for arg in sys.argv[1:]):
         return
 
     Acronym = apps.get_model('reporting', 'Acronym')

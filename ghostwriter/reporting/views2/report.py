@@ -47,6 +47,7 @@ from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
 from ghostwriter.reporting.forms import (
+    AcronymYAMLUploadForm,
     ReportForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
@@ -58,6 +59,7 @@ from ghostwriter.reporting.models import (
     Report,
     ReportTemplate,
 )
+from ghostwriter.reporting.utils import import_acronyms_from_yaml
 from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
@@ -1155,18 +1157,11 @@ class AcronymYAMLUploadView(RoleBasedAccessControlMixin, View):
 
     def get(self, request):
         """Display the upload form."""
-        # Ghostwriter Libraries
-        from ghostwriter.reporting.forms import AcronymYAMLUploadForm
-
         form = AcronymYAMLUploadForm()
         return render(request, "reporting/acronym_yaml_upload.html", {"form": form})
 
     def post(self, request):
         """Process the uploaded YAML file."""
-        # Ghostwriter Libraries
-        from ghostwriter.reporting.forms import AcronymYAMLUploadForm
-        from ghostwriter.reporting.utils import import_acronyms_from_yaml
-
         form = AcronymYAMLUploadForm(request.POST, request.FILES)
 
         if form.is_valid():
@@ -1203,17 +1198,10 @@ class AcronymYAMLUploadView(RoleBasedAccessControlMixin, View):
                     reverse("admin:reporting_acronym_changelist")
                 )
 
-            except ValueError as e:
+            except (ValueError, UnicodeDecodeError) as e:
                 messages.error(
                     request,
                     f"Failed to import acronyms: {str(e)}",
-                    extra_tags="alert-danger",
-                )
-            except Exception as e:
-                logger.exception("Unexpected error during acronym import")
-                messages.error(
-                    request,
-                    f"An unexpected error occurred: {str(e)}",
                     extra_tags="alert-danger",
                 )
 

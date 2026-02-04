@@ -41,6 +41,7 @@ from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
+    Acronym,
     Evidence,
     Finding,
     Observation,
@@ -1722,10 +1723,10 @@ class ObjectsByTag(HasuraActionView):
 class GraphqlGetAcronymsAction(JwtRequiredMixin, HasuraActionView):
     """Endpoint for retrieving acronyms with optional filtering."""
 
-    def post(self, request, *args, **kwargs):
-        # Ghostwriter Libraries
-        from ghostwriter.reporting.models import Acronym
+    # Maximum limit to prevent memory exhaustion from excessive requests
+    MAX_LIMIT = 10000
 
+    def post(self, request, *args, **kwargs):
         # Start with all acronyms, default to active only
         queryset = Acronym.objects.all()
 
@@ -1742,10 +1743,10 @@ class GraphqlGetAcronymsAction(JwtRequiredMixin, HasuraActionView):
         # Apply ordering by priority descending (higher priority first)
         queryset = queryset.order_by("-priority", "acronym")
 
-        # Apply limit if provided and greater than 0
+        # Apply limit if provided and greater than 0, cap at maximum
         limit = self.input.get("limit", 0)
         if limit and limit > 0:
-            queryset = queryset[:limit]
+            queryset = queryset[: min(limit, self.MAX_LIMIT)]
 
         # Serialize acronyms
         acronyms = []

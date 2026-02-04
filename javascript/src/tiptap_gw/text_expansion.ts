@@ -17,13 +17,10 @@ import acronymDataRaw from "../data/acronyms.yml";
 // Cast the imported data to the expected type
 const builtinAcronymData = acronymDataRaw as AcronymMap;
 
-// This will be populated with merged database + builtin acronyms
-let acronymData: AcronymMap = builtinAcronymData;
-
-// Initialize acronym data from API on module load
-initializeAcronymData(builtinAcronymData).then((mergedData) => {
-    acronymData = mergedData;
-});
+// Promise-based accessor to avoid race condition
+// Guarantees merged database + builtin data is used once available
+const acronymDataPromise: Promise<AcronymMap> =
+    initializeAcronymData(builtinAcronymData);
 
 // Plugin key for managing decorations
 const textExpansionPluginKey = new PluginKey("textExpansion");
@@ -115,56 +112,59 @@ const TextExpansion = Extension.create({
             expandAcronym:
                 () =>
                 ({ state, tr, dispatch, editor }) => {
-                    // Extract all acronyms (3+ letters, all caps)
-                    const acronyms = extractAllAcronyms(state);
+                    // Use Promise to get acronym data (avoids race condition)
+                    acronymDataPromise.then((acronymData) => {
+                        // Extract all acronyms (3+ letters, all caps)
+                        const acronyms = extractAllAcronyms(state);
 
-                    if (acronyms.length === 0) {
-                        return false; // No acronyms found
-                    }
+                        if (acronyms.length === 0) {
+                            return; // No acronyms found
+                        }
 
-                    let replacementsMade = 0;
-                    const decorations: Decoration[] = [];
+                        let replacementsMade = 0;
+                        const decorations: Decoration[] = [];
+                        const newTr = editor.state.tr;
 
-                    // Process acronyms from end to start to maintain correct positions
-                    const sortedAcronyms = [...acronyms].sort(
-                        (a, b) => b.from - a.from
-                    );
-
-                    for (const { word, from, to } of sortedAcronyms) {
-                        const expansions = findAcronymExpansions(
-                            word,
-                            acronymData
+                        // Process acronyms from end to start to maintain correct positions
+                        const sortedAcronyms = [...acronyms].sort(
+                            (a, b) => b.from - a.from
                         );
 
-                        if (expansions.length === 1) {
-                            // Single definition: auto-expand
-                            tr.insertText(expansions[0].full, from, to);
-                            replacementsMade++;
-                        } else if (expansions.length > 1) {
-                            // Multiple definitions: add highlight decoration
-                            const decoration = Decoration.inline(from, to, {
-                                class: "acronym-multi-definition",
-                                "data-word": word,
-                                "data-from": String(from),
-                                "data-to": String(to),
+                        for (const { word, from, to } of sortedAcronyms) {
+                            const expansions = findAcronymExpansions(
+                                word,
+                                acronymData
+                            );
+
+                            if (expansions.length === 1) {
+                                // Single definition: auto-expand
+                                newTr.insertText(expansions[0].full, from, to);
+                                replacementsMade++;
+                            } else if (expansions.length > 1) {
+                                // Multiple definitions: add highlight decoration
+                                const decoration = Decoration.inline(from, to, {
+                                    class: "acronym-multi-definition",
+                                    "data-word": word,
+                                    "data-from": String(from),
+                                    "data-to": String(to),
+                                });
+                                decorations.push(decoration);
+                            }
+                        }
+
+                        // Store decorations in plugin state
+                        if (decorations.length > 0) {
+                            newTr.setMeta(textExpansionPluginKey, {
+                                decorations,
                             });
-                            decorations.push(decoration);
                         }
-                    }
 
-                    // Store decorations in plugin state
-                    if (decorations.length > 0) {
-                        tr.setMeta(textExpansionPluginKey, { decorations });
-                    }
-
-                    if (replacementsMade > 0 || decorations.length > 0) {
-                        if (dispatch) {
-                            dispatch(tr);
+                        if (replacementsMade > 0 || decorations.length > 0) {
+                            editor.view.dispatch(newTr);
                         }
-                        return true;
-                    }
+                    });
 
-                    return false;
+                    return true;
                 },
             clearExpansionHighlights:
                 () =>
@@ -227,18 +227,21 @@ const TextExpansion = Extension.create({
                             const from = parseInt(fromStr, 10);
                             const to = parseInt(toStr, 10);
 
-                            const expansions = findAcronymExpansions(
-                                word,
-                                acronymData
-                            );
-                            if (expansions.length === 0) return false;
+                            // Use the Promise to get current data
+                            acronymDataPromise.then((acronymData) => {
+                                const expansions = findAcronymExpansions(
+                                    word,
+                                    acronymData
+                                );
+                                if (expansions.length === 0) return;
 
-                            // Emit event with correct from/to positions
-                            editor.emit("showExpansionModal", {
-                                word,
-                                matches: expansions,
-                                from,
-                                to,
+                                // Emit event with correct from/to positions
+                                editor.emit("showExpansionModal", {
+                                    word,
+                                    matches: expansions,
+                                    from,
+                                    to,
+                                });
                             });
 
                             return true; // Prevent default behavior

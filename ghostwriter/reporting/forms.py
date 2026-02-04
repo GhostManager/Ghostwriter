@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import re
+import yaml
 
 # Django Imports
 from django import forms
@@ -843,7 +844,6 @@ class AcronymYAMLUploadForm(forms.Form):
     def clean_yaml_file(self):
         """Validate the uploaded YAML file."""
         # 3rd Party Libraries
-        import yaml
 
         yaml_file = self.cleaned_data.get("yaml_file")
 
@@ -876,34 +876,33 @@ class AcronymYAMLUploadForm(forms.Form):
             for acronym, expansions in data.items():
                 if not isinstance(expansions, list):
                     raise ValidationError(
-                        _(f"Acronym '{acronym}' must have a list of expansions"),
+                        _("Acronym '%s' must have a list of expansions") % acronym,
                         code="invalid_structure",
                     )
 
                 for expansion in expansions:
                     if not isinstance(expansion, dict):
                         raise ValidationError(
-                            _(f"Each expansion for '{acronym}' must be a dictionary"),
+                            _("Each expansion for '%s' must be a dictionary") % acronym,
                             code="invalid_structure",
                         )
 
                     if "full" not in expansion:
                         raise ValidationError(
-                            _(
-                                f"Each expansion for '{acronym}' must have a 'full' field"
-                            ),
+                            _("Each expansion for '%s' must have a 'full' field")
+                            % acronym,
                             code="missing_field",
                         )
 
         except yaml.YAMLError as e:
             raise ValidationError(
-                _(f"Invalid YAML syntax: {str(e)}"),
+                _("Invalid YAML syntax: %s") % str(e),
                 code="yaml_error",
-            )
-        except UnicodeDecodeError:
+            ) from e
+        except UnicodeDecodeError as e:
             raise ValidationError(
                 _("File must be UTF-8 encoded"),
                 code="encoding_error",
-            )
+            ) from e
 
         return yaml_file

@@ -30,7 +30,7 @@ def import_acronyms_from_yaml(yaml_content, override=False, user=None):
     try:
         data = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
-        raise ValueError(f"Invalid YAML: {str(e)}")
+        raise ValueError(f"Invalid YAML: {str(e)}") from e
 
     if not isinstance(data, dict):
         raise ValueError("YAML must contain a dictionary of acronyms")
@@ -86,8 +86,11 @@ def import_acronyms_from_yaml(yaml_content, override=False, user=None):
                     )
             else:
                 # If override is True, deactivate all other entries for this acronym first
+                # (but not the one we're about to create, to avoid duplicates)
                 if override:
-                    Acronym.objects.filter(acronym=acronym_text).update(is_active=False)
+                    Acronym.objects.filter(acronym=acronym_text).exclude(
+                        expansion=expansion_text
+                    ).update(is_active=False)
 
                 Acronym.objects.create(
                     acronym=acronym_text,

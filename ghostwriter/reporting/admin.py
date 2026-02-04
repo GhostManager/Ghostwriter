@@ -1,14 +1,20 @@
 """This contains customizations for displaying the Reporting application models in the admin panel."""
 
+# Standard Libraries
+import logging
+
 # Django Imports
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.shortcuts import redirect, render
+from django.urls import path
 
 # 3rd Party Libraries
 from import_export.admin import ImportExportMixin
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.admin import CollabAdminBase
-from ghostwriter.reporting.forms import SeverityForm
+from ghostwriter.reporting.forms import AcronymYAMLUploadForm, SeverityForm
+from ghostwriter.reporting.utils import import_acronyms_from_yaml
 from ghostwriter.reporting.models import (
     Acronym,
     Archive,
@@ -354,9 +360,6 @@ class AcronymAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         """Add custom URL for YAML upload."""
-        # Django Imports
-        from django.urls import path
-
         urls = super().get_urls()
         custom_urls = [
             path(
@@ -369,18 +372,6 @@ class AcronymAdmin(admin.ModelAdmin):
 
     def upload_yaml_view(self, request):
         """Handle YAML file upload within admin interface."""
-        # Standard Libraries
-        import logging
-
-        # Django Imports
-        from django.contrib import messages
-        from django.shortcuts import redirect, render
-
-        # Ghostwriter Libraries
-        from ghostwriter.reporting.forms import AcronymYAMLUploadForm
-        from ghostwriter.reporting.utils import import_acronyms_from_yaml
-
-        logger = logging.getLogger(__name__)
 
         if request.method == "POST":
             form = AcronymYAMLUploadForm(request.POST, request.FILES)
@@ -417,16 +408,10 @@ class AcronymAdmin(admin.ModelAdmin):
                     # Redirect back to acronym changelist
                     return redirect("..")
 
-                except ValueError as e:
+                except (ValueError, UnicodeDecodeError) as e:
                     messages.error(
                         request,
                         f"Failed to import acronyms: {str(e)}",
-                    )
-                except Exception as e:
-                    logger.exception("Unexpected error during acronym import")
-                    messages.error(
-                        request,
-                        f"An unexpected error occurred: {str(e)}",
                     )
         else:
             form = AcronymYAMLUploadForm()
