@@ -292,23 +292,23 @@ class HtmlToDocx(BaseHtmlToOOXML):
         # This is required for Word to properly display the footnote number
         footnote_paragraph = new_footnote.add_paragraph()
 
-        # Track if either style is missing
-        missing_footnote_text = False
-        missing_footnote_ref = False
+        # Check if required styles exist in the template
+        has_footnote_text_style = "Footnote Text" in self.doc.styles
+        has_footnote_ref_style = "Footnote Reference" in self.doc.styles
 
-        # Try to apply "Footnote Text" style to the paragraph
-        try:
+        # Apply paragraph style if available
+        if has_footnote_text_style:
             footnote_paragraph.style = "Footnote Text"
-        except KeyError:
-            missing_footnote_text = True
 
-        # Create a run for the footnote reference number
-        try:
+        # Create footnote reference run with style if available
+        if has_footnote_ref_style:
             footnote_ref_run = footnote_paragraph.add_run()
             footnote_ref_run.style = "Footnote Reference"
             footnote_ref_run.font.superscript = True
-        except KeyError:
-            missing_footnote_ref = True
+            footnote_ref_element = OxmlElement("w:footnoteRef")
+            footnote_ref_run._r.append(footnote_ref_element)
+        else:
+            # Fallback: manually create run with XML properties
             footnote_ref_run = footnote_paragraph._p.add_r()
             run_properties = OxmlElement("w:rPr")
             style_element = OxmlElement("w:rStyle")
@@ -318,24 +318,16 @@ class HtmlToDocx(BaseHtmlToOOXML):
             vert_align.set(qn("w:val"), "superscript")
             run_properties.append(vert_align)
             footnote_ref_run.insert(0, run_properties)
-
-        # Add the footnote reference mark
-        footnote_ref_element = OxmlElement("w:footnoteRef")
-        if hasattr(footnote_ref_run, "_r"):
-            footnote_ref_run._r.append(footnote_ref_element)
-        else:
+            footnote_ref_element = OxmlElement("w:footnoteRef")
             footnote_ref_run.append(footnote_ref_element)
 
         # Add a space and the footnote text with "Footnote Text" character style
         text_run = footnote_paragraph.add_run(" " + footnote_content)
-        try:
+        if has_footnote_text_style:
             text_run.style = "Footnote Text"
-        except KeyError:
-            missing_footnote_text = True
-            text_run.font.size = Pt(10)
 
-        # If either style is missing, apply default formatting to the paragraph
-        if missing_footnote_text or missing_footnote_ref:
+        # Apply fallback formatting if either style is missing
+        if not has_footnote_text_style or not has_footnote_ref_style:
             pf = footnote_paragraph.paragraph_format
             pf.line_spacing = 1.0
             pf.space_before = 0
@@ -633,7 +625,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         run.add_picture(file_path, width=Inches(self.report_template.evidence_image_width))
 
-        if self.global_report_config.enable_borders is not None:
+        if self.global_report_config.enable_borders:
             border_color = self.global_report_config.border_color
             border_width = self.global_report_config.border_weight
             # Add the border – see Ghostwriter Wiki for documentation

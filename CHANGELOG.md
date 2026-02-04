@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.2] - 22 January 2026
+
+### Added
+
+* Added a sample BloodHound report to the DOCS/sample_reports directory
+* Added severity color values to BloodHound Enterprise findings data
+  * These values mirror the color values provided for Ghostwriter findings (e.g., `color`, `color_rgb`, and `color_hex`)
+  * You can use these values in report templates with Jinja2 templating lie `cellbg`
+  * Examples are in the sample BloodHound report document
+
+### Fixed
+
+* Added handling for an error that could occur when fetching BloodHound domains with an Azure tenant reported as an available domain
+
+### Security
+
+* Removed an unneeded view that could allow someone to download a file without the proper permissions if they knew the report ID and full filename
+
+## [6.2.1] - 13 January 2026
+
+### Changed
+
+* Optimized database queries behind client dashboards to improve page load times for clients with many projects
+
+### Fixed
+
+* Fixed some BloodHound domain queries taking too long to complete and causing a timeout error
+  * Added the `?counts=false` parameter to domain queries to drop unnecessary calculations
+  * Also, increased the response timeout from 10s to 30s for occasions there may be extra latency
+* Fixed an issue with cloud infrastructure descriptions that could cause an error
+
 ## [6.2.0] - 8 January 2026
 
 ### Added

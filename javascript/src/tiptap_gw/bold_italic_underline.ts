@@ -2,6 +2,7 @@
 // tinymce compatibility
 
 import Bold from "@tiptap/extension-bold";
+import Code from "@tiptap/extension-code";
 import Italic from "@tiptap/extension-italic";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
@@ -18,6 +19,11 @@ function unwrapClass(node: Node, cls: string): HTMLElement {
     const wrapper = node.ownerDocument!.createElement("div");
     wrapper.appendChild(node.cloneNode(true));
     return wrapper;
+}
+
+// Type guard that safely checks for HTMLElement in both browser and server environments
+function isHTMLElement(node: Node): node is HTMLElement {
+    return typeof HTMLElement !== 'undefined' && node instanceof HTMLElement;
 }
 
 export const BoldCompat = Bold.extend({
@@ -63,6 +69,20 @@ export const HighlightCompat = Highlight.extend({
             tag: "span",
             getAttrs: (node) => node.classList.contains("highlight") && null,
             contentElement: (node) => unwrapClass(node, "highlight"),
+        });
+        return arr;
+    },
+});
+
+export const CodeCompat = Code.extend({
+    // Allow all other marks to coexist with code (override Code's default excludes)
+    excludes: "",
+    parseHTML() {
+        const arr = Array.from(Code.config.parseHTML!.call(this as any)!);
+        arr.push({
+            tag: "span",
+            getAttrs: (node) => (isHTMLElement(node) && node.classList.contains("code") ? null : false),
+            contentElement: (node) => unwrapClass(node, "code"),
         });
         return arr;
     },

@@ -230,15 +230,16 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
         # Build autocomplete list
         findings = (
-            Finding.objects.select_related("severity", "finding_type")
-            .all()
+            Finding.objects
+            .select_related("severity", "finding_type")
+            .prefetch_related("tags")
             .order_by("severity__weight", "-cvss_score", "finding_type", "title")
         )
         for finding in findings:
             self.finding_autocomplete.append(finding)
         ctx["finding_autocomplete"] = self.finding_autocomplete
 
-        observations = Observation.objects.all().order_by("title")
+        observations = Observation.objects.prefetch_related("tags").order_by("title")
         for obs in observations:
             self.observation_autocomplete.append(obs)
         ctx["observation_autocomplete"] = self.observation_autocomplete
