@@ -1400,6 +1400,8 @@ class GetTags(HasuraActionView):
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
         "oplog_entry": OplogEntry,
+        "report": Report,
+        "project": Project,
     }
 
     def post(self, request: HttpRequest):
@@ -1409,7 +1411,7 @@ class GetTags(HasuraActionView):
                 utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
             )
 
-        cls = self.available_models.get(self.input["model"])
+        cls = self.available_models.get(self.input["model"].lower())
         if cls is None:
             return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
 
@@ -1432,6 +1434,8 @@ class SetTags(HasuraActionView):
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
         "oplog_entry": OplogEntry,
+        "report": Report,
+        "project": Project,
     }
 
     def post(self, request: HttpRequest):
@@ -1441,7 +1445,7 @@ class SetTags(HasuraActionView):
                 utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"), status=400
             )
 
-        cls = self.available_models.get(self.input["model"])
+        cls = self.available_models.get(self.input["model"].lower())
         if cls is None:
             return JsonResponse(utils.generate_hasura_error_payload("Unrecognized model type", "InvalidRequestBody"), status=401)
 
@@ -1465,6 +1469,8 @@ class ObjectsByTag(HasuraActionView):
         "finding": Finding,
         "report_finding_link": ReportFindingLink,
         "oplog_entry": OplogEntry,
+        "report": Report,
+        "project": Project,
     }
 
     def post(self, request: HttpRequest, model: str):
