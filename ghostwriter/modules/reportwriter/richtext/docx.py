@@ -625,7 +625,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         run.add_picture(file_path, width=Inches(self.report_template.evidence_image_width))
 
-        if self.global_report_config.enable_borders is not None:
+        if self.global_report_config.enable_borders:
             border_color = self.global_report_config.border_color
             border_width = self.global_report_config.border_weight
             # Add the border – see Ghostwriter Wiki for documentation
