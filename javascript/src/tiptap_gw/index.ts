@@ -12,6 +12,7 @@ import Evidence from "./evidence";
 import FormattedCodeblock from "./codeblock";
 import {
     BoldCompat,
+    CodeCompat,
     HighlightCompat,
     ItalicCompat,
     UnderlineCompat,
@@ -35,6 +36,7 @@ const EXTENSIONS: Extensions = [
         underline: false,
         bold: false,
         italic: false,
+        code: false,
         horizontalRule: false,
     }),
     HeadingWithId,
@@ -55,6 +57,7 @@ const EXTENSIONS: Extensions = [
     TextAlign.configure({
         types: ["heading", "paragraph"],
     }),
+    CodeCompat,
     HighlightCompat,
     Table,
     TableRow,
