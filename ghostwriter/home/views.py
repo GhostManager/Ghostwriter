@@ -63,12 +63,6 @@ def update_session(request):
     return HttpResponseNotAllowed(["POST"])
 
 
-@login_required
-def protected_serve(request, path, document_root=None, show_indexes=False):
-    """Serve static files from ``MEDIA_ROOT`` for authenticated requests."""
-    return serve(request, path, document_root, show_indexes)
-
-
 class Dashboard(RoleBasedAccessControlMixin, View):
     """
     Display the home page.

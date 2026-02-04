@@ -1,7 +1,24 @@
 {% extends "base_generic.html" %}
 
+{% load static %}
+
 {% block title %}Forbidden (403){% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb" style="padding-left: 20px;">
+    <ul class="breadcrumb" style="margin: 0;">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Forbidden</li>
+    </ul>
+  </nav>
+{% endblock %}
 
 {% block content %}
     <h2>Forbidden (403)</h2>
+
+    <img src="{% static 'images/amazed.png' %}" alt="403 Ghost Image" style="max-width: 250px;">
+
+    <p class="mt-3">Uh oh, you aren't supposed to be here.</p>
+
+    <p>You weren't trying to access something restricted, were you?</p>
 {% endblock content %}

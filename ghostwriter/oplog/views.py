@@ -372,7 +372,10 @@ class OplogListView(RoleBasedAccessControlMixin, ListView):
     template_name = "oplog/oplog_list.html"
 
     def get_queryset(self):
-        queryset = Oplog.for_user(self.request.user)
+        queryset = (
+            Oplog.for_user(self.request.user)
+            .select_related("project", "project__client", "project__project_type")
+        )
         return queryset
 
 
