@@ -138,7 +138,7 @@ class ClientContactForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Contact",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -215,7 +215,7 @@ class ClientInviteForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Invite",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),

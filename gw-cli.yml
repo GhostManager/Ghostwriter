@@ -1,3 +1,9 @@
+# NOTE: This docker compose file is NOT intended to work standalone!
+# Please use Ghostwriter-CLI to ensure that essential setup steps are
+# done.
+
+name: ghostwriter_sys
+
 volumes:
   production_postgres_data: {}
   production_postgres_data_backups: {}
@@ -6,10 +12,7 @@ volumes:
 
 services:
   django: &django
-    build:
-      context: .
-      dockerfile: ./compose/production/django/Dockerfile
-    image: ghostwriter_production_django
+    image: ghcr.io/ghostmanager/ghostwriter_django:<VERSION>
     restart: unless-stopped
     depends_on:
       postgres:
@@ -71,10 +74,7 @@ services:
       - production_data:/app/ghostwriter/media
 
   postgres:
-    build:
-      context: .
-      dockerfile: ./compose/production/postgres/Dockerfile
-    image: ghostwriter_production_postgres
+    image: ghcr.io/ghostmanager/ghostwriter_postgres:<VERSION>
     restart: unless-stopped
     volumes:
       - production_postgres_data:/var/lib/postgresql/data
@@ -96,10 +96,7 @@ services:
       start_period: ${HEALTHCHECK_START}
 
   nginx:
-    build:
-      context: .
-      dockerfile: ./compose/production/nginx/Dockerfile
-    image: ghostwriter_production_nginx
+    image: ghcr.io/ghostmanager/ghostwriter_nginx:<VERSION>
     restart: unless-stopped
     depends_on:
       - django
@@ -122,10 +119,7 @@ services:
       start_period: ${HEALTHCHECK_START}
 
   redis:
-    build:
-      context: .
-      dockerfile: ./compose/production/redis/Dockerfile
-    image: ghostwriter_production_redis
+    image: ghcr.io/ghostmanager/ghostwriter_redis:<VERSION>
     labels:
       name: ghostwriter_redis
     restart: unless-stopped
@@ -138,7 +132,6 @@ services:
 
   queue:
     <<: *django
-    image: ghostwriter_production_queue
     restart: unless-stopped
     depends_on:
       postgres:
@@ -150,10 +143,7 @@ services:
     command: /start-queue
 
   graphql_engine:
-    build:
-      context: .
-      dockerfile: ./compose/production/hasura/Dockerfile
-    image: ghostwriter_production_graphql
+    image: ghcr.io/ghostmanager/ghostwriter_hasura:<VERSION>
     depends_on:
       postgres:
         condition: service_healthy
@@ -194,10 +184,7 @@ services:
       start_period: ${HEALTHCHECK_START}
 
   collab-server:
-    build:
-      context: .
-      dockerfile: ./compose/production/collab-server/Dockerfile
-    image: ghostwriter_production_collab_server
+    image: ghcr.io/ghostmanager/ghostwriter_collab_server:<VERSION>
     restart: unless-stopped
     depends_on:
       - graphql_engine
@@ -207,4 +194,3 @@ services:
     environment:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
-      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}

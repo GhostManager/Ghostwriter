@@ -95,7 +95,7 @@
       let new_form = $('#formset-{{ assignments.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
       new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-      let target = 'id_{{ assignments.prefix }}-' + parseInt(form_idx) + '-note'
+      let target = 'id_{{ assignments.prefix }}-' + parseInt(form_idx) + '-description'
       tinymce.execCommand('mceAddEditor', false, target);
     });
 
@@ -128,7 +128,7 @@
       let new_form = $('#formset-{{ targets.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
       new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-      let target = 'id_{{ targets.prefix }}-' + parseInt(form_idx) + '-note'
+      let target = 'id_{{ targets.prefix }}-' + parseInt(form_idx) + '-description'
       tinymce.execCommand('mceAddEditor', false, target);
     });
 

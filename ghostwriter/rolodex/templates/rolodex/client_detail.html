@@ -255,7 +255,7 @@
             </tr>
             </thead>
             {% for project in projects %}
-              {% with has_access=project|has_access:request.user %}
+              {% with has_access=project.current_user_can_view %}
                 <tr>
                   {% if has_access %}
                     <td class="align-middle text-left"><a class="clickable"
@@ -318,7 +318,7 @@
               </thead>
               {% for domain in domains %}
                 <tr>
-                  {% if domain.project|has_access:request.user %}
+                  {% if domain.current_user_can_view %}
                     <td class="align-middle text-left"><a class="clickable"
                                                 href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a>
                     </td>
@@ -363,7 +363,7 @@
               </thead>
               {% for server in servers %}
                 <tr>
-                  {% if server.project|has_access:request.user %}
+                  {% if server.current_user_can_view %}
                     <td class="align-middle text-left"><a class="clickable"
                                                 href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
                     </td>
@@ -381,7 +381,7 @@
 
               {% for server in vps %}
                 <tr>
-                  {% if server.project|has_access:request.user %}
+                  {% if server.current_user_can_view %}
                     <td class="align-middle text-left"><a class="clickable"
                                                 href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
                     </td>
@@ -537,7 +537,7 @@
 
   {% comment %} Insert modals for additional domain details {% endcomment %}
   {% for project in projects %}
-    {% if project|has_access:request.user %}
+    {% if project.current_user_can_view %}
       {% include "snippets/project_history_detail_modal.html" with checkout=checkout %}
     {% endif %}
   {% endfor %}

@@ -249,6 +249,93 @@ class HtmlToDocx(BaseHtmlToOOXML):
         else:
             super().tag_div(el, **kwargs)
 
+    def tag_span(self, el, *, par, **kwargs):
+        """Override tag_span to handle footnotes."""
+        if "footnote" in el.attrs.get("class", []):
+            self.make_footnote(el, par=par, **kwargs)
+        else:
+            super().tag_span(el, par=par, **kwargs)
+
+    def make_footnote(self, el, *, par=None, **kwargs):
+        """
+        Handle <span class="footnote"> elements by creating a Word footnote.
+
+        The footnote content is the text content of the element.
+        A footnote reference is inserted at the current position in the paragraph.
+        """
+        if par is None:
+            logger.warning("Footnote found outside of a paragraph, skipping")
+            return
+
+        # Get the footnote content from the element's text
+        footnote_content = el.get_text().strip()
+        if not footnote_content:
+            return
+
+        # Emit any pending segment break before adding footnote
+        self.text_tracking.force_emit_pending_segment_break()
+
+        # Calculate the next footnote ID by finding the max existing ID
+        # This is simpler and more reliable than the paragraph-based algorithm
+        # which doesn't work well for table cells or dynamically-built documents
+        max_existing_id = 0
+        for footnote in self.doc.footnotes:
+            max_existing_id = max(max_existing_id, footnote.id)
+        next_footnote_id = max_existing_id + 1
+
+        # Add footnote reference to the run and create the footnote
+        paragraph_element = par._p.add_r()
+        paragraph_element.add_footnoteReference(next_footnote_id)
+        new_footnote = self.doc._add_footnote(next_footnote_id)
+
+        # Add the footnote paragraph with the footnote reference mark at the start
+        # This is required for Word to properly display the footnote number
+        footnote_paragraph = new_footnote.add_paragraph()
+
+        # Check if required styles exist in the template
+        has_footnote_text_style = "Footnote Text" in self.doc.styles
+        has_footnote_ref_style = "Footnote Reference" in self.doc.styles
+
+        # Apply paragraph style if available
+        if has_footnote_text_style:
+            footnote_paragraph.style = "Footnote Text"
+
+        # Create footnote reference run with style if available
+        if has_footnote_ref_style:
+            footnote_ref_run = footnote_paragraph.add_run()
+            footnote_ref_run.style = "Footnote Reference"
+            footnote_ref_run.font.superscript = True
+            footnote_ref_element = OxmlElement("w:footnoteRef")
+            footnote_ref_run._r.append(footnote_ref_element)
+        else:
+            # Fallback: manually create run with XML properties
+            footnote_ref_run = footnote_paragraph._p.add_r()
+            run_properties = OxmlElement("w:rPr")
+            style_element = OxmlElement("w:rStyle")
+            style_element.set(qn("w:val"), "FootnoteReference")
+            run_properties.append(style_element)
+            vert_align = OxmlElement("w:vertAlign")
+            vert_align.set(qn("w:val"), "superscript")
+            run_properties.append(vert_align)
+            footnote_ref_run.insert(0, run_properties)
+            footnote_ref_element = OxmlElement("w:footnoteRef")
+            footnote_ref_run.append(footnote_ref_element)
+
+        # Add a space and the footnote text with "Footnote Text" character style
+        text_run = footnote_paragraph.add_run(" " + footnote_content)
+        if has_footnote_text_style:
+            text_run.style = "Footnote Text"
+
+        # Apply fallback formatting if either style is missing
+        if not has_footnote_text_style or not has_footnote_ref_style:
+            pf = footnote_paragraph.paragraph_format
+            pf.line_spacing = 1.0
+            pf.space_before = 0
+            for run in footnote_paragraph.runs:
+                run.font.size = Pt(10)
+
+        # ...existing code...
+
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         table.autofit = True
@@ -325,6 +412,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
+        elif "footnote" in el.attrs.get("class", []):
+            self.make_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
 
@@ -503,17 +592,17 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             try:
                 self._make_image(par, file_path)
             except UnrecognizedImageError as e:
-               logger.exception(
-                   "Evidence file known as %s (%s) was not recognized as a %s file.",
-                   evidence["friendly_name"],
-                   file_path,
-                   extension,
-               )
-               error_msg = (
-                   f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
-                   "Try opening it, exporting as desired type, and re-uploading it."
-               )
-               raise ReportExportTemplateError(error_msg) from e
+                logger.exception(
+                    "Evidence file known as %s (%s) was not recognized as a %s file.",
+                    evidence["friendly_name"],
+                    file_path,
+                    extension,
+                )
+                error_msg = (
+                    f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
+                    "Try opening it, exporting as desired type, and re-uploading it."
+                )
+                raise ReportExportTemplateError(error_msg) from e
 
             if self.global_report_config.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()
@@ -536,7 +625,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         run.add_picture(file_path, width=Inches(self.report_template.evidence_image_width))
 
-        if self.global_report_config.enable_borders is not None:
+        if self.global_report_config.enable_borders:
             border_color = self.global_report_config.border_color
             border_width = self.global_report_config.border_weight
             # Add the border – see Ghostwriter Wiki for documentation
