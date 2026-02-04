@@ -113,6 +113,18 @@ type Query {
 }
 
 type Query {
+  project_by_tag(
+    tag: String!
+  ): [GetProjectByTagsResponse!]
+}
+
+type Query {
+  report_by_tag(
+    tag: String!
+  ): [GetReportByTagsResponse!]
+}
+
+type Query {
   reportedFinding_by_tag(
     tag: String!
   ): [GetReportFindingByTagsResponse!]
@@ -266,5 +278,13 @@ type DownloadEvidenceResponse {
   friendlyName: String!
   downloadUrl: String!
   fileBase64: String!
+}
+
+type GetReportByTagsResponse {
+  id: Int!
+}
+
+type GetProjectByTagsResponse {
+  id: Int!
 }
 

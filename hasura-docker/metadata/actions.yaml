@@ -174,6 +174,31 @@ actions:
     permissions:
       - role: user
       - role: manager
+  - name: project_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/project'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: public
+      - role: user
+      - role: manager
+    comment: project_by_tag
+  - name: report_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: ReportByTag
   - name: reportedFinding_by_tag
     definition:
       kind: ""
@@ -342,4 +367,6 @@ custom_types:
           source: default
           type: object
     - name: DownloadEvidenceResponse
+    - name: GetReportByTagsResponse
+    - name: GetProjectByTagsResponse
   scalars: []
