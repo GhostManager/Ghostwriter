@@ -17,25 +17,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Get Version
-        run: echo "VERSION=$(head -n 1 VERSION)" >> ${GITHUB_ENV}
-      - name: Lowercase the server container image name
-        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> ${GITHUB_ENV}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: "arm64,arm"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Log in to the container registry
         uses: docker/login-action@v3 # ref: https://github.com/marketplace/actions/docker-login
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Get Version
+        run: echo "VERSION=$(head -n 1 VERSION)" >> ${GITHUB_ENV}
+      - name: Lowercase the server container image name
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> ${GITHUB_ENV}
       - name: Build and push Django
         uses: docker/build-push-action@v6
         with:
           file: ./compose/production/django/Dockerfile
           push: ${{ github.ref_type == 'tag' }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_django:${{env.VERSION}}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_django:latest
@@ -44,8 +49,9 @@ jobs:
         with:
           file: ./compose/production/postgres/Dockerfile
           push: ${{ github.ref_type == 'tag' }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_postgres:${{env.VERSION}}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_postgres:latest
@@ -54,8 +60,9 @@ jobs:
         with:
           file: ./compose/production/nginx/Dockerfile
           push: ${{ github.ref_type == 'tag' }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_nginx:${{env.VERSION}}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_nginx:latest
@@ -64,8 +71,9 @@ jobs:
         with:
           file: ./compose/production/redis/Dockerfile
           push: ${{ github.ref_type == 'tag' }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_redis:${{env.VERSION}}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_redis:latest
@@ -74,8 +82,9 @@ jobs:
         with:
           file: ./compose/production/hasura/Dockerfile
           push: ${{ github.ref_type == 'tag' }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_hasura:${{env.VERSION}}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_hasura:latest
@@ -84,8 +93,9 @@ jobs:
         with:
           file: ./compose/production/collab-server/Dockerfile
           push: ${{ github.ref_type == 'tag' }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_collab_server:${{env.VERSION}}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/ghostwriter_collab_server:latest
