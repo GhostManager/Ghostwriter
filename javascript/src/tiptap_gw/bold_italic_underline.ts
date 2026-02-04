@@ -70,12 +70,13 @@ export const HighlightCompat = Highlight.extend({
 });
 
 export const CodeCompat = Code.extend({
-    excludes: '',
+    // Allow all other marks to coexist with code (override Code's default excludes)
+    excludes: "",
     parseHTML() {
         const arr = Array.from(Code.config.parseHTML!.call(this)!);
         arr.push({
             tag: "span",
-            getAttrs: (node) => node.classList.contains("code") && null,
+            getAttrs: (node) => (node.classList.contains("code") ? null : false),
             contentElement: (node) => unwrapClass(node, "code"),
         });
         return arr;
