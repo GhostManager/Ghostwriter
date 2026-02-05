@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 6.2.3 — 5 February 2026
+
+### Changed
+
+* Changed the code block behavior in the Tiptap editor to allow highlighting inside code blocks (PR #811; Thanks to @BinaryScary)
+* The Project and Report models are now valid models for the `setTags` GraphQL mutation (PR #810; Thanks to @domwhewell-sage)
+
+### Fixed
+
+* Fixed image borders not disabling properly when the setting was unchecked (PR #812)
+* Fixed missing vendor names in VirusTotal results following API changes
+
 ## [6.2.2] - 22 January 2026
 
 ### Added
