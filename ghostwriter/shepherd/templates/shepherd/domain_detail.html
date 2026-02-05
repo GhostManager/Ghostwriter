@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags humanize custom_tags extra_fields %}
+{% load bleach_tags humanize custom_tags extra_fields settings_tags %}
 
 {% block pagetitle %}{{ domain.name }} Details{% endblock %}
 
@@ -15,6 +15,8 @@
 {% endblock %}
 
 {% block content %}
+  {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
+
   <div class="dropdown">
     <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
          onclick="hamburger(this)">
@@ -176,13 +178,15 @@
         <h4>Domain Health</h4>
         <hr/>
 
-        {% if not domain.is_expired %}
+        {% if not domain.is_expired and vt_config.enable %}
           <p>
             <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3"
                domain-update-csrftoken="{{ csrf_token }}"
                domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}"
                domain-update-id="{{ domain.id }}">Refresh Categorization</a>
           </p>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">VirusTotal integration is disabled or the domain is expired; categorization cannot be refreshed.</div>
         {% endif %}
 
         <p>
