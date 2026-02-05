@@ -4,7 +4,7 @@
 import logging
 import threading
 import time
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 # 3rd Party Libraries
 import spacy
@@ -81,13 +81,17 @@ class PassiveVoiceDetector:
 
     def detect_passive_sentences(self, text: str) -> List[Tuple[int, int]]:
         """
-        Detect passive voice sentences in text with optimized performance.
+        Detect passive voice constructions in text with optimized performance.
+
+        Returns the span of the passive voice clause (subject + verb phrase),
+        not the entire sentence. This ensures accurate highlighting even when
+        sentence segmentation fails (e.g., "mark.an exploit was run").
 
         Args:
             text: Plain text to analyze
 
         Returns:
-            List of (start_char, end_char) tuples for passive sentences
+            List of (start_char, end_char) tuples for passive constructions
 
         Example:
             >>> detector = PassiveVoiceDetector()
@@ -104,46 +108,119 @@ class PassiveVoiceDetector:
         # Process text with spaCy (thread-safe after initialization)
         doc = self._nlp(text)
 
-        # Optimized: use list comprehension instead of loop with append
-        passive_ranges = [
-            (sent.start_char, sent.end_char)
-            for sent in doc.sents
-            if self._is_passive_voice(sent)
-        ]
+        # Find passive voice constructions and return their clause boundaries
+        passive_ranges = []
+        for sent in doc.sents:
+            clause_range = self._find_passive_clause(sent)
+            if clause_range:
+                passive_ranges.append(clause_range)
 
         return passive_ranges
 
-    def _is_passive_voice(self, sent) -> bool:
+    def _find_passive_clause(self, sent) -> Optional[Tuple[int, int]]:
         """
-        Check if sentence contains passive voice construction (optimized).
+        Find the passive voice clause within a sentence.
 
-        Looks for auxiliary verb (auxpass) + past participle (VBN).
-        This pattern identifies constructions like:
-        - "was written" (auxpass: was, VBN: written)
-        - "were exploited" (auxpass: were, VBN: exploited)
-        - "has been analyzed" (auxpass: been, VBN: analyzed)
+        Returns the character range of the clause containing the passive
+        construction, including subject and verb phrase.
 
         Args:
             sent: spaCy Span object representing a sentence
 
         Returns:
-            True if sentence contains passive voice, False otherwise
+            Tuple (start_char, end_char) if passive found, None otherwise
         """
-        # Optimized: single-pass check for both patterns
-        # Eliminates redundant token iteration
         for token in sent:
             # Pattern 1: Direct passive auxiliary dependency (most common)
             if token.dep_ == "auxpass":
-                return True
+                # Found passive - get the clause boundaries
+                return self._get_clause_boundaries(token, sent)
 
             # Pattern 2: Past participle with auxpass child (less common)
-            # Check inline to avoid second loop
             if token.tag_ == "VBN":
-                # Check children efficiently with any()
                 if any(child.dep_ == "auxpass" for child in token.children):
-                    return True
+                    return self._get_clause_boundaries(token, sent)
 
+        return None
+
+    # Dependencies that indicate clause boundaries (often mis-segmented sentences)
+    _EXCLUDED_DEPS = frozenset({"advcl", "conj", "parataxis", "cc"})
+    # Subject dependency types
+    _SUBJECT_DEPS = frozenset({"nsubjpass", "nsubj", "csubj", "expl"})
+
+    def _find_passive_head(self, passive_token):
+        """Find the main verb (head) of the passive construction."""
+        head = passive_token
+        while head.dep_ in ("auxpass", "aux") and head.head != head:
+            head = head.head
+        return head
+
+    def _is_boundary_token(self, token) -> bool:
+        """Check if token indicates a sentence boundary issue (e.g., 'mark.an')."""
+        return "." in token.text and token.dep_ in ("nummod", "compound")
+
+    def _has_excluded_ancestor(self, token, head) -> bool:
+        """Check if any ancestor between token and head has an excluded dependency."""
+        current = token
+        while current not in (head, current.head):
+            if current.dep_ in self._EXCLUDED_DEPS and current.head == head:
+                return True
+            current = current.head
         return False
+
+    def _collect_subject_tokens(self, head) -> List:
+        """Collect tokens from subject dependencies."""
+        tokens = []
+        for child in head.children:
+            if child.dep_ in self._SUBJECT_DEPS:
+                for token in child.subtree:
+                    if not self._is_boundary_token(token):
+                        tokens.append(token)
+        return tokens
+
+    def _collect_verb_phrase_tokens(self, head) -> List:
+        """Collect tokens from verb phrase, excluding trailing clauses."""
+        tokens = []
+        for token in head.subtree:
+            # Skip excluded dependency subtrees
+            if token != head and token.head == head and token.dep_ in self._EXCLUDED_DEPS:
+                continue
+            # Skip if ancestor has excluded dep
+            if self._has_excluded_ancestor(token, head):
+                continue
+            # Skip boundary tokens
+            if self._is_boundary_token(token):
+                continue
+            tokens.append(token)
+        return tokens
+
+    def _get_clause_boundaries(self, passive_token, sent) -> Tuple[int, int]:
+        """
+        Get the character boundaries of the clause containing a passive construction.
+
+        Args:
+            passive_token: Token that is part of passive construction
+            sent: The sentence span containing the token
+
+        Returns:
+            Tuple (start_char, end_char) for the clause
+        """
+        head = self._find_passive_head(passive_token)
+
+        # Collect tokens from subject and verb phrase
+        clause_tokens = self._collect_subject_tokens(head)
+        clause_tokens.extend(self._collect_verb_phrase_tokens(head))
+
+        if not clause_tokens:
+            return (sent.start_char, sent.end_char)
+
+        # Get character boundaries from collected tokens
+        clause_tokens = sorted(clause_tokens, key=lambda t: t.i)
+        start_char = clause_tokens[0].idx
+        last_token = clause_tokens[-1]
+        end_char = last_token.idx + len(last_token.text)
+
+        return (start_char, end_char)
 
 
 def get_detector() -> PassiveVoiceDetector:

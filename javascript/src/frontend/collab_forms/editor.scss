@@ -439,7 +439,7 @@ ul.collab-focused-users {
 }
 
 // Passive Voice Highlighting
-mark.passive-voice-highlight {
+.passive-voice-highlight {
     background-color: #fff3cd;
     border-bottom: 2px wavy #ff6b6b;
     padding: 2px 0;
@@ -448,7 +448,6 @@ mark.passive-voice-highlight {
 }
 
 // Hover state applied via JavaScript to all segments in same group
-mark.passive-voice-highlight.passive-voice-hover {
+.passive-voice-highlight.passive-voice-hover {
     background-color: #ffe69c;
 }
-
