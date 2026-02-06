@@ -35,7 +35,7 @@ import {
 import { useEffect, useMemo } from "react";
 import * as Y from "yjs";
 import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCarent from "@tiptap/extension-collaboration-caret";
+import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
 import HeadingIdButton from "./heading";
@@ -505,7 +505,7 @@ export default function RichTextEditor(props: {
                     document: props.provider.document,
                     fragment: props.fragment,
                 }),
-                CollaborationCarent.configure({
+                CollaborationCaret.configure({
                     provider: props.provider,
                     user: props.provider.awareness!.getLocalState()!.user,
                 })
