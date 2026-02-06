@@ -90,7 +90,6 @@ export type Evidence = {
 
 export type Evidences = {
     evidence: Evidence[];
-    mediaUrl: string;
     uploadUrl: string;
     poll: () => Promise<void>;
 };
@@ -122,7 +121,7 @@ function EvidenceView(props: NodeViewProps) {
         evidence.document.endsWith(".jpg") ||
         evidence.document.endsWith(".jpeg")
     ) {
-        const url = ghostwriterEvidences.mediaUrl + evidence["document"];
+        const url = "/reporting/evidence/download/" + evidence.id;
         img = (
             <>
                 <img src={url} onClick={() => setLightboxOpen(true)} />
