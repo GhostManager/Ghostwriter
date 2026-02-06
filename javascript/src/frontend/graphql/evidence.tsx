@@ -47,14 +47,12 @@ export function usePageEvidence(): Evidences | null {
     const evidences = data?.evidence;
     if (evidences === null || evidences === undefined) return null;
 
-    const mediaUrl = document.getElementById("graphql-media-url")!.innerHTML;
     const uploadUrl = document.getElementById(
         "graphql-evidence-upload-url"
     )!.innerHTML;
 
     return {
         evidence: evidences,
-        mediaUrl,
         uploadUrl,
         poll,
     };
