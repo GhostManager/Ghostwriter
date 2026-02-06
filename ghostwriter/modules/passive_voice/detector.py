@@ -67,7 +67,11 @@ class PassiveVoiceDetector:
                 self._nlp.vocab.strings.add("VBN")
 
                 load_time = (time.perf_counter() - start_time) * 1000
-                logger.info("spaCy model '%s' loaded in %.2fms with optimizations", model_name, load_time)
+                logger.info(
+                    "spaCy model '%s' loaded in %.2fms with optimizations",
+                    model_name,
+                    load_time,
+                )
 
                 self._initialized = True
             except OSError:
