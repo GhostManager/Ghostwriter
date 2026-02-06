@@ -1,13 +1,14 @@
 """Tests for passive voice API endpoint."""
 
 # Standard Libraries
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 # Django Imports
-from django.test import TestCase, override_settings
+from django.test import TestCase, RequestFactory, override_settings
 from django.urls import reverse
 
 # Ghostwriter Libraries
+from ghostwriter.api.views import _validate_passive_voice_request
 from ghostwriter.factories import UserFactory
 
 
@@ -186,3 +187,98 @@ class PassiveVoiceAPITests(TestCase):
         data = response.json()
         self.assertIn("error", data)
         self.assertEqual(data["error"], "Failed to analyze text")
+
+
+class ValidatePassiveVoiceRequestTests(TestCase):
+    """Tests for _validate_passive_voice_request helper function."""
+
+    def setUp(self):
+        """Set up request factory and test user."""
+        self.factory = RequestFactory()
+        self.user = UserFactory()
+
+    def _make_request(self, method="POST", body=b'{"text": "Test."}', user=None):
+        """Create a mock request for testing."""
+        if method == "POST":
+            request = self.factory.post(
+                "/api/v1/passive-voice/detect",
+                data=body,
+                content_type="application/json",
+            )
+        else:
+            request = self.factory.get("/api/v1/passive-voice/detect")
+        request.user = user if user else self.user
+        request._body = body
+        return request
+
+    def test_returns_text_on_valid_request(self):
+        """Test that valid request returns (text, None)."""
+        request = self._make_request(body=b'{"text": "The report was written."}')
+
+        text, error = _validate_passive_voice_request(request)
+
+        self.assertEqual(text, "The report was written.")
+        self.assertIsNone(error)
+
+    def test_returns_error_for_unauthenticated_request(self):
+        """Test that unauthenticated request returns 401 error response."""
+        anon_user = MagicMock()
+        anon_user.is_authenticated = False
+        request = self._make_request(user=anon_user)
+
+        text, error = _validate_passive_voice_request(request)
+
+        self.assertIsNone(text)
+        self.assertIsNotNone(error)
+        self.assertEqual(error.status_code, 401)
+
+    def test_returns_error_for_get_method(self):
+        """Test that GET request returns 405 error response."""
+        request = self._make_request(method="GET")
+
+        text, error = _validate_passive_voice_request(request)
+
+        self.assertIsNone(text)
+        self.assertIsNotNone(error)
+        self.assertEqual(error.status_code, 405)
+
+    def test_returns_error_for_invalid_json(self):
+        """Test that invalid JSON returns 400 error response."""
+        request = self._make_request(body=b"not valid json")
+
+        text, error = _validate_passive_voice_request(request)
+
+        self.assertIsNone(text)
+        self.assertIsNotNone(error)
+        self.assertEqual(error.status_code, 400)
+
+    def test_returns_error_for_empty_text(self):
+        """Test that empty text returns 400 error response."""
+        request = self._make_request(body=b'{"text": ""}')
+
+        text, error = _validate_passive_voice_request(request)
+
+        self.assertIsNone(text)
+        self.assertIsNotNone(error)
+        self.assertEqual(error.status_code, 400)
+
+    def test_returns_error_for_whitespace_only_text(self):
+        """Test that whitespace-only text returns 400 error response."""
+        request = self._make_request(body=b'{"text": "   \\n\\t  "}')
+
+        text, error = _validate_passive_voice_request(request)
+
+        self.assertIsNone(text)
+        self.assertIsNotNone(error)
+        self.assertEqual(error.status_code, 400)
+
+    @override_settings(SPACY_MAX_TEXT_LENGTH=10)
+    def test_returns_error_for_text_exceeding_max_length(self):
+        """Test that text exceeding max length returns 413 error response."""
+        request = self._make_request(body=b'{"text": "This is a very long text."}')
+
+        text, error = _validate_passive_voice_request(request)
+
+        self.assertIsNone(text)
+        self.assertIsNotNone(error)
+        self.assertEqual(error.status_code, 413)

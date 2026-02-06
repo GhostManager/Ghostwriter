@@ -15,7 +15,6 @@ from socket import gaierror
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.db.utils import IntegrityError
@@ -1494,6 +1493,48 @@ class ObjectsByTag(HasuraActionView):
 ######################
 
 
+def _validate_passive_voice_request(request):
+    """
+    Validate the passive voice detection request.
+
+    Returns:
+        tuple: (text, None) on success, or (None, JsonResponse) on validation error.
+    """
+    if not request.user.is_authenticated:
+        return None, JsonResponse(
+            {"error": "Authentication required"}, status=HTTPStatus.UNAUTHORIZED
+        )
+
+    if request.method != "POST":
+        return None, JsonResponse(
+            {"error": "Only POST method is allowed"},
+            status=HTTPStatus.METHOD_NOT_ALLOWED,
+        )
+
+    try:
+        data = json.loads(request.body)
+    except JSONDecodeError:
+        return None, JsonResponse(
+            {"error": "Invalid JSON in request body"}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    text = data.get("text", "")
+
+    if not isinstance(text, str) or not text.strip():
+        return None, JsonResponse(
+            {"error": "Text field is required"}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    max_length = settings.SPACY_MAX_TEXT_LENGTH
+    if len(text) > max_length:
+        return None, JsonResponse(
+            {"error": f"Text exceeds maximum length of {max_length} characters"},
+            status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+        )
+
+    return text, None
+
+
 def detect_passive_voice(request):
     """
     Detect passive voice sentences in provided text using spaCy NLP.
@@ -1533,38 +1574,9 @@ def detect_passive_voice(request):
             "detail": "..."
         }
     """
-    # Return JSON 401 for unauthenticated requests (not redirect to login page)
-    if not request.user.is_authenticated:
-        return JsonResponse(
-            {"error": "Authentication required"}, status=HTTPStatus.UNAUTHORIZED
-        )
-
-    if request.method != "POST":
-        return JsonResponse(
-            {"error": "Only POST method is allowed"}, status=HTTPStatus.METHOD_NOT_ALLOWED
-        )
-
-    try:
-        data = json.loads(request.body)
-    except JSONDecodeError:
-        return JsonResponse(
-            {"error": "Invalid JSON in request body"}, status=HTTPStatus.BAD_REQUEST
-        )
-
-    text = data.get("text", "")
-
-    if not isinstance(text, str) or not text.strip():
-        return JsonResponse(
-            {"error": "Text field is required"}, status=HTTPStatus.BAD_REQUEST
-        )
-
-    # Enforce max length from settings
-    max_length = settings.SPACY_MAX_TEXT_LENGTH
-    if len(text) > max_length:
-        return JsonResponse(
-            {"error": f"Text exceeds maximum length of {max_length} characters"},
-            status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
-        )
+    text, error_response = _validate_passive_voice_request(request)
+    if error_response:
+        return error_response
 
     try:
         detector = get_detector()
