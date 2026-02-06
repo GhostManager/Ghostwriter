@@ -31,8 +31,9 @@ class PassiveVoiceAPITests(TestCase):
             self.url, {"text": "Test text."}, content_type="application/json"
         )
 
-        # @login_required redirects to login page (302) for unauthenticated requests
-        self.assertEqual(response.status_code, 302)
+        # API returns JSON 401 for unauthenticated requests (not redirect)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["error"], "Authentication required")
 
     def test_detects_passive_voice(self):
         """Test successful passive voice detection."""
@@ -85,6 +86,16 @@ class PassiveVoiceAPITests(TestCase):
         self.assertEqual(response.status_code, 400)
         data = response.json()
         self.assertIn("error", data)
+
+    def test_rejects_whitespace_only_text(self):
+        """Test that whitespace-only text returns error."""
+        response = self.client.post(
+            self.url, {"text": "   \n\t  "}, content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data["error"], "Text field is required")
 
     def test_rejects_missing_text_field(self):
         """Test that missing text field returns error."""

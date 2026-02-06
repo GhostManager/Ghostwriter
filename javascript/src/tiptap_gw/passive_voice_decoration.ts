@@ -4,6 +4,15 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { type DocumentPositionRange } from "./text_position_mapper";
 
 /**
+ * Spec object for passive voice decorations.
+ * Uses the documented ProseMirror spec API (4th arg to Decoration.inline)
+ * instead of relying on internal attrs structure.
+ */
+interface PassiveVoiceDecoSpec {
+    groupId: string;
+}
+
+/**
  * Plugin key for passive voice decorations
  */
 export const passiveVoicePluginKey = new PluginKey("passiveVoice");
@@ -46,10 +55,15 @@ export const PassiveVoiceDecoration = Extension.create({
                                 ({ from, to }, index: number) => {
                                     const groupId = `pv-${index}`;
 
-                                    return Decoration.inline(from, to, {
-                                        class: "passive-voice-highlight",
-                                        "data-passive-group": groupId,
-                                    });
+                                    return Decoration.inline(
+                                        from,
+                                        to,
+                                        {
+                                            class: "passive-voice-highlight",
+                                            "data-passive-group": groupId,
+                                        },
+                                        { groupId } as PassiveVoiceDecoSpec
+                                    );
                                 }
                             );
 
@@ -91,12 +105,19 @@ export const PassiveVoiceDecoration = Extension.create({
                                 // Skip if it became zero-width
                                 if (mappedFrom >= mappedTo) continue;
 
-                                // Recreate with mapped positions
+                                // Recreate with mapped positions using spec (stable API)
+                                const spec = deco.spec as PassiveVoiceDecoSpec;
+                                const groupId = spec?.groupId || "";
                                 survivingDecos.push(
-                                    Decoration.inline(mappedFrom, mappedTo, {
-                                        class: "passive-voice-highlight",
-                                        "data-passive-group": (deco as any).type?.attrs?.["data-passive-group"] || "",
-                                    })
+                                    Decoration.inline(
+                                        mappedFrom,
+                                        mappedTo,
+                                        {
+                                            class: "passive-voice-highlight",
+                                            "data-passive-group": groupId,
+                                        },
+                                        { groupId } as PassiveVoiceDecoSpec
+                                    )
                                 );
                             }
 

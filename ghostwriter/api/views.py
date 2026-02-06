@@ -1494,7 +1494,6 @@ class ObjectsByTag(HasuraActionView):
 ######################
 
 
-@login_required
 def detect_passive_voice(request):
     """
     Detect passive voice sentences in provided text using spaCy NLP.
@@ -1513,6 +1512,11 @@ def detect_passive_voice(request):
             "count": 1
         }
 
+    Response (401 Unauthorized):
+        {
+            "error": "Authentication required"
+        }
+
     Response (400 Bad Request):
         {
             "error": "Text field is required"
@@ -1529,6 +1533,12 @@ def detect_passive_voice(request):
             "detail": "..."
         }
     """
+    # Return JSON 401 for unauthenticated requests (not redirect to login page)
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Authentication required"}, status=HTTPStatus.UNAUTHORIZED
+        )
+
     if request.method != "POST":
         return JsonResponse(
             {"error": "Only POST method is allowed"}, status=HTTPStatus.METHOD_NOT_ALLOWED
@@ -1543,7 +1553,7 @@ def detect_passive_voice(request):
 
     text = data.get("text", "")
 
-    if not text:
+    if not isinstance(text, str) or not text.strip():
         return JsonResponse(
             {"error": "Text field is required"}, status=HTTPStatus.BAD_REQUEST
         )

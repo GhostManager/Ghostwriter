@@ -134,7 +134,7 @@ export function convertRangesWithMap(
         const safeEnd = Math.max(0, Math.min(end, positionMap.length - 1));
 
         return {
-            from: positionMap[safeStart] ?? 1,
+            from: positionMap[safeStart] ?? 0,
             to: positionMap[safeEnd] ?? docSize,
         };
     });

@@ -293,7 +293,7 @@ const Footnote = Node.create<FootnoteOptions>({
 
     renderText({ node }) {
         // Add space before footnote marker so spaCy tokenization works correctly
-        // "was run[^1]" confuses tokenizer, but "was run. [1]" works
+        // "was run[^1]" confuses tokenizer, but "was run [1]" works
         return ` [${node.attrs.content}]`;
     },
 

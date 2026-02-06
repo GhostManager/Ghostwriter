@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir -r /requirements/local.txt --no-binary psycopg2
 # Available models: https://spacy.io/models
 ARG SPACY_MODEL=en_core_web_sm
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m spacy download ${SPACY_MODEL}
+    python -m spacy download "${SPACY_MODEL}"
 
 COPY ./compose/production/django/entrypoint /entrypoint
 

@@ -441,8 +441,8 @@ ul.collab-focused-users {
 // Passive Voice Highlighting
 .passive-voice-highlight {
     background-color: #fff3cd;
-    border-bottom: 2px wavy #ff6b6b;
-    padding: 2px 0;
+    text-decoration: underline wavy #ff6b6b;
+    text-decoration-thickness: 2px;
     transition: background-color 0.15s ease;
     cursor: text;
 }
