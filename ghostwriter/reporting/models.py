@@ -65,7 +65,9 @@ class Severity(models.Model):
     def color_hex(self):
         """Return the severity color code as a list of hexadecimal."""
         n = 2
-        return tuple(hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n))
+        return tuple(
+            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
+        )
 
     count = property(count_findings)
 
@@ -106,7 +108,9 @@ class Severity(models.Model):
                         if not self.pk == category.pk:
                             if self.weight == counter:
                                 counter += 1
-                            severity_queryset.filter(id=category.id).update(weight=counter)
+                            severity_queryset.filter(id=category.id).update(
+                                weight=counter
+                            )
                             counter += 1
                         else:
                             pass
@@ -119,7 +123,9 @@ class Severity(models.Model):
 class FindingType(models.Model):
     """Stores an individual finding type."""
 
-    finding_type = models.CharField("Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)")
+    finding_type = models.CharField(
+        "Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)"
+    )
 
     def count_findings(self):
         """Return the number of :model:`reporting.Finding` associated with an instance."""
@@ -350,7 +356,7 @@ class ReportTemplate(models.Model):
         "BloodHound Heading Offset",
         default=0,
         blank=True,
-        help_text="Headings in BloodHound finding descriptions will have their level offset by this amount"
+        help_text="Headings in BloodHound finding descriptions will have their level offset by this amount",
     )
     contains_bloodhound_data = models.BooleanField(
         "Contains BloodHound Data",
@@ -359,7 +365,9 @@ class ReportTemplate(models.Model):
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
     client = models.ForeignKey(
         "rolodex.Client",
         on_delete=models.CASCADE,
@@ -410,7 +418,9 @@ class ReportTemplate(models.Model):
             try:
                 result_code = self.lint_result["result"]
             except json.decoder.JSONDecodeError:  # pragma: no cover
-                logger.exception("Could not decode data in model as JSON: %r", self.lint_result)
+                logger.exception(
+                    "Could not decode data in model as JSON: %r", self.lint_result
+                )
             except Exception:  # pragma: no cover
                 logger.exception(
                     "Encountered an exception while trying to decode this as JSON: %r",
@@ -437,18 +447,14 @@ class ReportTemplate(models.Model):
                 template_loc=self.document.path,
                 p_style=self.p_style,
                 evidence_image_width=self.evidence_image_width,
-                **kwargs
+                **kwargs,
             )
         if self.doc_type.doc_type == "project_docx":
             assert isinstance(object, Project)
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 
-            return ExportProjectDocx(
-                object,
-                report_template=self,
-                **kwargs
-            )
+            return ExportProjectDocx(object, report_template=self, **kwargs)
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
@@ -472,7 +478,9 @@ class ReportTemplate(models.Model):
         try:
             warnings, errors = self.lint_raw()
         except Exception:
-            logging.exception("Could not lint template %d (%s)", self.pk, self.document.path)
+            logging.exception(
+                "Could not lint template %d (%s)", self.pk, self.document.path
+            )
             warnings = []
             errors = ["Unexpected error while linting template"]
 
@@ -489,9 +497,13 @@ class ReportTemplate(models.Model):
         self.lint_result = results.copy()
 
         if results["result"] == "success":
-            results["message"] = "Template linter returned results with no errors or warnings."
+            results[
+                "message"
+            ] = "Template linter returned results with no errors or warnings."
         else:
-            results["message"] = "Template linter returned results with issues that require attention."
+            results[
+                "message"
+            ] = "Template linter returned results with issues that require attention."
         return results
 
     def lint_raw(self):
@@ -529,10 +541,18 @@ class Report(models.Model):
         default="New Report",
         help_text="Provide a meaningful title for this report - this is only seen in Ghostwriter",
     )
-    creation = models.DateField("Creation Date", auto_now_add=True, help_text="Date the report was created")
-    last_update = models.DateField("Last Update", auto_now=True, help_text="Date the report was last touched")
-    complete = models.BooleanField("Completed", default=False, help_text="Mark the report as complete")
-    archived = models.BooleanField("Archived", default=False, help_text="Mark the report as archived")
+    creation = models.DateField(
+        "Creation Date", auto_now_add=True, help_text="Date the report was created"
+    )
+    last_update = models.DateField(
+        "Last Update", auto_now=True, help_text="Date the report was last touched"
+    )
+    complete = models.BooleanField(
+        "Completed", default=False, help_text="Mark the report as complete"
+    )
+    archived = models.BooleanField(
+        "Archived", default=False, help_text="Mark the report as archived"
+    )
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
     # Foreign Keys
@@ -560,9 +580,15 @@ class Report(models.Model):
         null=True,
         help_text="Select the PowerPoint template to use for this report",
     )
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    delivered = models.BooleanField("Delivered", default=False, help_text="Delivery status of the report")
-    include_bloodhound_data = models.BooleanField(default=False, help_text="Include data from BloodHound in the report context")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    delivered = models.BooleanField(
+        "Delivered", default=False, help_text="Delivery status of the report"
+    )
+    include_bloodhound_data = models.BooleanField(
+        default=False, help_text="Include data from BloodHound in the report context"
+    )
 
     class Meta:
         ordering = ["-creation", "-last_update", "project"]
@@ -592,8 +618,12 @@ class Report(models.Model):
 
         if updated_template.client is not None:
             q_mismatched = ~Q(project__client__id=updated_template.client.id)
-            filter_docx = filter_docx | (Q(docx_template__id=updated_template.id) & q_mismatched)
-            filter_pptx = filter_pptx | (Q(pptx_template__id=updated_template.id) & q_mismatched)
+            filter_docx = filter_docx | (
+                Q(docx_template__id=updated_template.id) & q_mismatched
+            )
+            filter_pptx = filter_pptx | (
+                Q(pptx_template__id=updated_template.id) & q_mismatched
+            )
 
         cls.objects.filter(filter_docx).update(docx_template=None)
         cls.objects.filter(filter_pptx).update(pptx_template=None)
@@ -602,7 +632,9 @@ class Report(models.Model):
         """
         Returns a queryset of all evidences attached to the report - both directly attached and through the findings.
         """
-        return Evidence.objects.filter(Q(report__id=self.pk) | Q(finding__report__id=self.pk))
+        return Evidence.objects.filter(
+            Q(report__id=self.pk) | Q(finding__report__id=self.pk)
+        )
 
     def __str__(self):
         return f"{self.title}"
@@ -616,7 +648,9 @@ class Report(models.Model):
 
     @classmethod
     def user_viewable(cls, user):
+        # Ghostwriter Libraries
         from ghostwriter.rolodex.models import Project
+
         if user.is_privileged:
             return cls.objects.all()
         return cls.objects.filter(project__in=Project.user_viewable(user))
@@ -755,7 +789,10 @@ class ReportFindingLink(models.Model):
         return f"{self.display_title} on {self.report}"
 
     def get_absolute_url(self):
-        return reverse("reporting:report_detail", kwargs={"pk": self.report.pk}) + "#findings"
+        return (
+            reverse("reporting:report_detail", kwargs={"pk": self.report.pk})
+            + "#findings"
+        )
 
     def get_edit_url(self):
         return reverse("reporting:local_edit", kwargs={"pk": self.pk})
@@ -832,7 +869,6 @@ class ReportFindingLink(models.Model):
         return Finding.objects.filter(title=self.title).exists()
 
 
-
 def set_evidence_upload_destination(this, filename):
     """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
     return os.path.join("evidence", str(this.associated_report.id), filename)
@@ -873,9 +909,15 @@ class Evidence(models.Model):
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
-    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=True, blank=True)
-    report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True, blank=True)
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    finding = models.ForeignKey(
+        "ReportFindingLink", on_delete=models.CASCADE, null=True, blank=True
+    )
+    report = models.ForeignKey(
+        "Report", on_delete=models.CASCADE, null=True, blank=True
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["finding", "report", "document"]
@@ -935,7 +977,9 @@ class Archive(models.Model):
 class FindingNote(models.Model):
     """Stores an individual finding note, related to :model:`reporting.Finding`."""
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         blank=True,
@@ -944,7 +988,9 @@ class FindingNote(models.Model):
     )
     # Foreign Keys
     finding = models.ForeignKey("Finding", on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["finding", "-timestamp"]
@@ -958,7 +1004,9 @@ class FindingNote(models.Model):
 class LocalFindingNote(models.Model):
     """Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`."""
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         default="",
@@ -966,8 +1014,12 @@ class LocalFindingNote(models.Model):
         help_text="Provide additional information about the finding",
     )
     # Foreign Keys
-    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    finding = models.ForeignKey(
+        "ReportFindingLink", on_delete=models.CASCADE, null=False
+    )
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["finding", "-timestamp"]
@@ -1095,3 +1147,55 @@ class ReportObservationLink(models.Model):
 
     def user_can_delete(self, user) -> bool:
         return self.report.user_can_edit(user)
+
+
+class Acronym(models.Model):
+    """Stores an individual acronym expansion for use in text expansion feature."""
+
+    acronym = models.CharField(
+        "Acronym", max_length=50, help_text="The acronym text (e.g., CIA, FBI)"
+    )
+    expansion = models.CharField(
+        "Expansion", max_length=500, help_text="The full text expansion of the acronym"
+    )
+    override_builtin = models.BooleanField(
+        "Override Built-in",
+        default=False,
+        help_text="Whether this custom acronym should override a built-in one",
+    )
+    priority = models.IntegerField(
+        "Priority",
+        default=0,
+        help_text="Priority for disambiguation when multiple expansions exist (higher = preferred)",
+    )
+    is_active = models.BooleanField(
+        "Active", default=True, help_text="Whether this acronym is currently active"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="User who created this acronym (null for system-imported acronyms)",
+    )
+    created_at = models.DateTimeField(
+        "Created At", auto_now_add=True, help_text="When this acronym was created"
+    )
+    updated_at = models.DateTimeField(
+        "Updated At", auto_now=True, help_text="When this acronym was last updated"
+    )
+
+    class Meta:
+        ordering = ["acronym", "-priority"]
+        verbose_name = "Acronym"
+        verbose_name_plural = "Acronyms"
+        indexes = [
+            models.Index(fields=["acronym", "is_active"]),
+            models.Index(fields=["acronym", "-priority"]),
+            models.Index(fields=["override_builtin", "is_active"]),
+        ]
+
+    def __str__(self):
+        if len(self.expansion) > 50:
+            return f"{self.acronym} → {self.expansion[:47]}..."
+        return f"{self.acronym} → {self.expansion}"

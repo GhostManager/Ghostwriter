@@ -187,6 +187,11 @@ urlpatterns += [
         name="template_download",
     ),
     path(
+        "acronyms/upload",
+        ghostwriter.reporting.views2.report.AcronymYAMLUploadView.as_view(),
+        name="upload_acronyms_yaml",
+    ),
+    path(
         "evidence/download/<int:pk>",
         views.EvidenceDownload.as_view(),
         name="evidence_download",

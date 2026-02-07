@@ -1,5 +1,6 @@
 # Standard Libraries
 import random
+import zoneinfo
 from datetime import date, timedelta, timezone
 
 # Django Imports
@@ -8,7 +9,6 @@ from django.utils import timezone
 
 # 3rd Party Libraries
 import factory
-import zoneinfo
 from factory import Faker
 from faker.providers import BaseProvider
 from faker.providers.lorem.en_US import Provider as LoremProvider
@@ -557,6 +557,18 @@ class LocalFindingNoteFactory(factory.django.DjangoModelFactory):
     note = Faker("rich_text")
     finding = factory.SubFactory(ReportFindingLinkFactory)
     operator = factory.SubFactory(UserFactory)
+
+
+class AcronymFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "reporting.Acronym"
+
+    acronym = factory.Sequence(lambda n: "ACR%s" % n)
+    expansion = factory.Sequence(lambda n: "Expansion %s" % n)
+    is_active = True
+    priority = factory.Sequence(lambda n: n)
+    override_builtin = False
+    created_by = factory.SubFactory(UserFactory)
 
 
 class ClientNoteFactory(factory.django.DjangoModelFactory):
