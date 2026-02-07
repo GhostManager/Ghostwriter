@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+      args:
+        - SPACY_MODEL=${SPACY_MODEL:-en_core_web_sm}
     image: ghostwriter_local_django
     depends_on:
       postgres:
@@ -25,6 +27,7 @@ services:
     environment:
       - USE_DOCKER=${USE_DOCKER}
       - IPYTHONDIR=${IPYTHONDIR}
+      - SPACY_MODEL=${SPACY_MODEL:-en_core_web_sm}
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS=${DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS}
       - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION}
