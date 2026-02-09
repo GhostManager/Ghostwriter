@@ -23,7 +23,7 @@ RUN apk --no-cache add build-base curl \
     && apk --no-cache add cargo \
     # Git for installing packages from GitHub
     && apk --no-cache add git \
-    && pip install --no-cache-dir -U setuptools pip
+    && pip install --no-cache-dir -U pip
 
 COPY ./requirements /requirements
 
