@@ -23,7 +23,7 @@ function unwrapClass(node: Node, cls: string): HTMLElement {
 
 // Type guard that safely checks for HTMLElement in both browser and server environments
 function isHTMLElement(node: Node): node is HTMLElement {
-    return typeof HTMLElement !== "undefined" && node instanceof HTMLElement;
+    return typeof HTMLElement !== 'undefined' && node instanceof HTMLElement;
 }
 
 export const BoldCompat = Bold.extend({
@@ -81,10 +81,7 @@ export const CodeCompat = Code.extend({
         const arr = Array.from(Code.config.parseHTML!.call(this as any)!);
         arr.push({
             tag: "span",
-            getAttrs: (node) =>
-                isHTMLElement(node) && node.classList.contains("code")
-                    ? null
-                    : false,
+            getAttrs: (node) => (isHTMLElement(node) && node.classList.contains("code") ? null : false),
             contentElement: (node) => unwrapClass(node, "code"),
         });
         return arr;
