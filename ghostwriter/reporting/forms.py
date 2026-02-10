@@ -2,13 +2,14 @@
 
 # Standard Libraries
 import re
+import yaml
 
 # Django Imports
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Q
 
 # 3rd Party Libraries
 from crispy_forms.bootstrap import FieldWithButtons
@@ -25,7 +26,11 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import get_client_list, get_project_list, verify_user_is_privileged
+from ghostwriter.api.utils import (
+    get_client_list,
+    get_project_list,
+    verify_user_is_privileged,
+)
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
@@ -45,6 +50,7 @@ from ghostwriter.reporting.models import (
 )
 from ghostwriter.rolodex.models import Project
 
+
 class AssignReportFindingForm(forms.ModelForm):
     class Meta:
         model = ReportFindingLink
@@ -60,11 +66,14 @@ class AssignReportFindingForm(forms.ModelForm):
             Field("assigned_to"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML("""
+                HTML(
+                    """
                     <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
-                """)
-            )
+                """
+                ),
+            ),
         )
+
 
 class ReportForm(forms.ModelForm):
     """
@@ -96,7 +105,9 @@ class ReportForm(forms.ModelForm):
         if not project or user_is_privileged:
             projects = get_project_list(user)
             active_projects = (
-                projects.filter(complete=False).order_by("-start_date", "client", "project_type").defer("extra_fields")
+                projects.filter(complete=False)
+                .order_by("-start_date", "client", "project_type")
+                .defer("extra_fields")
             )
             if active_projects:
                 self.fields["project"].empty_label = "-- Select an Active Project --"
@@ -116,7 +127,9 @@ class ReportForm(forms.ModelForm):
         self.fields["docx_template"].required = False
         self.fields["pptx_template"].required = False
         self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
-        self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
+        self.fields["title"].widget.attrs[
+            "placeholder"
+        ] = "Red Team Report for Project Foo"
 
         report_config = ReportConfiguration.get_solo()
         self.fields["docx_template"].initial = report_config.default_docx_template
@@ -194,14 +207,18 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
-        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Brief Description or Note"
         self.fields["document"].label = ""
         # Don't set form buttons for a modal pop-up
         if self.is_modal:
             submit = None
             cancel_button = None
         else:
-            submit = Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4")
+            submit = Submit(
+                "submit-button", "Submit", css_class="btn btn-primary col-md-4"
+            )
             cancel_button = HTML(
                 """
                 <button onclick="window.location.href='{{ cancel_link }}'"
@@ -273,9 +290,13 @@ class EvidenceForm(forms.ModelForm):
         friendly_name = self.cleaned_data["friendly_name"]
         if self.evidence_queryset:
             # Check if provided name has already been used for another file for this report
-            if self.evidence_queryset.filter(Q(friendly_name=friendly_name) & ~Q(id=self.instance.id)).exists():
+            if self.evidence_queryset.filter(
+                Q(friendly_name=friendly_name) & ~Q(id=self.instance.id)
+            ).exists():
                 raise ValidationError(
-                    _("This friendly name has already been used for a file attached to this report."),
+                    _(
+                        "This friendly name has already been used for a file attached to this report."
+                    ),
                     "duplicate",
                 )
         return friendly_name
@@ -407,8 +428,12 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Default Red Team Report"
-        self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
-        self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Use this template for any red team work unless ..."
+        self.fields["changelog"].widget.attrs[
+            "placeholder"
+        ] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Template Type --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
@@ -548,7 +573,9 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_id = "report-template-swap-form"
         self.helper.form_tag = True
-        self.helper.form_action = reverse("reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id})
+        self.helper.form_action = reverse(
+            "reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id}
+        )
         self.helper.layout = Layout(
             Row(
                 Column(
@@ -568,7 +595,9 @@ class SelectReportTemplateForm(forms.ModelForm):
                     css_class="col-md-12 mb-3",
                 ),
                 css_class="justify-content-md-center",
-            ) if has_bloodhound else None,
+            )
+            if has_bloodhound
+            else None,
             Row(
                 Column(
                     HTML(
@@ -720,7 +749,9 @@ class SeverityForm(forms.ModelForm):
                 )
             if not re.search(valid_hex_regex, color):
                 raise ValidationError(
-                    _("Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A)."),
+                    _(
+                        "Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A)."
+                    ),
                     "invalid",
                 )
 
@@ -780,3 +811,98 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
                 ),
             ),
         )
+
+
+class AcronymYAMLUploadForm(forms.Form):
+    """Form for uploading acronyms from a YAML file."""
+
+    yaml_file = forms.FileField(
+        label="YAML File",
+        help_text="Upload a YAML file containing acronym definitions (e.g., acronyms.yml)",
+        required=True,
+    )
+    override_existing = forms.BooleanField(
+        label="Override Existing Acronyms",
+        help_text="If checked, existing acronyms will be updated with new values from the YAML file",
+        required=False,
+        initial=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.form_class = "form-horizontal"
+        self.helper.layout = Layout(
+            Field("yaml_file"),
+            Field("override_existing"),
+            ButtonHolder(
+                Submit("submit", "Upload and Import", css_class="btn btn-primary"),
+            ),
+        )
+
+    def clean_yaml_file(self):
+        """Validate the uploaded YAML file."""
+        # 3rd Party Libraries
+
+        yaml_file = self.cleaned_data.get("yaml_file")
+
+        if not yaml_file:
+            raise ValidationError(_("No file was uploaded"), code="missing_file")
+
+        # Check file extension
+        if not yaml_file.name.lower().endswith((".yml", ".yaml")):
+            raise ValidationError(
+                _("File must have a .yml or .yaml extension"),
+                code="invalid_extension",
+            )
+
+        # Try to parse YAML
+        try:
+            content = yaml_file.read().decode("utf-8")
+            data = yaml.safe_load(content)
+
+            # Reset file pointer for later use
+            yaml_file.seek(0)
+
+            # Validate structure
+            if not isinstance(data, dict):
+                raise ValidationError(
+                    _("YAML file must contain a dictionary of acronyms"),
+                    code="invalid_structure",
+                )
+
+            # Validate each acronym entry
+            for acronym, expansions in data.items():
+                if not isinstance(expansions, list):
+                    raise ValidationError(
+                        _("Acronym '%s' must have a list of expansions") % acronym,
+                        code="invalid_structure",
+                    )
+
+                for expansion in expansions:
+                    if not isinstance(expansion, dict):
+                        raise ValidationError(
+                            _("Each expansion for '%s' must be a dictionary") % acronym,
+                            code="invalid_structure",
+                        )
+
+                    if "full" not in expansion:
+                        raise ValidationError(
+                            _("Each expansion for '%s' must have a 'full' field")
+                            % acronym,
+                            code="missing_field",
+                        )
+
+        except yaml.YAMLError as e:
+            raise ValidationError(
+                _("Invalid YAML syntax: %s") % str(e),
+                code="yaml_error",
+            ) from e
+        except UnicodeDecodeError as e:
+            raise ValidationError(
+                _("File must be UTF-8 encoded"),
+                code="encoding_error",
+            ) from e
+
+        return yaml_file

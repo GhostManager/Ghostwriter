@@ -1,0 +1,53 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Upload Acronyms YAML{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'admin:reporting_acronym_changelist' %}">Acronyms</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Upload YAML</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2>Upload Acronyms from YAML</h2>
+
+        <div class="alert alert-info" role="alert">
+            <h5>YAML Format</h5>
+            <p>Your YAML file should follow this format:</p>
+            <pre><code>CIA:
+  - full: Central Intelligence Agency
+  - full: Confidentiality, Integrity, and Availability
+NSA:
+  - full: National Security Agency
+API:
+  - full: Application Programming Interface</code></pre>
+            <p>Each acronym can have multiple expansions (separate list items).</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="card">
+            <div class="card-body">
+                {% crispy form %}
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a href="{% url 'admin:reporting_acronym_changelist' %}" class="btn btn-secondary">
+                Cancel
+            </a>
+        </div>
+    </div>
+{% endblock %}

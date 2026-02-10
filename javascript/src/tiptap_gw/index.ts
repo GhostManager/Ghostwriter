@@ -26,6 +26,7 @@ import Image from "./image";
 import TextAlign from "./text_align";
 import Caption from "./caption";
 import Footnote from "./footnote";
+import TextExpansion from "./text_expansion";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -74,6 +75,7 @@ const EXTENSIONS: Extensions = [
     CaseChange,
     Caption,
     Footnote,
+    TextExpansion,
 ];
 
 export default EXTENSIONS;

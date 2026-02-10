@@ -1,0 +1,101 @@
+# Security and Technology Acronyms for Text Expansion
+# Format:
+# ACRONYM:
+#   - full: "Full expansion text"
+#
+API:
+    - full: "Application Programming Interface"
+CIA:
+    - full: "Confidentiality, Integrity, and Availability"
+CSRF:
+    - full: "Cross-Site Request Forgery"
+XSS:
+    - full: "Cross-Site Scripting"
+SQL:
+    - full: "Structured Query Language"
+SQLi:
+    - full: "SQL Injection"
+RCE:
+    - full: "Remote Code Execution"
+IDOR:
+    - full: "Insecure Direct Object Reference"
+SSRF:
+    - full: "Server-Side Request Forgery"
+XXE:
+    - full: "XML External Entity"
+LFI:
+    - full: "Local File Inclusion"
+RFI:
+    - full: "Remote File Inclusion"
+OWASP:
+    - full: "Open Web Application Security Project"
+CVE:
+    - full: "Common Vulnerabilities and Exposures"
+CWE:
+    - full: "Common Weakness Enumeration"
+CVSS:
+    - full: "Common Vulnerability Scoring System"
+MFA:
+    - full: "Multi-Factor Authentication"
+SSO:
+    - full: "Single Sign-On"
+TLS:
+    - full: "Transport Layer Security"
+SSL:
+    - full: "Secure Sockets Layer"
+PKI:
+    - full: "Public Key Infrastructure"
+WAF:
+    - full: "Web Application Firewall"
+IDS:
+    - full: "Intrusion Detection System"
+IPS:
+    - full: "Intrusion Prevention System"
+SIEM:
+    - full: "Security Information and Event Management"
+DDoS:
+    - full: "Distributed Denial of Service"
+APT:
+    - full: "Advanced Persistent Threat"
+VPN:
+    - full: "Virtual Private Network"
+DNS:
+    - full: "Domain Name System"
+HTTP:
+    - full: "Hypertext Transfer Protocol"
+HTTPS:
+    - full: "Hypertext Transfer Protocol Secure"
+FTP:
+    - full: "File Transfer Protocol"
+SSH:
+    - full: "Secure Shell"
+AES:
+    - full: "Advanced Encryption Standard"
+RSA:
+    - full: "Rivest-Shamir-Adleman"
+RBAC:
+    - full: "Role-Based Access Control"
+ACL:
+    - full: "Access Control List"
+SAML:
+    - full: "Security Assertion Markup Language"
+JWT:
+    - full: "JSON Web Token"
+CORS:
+    - full: "Cross-Origin Resource Sharing"
+CSP:
+    - full: "Content Security Policy"
+HSTS:
+    - full: "HTTP Strict Transport Security"
+SOC:
+    - full: "Security Operations Center"
+IR:
+    - full: "Incident Response"
+OSINT:
+    - full: "Open Source Intelligence"
+IOC:
+    - full: "Indicator of Compromise"
+TTP:
+    - full: "Tactics, Techniques, and Procedures"
+MITRE:
+    - full: "MITRE ATT&CK Framework"
