@@ -100,7 +100,8 @@ To complete installation, ensure your system meets the following requirements:
 
   <Step title="Run the install command">
 
-    In your terminal or PowerShell, navigate to the directory where you unpacked the Ghostwriter CLI and install Ghostwriter:
+    In your terminal or PowerShell, navigate to the directory where you unpacked the Ghostwriter CLI and install Ghostwriter.
+
     <CodeGroup>
       ```bash Linux
       ./ghostwriter-cli install
@@ -114,6 +115,17 @@ To complete installation, ensure your system meets the following requirements:
       ./ghostwriter-cli install
       ```
     </CodeGroup>
+
+    <Tip>
+      During install, Ghostwriter will generate some TLS certificates and download the latest Docker file. You can find these files in your operating system's
+      XDG data file directory:
+
+      * Linux: `~/.local/share/ghostwriter/`
+
+      * macOS: `~/Library/Application Support/ghostwriter/`
+
+      * Windows: `%LOCALAPPDATA%/ghostwriter/ssl`
+    </Tip>
   </Step>
 
   <Step title="Wait for installation to complete">
@@ -125,7 +137,7 @@ To complete installation, ensure your system meets the following requirements:
     [+] You can log in as `admin` with this password: <Password>
     ```
 
-    If you lose the password, reset it with:
+    If you lose the password, retrieve it with:
 
     <CodeGroup>
       ```bash Linux
@@ -144,7 +156,7 @@ To complete installation, ensure your system meets the following requirements:
     <Check>
       This password is only used for creating the account. You can change it in the admin panel after logging into Ghostwriter. You can also change any other part of the user profile.
 
-      Changing the password in the config DOES NOT affect the installation. It's only stored in the config to make it easy for you to view the original password.
+      Changing the password in the config DOES NOT affect the installation. It's only stored in the config to make it easy for you to retrieve the original password.
     </Check>
 
   </Step>
@@ -179,7 +191,7 @@ The `install` command will take care of everything necessary to create a product
 * Creates a default *admin* user with a randomly generated password
 
 <Info>
-Ghostwriter will create self-signed TLS/SSL certificates. If you'd like to use your signed certificates, do that now to make things easier. If you don't have them ready, you can install them later.
+  Ghostwriter will create self-signed TLS/SSL certificates. If you'd like to use your signed certificates, do that now to make things easier. If you don't have them ready, you can install them later.
 </Info>
 
 ### Customizing Your Installation
@@ -215,7 +227,7 @@ You can use your own TLS/SSL certificates for Ghostwriter. To swap in your certi
 
 2. Name the Diffie-Helman Parameters file *dhparam.pem*
 
-3. Place all three files inside the *ssl* directory
+3. Place all three files inside the *ssl* directory created during installation (e.g., `~/.local/share/ghostwriter/ssl`, `~/Library/Application Support/ghostwriter/ssl`, or `%LOCALAPPDATA%/ghostwriter/ssl`)
 
 Your certificate will likely have a new hostname, so continue to the next section to complete the customization of your domain name.
 
