@@ -113,6 +113,13 @@
                 "pages": [
                   "features/reporting",
                   {
+                    "group": "Collaborative Editor",
+                    "pages": [
+                      "features/reporting/collaborative-editing",
+                      "features/reporting/collaborative-editor/editor-features"
+                    ]
+                  },
+                  {
                     "group": "Report Types",
                     "pages": [
                       "features/reporting/report-types",

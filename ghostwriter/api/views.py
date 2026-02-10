@@ -15,7 +15,7 @@ from socket import gaierror
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
@@ -24,7 +24,6 @@ from django.urls import reverse
 from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView
-from django.core.exceptions import ObjectDoesNotExist
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
@@ -39,6 +38,7 @@ from ghostwriter.api.models import APIKey
 from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
+from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
@@ -1486,3 +1486,112 @@ class ObjectsByTag(HasuraActionView):
         objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
         objs = objs.filter(tags__name=self.input["tag"])
         return JsonResponse([{"id": obj.pk} for obj in objs], safe=False)
+
+
+######################
+# Passive Voice API  #
+######################
+
+
+def _validate_passive_voice_request(request):
+    """
+    Validate the passive voice detection request.
+
+    Returns:
+        tuple: (text, None) on success, or (None, JsonResponse) on validation error.
+    """
+    if not request.user.is_authenticated:
+        return None, JsonResponse(
+            {"error": "Authentication required"}, status=HTTPStatus.UNAUTHORIZED
+        )
+
+    if request.method != "POST":
+        return None, JsonResponse(
+            {"error": "Only POST method is allowed"},
+            status=HTTPStatus.METHOD_NOT_ALLOWED,
+        )
+
+    try:
+        data = json.loads(request.body)
+    except JSONDecodeError:
+        return None, JsonResponse(
+            {"error": "Invalid JSON in request body"}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    text = data.get("text", "")
+
+    if not isinstance(text, str) or not text.strip():
+        return None, JsonResponse(
+            {"error": "Text field is required"}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    max_length = settings.SPACY_MAX_TEXT_LENGTH
+    if len(text) > max_length:
+        return None, JsonResponse(
+            {"error": f"Text exceeds maximum length of {max_length} characters"},
+            status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+        )
+
+    return text, None
+
+
+def detect_passive_voice(request):
+    """
+    Detect passive voice sentences in provided text using spaCy NLP.
+
+    POST /api/v1/passive-voice/detect
+    Authentication: Required (Session or API Key)
+
+    Request body:
+        {
+            "text": "The report was written by the team."
+        }
+
+    Response (200 OK):
+        {
+            "ranges": [[0, 37]],
+            "count": 1
+        }
+
+    Response (401 Unauthorized):
+        {
+            "error": "Authentication required"
+        }
+
+    Response (400 Bad Request):
+        {
+            "error": "Text field is required"
+        }
+
+    Response (413 Request Entity Too Large):
+        {
+            "error": "Text exceeds maximum length of 100000 characters"
+        }
+
+    Response (500 Internal Server Error):
+        {
+            "error": "Failed to analyze text",
+            "detail": "..."
+        }
+    """
+    text, error_response = _validate_passive_voice_request(request)
+    if error_response:
+        return error_response
+
+    try:
+        detector = get_detector()
+        ranges = detector.detect_passive_sentences(text)
+
+        return JsonResponse(
+            {
+                "ranges": ranges,
+                "count": len(ranges),
+            }
+        )
+
+    except (OSError, RuntimeError, ValueError):
+        logger.exception("Passive voice detection failed")
+        return JsonResponse(
+            {"error": "Failed to analyze text"},
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )

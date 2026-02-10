@@ -1,0 +1,34 @@
+---
+title: "Overview"
+description: "Introducing Ghostwriter's collaborative editor"
+---
+
+Ghostwriter uses an editor known as Tiptap to offer full collaborative editing for findings, project fields, and report fields.
+
+<Frame>
+  <img src="/images/features/image-67.png" alt=""/>
+</Frame>
+
+You’ve probably edited a Google Doc. In fact, you’ve probably edited a Google Doc at the same time as other people and enjoyed how
+you could see their edits appear on your screen in real-time. That is collaborative editing, and it’s a handy feature—not just
+because you can see what others are doing but also because you don’t have to worry about the changes you make overwriting anyone
+else when you save.
+
+Because Ghostwriter is an open-source project that manages sensitive data that shouldn’t be sent to untrusted parties, we needed a
+solution to maintain the infrastructure that was compatible with open-source, which ruled out many cloud-provided solutions. We
+wanted a solution that allowed us to extend it with custom elements for features such as embedding evidence. We also needed a
+solution that still allowed us to access the data on the server—not just in the web browser—so that Ghostwriter could still generate
+reports. And finally, we wanted something that is actively maintained and has an active userbase to ensure continued support.
+
+After searching, we concluded that the YJS ecosystem was the most mature for collaborative editing. YJS itself is a data format designed
+for the task—it tracks a log of operations so each peer can make its edits and publish updates to the document to other peers.
+The updates can be applied in any order, resulting in everyone having the same data after all of them are applied.
+
+Many text editors supporting YJS exist. We selected the Tiptap rich text editor due to its features, maturity, and extensibility with
+custom elements and formatting.
+
+We selected Tiptap’s Hocuspocus server for sharing collaborative edits between peers. This server exposes a WebSocket endpoint that
+the client publishes and receives updates on in real-time. It also handles loading and saving the YJS documents from a data store.
+
+The end result is a fully collaborative editing solution that is entirely self-contained within Ghostwriter. No use of cloud services and
+completely open-source.
