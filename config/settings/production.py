@@ -147,6 +147,3 @@ LOGGING = {
 
 # Load settings from the codebase (for `local-prod` mode)
 include_settings("./production.d/*.py")
-
-# Load settings from external mount (for published image mode)
-include_settings("./production.d.external/*.py")
