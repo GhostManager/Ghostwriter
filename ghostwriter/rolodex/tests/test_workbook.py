@@ -234,6 +234,15 @@ class WorkbookHelpersTests(SimpleTestCase):
         self.assertIsInstance(uploaded, list)
         self.assertEqual(uploaded, [])
 
+    def test_normalize_workbook_payload_maps_legacy_system_config_totals(self):
+        normalized = normalize_workbook_payload(
+            {"system_config": {"total_pass": 44, "total_fail": 11}}
+        )
+
+        system_config = normalized.get("system_config", {})
+        self.assertEqual(system_config.get("average_pass"), 44)
+        self.assertEqual(system_config.get("average_fail"), 11)
+
     def test_endpoint_access_percentage_calculated(self):
         project = type("Dummy", (), {"workbook_data": {}, "scoping": {}})()
 

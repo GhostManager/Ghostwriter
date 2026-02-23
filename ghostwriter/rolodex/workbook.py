@@ -765,7 +765,7 @@ def build_data_configuration(
         )
 
     if has_workbook_section("system_config") and _as_int(
-        _get_nested(data, ("system_config", "total_fail"), 0)
+        _get_nested(data, ("system_config", "average_fail"), 0)
     ) > 0:
         add_question(
             key="system_config_risk",
@@ -818,4 +818,3 @@ DNS_SOA_FIELD_CHOICES = (
     ("refresh", "refresh"),
     ("retry", "retry"),
 )
-

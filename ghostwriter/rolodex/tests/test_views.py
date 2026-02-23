@@ -16,6 +16,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils.encoding import force_str
+from openpyxl import Workbook
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -2776,6 +2777,157 @@ host1,foo,read-only,desc3
 
         self.project.refresh_from_db()
         self.assertNotIn("snmp", self.project.data_artifacts or {})
+
+    def test_upload_cloud_management_xlsx_populates_metrics(self):
+        workbook = Workbook()
+        summary = workbook.active
+        summary.title = "ExecSummary"
+        summary["A4"] = 18
+        summary["B4"] = 7
+
+        stream = BytesIO()
+        workbook.save(stream)
+        upload = SimpleUploadedFile(
+            "cloud_management.xlsx",
+            stream.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        response = self.client_auth.post(self.update_url, {"cloud_management_xlsx": upload})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        cloud_config = payload.get("workbook_data", {}).get("cloud_config", {})
+        self.assertEqual(cloud_config.get("pass"), 18)
+        self.assertEqual(cloud_config.get("fail"), 7)
+        self.assertEqual(
+            payload.get("data_artifacts", {}).get("cloud_management_benchmark_file_name"),
+            "cloud_management.xlsx",
+        )
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.workbook_data.get("cloud_config", {}).get("pass"), 18)
+        self.assertEqual(self.project.workbook_data.get("cloud_config", {}).get("fail"), 7)
+        self.assertTrue(
+            self.project.data_files.filter(requirement_label="cloud_management_benchmark.xlsx").exists()
+        )
+
+    def test_upload_iam_management_xlsx_populates_metrics(self):
+        workbook = Workbook()
+        summary = workbook.active
+        summary.title = "ExecSummary"
+        summary["A4"] = 22
+        summary["B4"] = 4
+
+        stream = BytesIO()
+        workbook.save(stream)
+        upload = SimpleUploadedFile(
+            "iam_management.xlsx",
+            stream.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        response = self.client_auth.post(self.update_url, {"iam_management_xlsx": upload})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        iam_config = payload.get("workbook_data", {}).get("iam_cloud_config", {})
+        self.assertEqual(iam_config.get("pass"), 22)
+        self.assertEqual(iam_config.get("fail"), 4)
+        self.assertEqual(
+            payload.get("data_artifacts", {}).get("iam_management_benchmark_file_name"),
+            "iam_management.xlsx",
+        )
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.workbook_data.get("iam_cloud_config", {}).get("pass"), 22)
+        self.assertEqual(self.project.workbook_data.get("iam_cloud_config", {}).get("fail"), 4)
+        self.assertTrue(
+            self.project.data_files.filter(requirement_label="iam_management_benchmark.xlsx").exists()
+        )
+
+    def test_upload_system_configuration_xlsx_populates_metrics(self):
+        workbook = Workbook()
+        summary = workbook.active
+        summary.title = "ExecSummary"
+        summary["I16"] = 20.6
+        summary["J16"] = 9.2
+
+        sheet_one = workbook.create_sheet("Platform")
+        sheet_one.append(["Status", "Title"])
+        sheet_one.append(["Pass", "Alpha"])
+        sheet_one.append(["Fail", "Beta"])
+        sheet_one.append(["Pass", "Gamma"])
+        sheet_one.append(["Fail", "Shared"])
+
+        sheet_two = workbook.create_sheet("Identity")
+        sheet_two.append(["Status", "Title"])
+        sheet_two.append(["Pass", "Alpha"])
+        sheet_two.append(["Fail", "Shared"])
+        sheet_two.append(["Pass", "Shared"])
+        sheet_two.append(["Fail", "Delta"])
+
+        stream = BytesIO()
+        workbook.save(stream)
+        upload = SimpleUploadedFile(
+            "system_configuration.xlsx",
+            stream.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        response = self.client_auth.post(self.update_url, {"system_configuration_xlsx": upload})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        system_config = payload.get("workbook_data", {}).get("system_config", {})
+        self.assertEqual(system_config.get("average_pass"), 21)
+        self.assertEqual(system_config.get("average_fail"), 9)
+        self.assertEqual(system_config.get("unique_pass"), 3)
+        self.assertEqual(system_config.get("unique_fail"), 3)
+        self.assertEqual(
+            payload.get("data_artifacts", {}).get("system_configuration_benchmark_file_name"),
+            "system_configuration.xlsx",
+        )
+
+        self.project.refresh_from_db()
+        saved_config = self.project.workbook_data.get("system_config", {})
+        self.assertEqual(saved_config.get("average_pass"), 21)
+        self.assertEqual(saved_config.get("average_fail"), 9)
+        self.assertEqual(saved_config.get("unique_pass"), 3)
+        self.assertEqual(saved_config.get("unique_fail"), 3)
+        self.assertTrue(
+            self.project.data_files.filter(
+                requirement_label="system_configuration_benchmark.xlsx"
+            ).exists()
+        )
+
+    def test_upload_cloud_management_xlsx_rejects_missing_exec_summary_without_side_effects(self):
+        self.project.workbook_data = {"cloud_config": {"pass": 3, "fail": 1}}
+        self.project.save(update_fields=["workbook_data"])
+
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "NotExecSummary"
+        worksheet["A1"] = "Header"
+        stream = BytesIO()
+        workbook.save(stream)
+        upload = SimpleUploadedFile(
+            "cloud_invalid.xlsx",
+            stream.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        response = self.client_auth.post(self.update_url, {"cloud_management_xlsx": upload})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("ExecSummary", response.json().get("error", ""))
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.workbook_data.get("cloud_config", {}).get("pass"), 3)
+        self.assertEqual(self.project.workbook_data.get("cloud_config", {}).get("fail"), 1)
+        self.assertFalse(
+            self.project.data_files.filter(requirement_label="cloud_management_benchmark.xlsx").exists()
+        )
 
     def test_remove_snmp_data_clears_artifacts_workbook_and_cap(self):
         self.project.workbook_data = {

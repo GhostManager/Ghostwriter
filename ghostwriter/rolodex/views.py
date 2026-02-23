@@ -11,6 +11,7 @@ import datetime
 import io
 import json
 import logging
+import math
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
@@ -3381,6 +3382,153 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
         return rows, metrics, hosts, None
 
     @staticmethod
+    def _round_metric_value(value: Any) -> Optional[int]:
+        """Coerce numeric values to an integer, rounding half away from zero."""
+
+        if value in (None, ""):
+            return None
+
+        parsed: Optional[float]
+        if isinstance(value, bool):
+            parsed = float(int(value))
+        elif isinstance(value, (int, float)):
+            parsed = float(value)
+        else:
+            text = str(value).strip()
+            if not text:
+                return None
+            try:
+                parsed = float(text)
+            except ValueError:
+                return None
+
+        if parsed is None or math.isnan(parsed) or math.isinf(parsed):
+            return None
+
+        return int(parsed + 0.5) if parsed >= 0 else int(parsed - 0.5)
+
+    @classmethod
+    def _extract_exec_summary_pass_fail(
+        cls,
+        xlsx_bytes: bytes,
+        *,
+        context_label: str,
+    ) -> tuple[Optional[dict[str, int]], Optional[str]]:
+        workbook = None
+        try:
+            workbook = load_workbook(io.BytesIO(xlsx_bytes), read_only=True, data_only=True)
+        except InvalidFileException:
+            return (
+                None,
+                f"{context_label} file could not be read as an .xlsx workbook.",
+            )
+        except Exception:
+            logger.exception("Unexpected error parsing %s workbook", context_label)
+            return (
+                None,
+                f"{context_label} file could not be read as an .xlsx workbook.",
+            )
+
+        try:
+            if "ExecSummary" not in workbook.sheetnames:
+                return (
+                    None,
+                    f"{context_label} file is missing required worksheet: ExecSummary.",
+                )
+
+            summary = workbook["ExecSummary"]
+            pass_value = cls._round_metric_value(summary["A4"].value)
+            fail_value = cls._round_metric_value(summary["B4"].value)
+            if pass_value is None or fail_value is None:
+                return (
+                    None,
+                    f"{context_label} file is missing valid numeric values in ExecSummary cells A4/B4.",
+                )
+
+            return {"pass": pass_value, "fail": fail_value}, None
+        finally:
+            workbook.close()
+
+    @classmethod
+    def _extract_system_configuration_metrics(
+        cls,
+        xlsx_bytes: bytes,
+    ) -> tuple[Optional[dict[str, int]], Optional[str]]:
+        workbook = None
+        try:
+            workbook = load_workbook(io.BytesIO(xlsx_bytes), read_only=True, data_only=True)
+        except InvalidFileException:
+            return None, "System configuration file could not be read as an .xlsx workbook."
+        except Exception:
+            logger.exception("Unexpected error parsing system configuration workbook")
+            return None, "System configuration file could not be read as an .xlsx workbook."
+
+        try:
+            if "ExecSummary" not in workbook.sheetnames:
+                return None, "System configuration file is missing required worksheet: ExecSummary."
+
+            summary = workbook["ExecSummary"]
+            average_pass = cls._round_metric_value(summary["I16"].value)
+            average_fail = cls._round_metric_value(summary["J16"].value)
+            if average_pass is None or average_fail is None:
+                return (
+                    None,
+                    "System configuration file is missing valid numeric values in ExecSummary cells I16/J16.",
+                )
+
+            unique_pass_titles: set[str] = set()
+            unique_fail_titles: set[str] = set()
+            for sheet_name in workbook.sheetnames:
+                if sheet_name == "ExecSummary":
+                    continue
+
+                sheet = workbook[sheet_name]
+                header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True), None)
+                if not header_row:
+                    return (
+                        None,
+                        f"System configuration worksheet '{sheet_name}' is missing required headers: Status, Title.",
+                    )
+
+                header_map: dict[str, int] = {}
+                for idx, header_value in enumerate(header_row):
+                    if isinstance(header_value, str):
+                        key = header_value.strip()
+                        if key and key not in header_map:
+                            header_map[key] = idx
+
+                missing = [header for header in ("Status", "Title") if header not in header_map]
+                if missing:
+                    return (
+                        None,
+                        f"System configuration worksheet '{sheet_name}' is missing required headers: {', '.join(missing)}.",
+                    )
+
+                status_index = header_map["Status"]
+                title_index = header_map["Title"]
+                for row in sheet.iter_rows(min_row=2, values_only=True):
+                    status_raw = row[status_index] if status_index < len(row) else None
+                    title_raw = row[title_index] if title_index < len(row) else None
+                    status_text = str(status_raw).strip().lower() if status_raw is not None else ""
+                    title_text = str(title_raw).strip() if title_raw is not None else ""
+                    if not status_text or not title_text:
+                        continue
+                    if status_text == "pass":
+                        unique_pass_titles.add(title_text)
+                    elif status_text == "fail":
+                        unique_fail_titles.add(title_text)
+
+            metrics = {
+                "average_pass": average_pass,
+                "average_fail": average_fail,
+                "unique_pass": len(unique_pass_titles),
+                "unique_fail": len(unique_fail_titles),
+            }
+            return metrics, None
+        finally:
+            workbook.close()
+
+    @staticmethod
     def _parse_dns_csv(upload) -> tuple[
         Optional[list[dict[str, str]]],
         Optional[int],
@@ -5071,6 +5219,21 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                         status=400,
                     )
 
+                try:
+                    cloud_bytes = upload.read()
+                except Exception:
+                    return JsonResponse(
+                        {"error": "Cloud management file could not be read as an .xlsx workbook."},
+                        status=400,
+                    )
+                cloud_metrics, cloud_error = self._extract_exec_summary_pass_fail(
+                    cloud_bytes,
+                    context_label="Cloud management",
+                )
+                if cloud_error:
+                    return JsonResponse({"error": cloud_error}, status=400)
+                upload.seek(0)
+
                 existing_files = list(
                     project.data_files.filter(
                         requirement_slug=CLOUD_MANAGEMENT_REQUIREMENT_SLUG
@@ -5098,8 +5261,19 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 )
                 artifacts = dict(artifacts)
                 artifacts[CLOUD_MANAGEMENT_FILE_NAME_KEY] = filename
+                workbook_payload = normalize_workbook_payload(project.workbook_data)
+                cloud_payload: Dict[str, Any] = (
+                    dict(workbook_payload.get("cloud_config", {}))
+                    if isinstance(workbook_payload.get("cloud_config"), dict)
+                    else {}
+                )
+                cloud_payload.update(cloud_metrics or {})
+                workbook_payload["cloud_config"] = cloud_payload
+                workbook_payload = normalize_workbook_payload(workbook_payload)
+
+                project.workbook_data = workbook_payload
                 project.data_artifacts = artifacts
-                project.save(update_fields=["data_artifacts"])
+                project.save(update_fields=["workbook_data", "data_artifacts"])
 
                 project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
 
@@ -5121,6 +5295,21 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                         {"error": "IAM management file must be an .xlsx file."},
                         status=400,
                     )
+
+                try:
+                    iam_bytes = upload.read()
+                except Exception:
+                    return JsonResponse(
+                        {"error": "IAM management file could not be read as an .xlsx workbook."},
+                        status=400,
+                    )
+                iam_metrics, iam_error = self._extract_exec_summary_pass_fail(
+                    iam_bytes,
+                    context_label="IAM management",
+                )
+                if iam_error:
+                    return JsonResponse({"error": iam_error}, status=400)
+                upload.seek(0)
 
                 existing_files = list(
                     project.data_files.filter(requirement_slug=IAM_MANAGEMENT_REQUIREMENT_SLUG)
@@ -5147,8 +5336,19 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 )
                 artifacts = dict(artifacts)
                 artifacts[IAM_MANAGEMENT_FILE_NAME_KEY] = filename
+                workbook_payload = normalize_workbook_payload(project.workbook_data)
+                iam_payload: Dict[str, Any] = (
+                    dict(workbook_payload.get("iam_cloud_config", {}))
+                    if isinstance(workbook_payload.get("iam_cloud_config"), dict)
+                    else {}
+                )
+                iam_payload.update(iam_metrics or {})
+                workbook_payload["iam_cloud_config"] = iam_payload
+                workbook_payload = normalize_workbook_payload(workbook_payload)
+
+                project.workbook_data = workbook_payload
                 project.data_artifacts = artifacts
-                project.save(update_fields=["data_artifacts"])
+                project.save(update_fields=["workbook_data", "data_artifacts"])
 
                 project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
 
@@ -5170,6 +5370,20 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                         {"error": "System configuration file must be an .xlsx file."},
                         status=400,
                     )
+
+                try:
+                    system_bytes = upload.read()
+                except Exception:
+                    return JsonResponse(
+                        {"error": "System configuration file could not be read as an .xlsx workbook."},
+                        status=400,
+                    )
+                system_metrics, system_error = self._extract_system_configuration_metrics(
+                    system_bytes
+                )
+                if system_error:
+                    return JsonResponse({"error": system_error}, status=400)
+                upload.seek(0)
 
                 existing_files = list(
                     project.data_files.filter(
@@ -5198,8 +5412,19 @@ class ProjectWorkbookDataUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
                 )
                 artifacts = dict(artifacts)
                 artifacts[SYSTEM_CONFIGURATION_FILE_NAME_KEY] = filename
+                workbook_payload = normalize_workbook_payload(project.workbook_data)
+                system_payload: Dict[str, Any] = (
+                    dict(workbook_payload.get("system_config", {}))
+                    if isinstance(workbook_payload.get("system_config"), dict)
+                    else {}
+                )
+                system_payload.update(system_metrics or {})
+                workbook_payload["system_config"] = system_payload
+                workbook_payload = normalize_workbook_payload(workbook_payload)
+
+                project.workbook_data = workbook_payload
                 project.data_artifacts = artifacts
-                project.save(update_fields=["data_artifacts"])
+                project.save(update_fields=["workbook_data", "data_artifacts"])
 
                 project.refresh_from_db(fields=["workbook_data", "data_artifacts"])
 
