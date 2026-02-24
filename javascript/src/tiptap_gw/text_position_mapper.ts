@@ -79,10 +79,17 @@ export function extractTextWithPositions(
                 textRepr = node.textContent || " ";
             }
 
-            // Add text and map each character to the atom's position
+            // Map characters across the node's document range to prevent zero-width
+            // ranges when passive voice detection falls inside atom text.
+            // The node occupies [pos, pos + nodeSize) in the document.
             textParts.push(textRepr);
             for (let i = 0; i < textRepr.length; i++) {
-                positionMap.push(pos);
+                // Distribute characters evenly across the node's width using rounding.
+                // This ensures ranges spanning multiple characters within the atom
+                // will map to non-zero-width document ranges.
+                const fraction = textRepr.length > 1 ? i / (textRepr.length - 1) : 0;
+                const offset = Math.round(fraction * node.nodeSize);
+                positionMap.push(pos + offset);
             }
 
             return false; // Don't descend into atom nodes

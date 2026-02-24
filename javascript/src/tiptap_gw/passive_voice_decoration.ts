@@ -18,6 +18,37 @@ interface PassiveVoiceDecoSpec {
 export const passiveVoicePluginKey = new PluginKey("passiveVoice");
 
 /**
+ * Validate and clamp a range to document bounds.
+ * Returns null if the range is invalid (zero-width, inverted, or out of bounds).
+ */
+function validateRange(
+    from: number,
+    to: number,
+    docSize: number
+): { from: number; to: number } | null {
+    // Drop zero-width or inverted ranges
+    if (from >= to) {
+        return null;
+    }
+
+    // Drop ranges completely outside document bounds
+    if (from >= docSize || to <= 0) {
+        return null;
+    }
+
+    // Clamp to document bounds
+    const clampedFrom = Math.max(0, Math.min(from, docSize));
+    const clampedTo = Math.max(0, Math.min(to, docSize));
+
+    // Re-check after clamping (in case clamping created zero-width range)
+    if (clampedFrom >= clampedTo) {
+        return null;
+    }
+
+    return { from: clampedFrom, to: clampedTo };
+}
+
+/**
  * TipTap extension for highlighting passive voice using decorations.
  * Unlike marks, decorations are visual-only and don't affect the document data.
  * They won't be saved to the database or exported to reports.
@@ -51,21 +82,33 @@ export const PassiveVoiceDecoration = Extension.create({
                             }
 
                             // Create decorations from pre-converted document positions
-                            const decorations = docRanges.map(
-                                ({ from, to }, index: number) => {
+                            const decorations = docRanges
+                                .map(({ from, to }, index: number) => {
+                                    // Validate and clamp range
+                                    const validRange = validateRange(
+                                        from,
+                                        to,
+                                        tr.doc.content.size
+                                    );
+                                    if (!validRange) {
+                                        return null;
+                                    }
+
                                     const groupId = `pv-${index}`;
 
                                     return Decoration.inline(
-                                        from,
-                                        to,
+                                        validRange.from,
+                                        validRange.to,
                                         {
                                             class: "passive-voice-highlight",
                                             "data-passive-group": groupId,
                                         },
                                         { groupId } as PassiveVoiceDecoSpec
                                     );
-                                }
-                            );
+                                })
+                                .filter(
+                                    (deco): deco is Decoration => deco !== null
+                                );
 
                             return DecorationSet.create(tr.doc, decorations);
                         }
@@ -102,16 +145,24 @@ export const PassiveVoiceDecoration = Extension.create({
                                 const mappedFrom = tr.mapping.map(deco.from);
                                 const mappedTo = tr.mapping.map(deco.to);
 
-                                // Skip if it became zero-width
-                                if (mappedFrom >= mappedTo) continue;
+                                // Validate and clamp the mapped range
+                                const validRange = validateRange(
+                                    mappedFrom,
+                                    mappedTo,
+                                    tr.doc.content.size
+                                );
+                                if (!validRange) {
+                                    // Invalid range after mapping - skip
+                                    continue;
+                                }
 
                                 // Recreate with mapped positions using spec (stable API)
                                 const spec = deco.spec as PassiveVoiceDecoSpec;
                                 const groupId = spec?.groupId || "";
                                 survivingDecos.push(
                                     Decoration.inline(
-                                        mappedFrom,
-                                        mappedTo,
+                                        validRange.from,
+                                        validRange.to,
                                         {
                                             class: "passive-voice-highlight",
                                             "data-passive-group": groupId,
