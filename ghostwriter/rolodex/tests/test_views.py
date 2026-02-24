@@ -1,6 +1,10 @@
 # Standard Libraries
 import logging
+import os
 from datetime import date, timedelta
+
+# 3rd Party Libraries
+import factory
 
 # Django Imports
 from django.test import Client, TestCase
@@ -997,3 +1001,63 @@ class ClientInviteDeleteTests(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
         self.assertEqual(len(self.ClientInvite.objects.all()), 0)
+
+
+class ClientLogoDownloadTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientLogoDownload`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        # Create a client with a logo
+        cls.client_with_logo = ClientFactory(
+            logo=factory.django.ImageField(filename="test_logo.png", width=100, height=100)
+        )
+        # Create another client with a logo that we'll delete for testing
+        cls.client_deleted_logo = ClientFactory(
+            logo=factory.django.ImageField(filename="deleted_logo.png", width=100, height=100)
+        )
+        cls.uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_with_logo.pk})
+        cls.deleted_uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_deleted_logo.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            f'attachment; filename="{os.path.basename(self.client_with_logo.logo.path)}"',
+        )
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        # Grant the user access to the client
+        ClientInviteFactory(client=self.client_with_logo, user=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Manager should have access
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Delete the logo file and test 404
+        if os.path.exists(self.client_deleted_logo.logo.path):
+            os.remove(self.client_deleted_logo.logo.path)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 404)
+
+
+

@@ -36,7 +36,7 @@
 
   <div class="container d-flex align-items-center justify-content-center">
     {% if client.logo %}
-      <img src="{{ client.logo.url }}"
+      <img src="{% url 'rolodex:client_logo_download' client.id %}"
            alt="{{ client.name }} logo"
            class="mr-3"
            style="max-height: 2.5rem; width: auto; object-fit: contain;" />
