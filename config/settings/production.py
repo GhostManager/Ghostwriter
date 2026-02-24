@@ -145,4 +145,5 @@ LOGGING = {
 # Include files in `production.d`. These are added in alphabetical order - using a numeric prefix
 # like `10-subconfig.py` can be used to order inclusions
 
+# Load settings from the codebase (for `local-prod` mode)
 include_settings("./production.d/*.py")

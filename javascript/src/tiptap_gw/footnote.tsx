@@ -1,5 +1,9 @@
 import { Node, NodeViewProps } from "@tiptap/core";
-import { NodeViewWrapper, ReactNodeViewRenderer, useEditorState } from "@tiptap/react";
+import {
+    NodeViewWrapper,
+    ReactNodeViewRenderer,
+    useEditorState,
+} from "@tiptap/react";
 import { useRef, useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 
@@ -82,7 +86,8 @@ function FootnoteView({ node, getPos, editor }: NodeViewProps) {
             };
 
             window.addEventListener("scroll", handleScroll, true);
-            return () => window.removeEventListener("scroll", handleScroll, true);
+            return () =>
+                window.removeEventListener("scroll", handleScroll, true);
         }
     }, [isEditing]);
 
@@ -141,13 +146,18 @@ function FootnoteView({ node, getPos, editor }: NodeViewProps) {
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             // Close if clicking outside popover and not on this specific footnote
-            if (!target.closest(".footnote-popover") && target !== supRef.current && !supRef.current?.contains(target)) {
+            if (
+                !target.closest(".footnote-popover") &&
+                target !== supRef.current &&
+                !supRef.current?.contains(target)
+            ) {
                 handleSave();
             }
         };
 
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
     }, [isEditing, editValue]);
 
     return (
@@ -185,64 +195,70 @@ function FootnoteView({ node, getPos, editor }: NodeViewProps) {
                             maxWidth: "400px",
                         }}
                     >
-                    <div style={{ marginBottom: "8px", fontSize: "12px", color: "#666" }}>
-                        Edit footnote (Ctrl+Enter to save, Esc to cancel)
-                    </div>
-                    <textarea
-                        ref={inputRef}
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        rows={4}
-                        style={{
-                            width: "100%",
-                            fontSize: "14px",
-                            padding: "6px",
-                            border: "1px solid #ccc",
-                            borderRadius: "3px",
-                            resize: "vertical",
-                            fontFamily: "inherit",
-                        }}
-                    />
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: "8px",
-                            marginTop: "8px",
-                            justifyContent: "flex-end",
-                        }}
-                    >
-                        <button
-                            onClick={handleCancel}
+                        <div
                             style={{
-                                padding: "4px 12px",
-                                fontSize: "13px",
+                                marginBottom: "8px",
+                                fontSize: "12px",
+                                color: "#666",
+                            }}
+                        >
+                            Edit footnote (Ctrl+Enter to save, Esc to cancel)
+                        </div>
+                        <textarea
+                            ref={inputRef}
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            rows={4}
+                            style={{
+                                width: "100%",
+                                fontSize: "14px",
+                                padding: "6px",
                                 border: "1px solid #ccc",
                                 borderRadius: "3px",
-                                backgroundColor: "white",
-                                cursor: "pointer",
+                                resize: "vertical",
+                                fontFamily: "inherit",
                             }}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
+                        />
+                        <div
                             style={{
-                                padding: "4px 12px",
-                                fontSize: "13px",
-                                border: "1px solid #0066cc",
-                                borderRadius: "3px",
-                                backgroundColor: "#0066cc",
-                                color: "white",
-                                cursor: "pointer",
+                                display: "flex",
+                                gap: "8px",
+                                marginTop: "8px",
+                                justifyContent: "flex-end",
                             }}
                         >
-                            Save
-                        </button>
-                    </div>
-                </div>,
-                document.body
-            )}
+                            <button
+                                onClick={handleCancel}
+                                style={{
+                                    padding: "4px 12px",
+                                    fontSize: "13px",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "3px",
+                                    backgroundColor: "white",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                style={{
+                                    padding: "4px 12px",
+                                    fontSize: "13px",
+                                    border: "1px solid #0066cc",
+                                    borderRadius: "3px",
+                                    backgroundColor: "#0066cc",
+                                    color: "white",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>,
+                    document.body
+                )}
         </NodeViewWrapper>
     );
 }
@@ -276,7 +292,9 @@ const Footnote = Node.create<FootnoteOptions>({
     },
 
     renderText({ node }) {
-        return `[^${node.attrs.content}]`;
+        // Add space before footnote marker so spaCy tokenization works correctly
+        // "was run[^1]" confuses tokenizer, but "was run [1]" works
+        return ` [${node.attrs.content}]`;
     },
 
     addNodeView() {

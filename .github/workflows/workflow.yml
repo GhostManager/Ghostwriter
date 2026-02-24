@@ -19,7 +19,7 @@ jobs:
       - name: Build environment
         run: |
           chmod +x ghostwriter-cli-linux
-          ./ghostwriter-cli-linux install --dev
+          ./ghostwriter-cli-linux install --mode local-dev
 
       - name: Generate Coverage report
         run: |

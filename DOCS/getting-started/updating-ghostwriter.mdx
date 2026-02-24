@@ -6,13 +6,22 @@ How to check for updates and what to do when one is available
 
 ## Checking for Updates
 
-You can check for updates with Ghostwriter CLI and the `update` command. The output will look something like this:
+You can check for updates with Ghostwriter CLI and the `version` command. The output will look something like this:
 
 ```bash Checking for Updates
-$ ./ghostwriter-cli update
+$ ./ghostwriter-cli version
+[+] Fetching latest version information:
+[+] Checking the status of Docker and the Compose plugin...
 
-Local Ghostwriter Version	Ghostwriter v3.0.5 ( 23 September 2022 )
-Latest Stable Release		Ghostwriter v3.0.5 ( 23 September 2022 )
+Ghostwriter CLI
+Local Version	v0.1.0
+Latest Release	v0.3.0
+
+Ghostwriter
+Local Version	v6.2.3
+Latest Release	v6.2.3
+
+Download the latest version of Ghostwriter CLI at:	https://github.com/GhostManager/Ghostwriter_CLI/releases/tag/v0.3.0
 ```
 
 The command will take a moment to run as Ghostwriter CLI requests the latest release number from GitHub. The latest version number will not be displayed if you do not have a network connection.
@@ -21,7 +30,7 @@ If your version number and release date are older than the reported latest relea
 
 ## Installing Updates
 
-Updating Ghostwriter is as easy as pulling the latest code and building the updated containers. Your data will be unaffected by the build process.
+Updating Ghostwriter is as easy as running the `update` command to pull the latest published images.
 
 <Note>
 Updates are generally straightforward, but you should **strongly** consider taking a snapshot of your host server if anything goes wrong. There is always a chance something like a Python library may not install correctly, and you don't have the time to address it on the spot. You will thank yourself if you can restore a snapshot and try again later.
@@ -29,11 +38,36 @@ Updates are generally straightforward, but you should **strongly** consider taki
 
 To perform an update:
 
-```log Updating Ghostwriter
-git pull
-./ghostwriter-cli containers down
-./ghostwriter-cli containers build
-./ghostwriter-cli containers up
-```
+<CodeGroup>
+    ```bash Linux
+    ./ghostwriter-cli update
+    ```
 
-These commands pull the latest code, stop any running production containers, build the new containers, and then bring Ghostwriter back online.
+    ```powershell Windows PowerShell
+    .\ghostwriter-cli update
+    ```
+
+    ```bash Mac
+    ./ghostwriter-cli update
+    ```
+</CodeGroup>
+
+The `update` command pulls the latest published images. You can also use the `--version` tag to specify a version.
+
+<CodeGroup>
+    ```bash Linux
+    ./ghostwriter-cli update --version v6.2.3
+    ```
+
+    ```powershell Windows PowerShell
+    .\ghostwriter-cli update --version v6.2.3
+    ```
+
+    ```bash Mac
+    ./ghostwriter-cli update --version v6.2.3
+    ```
+</CodeGroup>
+
+<Info>
+  The `--version` flag does not support _downgrading_ your version.
+</Info>

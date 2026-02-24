@@ -5,7 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 6.2.3 — 5 February 2026
+## [6.3.0-rc1] - 24 February 2026
+
+### Added
+
+* Added support for performing passive voice identification inside the collaborative editor
+  * Ghostwriter now hosts a small local copy of the spaCy language model for text analysis
+  * Select "Check Passive Voice" in the collaborative editor to examine text and highlight instances of passive voice
+  * See the wiki for more details and an explanation for how to change the model's language
+* Added fonts formerly imported from Google Fonts to the local codebase to support systems without network connections (Fixes #823)
+
+### Changed
+
+* Updated the pre-built Ghostwriter CLI binaries to v1.0.0
+  * Review the Ghostwriter CLI CHANGELOG for complete notes
+  * Going forward, we recommend all users use the new published container images for easier updates
+  * Existing installations will need to migrate some files
+    * Copy the _ssl/_ directory to the _ghostwriter/_ directory inside your operating system's data file directory
+    * Also copy any custom settings files from _config/settings/production.d_ to _ghostwriter/settings/_
+  * Ghostwriter CLI can be used with `--mode local-prod` to keep the old behavior of using a local copy of Ghostwriter's code
+    * You will need to do this if you are using a customized version of the codebase
+
+## [6.2.3] — 5 February 2026
 
 ### Changed
 

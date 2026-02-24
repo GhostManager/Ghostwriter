@@ -46,8 +46,12 @@ EMAIL_PORT = 1025
 INTERNAL_IPS = ["127.0.0.1", "10.0.2.2"]
 if env("USE_DOCKER") == "yes":
     import socket
-    _, _, ips = socket.gethostbyname_ex("nginx")
-    INTERNAL_IPS += ips
+    try:
+        _, _, ips = socket.gethostbyname_ex("nginx")
+        INTERNAL_IPS += ips
+    except socket.gaierror:
+        # nginx may not be resolvable yet during startup
+        pass
 
 # django-extensions
 # ------------------------------------------------------------------------------
@@ -64,4 +68,5 @@ if env("USE_DOCKER") == "yes":
 # Include files in `local.d`. These are added in alphabetical order - using a numeric prefix
 # like `10-subconfig.py` can be used to order inclusions
 
+# Load settings from the codebase (for `local-dev` mode)
 include_settings("./local.d/*.py")

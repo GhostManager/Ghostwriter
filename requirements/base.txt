@@ -49,3 +49,4 @@ django-taggit==6.1.0
 croniter==3.0.3
 cvss==3.2
 markdown==3.9
+spacy==3.8.11  # https://github.com/explosion/spaCy

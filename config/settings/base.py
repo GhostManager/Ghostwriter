@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "6.2.3"
+__version__ = "6.3.0-rc1"
 VERSION = __version__
-RELEASE_DATE = "5 February 2026"
+RELEASE_DATE = "24 February 2026"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -525,6 +525,12 @@ REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
 # Tagging
 # ------------------------------------------------------------------------------
 TAGGIT_CASE_INSENSITIVE = True
+
+# spaCy NLP Configuration
+# ------------------------------------------------------------------------------
+# https://spacy.io/usage/models
+SPACY_MODEL = env("SPACY_MODEL", default="en_core_web_sm")
+SPACY_MAX_TEXT_LENGTH = env.int("SPACY_MAX_TEXT_LENGTH", default=100000)
 
 
 def include_settings(py_glob):

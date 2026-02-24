@@ -72,6 +72,7 @@ services:
     volumes:
       - production_staticfiles:/app/staticfiles
       - production_data:/app/ghostwriter/media
+      - ./settings:/app/config/settings/production.d:ro
 
   postgres:
     image: ghcr.io/ghostmanager/ghostwriter_postgres:<VERSION>

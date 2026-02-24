@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Roboto&family=Roboto+Mono:wght@300;400&family=Kalam&family=Metrophobic&display=swap');
+@import '/static/css/fonts.css';
 @import '/static/css/base_styles.css';
 
 
@@ -1443,7 +1443,7 @@ a.fc-event {
   background: var(--secondary-color);
 }
 
-a.fc-event:active {}
+/* a.fc-event:active {} */
 
 a.fc-event:hover,
 a.fc-event:active,
@@ -3645,8 +3645,8 @@ input:checked+.slider:before {
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
-  *border-right-width: 2px;
-  *border-bottom-width: 2px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
   max-height: 50vh;
   overflow-y: auto;
   scrollbar-color: var(--primary-color) var(--main-bg-color);

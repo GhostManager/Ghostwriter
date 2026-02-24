@@ -40,6 +40,7 @@ from ghostwriter.api.views import (
     GetTags,
     ObjectsByTag,
     SetTags,
+    detect_passive_voice,
 )
 
 app_name = "api"
@@ -131,4 +132,6 @@ urlpatterns = [
     path("tags/get", csrf_exempt(GetTags.as_view()), name="graphql_get_tags"),
     path("tags/set", csrf_exempt(SetTags.as_view()), name="graphql_set_tags"),
     path("tags/get_by/<str:model>", csrf_exempt(ObjectsByTag.as_view()), name="graphql_objects_by_tag"),
+    # Passive Voice Detection
+    path("v1/passive-voice/detect", detect_passive_voice, name="passive_voice_detect"),
 ]
