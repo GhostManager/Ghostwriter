@@ -16,7 +16,8 @@ export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES
 # Download spaCy model if not already present
 # This allows users to specify a different model via SPACY_MODEL env var
 SPACY_MODEL="${SPACY_MODEL:-en_core_web_sm}"
-if ! python -c "import spacy; spacy.load('${SPACY_MODEL}')" 2>/dev/null; then
+export SPACY_MODEL
+if ! python -c "import os, spacy; spacy.load(os.environ.get('SPACY_MODEL', 'en_core_web_sm'))" 2>/dev/null; then
     echo "Downloading spaCy model: ${SPACY_MODEL}"
     python -m spacy download "${SPACY_MODEL}"
 fi
