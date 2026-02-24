@@ -1443,7 +1443,7 @@ a.fc-event {
   background: var(--secondary-color);
 }
 
-a.fc-event:active {}
+/* a.fc-event:active {} */
 
 a.fc-event:hover,
 a.fc-event:active,
@@ -3645,8 +3645,8 @@ input:checked+.slider:before {
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
-  *border-right-width: 2px;
-  *border-bottom-width: 2px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
   max-height: 50vh;
   overflow-y: auto;
   scrollbar-color: var(--primary-color) var(--main-bg-color);
