@@ -407,8 +407,8 @@ LINTER_CONTEXT = {
             "iam_cloud_config": {"pass": 6, "fail": 1},
             "cloud_config": {"pass": 85, "fail": 12},
             "system_config": {
-                "total_pass": 145,
-                "total_fail": 23,
+                "average_pass": 145,
+                "average_fail": 23,
                 "unique_pass": 110,
                 "unique_fail": 18,
             },

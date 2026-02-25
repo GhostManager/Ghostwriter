@@ -240,8 +240,8 @@ WORKBOOK_DEFAULTS: Dict[str, Any] = {
     "cloud_config": {"pass": None, "fail": None},
     "iam_cloud_config": {"pass": None, "fail": None},
     "system_config": {
-        "total_pass": None,
-        "total_fail": None,
+        "average_pass": None,
+        "average_fail": None,
         "unique_pass": None,
         "unique_fail": None,
     },
@@ -306,6 +306,21 @@ def normalize_workbook_payload(raw_data: Optional[Mapping[str, Any]]) -> Dict[st
     """Return ``raw_data`` with default workbook keys populated."""
 
     normalized = _merge_structure(raw_data if isinstance(raw_data, Mapping) else {}, WORKBOOK_DEFAULTS)
+
+    # Backward compatibility for legacy system configuration keys.
+    system_config = normalized.get("system_config")
+    if isinstance(system_config, Mapping):
+        normalized_system = dict(system_config)
+        if normalized_system.get("average_pass") in (None, "") and normalized_system.get(
+            "total_pass"
+        ) not in (None, ""):
+            normalized_system["average_pass"] = normalized_system.get("total_pass")
+        if normalized_system.get("average_fail") in (None, "") and normalized_system.get(
+            "total_fail"
+        ) not in (None, ""):
+            normalized_system["average_fail"] = normalized_system.get("total_fail")
+        normalized["system_config"] = normalized_system
+
     uploaded_sections = _detect_uploaded_sections(raw_data)
     normalized[WORKBOOK_META_KEY] = {WORKBOOK_META_SECTIONS_KEY: sorted(uploaded_sections)}
     return normalized
@@ -351,4 +366,3 @@ def strip_workbook_meta(data: MutableMapping[str, Any]) -> None:
     """Remove metadata keys used for internal bookkeeping."""
 
     data.pop(WORKBOOK_META_KEY, None)
-
