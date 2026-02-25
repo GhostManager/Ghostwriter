@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             "ALTER TABLE reporting_report ALTER COLUMN include_bloodhound_data SET DEFAULT true;",
         ),
         migrations.RunSQL(
-            "ALTER TABLE reporting_report ALTER COLUMN last_update SET DEFAULT CURRENT_TIMESTAMP;",
+            "ALTER TABLE reporting_report ALTER COLUMN last_update SET DEFAULT CURRENT_DATE;",
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE reporting_reporttemplate ALTER COLUMN last_update SET DEFAULT CURRENT_DATE;",
         ),
         migrations.AlterField(
             model_name="report",
