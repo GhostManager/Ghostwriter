@@ -2082,6 +2082,38 @@ class ProjectWorkbookDataUpdateViewTests(TestCase):
 
         self.assertEqual(self.project.risks, expected_risks)
 
+    def test_upload_populates_project_risks_from_report_card_risk_labels(self):
+        workbook_payload = {
+            "external_internal_grades": {
+                "external": {"osint": {"risk": "high"}},
+                "internal": {"iam": {"risk": "medium"}},
+            },
+            "report_card": {
+                "overall": "Medium",
+                "external": "Low",
+                "internal": "Medium-->High",
+            },
+        }
+
+        upload = SimpleUploadedFile(
+            "workbook.json",
+            json.dumps(workbook_payload).encode("utf-8"),
+            content_type="application/json",
+        )
+
+        response = self.client_auth.post(self.upload_url, {"workbook_file": upload})
+
+        self.assertEqual(response.status_code, 302)
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.risks.get("overall_risk"), "Medium")
+        self.assertEqual(self.project.risks.get("external"), "Low")
+        self.assertEqual(self.project.risks.get("internal"), "Medium-->High")
+
+        detail_response = self.client_auth.get(self.detail_url)
+        self.assertContains(detail_response, "Overall Risk of Medium")
+        self.assertNotContains(detail_response, "Overall Risk of Unknown")
+
     def test_invalid_json_is_rejected(self):
         upload = SimpleUploadedFile(
             "workbook.json",

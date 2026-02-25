@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, Iterable, Optional, Sequence
 
 from django.apps import apps as django_apps
 from django.db.models import Q
 
-from ghostwriter.reporting.models import GradeRiskMapping
+from ghostwriter.reporting.models import GradeRiskMapping, RiskScoreRangeMapping
 
 
 _WORKBOOK_RISK_PATHS: Dict[str, Sequence[Sequence[str]]] = {
@@ -66,6 +67,29 @@ def _normalize_risk(value: Any) -> Optional[str]:
     return text
 
 
+def _canonicalize_risk_label(value: str) -> str:
+    """Return ``value`` in a canonical form suitable for risk-label matching."""
+
+    compact = str(value or "").strip()
+    if not compact:
+        return ""
+    compact = compact.replace("—", "-").replace("–", "-").replace("−", "-")
+    compact = compact.replace("→", "-->")
+    compact = re.sub(r"\s*-->\s*", "-->", compact)
+    compact = re.sub(r"\s*-\s*>\s*", "-->", compact)
+    return compact.lower()
+
+
+def _known_risk_labels() -> set[str]:
+    labels = {"low", "medium", "high"}
+    score_map = RiskScoreRangeMapping.get_risk_score_map()
+    for label in score_map.keys():
+        canonical = _canonicalize_risk_label(str(label))
+        if canonical:
+            labels.add(canonical)
+    return labels
+
+
 def _collect_grade_sources(workbook_data: Dict[str, Any]) -> Sequence[Dict[str, Any]]:
     candidates: list[Dict[str, Any]] = []
     for key in ("report_card", "grades"):
@@ -111,15 +135,23 @@ def build_project_risk_summary(workbook_data: Any) -> Dict[str, str]:
 
     grade_sources = _collect_grade_sources(workbook_data)
     grade_map = GradeRiskMapping.get_grade_map()
+    known_risk_labels = _known_risk_labels()
 
     for risk_key, grade_keys in _GRADE_FIELD_MAP.items():
         grade_value = _resolve_grade_value(grade_keys, grade_sources)
         if not grade_value:
             continue
-        risk_slug = grade_map.get(str(grade_value).strip().upper())
+        grade_text = str(grade_value).strip()
+        if not grade_text:
+            continue
+        risk_slug = grade_map.get(grade_text.upper())
         normalized = _normalize_risk(risk_slug)
         if normalized:
             results[risk_key] = normalized
+            continue
+        if _canonicalize_risk_label(grade_text) in known_risk_labels:
+            # Preserve workbook formatting when values are already risk labels.
+            results[risk_key] = grade_text
 
     return results
 

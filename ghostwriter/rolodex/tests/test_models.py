@@ -344,6 +344,33 @@ class ProjectModelTests(TestCase):
         self.assertFalse(project.user_can_edit(user))
         self.assertFalse(project.user_can_delete(user))
 
+    def test_save_populates_overall_risk_from_report_card_risk_label(self):
+        project: Project = ProjectFactory()
+        project.workbook_data = {"report_card": {"overall": "Medium"}}
+
+        project.save(update_fields=["workbook_data"])
+        project.refresh_from_db()
+
+        self.assertEqual(project.risks.get("overall_risk"), "Medium")
+
+    def test_save_populates_overall_risk_from_report_card_transition_label(self):
+        project: Project = ProjectFactory()
+        project.workbook_data = {"report_card": {"overall": "Medium-->High"}}
+
+        project.save(update_fields=["workbook_data"])
+        project.refresh_from_db()
+
+        self.assertEqual(project.risks.get("overall_risk"), "Medium-->High")
+
+    def test_save_still_maps_legacy_letter_grade_for_overall_risk(self):
+        project: Project = ProjectFactory()
+        project.workbook_data = {"report_card": {"overall": "B"}}
+
+        project.save(update_fields=["workbook_data"])
+        project.refresh_from_db()
+
+        self.assertEqual(project.risks.get("overall_risk"), "Medium")
+
     def test_rebuild_preserves_endpoint_artifacts(self):
         project = ProjectFactory()
 
