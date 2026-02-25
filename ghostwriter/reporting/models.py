@@ -539,7 +539,7 @@ class Report(models.Model):
     project = models.ForeignKey(
         "rolodex.Project",
         on_delete=models.CASCADE,
-        null=True,
+        null=False,
         help_text="Select the project tied to this report",
     )
     docx_template = models.ForeignKey(

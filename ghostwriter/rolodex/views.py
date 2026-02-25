@@ -4,15 +4,24 @@
 import datetime
 import json
 import logging
+import os
 from urllib.parse import urlparse
 
 # Django Imports
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseRedirect,
+    FileResponse,
+    JsonResponse
+)
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
@@ -1126,6 +1135,30 @@ def index(request):
 ################
 
 # CBVs related to :model:`rolodex.Client`
+
+
+class ClientLogoDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Return the target :model:`reporting.Evidence` file for download."""
+
+    model = Client
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+        file_path = os.path.join(settings.MEDIA_ROOT, obj.logo.path)
+        if os.path.exists(file_path):
+            return FileResponse(
+                open(file_path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_path),
+            )
+        raise Http404
 
 
 class ClientListView(RoleBasedAccessControlMixin, ListView):
