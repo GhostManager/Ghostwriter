@@ -124,13 +124,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
             tag = heading_paragraph.runs[0]._r
             start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
             start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
+            start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
             tag.insert(0, start)
 
             tag = heading_paragraph.runs[-1]._r
             end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
             end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
+            end.set(docx.oxml.ns.qn("w:name"), bookmark_name)
             tag.append(end)
             self.current_bookmark_id += 1
 
@@ -493,9 +493,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             except KeyError:
                 continue
 
-        if ref:
-            ref = f"_Ref{ref}"
-        else:
+        if not ref:
             ref = f"_Ref{random.randint(10000000, 99999999)}"
 
         # Start a bookmark run with the figure label
@@ -673,7 +671,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"').replace(" ", "_"))
+        instrText.text = ' REF "{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"').replace(" ", "_"))
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
