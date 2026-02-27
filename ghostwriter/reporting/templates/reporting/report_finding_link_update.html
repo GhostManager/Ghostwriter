@@ -43,6 +43,5 @@
 {%  block morescripts %}
     {{ block.super }}
     <script type="text/plain" id="graphql-evidence-report-id">{{object.report.id}}</script>
-    <script type="text/plain" id="graphql-evidence-finding-id">{{object.id}}</script>
-    <script type="text/plain" id="graphql-evidence-upload-url">{% url 'reporting:upload_evidence' 'finding' object.id %}</script>
+    <script type="text/plain" id="graphql-evidence-upload-url">{% url 'reporting:upload_evidence' object.report.id %}</script>
 {% endblock %}

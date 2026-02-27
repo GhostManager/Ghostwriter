@@ -13,31 +13,21 @@ const QUERY_EVIDENCE = gql(`
 `);
 
 export function usePageEvidence(): Evidences | null {
-    const filters: Evidence_Bool_Exp["_or"] = useMemo(() => {
+    const filters: Evidence_Bool_Exp = useMemo(() => {
         const reportId = parseInt(
             document.getElementById("graphql-evidence-report-id")!.innerHTML
         );
-        const findingIdText = document.getElementById(
-            "graphql-evidence-finding-id"
-        )?.innerHTML;
-        const filters: Evidence_Bool_Exp["_or"] = [
+        const filters: Evidence_Bool_Exp =
             {
                 report_id: { _eq: reportId },
-            },
-        ];
-        if (findingIdText !== undefined) {
-            filters.push({
-                findingId: { _eq: +findingIdText },
-            });
-        }
+            }
+        ;
         return filters;
     }, []);
 
     const { data, refetch } = useQuery(QUERY_EVIDENCE, {
         variables: {
-            where: {
-                _or: filters,
-            },
+            where: filters,
         },
         pollInterval: 10000,
     });

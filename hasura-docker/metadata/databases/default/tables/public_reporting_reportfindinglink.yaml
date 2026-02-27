@@ -63,13 +63,6 @@ array_relationships:
         table:
           name: reporting_localfindingnote
           schema: public
-  - name: evidences
-    using:
-      foreign_key_constraint_on:
-        column: finding_id
-        table:
-          name: reporting_evidence
-          schema: public
 insert_permissions:
   - role: manager
     permission:
