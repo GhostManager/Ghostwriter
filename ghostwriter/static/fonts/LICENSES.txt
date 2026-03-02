@@ -1,0 +1,40 @@
+Font Licenses
+==============
+
+This directory contains fonts from Google Fonts (https://fonts.google.com/)
+All fonts are free and open source.
+
+Poppins
+-------
+Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+Licensed under the SIL Open Font License, Version 1.1
+http://scripts.sil.org/OFL
+
+Roboto
+------
+Copyright 2011 Google Inc. All Rights Reserved.
+Licensed under the Apache License, Version 2.0
+http://www.apache.org/licenses/LICENSE-2.0
+
+Roboto Mono
+-----------
+Copyright 2015 The Roboto Mono Project Authors (https://github.com/googlefonts/robotomono)
+Licensed under the Apache License, Version 2.0
+http://www.apache.org/licenses/LICENSE-2.0
+
+Kalam
+-----
+Copyright 2014 The Kalam Project Authors (https://github.com/itfoundry/kalam)
+Licensed under the SIL Open Font License, Version 1.1
+http://scripts.sil.org/OFL
+
+Metrophobic
+-----------
+Copyright 2011 The Metrophobic Project Authors (https://github.com/vernnobile/MetrophobicFont)
+Licensed under the SIL Open Font License, Version 1.1
+http://scripts.sil.org/OFL
+
+---
+
+For full license texts and attribution details, visit:
+https://fonts.google.com/attribution

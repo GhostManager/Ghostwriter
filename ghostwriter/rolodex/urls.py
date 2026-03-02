@@ -186,6 +186,11 @@ urlpatterns += [
         views.ClientNoteUpdate.as_view(),
         name="client_note_edit",
     ),
+    path(
+        "clients/logo/download/<int:pk>",
+        views.ClientLogoDownload.as_view(),
+        name="client_logo_download",
+    ),
 ]
 
 # URLs for :model:`Project` Class Based Views

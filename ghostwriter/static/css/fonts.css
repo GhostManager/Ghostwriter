@@ -1,0 +1,118 @@
+/* Local Font Definitions for Offline Support */
+
+/* Poppins Regular */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-regular.woff2') format('woff2');
+}
+
+/* Poppins Italic */
+@font-face {
+  font-family: 'Poppins';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-italic.woff2') format('woff2');
+}
+
+/* Poppins Medium */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-500.woff2') format('woff2');
+}
+
+/* Poppins Medium Italic */
+@font-face {
+  font-family: 'Poppins';
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-500italic.woff2') format('woff2');
+}
+
+/* Poppins SemiBold */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-600.woff2') format('woff2');
+}
+
+/* Poppins SemiBold Italic */
+@font-face {
+  font-family: 'Poppins';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-600italic.woff2') format('woff2');
+}
+
+/* Poppins Bold */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-700.woff2') format('woff2');
+}
+
+/* Poppins Bold Italic */
+@font-face {
+  font-family: 'Poppins';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/static/fonts/poppins-v24-latin-700italic.woff2') format('woff2');
+}
+
+/* Roboto Regular */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/roboto-v51-latin-regular.woff2') format('woff2');
+}
+
+/* Roboto Mono Light */
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/static/fonts/roboto-mono-v31-latin-300.woff2') format('woff2');
+}
+
+/* Roboto Mono Regular */
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/roboto-mono-v31-latin-regular.woff2') format('woff2');
+}
+
+/* Kalam Regular */
+@font-face {
+  font-family: 'Kalam';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/kalam-v18-latin-regular.woff2') format('woff2');
+}
+
+/* Metrophobic Regular */
+@font-face {
+  font-family: 'Metrophobic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/metrophobic-v24-latin-regular.woff2') format('woff2');
+}

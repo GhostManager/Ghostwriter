@@ -65,6 +65,7 @@ insert_permissions:
       columns:
         - docx_template_id
         - extra_fields
+        - include_bloodhound_data
         - pptx_template_id
         - project_id
         - title
@@ -88,6 +89,7 @@ insert_permissions:
       columns:
         - docx_template_id
         - extra_fields
+        - include_bloodhound_data
         - pptx_template_id
         - project_id
         - title

@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 6.2.3 — 5 February 2026
+## [6.2.4] - 24 February 2026
+
+### Added
+
+* Added local copies of fonts used with the user interface and their associated license information
+  * This makes it possible for the fonts to be used with offline Ghostwriter servers
+
+### Changed
+
+* Removed fonts loaded from Google Fonts to fix load times for offline systems (Fixes #823)
+* Changed the `Report` model's project ID field to no longer allow null values
+  * This could allow the creation of an "orphan" report with no associated project when created via the GraphQL API
+
+### Fixed
+
+* Fixed client logos not showing properly on client dashboards
+* Fixed issue with the `last_update` column preventing creation of a report via the GraphQL API (Fixes #828)
+
+## [6.2.3] — 5 February 2026
 
 ### Changed
 
