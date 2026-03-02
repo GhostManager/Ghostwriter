@@ -41,8 +41,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         # If there are observations then write a table
         if len(base_context["observations"]) > 0:
             # Delete the default text placeholder
-            textbox = shapes[1]
-            sp = textbox.element
+            sp = body_shape.element
             sp.getparent().remove(sp)
             # Add a table
             rows = len(base_context["observations"]) + 1
@@ -121,8 +120,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         # If there are findings then write a table of findings and severity ratings
         if len(base_context["findings"]) > 0:
             # Delete the default text placeholder
-            textbox = shapes[1]
-            sp = textbox.element
+            sp = body_shape.element
             sp.getparent().remove(sp)
             # Add a table
             rows = len(base_context["findings"]) + 1

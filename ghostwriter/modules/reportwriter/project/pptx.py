@@ -223,10 +223,10 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Assessment Timeline"
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
 
         # Delete the default text placeholder
-        textbox = shapes[1]
-        sp = textbox.element
+        sp = body_shape.element
         sp.getparent().remove(sp)
         # Add a table
         rows = 4
