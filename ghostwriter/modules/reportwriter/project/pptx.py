@@ -44,14 +44,12 @@ class ProjectSlidesMixin:
         subtitles.sort(key=lambda s: s.placeholder_format.idx)
         return subtitles
 
-    def get_placeholder_or_textbox(self, slide, shapes, placeholder_idx, left=None, top=None, width=None, height=None):
+    def get_placeholder_or_textbox(self, shapes, placeholder_idx, left=None, top=None, width=None, height=None):
         """
         Safely get a placeholder by index, or create a text box fallback if it doesn't exist.
 
         **Parameters**
 
-        ``slide``
-            The slide object
         ``shapes``
             The shapes collection from the slide
         ``placeholder_idx``
@@ -110,7 +108,7 @@ class ProjectSlidesMixin:
             # No subtitle placeholders found - fall back to using placeholder[1]
             logger.info("No subtitle placeholders detected on title slide, using fallback approach")
             body_shape = self.get_placeholder_or_textbox(
-                slide, shapes, 1,
+                shapes, 1,
                 left=Inches(1), top=Inches(3), width=Inches(8), height=Inches(2)
             )
             text_frame = get_textframe(body_shape)
@@ -124,7 +122,7 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Agenda"
-        body_shape = self.get_placeholder_or_textbox(slide, shapes, 1)
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
         delete_paragraph(text_frame.paragraphs[0])
@@ -144,7 +142,7 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Introduction"
-        body_shape = self.get_placeholder_or_textbox(slide, shapes, 1)
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
 
@@ -162,7 +160,7 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Assessment Details"
-        body_shape = self.get_placeholder_or_textbox(slide, shapes, 1)
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
         delete_paragraph(text_frame.paragraphs[0])

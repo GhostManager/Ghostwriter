@@ -34,7 +34,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
-        body_shape = self.get_placeholder_or_textbox(slide, shapes, 1)
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         title_shape.text = "Positive Observations"
         text_frame = get_textframe(body_shape)
 
@@ -79,7 +79,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             title_shape = shapes.title
 
             # Prepare text frame
-            observation_body_shape = self.get_placeholder_or_textbox(observation_slide, shapes, 1)
+            observation_body_shape = self.get_placeholder_or_textbox(shapes, 1)
             if observation_body_shape.has_text_frame:
                 text_frame = get_textframe(observation_body_shape)
                 text_frame.clear()
@@ -114,7 +114,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
-        body_shape = self.get_placeholder_or_textbox(slide, shapes, 1)
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         title_shape.text = "Findings Overview"
         text_frame = get_textframe(body_shape)
 
@@ -172,7 +172,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             title_shape = shapes.title
 
             # Prepare text frame
-            finding_body_shape = self.get_placeholder_or_textbox(finding_slide, shapes, 1)
+            finding_body_shape = self.get_placeholder_or_textbox(shapes, 1)
             if finding_body_shape.has_text_frame:
                 text_frame = get_textframe(finding_body_shape)
                 text_frame.clear()
@@ -259,7 +259,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_FINAL]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        body_shape = self.get_placeholder_or_textbox(slide, shapes, 1, left=Inches(1), top=Inches(5), width=Inches(8), height=Inches(2))
+        body_shape = self.get_placeholder_or_textbox(shapes, 1, left=Inches(1), top=Inches(5), width=Inches(8), height=Inches(2))
         text_frame = get_textframe(body_shape)
         text_frame.clear()
         p = text_frame.paragraphs[0]
