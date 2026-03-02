@@ -281,3 +281,5 @@ cypress/*
 
 # Ignore renamed CLI binary
 ghostwriter-cli
+
+.gwcli-last-update-check
