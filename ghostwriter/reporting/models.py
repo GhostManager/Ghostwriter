@@ -18,6 +18,7 @@ from cvss import CVSS3, CVSS4
 from taggit.managers import TaggableManager
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.reporting.validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
@@ -428,7 +429,7 @@ class ReportTemplate(models.Model):
         from ghostwriter.rolodex.models import Project
 
         if self.doc_type is None:
-            raise RuntimeError(
+            raise ReportExportTemplateError(
                 f"Template {self.name} has no document type set. Please edit the template and select a document type."
             )
 
@@ -464,7 +465,7 @@ class ReportTemplate(models.Model):
             from ghostwriter.modules.reportwriter.project.pptx import ExportProjectPptx
 
             return ExportProjectPptx(object, report_template=self, **kwargs)
-        raise RuntimeError(
+        raise ReportExportTemplateError(
             f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database."
         )
 
@@ -526,7 +527,7 @@ class ReportTemplate(models.Model):
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 
             return ExportReportPptx.lint(template_loc=self.document.path)
-        raise RuntimeError(
+        raise ReportExportTemplateError(
             f"Lint for doc_type {self.doc_type.doc_type} not implemented. Either this is a bug or an admin messed with the database."
         )
 
