@@ -427,6 +427,11 @@ class ReportTemplate(models.Model):
         # Ghostwriter Libraries
         from ghostwriter.rolodex.models import Project
 
+        if self.doc_type is None:
+            raise RuntimeError(
+                f"Template {self.name} has no document type set. Please edit the template and select a document type."
+            )
+
         if self.doc_type.doc_type == "docx":
             assert isinstance(object, Report)
             # Ghostwriter Libraries
@@ -499,6 +504,12 @@ class ReportTemplate(models.Model):
         Runs the linter and returns the results. Does not set the template's `lint_results`.
         """
         # Import in function to avoid circular references
+
+        # Check if doc_type is set
+        if self.doc_type is None:
+            return [], ["Template has no document type set. Please edit the template and select a document type."]
+
+
         if self.doc_type.doc_type == "docx":
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
