@@ -375,7 +375,10 @@ class ReportTemplateForm(forms.ModelForm):
         if not filename_override:
             return
 
-        doc_typ = self.cleaned_data["doc_type"]
+        doc_typ = self.cleaned_data.get("doc_type")
+        if not doc_typ:
+            return
+
         try:
             if doc_typ.doc_type == "docx":
                 ExportReportBase.check_filename_template(filename_override)
@@ -415,6 +418,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
+        self.fields["doc_type"].required = True
         self.fields["evidence_image_width"].label = "Evidence Image Width"
         self.fields["evidence_image_width"].initial = "6.5"
 
