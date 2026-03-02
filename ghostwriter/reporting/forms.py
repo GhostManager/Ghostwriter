@@ -371,13 +371,13 @@ class ReportTemplateForm(forms.ModelForm):
     """Save an individual :model:`reporting.ReportTemplate`."""
 
     def clean(self):
-        filename_override = self.cleaned_data["filename_override"]
+        filename_override = self.cleaned_data.get("filename_override")
         if not filename_override:
-            return
+            return self.cleaned_data
 
         doc_typ = self.cleaned_data.get("doc_type")
         if not doc_typ:
-            return
+            return self.cleaned_data
 
         try:
             if doc_typ.doc_type == "docx":
@@ -386,6 +386,8 @@ class ReportTemplateForm(forms.ModelForm):
                 ExportProjectBase.check_filename_template(filename_override)
         except ValidationError as e:
             self.add_error("filename_override", e)
+
+        return self.cleaned_data
 
     class Meta:
         model = ReportTemplate
