@@ -17,6 +17,45 @@ class ProjectSlidesMixin:
     Adds a function for generating Project-related slides - shared between the project and report exports
     """
 
+    def get_placeholder_or_textbox(self, slide, shapes, placeholder_idx, left=None, top=None, width=None, height=None):
+        """
+        Safely get a placeholder by index, or create a text box fallback if it doesn't exist.
+
+        **Parameters**
+
+        ``slide``
+            The slide object
+        ``shapes``
+            The shapes collection from the slide
+        ``placeholder_idx``
+            The index of the placeholder to retrieve
+        ``left``
+            Left position for fallback textbox (default: Inches(1))
+        ``top``
+            Top position for fallback textbox (default: Inches(1.5))
+        ``width``
+            Width for fallback textbox (default: Inches(8))
+        ``height``
+            Height for fallback textbox (default: Inches(5))
+
+        **Returns**
+            The placeholder shape or a newly created text box
+        """
+        try:
+            return shapes.placeholders[placeholder_idx]
+        except KeyError:
+            logger.warning(
+                "Placeholder %d not found on slide. Creating fallback text box. "
+                "This may indicate a template compatibility issue.",
+                placeholder_idx,
+            )
+            # Create a text box as fallback
+            left = left if left is not None else Inches(1)
+            top = top if top is not None else Inches(1.5)
+            width = width if width is not None else Inches(8)
+            height = height if height is not None else Inches(5)
+            return shapes.add_textbox(left, top, width, height)
+
     def create_project_slides(self, base_context):
         # Add a title slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE]
