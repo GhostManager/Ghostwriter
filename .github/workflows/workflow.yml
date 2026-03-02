@@ -21,6 +21,18 @@ jobs:
           chmod +x ghostwriter-cli-linux
           ./ghostwriter-cli-linux install --dev
 
+      - name: Get django logs
+        if: failure()
+        run: |
+          docker compose -f local.yml logs django > django-logs.txt
+
+      - name: Upload django logs artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: django-logs
+          path: django-logs.txt
+
       - name: Generate Coverage report
         run: |
           docker compose -f local.yml run django coverage run manage.py test --exclude-tag=GitHub
