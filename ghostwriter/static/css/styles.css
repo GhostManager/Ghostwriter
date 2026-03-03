@@ -2728,6 +2728,7 @@ h5 a[aria-expanded=true]:after {
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 5px;
 }
 
 .card-help-text {
@@ -3240,15 +3241,15 @@ li[role="presentation"].active a {
 }
 
 .task-future {
-  color: var(--primary-color);
+  color: var(--primary-color)!important;
 }
 
 .task-due-soon {
-  color: var(--warning-color);
+  color: var(--warning-color)!important;
 }
 
 .task-imminent {
-  color: var(--blocked-color);
+  color: var(--blocked-color)!important;
 }
 
 .task-header {
@@ -3742,6 +3743,11 @@ input[type="color"]:focus,
     DARK MODE OVERRIDES
 ----------------------------------------------------- */
 
+[data-theme="dark"] .task-card {
+  background-color: var(--sidebar-background-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
 [data-theme="dark"] .btn {
   color: var(--main-txt-color);
 }
@@ -3769,7 +3775,7 @@ input[type="color"]:focus,
 [data-theme="dark"] textarea {
   background-color: var(--search-input-background-color);
   border-color: var(--search-box-shadow);
-  color: var(--main-txt-color);
+  color: var(--main-bg-color);
 }
 
 [data-theme="dark"] .form-select {
@@ -3839,14 +3845,6 @@ input[type="color"]:focus,
   border-color: var(--search-box-shadow);
 }
 
-[data-theme="dark"] .card-body {
-  color: var(--main-bg-color);
-}
-
-[data-theme="dark"] .card-body p {
-  color: var(--main-bg-color);
-}
-
 /* Modals */
 [data-theme="dark"] .modal-content {
   background-color: var(--sidebar-background-color);
@@ -3877,11 +3875,12 @@ input[type="color"]:focus,
 }
 
 /* Alerts */
-/* [data-theme="dark"] .alert {
-  background-color: var(--search-input-background-color);
-  border-color: var(--search-box-shadow);
-  color: var(--main-txt-color);
-} */
+[data-theme="dark"] .alert,
+[data-theme="dark"] .alert p {
+  /* background-color: var(--search-input-background-color);
+  border-color: var(--search-box-shadow); */
+  color: var(--main-bg-color);
+}
 
 [data-theme="dark"] .alert-success {
   background-color: var(--navbar-report-selected-background-color);
