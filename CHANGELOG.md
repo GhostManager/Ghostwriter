@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.2.5] - 2 March 2026
+## [6.2.5] - 3 March 2026
 
 ### Changed
 
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation
 * Fixed domain and server history not properly showing the "Checked Out By" column
-* Fixed updating a domain or serevr checkout setting the user value to null
+* Fixed updating a domain or server checkout setting the user value to null
 
 ## [6.2.4] - 24 February 2026
 
