@@ -257,7 +257,14 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_FINAL]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        body_shape = self.get_placeholder_or_textbox(shapes, 1, left=Inches(1), top=Inches(5), width=Inches(8), height=Inches(2))
+        body_shape = self.get_placeholder_or_textbox(
+            shapes,
+            1,
+            left=Inches(1),
+            top=Inches(5),
+            width=Inches(8),
+            height=Inches(2),
+        )
         text_frame = get_textframe(body_shape)
         text_frame.clear()
         p = text_frame.paragraphs[0]
