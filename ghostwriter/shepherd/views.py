@@ -1177,13 +1177,21 @@ class HistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def form_valid(self, form):
+        # Preserve the original operator since it's not included in the form
+        original_operator = self.get_object().operator
+        obj = form.save(commit=False)
+        obj.operator = original_operator
+        obj.save()
+        return super().form_valid(form)
+
     def get_success_url(self):
         messages.success(
             self.request,
             "Domain history successfully updated.",
             extra_tags="alert-success",
         )
-        return "{}#history".format(reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id}))
+        return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1605,6 +1613,14 @@ class ServerHistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
+
+    def form_valid(self, form):
+        # Preserve the original operator since it's not included in the form
+        original_operator = self.get_object().operator
+        obj = form.save(commit=False)
+        obj.operator = original_operator
+        obj.save()
+        return super().form_valid(form)
 
     def get_success_url(self):
         messages.success(
