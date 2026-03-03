@@ -44,7 +44,15 @@ class ProjectSlidesMixin:
         subtitles.sort(key=lambda s: s.placeholder_format.idx)
         return subtitles
 
-    def get_placeholder_or_textbox(self, shapes, placeholder_idx, left=None, top=None, width=None, height=None):
+    def get_placeholder_or_textbox(
+        self,
+        shapes,
+        placeholder_idx,
+        left=None,
+        top=None,
+        width=None,
+        height=None,
+    ):
         """
         Safely get a placeholder by index, or create a text box fallback if it doesn't exist.
 
