@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation
+* Fixed domain and server history not properly showing the "Checked Out By" column
+* Fixed updating a domain or serevr checkout setting the user value to null
 
 ## [6.2.4] - 24 February 2026
 
