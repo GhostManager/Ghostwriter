@@ -3335,6 +3335,10 @@ th.priority-header.primary {
 
 th.priority-header.primary:before {
   content: '\f12a';
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
+  margin-right: 0.5em;
 }
 
 th.priority-header.secondary {
@@ -3343,6 +3347,10 @@ th.priority-header.secondary {
 
 th.priority-header.secondary:before {
   content: '\f005';
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
+  margin-right: 0.5em;
 }
 
 th.priority-header.tertiary {
@@ -3351,6 +3359,10 @@ th.priority-header.tertiary {
 
 th.priority-header.tertiary:before {
   content: '\f063';
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
+  margin-right: 0.5em;
 }
 
 .js-connection-status {
