@@ -108,8 +108,12 @@ class ProjectSlidesMixin:
             # No subtitle placeholders found - fall back to using placeholder[1]
             logger.info("No subtitle placeholders detected on title slide, using fallback approach")
             body_shape = self.get_placeholder_or_textbox(
-                shapes, 1,
-                left=Inches(1), top=Inches(3), width=Inches(8), height=Inches(2)
+                shapes,
+                1,
+                left=Inches(1),
+                top=Inches(3),
+                width=Inches(8),
+                height=Inches(2),
             )
             text_frame = get_textframe(body_shape)
             text_frame.text = "Technical Outbrief"
