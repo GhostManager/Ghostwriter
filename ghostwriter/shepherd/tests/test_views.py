@@ -592,7 +592,7 @@ class HistoryUpdateViewTests(TestCase):
         # Ensure the entry's project belongs to the same client for form validation
         self.entry.project.client = self.entry.client
         self.entry.project.save()
-        
+
         # Store the original operator
         original_operator = self.entry.operator
         self.assertIsNotNone(original_operator, "Entry should have an operator before update")
@@ -1091,7 +1091,7 @@ class ServerHistoryUpdateViewTests(TestCase):
         # Ensure the entry's project belongs to the same client for form validation
         self.entry.project.client = self.entry.client
         self.entry.project.save()
-        
+
         # Store the original operator
         original_operator = self.entry.operator
         self.assertIsNotNone(original_operator, "Entry should have an operator before update")
