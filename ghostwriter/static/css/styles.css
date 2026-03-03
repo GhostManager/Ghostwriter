@@ -3742,6 +3742,22 @@ input[type="color"]:focus,
     DARK MODE OVERRIDES
 ----------------------------------------------------- */
 
+[data-theme="dark"] .btn {
+  color: var(--main-txt-color);
+}
+
+[data-theme="dark"] .icon::before {
+  color: var(--primary-color);
+}
+
+[data-theme="dark"] th.priority-header:before {
+  color: var(--ghost-white);
+}
+
+[data-theme="dark"] .table thead th.icon::before {
+  color: var(--ghost-white);
+}
+
 /* Form controls and inputs */
 [data-theme="dark"] .form-select,
 [data-theme="dark"] .form-control,
@@ -3824,7 +3840,11 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] .card-body {
-  color: var(--main-txt-color);
+  color: var(--main-bg-color);
+}
+
+[data-theme="dark"] .card-body p {
+  color: var(--main-bg-color);
 }
 
 /* Modals */
@@ -3857,11 +3877,11 @@ input[type="color"]:focus,
 }
 
 /* Alerts */
-[data-theme="dark"] .alert {
+/* [data-theme="dark"] .alert {
   background-color: var(--search-input-background-color);
   border-color: var(--search-box-shadow);
   color: var(--main-txt-color);
-}
+} */
 
 [data-theme="dark"] .alert-success {
   background-color: var(--navbar-report-selected-background-color);
