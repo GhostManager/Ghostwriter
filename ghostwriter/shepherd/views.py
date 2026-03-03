@@ -1179,7 +1179,7 @@ class HistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def form_valid(self, form):
         # Preserve the original operator since it's not included in the form
-        form.instance.operator = self.get_object().operator
+        form.instance.operator = self.object.operator
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -1613,7 +1613,7 @@ class ServerHistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def form_valid(self, form):
         # Preserve the original operator since it's not included in the form
-        form.instance.operator = self.get_object().operator
+        form.instance.operator = self.object.operator
         return super().form_valid(form)
 
     def get_success_url(self):
