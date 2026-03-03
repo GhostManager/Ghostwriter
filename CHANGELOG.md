@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.5] - 2 March 2026
+
+### Changed
+
+* Changed PowerPoint title slide generation to detect subtitle placeholders for more intelligent subtitle placement
+* Document type is now a required field for the report template form to prevent issues with that field being forgotten
+
+### Fixed
+
+* Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation
+
 ## [6.2.4] - 24 February 2026
 
 ### Added
