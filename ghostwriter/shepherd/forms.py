@@ -38,7 +38,7 @@ class CheckoutForm(forms.ModelForm):
 
     class Meta:
         model = History
-        fields = "__all__"
+        exclude = ("operator",)
         widgets = {
             "domain": forms.HiddenInput(),
             "start_date": forms.DateInput(
