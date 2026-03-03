@@ -723,7 +723,17 @@
                 <td class="align-middle text-left">{{ domain.activity_type }}</td>
                 <td class="align-middle text-left" data-text="{{ domain.start_date|date:"Y-m-d" }}">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}
                 </td>
-                <td class="align-middle text-left">{{ domain.operator }}</td>
+                <td class="align-middle text-left">
+                  {% if domain.operator %}
+                    {% if domain.operator.name %}
+                      {{ domain.operator.name }} ({{ domain.operator.username }})
+                    {% else %}
+                      Missing Full Name ({{ domain.operator.username }})
+                    {% endif %}
+                  {% else %}
+                    Unknown/Deleted user
+                  {% endif %}
+                </td>
 
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
@@ -823,8 +833,17 @@
                 <td class="align-middle text-left">{{ server.activity_type }}</td>
                 <td class="align-middle text-left">{{ server.server_role }}</td>
                 <td class="align-middle text-left">{{ server.server.server_provider }}</td>
-                <td class="align-middle text-left">{{ server.operator }}</td>
-
+                <td class="align-middle text-left">
+                  {% if server.operator %}
+                    {% if server.operator.name %}
+                      {{ server.operator.name }} ({{ server.operator.username }})
+                    {% else %}
+                      Missing Full Name ({{ server.operator.username }})
+                    {% endif %}
+                  {% else %}
+                    Unknown/Deleted user
+                  {% endif %}
+                </td>
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
                     <span

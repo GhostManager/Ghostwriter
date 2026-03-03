@@ -1,9 +1,11 @@
 
 import io
+import logging
 from datetime import date
 
 from django.conf import settings
 from django.utils.dateformat import format as dateformat
+from pptx.enum.shapes import PP_PLACEHOLDER
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches
 import pptx
@@ -11,11 +13,81 @@ import pptx
 from ghostwriter.modules.reportwriter.base.pptx import SLD_LAYOUT_TITLE, SLD_LAYOUT_TITLE_AND_CONTENT, ExportBasePptx, delete_paragraph, get_textframe, write_bullet, write_objective_list
 from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
 
+logger = logging.getLogger(__name__)
+
 
 class ProjectSlidesMixin:
     """
     Adds a function for generating Project-related slides - shared between the project and report exports
     """
+
+    def get_subtitle_shapes(self, shapes):
+        """
+        Find subtitle placeholder shapes on a slide.
+
+        **Parameters**
+            ``shapes``
+                The shapes collection from the slide
+
+        **Returns**
+            List of subtitle placeholder shapes, ordered by index
+        """
+        subtitles = []
+        for shape in shapes.placeholders:
+            try:
+                if shape.placeholder_format.type == PP_PLACEHOLDER.SUBTITLE:
+                    subtitles.append(shape)
+            except AttributeError:
+                # Some shapes may not have placeholder_format
+                continue
+        # Sort by placeholder index to ensure consistent ordering
+        subtitles.sort(key=lambda s: s.placeholder_format.idx)
+        return subtitles
+
+    def get_placeholder_or_textbox(
+        self,
+        shapes,
+        placeholder_idx,
+        left=None,
+        top=None,
+        width=None,
+        height=None,
+    ):
+        """
+        Safely get a placeholder by index, or create a text box fallback if it doesn't exist.
+
+        **Parameters**
+
+        ``shapes``
+            The shapes collection from the slide
+        ``placeholder_idx``
+            The index of the placeholder to retrieve
+        ``left``
+            Left position for fallback textbox (default: Inches(1))
+        ``top``
+            Top position for fallback textbox (default: Inches(1.5))
+        ``width``
+            Width for fallback textbox (default: Inches(8))
+        ``height``
+            Height for fallback textbox (default: Inches(5))
+
+        **Returns**
+            The placeholder shape or a newly created text box
+        """
+        try:
+            return shapes.placeholders[placeholder_idx]
+        except KeyError:
+            logger.warning(
+                "Placeholder %d not found on slide. Creating fallback text box. "
+                "This may indicate a template compatibility issue.",
+                placeholder_idx,
+            )
+            # Create a text box as fallback
+            left = left if left is not None else Inches(1)
+            top = top if top is not None else Inches(1.5)
+            width = width if width is not None else Inches(8)
+            height = height if height is not None else Inches(5)
+            return shapes.add_textbox(left, top, width, height)
 
     def create_project_slides(self, base_context):
         # Add a title slide
@@ -23,13 +95,38 @@ class ProjectSlidesMixin:
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
-        body_shape = shapes.placeholders[1]
         title_shape.text = f'{self.data["client"]["name"]} {self.data["project"]["type"]}'
-        text_frame = get_textframe(body_shape)
-        # Use ``text_frame.text`` for first line/paragraph or ``text_frame.paragraphs[0]``
-        text_frame.text = "Technical Outbrief"
-        p = text_frame.add_paragraph()
-        p.text = dateformat(date.today(), settings.DATE_FORMAT)
+
+        # Try to detect and use subtitle placeholders
+        subtitle_shapes = self.get_subtitle_shapes(shapes)
+
+        if len(subtitle_shapes) >= 1:
+            # Use first subtitle for "Technical Outbrief"
+            subtitle_shapes[0].text = "Technical Outbrief"
+
+            if len(subtitle_shapes) >= 2:
+                # Use second subtitle for the date
+                subtitle_shapes[1].text = dateformat(date.today(), settings.DATE_FORMAT)
+            else:
+                # Only one subtitle - add date as a second paragraph
+                text_frame = get_textframe(subtitle_shapes[0])
+                p = text_frame.add_paragraph()
+                p.text = dateformat(date.today(), settings.DATE_FORMAT)
+        else:
+            # No subtitle placeholders found - fall back to using placeholder[1]
+            logger.info("No subtitle placeholders detected on title slide, using fallback approach")
+            body_shape = self.get_placeholder_or_textbox(
+                shapes,
+                1,
+                left=Inches(1),
+                top=Inches(3),
+                width=Inches(8),
+                height=Inches(2),
+            )
+            text_frame = get_textframe(body_shape)
+            text_frame.text = "Technical Outbrief"
+            p = text_frame.add_paragraph()
+            p.text = dateformat(date.today(), settings.DATE_FORMAT)
 
         # Add Agenda slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -37,7 +134,7 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Agenda"
-        body_shape = shapes.placeholders[1]
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
         delete_paragraph(text_frame.paragraphs[0])
@@ -57,7 +154,7 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Introduction"
-        body_shape = shapes.placeholders[1]
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
 
@@ -75,7 +172,7 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Assessment Details"
-        body_shape = shapes.placeholders[1]
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
         delete_paragraph(text_frame.paragraphs[0])
@@ -89,7 +186,7 @@ class ProjectSlidesMixin:
             1,
         )
 
-        finding_body_shape = shapes.placeholders[1]
+        finding_body_shape = body_shape
         self.render_rich_text_pptx(
             base_context["project"]["description_rt"],
             slide=slide,
@@ -138,10 +235,10 @@ class ProjectSlidesMixin:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Assessment Timeline"
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
 
         # Delete the default text placeholder
-        textbox = shapes[1]
-        sp = textbox.element
+        sp = body_shape.element
         sp.getparent().remove(sp)
         # Add a table
         rows = 4

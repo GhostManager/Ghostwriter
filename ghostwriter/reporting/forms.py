@@ -371,11 +371,14 @@ class ReportTemplateForm(forms.ModelForm):
     """Save an individual :model:`reporting.ReportTemplate`."""
 
     def clean(self):
-        filename_override = self.cleaned_data["filename_override"]
+        filename_override = self.cleaned_data.get("filename_override")
         if not filename_override:
-            return
+            return self.cleaned_data
 
-        doc_typ = self.cleaned_data["doc_type"]
+        doc_typ = self.cleaned_data.get("doc_type")
+        if not doc_typ:
+            return self.cleaned_data
+
         try:
             if doc_typ.doc_type == "docx":
                 ExportReportBase.check_filename_template(filename_override)
@@ -383,6 +386,8 @@ class ReportTemplateForm(forms.ModelForm):
                 ExportProjectBase.check_filename_template(filename_override)
         except ValidationError as e:
             self.add_error("filename_override", e)
+
+        return self.cleaned_data
 
     class Meta:
         model = ReportTemplate
@@ -415,6 +420,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
+        self.fields["doc_type"].required = True
         self.fields["evidence_image_width"].label = "Evidence Image Width"
         self.fields["evidence_image_width"].initial = "6.5"
 

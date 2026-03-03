@@ -158,6 +158,17 @@
                 <td class="align-middle text-left">{{ checkout.server_role }}</td>
                 <td class="align-middle text-left" data-text="{{ checkout.start_date|date:"Y-m-d" }}">{{ checkout.start_date|date:"DATE_FORMAT" }}
                   - {{ checkout.end_date|date:"DATE_FORMAT" }}</td>
+                <td class="align-middle text-left">
+                  {% if checkout.operator %}
+                    {% if checkout.operator.name %}
+                      {{ checkout.operator.name }} ({{ checkout.operator.username }})
+                    {% else %}
+                      Missing Full Name ({{ checkout.operator.username }})
+                    {% endif %}
+                  {% else %}
+                    Unknown/Deleted user
+                  {% endif %}
+                </td>
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
                     <div class="d-flex justify-content-center">
