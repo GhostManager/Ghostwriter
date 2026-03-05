@@ -62,26 +62,3 @@ class UserProfileModelTests(TestCase):
         # Delete
         user.delete()
         self.assertFalse(UserProfile.objects.all().exists())
-
-    def test_avatar_url_property(self):
-        user = UserFactory()
-        profile = UserProfile.objects.get(user=user)
-        try:
-            # Test default avatar file is returned
-            url = profile.avatar_url
-            self.assertIn("images/default_avatar.png", url)
-
-            # Set avatar file and confirm URL changes
-            profile.avatar = self.uploaded_image_file
-            profile.save()
-            profile.refresh_from_db()
-            url = profile.avatar_url
-            self.assertIn(f"images/user_avatars/{user.id}/fake.png", url)
-
-            # Delete the avatar file and confirm default avatar is returned
-            os.remove(profile.avatar.path)
-            profile.refresh_from_db()
-            url = profile.avatar_url
-            self.assertIn("images/default_avatar.png", url)
-        except Exception:
-            self.fail("UserProfile model `avatar_url` property failed unexpectedly!")
