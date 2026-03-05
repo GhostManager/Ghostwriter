@@ -1,7 +1,13 @@
 """This contains customizations for displaying the Reporting application models in the admin panel."""
 
+# Standard Library Imports
+import os
+
 # Django Imports
+from django.conf import settings
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 
 # 3rd Party Libraries
 from import_export.admin import ImportExportMixin
@@ -46,13 +52,14 @@ class DocTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Evidence)
 class EvidenceAdmin(admin.ModelAdmin):
-    list_display = ("document", "upload_date", "uploaded_by", "tag_list")
+    list_display = ("friendly_name", "document_link", "upload_date", "uploaded_by", "tag_list")
     list_filter = ("uploaded_by", "tags")
-    list_display_links = ("document", "upload_date", "uploaded_by")
+    list_display_links = ("friendly_name", "document_link", "upload_date", "uploaded_by")
+    readonly_fields = ("document_download_link",)
     fieldsets = (
         (
             "Evidence Document",
-            {"fields": ("friendly_name", "caption", "description", "document", "tags")},
+            {"fields": ("friendly_name", "caption", "description", "document", "document_download_link", "tags")},
         ),
         (
             "Report Information",
@@ -64,6 +71,34 @@ class EvidenceAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+    class Media:
+        js = ('js/admin/evidence_admin.js',)
+
+    def document_link(self, obj):
+        """Display the document filename as a clickable link in the list view for viewing."""
+        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        if obj.document and os.path.exists(file_path):
+            return format_html(
+                '<a href="{url}">{filename}</a>',
+                url=reverse("reporting:evidence_download", args=[obj.id]),
+                filename=obj.document.name.split('/')[-1]
+            )
+        return "No File"
+    document_link.short_description = "Document"
+
+    def document_download_link(self, obj):
+        """Display a download link in the detail view."""
+        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        if os.path.exists(file_path) and obj.document and obj.id:
+            filename = obj.document.name.split('/')[-1]
+            return format_html(
+                '<a href="{url}?download=true" download="{filename}">{filename}</a>',
+                url=reverse("reporting:evidence_download", args=[obj.id]),
+                filename=filename
+            )
+        return "File missing or not available for download"
+    document_download_link.short_description = "Download File"
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("tags")
@@ -229,7 +264,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
         "last_update",
         "tag_list",
     )
-    readonly_fields = ("get_status",)
+    readonly_fields = ("get_status", "template_download_link")
     list_filter = (
         "client",
         "tags",
@@ -242,6 +277,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                 "fields": (
                     "name",
                     "document",
+                    "template_download_link",
                     "description",
                     "client",
                     "doc_type",
@@ -266,6 +302,22 @@ class ReportTemplateAdmin(admin.ModelAdmin):
             {"fields": ("protected",)},
         ),
     )
+
+    class Media:
+        js = ('js/admin/template_admin.js',)
+
+    def template_download_link(self, obj):
+        """Display a download link in the detail view."""
+        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        if os.path.exists(file_path) and obj.document and obj.id:
+            filename = obj.document.name.split('/')[-1]
+            return format_html(
+                '<a href="{url}?download=true" download="{filename}">{filename}</a>',
+                url=reverse("reporting:template_download", args=[obj.id]),
+                filename=filename
+            )
+        return "File missing or not available for download"
+    template_download_link.short_description = "Download File"
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("tags")
