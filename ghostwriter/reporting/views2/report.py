@@ -652,19 +652,32 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
 
 
 class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Return the target :model:`reporting.ReportTemplate` template file for download."""
+    """Return the target :model:`reporting.ReportTemplate` template file for viewing or download."""
 
     model = ReportTemplate
 
     def get(self, *args, **kwargs):
+        import mimetypes
+
         obj = self.get_object()
         file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
         if os.path.exists(file_path):
-            return FileResponse(
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if download is explicitly requested via query parameter
+            force_download = self.request.GET.get("download", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=True,
+                as_attachment=force_download,
                 filename=os.path.basename(file_path),
+                content_type=content_type,
             )
+
+            return response
         raise Http404
 
 class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):

@@ -8,7 +8,7 @@ import os
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, RedirectView, UpdateView, View
@@ -219,7 +219,7 @@ account_reset_password_from_key = GhostwriterPasswordSetFromKeyView.as_view()
 class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Return the target :model:`users.User` entries avatar file from
-    :model:`home.UserProfile` for download.
+    :model:`home.UserProfile` for viewing or download.
     """
 
     model = UserProfile
@@ -230,7 +230,11 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return get_object_or_404(UserProfile, user__username=self.kwargs.get("slug"))
 
     def get(self, *args, **kwargs):
+        import mimetypes
+
         obj = self.get_object()
+
+        # Check if the user has an avatar, if not use the default avatar
         try:
             file_path = os.path.join(settings.MEDIA_ROOT, obj.avatar.path)
         except ValueError:
@@ -239,12 +243,22 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         if not os.path.exists(file_path):
             file_path = os.path.join(settings.STATICFILES_DIRS[0], "images/default_avatar.png")
 
-        return FileResponse(
+        # Detect the content type
+        content_type, _ = mimetypes.guess_type(file_path)
+        if content_type is None:
+            content_type = "application/octet-stream"
+
+        # Check if download is explicitly requested via query parameter
+        force_download = self.request.GET.get("download", "").lower() in ("1", "true", "yes")
+
+        response = FileResponse(
             open(file_path, "rb"),
-            as_attachment=True,
+            as_attachment=force_download,
             filename=os.path.basename(file_path),
+            content_type=content_type,
         )
 
+        return response
 
 avatar_download = AvatarDownload.as_view()
 
