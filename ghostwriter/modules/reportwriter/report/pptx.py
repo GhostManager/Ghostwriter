@@ -33,9 +33,8 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
+        _ = self.get_title_or_textbox(shapes, "Positive Observations")
         body_shape = self.get_placeholder_or_textbox(shapes, 1)
-        title_shape.text = "Positive Observations"
         text_frame = get_textframe(body_shape)
 
         # If there are observations then write a table
@@ -75,7 +74,6 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             observation_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = observation_slide.shapes
-            title_shape = shapes.title
 
             # Prepare text frame
             observation_body_shape = self.get_placeholder_or_textbox(shapes, 1)
@@ -86,8 +84,8 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             else:
                 text_frame = None
 
-            # Set slide title to title + [severity]
-            title_shape.text = f'{observation["title"]}'
+            # Set slide title to title
+            title_shape = self.get_title_or_textbox(shapes, f'{observation["title"]}')
 
             # Add description to the slide body (other sections will appear in the notes)
             if observation.get("description", "").strip():
@@ -112,9 +110,8 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
+        title_shape = self.get_title_or_textbox(shapes, "Findings Overview")
         body_shape = self.get_placeholder_or_textbox(shapes, 1)
-        title_shape.text = "Findings Overview"
         text_frame = get_textframe(body_shape)
 
         # If there are findings then write a table of findings and severity ratings
@@ -167,7 +164,6 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = finding_slide.shapes
-            title_shape = shapes.title
 
             # Prepare text frame
             finding_body_shape = self.get_placeholder_or_textbox(shapes, 1)
@@ -179,7 +175,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
                 text_frame = None
 
             # Set slide title to title + [severity]
-            title_shape.text = f'{finding["title"]} [{finding["severity"]}]'
+            title_shape = self.get_title_or_textbox(shapes, f'{finding["title"]} [{finding["severity"]}]')
 
             # Add description to the slide body (other sections will appear in the notes)
             if finding.get("description", "").strip():
@@ -243,15 +239,13 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Recommendations"
+        title_shape = self.get_title_or_textbox(shapes, "Recommendations")
 
         # Add Next Steps slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Next Steps"
+        title_shape = self.get_title_or_textbox(shapes, "Next Steps")
 
         # Add final slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_FINAL]
