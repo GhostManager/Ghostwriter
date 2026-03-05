@@ -74,9 +74,36 @@ class ProjectSlidesMixin:
         **Returns**
             The placeholder shape or a newly created text box
         """
+        # PowerPoint placeholder indices are not sequential - they're assigned in the slide master
+        # We need to iterate through available placeholders to find one with matching idx
         try:
+            # First try direct access (works if indices happen to be sequential)
             return shapes.placeholders[placeholder_idx]
         except KeyError:
+            # Direct access failed - iterate through placeholders to find matching idx
+            for shape in shapes.placeholders:
+                try:
+                    if shape.placeholder_format.idx == placeholder_idx:
+                        return shape
+                except AttributeError:
+                    continue
+
+            # Still not found - if looking for body placeholder (idx 1), try to find any OBJECT placeholder
+            if placeholder_idx == 1:
+                for shape in shapes.placeholders:
+                    try:
+                        # OBJECT (7) or BODY (2) placeholder types are typically content placeholders
+                        if shape.placeholder_format.type in (PP_PLACEHOLDER.OBJECT, PP_PLACEHOLDER.BODY):
+                            logger.info(
+                                "Placeholder 1 not found, using %s placeholder at idx %d instead",
+                                shape.placeholder_format.type,
+                                shape.placeholder_format.idx
+                            )
+                            return shape
+                    except AttributeError:
+                        continue
+
+            # No suitable placeholder found - create fallback textbox
             logger.warning(
                 "Placeholder %d not found on slide. Creating fallback text box. "
                 "This may indicate a template compatibility issue.",
