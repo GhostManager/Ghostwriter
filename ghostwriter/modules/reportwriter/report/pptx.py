@@ -5,7 +5,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches
 import pptx
 
-from ghostwriter.modules.reportwriter.base.pptx import SLD_LAYOUT_FINAL, SLD_LAYOUT_TITLE_AND_CONTENT, ExportBasePptx, delete_paragraph, get_textframe, prepare_for_pptx, write_bullet
+from ghostwriter.modules.reportwriter.base.pptx import SLD_LAYOUT_TITLE_AND_CONTENT, ExportBasePptx, delete_paragraph, get_textframe, prepare_for_pptx, write_bullet
 from ghostwriter.modules.reportwriter.project.pptx import ProjectSlidesMixin
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
@@ -247,8 +247,8 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         shapes = slide.shapes
         title_shape = self.get_title_or_textbox(shapes, "Next Steps")
 
-        # Add final slide
-        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_FINAL]
+        # Add final slide (use the last slide layout)
+        slide_layout = self.ppt_presentation.slide_layouts[-1]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         body_shape = self.get_placeholder_or_textbox(
