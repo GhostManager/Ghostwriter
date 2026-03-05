@@ -77,21 +77,19 @@ class EvidenceAdmin(admin.ModelAdmin):
 
     def document_link(self, obj):
         """Display the document filename as a clickable link in the list view for viewing."""
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
-        if obj.document and os.path.exists(file_path):
+        if obj.document and os.path.exists(obj.document.path):
             return format_html(
                 '<a href="{url}">{filename}</a>',
                 url=reverse("reporting:evidence_download", args=[obj.id]),
-                filename=obj.document.name.split('/')[-1]
+                filename=os.path.basename(obj.document.name)
             )
         return "No File"
     document_link.short_description = "Document"
 
     def document_download_link(self, obj):
         """Display a download link in the detail view."""
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
-        if os.path.exists(file_path) and obj.document and obj.id:
-            filename = obj.document.name.split('/')[-1]
+        if obj.document and obj.id and os.path.exists(obj.document.path):
+            filename = os.path.basename(obj.document.name)
             return format_html(
                 '<a href="{url}?download=true" download="{filename}">{filename}</a>',
                 url=reverse("reporting:evidence_download", args=[obj.id]),
@@ -308,9 +306,8 @@ class ReportTemplateAdmin(admin.ModelAdmin):
 
     def template_download_link(self, obj):
         """Display a download link in the detail view."""
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
-        if os.path.exists(file_path) and obj.document and obj.id:
-            filename = obj.document.name.split('/')[-1]
+        if obj.document and obj.id and os.path.exists(obj.document.path):
+            filename = os.path.basename(obj.document.name)
             return format_html(
                 '<a href="{url}?download=true" download="{filename}">{filename}</a>',
                 url=reverse("reporting:template_download", args=[obj.id]),

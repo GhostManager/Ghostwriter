@@ -6,7 +6,6 @@ import os
 # Django Imports
 from django.conf import settings
 from django.db import models
-from django.templatetags.static import static
 
 
 # Create your models here.

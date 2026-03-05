@@ -85,7 +85,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
                 text_frame = None
 
             # Set slide title to title
-            title_shape = self.get_title_or_textbox(shapes, f'{observation["title"]}')
+            _ = self.get_title_or_textbox(shapes, f'{observation["title"]}')
 
             # Add description to the slide body (other sections will appear in the notes)
             if observation.get("description", "").strip():
@@ -110,7 +110,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = self.get_title_or_textbox(shapes, "Findings Overview")
+        _ = self.get_title_or_textbox(shapes, "Findings Overview")
         body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
 
@@ -175,7 +175,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
                 text_frame = None
 
             # Set slide title to title + [severity]
-            title_shape = self.get_title_or_textbox(shapes, f'{finding["title"]} [{finding["severity"]}]')
+            _ = self.get_title_or_textbox(shapes, f'{finding["title"]} [{finding["severity"]}]')
 
             # Add description to the slide body (other sections will appear in the notes)
             if finding.get("description", "").strip():
@@ -239,13 +239,13 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = self.get_title_or_textbox(shapes, "Recommendations")
+        _ = self.get_title_or_textbox(shapes, "Recommendations")
 
         # Add Next Steps slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = self.get_title_or_textbox(shapes, "Next Steps")
+        _ = self.get_title_or_textbox(shapes, "Next Steps")
 
         # Add final slide (use the last slide layout)
         slide_layout = self.ppt_presentation.slide_layouts[-1]

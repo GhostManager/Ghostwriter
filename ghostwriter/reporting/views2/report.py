@@ -3,6 +3,7 @@ from datetime import datetime
 import io
 import os
 import logging
+import mimetypes
 import zipfile
 from socket import gaierror
 from asgiref.sync import async_to_sync
@@ -657,10 +658,8 @@ class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     model = ReportTemplate
 
     def get(self, *args, **kwargs):
-        import mimetypes
-
         obj = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        file_path = obj.document.path
         if os.path.exists(file_path):
             # Detect the content type
             content_type, _ = mimetypes.guess_type(file_path)

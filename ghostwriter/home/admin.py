@@ -26,12 +26,12 @@ class UserProfileAdmin(admin.ModelAdmin):
     def avatar_download_link(self, obj):
         """Display a download link in the detail view."""
         try:
-            file_path = os.path.join(settings.MEDIA_ROOT, obj.avatar.path)
+            file_path = obj.avatar.path
         except ValueError:
             file_path = os.path.join(settings.STATICFILES_DIRS[0], "images/default_avatar.png")
 
         if os.path.exists(file_path) and obj.avatar and obj.id:
-            filename = obj.avatar.name.split('/')[-1]
+            filename = os.path.basename(obj.avatar.name)
             return format_html(
                 '<a href="{url}?download=true" download="{filename}">{filename}</a>',
                 url=reverse("users:avatar_download", args=[obj.user.username]),

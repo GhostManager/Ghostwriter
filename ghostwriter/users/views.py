@@ -2,13 +2,14 @@
 
 
 # Standard Libraries
+import mimetypes
 import os
 
 # Django Imports
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, RedirectView, UpdateView, View
@@ -230,8 +231,6 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return get_object_or_404(UserProfile, user__username=self.kwargs.get("slug"))
 
     def get(self, *args, **kwargs):
-        import mimetypes
-
         obj = self.get_object()
 
         # Check if the user has an avatar, if not use the default avatar

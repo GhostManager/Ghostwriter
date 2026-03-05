@@ -4,6 +4,7 @@
 import logging
 import os
 from datetime import datetime
+import mimetypes
 from os.path import exists
 
 # Django Imports
@@ -906,10 +907,8 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return redirect("home:dashboard")
 
     def get(self, *args, **kwargs):
-        import mimetypes
-
         obj = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        file_path = obj.document.path
         if os.path.exists(file_path):
             # Detect the content type
             content_type, _ = mimetypes.guess_type(file_path)
