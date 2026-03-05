@@ -1787,7 +1787,7 @@ class ReportTemplateDownloadTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_returns_desired_download(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.get(f"{self.uri}?download=true")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.get("Content-Disposition"),
@@ -2784,7 +2784,7 @@ class EvidenceDownloadTests(TestCase):
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_mgr.get(self.uri)
+        response = self.client_mgr.get(f"{self.uri}?download=true")
         self.assertEqual(response.status_code, 200)
         self.assertEquals(
             response.get("Content-Disposition"),

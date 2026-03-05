@@ -318,7 +318,7 @@ class AvatarDownloadTest(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.get(f"{self.uri}?download=true")
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
 
@@ -338,21 +338,21 @@ class AvatarDownloadTest(TestCase):
         self.user_profile.avatar = self.uploaded_image_file
         self.user_profile.save()
 
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.get(f"{self.uri}?download=true")
         self.assertEqual(response.status_code, 200)
         self.assertRegexpMatches(response.get("Content-Disposition"), r'^attachment; filename="fake[_0-9a-zA-Z]*\.png"$')
 
         if os.path.exists(self.user_profile.avatar.path):
             os.remove(self.user_profile.avatar.path)
 
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.get(f"{self.uri}?download=true")
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
 
         self.user_profile.avatar = None
         self.user_profile.save()
 
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.get(f"{self.uri}?download=true")
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
 
