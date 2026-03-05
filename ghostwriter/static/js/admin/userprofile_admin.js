@@ -15,6 +15,8 @@
             // avatar_download_link field not found
             return;
         }
+        // Strip ?download=true from the URL if present
+        avatarDownloadLink.href = avatarDownloadLink.href.replace('?download=true', '');
 
         // Get the correct download URL from the avatar_download_link field
         const downloadUrl = avatarDownloadLink.href;
