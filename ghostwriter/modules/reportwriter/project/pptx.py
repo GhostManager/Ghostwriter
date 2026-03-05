@@ -144,15 +144,19 @@ class ProjectSlidesMixin:
             except (KeyError, IndexError):
                 pass
 
-            # If still no title shape, try to use the first shape (not just placeholder) on the slide
+            # If still no title shape, try to find the first text-capable shape on the slide
             if title_shape is None and len(shapes) > 0:
-                title_shape = shapes[0]
-                logger.warning(
-                    "No title or placeholder found, using first shape on slide. "
-                    "This may indicate a template compatibility issue."
-                )
+                for shape in shapes:
+                    # Check if the shape can hold text (has a text_frame)
+                    if hasattr(shape, 'text_frame') and shape.text_frame is not None:
+                        title_shape = shape
+                        logger.warning(
+                            "No title or placeholder found, using first text-capable shape on slide. "
+                            "This may indicate a template compatibility issue."
+                        )
+                        break
 
-            # Only create a new textbox if there are no shapes at all
+            # Only create a new textbox if no text-capable shapes are found
             if title_shape is None:
                 logger.warning(
                     "No shapes found on slide. Creating fallback text box. "
