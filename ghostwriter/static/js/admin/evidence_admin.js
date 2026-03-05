@@ -21,8 +21,8 @@
         // Find the "Currently:" link in the document field
         const documentField = document.querySelector('.field-document p.file-upload a');
         if (documentField) {
-            // Replace the href with our custom evidence_download URL
-            const downloadUrl = `/reporting/evidence/download/${evidenceId}`;
+            // Replace the href with our custom evidence_download URL with view parameter
+            const downloadUrl = `/reporting/evidence/download/${evidenceId}?view=true`;
             documentField.href = downloadUrl;
             // documentField.target = '_blank';
         }

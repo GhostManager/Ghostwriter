@@ -33,7 +33,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         if os.path.exists(file_path) and obj.avatar and obj.id:
             filename = os.path.basename(obj.avatar.name)
             return format_html(
-                '<a href="{url}?download=true" download="{filename}">{filename}</a>',
+                '<a href="{url}" download="{filename}">{filename}</a>',
                 url=reverse("users:avatar_download", args=[obj.user.username]),
                 filename=filename
             )

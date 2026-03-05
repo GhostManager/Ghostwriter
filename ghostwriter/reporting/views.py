@@ -915,15 +915,22 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             if content_type is None:
                 content_type = "application/octet-stream"
 
-            # Check if download is explicitly requested via query parameter
-            force_download = self.request.GET.get("download", "").lower() in ("1", "true", "yes")
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
 
             response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=force_download,
+                as_attachment=not inline_view,
                 filename=os.path.basename(file_path),
                 content_type=content_type,
             )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                # Additional hardening for inline content
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
 
             return response
         raise Http404

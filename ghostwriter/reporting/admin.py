@@ -79,7 +79,7 @@ class EvidenceAdmin(admin.ModelAdmin):
         """Display the document filename as a clickable link in the list view for viewing."""
         if obj.document and os.path.exists(obj.document.path):
             return format_html(
-                '<a href="{url}">{filename}</a>',
+                '<a href="{url}?view=true">{filename}</a>',
                 url=reverse("reporting:evidence_download", args=[obj.id]),
                 filename=os.path.basename(obj.document.name)
             )
@@ -91,7 +91,7 @@ class EvidenceAdmin(admin.ModelAdmin):
         if obj.document and obj.id and os.path.exists(obj.document.path):
             filename = os.path.basename(obj.document.name)
             return format_html(
-                '<a href="{url}?download=true" download="{filename}">{filename}</a>',
+                '<a href="{url}" download="{filename}">{filename}</a>',
                 url=reverse("reporting:evidence_download", args=[obj.id]),
                 filename=filename
             )
@@ -309,7 +309,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
         if obj.document and obj.id and os.path.exists(obj.document.path):
             filename = os.path.basename(obj.document.name)
             return format_html(
-                '<a href="{url}?download=true" download="{filename}">{filename}</a>',
+                '<a href="{url}" download="{filename}">{filename}</a>',
                 url=reverse("reporting:template_download", args=[obj.id]),
                 filename=filename
             )

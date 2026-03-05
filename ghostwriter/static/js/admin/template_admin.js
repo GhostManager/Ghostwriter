@@ -21,8 +21,8 @@
         // Find the "Currently:" link in the document field
         const documentField = document.querySelector('.field-document p.file-upload a');
         if (documentField) {
-            // Replace the href with our custom template_download URL
-            const downloadUrl = `/reporting/templates/download/${templateId}?download=true`;
+            // Replace the href with our custom download URL with view parameter
+            const downloadUrl = `/reporting/templates/download/${templateId}?view=true`;
             documentField.href = downloadUrl;
         }
     }
