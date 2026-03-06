@@ -257,7 +257,7 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             filename=os.path.basename(file_path),
             content_type=content_type,
         )
-        
+
         # Add security headers to mitigate XSS risks
         response["X-Content-Type-Options"] = "nosniff"
         if inline_view:
