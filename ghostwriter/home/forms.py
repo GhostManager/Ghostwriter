@@ -35,8 +35,9 @@ class UserProfileForm(forms.ModelForm):
                 """
                 <h4 class="icon avatar-upload-icon">Avatar Upload</h4>
                 <hr>
-                <p>Your new avatar should be a square (equal height and width) for the best looking results.</p>
-                Previews for images will appear below.</p>
+                <p>Your avatar will be displayed as a circle and automatically cropped to fit. For best results,
+                upload a square image (equal height and width) or ensure your face is centered in the image.</p>
+                <p>Previews for images will appear below.</p>
                 <div id="avatarPreview" class="pb-3"></div>
                 """
             ),

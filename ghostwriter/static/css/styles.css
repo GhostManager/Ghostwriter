@@ -251,6 +251,7 @@ label {
   top: 15px;
   right: 25px;
   border-color: rgba(255, 255, 255, 0.3);
+  object-fit: cover;
 }
 
 /* ---------------------------------------------------
@@ -538,6 +539,7 @@ input[type='file'] {
   position: relative;
   display: inline-block;
   border-color: rgba(255, 255, 255, 0.3);
+  object-fit: cover;
 }
 
 .avatar_note {
@@ -546,6 +548,7 @@ input[type='file'] {
   border-radius: 50%;
   border-style: solid;
   border-width: 1px;
+  object-fit: cover;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
