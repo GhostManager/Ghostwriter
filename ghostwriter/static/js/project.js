@@ -183,10 +183,27 @@ function renderPreview(fileInput, previewDiv) {
       previewDiv.removeChild(previewDiv.firstChild);
     }
 
+    const loadedImage = document.createElement('img');
+    loadedImage.alt = 'image';
+    loadedImage.src = URL.createObjectURL(fileInput.files[0]);
+    loadedImage.style.border = 'thin solid #555555';
+    previewDiv.appendChild(loadedImage);
+  }
+}
+
+// Insert avatar-specific previews showing how the image will appear in navbar and profile
+function renderAvatarPreview(fileInput, previewDiv) {
+  if (fileInput.files[0].type.indexOf('image') == 0) {
+    // Clear previous content
+    while (previewDiv.firstChild) {
+      previewDiv.removeChild(previewDiv.firstChild);
+    }
+
     // Create container
     const container = document.createElement('div');
     container.style.display = 'flex';
     container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
     container.style.gap = '20px';
     container.style.flexWrap = 'wrap';
 
