@@ -178,10 +178,22 @@ function showHideRow(btn, row) {
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {
-    previewDiv.innerHTML = '<img id="loadedImage" alt="image"/ >'
-    let loadedImage = document.getElementById('loadedImage')
-    loadedImage.src = URL.createObjectURL(fileInput.files[0])
-    loadedImage.style.border = 'thin solid #555555';
+    previewDiv.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <div>
+          <p><strong>Navbar Preview (40x40)</strong></p>
+          <img src="" alt="Navbar preview" class="navbar-avatar" style="position: static;"/>
+        </div>
+        <div>
+          <p><strong>Profile Preview (250x250)</strong></p>
+          <img src="" alt="Profile preview" class="avatar" style="position: static;"/>
+        </div>
+      </div>
+    `
+    const imageUrl = URL.createObjectURL(fileInput.files[0])
+    previewDiv.querySelectorAll('img').forEach(img => {
+      img.src = imageUrl
+    })
   }
 }
 
