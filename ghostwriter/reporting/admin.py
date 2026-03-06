@@ -53,7 +53,7 @@ class DocTypeAdmin(admin.ModelAdmin):
 class EvidenceAdmin(admin.ModelAdmin):
     list_display = ("friendly_name", "document_link", "upload_date", "uploaded_by", "tag_list")
     list_filter = ("uploaded_by", "tags")
-    list_display_links = ("friendly_name", "document_link", "upload_date", "uploaded_by")
+    list_display_links = ("friendly_name", "upload_date", "uploaded_by")
     readonly_fields = ("document_download_link",)
     fieldsets = (
         (
