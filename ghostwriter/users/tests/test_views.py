@@ -318,9 +318,24 @@ class AvatarDownloadTest(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(f"{self.uri}?download=true")
+        """Test default behavior downloads file (as_attachment=True)."""
+        response = self.client_auth.get(f"{self.uri}")
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+        # Verify security header is present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+    def test_view_inline_with_view_parameter(self):
+        """Test inline viewing with ?view=true parameter."""
+        response = self.client_auth.get(f"{self.uri}?view=true")
+        self.assertEqual(response.status_code, 200)
+        # Should NOT have attachment disposition for inline viewing
+        content_disposition = response.get("Content-Disposition")
+        if content_disposition:
+            self.assertNotIn("attachment", content_disposition)
+        # Verify security headers
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        self.assertIn("Content-Security-Policy", response)
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -338,21 +353,23 @@ class AvatarDownloadTest(TestCase):
         self.user_profile.avatar = self.uploaded_image_file
         self.user_profile.save()
 
-        response = self.client_auth.get(f"{self.uri}?download=true")
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertRegexpMatches(response.get("Content-Disposition"), r'^attachment; filename="fake[_0-9a-zA-Z]*\.png"$')
+        # Verify security header
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
 
         if os.path.exists(self.user_profile.avatar.path):
             os.remove(self.user_profile.avatar.path)
 
-        response = self.client_auth.get(f"{self.uri}?download=true")
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
 
         self.user_profile.avatar = None
         self.user_profile.save()
 
-        response = self.client_auth.get(f"{self.uri}?download=true")
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
 

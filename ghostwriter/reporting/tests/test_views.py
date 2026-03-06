@@ -1787,12 +1787,27 @@ class ReportTemplateDownloadTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_returns_desired_download(self):
-        response = self.client_auth.get(f"{self.uri}?download=true")
+        """Test default behavior downloads file (as_attachment=True)."""
+        response = self.client_auth.get(f"{self.uri}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.get("Content-Disposition"),
             f'attachment; filename="{self.template.filename}"',
         )
+        # Verify security header is present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+    def test_view_inline_with_view_parameter(self):
+        """Test inline viewing with ?view=true parameter."""
+        response = self.client_auth.get(f"{self.uri}?view=true")
+        self.assertEqual(response.status_code, 200)
+        # Should NOT have attachment disposition for inline viewing
+        content_disposition = response.get("Content-Disposition")
+        if content_disposition:
+            self.assertNotIn("attachment", content_disposition)
+        # Verify security headers
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        self.assertIn("Content-Security-Policy", response)
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -2784,12 +2799,27 @@ class EvidenceDownloadTests(TestCase):
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_mgr.get(f"{self.uri}?download=true")
+        """Test default behavior downloads file (as_attachment=True)."""
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(
             response.get("Content-Disposition"),
             f'attachment; filename="{self.evidence_file.filename}"',
         )
+        # Verify security header is present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+    def test_view_inline_with_view_parameter(self):
+        """Test inline viewing with ?view=true parameter."""
+        response = self.client_mgr.get(f"{self.uri}?view=true")
+        self.assertEqual(response.status_code, 200)
+        # Should NOT have attachment disposition for inline viewing
+        content_disposition = response.get("Content-Disposition")
+        if content_disposition:
+            self.assertNotIn("attachment", content_disposition)
+        # Verify security headers
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        self.assertIn("Content-Security-Policy", response)
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
