@@ -133,22 +133,25 @@ class ProjectSlidesMixin:
         # Try to get the title shape using the standard property (works if the slide layout has a title placeholder)
         title_shape = shapes.title
         if title_shape is None:
-            # Try to get the first placeholder (typically the title on most layouts)
+            # Try to find a text-capable placeholder (typically the title on most layouts)
             try:
                 if len(shapes.placeholders) > 0:
-                    title_shape = shapes.placeholders[0]
-                    logger.warning(
-                        "Title placeholder not found via `shapes.title`, using first placeholder. "
-                        "This may indicate a template compatibility issue."
-                    )
+                    # Check first placeholder, but verify it can hold text
+                    candidate = shapes.placeholders[0]
+                    if hasattr(candidate, "has_text_frame") and candidate.has_text_frame:
+                        title_shape = candidate
+                        logger.warning(
+                            "Title placeholder not found via `shapes.title`, using first text-capable placeholder. "
+                            "This may indicate a template compatibility issue."
+                        )
             except (KeyError, IndexError):
                 pass
 
             # If still no title shape, try to find the first text-capable shape on the slide
             if title_shape is None and len(shapes) > 0:
                 for shape in shapes:
-                    # Check if the shape can hold text (has a text_frame)
-                    if hasattr(shape, 'text_frame') and shape.text_frame is not None:
+                    # Check if the shape can hold text using canonical has_text_frame property
+                    if hasattr(shape, "has_text_frame") and shape.has_text_frame:
                         title_shape = shape
                         logger.warning(
                             "No title or placeholder found, using first text-capable shape on slide. "
