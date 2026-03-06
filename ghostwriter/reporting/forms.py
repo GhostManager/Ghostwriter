@@ -218,7 +218,7 @@ class EvidenceForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <h4 class="icon signature-icon">Report Information</h4>
+                <h4 class="icon edit-icon">Evidence Information</h4>
                 <hr>
                 <p>The friendly name is used to reference this evidence in the report and the caption appears below
                 the figures in the generated reports.</p>
