@@ -731,6 +731,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
             report = self.finding_instance.report
         else:
             report = self.report_instance
+        ctx["report"] = report
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#evidence"
         if "modal" in self.kwargs:
             friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
@@ -818,6 +819,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["report"] = self.object.associated_report
         ctx["cancel_link"] = reverse(
             "reporting:evidence_detail",
             kwargs={"pk": self.object.pk},
