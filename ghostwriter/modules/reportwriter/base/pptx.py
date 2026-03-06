@@ -162,7 +162,6 @@ class ExportBasePptx(ExportBase):
 # Slide styles (From Master Style counting top to bottom from 0..n)
 SLD_LAYOUT_TITLE = 0
 SLD_LAYOUT_TITLE_AND_CONTENT = 1
-SLD_LAYOUT_FINAL = 12
 
 
 def add_slide_number(txtbox):

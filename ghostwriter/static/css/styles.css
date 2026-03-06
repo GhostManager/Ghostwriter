@@ -3775,7 +3775,7 @@ input[type="color"]:focus,
 [data-theme="dark"] textarea {
   background-color: var(--search-input-background-color);
   border-color: var(--search-box-shadow);
-  color: var(--main-bg-color);
+  color: var(--main-txt-color);
 }
 
 [data-theme="dark"] .form-select {
@@ -3882,25 +3882,29 @@ input[type="color"]:focus,
   color: var(--main-bg-color);
 }
 
-[data-theme="dark"] .alert-success {
+[data-theme="dark"] .alert-success,
+[data-theme="dark"] .alert-success p {
   background-color: var(--navbar-report-selected-background-color);
   border-color: var(--primary-color);
   color: var(--h2-font-color);
 }
 
-[data-theme="dark"] .alert-warning {
+[data-theme="dark"] .alert-warning,
+[data-theme="dark"] .alert-warning p {
   background-color: #4a3d2d;
   border-color: var(--warning-color);
   color: var(--warning-color);
 }
 
-[data-theme="dark"] .alert-danger {
+[data-theme="dark"] .alert-danger,
+[data-theme="dark"] .alert-danger p {
   background-color: var(--navbar-report-empty-background-color);
   border-color: var(--blocked-color);
   color: var(--blocked-color);
 }
 
-[data-theme="dark"] .alert-info {
+[data-theme="dark"] .alert-info,
+[data-theme="dark"] .alert-info p {
   background-color: #2d3a4a;
   border-color: var(--info-rating-color);
   color: var(--info-rating-color);

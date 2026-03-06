@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.6] - 5 March 2026
+
+### Added
+
+* Added a "Download" link to the admin console for models with a file field — report templates, user profiles, and evidence
+
+### Changed
+
+* Updated PowerPoint slide generation to attempt to intelligently adjust for different slide layouts (Fixes #836)
+  * If shape indices are non-sequential (can happen when shapes are deleted), Ghostwriter will fallback to searching
+  * If there are multiple placeholders, it will try to find the first with the content type (7 or 17)
+  * Ghostwriter now uses the final layout for the final slide instead of expecting it at position 12
+
+### Fixed
+
+* Fixed file field links in the admin console returning a 404 Not Found after recent changes to media links (Fixes #837)
+
 ## [6.2.5] - 3 March 2026
 
 ### Changed
@@ -14,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation
+* Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation (Fixes #836)
 * Fixed domain and server history not properly showing the "Checked Out By" column
 * Fixed updating a domain or server checkout setting the user value to null
 * Fixed some contrast issues with the objectives table and dark mode

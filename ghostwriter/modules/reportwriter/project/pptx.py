@@ -74,9 +74,36 @@ class ProjectSlidesMixin:
         **Returns**
             The placeholder shape or a newly created text box
         """
+        # PowerPoint placeholder indices are not sequential - they're assigned in the slide master
+        # We need to iterate through available placeholders to find one with matching idx
         try:
+            # First try direct access (works if indices happen to be sequential)
             return shapes.placeholders[placeholder_idx]
         except KeyError:
+            # Direct access failed - iterate through placeholders to find matching idx
+            for shape in shapes.placeholders:
+                try:
+                    if shape.placeholder_format.idx == placeholder_idx:
+                        return shape
+                except AttributeError:
+                    continue
+
+            # Still not found - if looking for body placeholder (idx 1), try to find any OBJECT placeholder
+            if placeholder_idx == 1:
+                for shape in shapes.placeholders:
+                    try:
+                        # OBJECT (7) or BODY (2) placeholder types are typically content placeholders
+                        if shape.placeholder_format.type in (PP_PLACEHOLDER.OBJECT, PP_PLACEHOLDER.BODY):
+                            logger.info(
+                                "Placeholder 1 not found, using %s placeholder at idx %d instead",
+                                shape.placeholder_format.type,
+                                shape.placeholder_format.idx
+                            )
+                            return shape
+                    except AttributeError:
+                        continue
+
+            # No suitable placeholder found - create fallback textbox
             logger.warning(
                 "Placeholder %d not found on slide. Creating fallback text box. "
                 "This may indicate a template compatibility issue.",
@@ -89,13 +116,71 @@ class ProjectSlidesMixin:
             height = height if height is not None else Inches(5)
             return shapes.add_textbox(left, top, width, height)
 
+    def get_title_or_textbox(self, shapes, title_text):
+        """
+        Safely get a title shape, or use an existing shape as fallback.
+
+        **Parameters**
+
+        ``shapes``
+            The shapes collection from the slide
+        ``title_text``
+            The text to set on the title
+
+        **Returns**
+            The title shape or an existing shape/textbox to use for the title
+        """
+        # Try to get the title shape using the standard property (works if the slide layout has a title placeholder)
+        title_shape = shapes.title
+        if title_shape is None:
+            # Try to find a text-capable placeholder (typically the title on most layouts)
+            try:
+                if len(shapes.placeholders) > 0:
+                    # Check first placeholder, but verify it can hold text
+                    candidate = shapes.placeholders[0]
+                    if hasattr(candidate, "has_text_frame") and candidate.has_text_frame:
+                        title_shape = candidate
+                        logger.warning(
+                            "Title placeholder not found via `shapes.title`, using first text-capable placeholder. "
+                            "This may indicate a template compatibility issue."
+                        )
+            except (KeyError, IndexError):
+                pass
+
+            # If still no title shape, try to find the first text-capable shape on the slide
+            if title_shape is None and len(shapes) > 0:
+                for shape in shapes:
+                    # Check if the shape can hold text using canonical has_text_frame property
+                    if hasattr(shape, "has_text_frame") and shape.has_text_frame:
+                        title_shape = shape
+                        logger.warning(
+                            "No title or placeholder found, using first text-capable shape on slide. "
+                            "This may indicate a template compatibility issue."
+                        )
+                        break
+
+            # Only create a new textbox if no text-capable shapes are found
+            if title_shape is None:
+                logger.warning(
+                    "No shapes found on slide. Creating fallback text box. "
+                    "This may indicate a template compatibility issue."
+                )
+                title_shape = shapes.add_textbox(
+                    left=Inches(0.5),
+                    top=Inches(0.5),
+                    width=Inches(9),
+                    height=Inches(1)
+                )
+
+        title_shape.text = title_text
+        return title_shape
+
     def create_project_slides(self, base_context):
         # Add a title slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = f'{self.data["client"]["name"]} {self.data["project"]["type"]}'
+        _ = self.get_title_or_textbox(shapes, f'{self.data["client"]["name"]} {self.data["project"]["type"]}')
 
         # Try to detect and use subtitle placeholders
         subtitle_shapes = self.get_subtitle_shapes(shapes)
@@ -132,8 +217,7 @@ class ProjectSlidesMixin:
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Agenda"
+        _ = self.get_title_or_textbox(shapes, "Agenda")
         body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
@@ -152,8 +236,7 @@ class ProjectSlidesMixin:
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Introduction"
+        _ = self.get_title_or_textbox(shapes, "Introduction")
         body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
@@ -170,8 +253,7 @@ class ProjectSlidesMixin:
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Assessment Details"
+        _ = self.get_title_or_textbox(shapes, "Assessment Details")
         body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
         text_frame.clear()
@@ -226,15 +308,13 @@ class ProjectSlidesMixin:
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Methodology"
+        _ = self.get_title_or_textbox(shapes, "Methodology")
 
         # Add Timeline slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Assessment Timeline"
+        _ = self.get_title_or_textbox(shapes, "Assessment Timeline")
         body_shape = self.get_placeholder_or_textbox(shapes, 1)
 
         # Delete the default text placeholder
@@ -281,8 +361,7 @@ class ProjectSlidesMixin:
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Attack Path Overview"
+        _ = self.get_title_or_textbox(shapes, "Attack Path Overview")
 
 
 class ExportProjectPptx(ExportBasePptx, ExportProjectBase, ProjectSlidesMixin):
