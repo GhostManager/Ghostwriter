@@ -178,22 +178,53 @@ function showHideRow(btn, row) {
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {
-    previewDiv.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-        <div>
-          <p><strong>Navbar Preview (40x40)</strong></p>
-          <img src="" alt="Navbar preview" class="navbar-avatar" style="position: static;"/>
-        </div>
-        <div>
-          <p><strong>Profile Preview (250x250)</strong></p>
-          <img src="" alt="Profile preview" class="avatar" style="position: static;"/>
-        </div>
-      </div>
-    `
-    const imageUrl = URL.createObjectURL(fileInput.files[0])
-    previewDiv.querySelectorAll('img').forEach(img => {
-      img.src = imageUrl
-    })
+    // Clear previous content
+    while (previewDiv.firstChild) {
+      previewDiv.removeChild(previewDiv.firstChild);
+    }
+
+    // Create container
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '20px';
+    container.style.flexWrap = 'wrap';
+
+    // Create navbar preview section
+    const navbarSection = document.createElement('div');
+    const navbarLabel = document.createElement('p');
+    const navbarStrong = document.createElement('strong');
+    navbarStrong.textContent = 'Navbar Preview (40x40)';
+    navbarLabel.appendChild(navbarStrong);
+    const navbarImg = document.createElement('img');
+    navbarImg.alt = 'Navbar preview';
+    navbarImg.className = 'navbar-avatar';
+    navbarImg.style.position = 'static';
+    navbarSection.appendChild(navbarLabel);
+    navbarSection.appendChild(navbarImg);
+
+    // Create profile preview section
+    const profileSection = document.createElement('div');
+    const profileLabel = document.createElement('p');
+    const profileStrong = document.createElement('strong');
+    profileStrong.textContent = 'Profile Preview (250x250)';
+    profileLabel.appendChild(profileStrong);
+    const profileImg = document.createElement('img');
+    profileImg.alt = 'Profile preview';
+    profileImg.className = 'avatar';
+    profileImg.style.position = 'static';
+    profileSection.appendChild(profileLabel);
+    profileSection.appendChild(profileImg);
+
+    // Assemble and append
+    container.appendChild(navbarSection);
+    container.appendChild(profileSection);
+    previewDiv.appendChild(container);
+
+    // Set image sources
+    const imageUrl = URL.createObjectURL(fileInput.files[0]);
+    navbarImg.src = imageUrl;
+    profileImg.src = imageUrl;
   }
 }
 
