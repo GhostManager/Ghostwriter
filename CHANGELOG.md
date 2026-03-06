@@ -13,14 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Updated PowerPoint slide generation to attempt to intelligently adjust for different slide layouts
+* Updated PowerPoint slide generation to attempt to intelligently adjust for different slide layouts (Fixes #836)
   * If shape indices are non-sequential (can happen when shapes are deleted), Ghostwriter will fallback to searching
   * If there are multiple placeholders, it will try to find the first with the content type (7 or 17)
   * Ghostwriter now uses the final layout for the final slide instead of expecting it at position 12
 
 ### Fixed
 
-* Fixed file field links in the admin console returning a 404 Not Found after recent changes to media links
+* Fixed file field links in the admin console returning a 404 Not Found after recent changes to media links (Fixes #837)
 
 ## [6.2.5] - 3 March 2026
 
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation
+* Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation (Fixes #836)
 * Fixed domain and server history not properly showing the "Checked Out By" column
 * Fixed updating a domain or server checkout setting the user value to null
 * Fixed some contrast issues with the objectives table and dark mode
