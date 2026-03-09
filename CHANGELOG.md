@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.7] - 9 March 2026
+
+### Added
+
+* Added the option to set a default CVSS calculator version in teh global report configuration
+* Each user's last selected CVSS version is now tracke din their browser's local storage
+  * This selection will take priority over the global default selection
+
+### Fixed
+
+* Fixed user profile pictures appearing distorted when the uploaded image is not a square
+
 ## [6.2.6] - 5 March 2026
 
 ### Added
