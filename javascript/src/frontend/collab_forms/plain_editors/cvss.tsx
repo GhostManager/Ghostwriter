@@ -52,9 +52,14 @@ const CVSS_VERSION_STORAGE_KEY = "ghostwriter.cvssCalculatorVersion";
  */
 function getCvssDefaultVersion(): "3.1" | "4.0" {
     // Check local storage first
-    const storedVersion = localStorage.getItem(CVSS_VERSION_STORAGE_KEY);
-    if (storedVersion === "3.1" || storedVersion === "4.0") {
-        return storedVersion;
+    try {
+        const storedVersion = localStorage.getItem(CVSS_VERSION_STORAGE_KEY);
+        if (storedVersion === "3.1" || storedVersion === "4.0") {
+            return storedVersion;
+        }
+    } catch (e) {
+        // localStorage may throw in privacy mode, blocked third-party storage, or quota exceeded
+        console.warn("Could not access localStorage for CVSS version preference:", e);
     }
 
     // Fall back to backend config
@@ -74,7 +79,12 @@ function getCvssDefaultVersion(): "3.1" | "4.0" {
  * Save CVSS version preference to local storage
  */
 function saveCvssVersionPreference(version: "3.1" | "4.0") {
-    localStorage.setItem(CVSS_VERSION_STORAGE_KEY, version);
+    try {
+        localStorage.setItem(CVSS_VERSION_STORAGE_KEY, version);
+    } catch (e) {
+        // localStorage may throw in privacy mode, blocked third-party storage, or quota exceeded
+        console.warn("Could not save CVSS version preference to localStorage:", e);
+    }
 }
 
 /**
