@@ -686,6 +686,10 @@ class FindingUpdateViewTests(TestCase):
         # Get the report configuration singleton
         report_config = ReportConfiguration.get_solo()
 
+        # Capture original value and ensure it's always restored
+        original_version = report_config.default_cvss_version
+        self.addCleanup(lambda: self._restore_cvss_version(original_version))
+
         # Test default behavior (should be v3.1)
         self.assertEqual(report_config.default_cvss_version, "3.1")
         response = self.client_mgr.get(self.uri)
@@ -707,8 +711,11 @@ class FindingUpdateViewTests(TestCase):
         self.assertEqual(response.context["collab_default_cvss_version"], "4.0")
         self.assertContains(response, '<script type="text/plain" id="default-cvss-version">4.0</script>')
 
-        # Reset to default for other tests
-        report_config.default_cvss_version = "3.1"
+    def _restore_cvss_version(self, version):
+        """Helper to restore CVSS version in cleanup."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+        report_config = ReportConfiguration.get_solo()
+        report_config.default_cvss_version = version
         report_config.save()
 
 
@@ -1389,6 +1396,10 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         # Get the report configuration singleton
         report_config = ReportConfiguration.get_solo()
 
+        # Capture original value and ensure it's always restored
+        original_version = report_config.default_cvss_version
+        self.addCleanup(lambda: self._restore_cvss_version(original_version))
+
         # Test default behavior (should be v3.1)
         self.assertEqual(report_config.default_cvss_version, "3.1")
         response = self.client_mgr.get(self.uri)
@@ -1410,8 +1421,11 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         self.assertEqual(response.context["collab_default_cvss_version"], "4.0")
         self.assertContains(response, '<script type="text/plain" id="default-cvss-version">4.0</script>')
 
-        # Reset to default for other tests
-        report_config.default_cvss_version = "3.1"
+    def _restore_cvss_version(self, version):
+        """Helper to restore CVSS version in cleanup."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+        report_config = ReportConfiguration.get_solo()
+        report_config.default_cvss_version = version
         report_config.save()
 
 
