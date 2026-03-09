@@ -679,6 +679,38 @@ class FindingUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/finding_update.html")
 
+    def test_default_cvss_version_configuration(self):
+        """Test that the default CVSS version from ReportConfiguration is passed to the frontend."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+
+        # Get the report configuration singleton
+        report_config = ReportConfiguration.get_solo()
+
+        # Test default behavior (should be v3.1)
+        self.assertEqual(report_config.default_cvss_version, "3.1")
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the default CVSS version is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "3.1")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">3.1</script>')
+
+        # Change the default to v4.0
+        report_config.default_cvss_version = "4.0"
+        report_config.save()
+
+        # Request the page again
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the new default is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "4.0")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">4.0</script>')
+
+        # Reset to default for other tests
+        report_config.default_cvss_version = "3.1"
+        report_config.save()
+
 
 class FindingDeleteViewTests(TestCase):
     """Collection of tests for :view:`reporting.FindingDelete`."""
@@ -1349,6 +1381,38 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_finding_link_update.html")
+
+    def test_default_cvss_version_configuration(self):
+        """Test that the default CVSS version from ReportConfiguration is passed to the frontend."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+
+        # Get the report configuration singleton
+        report_config = ReportConfiguration.get_solo()
+
+        # Test default behavior (should be v3.1)
+        self.assertEqual(report_config.default_cvss_version, "3.1")
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the default CVSS version is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "3.1")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">3.1</script>')
+
+        # Change the default to v4.0
+        report_config.default_cvss_version = "4.0"
+        report_config.save()
+
+        # Request the page again
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the new default is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "4.0")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">4.0</script>')
+
+        # Reset to default for other tests
+        report_config.default_cvss_version = "3.1"
+        report_config.save()
 
 
 # Tests related to :model:`reporting.ReportFindingLink`
