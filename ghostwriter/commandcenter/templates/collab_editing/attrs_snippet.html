@@ -4,6 +4,7 @@
 <script type="text/plain" id="yjs-object-id">{{collab_model_id}}</script>
 <script type="text/plain" id="yjs-username">{{collab_user.get_username}}</script>
 <script type="text/plain" id="yjs-jwt">{{collab_jwt}}</script>
+<script type="text/plain" id="default-cvss-version">{{collab_default_cvss_version}}</script>
 
 {% if collab_extra_fields_spec_ser is not None %}
     {{collab_extra_fields_spec_ser|json_script:"yjs-extra-field-specs"}}

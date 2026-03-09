@@ -35,6 +35,14 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
     form = ReportConfigurationForm
     fieldsets = (
         (
+            "Findings",
+            {
+                "fields": (
+                    "default_cvss_version",
+                )
+            },
+        ),
+        (
             "Borders",
             {
                 "fields": (
