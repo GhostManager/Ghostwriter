@@ -44,6 +44,39 @@ const SEVERITY_TO_ID: {
     CRITICAL: 5,
 };
 
+const CVSS_VERSION_STORAGE_KEY = "ghostwriter.cvssCalculatorVersion";
+
+/**
+ * Get the default CVSS version from the backend configuration or local storage.
+ * Priority: local storage > backend config > fallback to 3.1
+ */
+function getCvssDefaultVersion(): "3.1" | "4.0" {
+    // Check local storage first
+    const storedVersion = localStorage.getItem(CVSS_VERSION_STORAGE_KEY);
+    if (storedVersion === "3.1" || storedVersion === "4.0") {
+        return storedVersion;
+    }
+
+    // Fall back to backend config
+    const defaultVersionEl = document.getElementById("default-cvss-version");
+    if (defaultVersionEl) {
+        const backendDefault = defaultVersionEl.textContent?.trim();
+        if (backendDefault === "3.1" || backendDefault === "4.0") {
+            return backendDefault;
+        }
+    }
+
+    // Ultimate fallback
+    return "3.1";
+}
+
+/**
+ * Save CVSS version preference to local storage
+ */
+function saveCvssVersionPreference(version: "3.1" | "4.0") {
+    localStorage.setItem(CVSS_VERSION_STORAGE_KEY, version);
+}
+
 /**
  * CVSS calculator widget that reads/edits plain fields in a ydoc.
  */
@@ -64,9 +97,15 @@ export default function CvssCalculator(props: {
         ""
     );
 
-    const [editingVector, setEditingVector] = useState<Vector>(
-        () => stringToVector(docValue) ?? new Cvss3P1()
-    );
+    const [editingVector, setEditingVector] = useState<Vector>(() => {
+        const parsed = stringToVector(docValue);
+        if (parsed) return parsed;
+
+        // No existing vector - use default version preference
+        const defaultVersion = getCvssDefaultVersion();
+        return defaultVersion === "4.0" ? new Cvss4P0() : new Cvss3P1();
+    });
+
     useEffect(() => {
         setEditingVector((old) => stringToVector(docValue) ?? old);
     }, [setEditingVector, docValue]);
@@ -183,6 +222,7 @@ function CvssV3Form(props: {
                 className="mt-2 mb-2 btn btn-outline-secondary cvss-switch"
                 onClick={(e) => {
                     e.preventDefault();
+                    saveCvssVersionPreference("4.0");
                     props.setVector(() => new Cvss4P0());
                 }}
             >
@@ -233,6 +273,7 @@ function CvssV4Form(props: {
                 className="mt-2 mb-2 btn btn-outline-secondary cvss-switch"
                 onClick={(e) => {
                     e.preventDefault();
+                    saveCvssVersionPreference("3.1");
                     props.setVector(() => new Cvss3P1());
                 }}
             >
