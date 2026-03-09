@@ -168,7 +168,7 @@ export default function CvssCalculator(props: {
     }
 
     return (
-        <div className="card mb-2">
+        <div className="card mb-2 mt-3">
             <div
                 className={
                     "card-header library-filter d-flex " +
