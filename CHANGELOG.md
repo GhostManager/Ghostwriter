@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added the option to set a default CVSS calculator version in teh global report configuration
-* Each user's last selected CVSS version is now tracke din their browser's local storage
+* Added the option to set a default CVSS calculator version in the global report configuration
+* Each user's last selected CVSS version is now tracked in their browser's local storage
   * This selection will take priority over the global default selection
 
 ### Fixed
