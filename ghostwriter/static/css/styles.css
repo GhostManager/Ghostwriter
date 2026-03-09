@@ -4068,6 +4068,10 @@ input[type="color"]:focus,
   color: var(--main-txt-color);
 }
 
+[data-theme="dark"] .tagify__input:before {
+  color: var(--main-txt-color);
+}
+
 [data-theme="dark"] .custom-file-label::after {
   background-color: var(--sidebar-background-color);
   color: var(--main-txt-color);
