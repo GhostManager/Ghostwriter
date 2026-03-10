@@ -51,6 +51,11 @@ urlpatterns += [
         name="ajax_set_finding_status",
     ),
     path(
+        "ajax/report/observation/status/<int:pk>/<str:status>",
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationStatusUpdate.as_view(),
+        name="ajax_set_observation_status",
+    ),
+    path(
         "ajax/report/status/toggle/<int:pk>",
         views.ReportStatusToggle.as_view(),
         name="ajax_toggle_report_status",
@@ -214,6 +219,11 @@ urlpatterns += [
         "reports/observations/update/<int:pk>",
         ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkUpdate.as_view(),
         name="local_observation_edit",
+    ),
+    path(
+        "reports/observations/assign/<int:pk>",
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkAssign.as_view(),
+        name="local_observation_assign",
     ),
     path(
         "reports/evidence/upload/<str:parent_type>/<int:pk>",
