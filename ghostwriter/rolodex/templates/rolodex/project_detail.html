@@ -583,7 +583,7 @@
                   <td class="align-middle text-left">In Progress</td>
                 {% endif %}
                 <td class="align-middle text-left">{{ report.last_update|date:"DATE_FORMAT" }}</td>
-                <td class="align-middle text-left">{{ report.created_by }}</td>
+                <td class="align-middle text-left">{% if report.created_by %}{{ report.created_by }}{% else %}Unknown{% endif %}</td>
 
                 <td class="align-middle js-export-oplog">
                   <div class="d-flex justify-content-center">
