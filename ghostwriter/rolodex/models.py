@@ -166,6 +166,11 @@ class ClientContact(models.Model):
         blank=True,
         help_text="Provide additional information about the contact",
     )
+    primary = models.BooleanField(
+        "Primary Contact",
+        default=False,
+        help_text="Flag this contact as the primary point of contact for the client",
+    )
     # Foreign keys
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 
@@ -173,7 +178,7 @@ class ClientContact(models.Model):
         unique_together = ["name", "client"]
         ordering = ["client", "id"]
         verbose_name = "Client POC"
-        verbose_name_plural = "Client POCs"
+        verbose_name_plural = "Client POC"
 
     def __str__(self):
         return f"{self.name} ({self.client})"
@@ -501,7 +506,7 @@ class ProjectContact(models.Model):
         unique_together = ["name", "project"]
         ordering = ["project", "id"]
         verbose_name = "Project POC"
-        verbose_name_plural = "Project POCs"
+        verbose_name_plural = "Project POC"
 
     def __str__(self):
         return f"{self.name}"
