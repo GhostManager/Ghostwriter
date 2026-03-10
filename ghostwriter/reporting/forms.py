@@ -66,6 +66,28 @@ class AssignReportFindingForm(forms.ModelForm):
             )
         )
 
+class AssignReportObservationForm(forms.ModelForm):
+    class Meta:
+        model = ReportObservationLink
+        fields = ("assigned_to",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Field("assigned_to"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML("""
+                    <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
+                """)
+            )
+        )
+
+
 class ReportForm(forms.ModelForm):
     """
     Save an individual :model:`reporting.Report` associated with an individual
@@ -749,6 +771,8 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
             "report",
             "position",
             "added_as_blank",
+            "assigned_to",
+            "complete",
         )
         field_classes = {
             "description": JinjaRichTextField,

@@ -8,7 +8,6 @@ from django.conf import settings
 from django.core.management import call_command
 from django.db.models import Q
 from django.test import Client, TestCase
-from django.test.utils import override_settings
 from django.urls import reverse
 
 # 3rd Party Libraries
@@ -22,6 +21,7 @@ from ghostwriter.factories import (
     ProjectObjectiveFactory,
     ReportFactory,
     ReportFindingLinkFactory,
+    ReportObservationLinkFactory,
     UserFactory,
 )
 from ghostwriter.home.templatetags import custom_tags
@@ -213,6 +213,7 @@ class DashboardTests(TestCase):
         cls.Project = ProjectFactory._meta.model
         cls.ProjectAssignment = ProjectAssignmentFactory._meta.model
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        cls.ReportObservationLink = ReportObservationLinkFactory._meta.model
 
         cls.current_project = ProjectFactory(
             start_date=date.today() - timedelta(days=14), end_date=date.today(), complete=True
@@ -235,9 +236,15 @@ class DashboardTests(TestCase):
 
         cls.report = ReportFactory(project=cls.current_project)
         ReportFindingLinkFactory.create_batch(3, report=cls.report, assigned_to=cls.user)
+        ReportObservationLinkFactory.create_batch(3, report=cls.report, assigned_to=cls.user)
 
-        cls.user_tasks = (
+        cls.assigned_findings = (
             cls.ReportFindingLink.objects.select_related("report", "report__project")
+            .filter(Q(assigned_to=cls.user) & Q(report__complete=False) & Q(complete=False))
+            .order_by("report__project__end_date")[:10]
+        )
+        cls.assigned_observations = (
+            cls.ReportObservationLink.objects.select_related("report", "report__project")
             .filter(Q(assigned_to=cls.user) & Q(report__complete=False) & Q(complete=False))
             .order_by("report__project__end_date")[:10]
         )
@@ -274,12 +281,14 @@ class DashboardTests(TestCase):
         self.assertIn("user_projects", response.context)
         self.assertIn("active_projects", response.context)
         self.assertIn("recent_tasks", response.context)
-        self.assertIn("user_tasks", response.context)
+        self.assertIn("assigned_findings", response.context)
+        self.assertIn("assigned_observations", response.context)
         self.assertEqual(len(response.context["user_projects"]), 2)
         self.assertEqual(response.context["user_projects"][0], self.user_projects[0])
         self.assertEqual(len(response.context["active_projects"]), 1)
         self.assertEqual(response.context["active_projects"][0], self.active_projects[0])
-        self.assertEqual(len(response.context["user_tasks"]), 3)
+        self.assertEqual(len(response.context["assigned_findings"]), 3)
+        self.assertEqual(len(response.context["assigned_observations"]), 3)
 
 
 class ManagementTests(TestCase):

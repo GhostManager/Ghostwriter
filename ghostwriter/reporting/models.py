@@ -1072,6 +1072,11 @@ class ReportObservationLink(models.Model):
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
 
+    complete = models.BooleanField(
+        "Completed",
+        default=False,
+        help_text="Mark the observation as ready for a QA review",
+    )
     # Foreign Keys
     report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True)
     assigned_to = models.ForeignKey(
