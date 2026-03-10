@@ -182,25 +182,19 @@
           <table id="clientTable" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th class="align-middle pr-4 text-left">Name</th>
-              <th class="align-middle pr-4 text-left">Title/Role</th>
-              <th class="align-middle pr-4 text-left">Email</th>
-              <th class="sorter-false text-left">Phone</th>
+              <th class="align-middle text-left">Primary</th>
+              <th class="align-middle text-left">Name</th>
+              <th class="align-middle text-left">Title/Role</th>
+              <th class="align-middle text-left">Email</th>
               <th class="sorter-false">Options</th>
             </tr>
             </thead>
             {% for poc in client.clientcontact_set.all %}
               <tr>
+                <td class="align-middle text-left">{% if poc.primary %}<i class="fas fa-check healthy"><span class="sr-only">Primary</span></i>{% else %}<span class="sr-only">Not Primary</span>{% endif %}</td>
                 <td class="align-middle text-left" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
                 <td class="align-middle text-left">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
                 <td class="align-middle text-left">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
-                <td class="align-middle text-left">
-                  {% if poc.phone %}
-                    {{ poc.phone }}
-                  {% else %}
-                    --
-                  {% endif %}
-                </td>
 
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
