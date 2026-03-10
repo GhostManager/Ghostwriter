@@ -74,8 +74,10 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         All :model:`reporting.ProjectAssignment` for active :model:`rolodex.Project` and current :model:`users.User`
     ``recent_tasks``
         Five most recent :model:`django_q.Task` entries
-    ``user_tasks``
+    ``assigned_findings``
         Incomplete :model:`reporting.ReportFindingLink` for current :model:`users.User`
+    ``assigned_observations``
+        Incomplete :model:`reporting.ReportObservationLink` for current :model:`users.User`
     ``system_health``
         Current system health based on :func:`ghostwriter.modules.health_utils.DjangoHealthChecks`
 
@@ -93,7 +95,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
             .order_by("report__project__end_date")[:10]
         )
-        observation_tasks = (
+        assigned_observations = (
             ReportObservationLink.objects.select_related("report", "report__project")
             .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
             .order_by("report__project__end_date")[:10]
@@ -123,7 +125,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "active_projects": active_project,
             "recent_tasks": recent_tasks,
             "assigned_findings": assigned_findings,
-            "assigned_observations": observation_tasks,
+            "assigned_observations": assigned_observations,
             "system_health": system_health,
         }
         # Render the HTML template index.html with the data in the context variable
