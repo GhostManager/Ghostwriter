@@ -59,6 +59,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     strip_html,
     translate_domain_sid,
 )
+from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
 from ghostwriter.reporting.templatetags import report_tags
 
 logging.disable(logging.CRITICAL)
@@ -203,6 +204,13 @@ class AssignBlankFindingTests(TestCase):
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_blank_finding_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        rfl = ReportFindingLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rfl)
+        self.assertEqual(rfl.assigned_to, self.mgr_user)
+
 
 class ConvertFindingTests(TestCase):
     """Collection of tests for :view:`reporting.ConvertFinding`."""
@@ -331,6 +339,13 @@ class AssignFindingTests(TestCase):
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_finding_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri, data={"report": self.report.id})
+        self.assertEqual(response.status_code, 200)
+        rfl = ReportFindingLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rfl)
+        self.assertEqual(rfl.assigned_to, self.mgr_user)
 
 
 class ReportCloneTests(TestCase):
@@ -3190,3 +3205,126 @@ class AssignObservationViewTests(TestCase):
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_observation_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri, data={"report": self.report.id})
+        self.assertEqual(response.status_code, 200)
+        rol = ReportObservationLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rol)
+        self.assertEqual(rol.assigned_to, self.mgr_user)
+
+
+class AssignBlankObservationTests(TestCase):
+    """Collection of tests for :view:`reporting.AssignBlankObservation`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:assign_blank_observation", kwargs={"pk": cls.report.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next=" + self.uri)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.report.project)
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_blank_observation_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        rol = ReportObservationLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rol)
+        self.assertEqual(rol.assigned_to, self.mgr_user)
+
+
+class ReportObservationStatusUpdateTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportObservationStatusUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.observation = ReportObservationLinkFactory(report=cls.report)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "edit"},
+        )
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_permissions(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "edit"},
+        )
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 403)
+
+    def test_set_observation_complete(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "complete"},
+        )
+        response = self.client_mgr.post(uri)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["result"], "success")
+        self.assertEqual(data["status"], "Ready")
+        self.assertEqual(data["classes"], "healthy")
+        self.observation.refresh_from_db()
+        self.assertTrue(self.observation.complete)
+
+    def test_set_observation_needs_editing(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "edit"},
+        )
+        response = self.client_mgr.post(uri)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["result"], "success")
+        self.assertEqual(data["status"], "Needs Editing")
+        self.assertEqual(data["classes"], "burned")
+        self.observation.refresh_from_db()
+        self.assertFalse(self.observation.complete)
+
+    def test_set_observation_invalid_status(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "bogus"},
+        )
+        response = self.client_mgr.post(uri)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["result"], "error")
