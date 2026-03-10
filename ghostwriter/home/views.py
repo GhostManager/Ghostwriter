@@ -12,7 +12,6 @@ from django.db.models import Q
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.generic.edit import View
-from django.views.static import serve
 
 # 3rd Party Libraries
 from django_q.models import Task
@@ -21,7 +20,7 @@ from django_q.tasks import async_task
 # Ghostwriter Libraries
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, verify_user_is_privileged
 from ghostwriter.modules.health_utils import DjangoHealthChecks
-from ghostwriter.reporting.models import ReportFindingLink
+from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
 User = get_user_model()
@@ -88,9 +87,14 @@ class Dashboard(RoleBasedAccessControlMixin, View):
     def get(self, request, *args, **kwargs):
         # Get the most recent :model:`django_q.Task` entries
         recent_tasks = Task.objects.all()[:5]
-        # Get incomplete :model:`reporting.ReportFindingLink` for current :model:`users.User`
-        user_tasks = (
+        # Get incomplete :model:`reporting.ReportFindingLink` and `reporting.ReportObservationLink` for current :model:`users.User`
+        assigned_findings = (
             ReportFindingLink.objects.select_related("report", "report__project")
+            .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
+            .order_by("report__project__end_date")[:10]
+        )
+        observation_tasks = (
+            ReportObservationLink.objects.select_related("report", "report__project")
             .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
             .order_by("report__project__end_date")[:10]
         )
@@ -118,7 +122,8 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "user_projects": user_projects,
             "active_projects": active_project,
             "recent_tasks": recent_tasks,
-            "user_tasks": user_tasks,
+            "assigned_findings": assigned_findings,
+            "assigned_observations": observation_tasks,
             "system_health": system_health,
         }
         # Render the HTML template index.html with the data in the context variable
