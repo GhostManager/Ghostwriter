@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
+
 class CloneObservationLinkToObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Creates a :model:`reporting.Observation` with contents from a :model:`reporting.ReportObservationLink`.
