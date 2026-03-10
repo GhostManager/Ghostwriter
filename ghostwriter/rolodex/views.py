@@ -1075,14 +1075,21 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 contact_dict = to_dict(contact_instance, resolve_fk=True)
                 del contact_dict["client"]
                 del contact_dict["description"]
+                del contact_dict["primary"]
 
                 # Check if this contact already exists in the project
                 if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
                     message = "{} already exists in your project.".format(contact_instance.name)
                     data = {"result": "error", "message": message}
                 else:
+                    # Carry over primary status only if no project contact is already primary
+                    project_has_primary = ProjectContact.objects.filter(project=self.get_object(), primary=True).exists()
+                    inherit_primary = contact_instance.primary and not project_has_primary
                     project_contact = ProjectContact(
-                        project=self.get_object(), **contact_dict, description=contact_instance.description
+                        project=self.get_object(),
+                        **contact_dict,
+                        description=contact_instance.description,
+                        primary=inherit_primary,
                     )
                     project_contact.save()
 

@@ -45,6 +45,15 @@
 
 {% block morescripts %}
   <script>
+    function cbChange(obj) {
+      let cbs = document.getElementsByClassName('js-cb-toggle');
+      for (let i = 0; i < cbs.length; i++) {
+        cbs[i].checked = false;
+      }
+      displayToastTop({type: 'success', string: 'Updated the primary contact (there must be one and only one).', title: 'Contacts Updated'})
+      obj.checked = true;
+    }
+
     {% comment %} Formset manipulation buttons {% endcomment %}
     $('.formset-add-{{ contacts.prefix }}').click(function () {
       let form_idx = $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val();
