@@ -3328,3 +3328,82 @@ class ReportObservationStatusUpdateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertEqual(data["result"], "error")
+
+
+class ReportObservationLinkAssignTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportObservationLinkAssign`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.operator = UserFactory(password=PASSWORD)
+        cls.observation = ReportObservationLinkFactory(report=cls.report, assigned_to=cls.mgr_user)
+        ProjectAssignmentFactory(operator=cls.operator, project=cls.report.project)
+        ProjectAssignmentFactory(operator=cls.mgr_user, project=cls.report.project)
+        cls.uri = reverse("reporting:local_observation_assign", kwargs={"pk": cls.observation.pk})
+        cls.success_url = (
+            reverse("reporting:report_detail", kwargs={"pk": cls.report.pk}) + "#observations"
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next=" + self.uri)
+
+    def test_view_requires_permissions(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("home:dashboard"))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_project_member_can_access(self):
+        client_operator = Client()
+        self.assertTrue(client_operator.login(username=self.operator.username, password=PASSWORD))
+        response = client_operator.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/report_observation_link_assign.html")
+
+    def test_form_only_shows_project_members(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        form = response.context["form"]
+        queryset = form.fields["assigned_to"].queryset
+        self.assertIn(self.operator, queryset)
+        self.assertIn(self.mgr_user, queryset)
+        self.assertNotIn(self.user, queryset)
+
+    def test_reassign_observation(self):
+        response = self.client_mgr.post(self.uri, data={"assigned_to": self.operator.pk})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.success_url)
+        updated = ReportObservationLink.objects.get(pk=self.observation.pk)
+        self.assertEqual(updated.assigned_to, self.operator)
+
+    def test_no_change_shows_info_message(self):
+        response = self.client_mgr.post(self.uri, data={"assigned_to": self.mgr_user.pk})
+        self.assertEqual(response.status_code, 302)
+        msgs = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("already assigned" in str(m) for m in msgs))
+
+    def test_unassign_observation(self):
+        response = self.client_mgr.post(self.uri, data={"assigned_to": ""})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.success_url)
+        updated = ReportObservationLink.objects.get(pk=self.observation.pk)
+        self.assertIsNone(updated.assigned_to)
