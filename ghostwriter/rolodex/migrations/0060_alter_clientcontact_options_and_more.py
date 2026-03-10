@@ -9,22 +9,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name="clientcontact",
-            options={
-                "ordering": ["client", "id"],
-                "verbose_name": "Client POC",
-                "verbose_name_plural": "Client POC",
-            },
-        ),
-        migrations.AlterModelOptions(
-            name="projectcontact",
-            options={
-                "ordering": ["project", "id"],
-                "verbose_name": "Project POC",
-                "verbose_name_plural": "Project POC",
-            },
-        ),
         migrations.AddField(
             model_name="clientcontact",
             name="primary",

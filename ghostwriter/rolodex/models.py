@@ -178,7 +178,7 @@ class ClientContact(models.Model):
         unique_together = ["name", "client"]
         ordering = ["client", "id"]
         verbose_name = "Client POC"
-        verbose_name_plural = "Client POC"
+        verbose_name_plural = "Client POCs"
 
     def __str__(self):
         return f"{self.name} ({self.client})"
@@ -506,7 +506,7 @@ class ProjectContact(models.Model):
         unique_together = ["name", "project"]
         ordering = ["project", "id"]
         verbose_name = "Project POC"
-        verbose_name_plural = "Project POC"
+        verbose_name_plural = "Project POCs"
 
     def __str__(self):
         return f"{self.name}"
