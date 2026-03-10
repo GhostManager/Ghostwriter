@@ -88,6 +88,7 @@ class ClientContactFormTests(TestCase):
         description=None,
         client_id=None,
         timezone=None,
+        primary=None,
         **kwargs,
     ):
         return ClientContactForm(
@@ -99,6 +100,7 @@ class ClientContactFormTests(TestCase):
                 "description": description,
                 "client": client_id,
                 "timezone": timezone,
+                "primary": primary,
             },
         )
 
@@ -190,6 +192,21 @@ class ClientContactFormSetTests(TestCase):
         data = [contact_1, contact_2]
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
+
+    def test_two_primary_contacts(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["primary"] = True
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+        contact_2["primary"] = True
+        form = self.form_data(data)
+        errors = form.errors[1]["primary"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
 
 
 class ClientFormTests(TestCase):

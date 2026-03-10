@@ -18,9 +18,9 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     ClientNoteFactory,
-    DomainFactory,
     HistoryFactory,
     ObjectiveStatusFactory,
+    ProjectContactFactory,
     ProjectFactory,
     ProjectInviteFactory,
     ProjectNoteFactory,
@@ -899,6 +899,38 @@ class AssignProjectContactViewTests(TestCase):
         response = self.client_mgr.post(self.uri, {"contact": -1})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_primary_contact_inherits_when_no_project_primary(self):
+        primary_contact = ClientContactFactory(client=self.project.client, primary=True)
+        uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": self.project.pk})
+        response = self.client_mgr.post(uri, {"contact": primary_contact.pk})
+        self.assertEqual(response.status_code, 200)
+        from ghostwriter.rolodex.models import ProjectContact
+        project_contact = ProjectContact.objects.get(project=self.project, name=primary_contact.name)
+        self.assertTrue(project_contact.primary)
+        project_contact.delete()
+
+    def test_primary_contact_does_not_inherit_when_project_primary_exists(self):
+        primary_contact = ClientContactFactory(client=self.project.client, primary=True)
+        existing_primary = ProjectContactFactory(project=self.project, primary=True)
+        uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": self.project.pk})
+        response = self.client_mgr.post(uri, {"contact": primary_contact.pk})
+        self.assertEqual(response.status_code, 200)
+        from ghostwriter.rolodex.models import ProjectContact
+        project_contact = ProjectContact.objects.get(project=self.project, name=primary_contact.name)
+        self.assertFalse(project_contact.primary)
+        project_contact.delete()
+        existing_primary.delete()
+
+    def test_non_primary_client_contact_does_not_set_project_primary(self):
+        non_primary_contact = ClientContactFactory(client=self.project.client, primary=False)
+        uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": self.project.pk})
+        response = self.client_mgr.post(uri, {"contact": non_primary_contact.pk})
+        self.assertEqual(response.status_code, 200)
+        from ghostwriter.rolodex.models import ProjectContact
+        project_contact = ProjectContact.objects.get(project=self.project, name=non_primary_contact.name)
+        self.assertFalse(project_contact.primary)
+        project_contact.delete()
 
 
 class ProjectDetailViewTests(TestCase):

@@ -130,6 +130,14 @@ class ClientContactModelTests(TestCase):
         contact.delete()
         assert not self.ClientContact.objects.all().exists()
 
+    def test_primary_defaults_to_false(self):
+        contact = ClientContactFactory()
+        self.assertFalse(contact.primary)
+
+    def test_primary_can_be_set(self):
+        contact = ClientContactFactory(primary=True)
+        self.assertTrue(contact.primary)
+
 
 class ProjectTypeModelTests(TestCase):
     """Collection of tests for :model:`rolodex.ProjectType`."""
