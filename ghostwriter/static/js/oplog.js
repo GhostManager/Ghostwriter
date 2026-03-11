@@ -1,115 +1,15 @@
 /* JavaScript specific to the log entry view page goes here. */
-$(document).ready(function() {
+$(document).ready(function () {
+    const $splitContainer = $('.oplog-split-container');
+    const $listPane = $('#oplogListPane');
+    const $listScroll = $('#oplogListScroll');
     const $table = $('#oplogTable');
     const $tableBody = $('#oplogTableBody');
-
-    // Get the array of hidden columns from local storage or set to empty array
-    let hiddenLogTblColumns = JSON.parse((localStorage.getItem('hiddenLogTblColumns') !== null ? localStorage.getItem('hiddenLogTblColumns') : JSON.stringify([])));
-
-    // Assemble the array of column information for the table
-    let columnInfo = [
-        {
-            checkBoxID: 'identifierCheckBox',
-            columnClass: 'identifierColumn',
-            prettyName: 'Identifier',
-            internalName: 'entry_identifier',
-            showByDefault: false,
-            sanitizeByDefault: false
-        },
-        {
-            checkBoxID: 'startDateCheckBox',
-            columnClass: 'startDateColumn',
-            prettyName: 'Start Date',
-            internalName: 'start_date',
-            toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " "),
-            sanitizeByDefault: false
-        },
-        {
-            checkBoxID: 'endDateCheckbox',
-            columnClass: 'endDateColumn',
-            prettyName: 'End Date',
-            internalName: 'end_date',
-            toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " "),
-            sanitizeByDefault: false
-        },
-        {
-            checkBoxID: 'sourceIPCheckbox',
-            columnClass: 'sourceIPColumn',
-            prettyName: 'Source',
-            internalName: 'source_ip',
-            sanitizeByDefault: true
-        },
-        {
-            checkBoxID: 'destIPCheckbox',
-            columnClass: 'destIPColumn',
-            prettyName: 'Destination',
-            internalName: 'dest_ip',
-            sanitizeByDefault: true
-        },
-        {
-            checkBoxID: 'toolNameCheckbox',
-            columnClass: 'toolNameColumn',
-            prettyName: 'Tool Name',
-            internalName: 'tool',
-            sanitizeByDefault: false
-        },
-        {
-            checkBoxID: 'userContextCheckbox',
-            columnClass: 'userContextColumn',
-            prettyName: 'User Context',
-            internalName: 'user_context',
-            sanitizeByDefault: true
-        },
-        {
-            checkBoxID: 'commandCheckbox',
-            columnClass: 'commandColumn',
-            prettyName: 'Command',
-            internalName: 'command',
-            sanitizeByDefault: true
-        },
-        {
-            checkBoxID: 'descriptionCheckbox',
-            columnClass: 'descriptionColumn',
-            prettyName: 'Description',
-            internalName: 'description',
-            sanitizeByDefault: true
-        },
-        {
-            checkBoxID: 'outputCheckbox',
-            columnClass: 'outputColumn',
-            prettyName: 'Output',
-            internalName: 'output',
-            sanitizeByDefault: true
-        },
-        {
-            checkBoxID: 'commentsCheckbox',
-            columnClass: 'commentsColumn',
-            prettyName: 'Comments',
-            internalName: 'comments',
-            sanitizeByDefault: true
-        },
-        {
-            checkBoxID: 'operatorCheckbox',
-            columnClass: 'operatorColumn',
-            prettyName: 'Operator',
-            internalName: 'operator_name',
-            sanitizeByDefault: false
-        },
-        {
-            checkBoxID: 'tagsCheckbox',
-            columnClass: 'tagsColumn',
-            prettyName: 'Tags',
-            internalName: 'tags',
-            toHtml: entry => stylizeTags(jsEscape(entry)),
-            sanitizeByDefault: false
-        },
-    ];
-
-    const oplog_entry_extra_fields_spec = JSON.parse(document.getElementById('oplog_entry_extra_fields_spec').textContent);
-
-    const oplog_name = $tableBody.attr("data-oplog-name");
-    const oplog_id = parseInt($tableBody.attr("data-oplog-id"));
     const $tableHeader = $('#oplogTableHeader');
+    const $tableHeaderHidden = $('#oplogTableHeaderHidden');
+    const $detailPane = $('#oplogDetailPane');
+    const $detailEmpty = $('#oplogDetailEmpty');
+    const $detailContent = $('#oplogDetailContent');
     const $checkboxList = $('#checkboxList');
     const $connectionStatus = $('#connectionStatus');
     const $sanitizeCheckboxList = $('#sanitize-checklist-form');
@@ -118,43 +18,161 @@ $(document).ready(function() {
     const $oplogTableLoading = $('#oplogTableLoading');
     const $clearSearchBtn = $('#clearSearchBtn');
 
+    // Get the array of hidden columns from local storage or set to empty array
+    let hiddenLogTblColumns = JSON.parse(
+        localStorage.getItem('hiddenLogTblColumns') !== null
+            ? localStorage.getItem('hiddenLogTblColumns')
+            : JSON.stringify([])
+    );
+
+    const oplog_entry_extra_fields_spec = JSON.parse(
+        document.getElementById('oplog_entry_extra_fields_spec').textContent
+    );
+
+    const oplog_name = $splitContainer.attr('data-oplog-name');
+    const oplog_id = parseInt($splitContainer.attr('data-oplog-id'));
+
     let socket = null;
     let allEntriesFetched = false;
     let errorDisplayed = false;
-
-    // null | {filter: string, offset: number}
     let pendingOperation = null;
+    let selectedEntryId = null;
 
+    // Store all entry data keyed by ID
+    let entryDataStore = {};
+
+    // Store cast file data in memory (client-side only, keyed by entry ID)
+    let recordingDataStore = {};
+
+    // --- Column definitions ---
+    // Summary columns shown in the left list
+    let summaryColumns = [
+        {
+            checkBoxID: 'startDateCheckBox',
+            columnClass: 'startDateColumn',
+            prettyName: 'Start Date',
+            internalName: 'start_date',
+            toHtml: v => formatDate(v),
+            sanitizeByDefault: false,
+        },
+        {
+            checkBoxID: 'sourceIPCheckbox',
+            columnClass: 'sourceIPColumn',
+            prettyName: 'Source',
+            internalName: 'source_ip',
+            toHtml: v => `<span class="oplog-source-dest">${jsEscape(v)}</span>`,
+            sanitizeByDefault: true,
+        },
+        {
+            checkBoxID: 'destIPCheckbox',
+            columnClass: 'destIPColumn',
+            prettyName: 'Dest',
+            internalName: 'dest_ip',
+            toHtml: v => `<span class="oplog-source-dest">${jsEscape(v)}</span>`,
+            sanitizeByDefault: true,
+        },
+        {
+            checkBoxID: 'toolNameCheckbox',
+            columnClass: 'toolNameColumn',
+            prettyName: 'Tool',
+            internalName: 'tool',
+            sanitizeByDefault: false,
+        },
+        {
+            checkBoxID: 'operatorCheckbox',
+            columnClass: 'operatorColumn',
+            prettyName: 'Operator',
+            internalName: 'operator_name',
+            sanitizeByDefault: false,
+        },
+        {
+            checkBoxID: 'tagsCheckbox',
+            columnClass: 'tagsColumn',
+            prettyName: 'Tags',
+            internalName: 'tags',
+            toHtml: v => stylizeTags(jsEscape(v)),
+            sanitizeByDefault: false,
+        },
+    ];
+
+    // Detail-only fields shown in the right viewer
+    let detailFields = [
+        { internalName: 'command', prettyName: 'Command', type: 'code', sanitizeByDefault: true },
+        { internalName: 'output', prettyName: 'Output', type: 'code', sanitizeByDefault: true },
+        { internalName: 'description', prettyName: 'Description', type: 'rich', sanitizeByDefault: true },
+        { internalName: 'comments', prettyName: 'Comments', type: 'rich', sanitizeByDefault: true },
+    ];
+
+    // Fields shown in the detail header metadata grid
+    let metaFields = [
+        { internalName: 'entry_identifier', prettyName: 'Identifier', sanitizeByDefault: false },
+        { internalName: 'start_date', prettyName: 'Start Date', toDisplay: v => formatDateFull(v), sanitizeByDefault: false },
+        { internalName: 'end_date', prettyName: 'End Date', toDisplay: v => formatDateFull(v), sanitizeByDefault: false },
+        { internalName: 'source_ip', prettyName: 'Source', mono: true, sanitizeByDefault: true },
+        { internalName: 'dest_ip', prettyName: 'Destination', mono: true, sanitizeByDefault: true },
+        { internalName: 'tool', prettyName: 'Tool', sanitizeByDefault: false },
+        { internalName: 'user_context', prettyName: 'User Context', mono: true, sanitizeByDefault: true },
+        { internalName: 'operator_name', prettyName: 'Operator', sanitizeByDefault: false },
+    ];
+
+    // --- Utility functions ---
+    function formatDate(v) {
+        if (!v) return '';
+        return jsEscape(v).replace(/\.\d+/, '').replace('Z', '').replace('T', ' ').replace(/:\d\d$/, '');
+    }
+
+    function formatDateFull(v) {
+        if (!v) return '';
+        return jsEscape(v).replace(/\.\d+/, '').replace('Z', '').replace('T', ' ');
+    }
+
+    function stylizeTags(tagString) {
+        let tags = tagString.split(',');
+        let tagHtml = '';
+        for (const tag of tags) {
+            if (tag === '') continue;
+            let upper = tag.toUpperCase();
+            if (upper.includes('ATT&AMP;CK') || upper.includes('ATTACK') || upper.includes('MITRE') || upper.includes('TTP')) {
+                tagHtml += `<span class="badge badge-danger">${tag}</span>`;
+            } else if (upper.includes('CREDS') || upper.includes('CREDENTIALS')) {
+                tagHtml += `<span class="badge badge-warning">${tag}</span>`;
+            } else if (upper.includes('VULN')) {
+                tagHtml += `<span class="badge badge-success">${tag}</span>`;
+            } else if (upper.includes('DETECT')) {
+                tagHtml += `<span class="badge badge-info">${tag}</span>`;
+            } else if (upper.includes('OBJECTIVE')) {
+                tagHtml += `<span class="badge badge-primary">${tag}</span>`;
+            } else {
+                tagHtml += `<span class="badge badge-secondary">${tag}</span>`;
+            }
+        }
+        return tagHtml;
+    }
+
+    // --- Placeholders ---
     function updatePlaceholder() {
         if (pendingOperation) {
             $oplogTableLoading.show();
             $oplogTableNoEntries.hide();
             return;
         }
-
         $oplogTableLoading.hide();
-        $oplogTableNoEntries.toggle($tableBody.find("> tr").length === 0)
+        $oplogTableNoEntries.toggle($tableBody.find('> tr').length === 0);
     }
 
-    $clearSearchBtn.click(function () {
-        $searchInput.val("");
-        fetch(true);
-    });
-
-    // Update `columnInfo` with extra fields
+    // --- Column management ---
     function updateColumnInfo(extra_field_specs) {
         extra_field_specs.forEach(spec => {
             let toHtmlFunc;
-            if (spec.type === "checkbox") {
-                toHtmlFunc = v => v ? `<i class="fas fa-check"></i>` : `<i class="fas fa-times"></i>`;
-            } else if (spec.type === "rich_text") {
-                // Already XSS cleaned by backend
+            if (spec.type === 'checkbox') {
+                toHtmlFunc = v => (v ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>');
+            } else if (spec.type === 'rich_text') {
                 toHtmlFunc = v => v;
             } else {
                 toHtmlFunc = jsEscape;
             }
 
-            columnInfo.push({
+            summaryColumns.push({
                 checkBoxID: `extra-field-${jsEscape(spec.internal_name)}Checkbox`,
                 columnClass: `extra-field-${jsEscape(spec.internal_name)}Column`,
                 prettyName: jsEscape(spec.display_name),
@@ -163,442 +181,660 @@ $(document).ready(function() {
                 getValue: entry => entry.extra_fields[spec.internal_name],
             });
         });
-
-        $oplogTableNoEntries.find("td").attr("colspan", columnInfo.length+1);
-        $oplogTableLoading.find("td").attr("colspan", columnInfo.length+1);
     }
 
-    // Generate table headers
     function generateTableHeaders() {
-        let out = "<tr>";
-        columnInfo.forEach(column => {
-            out += `<th class="${column.columnClass} align-middle" data-sorter="text">${column.prettyName}</th>\n`
+        let out = '<tr>';
+        summaryColumns.forEach(col => {
+            out += `<th class="${col.columnClass}" data-sorter="text">${col.prettyName}</th>`;
         });
-        out += `<th class="optionsColumn align-middle" data-sorter="false">Options</th></tr>`;
+        out += '</tr>';
         return out;
     }
 
-    // Convert a table row to JSON and copy it to the clipboard
-    window.convertRowToJSON = function (row_id) {
-        let $row = document.getElementById(row_id);
-        let header = [];
-        let rows = [];
-
-        $('#oplogTable > thead > th').each(function () {
-            header.push($(this).text())
-        })
-
-        for (let j = 0; j < $row.cells.length - 1; j++) {
-            $row[header[j]] = $row.cells[j].innerText;
-        }
-        rows.push($row);
-
-        // Convert the array of row values to JSON
-        let rawJson = JSON.stringify(rows[0])
-        let jsonObj = JSON.parse(rawJson)
-        delete jsonObj["Identifier"]
-        let json = JSON.stringify(jsonObj, null, 2)
-
-        // Create a temporary input element to copy the JSON to the clipboard
-        let $temp = $('<input>');
-        $('body').append($temp);
-        $temp.val(json).select();
-        // If Clipboard API is unavailable, use the deprecated `execCommand`
-        if (!navigator.clipboard) {
-            document.execCommand('copy');
-            // Otherwise, use the Clipboard API
-        } else {
-            navigator.clipboard.writeText(json).then(
-                function () {
-                    console.log('Copied row JSON to clipboard')
-                    displayToastTop({
-                        type: 'success',
-                        string: 'Copied the row to the clipboard as JSON.',
-                        title: 'Row Copied'
-                    });
-                })
-                .catch(
-                    function () {
-                        console.log('Failed to copy row JSON to clipboard')
-                    });
-        }
-        $temp.remove();
-    }
-
-    function generateRow(entry) {
-        let out = `<tr id="${entry["id"]}" class="editableRow">`;
-        columnInfo.forEach(column => {
-            let value = column.getValue ? column.getValue(entry) : entry[column.internalName]
-            let toHtmlFunc = column.toHtml ?? jsEscape;
-            out += `<td class="${column.columnClass} align-middle">${toHtmlFunc(value)}</td>`;
-        });
-        out += `<td class="optionsColumn align-middle">
-            <button class="btn" data-toggle="tooltip" data-placement="left" title="Create a copy of this log entry" onClick="copyEntry(this);" entry-id="${entry['id']}"><i class="fa fa-copy"></i></button>
-            <button class="btn" data-toggle="tooltip" data-placement="left" title="Copy this entry to your clipboard as JSON" onClick="convertRowToJSON(${entry["id"]});"><i class="fas fa-clipboard"></i></button>
-            <button class="btn danger" data-toggle="tooltip" data-placement="left" title="Delete this log entry" onClick="deleteEntry(this);" entry-id="${entry['id']}"><i class="fa fa-trash"></i></button>
-        </td></tr>`;
-
-        return out;
-    }
-
-    // Match checkboxes and column IDs to show or hide columns based on the checkbox state
     function coupleCheckboxColumn(checkboxId, columnClass) {
         $(checkboxId).change(function () {
             if (!this.checked) {
-                $(columnClass).hide()
-                // Add column to hiddenLogTblColumns
-                hiddenLogTblColumns.push(columnClass)
+                $(columnClass).hide();
+                hiddenLogTblColumns.push(columnClass);
             } else {
-                $(columnClass).show()
-                // Remove column from hiddenLogTblColumns
-                hiddenLogTblColumns = hiddenLogTblColumns.filter(value => {
-                    return value != columnClass;
-                });
+                $(columnClass).show();
+                hiddenLogTblColumns = hiddenLogTblColumns.filter(v => v !== columnClass);
             }
-            // Save hiddenLogTblColumns to localStorage
             localStorage.setItem('hiddenLogTblColumns', JSON.stringify(hiddenLogTblColumns));
-            // Update classes to round corners of first and last header columns
-            columnInfo.forEach(column => {
-                let $col = $('.' + column.columnClass)
-                if ($col.hasClass('first-col')) {
-                    $col.removeClass('first-col')
-                }
-                if ($col.hasClass('last-col')) {
-                    $col.removeClass('last-col')
-                }
-            })
-            let firstCol = $('th').filter(':visible').first()
-            let lastCol = $('th').filter(':visible').last()
-            if (!firstCol.hasClass('first-col')) {
-                firstCol.addClass('first-col')
-            }
-            if (!lastCol.hasClass('last-col')) {
-                lastCol.addClass('last-col')
-            }
         });
     }
 
-    // Build the column show/hide checkboxes
     function buildColumnsCheckboxes() {
-        columnInfo.forEach(column => {
-            let checked = (column.showByDefault === undefined || column.showByDefault) ? "checked" : "";
-            let checkboxEntry = `
+        summaryColumns.forEach(col => {
+            let checked = (col.showByDefault === undefined || col.showByDefault) ? 'checked' : '';
+            let html = `
             <div class="form-check-inline">
-            <div class="custom-control custom-switch">
-            <input type="checkbox" id="${column.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
-            <label class="form-check-label custom-control-label" for="${column.checkBoxID}">${column.prettyName}</label>
-            </div>
-            </div>
-            `
-            $checkboxList.append(checkboxEntry)
-            // let headerColumn = `
-            // <th class="${column.columnClass} align-middle">${column.prettyName}</th>
-            // `
-            // $tableHeader.append(headerColumn)
-            coupleCheckboxColumn('#' + column.checkBoxID, '.' + column.columnClass)
-
-            if (hiddenLogTblColumns.includes('.' + column.columnClass)) {
-                $('#' + column.checkBoxID).prop('checked', false)
+              <div class="custom-control custom-switch">
+                <input type="checkbox" id="${col.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
+                <label class="form-check-label custom-control-label" for="${col.checkBoxID}">${col.prettyName}</label>
+              </div>
+            </div>`;
+            $checkboxList.append(html);
+            coupleCheckboxColumn('#' + col.checkBoxID, '.' + col.columnClass);
+            if (hiddenLogTblColumns.includes('.' + col.columnClass)) {
+                $('#' + col.checkBoxID).prop('checked', false);
             }
-        })
-    }
-
-    // Generate checkboxes for the sanitize confirmation modal
-    function buildSanitizeCheckboxes() {
-        columnInfo.forEach(column => {
-            let checked = (column.sanitizeByDefault === undefined || column.sanitizeByDefault) ? "checked" : "";
-            let checkboxEntry = `
-            <div class="form-check-inline">
-            <div class="custom-control custom-switch">
-            <input type="checkbox" name="${column.internalName}" id="sanitize_${column.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
-            <label class="form-check-label custom-control-label" for="sanitize_${column.checkBoxID}">${column.prettyName}</label>
-            </div>
-            </div>
-            `
-            $sanitizeCheckboxList.append(checkboxEntry)
-        })
-    }
-
-    // Hide columns based on the "Select Columns" checkboxes
-    function hideColumns() {
-        columnInfo.forEach(column => {
-            $checkbox = $('#' + column.checkBoxID)
-            if (!$checkbox.prop('checked')) {
-                $('.' + column.columnClass).hide()
-            }
-        })
-    }
-
-    // Update an existing row with new data from the server
-    function updateRow($existingRow, newRow) {
-        $(newRow).children().each(function () {
-            let className = $(this).attr('class').split(' ')[0]
-            $existingRow.find('.' + className).html($(this).html())
         });
     }
 
-    // Create a new entry when the create button is clicked
-    window.createEntry = function (id) {
-        socket.send(JSON.stringify({
-            'action': 'create',
-            'oplog_id': id
-        }))
-        displayToastTop({type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update'});
+    function buildSanitizeCheckboxes() {
+        // Summary columns
+        summaryColumns.forEach(col => {
+            let checked = (col.sanitizeByDefault === undefined || col.sanitizeByDefault) ? 'checked' : '';
+            $sanitizeCheckboxList.append(`
+            <div class="form-check-inline">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" name="${col.internalName}" id="sanitize_${col.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
+                <label class="form-check-label custom-control-label" for="sanitize_${col.checkBoxID}">${col.prettyName}</label>
+              </div>
+            </div>`);
+        });
+        // Detail fields
+        detailFields.forEach(f => {
+            let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
+            $sanitizeCheckboxList.append(`
+            <div class="form-check-inline">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input custom-control-input" ${checked}/>
+                <label class="form-check-label custom-control-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
+              </div>
+            </div>`);
+        });
+        // Meta fields not already covered
+        let coveredNames = new Set(summaryColumns.map(c => c.internalName).concat(detailFields.map(f => f.internalName)));
+        metaFields.forEach(f => {
+            if (coveredNames.has(f.internalName)) return;
+            let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
+            $sanitizeCheckboxList.append(`
+            <div class="form-check-inline">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input custom-control-input" ${checked}/>
+                <label class="form-check-label custom-control-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
+              </div>
+            </div>`);
+        });
     }
 
-    // Delete an entry when the delete button is clicked
-    window.deleteEntry = function ($ele) {
-        let id = $($ele).attr('entry-id')
-        socket.send(JSON.stringify({
-            'action': 'delete',
-            'oplogEntryId': id
-        }))
-        displayToastTop({type: 'success', string: 'Successfully deleted a log entry.', title: 'Oplog Update'});
-    }
-
-    // Create a copy of an entry when the copy button is clicked
-    window.copyEntry = function ($ele) {
-        let id = $($ele).attr('entry-id')
-        socket.send(JSON.stringify({
-            'action': 'copy',
-            'oplogEntryId': id
-        }))
-        displayToastTop({type: 'success', string: 'Successfully cloned a log entry.', title: 'Oplog Update'});
-    }
-
-    // Stylize the tags for display in the table
-    function stylizeTags(tagString) {
-        let tags = tagString.split(',')
-        let tagHtml = ''
-        for (const tag of tags) {
-            if (tag == '') {
-                continue
+    function hideColumns() {
+        summaryColumns.forEach(col => {
+            let $cb = $('#' + col.checkBoxID);
+            if (!$cb.prop('checked')) {
+                $('.' + col.columnClass).hide();
             }
-            // Check for escaped version of `att&ck` to style the label
-            if (tag.toUpperCase().includes("ATT&AMP;CK") || tag.toUpperCase().includes("ATTACK") || tag.toUpperCase().includes("MITRE") || tag.toUpperCase().includes("TTP")) {
-                tagHtml += `<span class="badge badge-danger">${tag}</span>`
-            } else if (tag.toUpperCase().includes("CREDS") || tag.toUpperCase().includes("CREDENTIALS")) {
-                tagHtml += `<span class="badge badge-warning">${tag}</span>`
-            } else if (tag.toUpperCase().includes("VULN")) {
-                tagHtml += `<span class="badge badge-success">${tag}</span>`
-            } else if (tag.toUpperCase().includes("DETECT")) {
-                tagHtml += `<span class="badge badge-info">${tag}</span>`
-            } else if (tag.toUpperCase().includes("OBJECTIVE")) {
-                tagHtml += `<span class="badge badge-primary">${tag}</span>`
+        });
+    }
+
+    // --- Row generation for left pane ---
+    function generateRow(entry) {
+        entryDataStore[entry.id] = entry;
+        let out = `<tr id="entry-${entry.id}" data-entry-id="${entry.id}">`;
+        summaryColumns.forEach(col => {
+            let value = col.getValue ? col.getValue(entry) : entry[col.internalName];
+            let toHtml = col.toHtml ?? jsEscape;
+            out += `<td class="${col.columnClass}">${toHtml(value)}</td>`;
+        });
+        out += '</tr>';
+        return out;
+    }
+
+    // --- Detail viewer (right pane) ---
+    function renderDetail(entry) {
+        if (!entry) {
+            $detailContent.hide();
+            $detailEmpty.show();
+            return;
+        }
+
+        let tags = entry.tags ? stylizeTags(jsEscape(entry.tags)) : '';
+
+        // Header
+        let html = `<div class="oplog-detail-header">`;
+        html += `<div class="oplog-detail-header-row">`;
+        html += `<span class="oplog-detail-operator">${jsEscape(entry.operator_name || 'Unknown')}</span>`;
+        html += `<span class="oplog-detail-date">${formatDateFull(entry.start_date)}</span>`;
+        if (entry.entry_identifier) {
+            html += `<span class="oplog-detail-id">${jsEscape(entry.entry_identifier)}</span>`;
+        }
+        html += `<div class="oplog-detail-actions">
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Edit entry" onclick="editEntry(${entry.id})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy entry" onclick="copyEntry(this)" entry-id="${entry.id}"><i class="fa fa-copy"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${entry.id})"><i class="fas fa-clipboard"></i></button>
+            <button class="btn btn-sm btn-outline-danger danger" data-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${entry.id}"><i class="fa fa-trash"></i></button>
+        </div>`;
+        html += `</div>`;
+        if (tags) {
+            html += `<div class="oplog-detail-header-row"><div class="oplog-detail-tags">${tags}</div></div>`;
+        }
+        html += `</div>`;
+
+        // Body
+        html += `<div class="oplog-detail-body">`;
+
+        // Metadata grid
+        html += `<div class="oplog-meta-grid">`;
+        metaFields.forEach(f => {
+            let val = entry[f.internalName];
+            if (!val || val.toString().trim() === '') return;
+            let display = f.toDisplay ? f.toDisplay(val) : jsEscape(val);
+            let monoClass = f.mono ? ' mono' : '';
+            html += `<div class="oplog-meta-item">
+                <span class="oplog-meta-label">${f.prettyName}</span>
+                <span class="oplog-meta-value${monoClass}">${display}</span>
+            </div>`;
+        });
+        html += `</div>`;
+
+        // Detail sections (command, output, description, comments)
+        detailFields.forEach(f => {
+            let val = entry[f.internalName];
+            if (!val || val.toString().trim() === '') return;
+
+            html += `<div class="oplog-detail-section">`;
+            html += `<div class="oplog-detail-label">${f.prettyName}
+                <i class="fas fa-copy copy-btn" onclick="copyFieldToClipboard(${entry.id}, '${f.internalName}')" title="Copy to clipboard"></i>
+            </div>`;
+
+            if (f.type === 'code') {
+                html += `<pre class="oplog-code-block">${jsEscape(val)}</pre>`;
             } else {
-                tagHtml += `<span class="badge badge-secondary">${tag}</span>`
+                // Rich text already XSS cleaned by backend
+                html += `<div class="oplog-rich-content">${val}</div>`;
+            }
+            html += `</div>`;
+        });
+
+        // Extra fields (if any)
+        if (entry.extra_fields && oplog_entry_extra_fields_spec.length > 0) {
+            oplog_entry_extra_fields_spec.forEach(spec => {
+                let val = entry.extra_fields[spec.internal_name];
+                if (val === undefined || val === null || val.toString().trim() === '') return;
+
+                html += `<div class="oplog-detail-section">`;
+                html += `<div class="oplog-detail-label">${jsEscape(spec.display_name)}</div>`;
+
+                if (spec.type === 'checkbox') {
+                    html += val ? '<i class="fas fa-check text-success"></i> Yes' : '<i class="fas fa-times text-danger"></i> No';
+                } else if (spec.type === 'rich_text') {
+                    html += `<div class="oplog-rich-content">${val}</div>`;
+                } else {
+                    html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
+                }
+                html += `</div>`;
+            });
+        }
+
+        // --- Attachments: Screenshot & Terminal Recording ---
+
+        // Screenshot section
+        html += `<div class="oplog-attachment-section">`;
+        html += `<div class="oplog-attachment-label"><i class="fas fa-camera"></i> Screenshot</div>`;
+        if (entry.screenshot_url) {
+            html += `<div class="oplog-screenshot-preview" onclick="openLightbox('${jsEscape(entry.screenshot_url)}')">
+                <img src="${jsEscape(entry.screenshot_url)}" alt="Screenshot" loading="lazy">
+                <div class="oplog-screenshot-overlay"><i class="fas fa-search-plus"></i> Click to enlarge</div>
+            </div>`;
+        } else {
+            html += `<div class="oplog-attachment-dropzone" id="screenshot-dropzone-${entry.id}" onclick="uploadScreenshot(${entry.id})">
+                <div class="dropzone-icon"><i class="fas fa-image"></i></div>
+                <div class="dropzone-text">No screenshot attached</div>
+                <div class="dropzone-hint">Drag & drop an image or click to upload</div>
+            </div>`;
+        }
+        html += `</div>`;
+
+        // Asciinema terminal recording section
+        let hasCastData = !!recordingDataStore[entry.id];
+        let hasRecordingUrl = !!entry.recording_url;
+
+        html += `<div class="oplog-attachment-section">`;
+        html += `<div class="oplog-attachment-label"><i class="fas fa-terminal"></i> Terminal Recording</div>`;
+        if (hasCastData || hasRecordingUrl) {
+            html += `<div class="oplog-asciinema-container" id="asciinema-player-${entry.id}"></div>`;
+            html += `<div class="oplog-asciinema-actions">
+                <button class="btn btn-sm btn-outline-secondary" onclick="removeRecording(${entry.id})">
+                    <i class="fas fa-times"></i> Remove recording
+                </button>
+            </div>`;
+        } else {
+            html += `<div class="oplog-attachment-dropzone" id="recording-dropzone-${entry.id}" onclick="uploadRecording(${entry.id})">
+                <div class="dropzone-icon"><i class="fas fa-play-circle"></i></div>
+                <div class="dropzone-text">No terminal recording attached</div>
+                <div class="dropzone-hint">Drag & drop a .cast file or click to upload</div>
+            </div>`;
+        }
+        html += `</div>`;
+
+        html += `</div>`; // end body
+        $detailContent.html(html).show();
+        $detailEmpty.hide();
+        $('[data-toggle="tooltip"]').tooltip();
+
+        // Initialize asciinema player if recording data is available
+        if (typeof AsciinemaPlayer !== 'undefined') {
+            let playerEl = document.getElementById('asciinema-player-' + entry.id);
+            if (playerEl) {
+                let playerOpts = { fit: 'width', theme: 'dracula', idleTimeLimit: 3, preload: true };
+                if (hasCastData) {
+                    AsciinemaPlayer.create({ data: recordingDataStore[entry.id] }, playerEl, playerOpts);
+                } else if (hasRecordingUrl) {
+                    AsciinemaPlayer.create(entry.recording_url, playerEl, playerOpts);
+                }
             }
         }
-        return tagHtml
+
+        // Wire up drag-and-drop on all dropzones
+        $detailContent.find('.oplog-attachment-dropzone').each(function () {
+            let $dz = $(this);
+            let dropzoneId = $dz.attr('id') || '';
+
+            $dz.on('dragenter dragover', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $dz.addClass('dragover');
+            });
+            $dz.on('dragleave', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $dz.removeClass('dragover');
+            });
+            $dz.on('drop', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $dz.removeClass('dragover');
+
+                let files = e.originalEvent.dataTransfer.files;
+                if (files.length === 0) return;
+                let file = files[0];
+
+                if (dropzoneId.startsWith('recording-dropzone')) {
+                    // Read .cast file and load into player
+                    let targetEntryId = parseInt(dropzoneId.replace('recording-dropzone-', ''));
+                    loadCastFile(file, targetEntryId);
+                } else if (dropzoneId.startsWith('screenshot-dropzone')) {
+                    displayToastTop({ type: 'info', string: 'Screenshot upload is not yet implemented. This is a design mockup.', title: 'Coming Soon' });
+                }
+            });
+        });
     }
 
+    function selectEntry(entryId) {
+        selectedEntryId = entryId;
+        $tableBody.find('tr').removeClass('oplog-entry-selected');
+        $(`#entry-${entryId}`).addClass('oplog-entry-selected');
+        renderDetail(entryDataStore[entryId]);
+    }
+
+    // --- Global actions ---
+    window.createEntry = function (id) {
+        socket.send(JSON.stringify({ action: 'create', oplog_id: id }));
+        displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
+    };
+
+    window.deleteEntry = function ($ele) {
+        let id = $($ele).attr('entry-id');
+        socket.send(JSON.stringify({ action: 'delete', oplogEntryId: id }));
+        displayToastTop({ type: 'success', string: 'Successfully deleted a log entry.', title: 'Oplog Update' });
+    };
+
+    window.copyEntry = function ($ele) {
+        let id = $($ele).attr('entry-id');
+        socket.send(JSON.stringify({ action: 'copy', oplogEntryId: id }));
+        displayToastTop({ type: 'success', string: 'Successfully cloned a log entry.', title: 'Oplog Update' });
+    };
+
+    window.editEntry = function (entryId) {
+        let url = window.location.origin + '/oplog/entry/update/' + entryId;
+        $('.oplog-form-div').load(url, function () {
+            $('#edit-modal').modal('toggle');
+            tinymceLogInit();
+            formAjaxSubmit('#oplog-entry-form', '#edit-modal');
+        });
+    };
+
+    window.convertRowToJSON = function (entryId) {
+        let entry = entryDataStore[entryId];
+        if (!entry) return;
+
+        let jsonObj = {};
+        metaFields.forEach(f => { jsonObj[f.prettyName] = entry[f.internalName] || ''; });
+        detailFields.forEach(f => { jsonObj[f.prettyName] = entry[f.internalName] || ''; });
+        jsonObj['Tags'] = entry.tags || '';
+
+        let json = JSON.stringify(jsonObj, null, 2);
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(json).then(function () {
+                displayToastTop({ type: 'success', string: 'Copied entry to clipboard as JSON.', title: 'Copied' });
+            });
+        } else {
+            let $temp = $('<textarea>');
+            $('body').append($temp);
+            $temp.val(json).select();
+            document.execCommand('copy');
+            $temp.remove();
+        }
+    };
+
+    // --- Attachment functions ---
+
+    // Read a .cast file and store its contents, then re-render the detail view
+    function loadCastFile(file, entryId) {
+        let reader = new FileReader();
+        reader.onload = function (ev) {
+            let castData = ev.target.result;
+            // Basic validation: first line should be JSON with a version field
+            try {
+                let firstLine = castData.split('\n')[0];
+                let header = JSON.parse(firstLine);
+                if (!header.version && !header.width) {
+                    displayToastTop({ type: 'warning', string: 'This file does not appear to be a valid asciicast recording.', title: 'Invalid File' });
+                    return;
+                }
+            } catch (e) {
+                displayToastTop({ type: 'warning', string: 'Could not parse file. Please select a valid .cast file.', title: 'Invalid File' });
+                return;
+            }
+
+            recordingDataStore[entryId] = castData;
+            // Re-render the detail view to show the player
+            if (selectedEntryId == entryId) {
+                renderDetail(entryDataStore[entryId]);
+            }
+            displayToastTop({ type: 'success', string: 'Terminal recording loaded successfully.', title: 'Recording Loaded' });
+        };
+        reader.onerror = function () {
+            displayToastTop({ type: 'error', string: 'Failed to read file.', title: 'File Error' });
+        };
+        reader.readAsText(file);
+    }
+
+    window.uploadScreenshot = function (entryId) {
+        displayToastTop({ type: 'info', string: 'Screenshot upload is not yet implemented. This is a design mockup.', title: 'Coming Soon' });
+    };
+
+    window.uploadRecording = function (entryId) {
+        let $input = $('#castFileInput');
+        $input.data('target-entry-id', entryId);
+        $input.click();
+    };
+
+    window.removeRecording = function (entryId) {
+        delete recordingDataStore[entryId];
+        if (selectedEntryId == entryId) {
+            renderDetail(entryDataStore[entryId]);
+        }
+        displayToastTop({ type: 'info', string: 'Recording removed.', title: 'Recording Removed' });
+    };
+
+    window.openLightbox = function (url) {
+        let $lb = $(`<div class="oplog-lightbox">
+            <span class="oplog-lightbox-close"><i class="fas fa-times"></i></span>
+            <img src="${url}" alt="Screenshot">
+        </div>`);
+        $lb.click(function () { $(this).fadeOut(150, function () { $(this).remove(); }); });
+        $(document).one('keydown.lightbox', function (e) {
+            if (e.keyCode === 27) { $lb.fadeOut(150, function () { $(this).remove(); }); }
+        });
+        $('body').append($lb);
+    };
+
+    window.copyFieldToClipboard = function (entryId, fieldName) {
+        let entry = entryDataStore[entryId];
+        if (!entry) return;
+        let val = entry[fieldName] || '';
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(val).then(function () {
+                displayToastTop({ type: 'success', string: 'Copied to clipboard.', title: 'Copied' });
+            });
+        } else {
+            let $temp = $('<textarea>');
+            $('body').append($temp);
+            $temp.val(val).select();
+            document.execCommand('copy');
+            $temp.remove();
+        }
+    };
+
+    // --- WebSocket ---
     function fetch(clear_existing) {
         const new_filter = $searchInput.val();
         const new_offset = clear_existing ? 0 : $tableBody.find('> tr').length;
-        if (pendingOperation !== null && pendingOperation.filter === new_filter && pendingOperation.new_offset === new_offset)
-            return;
+        if (pendingOperation !== null && pendingOperation.filter === new_filter && pendingOperation.offset === new_offset) return;
 
-        pendingOperation = {
-            filter: new_filter,
-            offset: new_offset,
-        };
+        pendingOperation = { filter: new_filter, offset: new_offset };
         allEntriesFetched = false;
 
-        if (clear_existing)
+        if (clear_existing) {
             $tableBody.find('tr').remove();
+            entryDataStore = {};
+            if (selectedEntryId) {
+                selectedEntryId = null;
+                $detailContent.hide();
+                $detailEmpty.show();
+            }
+        }
         $oplogTableNoEntries.hide();
         $oplogTableLoading.show();
 
         socket.send(JSON.stringify({
-            'action': 'sync',
-            'oplog_id': oplog_id,
-            'offset': new_offset,
-            'filter': new_filter,
+            action: 'sync',
+            oplog_id: oplog_id,
+            offset: new_offset,
+            filter: new_filter,
         }));
     }
 
     function connect() {
-        let endpoint = protocol + window.location.host + '/ws' + window.location.pathname
-        socket = new WebSocket(endpoint)
+        let endpoint = protocol + window.location.host + '/ws' + window.location.pathname;
+        socket = new WebSocket(endpoint);
+
         socket.onopen = function () {
             $connectionStatus.html('Connected');
-            $connectionStatus.toggleClass('connected');
+            $connectionStatus.removeClass('disconnected').addClass('connected');
             errorDisplayed = false;
-
             $oplogTableLoading.show();
             fetch(true);
-        }
+        };
 
         socket.onmessage = function (e) {
-            let message = JSON.parse(e.data)
+            let message = JSON.parse(e.data);
 
-            // Handle the `sync` action that is received whenever the socket (re)connects
-            if (message['action'] === 'sync') {
-                if (pendingOperation === null || pendingOperation.filter !== message['filter'] || pendingOperation.offset !== message['offset']) {
-                    //console.log("Received sync message that did not match pending operation", pendingOperation, message);
-                    return;
-                }
+            if (message.action === 'sync') {
+                if (!pendingOperation || pendingOperation.filter !== message.filter || pendingOperation.offset !== message.offset) return;
                 pendingOperation = null;
 
-                let entries = message['data']
-
+                let entries = message.data;
                 if (entries.length !== 0) {
-                    entries.forEach(element => {
-                        let newRow = generateRow(element);
-                        $tableBody.append(newRow);
-                    })
+                    entries.forEach(el => $tableBody.append(generateRow(el)));
                 } else {
                     allEntriesFetched = true;
                 }
                 updatePlaceholder();
                 hideColumns();
                 $oplogTableLoading.hide();
-                $('[data-toggle="tooltip"]').tooltip();
                 $table.trigger('updateAll');
                 $table.trigger('updateCache');
-            } else if (message['action'] === 'create') {
-                // Handle the `create` action that is received whenever a new entry is created
 
-                if ($searchInput.val() !== "") {
-                    // If there's a filter, refech all, since only the server will know if it matches the filter
+                // Auto-select first entry if nothing selected
+                if (!selectedEntryId && $tableBody.find('tr').length > 0) {
+                    let firstId = $tableBody.find('tr').first().data('entry-id');
+                    selectEntry(firstId);
+                }
+            } else if (message.action === 'create') {
+                if ($searchInput.val() !== '') {
                     fetch(true);
                     return;
                 }
 
-                let rowFound = false;
-                let entry = message['data'];
-                let entryId = entry['id'];
+                let entry = message.data;
+                let entryId = entry.id;
+                entryDataStore[entryId] = entry;
 
-                // Check if the row already exists
-                $('#oplogTable tbody tr').each(function () {
-                    if ($(this).attr('id') === entryId.toString()) {
-                        updateRow($(this), generateRow(entry));
-                        rowFound = true;
+                let $existing = $(`#entry-${entryId}`);
+                if ($existing.length > 0) {
+                    // Update existing row
+                    let newHtml = generateRow(entry);
+                    $existing.replaceWith(newHtml);
+                    // If this is the selected entry, re-render detail
+                    if (selectedEntryId === entryId) {
+                        renderDetail(entry);
                     }
-                });
-
-                // If the row doesn't exist, add it to the table
-                if (!rowFound) {
+                } else {
+                    // New entry: prepend
                     $tableBody.prepend(generateRow(entry));
-                    let $newRow = $(`#${entry['id']}`);
-                    $newRow.hide();
-
-                    emptyTable = false;
+                    let $newRow = $(`#entry-${entryId}`);
+                    $newRow.hide().fadeIn(400);
                     hideColumns();
-                    $newRow.fadeIn(500);
                 }
                 updatePlaceholder();
-                $('[data-toggle="tooltip"]').tooltip();
                 $table.trigger('updateAll');
                 $table.trigger('updateCache');
-            } else if (message['action'] === 'delete') {
-                // Handle the `delete` action that is received whenever an entry is deleted
-                let id = message['data'];
-                $('#oplogTable tbody tr').each(function () {
-                    if ($(this).attr('id') === id.toString()) {
-                        $(this).fadeOut('slow', function () {
-                            $('.tooltip').tooltip('hide');
-                            $(this).remove();
-                            updatePlaceholder();
-                        });
-                    }
-                });
+            } else if (message.action === 'delete') {
+                let id = message.data;
+                let $row = $(`#entry-${id}`);
+                if ($row.length) {
+                    $row.fadeOut(300, function () {
+                        $(this).remove();
+                        delete entryDataStore[id];
+                        if (selectedEntryId == id) {
+                            selectedEntryId = null;
+                            $detailContent.hide();
+                            $detailEmpty.show();
+                        }
+                        updatePlaceholder();
+                    });
+                }
                 $table.trigger('updateAll');
             }
-        }
+        };
 
-        // Update connection status on error
         socket.onerror = function (e) {
             $connectionStatus.html('Disconnected');
-            $connectionStatus.toggleClass('connected');
+            $connectionStatus.removeClass('connected').addClass('disconnected');
             console.error('[!] error: ', e);
             socket.close();
             if (!errorDisplayed) {
-                displayToastTop({
-                    type: 'error',
-                    string: 'Websocket has been disconnected.',
-                    title: 'Websocket Disconnected'
-                });
+                displayToastTop({ type: 'error', string: 'Websocket has been disconnected.', title: 'Websocket Disconnected' });
                 errorDisplayed = true;
             }
-        }
+        };
 
-        // Update connection status on close
         socket.onclose = function () {
             $connectionStatus.html('Disconnected');
-            $connectionStatus.toggleClass('connected');
+            $connectionStatus.removeClass('connected').addClass('disconnected');
             if (!errorDisplayed) {
-                displayToastTop({
-                    type: 'error',
-                    string: 'Websocket has been disconnected.',
-                    title: 'Websocket Disconnected'
-                });
+                displayToastTop({ type: 'error', string: 'Websocket has been disconnected.', title: 'Websocket Disconnected' });
                 errorDisplayed = true;
             }
             setTimeout(function () {
                 console.log('Retrying connection');
                 connect();
-            }, 5000)
-        }
+            }, 5000);
+        };
     }
 
+    // --- Initialization ---
     connect();
     updateColumnInfo(oplog_entry_extra_fields_spec);
     buildColumnsCheckboxes();
-    $tableHeader.html(generateTableHeaders());
+    let headerHtml = generateTableHeaders();
+    $tableHeader.html(headerHtml);
+    $tableHeaderHidden.html(headerHtml);
     buildSanitizeCheckboxes();
 
-    $table.tablesorter(
-        {
-            cssAsc: 'down', cssDesc: 'up', cssNone: 'none',
-            widgets: ['saveSort'],
-            widgetOptions: {
-                saveSort: true,
-                storage_page: 'logDetailTable'
-            }
-        }
-    );
-
-    $('#resetSortBtn').click(function() {
-      $table
-        .trigger('saveSortReset')
-        .trigger('sortReset');
-      return false;
+    $table.tablesorter({
+        cssAsc: 'down',
+        cssDesc: 'up',
+        cssNone: 'none',
+        widgets: ['saveSort'],
+        widgetOptions: { saveSort: true, storage_page: 'logDetailTable' },
     });
 
-    // Show or hide the table column select options
+    $('#resetSortBtn').click(function () {
+        $table.trigger('saveSortReset').trigger('sortReset');
+        return false;
+    });
+
     $('#columnSelectDropdown').click(function () {
         $('#columnSelect').slideToggle('slow');
         $(this).toggleClass('open');
     });
 
-    // Pull additional entries if user scrolls to bottom of ``tbody``
-    $tableBody.scroll(function () {
-        if (pendingOperation === null) {
-            // Check if current scroll position + height of div is >= height of the content
-            // True if scroll has reached the bottom
+    // --- Click handlers ---
+    let clickTimer = null;
+    let clickedEntryId = null;
 
+    $tableBody.on('click', 'tr', function (e) {
+        let entryId = $(this).data('entry-id');
+        if (!entryId) return;
+
+        if (clickTimer !== null && clickedEntryId === entryId) {
+            // Double-click: open edit modal
+            clearTimeout(clickTimer);
+            clickTimer = null;
+            clickedEntryId = null;
+            editEntry(entryId);
+        } else {
+            // Single-click: select entry
+            clickedEntryId = entryId;
+            if (clickTimer) clearTimeout(clickTimer);
+            clickTimer = setTimeout(function () {
+                clickTimer = null;
+                clickedEntryId = null;
+                selectEntry(entryId);
+            }, 220);
+        }
+    });
+
+    // Infinite scroll
+    $listScroll.scroll(function () {
+        if (pendingOperation === null) {
             if ($(this).scrollTop() + $(this).innerHeight() + 1 >= $(this)[0].scrollHeight) {
-                if (allEntriesFetched === false) {
-                    fetch(false);
-                }
+                if (!allEntriesFetched) fetch(false);
             }
         }
     });
 
-    // Open the entry modal when user double-clicks a row
-    $tableBody.on('dblclick', '.editableRow', function (e) {
+    // --- Resize handle ---
+    let isResizing = false;
+    let startX, startWidth;
+    const $resizeHandle = $('#oplogResizeHandle');
+
+    $resizeHandle.on('mousedown', function (e) {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = $listPane.width();
+        $resizeHandle.addClass('dragging');
+        $('body').css('cursor', 'col-resize');
+        $('body').css('user-select', 'none');
         e.preventDefault();
-        let url = window.location.origin + '/oplog/entry/update/' + $(this).attr('id');
-        $('.oplog-form-div').load(url, function () {
-            $('#edit-modal').modal('toggle');
-            tinymceLogInit();
-            formAjaxSubmit('#oplog-entry-form', '#edit-modal');
-        });
-        return false;
     });
 
-    // Submit the entry modal's form with AJAX
+    $(document).on('mousemove', function (e) {
+        if (!isResizing) return;
+        let newWidth = startWidth + (e.clientX - startX);
+        let containerWidth = $splitContainer.width();
+        let minLeft = 280;
+        let minRight = 300;
+        newWidth = Math.max(minLeft, Math.min(newWidth, containerWidth - minRight));
+        $listPane.css('width', newWidth + 'px');
+    });
+
+    $(document).on('mouseup', function () {
+        if (isResizing) {
+            isResizing = false;
+            $resizeHandle.removeClass('dragging');
+            $('body').css('cursor', '');
+            $('body').css('user-select', '');
+        }
+    });
+
+    // --- AJAX form submit ---
     let formAjaxSubmit = function (form, modal) {
         $(form).submit(function (e) {
             e.preventDefault();
@@ -608,7 +844,6 @@ $(document).ready(function() {
                 data: $(this).serialize(),
                 success: function (xhr) {
                     if ($(xhr).find('.has-error').length > 0) {
-                        console.error('error detected')
                         $(modal).find('.oplog-form-div').html(xhr);
                         formAjaxSubmit(form, modal);
                     } else {
@@ -616,41 +851,49 @@ $(document).ready(function() {
                     }
                     tinymceRemove();
                 },
-                error: function (xhr, ajaxOptions, thrownError) {
-                    // Handle response errors here
-                }
+                error: function () {},
             });
         });
-    }
+    };
 
     $('#edit-modal').on('hide.bs.modal', function () {
         tinymceRemove();
-    })
+    });
 
-    // Download the log as a CSV file when the user clicks the "Export Entries" menu item
+    // --- Cast file input handler ---
+    $('#castFileInput').on('change', function (e) {
+        let file = e.target.files[0];
+        if (!file) return;
+        let entryId = $(this).data('target-entry-id');
+        if (!entryId) return;
+        loadCastFile(file, entryId);
+        // Reset input value so the same file can be re-selected
+        $(this).val('');
+    });
+
+    // --- Export ---
     $('#exportEntries').click(function () {
         let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
-        let export_url = $tableBody.attr("data-oplog-export-url");
+        let export_url = $splitContainer.attr('data-oplog-export-url');
         download(export_url, filename);
-    })
+    });
 
-    // Create event to filter results in real-time as search textbox is updated
+    // --- Search ---
     let filter_debounce_timeout_id = null;
     $searchInput.on('keyup', function (ev) {
-        //let value = $(this).val().toLowerCase();
-        //$('#oplogTableBody tr').filter(function () {
-        //  $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-        //});
-        if (filter_debounce_timeout_id !== null) {
-            clearTimeout(filter_debounce_timeout_id);
-        }
+        if (filter_debounce_timeout_id !== null) clearTimeout(filter_debounce_timeout_id);
         filter_debounce_timeout_id = setTimeout(function () {
             filter_debounce_timeout_id = null;
             fetch(true);
-        }, ev.key === "Enter" ? 0 : 500);
+        }, ev.key === 'Enter' ? 0 : 500);
     });
 
-    // Toggle project status with AJAX
+    $clearSearchBtn.click(function () {
+        $searchInput.val('');
+        fetch(true);
+    });
+
+    // --- Mute toggle ---
     $('.js-toggle-mute').click(function () {
         let $toggleLink = $(this);
         let url = $(this).attr('toggle-mute-url');
@@ -661,46 +904,73 @@ $(document).ready(function() {
                 if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
                     xhr.setRequestHeader('X-CSRFToken', csrftoken);
                 }
-            }
+            },
         });
         $.ajax({
             url: url,
             type: 'POST',
             dataType: 'json',
-            data: {
-                'oplog': oplogId
-            },
+            data: { oplog: oplogId },
             success: function (data) {
-                if (data['toggle']) {
-                    $toggleLink.removeClass('notification-bell-icon')
-                    $toggleLink.addClass('silenced-notification-icon')
-                    $toggleLink.text('Notifications: Off')
+                if (data.toggle) {
+                    $toggleLink.removeClass('notification-bell-icon').addClass('silenced-notification-icon').text('Notifications: Off');
                 } else {
-                    $toggleLink.removeClass('silenced-notification-icon')
-                    $toggleLink.addClass('notification-bell-icon')
-                    $toggleLink.text('Notifications: On')
+                    $toggleLink.removeClass('silenced-notification-icon').addClass('notification-bell-icon').text('Notifications: On');
                 }
-                if (data['message']) {
-                    displayToastTop({type: data['result'], string: data['message'], title: 'Log Update'});
+                if (data.message) {
+                    displayToastTop({ type: data.result, string: data.message, title: 'Log Update' });
                 }
             },
         });
     });
 
-    // Capture CTRL+S and CTRL+N to export the log and create new entries respectively
+    // --- Keyboard shortcuts ---
     $(window).keydown(function (event) {
         if (event.ctrlKey && event.keyCode === 78) {
             event.preventDefault();
             createEntry(oplog_id);
         }
-
         if (event.ctrlKey && event.keyCode === 83) {
             event.preventDefault();
             let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
-            let export_url = $tableBody.attr("data-oplog-export-url");
-            download(export_url + oplog_id.toString(), filename);
+            let export_url = $splitContainer.attr('data-oplog-export-url');
+            download(export_url, filename);
         }
     });
 
-    // $table.trigger('updateAll');
+    // --- Arrow key navigation in list ---
+    $(document).keydown(function (e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (!selectedEntryId) return;
+
+        let $current = $(`#entry-${selectedEntryId}`);
+        let $next = null;
+
+        if (e.keyCode === 40) { // Down
+            e.preventDefault();
+            $next = $current.next('tr');
+        } else if (e.keyCode === 38) { // Up
+            e.preventDefault();
+            $next = $current.prev('tr');
+        } else if (e.keyCode === 13) { // Enter
+            e.preventDefault();
+            editEntry(selectedEntryId);
+            return;
+        }
+
+        if ($next && $next.length > 0) {
+            let nextId = $next.data('entry-id');
+            if (nextId) {
+                selectEntry(nextId);
+                // Scroll into view
+                let scrollContainer = $listScroll[0];
+                let rowEl = $next[0];
+                if (rowEl.offsetTop < scrollContainer.scrollTop) {
+                    scrollContainer.scrollTop = rowEl.offsetTop;
+                } else if (rowEl.offsetTop + rowEl.offsetHeight > scrollContainer.scrollTop + scrollContainer.clientHeight) {
+                    scrollContainer.scrollTop = rowEl.offsetTop + rowEl.offsetHeight - scrollContainer.clientHeight;
+                }
+            }
+        }
+    });
 });
