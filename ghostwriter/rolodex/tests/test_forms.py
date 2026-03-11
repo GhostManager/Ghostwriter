@@ -88,6 +88,7 @@ class ClientContactFormTests(TestCase):
         description=None,
         client_id=None,
         timezone=None,
+        primary=None,
         **kwargs,
     ):
         return ClientContactForm(
@@ -99,6 +100,7 @@ class ClientContactFormTests(TestCase):
                 "description": description,
                 "client": client_id,
                 "timezone": timezone,
+                "primary": primary,
             },
         )
 
@@ -121,9 +123,32 @@ class ClientContactFormSetTests(TestCase):
         return instantiate_formset(ClientContactFormSet, data=data, instance=self.org)
 
     def test_valid_data(self):
-        data = [self.contact_1.__dict__, self.contact_2.__dict__]
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["primary"] = True
+        data = [contact_1, contact_2]
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
+
+    def test_single_contact_auto_sets_primary(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_1["primary"] = False
+        data = [contact_1]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+        self.assertTrue(form.forms[0].cleaned_data["primary"])
+
+    def test_multiple_contacts_no_primary(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["primary"] = False
+        contact_2["primary"] = False
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        self.assertFalse(form.is_valid())
+        errors = form.non_form_errors().as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "required")
 
     def test_duplicate_contacts(self):
         contact_1 = self.contact_1.__dict__.copy()
@@ -190,6 +215,21 @@ class ClientContactFormSetTests(TestCase):
         data = [contact_1, contact_2]
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
+
+    def test_two_primary_contacts(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["primary"] = True
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+        contact_2["primary"] = True
+        form = self.form_data(data)
+        errors = form.errors[1]["primary"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
 
 
 class ClientFormTests(TestCase):
@@ -1113,9 +1153,32 @@ class ProjectContactFormSetTests(TestCase):
         return instantiate_formset(ProjectContactFormSet, data=data, instance=self.project)
 
     def test_valid_data(self):
-        data = [self.contact_1.__dict__, self.contact_2.__dict__]
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["primary"] = True
+        data = [contact_1, contact_2]
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
+
+    def test_single_contact_auto_sets_primary(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_1["primary"] = False
+        data = [contact_1]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+        self.assertTrue(form.forms[0].cleaned_data["primary"])
+
+    def test_multiple_contacts_no_primary(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["primary"] = False
+        contact_2["primary"] = False
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        self.assertFalse(form.is_valid())
+        errors = form.non_form_errors().as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "required")
 
     def test_duplicate_contacts(self):
         contact_1 = self.contact_1.__dict__.copy()
@@ -1172,6 +1235,17 @@ class ProjectContactFormSetTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
 
+    def test_contact_delete(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["name"] = ""
+        contact_1["email"] = "foo#bar"
+        contact_1["DELETE"] = True
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
     def test_two_primary_contacts(self):
         contact_1 = self.contact_1.__dict__.copy()
         contact_2 = self.contact_2.__dict__.copy()
@@ -1186,14 +1260,3 @@ class ProjectContactFormSetTests(TestCase):
         errors = form.errors[1]["primary"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "duplicate")
-
-    def test_contact_delete(self):
-        contact_1 = self.contact_1.__dict__.copy()
-        contact_2 = self.contact_2.__dict__.copy()
-        contact_1["name"] = ""
-        contact_1["email"] = "foo#bar"
-        contact_1["DELETE"] = True
-
-        data = [contact_1, contact_2]
-        form = self.form_data(data)
-        self.assertTrue(form.is_valid())

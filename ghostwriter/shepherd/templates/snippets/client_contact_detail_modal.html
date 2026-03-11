@@ -11,6 +11,14 @@
       </div>
       <div class="modal-body">
 
+        <p class="mb-1"><span class="bold">Phone:</span>
+          {% if poc.phone %}
+            {{ poc.phone }}
+          {% else %}
+            No phone number available.
+          {% endif %}
+          </p>
+
         {% if poc.note %}
           <p>{{ poc.note|bleach|safe }}</p>
         {% else %}

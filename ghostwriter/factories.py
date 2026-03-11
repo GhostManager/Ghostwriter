@@ -133,6 +133,7 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     email = Faker("email")
     phone = Faker("phone_number")
     description = Faker("rich_text")
+    primary = False
     timezone = random.choice(TIMEZONES)
     client = factory.SubFactory(ClientFactory)
 

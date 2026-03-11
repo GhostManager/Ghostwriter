@@ -24,7 +24,7 @@ from ghostwriter.commandcenter.forms import ExtraFieldsField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import GeneralConfiguration
-from ghostwriter.modules.custom_layout_object import CustomTab, Formset
+from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import Client, ClientContact, ClientInvite, ClientNote
 
@@ -44,11 +44,15 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
         if any(self.errors):
             return
 
+        active_forms = []
         contacts = set()
+        primary_set = False
         for form in self.forms:
             if not form.cleaned_data or form.cleaned_data["DELETE"]:
                 continue
+            active_forms.append(form)
             name = form.cleaned_data["name"]
+            primary = form.cleaned_data["primary"]
 
             # Check that the same person has not been added more than once
             if name:
@@ -61,6 +65,37 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                         ),
                     )
                 contacts.add(name)
+
+            if primary:
+                if primary_set:
+                    form.add_error(
+                        "primary",
+                        ValidationError(
+                            _("You can only set one primary contact."),
+                            code="duplicate",
+                        ),
+                    )
+                primary_set = True
+
+        # Auto-set primary when only one contact is being submitted
+        if len(active_forms) == 1 and not primary_set:
+            active_forms[0].cleaned_data["primary"] = True
+            active_forms[0].instance.primary = True
+            if active_forms[0].instance.pk:
+                active_forms[0].instance.save(update_fields=["primary"])
+        # Require a primary when multiple contacts exist
+        elif len(active_forms) > 1 and not primary_set:
+            active_forms[0].add_error(
+                "primary",
+                ValidationError(
+                    _("You must designate one contact as the primary point of contact."),
+                    code="required",
+                ),
+            )
+            raise ValidationError(
+                _("You must designate one contact as the primary point of contact. You may have marked the primary for deletion. If so, please mark a different contact as primary."),
+                code="required",
+            )
 
 
 class ClientContactForm(forms.ModelForm):
@@ -132,6 +167,7 @@ class ClientContactForm(forms.ModelForm):
                         Column("timezone", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
+                    SwitchToggle("primary", onchange="cbChange(this)", css_class="js-cb-toggle"),
                     "description",
                     Row(
                         Column(
