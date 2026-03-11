@@ -458,8 +458,15 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
             active_forms[0].instance.save()
         # Require a primary when multiple contacts exist
         elif len(active_forms) > 1 and not primary_set:
+            active_forms[0].add_error(
+                "primary",
+                ValidationError(
+                    _("You must designate one contact as the primary point of contact."),
+                    code="required",
+                ),
+            )
             raise ValidationError(
-                _("You must designate one contact as the primary point of contact."),
+                _("You must designate one contact as the primary point of contact. You may have marked the primary for deletion. If so, please mark a different contact as primary."),
                 code="required",
             )
 
