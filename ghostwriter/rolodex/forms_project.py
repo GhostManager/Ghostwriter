@@ -455,7 +455,8 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
         if len(active_forms) == 1 and not primary_set:
             active_forms[0].cleaned_data["primary"] = True
             active_forms[0].instance.primary = True
-            active_forms[0].instance.save()
+            if active_forms[0].instance.pk:
+                active_forms[0].instance.save(update_fields=["primary"])
         # Require a primary when multiple contacts exist
         elif len(active_forms) > 1 and not primary_set:
             active_forms[0].add_error(
