@@ -165,6 +165,13 @@ type Mutation {
 }
 
 type Mutation {
+  linkOplogEvidence(
+    oplogEntryId: Int!
+    evidenceId: Int!
+  ): linkOplogEvidenceResponse!
+}
+
+type Mutation {
   uploadReportTemplate(
     file_base64: String!
     filename: String!
@@ -285,6 +292,10 @@ type GetReportByTagsResponse {
 }
 
 type GetProjectByTagsResponse {
+  id: Int!
+}
+
+type linkOplogEvidenceResponse {
   id: Int!
 }
 

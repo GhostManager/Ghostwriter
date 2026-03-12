@@ -257,6 +257,17 @@ actions:
     permissions:
       - role: user
       - role: manager
+  - name: linkOplogEvidence
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/linkOplogEvidence'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
   - name: uploadReportTemplate
     definition:
       kind: synchronous
@@ -294,6 +305,7 @@ custom_types:
     - name: ExtraFieldSpecOutput
     - name: UploadEvidenceResult
     - name: UploadReportTemplateResult
+    - name: linkOplogEvidenceResponse
     - name: TagsResult
     - name: createUserResponse
       relationships:

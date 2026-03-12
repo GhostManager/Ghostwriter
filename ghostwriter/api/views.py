@@ -40,7 +40,7 @@ from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfigurati
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.oplog.models import OplogEntry
+from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -906,6 +906,59 @@ class GraphqlUploadReportTemplateView(JwtRequiredMixin, HasuraActionView):
             return JsonResponse({"id": instance.pk}, status=201)
         message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
         return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
+
+
+class GraphqlLinkOplogEvidence(JwtRequiredMixin, HasuraActionView):
+    """
+    Endpoint for linking an existing :model:`reporting.Evidence` to an
+    :model:`oplog.OplogEntry` via the ``linkOplogEvidence`` action.
+    """
+
+    required_inputs = [
+        "oplogEntryId",
+        "evidenceId",
+    ]
+
+    def post(self, request, *args, **kwargs):
+        oplog_entry_id = self.input["oplogEntryId"]
+        evidence_id = self.input["evidenceId"]
+
+        try:
+            entry = OplogEntry.objects.select_related("oplog_id__project").get(id=oplog_entry_id)
+        except OplogEntry.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Oplog entry does not exist", "OplogEntryDoesNotExist"),
+                status=400,
+            )
+
+        try:
+            evidence = Evidence.objects.get(id=evidence_id)
+        except Evidence.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Evidence does not exist", "EvidenceDoesNotExist"),
+                status=400,
+            )
+
+        if not entry.user_can_edit(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+                status=401,
+            )
+
+        # Verify evidence belongs to the same project via its report
+        if evidence.report and evidence.report.project != entry.oplog_id.project:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Evidence does not belong to the same project", "ProjectMismatch"
+                ),
+                status=400,
+            )
+
+        link, created = OplogEntryEvidence.objects.get_or_create(
+            oplog_entry=entry,
+            evidence=evidence,
+        )
+        return JsonResponse({"id": link.pk}, status=self.status)
 
 
 class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):
