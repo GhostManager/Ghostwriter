@@ -371,21 +371,15 @@ $(document).ready(function () {
 
         // --- Attachments: Screenshot & Terminal Recording ---
 
-        // Screenshot section
+        // Evidence section
         html += `<div class="oplog-attachment-section">`;
-        html += `<div class="oplog-attachment-label"><i class="fas fa-camera"></i> Screenshot</div>`;
-        if (entry.screenshot_url) {
-            html += `<div class="oplog-screenshot-preview" onclick="openLightbox('${jsEscape(entry.screenshot_url)}')">
-                <img src="${jsEscape(entry.screenshot_url)}" alt="Screenshot" loading="lazy">
-                <div class="oplog-screenshot-overlay"><i class="fas fa-search-plus"></i> Click to enlarge</div>
-            </div>`;
-        } else {
-            html += `<div class="oplog-attachment-dropzone" id="screenshot-dropzone-${entry.id}" onclick="uploadScreenshot(${entry.id})">
-                <div class="dropzone-icon"><i class="fas fa-image"></i></div>
-                <div class="dropzone-text">No screenshot attached</div>
-                <div class="dropzone-hint">Drag & drop an image or click to upload</div>
-            </div>`;
-        }
+        html += `<div class="oplog-attachment-label"><i class="fas fa-file-image"></i> Evidence</div>`;
+        html += `<div id="evidence-list-${entry.id}" class="oplog-evidence-list"></div>`;
+        html += `<div class="oplog-attachment-dropzone" id="evidence-dropzone-${entry.id}" onclick="uploadEvidence(${entry.id})">
+            <div class="dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+            <div class="dropzone-text">Drag & drop a file or click to upload evidence</div>
+            <div class="dropzone-hint">Allowed: txt, md, log, jpg, jpeg, png</div>
+        </div>`;
         html += `</div>`;
 
         // Asciinema terminal recording section
@@ -456,11 +450,15 @@ $(document).ready(function () {
                     // Read .cast file and load into player
                     let targetEntryId = parseInt(dropzoneId.replace('recording-dropzone-', ''));
                     loadCastFile(file, targetEntryId);
-                } else if (dropzoneId.startsWith('screenshot-dropzone')) {
-                    displayToastTop({ type: 'info', string: 'Screenshot upload is not yet implemented. This is a design mockup.', title: 'Coming Soon' });
+                } else if (dropzoneId.startsWith('evidence-dropzone')) {
+                    let targetEntryId = parseInt(dropzoneId.replace('evidence-dropzone-', ''));
+                    openEvidenceUploadModal(targetEntryId, file);
                 }
             });
         });
+
+        // Fetch and render evidence list for this entry
+        fetchAndRenderEvidenceList(entry.id);
     }
 
     function selectEntry(entryId) {
@@ -553,9 +551,141 @@ $(document).ready(function () {
         reader.readAsText(file);
     }
 
-    window.uploadScreenshot = function (entryId) {
-        displayToastTop({ type: 'info', string: 'Screenshot upload is not yet implemented. This is a design mockup.', title: 'Coming Soon' });
+    window.uploadEvidence = function (entryId) {
+        let $input = $('<input type="file" accept=".txt,.md,.log,.jpg,.jpeg,.png" style="display:none;">');
+        $input.on('change', function (e) {
+            let file = e.target.files[0];
+            if (file) openEvidenceUploadModal(entryId, file);
+            $input.remove();
+        });
+        $('body').append($input);
+        $input.click();
     };
+
+    function getEvidenceUploadUrl(entryId) {
+        let baseUrl = $splitContainer.attr('data-evidence-upload-base-url');
+        return baseUrl + entryId + '/evidence/upload';
+    }
+
+    function showPendingFileIndicator(modalSelector, formSelector, file) {
+        let $fileInput = $(formSelector + ' #id_document');
+        // Update the Bootstrap 4 custom-file-label to show the filename in-place of "---"
+        let $label = $fileInput.next('label.custom-file-label');
+        if ($label.length) {
+            $label.text(file.name);
+        }
+        // When user picks a file manually, the pre-loaded file is no longer needed
+        $fileInput.off('change.evidencePending').on('change.evidencePending', function () {
+            if (this.files.length > 0) {
+                $(modalSelector).removeData('pending-file');
+                $label.text(this.files[0].name);
+            }
+        });
+    }
+
+    function openEvidenceUploadModal(entryId, file) {
+        let url = getEvidenceUploadUrl(entryId);
+        let csrfToken = $splitContainer.attr('data-csrf-token');
+        let $modal = $('#evidence-modal');
+        let $formDiv = $modal.find('.oplog-evidence-form-div');
+
+        // Store the file on the modal so submit can access it without DataTransfer injection.
+        // DataTransfer sets input.files but browsers don't update the native UI text, and
+        // re-selecting the same file from Browse won't fire a change event.
+        $modal.data('pending-file', file);
+
+        $formDiv.html('<div class="text-center p-4"><i class="fa fa-sync fa-spin"></i> Loading form...</div>');
+        $modal.modal('show');
+
+        $formDiv.load(url, function () {
+            // Pre-populate the friendly name from the file name
+            let friendlyName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            $('#id_friendly_name').val(friendlyName);
+
+            // Show a visible indicator and wire up manual-selection clearing
+            showPendingFileIndicator('#evidence-modal', '#oplog-evidence-form', file);
+
+            evidenceFormAjaxSubmit('#oplog-evidence-form', '#evidence-modal', entryId, csrfToken);
+        });
+    }
+
+    function evidenceFormAjaxSubmit(formSelector, modalSelector, entryId, csrfToken) {
+        $(formSelector).off('submit').on('submit', function (e) {
+            e.preventDefault();
+            let formEl = this;
+            let formData = new FormData(formEl);
+
+            // If the user didn't manually pick a file, append the pre-loaded one
+            let fileInput = formEl.querySelector('#id_document');
+            if (fileInput && fileInput.files.length === 0) {
+                let pendingFile = $(modalSelector).data('pending-file');
+                if (pendingFile) {
+                    formData.append('document', pendingFile, pendingFile.name);
+                }
+            }
+
+            $.ajax({
+                type: 'POST',
+                url: $(formEl).attr('action'),
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: { 'X-CSRFToken': csrfToken },
+                success: function (response) {
+                    if (typeof response === 'object' && response.result === 'success') {
+                        $(modalSelector).modal('hide');
+                        displayToastTop({ type: 'success', string: 'Evidence uploaded successfully.', title: 'Evidence' });
+                        fetchAndRenderEvidenceList(entryId);
+                    } else {
+                        // Server returned form HTML with errors
+                        $(modalSelector).find('.oplog-evidence-form-div').html(response);
+                        evidenceFormAjaxSubmit(formSelector, modalSelector, entryId, csrfToken);
+                        // Re-show the indicator if a file is still pending
+                        let pf = $(modalSelector).data('pending-file');
+                        if (pf) showPendingFileIndicator(modalSelector, formSelector, pf);
+                    }
+                },
+                error: function (xhr) {
+                    displayToastTop({ type: 'error', string: 'Failed to upload evidence. Please try again.', title: 'Error' });
+                },
+            });
+        });
+    }
+
+    function fetchAndRenderEvidenceList(entryId) {
+        let baseUrl = $splitContainer.attr('data-evidence-upload-base-url');
+        let listUrl = baseUrl + entryId + '/evidence/list';
+        let $list = $(`#evidence-list-${entryId}`);
+        if ($list.length === 0) return;
+
+        $.getJSON(listUrl, function (data) {
+            if (data.result !== 'success') return;
+            let items = data.evidence || [];
+            if (items.length === 0) {
+                $list.html('');
+                return;
+            }
+            let html = '<div class="oplog-evidence-items mb-3">';
+            items.forEach(function (ev) {
+                let isImage = /\.(jpg|jpeg|png)$/i.test(ev.filename);
+                let icon = isImage ? 'fa-image' : 'fa-file-alt';
+                let preview = '';
+                if (isImage && ev.document_url) {
+                    preview = `<img src="${jsEscape('/reporting/evidence/download/' + ev.id)}" alt="${jsEscape(ev.friendly_name)}" class="oplog-evidence-thumb text-center" onclick="openLightbox('${jsEscape('/reporting/evidence/download/' + ev.id)}')" loading="lazy">`;
+                }
+                let detailUrl = window.location.origin + '/reporting/reports/evidence/' + ev.id;
+                html += `<div class="oplog-evidence-item text-left">
+                    <div class="oplog-evidence-item-header">
+                        <i class="fas ${icon}"></i>
+                        <a href="${jsEscape(detailUrl)}" target="_blank" title="View">${jsEscape(ev.friendly_name)}</a>
+                    </div>
+                    ${preview}
+                </div>`;
+            });
+            html += '</div>';
+            $list.html(html);
+        });
+    }
 
     window.uploadRecording = function (entryId) {
         let $input = $('#castFileInput');
@@ -858,6 +988,11 @@ $(document).ready(function () {
 
     $('#edit-modal').on('hide.bs.modal', function () {
         tinymceRemove();
+    });
+
+    $('#evidence-modal').on('hide.bs.modal', function () {
+        $(this).find('.oplog-evidence-form-div').html('');
+        $(this).removeData('pending-file');
     });
 
     // --- Cast file input handler ---
