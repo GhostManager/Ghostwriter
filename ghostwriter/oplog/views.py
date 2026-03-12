@@ -9,6 +9,7 @@ import logging
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -28,8 +29,8 @@ from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
-from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
-from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.forms import OplogEntryForm, OplogEvidenceForm, OplogForm
+from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence
 from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.views
@@ -655,3 +656,77 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             writer.writerow(values)
 
         return response
+
+
+class OplogEvidenceCreate(RoleBasedAccessControlMixin, View):
+    """
+    Upload an :model:`reporting.Evidence` file and link it to an :model:`oplog.OplogEntry`
+    via an :model:`oplog.OplogEntryEvidence`.
+
+    Returns form HTML on GET (for AJAX modal), JSON response on POST.
+    """
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission."}, status=403)
+
+    def get(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        project = entry.oplog_id.project
+        form = OplogEvidenceForm(project=project)
+        form.helper.form_action = reverse("oplog:oplog_entry_evidence_upload", kwargs={"pk": entry.pk})
+        return render(request, "oplog/snippets/oplog_evidence_form_inner.html", {"form": form})
+
+    def post(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        project = entry.oplog_id.project
+        form = OplogEvidenceForm(request.POST, request.FILES, project=project)
+        if form.is_valid():
+            with transaction.atomic():
+                evidence = form.save(commit=False)
+                evidence.uploaded_by = request.user
+                evidence.save()
+                form.save_m2m()
+                OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence)
+            return JsonResponse({
+                "result": "success",
+                "evidence_id": evidence.pk,
+                "friendly_name": evidence.friendly_name,
+            })
+        # Return the form with errors for re-rendering in the modal
+        form.helper.form_action = reverse("oplog:oplog_entry_evidence_upload", kwargs={"pk": entry.pk})
+        return render(request, "oplog/snippets/oplog_evidence_form_inner.html", {"form": form})
+
+
+class OplogEntryEvidenceList(RoleBasedAccessControlMixin, View):
+    """Return a JSON list of :model:`reporting.Evidence` linked to an :model:`oplog.OplogEntry`."""
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission."}, status=403)
+
+    def get(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        links = entry.evidence_links.select_related("evidence").all()
+        evidence_list = []
+        for link in links:
+            ev = link.evidence
+            evidence_list.append({
+                "id": ev.pk,
+                "friendly_name": ev.friendly_name,
+                "caption": ev.caption,
+                "document_url": ev.document.url if ev.document else "",
+                "filename": ev.document.name.split("/")[-1] if ev.document else "",
+                "link_id": link.pk,
+            })
+        return JsonResponse({"result": "success", "evidence": evidence_list})
