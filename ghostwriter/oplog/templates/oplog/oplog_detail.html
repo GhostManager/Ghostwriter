@@ -101,6 +101,8 @@
         data-oplog-name="{{ oplog.name }}"
         data-oplog-id="{{ oplog.id }}"
         data-oplog-export-url="{% url 'oplog:oplog_export' oplog.pk %}"
+        data-csrf-token="{{ csrf_token }}"
+        data-evidence-upload-base-url="/oplog/entry/"
     >
         <!-- Left: Entry List -->
         <div class="oplog-list-pane" id="oplogListPane">
@@ -159,6 +161,20 @@
                   <h5 class="modal-title">Edit Entry</h5>
               </div>
               <div class="modal-body text-center oplog-form-div"></div>
+          </div>
+      </div>
+  </div>
+
+  <div id="evidence-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title"><i class="fas fa-file-upload"></i> Upload Evidence</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="modal-body oplog-evidence-form-div"></div>
           </div>
       </div>
   </div>
