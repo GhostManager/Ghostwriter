@@ -13,13 +13,16 @@ from django.utils.encoding import force_str
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     AdminFactory,
+    EvidenceOnReportFactory,
     ExtraFieldModelFactory,
     ExtraFieldSpecFactory,
     MgrFactory,
+    OplogEntryEvidenceFactory,
     OplogEntryFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ReportFactory,
     UserFactory,
 )
 
@@ -772,3 +775,100 @@ class OplogSanitizeViewTests(TestCase):
         self.assertEqual(self.entry.user_context, "")
         self.assertEqual(self.entry.command, "some")
         self.assertEqual(self.entry.extra_fields, {"test_field": "", "test_field_2": "test value"})
+
+
+class OplogEvidenceCreateViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogEvidenceCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory(complete=False)
+        cls.oplog = OplogFactory(project=cls.project)
+        cls.entry = OplogEntryFactory(oplog_id=cls.oplog)
+        cls.report = ReportFactory(project=cls.project)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+        cls.uri = reverse("oplog:oplog_entry_evidence_upload", kwargs={"pk": cls.entry.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_get_returns_form(self):
+        response = self.client_auth.get(self.uri, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_as_manager(self):
+        response = self.client_mgr.get(self.uri, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 200)
+
+    def test_unauthorized_user_denied(self):
+        unassigned = UserFactory(password=PASSWORD)
+        client = Client()
+        client.login(username=unassigned.username, password=PASSWORD)
+        response = client.get(self.uri, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(response.status_code, 403)
+
+
+class OplogEntryEvidenceListViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogEntryEvidenceList`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory(complete=False)
+        cls.oplog = OplogFactory(project=cls.project)
+        cls.entry = OplogEntryFactory(oplog_id=cls.oplog)
+        cls.report = ReportFactory(project=cls.project)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+        cls.uri = reverse("oplog:oplog_entry_evidence_list", kwargs={"pk": cls.entry.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_empty_list(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+        self.assertEqual(len(data["evidence"]), 0)
+
+    def test_list_with_evidence(self):
+        evidence = EvidenceOnReportFactory(report=self.report)
+        OplogEntryEvidenceFactory(oplog_entry=self.entry, evidence=evidence)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+        self.assertEqual(len(data["evidence"]), 1)
+        self.assertEqual(data["evidence"][0]["id"], evidence.pk)
+
+    def test_manager_can_view(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+
+    def test_unauthorized_user_denied(self):
+        unassigned = UserFactory(password=PASSWORD)
+        client = Client()
+        client.login(username=unassigned.username, password=PASSWORD)
+        response = client.get(self.uri)
+        self.assertEqual(response.status_code, 403)

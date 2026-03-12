@@ -3,10 +3,16 @@ import logging
 from datetime import datetime, timezone
 
 # Django Imports
+from django.db import IntegrityError
 from django.test import TestCase
 
 # Ghostwriter Libraries
-from ghostwriter.factories import OplogEntryFactory, OplogFactory
+from ghostwriter.factories import (
+    EvidenceOnReportFactory,
+    OplogEntryEvidenceFactory,
+    OplogEntryFactory,
+    OplogFactory,
+)
 
 logging.disable(logging.CRITICAL)
 
@@ -99,3 +105,48 @@ class OplogEntryModelTests(TestCase):
         entry.refresh_from_db()
 
         self.assertEqual(list(entry.tags.names()), tags)
+
+
+class OplogEntryEvidenceModelTests(TestCase):
+    """Collection of tests for :model:`oplog.OplogEntryEvidence`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.OplogEntryEvidence = OplogEntryEvidenceFactory._meta.model
+
+    def test_crud(self):
+        # Create
+        link = OplogEntryEvidenceFactory()
+        self.assertIsNotNone(link.pk)
+
+        # Read
+        self.assertIsNotNone(link.oplog_entry)
+        self.assertIsNotNone(link.evidence)
+
+        # Delete
+        link.delete()
+        assert not self.OplogEntryEvidence.objects.all().exists()
+
+    def test_unique_together(self):
+        link = OplogEntryEvidenceFactory()
+        with self.assertRaises(IntegrityError):
+            OplogEntryEvidenceFactory(
+                oplog_entry=link.oplog_entry,
+                evidence=link.evidence,
+            )
+
+    def test_cascade_delete_entry(self):
+        link = OplogEntryEvidenceFactory()
+        entry = link.oplog_entry
+        entry.delete()
+        assert not self.OplogEntryEvidence.objects.filter(pk=link.pk).exists()
+
+    def test_cascade_delete_evidence(self):
+        link = OplogEntryEvidenceFactory()
+        evidence = link.evidence
+        evidence.delete()
+        assert not self.OplogEntryEvidence.objects.filter(pk=link.pk).exists()
+
+    def test_str(self):
+        link = OplogEntryEvidenceFactory()
+        self.assertIn(str(link.oplog_entry), str(link))
