@@ -635,6 +635,14 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+class OplogEntryEvidenceFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.OplogEntryEvidence"
+
+    oplog_entry = factory.SubFactory(OplogEntryFactory)
+    evidence = factory.SubFactory(EvidenceOnReportFactory)
+
+
 # Shepherd Factories
 
 

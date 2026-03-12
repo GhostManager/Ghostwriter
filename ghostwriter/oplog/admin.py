@@ -8,7 +8,7 @@ from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
 # Ghostwriter Libraries
-from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence
 from ghostwriter.oplog.resources import OplogEntryResource
 
 
@@ -42,3 +42,10 @@ class OplogEntryAdmin(ImportExportModelAdmin):
 @admin.register(Oplog)
 class OplogAdmin(ImportExportModelAdmin):
     resource_class = OplogResource
+
+
+@admin.register(OplogEntryEvidence)
+class OplogEntryEvidenceAdmin(admin.ModelAdmin):
+    list_display = ("oplog_entry", "evidence")
+    list_filter = ("oplog_entry",)
+    list_display_links = ("oplog_entry", "evidence")
