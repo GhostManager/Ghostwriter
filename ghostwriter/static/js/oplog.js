@@ -693,7 +693,7 @@ $(document).ready(function () {
                 html += `<div class="oplog-evidence-item text-left mt-2">
                     <div class="oplog-evidence-item-header">
                         <i class="fas ${icon}"></i>
-                        <a href="${jsEscape(detailUrl)}" target="_blank" title="View">${jsEscape(ev.friendly_name)}</a>
+                        <a href="${jsEscape(detailUrl)}" target="_blank" title="View">${jsEscape(ev.friendly_name)} (${jsEscape(ev.uploaded_by_user)})</a>
                     </div>
                     ${preview}
                 </div>`;
