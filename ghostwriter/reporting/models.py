@@ -924,6 +924,12 @@ class Evidence(models.Model):
     def filename(self):
         return os.path.basename(self.document.name)
 
+    @property
+    def uploaded_by_user(self):
+        if self.uploaded_by:
+            return self.uploaded_by.username
+        return "Unknown"
+
 
 class Archive(models.Model):
     """Stores an individual archived report, related to :model:`rolodex.Project."""
