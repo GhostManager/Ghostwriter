@@ -150,14 +150,31 @@ class OplogEvidenceFormTests(TestCase):
         self.assertIn(self.report, qs)
         self.assertNotIn(other_report, qs)
 
-    def test_report_auto_selected_when_single(self):
+    def test_report_auto_selected_first_when_no_active(self):
         form = OplogEvidenceForm(project=self.project)
         self.assertEqual(form.fields["report"].initial, self.report)
 
-    def test_report_not_auto_selected_when_multiple(self):
-        ReportFactory(project=self.project)
+    def test_report_auto_selected_first_when_multiple_no_active(self):
+        second_report = ReportFactory(project=self.project)
         form = OplogEvidenceForm(project=self.project)
-        self.assertIsNone(form.fields["report"].initial)
+        first_in_list = form.fields["report"].queryset.first()
+        self.assertEqual(form.fields["report"].initial, first_in_list)
+
+    def test_active_report_selected_when_valid_for_project(self):
+        form = OplogEvidenceForm(project=self.project, active_report_id=self.report.pk)
+        self.assertEqual(form.fields["report"].initial, self.report)
+
+    def test_active_report_ignored_when_not_in_project(self):
+        other_report = ReportFactory()  # different project
+        form = OplogEvidenceForm(project=self.project, active_report_id=other_report.pk)
+        # Falls back to first report in the project
+        first_in_list = form.fields["report"].queryset.first()
+        self.assertEqual(form.fields["report"].initial, first_in_list)
+
+    def test_active_report_invalid_id_falls_back_to_first(self):
+        form = OplogEvidenceForm(project=self.project, active_report_id=999999)
+        first_in_list = form.fields["report"].queryset.first()
+        self.assertEqual(form.fields["report"].initial, first_in_list)
 
     def test_report_required(self):
         form = OplogEvidenceForm(project=self.project, data={

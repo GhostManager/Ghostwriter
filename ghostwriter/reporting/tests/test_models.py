@@ -683,6 +683,12 @@ class EvidenceModelTests(TestCase):
             self.fail("Evidence.get_absolute_url() raised an exception")
         evidence.delete()
 
+    def test_uploaded_by_user_property(self):
+        user = UserFactory()
+        evidence = EvidenceOnFindingFactory(uploaded_by=user)
+        self.assertEqual(evidence.uploaded_by_user, user.username)
+        evidence.delete()
+
 
 class FindingNoteModelTests(TestCase):
     """Collection of tests for :model:`reporting.FindingNote`."""
@@ -931,7 +937,7 @@ class EmptyFieldFilteringReportExportTests(TestCase):
         # Template logic simulation
         def jinja_check(value):
             return bool(value)  # {% if value %} logic
-        
+
         # These should be False but will be True, demonstrating the bug
         self.assertFalse(jinja_check(finding_data['description']),
             "Direct ReportDataSerializer export includes <p></p> content incorrectly")

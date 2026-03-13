@@ -8,7 +8,6 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    EvidenceOnReportFactory,
     OplogEntryEvidenceFactory,
     OplogEntryFactory,
     OplogFactory,
