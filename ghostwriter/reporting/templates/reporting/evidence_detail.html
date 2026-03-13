@@ -85,15 +85,19 @@
   </table>
 
   <!-- File Content Section -->
-  <h4 class="icon file-icon">File Contents</h4>
+  <h4 class="icon file-icon">File Preview</h4>
   <hr>
 
-  <p>This is a preview of what your evidence file will look like in a report.
-    It may not look exactly like this (depending on your template's styles),
-    but it will give you an idea of what to expect.</p>
-  <p>The width is 6.5" (165.1mm), the default full width of a Word document.</p>
-  <p>If you have borders enabled for reports, images will include a border with your configured color and width.</p>
-  <p>Previews also show you what captions will look like with your caption and configured labelling for figures.</p>
+  <div class="text-left offset-2 col-8">
+    <p>This is a preview of what your evidence file will look like in a report.
+      It may not look exactly like this (depending on your template's styles),
+      but it will give you an idea of what to expect.</p>
+    <p>The width is 6.5" (165.1mm), the default full width of a Word document. If you have borders enabled for reports,
+      images will include a border with your configured color and width. Previews also show you what captions will look
+      like with your caption and configured labelling for figures.
+    </p>
+  </div>
+
   <p class="text-muted"><i class="fas fa-search-plus"></i> Click on the preview to view full size</p>
 
   {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config clickable=True %}
