@@ -905,6 +905,10 @@ $(document).ready(function () {
             // Modal is already open — swap in the pasted file as the pending file
             $modal.data('pending-file', file);
             showPendingFileIndicator('#evidence-modal', '#oplog-evidence-form', file);
+        } else if ($splitContainer.attr('data-project-has-reports') !== 'true') {
+            // No reports on this project — let the alert in the detail pane guide the user
+            let projectUrl = $splitContainer.attr('data-project-url') || '#';
+            displayToastTop({ type: 'warning', string: 'No reports exist for this project. Create a report before uploading evidence.', title: 'No Reports', url: projectUrl });
         } else if (selectedEntryId) {
             // Open the modal for the currently-selected entry
             openEvidenceUploadModal(selectedEntryId, file);
