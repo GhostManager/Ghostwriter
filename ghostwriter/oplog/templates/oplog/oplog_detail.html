@@ -103,6 +103,8 @@
         data-oplog-export-url="{% url 'oplog:oplog_export' oplog.pk %}"
         data-csrf-token="{{ csrf_token }}"
         data-evidence-upload-base-url="/oplog/entry/"
+        data-project-has-reports="{% if project_has_reports %}true{% else %}false{% endif %}"
+        data-project-url="{% url 'rolodex:project_detail' oplog.project.id %}"
     >
         <!-- Left: Entry List -->
         <div class="oplog-list-pane" id="oplogListPane">

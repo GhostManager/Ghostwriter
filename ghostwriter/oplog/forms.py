@@ -209,10 +209,12 @@ class OplogEvidenceForm(forms.ModelForm):
         )
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"rows": 1}),
         }
 
     def __init__(self, *args, **kwargs):
         self.project = kwargs.pop("project", None)
+        active_report_id = kwargs.pop("active_report_id", None)
         super().__init__(*args, **kwargs)
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
@@ -227,8 +229,14 @@ class OplogEvidenceForm(forms.ModelForm):
         if self.project:
             reports = Report.objects.filter(project=self.project).order_by("title")
             self.fields["report"].queryset = reports
-            if reports.count() == 1:
-                self.fields["report"].initial = reports.first()
+            # Prefer: 1) active report (if valid for this project), 2) first report in list
+            initial_report = None
+            if active_report_id:
+                initial_report = reports.filter(pk=active_report_id).first()
+            if initial_report is None:
+                initial_report = reports.first()
+            if initial_report is not None:
+                self.fields["report"].initial = initial_report
 
         self.helper = FormHelper()
         self.helper.form_show_errors = False
@@ -238,8 +246,9 @@ class OplogEvidenceForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <p>Upload evidence and attach it to the selected report. The friendly name is used to
-                reference this evidence in reports, and the caption appears below figures.</p>
+                <p class="mb-1">Upload evidence and attach it to the selected report. The friendly name is used to
+                reference this evidence in reports, and the caption appears below figures.
+                You can press <em>Enter</em> to submit.</p>
                 """
             ),
             "report",

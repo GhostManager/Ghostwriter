@@ -31,6 +31,7 @@ from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogEvidenceForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence
+from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.views
@@ -408,6 +409,9 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
         ctx["oplog_entry_extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
             ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
         ).data
+        ctx["project_has_reports"] = Report.objects.filter(
+            project=self.object.project
+        ).exists()
         return ctx
 
 
@@ -678,7 +682,13 @@ class OplogEvidenceCreate(RoleBasedAccessControlMixin, View):
     def get(self, request, *args, **kwargs):
         entry = self.get_entry()
         project = entry.oplog_id.project
-        form = OplogEvidenceForm(project=project)
+        active_report_id = None
+        try:
+            active = request.session.get("active_report") or {}
+            active_report_id = int(active.get("id", 0)) or None
+        except (TypeError, ValueError, AttributeError):
+            active_report_id = None
+        form = OplogEvidenceForm(project=project, active_report_id=active_report_id)
         form.helper.form_action = reverse("oplog:oplog_entry_evidence_upload", kwargs={"pk": entry.pk})
         return render(request, "oplog/snippets/oplog_evidence_form_inner.html", {"form": form})
 
