@@ -1232,7 +1232,8 @@ table .clickable {
   text-decoration-thickness: 3px;
 }
 
-p .clickable {
+p .clickable,
+a.clickable {
   text-decoration: underline dotted var(--clickable-underline-color);
   text-decoration-thickness: 3px;
 }
@@ -1423,7 +1424,7 @@ table.table-oplog tbody tr {
 /* Split container */
 .oplog-split-container {
   display: flex;
-  height: calc(100vh - 280px);
+  height: calc(100vh - 250px);
   min-height: 400px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
@@ -1455,7 +1456,6 @@ table.table-oplog tbody tr {
 .oplog-list-header-table thead th {
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--ghost-white);
   padding: 8px 10px;
