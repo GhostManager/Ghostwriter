@@ -372,14 +372,23 @@ $(document).ready(function () {
         // --- Attachments: Screenshot & Terminal Recording ---
 
         // Evidence section
+        let projectHasReports = $splitContainer.attr('data-project-has-reports') === 'true';
         html += `<div class="oplog-attachment-section">`;
         html += `<div class="oplog-attachment-label"><i class="fas fa-file-image"></i> Evidence</div>`;
         html += `<div id="evidence-list-${entry.id}" class="oplog-evidence-list"></div>`;
-        html += `<div class="oplog-attachment-dropzone" id="evidence-dropzone-${entry.id}" onclick="uploadEvidence(${entry.id})">
-            <div class="dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-            <div class="dropzone-text">Drag & drop a file or click to upload evidence</div>
-            <div class="dropzone-hint">Allowed: txt, md, log, jpg, jpeg, png</div>
-        </div>`;
+        if (projectHasReports) {
+            html += `<div class="oplog-attachment-dropzone" id="evidence-dropzone-${entry.id}" onclick="uploadEvidence(${entry.id})">
+                <div class="dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div class="dropzone-text">Drag & drop a file or click to upload evidence</div>
+                <div class="dropzone-hint">Allowed: txt, md, log, jpg, jpeg, png</div>
+            </div>`;
+        } else {
+            let projectUrl = jsEscape($splitContainer.attr('data-project-url') || '#');
+            html += `<div class="alert alert-info mb-0 d-flex align-items-center" role="alert">
+                <i class="fas fa-info-circle fa-lg flex-shrink-0 mr-3"></i>
+                <p class="mb-0 text-left mb-0">No reports exist for this project. <a class="clickable" href="${projectUrl}#documents">Create a report</a> to upload evidence.</p>
+            </div>`;
+        }
         html += `</div>`;
 
         // Asciinema terminal recording section
