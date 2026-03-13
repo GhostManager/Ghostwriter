@@ -717,7 +717,7 @@ class OplogEntryEvidenceList(RoleBasedAccessControlMixin, View):
 
     def get(self, request, *args, **kwargs):
         entry = self.get_entry()
-        links = entry.evidence_links.select_related("evidence").all()
+        links = entry.evidence_links.select_related("evidence", "evidence__uploaded_by").all()
         evidence_list = []
         for link in links:
             ev = link.evidence
@@ -728,5 +728,6 @@ class OplogEntryEvidenceList(RoleBasedAccessControlMixin, View):
                 "document_url": ev.document.url if ev.document else "",
                 "filename": ev.document.name.split("/")[-1] if ev.document else "",
                 "link_id": link.pk,
+                "uploaded_by_user": ev.uploaded_by_user,
             })
         return JsonResponse({"result": "success", "evidence": evidence_list})
