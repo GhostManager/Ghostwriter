@@ -1741,6 +1741,15 @@ table.table-oplog tbody tr {
   font-size: 0.78rem;
 }
 
+.oplog-evidence-thumb {
+  cursor: zoom-in;
+}
+
+.oplog-evidence-thumb:hover {
+  transform: scale(1.01);
+  transition: all 0.15s ease;
+}
+
 /* ---------------------------------------------------
    OPLOG ATTACHMENTS: Screenshot & Asciinema
 ----------------------------------------------------- */
@@ -5177,7 +5186,7 @@ html[data-bs-theme="dark"] .modal .close {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.evidence-preview-clickable:hover {
+.img-evidence.evidence-preview-clickable:hover {
   transform: scale(1.02);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
