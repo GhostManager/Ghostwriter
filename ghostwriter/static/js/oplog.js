@@ -674,7 +674,7 @@ $(document).ready(function () {
                     preview = `<img src="${jsEscape('/reporting/evidence/download/' + ev.id)}" alt="${jsEscape(ev.friendly_name)}" class="oplog-evidence-thumb text-center" onclick="openLightbox('${jsEscape('/reporting/evidence/download/' + ev.id)}')" loading="lazy">`;
                 }
                 let detailUrl = window.location.origin + '/reporting/reports/evidence/' + ev.id;
-                html += `<div class="oplog-evidence-item text-left">
+                html += `<div class="oplog-evidence-item text-left mt-2">
                     <div class="oplog-evidence-item-header">
                         <i class="fas ${icon}"></i>
                         <a href="${jsEscape(detailUrl)}" target="_blank" title="View">${jsEscape(ev.friendly_name)}</a>
@@ -867,6 +867,35 @@ $(document).ready(function () {
             }, 5000);
         };
     }
+
+    // --- Paste-to-upload: capture screenshot pastes and open the evidence upload modal ---
+    $(window).on('paste', function (e) {
+        let clipboard = e.originalEvent.clipboardData || e.clipboardData;
+        if (!clipboard || !clipboard.files || clipboard.files.length === 0) return;
+
+        let file = clipboard.files[0];
+        if (!file.type.startsWith('image/')) return;
+
+        // Give the pasted file a timestamped name if the browser provides a generic one
+        let name = file.name && file.name !== 'image.png' ? file.name : 'screenshot-' + Date.now() + '.png';
+        if (file.name !== name) {
+            file = new File([file], name, { type: file.type });
+        }
+
+        let $modal = $('#evidence-modal');
+        let modalOpen = $modal.is(':visible');
+
+        if (modalOpen) {
+            // Modal is already open — swap in the pasted file as the pending file
+            $modal.data('pending-file', file);
+            showPendingFileIndicator('#evidence-modal', '#oplog-evidence-form', file);
+        } else if (selectedEntryId) {
+            // Open the modal for the currently-selected entry
+            openEvidenceUploadModal(selectedEntryId, file);
+        } else {
+            displayToastTop({ type: 'warning', string: 'Select a log entry first, then paste to attach a screenshot.', title: 'No Entry Selected' });
+        }
+    });
 
     // --- Initialization ---
     connect();
