@@ -674,6 +674,13 @@ $(document).ready(function () {
                 $list.html('');
                 return;
             }
+            // Text evidence first, then images; alphabetical within each group
+            items.sort(function (a, b) {
+                let aIsImage = /\.(jpg|jpeg|png)$/i.test(a.filename) ? 1 : 0;
+                let bIsImage = /\.(jpg|jpeg|png)$/i.test(b.filename) ? 1 : 0;
+                if (aIsImage !== bIsImage) return aIsImage - bIsImage;
+                return a.friendly_name.localeCompare(b.friendly_name);
+            });
             let html = '<div class="oplog-evidence-items mb-3">';
             items.forEach(function (ev) {
                 let isImage = /\.(jpg|jpeg|png)$/i.test(ev.filename);
