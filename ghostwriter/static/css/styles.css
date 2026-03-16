@@ -1051,6 +1051,10 @@ ul.dashboard-checklist {
   padding-left: .5rem;
 }
 
+a.btn-sm {
+  font-size: 0.875em;
+}
+
 /* Button text wrapping for narrow containers */
 .btn-text-wrap {
   white-space: normal !important;
