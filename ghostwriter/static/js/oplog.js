@@ -186,7 +186,7 @@ $(document).ready(function () {
     function generateTableHeaders() {
         let out = '<tr>';
         summaryColumns.forEach(col => {
-            out += `<th class="${col.columnClass}" data-sorter="text">${col.prettyName}</th>`;
+            out += `<th class="${col.columnClass} text-left" data-sorter="text">${col.prettyName}</th>`;
         });
         out += '</tr>';
         return out;
@@ -277,7 +277,7 @@ $(document).ready(function () {
         summaryColumns.forEach(col => {
             let value = col.getValue ? col.getValue(entry) : entry[col.internalName];
             let toHtml = col.toHtml ?? jsEscape;
-            out += `<td class="${col.columnClass}">${toHtml(value)}</td>`;
+            out += `<td class="${col.columnClass} text-left">${toHtml(value)}</td>`;
         });
         out += '</tr>';
         return out;

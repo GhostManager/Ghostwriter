@@ -1448,6 +1448,11 @@ table.table-oplog tbody tr {
   background: var(--ghost-white);
 }
 
+table.oplog-list-header-table {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .oplog-list-header-table {
   width: 100%;
   table-layout: fixed;
@@ -1460,7 +1465,6 @@ table.table-oplog tbody tr {
   color: var(--ghost-white);
   padding: 8px 10px;
   border: none;
-  cursor: pointer;
   user-select: none;
   white-space: nowrap;
   overflow: hidden;
@@ -1569,7 +1573,7 @@ table.table-oplog tbody tr {
 
 /* Detail viewer header */
 .oplog-detail-header {
-  padding: 16px 24px 12px;
+  padding: 4px 24px 5px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   background: var(--ghost-white);
   position: sticky;
