@@ -1934,6 +1934,17 @@ table.oplog-list-header-table {
   box-shadow: none !important;
 }
 
+/* Deep-link highlight: pulse the background of a targeted log entry */
+@keyframes oplog-entry-highlight-pulse {
+  0%   { background-color: rgba(var(--primary-color-rgb, 130, 90, 226), 0.35); }
+  60%  { background-color: rgba(var(--primary-color-rgb, 130, 90, 226), 0.20); }
+  100% { background-color: transparent; }
+}
+
+.oplog-entry-highlight {
+  animation: oplog-entry-highlight-pulse 2s ease-out forwards;
+}
+
 ::-webkit-scrollbar {
   -webkit-appearance: none;
   width: 7px;

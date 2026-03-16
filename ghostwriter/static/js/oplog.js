@@ -38,6 +38,11 @@ $(document).ready(function () {
     let pendingOperation = null;
     let selectedEntryId = null;
 
+    // Deep-link support: read ?entry=<id>#entry-<id> from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const deepLinkEntryId = parseInt(urlParams.get('entry') || '0') || null;
+    let deepLinkResolved = false;
+
     // Store all entry data keyed by ID
     let entryDataStore = {};
 
@@ -477,6 +482,14 @@ $(document).ready(function () {
         renderDetail(entryDataStore[entryId]);
     }
 
+    function scrollToEntry(entryId) {
+        let $row = $(`#entry-${entryId}`);
+        if ($row.length === 0) return;
+        $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        $row.addClass('oplog-entry-highlight');
+        setTimeout(function () { $row.removeClass('oplog-entry-highlight'); }, 2000);
+    }
+
     // --- Global actions ---
     window.createEntry = function (id) {
         socket.send(JSON.stringify({ action: 'create', oplog_id: id }));
@@ -806,8 +819,23 @@ $(document).ready(function () {
                 $table.trigger('updateAll');
                 $table.trigger('updateCache');
 
-                // Auto-select first entry if nothing selected
-                if (!selectedEntryId && $tableBody.find('tr').length > 0) {
+                // Deep-link: scroll to and select the target entry if it's now loaded
+                if (deepLinkEntryId && !deepLinkResolved) {
+                    if (entryDataStore[deepLinkEntryId]) {
+                        // Entry arrived in this page — select and scroll
+                        deepLinkResolved = true;
+                        selectEntry(deepLinkEntryId);
+                        scrollToEntry(deepLinkEntryId);
+                    } else if (allEntriesFetched) {
+                        // All pages exhausted and entry still not found — fall back to detail-pane display
+                        deepLinkResolved = true;
+                        socket.send(JSON.stringify({ action: 'fetch_entry', oplogEntryId: deepLinkEntryId }));
+                    } else {
+                        // Entry not yet in this page — load the next page and keep checking
+                        fetch(false);
+                    }
+                } else if (!deepLinkEntryId && !selectedEntryId && $tableBody.find('tr').length > 0) {
+                    // No deep-link: auto-select the first entry
                     let firstId = $tableBody.find('tr').first().data('entry-id');
                     selectEntry(firstId);
                 }
@@ -840,6 +868,18 @@ $(document).ready(function () {
                 updatePlaceholder();
                 $table.trigger('updateAll');
                 $table.trigger('updateCache');
+            } else if (message.action === 'fetch_entry') {
+                // Deep-link: entry fetched for detail pane display.
+                // The entry is not in the paginated DOM table, so we can only show
+                // it in the detail pane. Show a toast so the user knows it loaded.
+                let entry = message.data;
+                entryDataStore[entry.id] = entry;
+                selectEntry(entry.id);
+                displayToastTop({
+                    type: 'info',
+                    title: 'Entry Loaded',
+                    string: `Entry #${entry.id} was not found in the log table (it may be filtered or removed). Details are shown in the right pane.`,
+                });
             } else if (message.action === 'delete') {
                 let id = message.data;
                 let $row = $(`#entry-${id}`);
