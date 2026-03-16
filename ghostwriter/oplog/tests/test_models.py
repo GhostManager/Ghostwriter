@@ -8,10 +8,12 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    EvidenceOnReportFactory,
     OplogEntryEvidenceFactory,
     OplogEntryFactory,
     OplogFactory,
 )
+from ghostwriter.oplog.models import OplogEntryEvidence
 
 logging.disable(logging.CRITICAL)
 
@@ -149,3 +151,32 @@ class OplogEntryEvidenceModelTests(TestCase):
     def test_str(self):
         link = OplogEntryEvidenceFactory()
         self.assertIn(str(link.oplog_entry), str(link))
+
+    def test_evidence_tag_added_on_link_create(self):
+        """Creating an OplogEntryEvidence link adds 'evidence' tag to the OplogEntry."""
+        link = OplogEntryEvidenceFactory()
+        self.assertIn("evidence", list(link.oplog_entry.tags.names()))
+
+    def test_evidence_tag_removed_when_last_link_deleted(self):
+        """Deleting the last evidence link removes the 'evidence' tag from the OplogEntry."""
+        link = OplogEntryEvidenceFactory()
+        entry = link.oplog_entry
+        link.delete()
+        self.assertNotIn("evidence", list(entry.tags.names()))
+
+    def test_evidence_tag_retained_when_other_links_remain(self):
+        """Deleting one evidence link keeps the 'evidence' tag when other links remain."""
+        link1 = OplogEntryEvidenceFactory()
+        entry = link1.oplog_entry
+        evidence2 = EvidenceOnReportFactory()
+        link2 = OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence2)
+        # Now delete only one link; the tag should remain because link2 still exists
+        link1.delete()
+        self.assertIn("evidence", list(entry.tags.names()))
+
+    def test_evidence_tag_removed_on_cascade_evidence_delete(self):
+        """Deleting an Evidence record cascade-removes the tag when it was the last link."""
+        link = OplogEntryEvidenceFactory()
+        entry = link.oplog_entry
+        link.evidence.delete()
+        self.assertNotIn("evidence", list(entry.tags.names()))

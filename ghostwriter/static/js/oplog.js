@@ -140,7 +140,7 @@ $(document).ready(function () {
                 tagHtml += `<span class="badge badge-success">${tag}</span>`;
             } else if (upper.includes('DETECT')) {
                 tagHtml += `<span class="badge badge-info">${tag}</span>`;
-            } else if (upper.includes('OBJECTIVE')) {
+            } else if (upper.includes('OBJECTIVE') || upper.includes('EVIDENCE')) {
                 tagHtml += `<span class="badge badge-primary">${tag}</span>`;
             } else {
                 tagHtml += `<span class="badge badge-secondary">${tag}</span>`;

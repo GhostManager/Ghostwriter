@@ -17,7 +17,7 @@ from channels.layers import get_channel_layer
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
-from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence
 
 # Using __name__ resolves to ghostwriter.rolodex.signals
 logger = logging.getLogger(__name__)
@@ -91,4 +91,29 @@ def delete_oplog_entry(sender, instance, **kwargs):
         pass
     except gaierror:  # pragma: no cover
         # WebSocket are unavailable (unit testing)
+        pass
+
+
+@receiver(post_save, sender=OplogEntryEvidence)
+def oplog_entry_evidence_saved(sender, instance, created, **kwargs):
+    """
+    Add the "evidence" tag to an :model:`oplog.OplogEntry` when an evidence
+    file is linked to it via :model:`oplog.OplogEntryEvidence`.
+    """
+    if created:
+        instance.oplog_entry.tags.add("evidence")
+
+
+@receiver(post_delete, sender=OplogEntryEvidence)
+def oplog_entry_evidence_deleted(sender, instance, **kwargs):
+    """
+    Remove the "evidence" tag from an :model:`oplog.OplogEntry` when the last
+    linked evidence file is removed via :model:`oplog.OplogEntryEvidence`.
+    """
+    try:
+        entry = instance.oplog_entry
+        if not entry.evidence_links.exists():
+            entry.tags.remove("evidence")
+    except OplogEntry.DoesNotExist:  # pragma: no cover
+        # Entry has been deleted (cascading delete); nothing to update
         pass
