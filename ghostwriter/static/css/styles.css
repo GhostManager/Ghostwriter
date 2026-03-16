@@ -1488,6 +1488,11 @@ table.oplog-list-header-table {
   border-collapse: collapse;
 }
 
+table.oplog-list-table {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .oplog-list-table thead {
   display: none;
 }
