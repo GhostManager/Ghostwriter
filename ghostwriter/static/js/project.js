@@ -178,15 +178,23 @@ function showHideRow(btn, row) {
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {
+    // Revoke any existing object URL before clearing to prevent memory leaks
+    const existingImg = previewDiv.querySelector('img');
+    if (existingImg && existingImg.src.startsWith('blob:')) {
+      URL.revokeObjectURL(existingImg.src);
+    }
+
     // Clear previous content
     while (previewDiv.firstChild) {
       previewDiv.removeChild(previewDiv.firstChild);
     }
 
+    const objectUrl = URL.createObjectURL(fileInput.files[0]);
     const loadedImage = document.createElement('img');
     loadedImage.alt = 'image';
-    loadedImage.src = URL.createObjectURL(fileInput.files[0]);
     loadedImage.style.border = 'thin solid #555555';
+    loadedImage.addEventListener('load', function() { URL.revokeObjectURL(objectUrl); }, { once: true });
+    loadedImage.src = objectUrl;
     previewDiv.appendChild(loadedImage);
   }
 }
@@ -238,8 +246,15 @@ function renderAvatarPreview(fileInput, previewDiv) {
     container.appendChild(profileSection);
     previewDiv.appendChild(container);
 
-    // Set image sources
+    // Set image sources — revoke the object URL once both images have loaded
     const imageUrl = URL.createObjectURL(fileInput.files[0]);
+    let loadCount = 0;
+    const onLoad = function() {
+      loadCount++;
+      if (loadCount === 2) { URL.revokeObjectURL(imageUrl); }
+    };
+    navbarImg.addEventListener('load', onLoad, { once: true });
+    profileImg.addEventListener('load', onLoad, { once: true });
     navbarImg.src = imageUrl;
     profileImg.src = imageUrl;
   }
