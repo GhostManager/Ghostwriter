@@ -205,6 +205,17 @@ function renderPreview(fileInput, previewDiv) {
 // Insert avatar-specific previews showing how the image will appear in navbar and profile
 function renderAvatarPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {
+    // Revoke any existing blob URLs before clearing to prevent leaks when the user
+    // selects a new file before the previous images have settled (load/error/abort).
+    // Both preview images share the same URL, so track revoked URLs to avoid double-revoking.
+    const revokedUrls = new Set();
+    previewDiv.querySelectorAll('img').forEach(function(img) {
+      if (img.src.startsWith('blob:') && !revokedUrls.has(img.src)) {
+        URL.revokeObjectURL(img.src);
+        revokedUrls.add(img.src);
+      }
+    });
+
     // Clear previous content
     while (previewDiv.firstChild) {
       previewDiv.removeChild(previewDiv.firstChild);
