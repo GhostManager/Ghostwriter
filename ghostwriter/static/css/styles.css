@@ -4199,7 +4199,9 @@ input[type="color"]:focus,
   color: #fff;
 }
 
-
+[data-theme="dark"] .sidebar-header-tab {
+  color: var(--ghost-white);
+}
 
 /* File input overlap fix */
 .custom-file {
