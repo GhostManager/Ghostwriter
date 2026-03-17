@@ -1162,8 +1162,8 @@ class ClientLogoDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         obj = self.get_object()
         try:
             file_path = os.path.join(settings.MEDIA_ROOT, obj.logo.path)
-        except ValueError:
-            raise Http404
+        except ValueError as exc:
+            raise Http404 from exc
         if os.path.exists(file_path):
             return FileResponse(
                 open(file_path, "rb"),
