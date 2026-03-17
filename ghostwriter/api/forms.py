@@ -251,3 +251,21 @@ class ApiReportTemplateForm(forms.ModelForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+class ApiOplogRecordingForm(forms.Form):
+    """Validate and prepare an Asciinema recording upload for an :model:`oplog.OplogEntry`."""
+
+    file_base64 = Base64BytesField(required=True)
+    filename = forms.CharField(required=True)
+    oplog_entry_id = forms.IntegerField(required=True)
+
+    def clean_filename(self):
+        _, ext = splitext(self.cleaned_data["filename"])
+        if ext.lower() != ".cast":
+            raise ValidationError(
+                f'File extension "{ext}" is not allowed. Only .cast files are accepted.',
+                code="invalid",
+            )
+        return self.cleaned_data["filename"]
+

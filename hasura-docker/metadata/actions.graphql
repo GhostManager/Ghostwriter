@@ -172,6 +172,20 @@ type Mutation {
 }
 
 type Mutation {
+  uploadOplogRecording(
+    oplogEntryId: Int!
+    file_base64: String!
+    filename: String!
+  ): uploadOplogRecordingResult!
+}
+
+type Query {
+  downloadOplogRecording(
+    oplogEntryId: Int!
+  ): DownloadRecordingResponse
+}
+
+type Mutation {
   uploadReportTemplate(
     file_base64: String!
     filename: String!
@@ -287,6 +301,14 @@ type DownloadEvidenceResponse {
   fileBase64: String!
 }
 
+type DownloadRecordingResponse {
+  recordingId: Int!
+  oplogEntryId: Int!
+  filename: String!
+  downloadUrl: String!
+  fileBase64: String!
+}
+
 type GetReportByTagsResponse {
   id: Int!
 }
@@ -296,6 +318,10 @@ type GetProjectByTagsResponse {
 }
 
 type linkOplogEvidenceResponse {
+  id: Int!
+}
+
+type uploadOplogRecordingResult {
   id: Int!
 }
 

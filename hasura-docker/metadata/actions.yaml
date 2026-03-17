@@ -268,6 +268,30 @@ actions:
     permissions:
       - role: user
       - role: manager
+  - name: uploadOplogRecording
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/uploadOplogRecording'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Upload an Asciinema terminal recording for an oplog entry
+  - name: downloadOplogRecording
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/downloadOplogRecording'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Request the specified oplog entry's terminal recording to receive a download URL or base64-encoded blob
   - name: uploadReportTemplate
     definition:
       kind: synchronous
@@ -306,6 +330,7 @@ custom_types:
     - name: UploadEvidenceResult
     - name: UploadReportTemplateResult
     - name: linkOplogEvidenceResponse
+    - name: uploadOplogRecordingResult
     - name: TagsResult
     - name: createUserResponse
       relationships:
@@ -379,6 +404,7 @@ custom_types:
           source: default
           type: object
     - name: DownloadEvidenceResponse
+    - name: DownloadRecordingResponse
     - name: GetReportByTagsResponse
     - name: GetProjectByTagsResponse
   scalars: []

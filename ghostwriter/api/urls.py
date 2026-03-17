@@ -37,6 +37,8 @@ from ghostwriter.api.views import (
     GraphqlWhoami,
     GraphqlUploadEvidenceView,
     GraphqlLinkOplogEvidence,
+    GraphqlUploadOplogRecording,
+    GraphqlDownloadRecording,
     CheckEditPermissions,
     GetTags,
     ObjectsByTag,
@@ -76,6 +78,8 @@ urlpatterns = [
     path("uploadEvidence", csrf_exempt(GraphqlUploadEvidenceView.as_view()), name="graphql_upload_evidence"),
     path("uploadReportTemplate", csrf_exempt(GraphqlUploadReportTemplateView.as_view()), name="graphql_upload_report_template"),
     path("linkOplogEvidence", csrf_exempt(GraphqlLinkOplogEvidence.as_view()), name="graphql_link_oplog_evidence"),
+    path("uploadOplogRecording", csrf_exempt(GraphqlUploadOplogRecording.as_view()), name="graphql_upload_oplog_recording"),
+    path("downloadOplogRecording", csrf_exempt(GraphqlDownloadRecording.as_view()), name="graphql_download_oplog_recording"),
     # Events
     path("event/domain/update", csrf_exempt(GraphqlDomainUpdateEvent.as_view()), name="graphql_domain_update_event"),
     path(
