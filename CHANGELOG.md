@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Implemented status and assignment fields for observations to match the functionality for findings (PR #840,; Closed #601)
+* Implemented status and assignment fields for observations to match the functionality for findings (PR #840; Closes #601)
   * These changes make observations on reports work very similarly to findings on reports
   * Observations on reports now have a status for tracking if they need editing or are complete
   * The `assigned_to` field is now fully implemented and displayed for tracking
-* Added the "primary" status to client contacts to be consistent with project contacts (PR #841; Closed #789)
+* Added the "primary" status to client contacts to be consistent with project contacts (PR #841; Closes #789)
   * You can now flag a point of contact on a client as the primary contact
   * If a client contact is set as the primary on a client and is then added to a project for that client, they will inherit their primary status on the project
   * If there is already a primary contact on the project, the incoming client contact will not be flagged as the primary for the project
