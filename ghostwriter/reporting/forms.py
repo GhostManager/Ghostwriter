@@ -273,7 +273,7 @@ class EvidenceForm(forms.ModelForm):
                 HTML(
                     """
                     <label id="filename" class="custom-file-label" for="customFile">
-                    Click here to select or drag and drop your file...</label>
+                    Click here or drag and drop...</label>
                     """
                 ),
                 css_class="custom-file",
