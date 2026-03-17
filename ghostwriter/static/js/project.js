@@ -193,7 +193,10 @@ function renderPreview(fileInput, previewDiv) {
     const loadedImage = document.createElement('img');
     loadedImage.alt = 'image';
     loadedImage.style.border = 'thin solid #555555';
-    loadedImage.addEventListener('load', function() { URL.revokeObjectURL(objectUrl); }, { once: true });
+    const revokeObjectUrl = function() { URL.revokeObjectURL(objectUrl); };
+    loadedImage.addEventListener('load', revokeObjectUrl, { once: true });
+    loadedImage.addEventListener('error', revokeObjectUrl, { once: true });
+    loadedImage.addEventListener('abort', revokeObjectUrl, { once: true });
     loadedImage.src = objectUrl;
     previewDiv.appendChild(loadedImage);
   }
@@ -246,15 +249,19 @@ function renderAvatarPreview(fileInput, previewDiv) {
     container.appendChild(profileSection);
     previewDiv.appendChild(container);
 
-    // Set image sources — revoke the object URL once both images have loaded
+    // Set image sources — revoke the object URL once both images have settled (load, error, or abort)
     const imageUrl = URL.createObjectURL(fileInput.files[0]);
-    let loadCount = 0;
-    const onLoad = function() {
-      loadCount++;
-      if (loadCount === 2) { URL.revokeObjectURL(imageUrl); }
+    let settledCount = 0;
+    const onSettle = function() {
+      settledCount++;
+      if (settledCount === 2) { URL.revokeObjectURL(imageUrl); }
     };
-    navbarImg.addEventListener('load', onLoad, { once: true });
-    profileImg.addEventListener('load', onLoad, { once: true });
+    navbarImg.addEventListener('load', onSettle, { once: true });
+    navbarImg.addEventListener('error', onSettle, { once: true });
+    navbarImg.addEventListener('abort', onSettle, { once: true });
+    profileImg.addEventListener('load', onSettle, { once: true });
+    profileImg.addEventListener('error', onSettle, { once: true });
+    profileImg.addEventListener('abort', onSettle, { once: true });
     navbarImg.src = imageUrl;
     profileImg.src = imageUrl;
   }
