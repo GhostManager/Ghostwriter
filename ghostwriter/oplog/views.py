@@ -737,7 +737,7 @@ class OplogEntryEvidenceList(RoleBasedAccessControlMixin, View):
                 "id": ev.pk,
                 "friendly_name": ev.friendly_name,
                 "caption": ev.caption,
-                "document_url": ev.document.url if ev.document else "",
+                "document_url": reverse("reporting:evidence_download", kwargs={"pk": ev.pk}) + "?view=1" if ev.document else "",
                 "filename": ev.document.name.split("/")[-1] if ev.document else "",
                 "link_id": link.pk,
                 "uploaded_by_user": ev.uploaded_by_user,
