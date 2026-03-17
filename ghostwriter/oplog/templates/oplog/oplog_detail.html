@@ -15,8 +15,8 @@
 {% endblock %}
 
 {% block content %}
-    <link rel="stylesheet" href="https://unpkg.com/asciinema-player@3.14.15/dist/bundle/asciinema-player.css" />
-    <script src="https://unpkg.com/asciinema-player@3.14.15/dist/bundle/asciinema-player.min.js"></script>
+    <link rel="stylesheet" href="{% static 'vendor/asciinema-player/asciinema-player.css' %}" />
+    <script src="{% static 'vendor/asciinema-player/asciinema-player.min.js' %}"></script>
     <script src="{% static 'js/oplog.js' %}"></script>
     <div>
         <div class="dropdown">
