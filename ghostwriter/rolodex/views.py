@@ -1147,7 +1147,7 @@ def index(request):
 
 
 class ClientLogoDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Return the target :model:`reporting.Evidence` file for download."""
+    """Return the target :model:`rolodex.Client` logo file for download."""
 
     model = Client
 
