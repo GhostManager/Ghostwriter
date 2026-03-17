@@ -312,6 +312,7 @@ $(document).ready(function () {
             <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Edit entry" onclick="editEntry(${entry.id})"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy entry" onclick="copyEntry(this)" entry-id="${entry.id}"><i class="fa fa-copy"></i></button>
             <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${entry.id})"><i class="fas fa-clipboard"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy deep link" onclick="copyDeepLink(${entry.id})"><i class="fas fa-link"></i></button>
             <button class="btn btn-sm btn-outline-danger danger" data-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${entry.id}"><i class="fa fa-trash"></i></button>
         </div>`;
         html += `</div>`;
@@ -537,6 +538,21 @@ $(document).ready(function () {
             let $temp = $('<textarea>');
             $('body').append($temp);
             $temp.val(json).select();
+            document.execCommand('copy');
+            $temp.remove();
+        }
+    };
+
+    window.copyDeepLink = function (entryId) {
+        let url = window.location.origin + window.location.pathname + '?entry=' + entryId + '#entry-' + entryId;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(function () {
+                displayToastTop({ type: 'success', string: 'Copied deep link to clipboard.', title: 'Copied' });
+            });
+        } else {
+            let $temp = $('<textarea>');
+            $('body').append($temp);
+            $temp.val(url).select();
             document.execCommand('copy');
             $temp.remove();
         }
