@@ -4,6 +4,7 @@
 import datetime
 import json
 import logging
+import mimetypes
 import os
 from urllib.parse import urlparse
 
@@ -1165,11 +1166,28 @@ class ClientLogoDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         except ValueError as exc:
             raise Http404 from exc
         if os.path.exists(file_path):
-            return FileResponse(
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=True,
+                as_attachment=not inline_view,
                 filename=os.path.basename(file_path),
+                content_type=content_type,
             )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+
+            return response
         raise Http404
 
 
