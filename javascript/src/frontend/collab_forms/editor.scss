@@ -437,3 +437,18 @@ ul.collab-focused-users {
     max-width: 95vw;
     max-height: 95vh;
 }
+
+// Passive Voice Highlighting
+.passive-voice-highlight {
+    background-color: #fff3cd;
+    text-decoration: underline wavy #ff6b6b;
+    text-decoration-thickness: 2px;
+    transition: background-color 0.15s ease;
+    color: marktext;
+    cursor: text;
+}
+
+// Hover state applied via JavaScript to all segments in same group
+.passive-voice-highlight.passive-voice-hover {
+    background-color: #ffe69c;
+}
