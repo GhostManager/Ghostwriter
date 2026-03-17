@@ -3752,7 +3752,7 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] .btn {
-  color: var(--main-txt-color);
+  color: var(--ghost-white);
 }
 
 [data-theme="dark"] .icon::before {
@@ -3801,7 +3801,7 @@ input[type="color"]:focus,
 [data-theme="dark"] .btn-secondary {
   background-color: #3a3a3a;
   border-color: #555;
-  color: var(--main-txt-color);
+  color: var(--ghost-white);
 }
 
 [data-theme="dark"] .btn-secondary:hover {
@@ -4103,12 +4103,12 @@ input[type="color"]:focus,
 /* Icon button contrast fix for dark mode */
 [data-theme="dark"] .icon:before,
 [data-theme="dark"] .icon:after {
-  color: var(--main-txt-color);
+  color: var(--ghost-white);
 }
 
 [data-theme="dark"] button.icon,
 [data-theme="dark"] a.icon {
-  color: var(--main-txt-color);
+  color: var(--ghost-white);
 }
 
 /* Make icon and text turn white on hover for buttons and links styled as buttons */
