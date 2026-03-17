@@ -19,13 +19,12 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         exclude = ("user", "hide_quickstart")
         widgets = {
-            "avatar": forms.FileInput(attrs={"class": "form-control"}),
+            "avatar": forms.FileInput(attrs={"class": "custom-file-input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["avatar"].label = ""
-        self.fields["avatar"].widget.attrs["class"] = "custom-file-input"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.attrs = {"enctype": "multipart/form-data"}
@@ -53,13 +52,23 @@ class UserProfileForm(forms.ModelForm):
                             <label class="custom-file-label" for="id_avatar">
                                 Click here or drag and drop...</label>
                             <script type="text/javascript" id="script-id_avatar">
-                                document.getElementById("script-id_avatar").parentNode.querySelector(".custom-file-input").addEventListener("change", function(e) {
-                                    var filenames = "";
-                                    for (let i = 0; i < e.target.files.length; i++) {
-                                        filenames += (i > 0 ? ", " : "") + e.target.files[i].name;
-                                    }
-                                    e.target.parentNode.querySelector(".custom-file-label").textContent = filenames;
-                                });
+                                (function() {
+                                    var input = document.getElementById("id_avatar");
+                                    var label = document.querySelector("label[for='id_avatar'].custom-file-label");
+                                    var placeholder = label.textContent;
+                                    if (!input) { console.error("Avatar file input #id_avatar not found"); return; }
+                                    input.addEventListener("change", function(e) {
+                                        if (e.target.files.length === 0) {
+                                            label.textContent = placeholder;
+                                        } else {
+                                            var filenames = "";
+                                            for (var i = 0; i < e.target.files.length; i++) {
+                                                filenames += (i > 0 ? ", " : "") + e.target.files[i].name;
+                                            }
+                                            label.textContent = filenames;
+                                        }
+                                    });
+                                })();
                             </script>
                         </div>
                         """
