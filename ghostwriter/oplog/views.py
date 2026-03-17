@@ -12,7 +12,7 @@ import os
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import ListView
@@ -817,12 +817,28 @@ class OplogRecordingDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     def get(self, request, *args, **kwargs):
         recording = self.get_object()
         file_path = recording.recording_file.path
-        if not os.path.exists(file_path):
-            raise Http404
-        from django.http import FileResponse
-        return FileResponse(
-            open(file_path, "rb"),
-            as_attachment=False,
-            filename=recording.filename,
-            content_type="text/plain",
-        )
+        if os.path.exists(file_path):
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
+                open(file_path, "rb"),
+                as_attachment=not inline_view,
+                filename=recording.filename,
+                content_type=content_type,
+            )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                # Additional hardening for inline content
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+
+            return response
+        raise Http404
