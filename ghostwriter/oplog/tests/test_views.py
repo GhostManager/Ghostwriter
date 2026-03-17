@@ -19,6 +19,7 @@ from ghostwriter.factories import (
     MgrFactory,
     OplogEntryEvidenceFactory,
     OplogEntryFactory,
+    OplogEntryRecordingFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
