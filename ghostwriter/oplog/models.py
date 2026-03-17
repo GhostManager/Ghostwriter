@@ -221,6 +221,8 @@ class OplogEntry(models.Model):
                 logger.exception("Received an incomplete time value: %s", self.end_date)
                 self.end_date = self.initial_end_date
 
+        super().clean(*args, **kwargs)
+
 
 class OplogEntryEvidence(models.Model):
     """Links an :model:`oplog.OplogEntry` to a :model:`reporting.Evidence` file."""
