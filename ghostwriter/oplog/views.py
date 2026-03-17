@@ -5,12 +5,14 @@ import collections
 import csv
 import json
 import logging
+import mimetypes
+import os
 
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import ListView
@@ -30,7 +32,7 @@ from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogEvidenceForm, OplogForm
-from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence
+from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence, OplogEntryRecording
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Project
 
@@ -677,7 +679,7 @@ class OplogEvidenceCreate(RoleBasedAccessControlMixin, View):
         return self.get_entry().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
-        return JsonResponse({"result": "error", "message": "You do not have permission."}, status=403)
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
 
     def get(self, request, *args, **kwargs):
         entry = self.get_entry()
@@ -723,7 +725,7 @@ class OplogEntryEvidenceList(RoleBasedAccessControlMixin, View):
         return self.get_entry().user_can_view(self.request.user)
 
     def handle_no_permission(self):
-        return JsonResponse({"result": "error", "message": "You do not have permission."}, status=403)
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
 
     def get(self, request, *args, **kwargs):
         entry = self.get_entry()
@@ -741,3 +743,86 @@ class OplogEntryEvidenceList(RoleBasedAccessControlMixin, View):
                 "uploaded_by_user": ev.uploaded_by_user,
             })
         return JsonResponse({"result": "success", "evidence": evidence_list})
+
+
+class OplogRecordingUpload(RoleBasedAccessControlMixin, View):
+    """
+    Upload or replace the Asciinema terminal recording for an :model:`oplog.OplogEntry`.
+
+    Returns a JSON response.
+    """
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def post(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        recording_file = request.FILES.get("recording_file")
+        if not recording_file:
+            return JsonResponse({"result": "error", "message": "No file provided."}, status=400)
+        if not recording_file.name.lower().endswith(".cast"):
+            return JsonResponse({"result": "error", "message": "Only .cast files are accepted."}, status=400)
+        # Replace any existing recording
+        try:
+            entry.recording.delete()
+        except OplogEntryRecording.DoesNotExist:
+            pass
+        recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=request.user)
+        recording.recording_file = recording_file
+        recording.save()
+        return JsonResponse({
+            "result": "success",
+            "recording_url": reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk}),
+        })
+
+
+class OplogRecordingDelete(RoleBasedAccessControlMixin, View):
+    """Delete the Asciinema terminal recording for an :model:`oplog.OplogEntry`."""
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def post(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        try:
+            entry.recording.delete()
+            return JsonResponse({"result": "success"})
+        except OplogEntryRecording.DoesNotExist:
+            return JsonResponse({"result": "error", "message": "No recording found."}, status=404)
+
+
+class OplogRecordingDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Serve the Asciinema recording file for an :model:`oplog.OplogEntryRecording`."""
+
+    model = OplogEntryRecording
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def get(self, request, *args, **kwargs):
+        recording = self.get_object()
+        file_path = recording.recording_file.path
+        if not os.path.exists(file_path):
+            raise Http404
+        from django.http import FileResponse
+        return FileResponse(
+            open(file_path, "rb"),
+            as_attachment=False,
+            filename=recording.filename,
+            content_type="text/plain",
+        )
