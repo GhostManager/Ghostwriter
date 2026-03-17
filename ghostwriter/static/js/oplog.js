@@ -46,9 +46,6 @@ $(document).ready(function () {
     // Store all entry data keyed by ID
     let entryDataStore = {};
 
-    // Store cast file data in memory (client-side only, keyed by entry ID)
-    let recordingDataStore = {};
-
     // --- Column definitions ---
     // Summary columns shown in the left list
     let summaryColumns = [
@@ -400,16 +397,15 @@ $(document).ready(function () {
         html += `</div>`;
 
         // Asciinema terminal recording section
-        let hasCastData = !!recordingDataStore[entry.id];
         let hasRecordingUrl = !!entry.recording_url;
 
         html += `<div class="oplog-attachment-section">`;
         html += `<div class="oplog-attachment-label"><i class="fas fa-terminal"></i> Terminal Recording</div>`;
-        if (hasCastData || hasRecordingUrl) {
+        if (hasRecordingUrl) {
             html += `<div class="oplog-asciinema-container" id="asciinema-player-${entry.id}"></div>`;
             html += `<div class="oplog-asciinema-actions">
-                <button class="btn btn-sm btn-outline-secondary" onclick="removeRecording(${entry.id})">
-                    <i class="fas fa-times"></i> Remove recording
+                <button class="btn btn-sm btn-outline-danger" onclick="removeRecording(${entry.id})">
+                    <i class="fas fa-times"></i> Remove Recording
                 </button>
             </div>`;
         } else {
@@ -431,9 +427,7 @@ $(document).ready(function () {
             let playerEl = document.getElementById('asciinema-player-' + entry.id);
             if (playerEl) {
                 let playerOpts = { fit: 'width', theme: 'dracula', idleTimeLimit: 3, preload: true };
-                if (hasCastData) {
-                    AsciinemaPlayer.create({ data: recordingDataStore[entry.id] }, playerEl, playerOpts);
-                } else if (hasRecordingUrl) {
+                if (hasRecordingUrl) {
                     AsciinemaPlayer.create(entry.recording_url, playerEl, playerOpts);
                 }
             }
@@ -464,9 +458,8 @@ $(document).ready(function () {
                 let file = files[0];
 
                 if (dropzoneId.startsWith('recording-dropzone')) {
-                    // Read .cast file and load into player
                     let targetEntryId = parseInt(dropzoneId.replace('recording-dropzone-', ''));
-                    loadCastFile(file, targetEntryId);
+                    uploadCastFile(file, targetEntryId);
                 } else if (dropzoneId.startsWith('evidence-dropzone')) {
                     let targetEntryId = parseInt(dropzoneId.replace('evidence-dropzone-', ''));
                     openEvidenceUploadModal(targetEntryId, file);
@@ -560,12 +553,12 @@ $(document).ready(function () {
 
     // --- Attachment functions ---
 
-    // Read a .cast file and store its contents, then re-render the detail view
-    function loadCastFile(file, entryId) {
+    // Upload a .cast file to the server for persistent storage, then update the detail view
+    function uploadCastFile(file, entryId) {
+        // Basic client-side validation before sending
         let reader = new FileReader();
         reader.onload = function (ev) {
             let castData = ev.target.result;
-            // Basic validation: first line should be JSON with a version field
             try {
                 let firstLine = castData.split('\n')[0];
                 let header = JSON.parse(firstLine);
@@ -578,12 +571,41 @@ $(document).ready(function () {
                 return;
             }
 
-            recordingDataStore[entryId] = castData;
-            // Re-render the detail view to show the player
-            if (selectedEntryId == entryId) {
-                renderDetail(entryDataStore[entryId]);
-            }
-            displayToastTop({ type: 'success', string: 'Terminal recording loaded successfully.', title: 'Recording Loaded' });
+            let $dropzone = $(`#recording-dropzone-${entryId}`);
+            $dropzone.html('<div class="dropzone-icon"><i class="fas fa-sync fa-spin"></i></div><div class="dropzone-text">Uploading...</div>');
+
+            let formData = new FormData();
+            formData.append('recording_file', file);
+            let csrfToken = $splitContainer.attr('data-csrf-token');
+
+            window.fetch('/oplog/entry/' + entryId + '/recording/upload', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken },
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.result === 'success') {
+                    if (entryDataStore[entryId]) {
+                        entryDataStore[entryId].recording_url = data.recording_url;
+                    }
+                    if (selectedEntryId == entryId) {
+                        renderDetail(entryDataStore[entryId]);
+                    }
+                    displayToastTop({ type: 'success', string: 'Terminal recording uploaded successfully.', title: 'Recording Saved' });
+                } else {
+                    displayToastTop({ type: 'error', string: data.message || 'Upload failed.', title: 'Upload Error' });
+                    if (selectedEntryId == entryId) {
+                        renderDetail(entryDataStore[entryId]);
+                    }
+                }
+            })
+            .catch(function () {
+                displayToastTop({ type: 'error', string: 'Network error during upload.', title: 'Upload Error' });
+                if (selectedEntryId == entryId) {
+                    renderDetail(entryDataStore[entryId]);
+                }
+            });
         };
         reader.onerror = function () {
             displayToastTop({ type: 'error', string: 'Failed to read file.', title: 'File Error' });
@@ -735,17 +757,39 @@ $(document).ready(function () {
     }
 
     window.uploadRecording = function (entryId) {
-        let $input = $('#castFileInput');
-        $input.data('target-entry-id', entryId);
+        let $input = $('<input type="file" accept=".cast,.txt,.json" style="display:none;">');
+        $input.on('change', function (e) {
+            let file = e.target.files[0];
+            if (file) uploadCastFile(file, entryId);
+            $input.remove();
+        });
+        $('body').append($input);
         $input.click();
     };
 
     window.removeRecording = function (entryId) {
-        delete recordingDataStore[entryId];
-        if (selectedEntryId == entryId) {
-            renderDetail(entryDataStore[entryId]);
-        }
-        displayToastTop({ type: 'info', string: 'Recording removed.', title: 'Recording Removed' });
+        let csrfToken = $splitContainer.attr('data-csrf-token');
+        window.fetch('/oplog/entry/' + entryId + '/recording/delete', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.result === 'success') {
+                if (entryDataStore[entryId]) {
+                    entryDataStore[entryId].recording_url = null;
+                }
+                if (selectedEntryId == entryId) {
+                    renderDetail(entryDataStore[entryId]);
+                }
+                displayToastTop({ type: 'info', string: 'Recording removed.', title: 'Recording Deleted' });
+            } else {
+                displayToastTop({ type: 'error', string: data.message || 'Delete failed.', title: 'Error' });
+            }
+        })
+        .catch(function () {
+            displayToastTop({ type: 'error', string: 'Network error.', title: 'Error' });
+        });
     };
 
     window.openLightbox = function (url) {
@@ -872,6 +916,7 @@ $(document).ready(function () {
                     // Update existing row
                     let newHtml = generateRow(entry);
                     $existing.replaceWith(newHtml);
+                    hideColumns();
                     // If this is the selected entry, re-render detail
                     if (selectedEntryId === entryId) {
                         renderDetail(entry);
@@ -1100,17 +1145,6 @@ $(document).ready(function () {
     $('#evidence-modal').on('hide.bs.modal', function () {
         $(this).find('.oplog-evidence-form-div').html('');
         $(this).removeData('pending-file');
-    });
-
-    // --- Cast file input handler ---
-    $('#castFileInput').on('change', function (e) {
-        let file = e.target.files[0];
-        if (!file) return;
-        let entryId = $(this).data('target-entry-id');
-        if (!entryId) return;
-        loadCastFile(file, entryId);
-        // Reset input value so the same file can be re-selected
-        $(this).val('');
     });
 
     // --- Export ---
