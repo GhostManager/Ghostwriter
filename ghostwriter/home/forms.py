@@ -49,12 +49,12 @@ class UserProfileForm(forms.ModelForm):
                         {% if form.avatar.errors %}<div class="invalid-feedback d-block">{{ form.avatar.errors }}</div>{% endif %}
                         <div class="custom-file">
                             {{ form.avatar }}
-                            <label class="custom-file-label" for="id_avatar">
+                            <label class="custom-file-label" for="id_avatar" id="filename">
                                 Click here or drag and drop...</label>
                             <script type="text/javascript" id="script-id_avatar">
                                 (function() {
                                     var input = document.getElementById("id_avatar");
-                                    var label = document.querySelector("label[for='id_avatar'].custom-file-label");
+                                    var label = document.getElementById("filename");
                                     var placeholder = label.textContent;
                                     if (!input) { console.error("Avatar file input #id_avatar not found"); return; }
                                     input.addEventListener("change", function(e) {
