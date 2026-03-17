@@ -1050,8 +1050,11 @@ class ClientLogoDownloadTests(TestCase):
         cls.client_deleted_logo = ClientFactory(
             logo=factory.django.ImageField(filename="deleted_logo.png", width=100, height=100)
         )
+        # Create a client with no logo to test ValueError handling
+        cls.client_no_logo = ClientFactory()
         cls.uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_with_logo.pk})
         cls.deleted_uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_deleted_logo.pk})
+        cls.no_logo_uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_no_logo.pk})
 
     def setUp(self):
         self.client = Client()
@@ -1089,6 +1092,11 @@ class ClientLogoDownloadTests(TestCase):
             os.remove(self.client_deleted_logo.logo.path)
 
         response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_no_logo_returns_404(self):
+        """A client with no logo set should return 404, not 500."""
+        response = self.client_mgr.get(self.no_logo_uri)
         self.assertEqual(response.status_code, 404)
 
 
