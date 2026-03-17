@@ -2,10 +2,12 @@
 
 # Standard Libraries
 import logging
+import os
 from datetime import datetime
 
 # Django Imports
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
@@ -244,6 +246,59 @@ class OplogEntryEvidence(models.Model):
 
     def __str__(self):
         return f"{self.oplog_entry} <-> {self.evidence}"
+
+    def user_can_view(self, user) -> bool:
+        return self.oplog_entry.user_can_view(user)
+
+    def user_can_edit(self, user) -> bool:
+        return self.oplog_entry.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        return self.oplog_entry.user_can_edit(user)
+
+
+def set_recording_upload_destination(instance, filename):
+    """Sets the ``upload_to`` destination for recordings under the associated project ID."""
+    return os.path.join("recordings", str(instance.oplog_entry.oplog_id.project_id), filename)
+
+
+class OplogEntryRecording(models.Model):
+    """Stores an Asciinema terminal recording for an individual :model:`oplog.OplogEntry`."""
+
+    oplog_entry = models.OneToOneField(
+        OplogEntry,
+        on_delete=models.CASCADE,
+        related_name="recording",
+        help_text="The oplog entry this recording is attached to.",
+    )
+    recording_file = models.FileField(
+        upload_to=set_recording_upload_destination,
+        max_length=255,
+    )
+    uploaded_date = models.DateTimeField(
+        "Upload Date",
+        auto_now_add=True,
+        help_text="Date and time the recording was uploaded.",
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The user who uploaded this recording.",
+    )
+
+    class Meta:
+        ordering = ["-uploaded_date"]
+        verbose_name = "Oplog entry recording"
+        verbose_name_plural = "Oplog entry recordings"
+
+    def __str__(self):
+        return f"Recording for entry {self.oplog_entry_id}"
+
+    @property
+    def filename(self):
+        return os.path.basename(self.recording_file.name)
 
     def user_can_view(self, user) -> bool:
         return self.oplog_entry.user_can_view(user)

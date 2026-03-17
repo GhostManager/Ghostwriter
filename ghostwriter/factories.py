@@ -643,6 +643,17 @@ class OplogEntryEvidenceFactory(factory.django.DjangoModelFactory):
     evidence = factory.SubFactory(EvidenceOnReportFactory)
 
 
+class OplogEntryRecordingFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.OplogEntryRecording"
+
+    oplog_entry = factory.SubFactory(OplogEntryFactory)
+    recording_file = factory.django.FileField(
+        filename="test.cast",
+        data=b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "Hello, world!"]\n',
+    )
+
+
 # Shepherd Factories
 
 
