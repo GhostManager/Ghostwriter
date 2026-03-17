@@ -272,7 +272,7 @@ class EvidenceForm(forms.ModelForm):
                 ),
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">
+                    <label id="filename" class="custom-file-label" for="id_document">
                     Click here or drag and drop...</label>
                     """
                 ),
