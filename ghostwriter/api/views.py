@@ -954,7 +954,8 @@ class GraphqlLinkOplogEvidence(JwtRequiredMixin, HasuraActionView):
                 status=400,
             )
 
-        link, created = OplogEntryEvidence.objects.get_or_create(
+        # Do a `get_or_create` in case the evidence is already linked to the oplog entry
+        link, _ = OplogEntryEvidence.objects.get_or_create(
             oplog_entry=entry,
             evidence=evidence,
         )
@@ -976,8 +977,10 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
 
         from django.core.files.base import ContentFile
 
-        form = ApiOplogRecordingForm(self.input)
+        form_data = {**self.input, "oplog_entry_id": self.input.get("oplogEntryId")}
+        form = ApiOplogRecordingForm(form_data)
         if not form.is_valid():
+            logger.info("Invalid form data for uploading oplog recording: %s", form.errors)
             message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
             return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=400)
 
