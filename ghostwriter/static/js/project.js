@@ -178,6 +178,11 @@ function showHideRow(btn, row) {
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {
+    // Revoke the previous object URL if one exists
+    if (previewDiv._objectUrl) {
+      URL.revokeObjectURL(previewDiv._objectUrl);
+    }
+
     // Clear previous content
     while (previewDiv.firstChild) {
       previewDiv.removeChild(previewDiv.firstChild);
@@ -185,7 +190,8 @@ function renderPreview(fileInput, previewDiv) {
 
     const loadedImage = document.createElement('img');
     loadedImage.alt = 'image';
-    loadedImage.src = URL.createObjectURL(fileInput.files[0]);
+    previewDiv._objectUrl = URL.createObjectURL(fileInput.files[0]);
+    loadedImage.src = previewDiv._objectUrl;
     loadedImage.style.border = 'thin solid #555555';
     previewDiv.appendChild(loadedImage);
   }
@@ -194,6 +200,11 @@ function renderPreview(fileInput, previewDiv) {
 // Insert avatar-specific previews showing how the image will appear in navbar and profile
 function renderAvatarPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {
+    // Revoke the previous object URL if one exists
+    if (previewDiv._objectUrl) {
+      URL.revokeObjectURL(previewDiv._objectUrl);
+    }
+
     // Clear previous content
     while (previewDiv.firstChild) {
       previewDiv.removeChild(previewDiv.firstChild);
@@ -238,10 +249,10 @@ function renderAvatarPreview(fileInput, previewDiv) {
     container.appendChild(profileSection);
     previewDiv.appendChild(container);
 
-    // Set image sources
-    const imageUrl = URL.createObjectURL(fileInput.files[0]);
-    navbarImg.src = imageUrl;
-    profileImg.src = imageUrl;
+    // Set image sources (single URL shared by both previews)
+    previewDiv._objectUrl = URL.createObjectURL(fileInput.files[0]);
+    navbarImg.src = previewDiv._objectUrl;
+    profileImg.src = previewDiv._objectUrl;
   }
 }
 
