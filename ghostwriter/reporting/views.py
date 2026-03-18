@@ -931,7 +931,7 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             response["X-Content-Type-Options"] = "nosniff"
             if inline_view:
                 # Additional hardening for inline content
-                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
 
             return response
         raise Http404
