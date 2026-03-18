@@ -85,6 +85,7 @@ hr {
 
 .img-evidence {
   height: auto;
+  width: 6.5in;
   max-width: 6.5in;
   max-height: 70%;
   display: block;
@@ -1756,6 +1757,7 @@ table.oplog-list-table {
 
 .oplog-evidence-thumb {
   cursor: zoom-in;
+  width: 100%;
 }
 
 .oplog-evidence-thumb:hover {
