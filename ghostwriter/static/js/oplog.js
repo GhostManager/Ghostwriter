@@ -189,8 +189,8 @@ $(document).ready(function () {
 
     function generateTableHeaders() {
         let out = '<tr>';
-        summaryColumns.forEach(col => {
-            out += `<th class="${col.columnClass} text-left" data-sorter="text">${col.prettyName}</th>`;
+        summaryColumns.forEach((col, idx) => {
+            out += `<th class="${col.columnClass} text-left none" data-sorter="text" data-col-index="${idx}" style="cursor:pointer;">${col.prettyName}</th>`;
         });
         out += '</tr>';
         return out;
@@ -206,6 +206,7 @@ $(document).ready(function () {
                 hiddenLogTblColumns = hiddenLogTblColumns.filter(v => v !== columnClass);
             }
             localStorage.setItem('hiddenLogTblColumns', JSON.stringify(hiddenLogTblColumns));
+            $table.trigger('updateAll');
         });
     }
 
@@ -917,20 +918,19 @@ $(document).ready(function () {
                     let newHtml = generateRow(entry);
                     $existing.replaceWith(newHtml);
                     hideColumns();
+                    $table.trigger('update');
                     // If this is the selected entry, re-render detail
                     if (selectedEntryId === entryId) {
                         renderDetail(entry);
                     }
                 } else {
-                    // New entry: prepend
-                    $tableBody.prepend(generateRow(entry));
-                    let $newRow = $(`#entry-${entryId}`);
+                    // New entry: prepend and use addRows to preserve natural order
+                    let $newRow = $(generateRow(entry)).prependTo($tableBody);
                     $newRow.hide().fadeIn(400);
                     hideColumns();
+                    $table.trigger('addRows', [$newRow, true]);
                 }
                 updatePlaceholder();
-                $table.trigger('updateAll');
-                $table.trigger('updateCache');
             } else if (message.action === 'fetch_entry') {
                 // Deep-link: entry fetched for detail pane display.
                 // The entry is not in the paginated DOM table, so we can only show
@@ -1037,8 +1037,60 @@ $(document).ready(function () {
         widgetOptions: { saveSort: true, storage_page: 'logDetailTable' },
     });
 
+    // Sync sort-indicator classes from the hidden thead to the visible header
+    function syncSortIndicators() {
+        let $hiddenThs = $tableHeaderHidden.find('th');
+        let $visibleThs = $tableHeader.find('th');
+        $visibleThs.each(function (i) {
+            let $vis = $(this);
+            let $hid = $hiddenThs.eq(i);
+            $vis.removeClass('up down none');
+            if ($hid.hasClass('up')) $vis.addClass('up');
+            else if ($hid.hasClass('down')) $vis.addClass('down');
+            else $vis.addClass('none');
+        });
+    }
+
+    // Handle clicks on visible header: compute sortList directly and trigger sorton
+    $tableHeader.on('click', 'th', function (e) {
+        let colIndex = $(this).data('col-index');
+        if (colIndex === undefined) return;
+
+        let currentSortList = $table[0].config.sortList || [];
+        let existing = currentSortList.filter(function (s) { return s[0] === colIndex; })[0];
+        // Toggle direction if already sorting by this column, else default to ascending (0)
+        let newOrder = existing ? (existing[1] === 0 ? 1 : 0) : 0;
+
+        let newSortList;
+        if (e.shiftKey) {
+            // Multi-sort: replace this column's entry or append it
+            newSortList = currentSortList.filter(function (s) { return s[0] !== colIndex; });
+            newSortList.push([colIndex, newOrder]);
+        } else {
+            newSortList = [[colIndex, newOrder]];
+        }
+
+        $table.trigger('sorton', [newSortList]);
+    });
+
+    // After every sort, copy indicators to visible header
+    $table.on('sortEnd', function () {
+        syncSortIndicators();
+    });
+
     $('#resetSortBtn').click(function () {
-        $table.trigger('saveSortReset').trigger('sortReset');
+        // Clear saved sort from localStorage
+        $table.trigger('saveSortReset');
+        // Reorder rows by entry ID descending (newest first)
+        let $rows = $tableBody.find('tr').detach();
+        $rows.sort(function (a, b) {
+            return parseInt(b.dataset.entryId) - parseInt(a.dataset.entryId);
+        });
+        $tableBody.append($rows);
+        // Clear active sort list, then re-index so tablesorter treats this as natural order
+        $table[0].config.sortList = [];
+        $table.trigger('updateAll');
+        syncSortIndicators();
         return false;
     });
 
