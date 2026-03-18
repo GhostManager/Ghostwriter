@@ -262,7 +262,7 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         response["X-Content-Type-Options"] = "nosniff"
         if inline_view:
             # Additional hardening for inline content (avatars are typically images)
-            response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+            response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
 
         return response
 
