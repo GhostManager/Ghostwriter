@@ -242,8 +242,8 @@ class OplogEntryEvidence(models.Model):
 
     class Meta:
         unique_together = ["oplog_entry", "evidence"]
-        verbose_name = "Oplog entry evidence link"
-        verbose_name_plural = "Oplog entry evidence links"
+        verbose_name = "Activity log entry evidence link"
+        verbose_name_plural = "Activity log entry evidence links"
         ordering = ["-id"]
 
     def __str__(self):
@@ -292,8 +292,8 @@ class OplogEntryRecording(models.Model):
 
     class Meta:
         ordering = ["-uploaded_date"]
-        verbose_name = "Oplog entry recording"
-        verbose_name_plural = "Oplog entry recordings"
+        verbose_name = "Activity log entry recording"
+        verbose_name_plural = "Activity log entry recordings"
 
     def __str__(self):
         return f"Recording for entry {self.oplog_entry_id}"
