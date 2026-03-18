@@ -798,6 +798,7 @@ class OplogRecordingDelete(RoleBasedAccessControlMixin, View):
         entry = self.get_entry()
         try:
             entry.recording.delete()
+            logger.info("Deleted recording for %s %s by request of %s", entry.__class__.__name__, entry.id, self.request.user)
             return JsonResponse({"result": "success"})
         except OplogEntryRecording.DoesNotExist:
             return JsonResponse({"result": "error", "message": "No recording found."}, status=404)
