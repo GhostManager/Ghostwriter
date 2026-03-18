@@ -824,7 +824,8 @@ ul ul button {
 ----------------------------------------------------- */
 
 #content {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 5px 20px 20px;
   min-height: 100vh;
   transition: all 0.3s;
