@@ -47,7 +47,7 @@ select_permissions:
         oplogEntry:
           log:
             project:
-              _and:
+              _or:
                 - assignments:
                     operator_id:
                       _eq: X-Hasura-User-Id
