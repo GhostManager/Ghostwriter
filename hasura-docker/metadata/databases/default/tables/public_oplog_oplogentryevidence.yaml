@@ -24,3 +24,87 @@ object_relationships:
   - name: oplogEntry
     using:
       foreign_key_constraint_on: oplog_entry_id
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - evidence_id
+        - id
+        - oplog_entry_id
+      filter: {}
+    comment: ""
+  - role: user
+    permission:
+      columns:
+        - evidence_id
+        - id
+        - oplog_entry_id
+      filter:
+        _and:
+          - evidence:
+              report:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+          - oplogEntry:
+              log:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+    comment: ""
+delete_permissions:
+  - role: manager
+    permission:
+      filter: {}
+    comment: ""
+  - role: user
+    permission:
+      filter:
+        _and:
+          - evidence:
+              report:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+          - oplogEntry:
+              log:
+                project:
+                  _or:
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+    comment: ""

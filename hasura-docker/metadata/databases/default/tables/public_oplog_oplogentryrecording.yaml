@@ -21,3 +21,67 @@ object_relationships:
   - name: oplogEntry
     using:
       foreign_key_constraint_on: oplog_entry_id
+  - name: user
+    using:
+      foreign_key_constraint_on: uploaded_by_id
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - id
+        - oplog_entry_id
+        - uploaded_by_id
+        - recording_file
+        - uploaded_date
+      filter: {}
+    comment: ""
+  - role: user
+    permission:
+      columns:
+        - id
+        - oplog_entry_id
+        - uploaded_by_id
+        - recording_file
+        - uploaded_date
+      filter:
+        oplogEntry:
+          log:
+            project:
+              _and:
+                - assignments:
+                    operator_id:
+                      _eq: X-Hasura-User-Id
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - client:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
+    comment: ""
+delete_permissions:
+  - role: manager
+    permission:
+      filter: {}
+    comment: ""
+  - role: user
+    permission:
+      filter:
+        _and:
+          - uploaded_by_id:
+              _eq: X-Hasura-User-Id
+          - oplogEntry:
+              log:
+                project:
+                  _or:
+                    - assignments:
+                        operator_id:
+                          _eq: X-Hasura-User-Id
+                    - invites:
+                        user_id:
+                          _eq: X-Hasura-User-Id
+                    - client:
+                        invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+    comment: Only allow delete if the user has access to the associated parent project and the user uploaded this recording.
