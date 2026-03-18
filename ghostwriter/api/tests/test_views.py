@@ -3090,6 +3090,8 @@ class GraphqlLinkOplogEvidenceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         result = response.json()
         self.assertIn("id", result)
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("evidence", list(self.oplog_entry.tags.names()))
 
     def test_link_oplog_evidence_idempotent(self):
         """Test that linking the same evidence twice returns the existing link ID."""
@@ -3230,6 +3232,8 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         response = self._post(data, self.user_token)
         self.assertEqual(response.status_code, 201)
         self.assertIn("id", response.json())
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("recording", list(self.oplog_entry.tags.names()))
 
     def test_upload_recording_replaces_existing(self):
         """Test that uploading a second recording replaces the first."""
@@ -3253,6 +3257,9 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         from ghostwriter.oplog.models import OplogEntryRecording
 
         self.assertEqual(OplogEntryRecording.objects.filter(oplog_entry=self.oplog_entry).count(), 1)
+        # Tag survives the delete-and-replace cycle
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("recording", list(self.oplog_entry.tags.names()))
 
     def test_upload_recording_manager_access(self):
         """Test that a manager can upload a recording without a project assignment."""
@@ -3263,6 +3270,8 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         }
         response = self._post(data, self.manager_token)
         self.assertEqual(response.status_code, 201)
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("recording", list(self.oplog_entry.tags.names()))
 
     def test_upload_recording_without_access(self):
         """Test that a user without project access is rejected."""

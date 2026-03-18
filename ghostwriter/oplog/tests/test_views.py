@@ -818,6 +818,58 @@ class OplogEvidenceCreateViewTests(TestCase):
         response = client.get(self.uri, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(response.status_code, 403)
 
+    def test_post_success(self):
+        """Test that a valid POST creates evidence, links it, and tags the entry."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        evidence_file = SimpleUploadedFile("evidence.txt", b"test content", content_type="text/plain")
+        data = {
+            "friendly_name": "Test Evidence Upload",
+            "caption": "A test caption",
+            "description": "A test description",
+            "document": evidence_file,
+            "report": self.report.pk,
+        }
+        response = self.client_auth.post(self.uri, data)
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertEqual(result["result"], "success")
+        self.assertIn("evidence_id", result)
+        from ghostwriter.oplog.models import OplogEntryEvidence
+        self.assertTrue(OplogEntryEvidence.objects.filter(oplog_entry=self.entry).exists())
+        self.entry.refresh_from_db()
+        self.assertIn("evidence", list(self.entry.tags.names()))
+
+    def test_post_invalid_form(self):
+        """Test that a POST with a missing required field returns a form with errors."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        evidence_file = SimpleUploadedFile("evidence.txt", b"test content", content_type="text/plain")
+        # Missing friendly_name
+        data = {
+            "caption": "A test caption",
+            "document": evidence_file,
+            "report": self.report.pk,
+        }
+        response = self.client_auth.post(self.uri, data)
+        # View re-renders the form HTML on failure (not a JSON response)
+        self.assertEqual(response.status_code, 200)
+        from ghostwriter.oplog.models import OplogEntryEvidence
+        self.assertFalse(OplogEntryEvidence.objects.filter(oplog_entry=self.entry).exists())
+
+    def test_post_unauthorized(self):
+        """Test that an unauthenticated POST is redirected to login."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        evidence_file = SimpleUploadedFile("evidence.txt", b"test content", content_type="text/plain")
+        data = {
+            "friendly_name": "Unauthorized Evidence",
+            "document": evidence_file,
+            "report": self.report.pk,
+        }
+        response = self.client.post(self.uri, data)
+        self.assertEqual(response.status_code, 302)
+
 
 class OplogEntryEvidenceListViewTests(TestCase):
     """Collection of tests for :view:`oplog.OplogEntryEvidenceList`."""
@@ -873,3 +925,217 @@ class OplogEntryEvidenceListViewTests(TestCase):
         client.login(username=unassigned.username, password=PASSWORD)
         response = client.get(self.uri)
         self.assertEqual(response.status_code, 403)
+
+
+class OplogRecordingUploadViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogRecordingUpload`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory(complete=False)
+        cls.oplog = OplogFactory(project=cls.project)
+        cls.entry = OplogEntryFactory(oplog_id=cls.oplog)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+        cls.uri = reverse("oplog:oplog_entry_recording_upload", kwargs={"pk": cls.entry.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def _cast_file(self, name="session.cast"):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return SimpleUploadedFile(
+            name,
+            b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n',
+            content_type="application/octet-stream",
+        )
+
+    def test_view_requires_login(self):
+        """Test that an unauthenticated POST is redirected to login."""
+        response = self.client.post(self.uri, {"recording_file": self._cast_file()})
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthorized_user_denied(self):
+        """Test that a user without project access is rejected."""
+        unassigned = UserFactory(password=PASSWORD)
+        client = Client()
+        client.login(username=unassigned.username, password=PASSWORD)
+        response = client.post(self.uri, {"recording_file": self._cast_file()})
+        self.assertEqual(response.status_code, 403)
+
+    def test_no_file_provided(self):
+        """Test that a POST without a file returns 400."""
+        response = self.client_auth.post(self.uri, {})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["result"], "error")
+
+    def test_wrong_extension(self):
+        """Test that a non-.cast file is rejected with 400."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        bad_file = SimpleUploadedFile("video.mp4", b"fake data", content_type="video/mp4")
+        response = self.client_auth.post(self.uri, {"recording_file": bad_file})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["result"], "error")
+
+    def test_upload_success(self):
+        """Test that a valid .cast file is accepted, saved, and tags the entry."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+        response = self.client_auth.post(self.uri, {"recording_file": self._cast_file()})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+        self.assertIn("recording_url", data)
+        self.assertTrue(OplogEntryRecording.objects.filter(oplog_entry=self.entry).exists())
+        self.entry.refresh_from_db()
+        self.assertIn("recording", list(self.entry.tags.names()))
+
+    def test_upload_replaces_existing(self):
+        """Test that uploading a second file replaces the first, keeping exactly one recording."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+        self.client_auth.post(self.uri, {"recording_file": self._cast_file("first.cast")})
+        response = self.client_auth.post(self.uri, {"recording_file": self._cast_file("second.cast")})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(OplogEntryRecording.objects.filter(oplog_entry=self.entry).count(), 1)
+        self.entry.refresh_from_db()
+        self.assertIn("recording", list(self.entry.tags.names()))
+
+    def test_manager_access(self):
+        """Test that a manager can upload a recording without a project assignment."""
+        response = self.client_mgr.post(self.uri, {"recording_file": self._cast_file("mgr.cast")})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["result"], "success")
+        self.entry.refresh_from_db()
+        self.assertIn("recording", list(self.entry.tags.names()))
+
+
+class OplogRecordingDeleteViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogRecordingDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory(complete=False)
+        cls.oplog = OplogFactory(project=cls.project)
+        cls.entry = OplogEntryFactory(oplog_id=cls.oplog)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+        cls.uri = reverse("oplog:oplog_entry_recording_delete", kwargs={"pk": cls.entry.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        """Test that an unauthenticated POST is redirected to login."""
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthorized_user_denied(self):
+        """Test that a user without project access is rejected."""
+        unassigned = UserFactory(password=PASSWORD)
+        client = Client()
+        client.login(username=unassigned.username, password=PASSWORD)
+        response = client.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+    def test_delete_no_recording(self):
+        """Test that deleting when no recording exists returns 404."""
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["result"], "error")
+
+    def test_delete_success(self):
+        """Test that deleting an existing recording succeeds and removes the tag."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+        recording = OplogEntryRecordingFactory(oplog_entry=self.entry)
+        # Confirm tag was added by the post_save signal
+        self.entry.refresh_from_db()
+        self.assertIn("recording", list(self.entry.tags.names()))
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["result"], "success")
+        self.assertFalse(OplogEntryRecording.objects.filter(pk=recording.pk).exists())
+        self.entry.refresh_from_db()
+        self.assertNotIn("recording", list(self.entry.tags.names()))
+
+    def test_delete_as_manager(self):
+        """Test that a manager can delete a recording without a project assignment."""
+        OplogEntryRecordingFactory(oplog_entry=self.entry)
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["result"], "success")
+        from ghostwriter.oplog.models import OplogEntryRecording
+        self.assertFalse(OplogEntryRecording.objects.filter(oplog_entry=self.entry).exists())
+
+
+class OplogRecordingDownloadViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogRecordingDownload`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory(complete=False)
+        cls.oplog = OplogFactory(project=cls.project)
+        cls.entry = OplogEntryFactory(oplog_id=cls.oplog)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+        cls.recording = OplogEntryRecordingFactory(oplog_entry=cls.entry)
+        cls.uri = reverse("oplog:oplog_entry_recording_download", kwargs={"pk": cls.recording.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        """Test that an unauthenticated GET is redirected to login."""
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthorized_user_denied(self):
+        """Test that a user without project access is rejected."""
+        unassigned = UserFactory(password=PASSWORD)
+        client = Client()
+        client.login(username=unassigned.username, password=PASSWORD)
+        response = client.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+    def test_download_file_not_found(self):
+        """Test that a 404 is returned when the physical file is missing."""
+        entry = OplogEntryFactory(oplog_id=self.oplog)
+        recording = OplogEntryRecordingFactory(oplog_entry=entry)
+        file_path = recording.recording_file.path
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        uri = reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk})
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_download_success(self):
+        """Test that a GET returns the file as an attachment."""
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response.get("Content-Disposition", ""))
+
+    def test_download_inline(self):
+        """Test that ?view=1 returns the file inline with the CSP header set."""
+        response = self.client_auth.get(self.uri + "?view=1")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("attachment", response.get("Content-Disposition", ""))
+        self.assertIn("Content-Security-Policy", response)
+
+    def test_download_as_manager(self):
+        """Test that a manager can download the recording without a project assignment."""
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
