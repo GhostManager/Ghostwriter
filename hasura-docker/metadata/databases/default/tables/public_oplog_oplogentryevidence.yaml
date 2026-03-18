@@ -1,0 +1,26 @@
+table:
+  name: oplog_oplogentryevidence
+  schema: public
+configuration:
+  column_config:
+    evidence_id:
+      custom_name: evidenceId
+    oplog_entry_id:
+      custom_name: oplogEntryId
+  custom_column_names:
+    evidence_id: evidenceId
+    oplog_entry_id: oplogEntryId
+  custom_root_fields: {}
+object_relationships:
+  - name: evidence
+    using:
+      manual_configuration:
+        column_mapping:
+          evidence_id: id
+        insertion_order: null
+        remote_table:
+          name: reporting_evidence
+          schema: public
+  - name: oplogEntry
+    using:
+      foreign_key_constraint_on: oplog_entry_id

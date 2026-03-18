@@ -1,0 +1,23 @@
+table:
+  name: oplog_oplogentryrecording
+  schema: public
+configuration:
+  column_config:
+    oplog_entry_id:
+      custom_name: oplogEntryId
+    recording_file:
+      custom_name: recordingFile
+    uploaded_by_id:
+      custom_name: uploadedById
+    uploaded_date:
+      custom_name: uploadedDate
+  custom_column_names:
+    oplog_entry_id: oplogEntryId
+    recording_file: recordingFile
+    uploaded_by_id: uploadedById
+    uploaded_date: uploadedDate
+  custom_root_fields: {}
+object_relationships:
+  - name: oplogEntry
+    using:
+      foreign_key_constraint_on: oplog_entry_id
