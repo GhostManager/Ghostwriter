@@ -177,6 +177,7 @@ function showHideRow(btn, row) {
 
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
+  if (!fileInput.files || fileInput.files.length === 0) return;
   if (fileInput.files[0].type.indexOf('image') == 0) {
     // Revoke any existing object URL before clearing to prevent memory leaks
     const existingImg = previewDiv.querySelector('img');
@@ -204,6 +205,7 @@ function renderPreview(fileInput, previewDiv) {
 
 // Insert avatar-specific previews showing how the image will appear in navbar and profile
 function renderAvatarPreview(fileInput, previewDiv) {
+  if (!fileInput.files || fileInput.files.length === 0) return;
   if (fileInput.files[0].type.indexOf('image') == 0) {
     // Revoke any existing blob URLs before clearing to prevent leaks when the user
     // selects a new file before the previous images have settled (load/error/abort).
