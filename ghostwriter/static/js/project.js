@@ -177,10 +177,12 @@ function showHideRow(btn, row) {
 
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
+  if (!fileInput.files || fileInput.files.length === 0) return;
   if (fileInput.files[0].type.indexOf('image') == 0) {
-    // Revoke the previous object URL if one exists
-    if (previewDiv._objectUrl) {
-      URL.revokeObjectURL(previewDiv._objectUrl);
+    // Revoke any existing object URL before clearing to prevent memory leaks
+    const existingImg = previewDiv.querySelector('img');
+    if (existingImg && existingImg.src.startsWith('blob:')) {
+      URL.revokeObjectURL(existingImg.src);
     }
 
     // Clear previous content
@@ -188,22 +190,33 @@ function renderPreview(fileInput, previewDiv) {
       previewDiv.removeChild(previewDiv.firstChild);
     }
 
+    const objectUrl = URL.createObjectURL(fileInput.files[0]);
     const loadedImage = document.createElement('img');
     loadedImage.alt = 'image';
-    previewDiv._objectUrl = URL.createObjectURL(fileInput.files[0]);
-    loadedImage.src = previewDiv._objectUrl;
     loadedImage.style.border = 'thin solid #555555';
+    const revokeObjectUrl = function() { URL.revokeObjectURL(objectUrl); };
+    loadedImage.addEventListener('load', revokeObjectUrl, { once: true });
+    loadedImage.addEventListener('error', revokeObjectUrl, { once: true });
+    loadedImage.addEventListener('abort', revokeObjectUrl, { once: true });
+    loadedImage.src = objectUrl;
     previewDiv.appendChild(loadedImage);
   }
 }
 
 // Insert avatar-specific previews showing how the image will appear in navbar and profile
 function renderAvatarPreview(fileInput, previewDiv) {
+  if (!fileInput.files || fileInput.files.length === 0) return;
   if (fileInput.files[0].type.indexOf('image') == 0) {
-    // Revoke the previous object URL if one exists
-    if (previewDiv._objectUrl) {
-      URL.revokeObjectURL(previewDiv._objectUrl);
-    }
+    // Revoke any existing blob URLs before clearing to prevent leaks when the user
+    // selects a new file before the previous images have settled (load/error/abort).
+    // Both preview images share the same URL, so track revoked URLs to avoid double-revoking.
+    const revokedUrls = new Set();
+    previewDiv.querySelectorAll('img').forEach(function(img) {
+      if (img.src.startsWith('blob:') && !revokedUrls.has(img.src)) {
+        URL.revokeObjectURL(img.src);
+        revokedUrls.add(img.src);
+      }
+    });
 
     // Clear previous content
     while (previewDiv.firstChild) {
@@ -249,10 +262,21 @@ function renderAvatarPreview(fileInput, previewDiv) {
     container.appendChild(profileSection);
     previewDiv.appendChild(container);
 
-    // Set image sources (single URL shared by both previews)
-    previewDiv._objectUrl = URL.createObjectURL(fileInput.files[0]);
-    navbarImg.src = previewDiv._objectUrl;
-    profileImg.src = previewDiv._objectUrl;
+    // Set image sources — revoke the object URL once both images have settled (load, error, or abort)
+    const imageUrl = URL.createObjectURL(fileInput.files[0]);
+    let settledCount = 0;
+    const onSettle = function() {
+      settledCount++;
+      if (settledCount === 2) { URL.revokeObjectURL(imageUrl); }
+    };
+    navbarImg.addEventListener('load', onSettle, { once: true });
+    navbarImg.addEventListener('error', onSettle, { once: true });
+    navbarImg.addEventListener('abort', onSettle, { once: true });
+    profileImg.addEventListener('load', onSettle, { once: true });
+    profileImg.addEventListener('error', onSettle, { once: true });
+    profileImg.addEventListener('abort', onSettle, { once: true });
+    navbarImg.src = imageUrl;
+    profileImg.src = imageUrl;
   }
 }
 

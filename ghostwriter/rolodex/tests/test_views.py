@@ -1050,8 +1050,11 @@ class ClientLogoDownloadTests(TestCase):
         cls.client_deleted_logo = ClientFactory(
             logo=factory.django.ImageField(filename="deleted_logo.png", width=100, height=100)
         )
+        # Create a client with no logo to test ValueError handling
+        cls.client_no_logo = ClientFactory()
         cls.uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_with_logo.pk})
         cls.deleted_uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_deleted_logo.pk})
+        cls.no_logo_uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_no_logo.pk})
 
     def setUp(self):
         self.client = Client()
@@ -1091,5 +1094,36 @@ class ClientLogoDownloadTests(TestCase):
         response = self.client_mgr.get(self.deleted_uri)
         self.assertEqual(response.status_code, 404)
 
+    def test_no_logo_returns_404(self):
+        """A client with no logo set should return 404, not 500."""
+        response = self.client_mgr.get(self.no_logo_uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_inline_view_parameter(self):
+        """?view=true serves inline, sets security headers, and does not force download."""
+        response = self.client_mgr.get(self.uri + "?view=true")
+        self.assertEqual(response.status_code, 200)
+
+        # Content-Disposition must not trigger a download (no 'attachment')
+        content_disposition = response.get("Content-Disposition", "")
+        self.assertNotIn("attachment", content_disposition)
+
+        # Nosniff must always be present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+        # CSP must be present and restrict to safe sources for inline image rendering
+        csp = response.get("Content-Security-Policy", "")
+        self.assertIn("img-src", csp)
+        self.assertIn("default-src 'none'", csp)
+        self.assertNotIn("unsafe-inline", csp)
+
+    def test_default_download_has_nosniff_but_no_csp(self):
+        """Default (no view param) forces download, sets nosniff, and omits the inline CSP."""
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response.get("Content-Disposition", ""))
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        # CSP is only added for inline responses
+        self.assertIsNone(response.get("Content-Security-Policy"))
 
 

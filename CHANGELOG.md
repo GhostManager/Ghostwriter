@@ -5,11 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## [6.3.0-rc2] - 19 March 2026
 
 ### Added
 
-* **Operation Log Evidence Linking**: Added support for linking evidence to individual operation log entries
+* **Operation Log Evidence Linking**: Added support for linking evidence to individual operation log entries (Closes #132)
   * New `OplogEntryEvidence` model to create many-to-many relationships between log entries and evidence
   * New GraphQL `linkOplogEvidence` action to attach evidence via API
   * New web form (`OplogEvidenceCreate` view) to attach evidence through the UI
@@ -29,19 +30,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `recording` tag added when a recording is uploaded, removed when the recording is deleted
   * Tags can be used for filtering log entries and visual identification
 
-### Fixed
-
-* Fixed JavaScript memory leak in preview and avatar preview functions
-  * Object URLs created via `URL.createObjectURL()` are now properly revoked before creating new ones
-  * Prevents memory accumulation when repeatedly uploading or previewing files
-
 ### Changed
 
-* **New User Interface for Operation Logs**: Replaced the table view for operation logs with two pane interface
+* **New User Interface for Operation Logs**: Replaced the table view for operation logs with two pane interface (Closes #831)
   * New interface is similar to those used by many email clients
   * Log entries appear on the left-side with at-a-glance information
   * Details appear on the right-side in a details pane
   * Details pane includes dedicated sections for attaching evidence and uploading terminal recordings
+
+## [6.2.8] - 12 March 2026
+
+### Added
+
+* Implemented status and assignment fields for observations to match the functionality for findings (PR #840; Closes #601)
+  * These changes make observations on reports work very similarly to findings on reports
+  * Observations on reports now have a status for tracking if they need editing or are complete
+  * The `assigned_to` field is now fully implemented and displayed for tracking
+* Added the "primary" status to client contacts to be consistent with project contacts (PR #841; Closes #789)
+  * You can now flag a point of contact on a client as the primary contact
+  * If a client contact is set as the primary on a client and is then added to a project for that client, they will inherit their primary status on the project
+  * If there is already a primary contact on the project, the incoming client contact will not be flagged as the primary for the project
+  * Users can always edit the primary contact on the project
+
+### Changed
+
+* Clients and projects must now have one contact flagged as the primary contact (unless there are no contacts)
+  * If there is only one contact, that lone contact will automatically become the primary contact
+  * If a user is adding two contacts (going from zero to two), the form will now require they pick one as the primary
+  * If a user tries to delete the current primary, they will need to select a new primary unless there are no more contacts
+  * This change improves consistency and will allow reports to reliably reference the primary contact
 
 ## [6.2.7] - 9 March 2026
 
