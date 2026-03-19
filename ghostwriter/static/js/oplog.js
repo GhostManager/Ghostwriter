@@ -405,6 +405,9 @@ $(document).ready(function () {
         if (hasRecordingUrl) {
             html += `<div class="oplog-asciinema-container" id="asciinema-player-${entry.id}"></div>`;
             html += `<div class="oplog-asciinema-actions">
+                <a href="${jsEscape(entry.recording_url)}" class="btn btn-sm btn-outline-primary" download>
+                    <i class="fas fa-download"></i> Download Recording
+                </a>
                 <button class="btn btn-sm btn-outline-danger" onclick="removeRecording(${entry.id})">
                     <i class="fas fa-times"></i> Remove Recording
                 </button>
