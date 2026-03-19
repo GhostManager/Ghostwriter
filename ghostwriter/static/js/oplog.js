@@ -277,8 +277,10 @@ $(document).ready(function () {
 
     // --- Row generation for left pane ---
     function generateRow(entry) {
-        entryDataStore[entry.id] = entry;
-        let out = `<tr id="entry-${entry.id}" data-entry-id="${entry.id}">`;
+        let safeId = sanitizeEntryId(entry.id);
+        if (safeId === null) return '';
+        entryDataStore[safeId] = entry;
+        let out = `<tr id="entry-${safeId}" data-entry-id="${safeId}">`;
         summaryColumns.forEach(col => {
             let value = col.getValue ? col.getValue(entry) : entry[col.internalName];
             let toHtml = col.toHtml ?? jsEscape;
@@ -296,6 +298,7 @@ $(document).ready(function () {
             return;
         }
 
+        let safeId = parseInt(entry.id, 10);
         let tags = entry.tags ? stylizeTags(jsEscape(entry.tags)) : '';
 
         // Header
@@ -307,11 +310,11 @@ $(document).ready(function () {
             html += `<span class="oplog-detail-id">${jsEscape(entry.entry_identifier)}</span>`;
         }
         html += `<div class="oplog-detail-actions">
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Edit entry" onclick="editEntry(${entry.id})"><i class="fas fa-edit"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy entry" onclick="copyEntry(this)" entry-id="${entry.id}"><i class="fa fa-copy"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${entry.id})"><i class="fas fa-clipboard"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy deep link" onclick="copyDeepLink(${entry.id})"><i class="fas fa-link"></i></button>
-            <button class="btn btn-sm btn-outline-danger danger" data-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${entry.id}"><i class="fa fa-trash"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Edit entry" onclick="editEntry(${safeId})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy entry" onclick="copyEntry(this)" entry-id="${safeId}"><i class="fa fa-copy"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${safeId})"><i class="fas fa-clipboard"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy deep link" onclick="copyDeepLink(${safeId})"><i class="fas fa-link"></i></button>
+            <button class="btn btn-sm btn-outline-danger danger" data-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${safeId}"><i class="fa fa-trash"></i></button>
         </div>`;
         html += `</div>`;
         if (tags) {
@@ -343,7 +346,7 @@ $(document).ready(function () {
 
             html += `<div class="oplog-detail-section">`;
             html += `<div class="oplog-detail-label">${f.prettyName}
-                <i class="fas fa-copy copy-btn" onclick="copyFieldToClipboard(${entry.id}, '${f.internalName}')" title="Copy to clipboard"></i>
+                <i class="fas fa-copy copy-btn" onclick="copyFieldToClipboard(${safeId}, '${f.internalName}')" title="Copy to clipboard"></i>
             </div>`;
 
             if (f.type === 'code') {
@@ -381,9 +384,9 @@ $(document).ready(function () {
         let projectHasReports = $splitContainer.attr('data-project-has-reports') === 'true';
         html += `<div class="oplog-attachment-section">`;
         html += `<div class="oplog-attachment-label"><i class="fas fa-file-image"></i> Evidence</div>`;
-        html += `<div id="evidence-list-${entry.id}" class="oplog-evidence-list"></div>`;
+        html += `<div id="evidence-list-${safeId}" class="oplog-evidence-list"></div>`;
         if (projectHasReports) {
-            html += `<div class="oplog-attachment-dropzone" id="evidence-dropzone-${entry.id}" onclick="uploadEvidence(${entry.id})">
+            html += `<div class="oplog-attachment-dropzone" id="evidence-dropzone-${safeId}" onclick="uploadEvidence(${safeId})">
                 <div class="dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                 <div class="dropzone-text">Drag & drop a file or click to upload evidence</div>
                 <div class="dropzone-hint">Allowed: txt, md, log, jpg, jpeg, png</div>
@@ -403,17 +406,17 @@ $(document).ready(function () {
         html += `<div class="oplog-attachment-section">`;
         html += `<div class="oplog-attachment-label"><i class="fas fa-terminal"></i> Terminal Recording</div>`;
         if (hasRecordingUrl) {
-            html += `<div class="oplog-asciinema-container" id="asciinema-player-${entry.id}"></div>`;
+            html += `<div class="oplog-asciinema-container" id="asciinema-player-${safeId}"></div>`;
             html += `<div class="oplog-asciinema-actions">
                 <a href="${jsEscape(entry.recording_url)}" class="btn btn-sm btn-outline-primary" download>
                     <i class="fas fa-download"></i> Download Recording
                 </a>
-                <button class="btn btn-sm btn-outline-danger" onclick="removeRecording(${entry.id})">
+                <button class="btn btn-sm btn-outline-danger" onclick="removeRecording(${safeId})">
                     <i class="fas fa-times"></i> Remove Recording
                 </button>
             </div>`;
         } else {
-            html += `<div class="oplog-attachment-dropzone" id="recording-dropzone-${entry.id}" onclick="uploadRecording(${entry.id})">
+            html += `<div class="oplog-attachment-dropzone" id="recording-dropzone-${safeId}" onclick="uploadRecording(${safeId})">
                 <div class="dropzone-icon"><i class="fas fa-play-circle"></i></div>
                 <div class="dropzone-text">No terminal recording attached</div>
                 <div class="dropzone-hint">Drag & drop a .cast or .cast.gz file or click to upload</div>
@@ -428,7 +431,7 @@ $(document).ready(function () {
 
         // Initialize asciinema player if recording data is available
         if (typeof AsciinemaPlayer !== 'undefined') {
-            let playerEl = document.getElementById('asciinema-player-' + entry.id);
+            let playerEl = document.getElementById('asciinema-player-' + safeId);
             if (playerEl) {
                 let playerOpts = { fit: 'width', theme: 'dracula', idleTimeLimit: 3, preload: true };
                 if (hasRecordingUrl) {
@@ -472,14 +475,22 @@ $(document).ready(function () {
         });
 
         // Fetch and render evidence list for this entry
-        fetchAndRenderEvidenceList(entry.id);
+        fetchAndRenderEvidenceList(safeId);
+    }
+
+    // Validate that a raw value is a positive integer; returns Number or null.
+    function sanitizeEntryId(rawId) {
+        let str = String(rawId);
+        return /^[1-9][0-9]*$/.test(str) ? Number(str) : null;
     }
 
     function selectEntry(entryId) {
-        selectedEntryId = entryId;
+        let safeId = sanitizeEntryId(entryId);
+        if (safeId === null) return;
+        selectedEntryId = safeId;
         $tableBody.find('tr').removeClass('oplog-entry-selected');
-        $(`#entry-${entryId}`).addClass('oplog-entry-selected');
-        renderDetail(entryDataStore[entryId]);
+        $(`#entry-${safeId}`).addClass('oplog-entry-selected');
+        renderDetail(entryDataStore[safeId]);
     }
 
     function scrollToEntry(entryId) {
@@ -509,7 +520,9 @@ $(document).ready(function () {
     };
 
     window.editEntry = function (entryId) {
-        let url = window.location.origin + '/oplog/entry/update/' + entryId;
+        let safeId = sanitizeEntryId(entryId);
+        if (safeId === null) return;
+        let url = window.location.origin + '/oplog/entry/update/' + safeId;
         $('.oplog-form-div').load(url, function () {
             $('#edit-modal').modal('toggle');
             tinymceLogInit();
@@ -941,11 +954,15 @@ $(document).ready(function () {
                         renderDetail(entry);
                     }
                 } else {
-                    // New entry: prepend and use addRows to preserve natural order
+                    // New entry: prepend to DOM first, then rebuild the tablesorter
+                    // cache from DOM order so the row stays at the top when no sort
+                    // is active. Using addRows with resort=true causes tablesorter to
+                    // sort by its internal cache order (new row appended last = bottom).
                     let $newRow = $(generateRow(entry)).prependTo($tableBody);
-                    $newRow.hide().fadeIn(400);
+                    $newRow.hide();
                     hideColumns();
-                    $table.trigger('addRows', [$newRow, true]);
+                    $table.trigger('update', [true]);
+                    $newRow.fadeIn(400);
                 }
                 updatePlaceholder();
             } else if (message.action === 'fetch_entry') {

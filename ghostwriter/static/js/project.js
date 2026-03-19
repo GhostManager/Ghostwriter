@@ -23,8 +23,16 @@ function displayToastTop({
     toastr.options.closeButton = true;
     if (url !== '') {
         toastr.options.onclick = function () {
-            window.location.href = url;
-        }
+            try {
+                // Only navigate to http/https URLs to prevent javascript: URI injection
+                let parsed = new URL(url, window.location.href);
+                if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+                    window.location.href = url;
+                }
+            } catch (e) {
+                // Malformed URL — do not navigate
+            }
+        };
     }
     let msg;
     if (type === 'success') {
