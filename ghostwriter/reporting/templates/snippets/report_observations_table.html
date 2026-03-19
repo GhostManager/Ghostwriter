@@ -5,6 +5,25 @@
     <tr>
       <th class="icon ol-list-icon text-center"></th>
       <th class="align-middle text-left">Observation</th>
+      <th class="align-middle text-left">
+        <div class="dropdown dropleft">
+          <span id="obs-owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">Owner</span>
+          <div id="obs-owner-info" class="dropdown-menu dropdown-info-content" aria-labelledby="obs-owner-info-btn">
+            <p>The assigned user is the person responsible for writing this observation. The assigned individual
+              will have a link to the observation on their dashboard.</p>
+          </div>
+        </div>
+      </th>
+      <th class="align-middle text-left">
+        <div class="dropdown dropleft">
+          <span id="obs-status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">Status</span>
+          <div id="obs-status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="obs-status-info-btn">
+            <p>Mark an observation as ready or in need of editing.</p>
+          </div>
+        </div>
+      </th>
       <th class="align-middle">Options</th>
     </tr>
     </thead>
@@ -15,7 +34,7 @@
           class="holdme align-middle"
           data-toggle="tooltip"
           data-placement="top"
-          title="Click-n-drag to reposition or categorize"
+          title="Click-n-drag to reposition"
         ></td>
         <td class="align-middle text-left">
           <a id="delete-target-content-observation-{{ observation.id }}"
@@ -29,26 +48,63 @@
           </a>
         </td>
 
+        {% if observation.assigned_to == request.user %}
+          <td class="align-middle text-left">
+            <span id="obs-assignee-status-{{ observation.id }}" class="
+              {% if observation.complete %}
+                healthy">
+              {% else %}
+                burned">
+              {% endif %}
+              You</span>
+          </td>
+        {% else %}
+          {% if observation.assigned_to %}
+            <td class="neutral align-middle text-left">{{ observation.assigned_to }}</td>
+          {% else %}
+            <td class="medium align-middle text-left">TBD</td>
+          {% endif %}
+        {% endif %}
+
+        <td class="align-middle text-left">
+          <span id="observation-status-{{ observation.id }}" class="
+            {% if observation.complete %}
+              healthy">Ready
+            {% else %}
+              burned">Needs Editing
+            {% endif %}
+          </span>
+        </td>
+
         <td class="align-middle">
-          <div class="d-flex justify-content-center">
-            <form
-              action="{% url 'reporting:convert_observation' observation.id %}"
-              method="post"
-              style="display:contents"
-            >
-              {% csrf_token %}
-              <button class="icon clone-icon" style="border:0;padding:0;background:none"></button>
-            </form>
-            {%comment%}<a class="icon clone-icon"
-               title="Clone this observation to the library"
-               href="{% url 'reporting:convert_observation' observation.id %}"></a>{%endcomment%}
-            <a id="observation-delete-button-{{ observation.id }}"
-               class="icon trash-icon js-confirm-delete" data-toggle="modal"
-               title="Delete this observation"
-               data-target="#confirm-delete-modal" href="javascript:void(0);"
-               delete-target-csrftoken="{{ csrf_token }}"
-               delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
-               delete-target-id="{{ observation.id }}" delete-target-type="observation"></a>
+          <div class="dropdown dropleft">
+            <button id="observation-dropdown-btn-{{ observation.id }}" class="dropdown-menu-btn-table"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
+                 aria-labelledby="observation-dropdown-btn-{{ observation.id }}">
+              <a class="dropdown-item icon edit-icon"
+                 href="{% url 'reporting:local_observation_edit' observation.id %}">Edit</a>
+              <a class="dropdown-item icon user-icon"
+                 href="{% url 'reporting:local_observation_assign' observation.id %}">Re-Assign</a>
+              <a class="dropdown-item icon toggle-off-icon js-set-observation-status" href="javascript:void(0);"
+                 set-observation-status-csrftoken="{{ csrf_token }}"
+                 set-observation-status-url="{% url 'reporting:ajax_set_observation_status' observation.id 'edit' %}"
+                 set-observation-status="edit" set-observation-status-id="{{ observation.id }}">Flag for Editing</a>
+              <a class="dropdown-item icon toggle-on-icon js-set-observation-status" href="javascript:void(0);"
+                 set-observation-status-csrftoken="{{ csrf_token }}"
+                 set-observation-status-url="{% url 'reporting:ajax_set_observation_status' observation.id 'complete' %}"
+                 set-observation-status="complete" set-observation-status-id="{{ observation.id }}">Mark as Complete</a>
+              <form style="display:contents" action="{% url 'reporting:convert_observation' observation.id %}" method="post">
+                {% csrf_token %}
+                <button class="dropdown-item icon clone-icon" type="submit">Clone to Library</button>
+              </form>
+              <a id="observation-delete-button-{{ observation.id }}"
+                 class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
+                 data-target="#confirm-delete-modal" href="javascript:void(0);"
+                 delete-target-csrftoken="{{ csrf_token }}"
+                 delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
+                 delete-target-id="{{ observation.id }}" delete-target-type="observation">Delete</a>
+            </div>
           </div>
         </td>
       </tr>
@@ -99,4 +155,47 @@
       },
     });
   }
+
+  {% comment %} Set observation status with AJAX {% endcomment %}
+  $('.js-set-observation-status').each(function () {
+    $(this).click(function () {
+      let url = $(this).attr('set-observation-status-url');
+      let newStatus = $(this).attr('set-observation-status');
+      let observationId = $(this).attr('set-observation-status-id');
+      let csrftoken = $(this).attr('set-observation-status-csrftoken');
+      let statusColId = '#observation-status-' + observationId;
+      let assigneeStatusColId = '#obs-assignee-status-' + observationId;
+      let statusCol = $(statusColId);
+      let assigneeStatusCol = $(assigneeStatusColId);
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'observation': observationId,
+          'status': newStatus
+        },
+        success: function (data) {
+          if (data['result'] == 'success') {
+            statusCol.html(data['status']);
+            statusCol.removeClass();
+            statusCol.addClass(data['classes']);
+            assigneeStatusCol.removeClass();
+            assigneeStatusCol.addClass(data['classes']);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Observation Update'});
+          }
+        }
+      });
+    });
+  });
 </script>
+

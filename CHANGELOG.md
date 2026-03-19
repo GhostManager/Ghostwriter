@@ -5,6 +5,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.0-rc2] - 19 March 2026
+
+### Added
+
+* **Operation Log Evidence Linking**: Added support for linking evidence to individual operation log entries
+  * New `OplogEntryEvidence` model to create many-to-many relationships between log entries and evidence
+  * New GraphQL `linkOplogEvidence` action to attach evidence via API
+  * New web form (`OplogEvidenceCreate` view) to attach evidence through the UI
+  * Evidence appears in a dedicated section within each log entry, with friendly names and direct links to the original evidence
+  * Automatic "evidence" tag applied when evidence is linked to an entry
+
+* **Operation Log Terminal Recordings**: Added support for uploading and playback of Asciinema terminal session recordings (.cast and .cast.gz files)
+  * New `OplogEntryRecording` model to store a single terminal recording per log entry
+  * New GraphQL `uploadOplogRecording` action for base64-encoded file uploads via API
+  * New GraphQL `downloadOplogRecording` action to retrieve recordings and metadata
+  * New Django views for recording upload, deletion, and download with file serving and inline playback support
+  * Support for Asciinema player integration for viewing recordings directly in the log entry's details pane
+  * Automatic "recording" tag applied when a recording is uploaded
+
+* **Automatic Tag Management for Log Entry Features**: Evidence linking and terminal recordings automatically apply and remove tags
+  * `evidence` tag added when first evidence is linked, removed when the last evidence is unlinked
+  * `recording` tag added when a recording is uploaded, removed when the recording is deleted
+  * Tags can be used for filtering log entries and visual identification
+
+### Fixed
+
+* Fixed JavaScript memory leak in preview and avatar preview functions
+  * Object URLs created via `URL.createObjectURL()` are now properly revoked before creating new ones
+  * Prevents memory accumulation when repeatedly uploading or previewing files
+
+### Changed
+
+* **New User Interface for Operation Logs**: Replaced the table view for operation logs with two pane interface
+  * New interface is similar to those used by many email clients
+  * Log entries appear on the left-side with at-a-glance information
+  * Details appear on the right-side in a details pane
+  * Details pane includes dedicated sections for attaching evidence and uploading terminal recordings
+
+## [6.2.7] - 9 March 2026
+
+### Added
+
+* Added the option to set a default CVSS calculator version in the global report configuration
+* Each user's last selected CVSS version is now tracked in their browser's local storage
+  * This selection will take priority over the global default selection
+
+### Fixed
+
+* Fixed user profile pictures appearing distorted when the uploaded image is not a square
+
+## [6.2.6] - 5 March 2026
+
+### Added
+
+* Added a "Download" link to the admin console for models with a file field — report templates, user profiles, and evidence
+
+### Changed
+
+* Updated PowerPoint slide generation to attempt to intelligently adjust for different slide layouts (Fixes #836)
+  * If shape indices are non-sequential (can happen when shapes are deleted), Ghostwriter will fallback to searching
+  * If there are multiple placeholders, it will try to find the first with the content type (7 or 17)
+  * Ghostwriter now uses the final layout for the final slide instead of expecting it at position 12
+
+### Fixed
+
+* Fixed file field links in the admin console returning a 404 Not Found after recent changes to media links (Fixes #837)
+
+## [6.2.5] - 3 March 2026
+
+### Changed
+
+* Changed PowerPoint title slide generation to detect subtitle placeholders for more intelligent subtitle placement
+* Document type is now a required field for the report template form to prevent issues with that field being forgotten
+
+### Fixed
+
+* Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation (Fixes #836)
+* Fixed domain and server history not properly showing the "Checked Out By" column
+* Fixed updating a domain or server checkout setting the user value to null
+* Fixed some contrast issues with the objectives table and dark mode
+
+## [6.2.4] - 24 February 2026
+
+### Added
+
+* Added local copies of fonts used with the user interface and their associated license information
+  * This makes it possible for the fonts to be used with offline Ghostwriter servers
+
+### Changed
+
+* Removed fonts loaded from Google Fonts to fix load times for offline systems (Fixes #823)
+* Changed the `Report` model's project ID field to no longer allow null values
+  * This could allow the creation of an "orphan" report with no associated project when created via the GraphQL API
+
+### Fixed
+
+* Fixed client logos not showing properly on client dashboards
+* Fixed issue with the `last_update` column preventing creation of a report via the GraphQL API (Fixes #828)
+
 ## [6.3.0-rc1] - 24 February 2026
 
 ### Added

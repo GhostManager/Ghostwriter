@@ -23,7 +23,7 @@
     </thead>
     {% for contact in project.projectcontact_set.all %}
       <tr>
-        <td class="align-middle text-left">{% if contact.primary %}<i class="fas fa-check healthy"></i>{% endif %}</td>
+        <td class="align-middle text-left">{% if contact.primary %}<i class="fas fa-check healthy"><span class="sr-only">Primary</span></i>{% else %}<span class="sr-only">Not Primary</span>{% endif %}</td>
         <td class="align-middle text-left">{{ contact.name }}</td>
         <td class="align-middle text-left">{% if contact.job_title %}{{ contact.job_title }}{% else %}--{% endif %}</td>
         <td class="align-middle text-left">{% if contact.email %}{{ contact.email }}{% else %}--{% endif %}</td>

@@ -59,6 +59,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     strip_html,
     translate_domain_sid,
 )
+from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
 from ghostwriter.reporting.templatetags import report_tags
 
 logging.disable(logging.CRITICAL)
@@ -203,6 +204,13 @@ class AssignBlankFindingTests(TestCase):
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_blank_finding_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        rfl = ReportFindingLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rfl)
+        self.assertEqual(rfl.assigned_to, self.mgr_user)
+
 
 class ConvertFindingTests(TestCase):
     """Collection of tests for :view:`reporting.ConvertFinding`."""
@@ -331,6 +339,13 @@ class AssignFindingTests(TestCase):
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_finding_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri, data={"report": self.report.id})
+        self.assertEqual(response.status_code, 200)
+        rfl = ReportFindingLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rfl)
+        self.assertEqual(rfl.assigned_to, self.mgr_user)
 
 
 class ReportCloneTests(TestCase):
@@ -678,6 +693,45 @@ class FindingUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/finding_update.html")
+
+    def test_default_cvss_version_configuration(self):
+        """Test that the default CVSS version from ReportConfiguration is passed to the frontend."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+
+        # Get the report configuration singleton
+        report_config = ReportConfiguration.get_solo()
+
+        # Capture original value and ensure it's always restored
+        original_version = report_config.default_cvss_version
+        self.addCleanup(lambda: self._restore_cvss_version(original_version))
+
+        # Test default behavior (should be v3.1)
+        self.assertEqual(report_config.default_cvss_version, "3.1")
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the default CVSS version is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "3.1")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">3.1</script>')
+
+        # Change the default to v4.0
+        report_config.default_cvss_version = "4.0"
+        report_config.save()
+
+        # Request the page again
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the new default is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "4.0")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">4.0</script>')
+
+    def _restore_cvss_version(self, version):
+        """Helper to restore CVSS version in cleanup."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+        report_config = ReportConfiguration.get_solo()
+        report_config.default_cvss_version = version
+        report_config.save()
 
 
 class FindingDeleteViewTests(TestCase):
@@ -1350,6 +1404,45 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_finding_link_update.html")
 
+    def test_default_cvss_version_configuration(self):
+        """Test that the default CVSS version from ReportConfiguration is passed to the frontend."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+
+        # Get the report configuration singleton
+        report_config = ReportConfiguration.get_solo()
+
+        # Capture original value and ensure it's always restored
+        original_version = report_config.default_cvss_version
+        self.addCleanup(lambda: self._restore_cvss_version(original_version))
+
+        # Test default behavior (should be v3.1)
+        self.assertEqual(report_config.default_cvss_version, "3.1")
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the default CVSS version is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "3.1")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">3.1</script>')
+
+        # Change the default to v4.0
+        report_config.default_cvss_version = "4.0"
+        report_config.save()
+
+        # Request the page again
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the new default is in the context and HTML
+        self.assertEqual(response.context["collab_default_cvss_version"], "4.0")
+        self.assertContains(response, '<script type="text/plain" id="default-cvss-version">4.0</script>')
+
+    def _restore_cvss_version(self, version):
+        """Helper to restore CVSS version in cleanup."""
+        from ghostwriter.commandcenter.models import ReportConfiguration
+        report_config = ReportConfiguration.get_solo()
+        report_config.default_cvss_version = version
+        report_config.save()
+
 
 # Tests related to :model:`reporting.ReportFindingLink`
 
@@ -1787,12 +1880,27 @@ class ReportTemplateDownloadTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_returns_desired_download(self):
-        response = self.client_auth.get(self.uri)
+        """Test default behavior downloads file (as_attachment=True)."""
+        response = self.client_auth.get(f"{self.uri}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.get("Content-Disposition"),
             f'attachment; filename="{self.template.filename}"',
         )
+        # Verify security header is present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+    def test_view_inline_with_view_parameter(self):
+        """Test inline viewing with ?view=true parameter."""
+        response = self.client_auth.get(f"{self.uri}?view=true")
+        self.assertEqual(response.status_code, 200)
+        # Should NOT have attachment disposition for inline viewing
+        content_disposition = response.get("Content-Disposition")
+        if content_disposition:
+            self.assertNotIn("attachment", content_disposition)
+        # Verify security headers
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        self.assertIn("Content-Security-Policy", response)
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -2784,12 +2892,27 @@ class EvidenceDownloadTests(TestCase):
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
+        """Test default behavior downloads file (as_attachment=True)."""
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(
             response.get("Content-Disposition"),
             f'attachment; filename="{self.evidence_file.filename}"',
         )
+        # Verify security header is present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+    def test_view_inline_with_view_parameter(self):
+        """Test inline viewing with ?view=true parameter."""
+        response = self.client_mgr.get(f"{self.uri}?view=true")
+        self.assertEqual(response.status_code, 200)
+        # Should NOT have attachment disposition for inline viewing
+        content_disposition = response.get("Content-Disposition")
+        if content_disposition:
+            self.assertNotIn("attachment", content_disposition)
+        # Verify security headers
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        self.assertIn("Content-Security-Policy", response)
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
@@ -3082,3 +3205,205 @@ class AssignObservationViewTests(TestCase):
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_observation_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri, data={"report": self.report.id})
+        self.assertEqual(response.status_code, 200)
+        rol = ReportObservationLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rol)
+        self.assertEqual(rol.assigned_to, self.mgr_user)
+
+
+class AssignBlankObservationTests(TestCase):
+    """Collection of tests for :view:`reporting.AssignBlankObservation`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:assign_blank_observation", kwargs={"pk": cls.report.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next=" + self.uri)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.report.project)
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_blank_observation_assigned_to_requesting_user(self):
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        rol = ReportObservationLink.objects.filter(report=self.report).last()
+        self.assertIsNotNone(rol)
+        self.assertEqual(rol.assigned_to, self.mgr_user)
+
+
+class ReportObservationStatusUpdateTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportObservationStatusUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.observation = ReportObservationLinkFactory(report=cls.report)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "edit"},
+        )
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_permissions(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "edit"},
+        )
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 403)
+
+    def test_set_observation_complete(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "complete"},
+        )
+        response = self.client_mgr.post(uri)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["result"], "success")
+        self.assertEqual(data["status"], "Ready")
+        self.assertEqual(data["classes"], "healthy")
+        self.observation.refresh_from_db()
+        self.assertTrue(self.observation.complete)
+
+    def test_set_observation_needs_editing(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "edit"},
+        )
+        response = self.client_mgr.post(uri)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["result"], "success")
+        self.assertEqual(data["status"], "Needs Editing")
+        self.assertEqual(data["classes"], "burned")
+        self.observation.refresh_from_db()
+        self.assertFalse(self.observation.complete)
+
+    def test_set_observation_invalid_status(self):
+        uri = reverse(
+            "reporting:ajax_set_observation_status",
+            kwargs={"pk": self.observation.pk, "status": "bogus"},
+        )
+        response = self.client_mgr.post(uri)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["result"], "error")
+
+
+class ReportObservationLinkAssignTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportObservationLinkAssign`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.operator = UserFactory(password=PASSWORD)
+        cls.observation = ReportObservationLinkFactory(report=cls.report, assigned_to=cls.mgr_user)
+        ProjectAssignmentFactory(operator=cls.operator, project=cls.report.project)
+        ProjectAssignmentFactory(operator=cls.mgr_user, project=cls.report.project)
+        cls.uri = reverse("reporting:local_observation_assign", kwargs={"pk": cls.observation.pk})
+        cls.success_url = (
+            reverse("reporting:report_detail", kwargs={"pk": cls.report.pk}) + "#observations"
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next=" + self.uri)
+
+    def test_view_requires_permissions(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("home:dashboard"))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_project_member_can_access(self):
+        client_operator = Client()
+        self.assertTrue(client_operator.login(username=self.operator.username, password=PASSWORD))
+        response = client_operator.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/report_observation_link_assign.html")
+
+    def test_form_only_shows_project_members(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        form = response.context["form"]
+        queryset = form.fields["assigned_to"].queryset
+        self.assertIn(self.operator, queryset)
+        self.assertIn(self.mgr_user, queryset)
+        self.assertNotIn(self.user, queryset)
+
+    def test_reassign_observation(self):
+        response = self.client_mgr.post(self.uri, data={"assigned_to": self.operator.pk})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.success_url)
+        updated = ReportObservationLink.objects.get(pk=self.observation.pk)
+        self.assertEqual(updated.assigned_to, self.operator)
+
+    def test_no_change_shows_info_message(self):
+        response = self.client_mgr.post(self.uri, data={"assigned_to": self.mgr_user.pk})
+        self.assertEqual(response.status_code, 302)
+        msgs = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("already assigned" in str(m) for m in msgs))
+
+    def test_unassign_observation(self):
+        response = self.client_mgr.post(self.uri, data={"assigned_to": ""})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.success_url)
+        updated = ReportObservationLink.objects.get(pk=self.observation.pk)
+        self.assertIsNone(updated.assigned_to)

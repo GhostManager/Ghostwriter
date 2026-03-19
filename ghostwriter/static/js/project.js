@@ -178,10 +178,81 @@ function showHideRow(btn, row) {
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
   if (fileInput.files[0].type.indexOf('image') == 0) {
-    previewDiv.innerHTML = '<img id="loadedImage" alt="image"/ >'
-    let loadedImage = document.getElementById('loadedImage')
-    loadedImage.src = URL.createObjectURL(fileInput.files[0])
+    // Revoke the previous object URL if one exists
+    if (previewDiv._objectUrl) {
+      URL.revokeObjectURL(previewDiv._objectUrl);
+    }
+
+    // Clear previous content
+    while (previewDiv.firstChild) {
+      previewDiv.removeChild(previewDiv.firstChild);
+    }
+
+    const loadedImage = document.createElement('img');
+    loadedImage.alt = 'image';
+    previewDiv._objectUrl = URL.createObjectURL(fileInput.files[0]);
+    loadedImage.src = previewDiv._objectUrl;
     loadedImage.style.border = 'thin solid #555555';
+    previewDiv.appendChild(loadedImage);
+  }
+}
+
+// Insert avatar-specific previews showing how the image will appear in navbar and profile
+function renderAvatarPreview(fileInput, previewDiv) {
+  if (fileInput.files[0].type.indexOf('image') == 0) {
+    // Revoke the previous object URL if one exists
+    if (previewDiv._objectUrl) {
+      URL.revokeObjectURL(previewDiv._objectUrl);
+    }
+
+    // Clear previous content
+    while (previewDiv.firstChild) {
+      previewDiv.removeChild(previewDiv.firstChild);
+    }
+
+    // Create container
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.gap = '20px';
+    container.style.flexWrap = 'wrap';
+
+    // Create navbar preview section
+    const navbarSection = document.createElement('div');
+    const navbarLabel = document.createElement('p');
+    const navbarStrong = document.createElement('strong');
+    navbarStrong.textContent = 'Navbar Preview (40x40)';
+    navbarLabel.appendChild(navbarStrong);
+    const navbarImg = document.createElement('img');
+    navbarImg.alt = 'Navbar preview';
+    navbarImg.className = 'navbar-avatar';
+    navbarImg.style.position = 'static';
+    navbarSection.appendChild(navbarLabel);
+    navbarSection.appendChild(navbarImg);
+
+    // Create profile preview section
+    const profileSection = document.createElement('div');
+    const profileLabel = document.createElement('p');
+    const profileStrong = document.createElement('strong');
+    profileStrong.textContent = 'Profile Preview (250x250)';
+    profileLabel.appendChild(profileStrong);
+    const profileImg = document.createElement('img');
+    profileImg.alt = 'Profile preview';
+    profileImg.className = 'avatar';
+    profileImg.style.position = 'static';
+    profileSection.appendChild(profileLabel);
+    profileSection.appendChild(profileImg);
+
+    // Assemble and append
+    container.appendChild(navbarSection);
+    container.appendChild(profileSection);
+    previewDiv.appendChild(container);
+
+    // Set image sources (single URL shared by both previews)
+    previewDiv._objectUrl = URL.createObjectURL(fileInput.files[0]);
+    navbarImg.src = previewDiv._objectUrl;
+    profileImg.src = previewDiv._objectUrl;
   }
 }
 

@@ -166,6 +166,11 @@ class ClientContact(models.Model):
         blank=True,
         help_text="Provide additional information about the contact",
     )
+    primary = models.BooleanField(
+        "Primary Contact",
+        default=False,
+        help_text="Flag this contact as the primary point of contact for the client",
+    )
     # Foreign keys
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 

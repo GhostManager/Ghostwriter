@@ -587,6 +587,43 @@ class HistoryUpdateViewTests(TestCase):
         )
         self.assertEqual(response.context["domain_name"], self.entry.domain.name.upper())
 
+    def test_operator_preserved_after_update(self):
+        """Test that the operator field is preserved (not set to null) after an update."""
+        # Ensure the entry's project belongs to the same client for form validation
+        self.entry.project.client = self.entry.client
+        self.entry.project.save()
+
+        # Store the original operator
+        original_operator = self.entry.operator
+        self.assertIsNotNone(original_operator, "Entry should have an operator before update")
+
+        # Prepare form data for update - update the description field
+        data = {
+            "domain": self.entry.domain.pk,
+            "client": self.entry.client.pk,
+            "project": self.entry.project.pk,
+            "start_date": self.entry.start_date.strftime("%Y-%m-%d"),
+            "end_date": self.entry.end_date.strftime("%Y-%m-%d"),
+            "activity_type": self.entry.activity_type.pk,
+            "description": "Updated description to verify operator is preserved",
+        }
+
+        # Submit the update
+        response = self.client_mgr.post(self.uri, data)
+        self.assertEqual(response.status_code, 302)
+
+        # Refresh the entry from the database
+        self.entry.refresh_from_db()
+
+        # Verify operator is still the original value
+        self.assertIsNotNone(self.entry.operator, "Operator should not be null after update")
+        self.assertEqual(
+            self.entry.operator.pk,
+            original_operator.pk,
+            "Operator should be preserved after update",
+        )
+        self.assertEqual(self.entry.description, "Updated description to verify operator is preserved")
+
 
 class HistoryDeleteViewTests(TestCase):
     """Collection of tests for :view:`shepherd.HistoryDelete`."""
@@ -1048,6 +1085,44 @@ class ServerHistoryUpdateViewTests(TestCase):
             response.context["cancel_link"],
             "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})),
         )
+
+    def test_operator_preserved_after_update(self):
+        """Test that the operator field is preserved (not set to null) after an update."""
+        # Ensure the entry's project belongs to the same client for form validation
+        self.entry.project.client = self.entry.client
+        self.entry.project.save()
+
+        # Store the original operator
+        original_operator = self.entry.operator
+        self.assertIsNotNone(original_operator, "Entry should have an operator before update")
+
+        # Prepare form data for update - update the description field
+        data = {
+            "server": self.entry.server.pk,
+            "client": self.entry.client.pk,
+            "project": self.entry.project.pk,
+            "start_date": self.entry.start_date.strftime("%Y-%m-%d"),
+            "end_date": self.entry.end_date.strftime("%Y-%m-%d"),
+            "activity_type": self.entry.activity_type.pk,
+            "server_role": self.entry.server_role.pk,
+            "description": "Updated server description to verify operator is preserved",
+        }
+
+        # Submit the update
+        response = self.client_mgr.post(self.uri, data)
+        self.assertEqual(response.status_code, 302)
+
+        # Refresh the entry from the database
+        self.entry.refresh_from_db()
+
+        # Verify operator is still the original value
+        self.assertIsNotNone(self.entry.operator, "Operator should not be null after update")
+        self.assertEqual(
+            self.entry.operator.pk,
+            original_operator.pk,
+            "Operator should be preserved after update",
+        )
+        self.assertEqual(self.entry.description, "Updated server description to verify operator is preserved")
 
 
 class ServerHistoryDeleteViewTests(TestCase):

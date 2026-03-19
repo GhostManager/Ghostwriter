@@ -221,6 +221,13 @@ class ReportConfiguration(SingletonModel):
         default=5,
         help_text="Number of business days from the project's end date to set as the default target delivery date",
     )
+    default_cvss_version = models.CharField(
+        "Default CVSS Calculator Version",
+        max_length=10,
+        choices=[("3.1", "CVSS v3.1"), ("4.0", "CVSS v4.0")],
+        default="3.1",
+        help_text="Default CVSS calculator version to display when no user preference is saved in browser local storage",
+    )
     # Foreign Keys
     default_docx_template = models.ForeignKey(
         "reporting.reporttemplate",

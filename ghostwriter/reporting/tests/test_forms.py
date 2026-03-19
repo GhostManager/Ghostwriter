@@ -8,16 +8,14 @@ from django.test import TestCase
 from ghostwriter.factories import (
     EvidenceOnFindingFactory,
     EvidenceOnReportFactory,
-    FindingFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
-    ObservationFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     ReportObservationLinkFactory,
-    ReportTemplateFactory,
+    ReportDocxTemplateFactory,
     SeverityFactory,
     UserFactory,
 )
@@ -360,7 +358,7 @@ class ReportTemplateFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.template = ReportTemplateFactory()
+        cls.template = ReportDocxTemplateFactory()
         cls.template_dict = cls.template.__dict__
         cls.user = UserFactory(password=PASSWORD)
 
@@ -376,7 +374,7 @@ class ReportTemplateFormTests(TestCase):
         lint_result=None,
         changelog=None,
         client_id=None,
-        doc_type=None,
+        doc_type_id=None,
         p_type=None,
         evidence_image_width=None,
         user=None,
@@ -391,7 +389,7 @@ class ReportTemplateFormTests(TestCase):
                 "lint_result": lint_result,
                 "changelog": changelog,
                 "client": client_id,
-                "doc_type": doc_type,
+                "doc_type": doc_type_id,
                 "p_type": p_type,
                 "evidence_image_width": evidence_image_width,
                 "bloodhound_heading_offset": bloodhound_heading_offset,

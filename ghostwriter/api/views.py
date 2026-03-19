@@ -33,14 +33,14 @@ import pytz
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
-from ghostwriter.api.forms import ApiEvidenceForm, ApiKeyForm, ApiReportTemplateForm
+from ghostwriter.api.forms import ApiEvidenceForm, ApiKeyForm, ApiOplogRecordingForm, ApiReportTemplateForm
 from ghostwriter.api.models import APIKey
 from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.oplog.models import OplogEntry
+from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence, OplogEntryRecording
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -906,6 +906,191 @@ class GraphqlUploadReportTemplateView(JwtRequiredMixin, HasuraActionView):
             return JsonResponse({"id": instance.pk}, status=201)
         message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
         return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=401)
+
+
+class GraphqlLinkOplogEvidence(JwtRequiredMixin, HasuraActionView):
+    """
+    Endpoint for linking an existing :model:`reporting.Evidence` to an
+    :model:`oplog.OplogEntry` via the ``linkOplogEvidence`` action.
+    """
+
+    required_inputs = [
+        "oplogEntryId",
+        "evidenceId",
+    ]
+
+    def post(self, request, *args, **kwargs):
+        oplog_entry_id = self.input["oplogEntryId"]
+        evidence_id = self.input["evidenceId"]
+
+        try:
+            entry = OplogEntry.objects.select_related("oplog_id__project").get(id=oplog_entry_id)
+        except OplogEntry.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Oplog entry does not exist", "OplogEntryDoesNotExist"),
+                status=400,
+            )
+
+        try:
+            evidence = Evidence.objects.get(id=evidence_id)
+        except Evidence.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Evidence does not exist", "EvidenceDoesNotExist"),
+                status=400,
+            )
+
+        if not entry.user_can_edit(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+                status=401,
+            )
+
+        # Verify evidence belongs to the same project via its report
+        if evidence.report and evidence.report.project != entry.oplog_id.project:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Evidence does not belong to the same project", "ProjectMismatch"
+                ),
+                status=400,
+            )
+
+        # Do a `get_or_create` in case the evidence is already linked to the oplog entry
+        link, _ = OplogEntryEvidence.objects.get_or_create(
+            oplog_entry=entry,
+            evidence=evidence,
+        )
+        return JsonResponse({"id": link.pk}, status=self.status)
+
+
+class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
+    """
+    Endpoint for uploading an Asciinema terminal recording for an :model:`oplog.OplogEntry`
+    via the ``uploadOplogRecording`` GraphQL action.
+    """
+
+    allow_large_input = True
+    required_inputs = ["oplogEntryId", "file_base64", "filename"]
+
+    def post(self, request, *args, **kwargs):
+        if self.user_obj is None:
+            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        from django.core.files.base import ContentFile
+
+        form_data = {**self.input, "oplog_entry_id": self.input.get("oplogEntryId")}
+        form = ApiOplogRecordingForm(form_data)
+        if not form.is_valid():
+            logger.info("Invalid form data for uploading oplog recording: %s", form.errors)
+            message = "\n\n".join(f"{k}: " + " ".join(str(err) for err in v) for k, v in form.errors.items())
+            return JsonResponse(utils.generate_hasura_error_payload(message, "Invalid"), status=400)
+
+        try:
+            entry = OplogEntry.objects.select_related("oplog_id__project").get(
+                pk=form.cleaned_data["oplog_entry_id"]
+            )
+        except OplogEntry.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Oplog entry does not exist", "OplogEntryDoesNotExist"),
+                status=400,
+            )
+
+        if not entry.user_can_edit(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+                status=401,
+            )
+
+        # Replace any existing recording
+        try:
+            entry.recording.delete()
+        except OplogEntryRecording.DoesNotExist:
+            pass
+
+        recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=self.user_obj)
+        recording.recording_file = ContentFile(
+            form.cleaned_data["file_base64"], name=form.cleaned_data["filename"]
+        )
+        recording.save()
+        return JsonResponse({"id": recording.pk}, status=201)
+
+
+class GraphqlDownloadRecording(JwtRequiredMixin, HasuraActionView):
+    """
+    Return a download URL and base64-encoded recording file for authenticated users with proper permissions.
+
+    **Parameters**
+
+    ``oplogEntryId``
+        The ID of the oplog entry whose recording should be downloaded
+    """
+
+    required_inputs = [
+        "oplogEntryId",
+    ]
+
+    def post(self, request, *args, **kwargs):
+        oplog_entry_id = self.input.get("oplogEntryId")
+
+        try:
+            entry = OplogEntry.objects.select_related("oplog_id__project").get(pk=oplog_entry_id)
+        except OplogEntry.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Oplog entry not found", "OplogEntryNotFound"),
+                status=HTTPStatus.NOT_FOUND,
+            )
+
+        if not entry.user_can_view(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+                status=HTTPStatus.FORBIDDEN,
+            )
+
+        try:
+            recording = entry.recording
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("No recording found for this oplog entry", "RecordingNotFound"),
+                status=HTTPStatus.NOT_FOUND,
+            )
+
+        if not recording.recording_file:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Recording file is missing", "RecordingFileMissing"),
+                status=HTTPStatus.NOT_FOUND,
+            )
+
+        config = GeneralConfiguration.get_solo()
+        protocol = "https" if request.is_secure() else "http"
+        base_url = f"{protocol}://{config.hostname}"
+        download_path = reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk})
+        download_url = f"{base_url}{download_path}"
+
+        try:
+            file_data = recording.recording_file.read()
+            encoded_data = b64encode(file_data).decode("utf-8")
+        except FileNotFoundError:
+            logger.error("Recording file not found during read: %s", recording.recording_file.path)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Recording file not found on server", "RecordingFileNotFound"),
+                status=HTTPStatus.NOT_FOUND,
+            )
+        except (IOError, OSError) as e:
+            logger.exception("Failed to read recording file: %s", e)
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Failed to read recording file", "FileReadError"),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
+        return JsonResponse(
+            {
+                "recordingId": recording.pk,
+                "oplogEntryId": entry.pk,
+                "filename": recording.filename,
+                "downloadUrl": download_url,
+                "fileBase64": encoded_data,
+            },
+            status=self.status,
+        )
 
 
 class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):

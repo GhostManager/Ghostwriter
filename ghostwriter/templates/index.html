@@ -78,6 +78,34 @@
           </div>
         </div>
 
+        {% if active_projects %}
+          <div class="dashboard__item">
+            <div class="card">
+              <p class="dashboard-header text-center">Assigned Findings</p>
+              {% if assigned_findings %}
+                {% for finding in assigned_findings %}
+                  <p class="text-left mb-1"><a class="dashboard-link" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></p>
+                {% endfor %}
+              {% else %}
+                <p class="text-center healthy mb-1">All Tasks Complete!</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="dashboard__item">
+            <div class="card">
+              <p class="dashboard-header text-center">Assigned Observations</p>
+              {% if assigned_observations %}
+                {% for observation in assigned_observations %}
+                  <p class="text-left mb-1"><a class="dashboard-link" href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}</a></p>
+                {% endfor %}
+              {% else %}
+                <p class="text-center healthy mb-1">All Tasks Complete!</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
         {%  if request.user|is_privileged %}
           <div class="dashboard__item">
             <div class="card">

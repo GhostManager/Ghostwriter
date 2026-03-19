@@ -5,64 +5,90 @@ description: "Using the live activity log"
 
 
 Once you are on the log entries page, you will be presented with an empty table. The following sections outline how to interact with the table and log entries.
+
 <Check>
 There will be times when you will need the log's unique ID. The ID number is always displayed at the top of the page, below the log's name.
 </Check>
+
 ### Creating an Entry
 
 To manually create an entry, click on the "Create a new entry" button in the top right corner:
+
 <Frame>
   <img src="/images/features/image-34.png" alt=""/>
 </Frame>
-You will notice a new row is populated with the current UTC timestamps and your username in the _Operator_ field_._
-<Frame>
-  <img src="/images/features/image-35.png" alt=""/>
-</Frame>
+
+You see a new row appear pre-populated with the current UTC timestamps and your username in the _Operator_ field.
 
 ### Modifying an Entry
 
-You can modify fields by double-clicking the table row you want to edit. A modal form will open:
+You can modify fields by double-clicking the table row you want to edit or pressing _Enter_ while it is selected. A modal form will open:
 
 <Frame>
   <img src="/images/features/image-36.png" alt=""/>
 </Frame>
 
+<Tip>
+You can also press _Enter_ to submit your changes.
+</Tip>
+
 Once you submit a change, the edits will sync via WebSockets and be visible to anyone with the log open.
 
-### Copying & Deleting Entries
+### Linking, Copying, & Deleting Entries
 
 <Frame>
-  <img src="/images/features/image-37.avif" alt=""/>
+  <img src="/images/features/image-37.png" alt=""/>
 </Frame>
 
-The _Options_ column is home to two buttons: copy and delete. The _copy_ button will create a clone of the selected entry. The _delete_ button will remove the log entry.
+When you select a log entry, the right pane displays the entry's details. This detail pane includes several buttons.
 
-### Modifying the Table View
+| Action | Description |
+|--------|-------------|
+| Edit | Opens the editing modal |
+| Copy | Creates a copy of the log entry (good for repeated tasks) |
+| Copy as JSON | Copies the entry's details as JSON (good for quickly passing activity details to a client) |
+| Link | Copy a deep-link to the log entry to your clipboard |
+| Delete | Deletes the log entry from the log |
 
-Log entries contain fields useful for tracking but can be too much for a table view, especially if you're viewing the log in a smaller browser window or a VM. You can customize the columns displayed by clicking the _Show/Hide Columns_ button and toggling columns on and off.
+### Managing the Table View
+
+The command bar at the top of the page includes several powerful customization features and your connection status indicator.
+
+#### Customizing Columns
+
+You can customize the left-hand table view using the _Show/Hide Columns_ button. Click it to reveal the column options and toggle columns
+on or off.
 
 <Frame>
   <img src="/images/features/image-38.png" alt=""/>
 </Frame>
 
-### Filtering Entries
+#### Sorting Entries
 
-The log table provides a search bar to filter entries containing only the provided text. This filter helps you view log entries related to a specific user, host, or command. To use the filter bar, type in the keyword. The filter is applied as you type, so you can keep typing to narrow down the results further.
+You can also sort your log entries. By default, the page sorts log entries in descending order, from the most recent to the oldest. You
+can sort by any column by clicking it. You can sort by multiple columns by holding _Shift_ as a you click.
 
-<Frame>
-  <img src="/images/features/image-39.png" alt=""/>
-</Frame>
+<Tip>
+Your table column customizations and sorting will be saved in your browser's local storage, so it will persist between reloads. Reset
+table sorting by clicking the _Reset Sort_ button.
+</Tip>
 
-<Info>
-Note that text search will include columns you may have hidden. The filter is also limited to the currently loaded log entries. If you don't find what you want, scroll down to load additional entries and try filtering again.
-</Info>
-### Connection Status Indicator
+#### Filtering Entries
 
-In the top right corner, there is a connection status indicator:
-<Frame>
-  <img src="/images/features/image-40.png" alt=""/>
-</Frame>
-Since all entries are created/modified/deleted using WebSockets, a persistent connection is maintained. If the connection is ever lost, the connection status will turn red and indicate that the WebSocket connection is disconnected. When disconnected, you will not be able to create/modify/or delete any rows.
+You can filter the table using the box on the right. This filter helps you view log entries related to a specific user,
+host, or command. To use the filter, type in the keyword and pres. The filter is applied as you type, so you can keep typing to narrow
+the results further.
+
+<Warning>
+Note that text search will include columns you may have hidden. If you're unsure why the filter returned certain log entries, check for
+hidden columns.
+</Warning>
+
+#### Connection Status Indicator
+
+At the end of the controls is a connection status indicator. Since all entries are created/modified/deleted using WebSockets, a
+persistent connection is maintained. If the connection is ever lost, the connection status will turn red and indicate that the
+WebSocket connection is disconnected. When disconnected, you will not be able to create/modify/or delete any rows.
 
 ### Applying Tags to Log Entries
 
@@ -82,9 +108,18 @@ Tags that include:
 
 * `objective` will appear as purple tags (e.g., `objective:1`)
 
-<Check>
+<Callout icon="comment">
 Additional styles may be added in the future for different tags. The development is open to suggestions.
-</Check>
+</Callout>
+
+Ghostwriter automatically tags log entries that have multimedia content—e.g., linked evidence files and terminal recordings (more on
+that below). When you link multimedia files, Ghostwriter will add the `evidence` tag for linked evidence and the `recording` tag for
+terminal recordings. Ghostwriter will also remove the tags automatically if you remove the file(s).
+
+<Tip>
+You can use tags to easily find log entries—like those with linked evidence or terminal recordings—by entering the tag into the filter box.
+</Tip>
+
 ### Muting Log Notifications
 
 By default, all new operation logs have notifications enabled. The optional [Operation Log Monitor task](/features/background-tasks) handles notifications. If desired, a user with the `admin` or `manager` role can mute notifications from the hamburger menu in the upper-right corner of the logging page.
@@ -94,3 +129,27 @@ Notification status is also displayed in the operation logs table:
 <Frame>
   <img src="/images/features/image-42.png" alt=""/>
 </Frame>
+
+## Attaching Content to Log Entries
+
+Beyond the core log entry fields, Ghostwriter supports attaching additional content to entries to provide more context and documentation.
+
+### Attaching Evidence
+
+You can link existing report evidence to a log entry. This allows you to associate relevant information with the specific activity
+documented in the entry. Evidence is displayed in a dedicated section within the entry details, with direct links to the original
+evidence.
+
+See [Linking Evidence to Log Entries](/features/operation-logs/linking-evidence-to-entries) for detailed instructions.
+
+<Warning>
+Your project must have an available report before you will be able to upload evidence or link evidence to a log entry.
+</Warning>
+
+### Attaching Terminal Recordings
+
+You can upload terminal session recordings (Asciinema `.cast` or `.cast.gz` files) to document the exact commands and output from your operational
+activities. Recordings are stored with the log entry and can be played back directly within the application using the integrated
+Asciinema player.
+
+See [Attaching Terminal Recordings to Log Entries](/features/operation-logs/attaching-terminal-recordings) for detailed instructions.

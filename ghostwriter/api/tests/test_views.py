@@ -35,6 +35,7 @@ from ghostwriter.factories import (
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
+    OplogEntryRecordingFactory,
     ProjectAssignmentFactory,
     ProjectContactFactory,
     ProjectFactory,
@@ -607,10 +608,11 @@ class HasuraCheckoutTests(TestCase):
         cls.other_project = ProjectFactory()
         cls.assignment = ProjectAssignmentFactory(operator=cls.user, project=cls.project)
 
+        cls.domain_available = DomainStatusFactory(domain_status="Available")
         cls.domain_unavailable = DomainStatusFactory(domain_status="Unavailable")
-        cls.domain = DomainFactory()
+        cls.domain = DomainFactory(domain_status=cls.domain_available)
         cls.unavailable_domain = DomainFactory(domain_status=cls.domain_unavailable)
-        cls.expired_domain = DomainFactory(expiration=timezone.now() - timedelta(days=1))
+        cls.expired_domain = DomainFactory(expiration=timezone.now() - timedelta(days=1), domain_status=cls.domain_available)
 
         cls.server_unavailable = ServerStatusFactory(server_status="Unavailable")
         cls.server = StaticServerFactory()
@@ -3040,3 +3042,444 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
         self.assertIn("downloadUrl", result)
         self.assertIn("fileBase64", result)
+
+
+class GraphqlLinkOplogEvidenceTests(TestCase):
+    """Collection of tests for :view:`api.GraphqlLinkOplogEvidence`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="user", is_active=True)
+        cls.manager = UserFactory(password=PASSWORD, role="manager", is_active=True)
+        cls.other_user = UserFactory(password=PASSWORD, role="user", is_active=True)
+
+        cls.project = ProjectFactory()
+        cls.report = ReportFactory(project=cls.project)
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+
+        cls.oplog_entry = OplogEntryFactory(oplog_id__project=cls.project)
+        cls.evidence = EvidenceOnReportFactory(report=cls.report)
+
+        cls.other_project = ProjectFactory()
+        cls.other_report = ReportFactory(project=cls.other_project)
+        cls.other_evidence = EvidenceOnReportFactory(report=cls.other_report)
+
+        cls.uri = reverse("api:graphql_link_oplog_evidence")
+
+    def setUp(self):
+        self.client = Client()
+        _, self.user_token = utils.generate_jwt(self.user)
+        _, self.manager_token = utils.generate_jwt(self.manager)
+        _, self.other_user_token = utils.generate_jwt(self.other_user)
+
+    def _post(self, data, token):
+        return self.client.post(
+            self.uri,
+            json.dumps({"input": data}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+    def test_link_oplog_evidence_success(self):
+        """Test that a user with project access can link evidence to an oplog entry."""
+        response = self._post(
+            {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.evidence.id},
+            self.user_token,
+        )
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertIn("id", result)
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("evidence", list(self.oplog_entry.tags.names()))
+
+    def test_link_oplog_evidence_idempotent(self):
+        """Test that linking the same evidence twice returns the existing link ID."""
+        r1 = self._post(
+            {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.evidence.id},
+            self.user_token,
+        )
+        r2 = self._post(
+            {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.evidence.id},
+            self.user_token,
+        )
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(r1.json()["id"], r2.json()["id"])
+
+    def test_link_oplog_evidence_manager_access(self):
+        """Test that a manager can link evidence without a project assignment."""
+        response = self._post(
+            {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.evidence.id},
+            self.manager_token,
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_link_oplog_evidence_without_access(self):
+        """Test that a user without project access is rejected."""
+        response = self._post(
+            {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.evidence.id},
+            self.other_user_token,
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Unauthorized access", "extensions": {"code": "Unauthorized"}},
+        )
+
+    def test_link_oplog_evidence_invalid_entry(self):
+        """Test that a non-existent oplog entry returns 400."""
+        response = self._post(
+            {"oplogEntryId": 99999, "evidenceId": self.evidence.id},
+            self.user_token,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Oplog entry does not exist", "extensions": {"code": "OplogEntryDoesNotExist"}},
+        )
+
+    def test_link_oplog_evidence_invalid_evidence(self):
+        """Test that a non-existent evidence ID returns 400."""
+        response = self._post(
+            {"oplogEntryId": self.oplog_entry.id, "evidenceId": 99999},
+            self.user_token,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Evidence does not exist", "extensions": {"code": "EvidenceDoesNotExist"}},
+        )
+
+    def test_link_oplog_evidence_project_mismatch(self):
+        """Test that evidence from a different project is rejected."""
+        response = self._post(
+            {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.other_evidence.id},
+            self.user_token,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "message": "Evidence does not belong to the same project",
+                "extensions": {"code": "ProjectMismatch"},
+            },
+        )
+
+    def test_link_oplog_evidence_no_secret(self):
+        """Test that request without action secret is rejected."""
+        response = self.client.post(
+            self.uri,
+            json.dumps({"input": {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.evidence.id}}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+        )
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+
+    def test_link_oplog_evidence_missing_inputs(self):
+        """Test that missing required inputs returns 400."""
+        response = self.client.post(
+            self.uri,
+            json.dumps({"input": {}}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
+
+class GraphqlUploadOplogRecordingTests(TestCase):
+    """Collection of tests for :view:`api.GraphqlUploadOplogRecording`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="user", is_active=True)
+        cls.manager = UserFactory(password=PASSWORD, role="manager", is_active=True)
+        cls.other_user = UserFactory(password=PASSWORD, role="user", is_active=True)
+
+        cls.project = ProjectFactory()
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.oplog_entry = OplogEntryFactory(oplog_id__project=cls.project)
+
+        cls.uri = reverse("api:graphql_upload_oplog_recording")
+
+    def setUp(self):
+        self.client = Client()
+        _, self.user_token = utils.generate_jwt(self.user)
+        _, self.manager_token = utils.generate_jwt(self.manager)
+        _, self.other_user_token = utils.generate_jwt(self.other_user)
+
+    def _cast_b64(self):
+        raw = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n'
+        return base64.b64encode(raw).decode()
+
+    def _post(self, data, token):
+        return self.client.post(
+            self.uri,
+            json.dumps({"input": data}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+    def test_upload_recording_success(self):
+        """Test that a user with project access can upload a recording."""
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": self._cast_b64(),
+            "filename": "session.cast",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("id", response.json())
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("recording", list(self.oplog_entry.tags.names()))
+
+    def test_upload_recording_replaces_existing(self):
+        """Test that uploading a second recording replaces the first."""
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": self._cast_b64(),
+            "filename": "first.cast",
+        }
+        r1 = self._post(data, self.user_token)
+        self.assertEqual(r1.status_code, 201)
+        first_id = r1.json()["id"]
+
+        data["filename"] = "second.cast"
+        r2 = self._post(data, self.user_token)
+        self.assertEqual(r2.status_code, 201)
+        second_id = r2.json()["id"]
+
+        # IDs differ — a new recording object was created
+        self.assertNotEqual(first_id, second_id)
+        # Only one recording exists for the entry
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        self.assertEqual(OplogEntryRecording.objects.filter(oplog_entry=self.oplog_entry).count(), 1)
+        # Tag survives the delete-and-replace cycle
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("recording", list(self.oplog_entry.tags.names()))
+
+    def test_upload_recording_manager_access(self):
+        """Test that a manager can upload a recording without a project assignment."""
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": self._cast_b64(),
+            "filename": "manager.cast",
+        }
+        response = self._post(data, self.manager_token)
+        self.assertEqual(response.status_code, 201)
+        self.oplog_entry.refresh_from_db()
+        self.assertIn("recording", list(self.oplog_entry.tags.names()))
+
+    def test_upload_recording_without_access(self):
+        """Test that a user without project access is rejected."""
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": self._cast_b64(),
+            "filename": "unauth.cast",
+        }
+        response = self._post(data, self.other_user_token)
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Unauthorized access", "extensions": {"code": "Unauthorized"}},
+        )
+
+    def test_upload_recording_invalid_entry(self):
+        """Test that a non-existent oplog entry returns 400."""
+        data = {
+            "oplogEntryId": 99999,
+            "file_base64": self._cast_b64(),
+            "filename": "missing.cast",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Oplog entry does not exist", "extensions": {"code": "OplogEntryDoesNotExist"}},
+        )
+
+    def test_upload_recording_wrong_extension(self):
+        """Test that a non-.cast file extension is rejected."""
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": self._cast_b64(),
+            "filename": "session.mp4",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 400)
+
+    def test_upload_recording_cast_gz_accepted(self):
+        """Test that .cast.gz files are accepted."""
+        import gzip
+        from base64 import b64encode
+        cast_content = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n'
+        gz_content = gzip.compress(cast_content)
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": b64encode(gz_content).decode("utf-8"),
+            "filename": "session.cast.gz",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 201)
+
+    def test_upload_recording_invalid_base64(self):
+        """Test that invalid base64 content is rejected."""
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": "not-valid-base64!!!",
+            "filename": "session.cast",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 400)
+
+    def test_upload_recording_no_secret(self):
+        """Test that request without action secret is rejected."""
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": self._cast_b64(),
+            "filename": "session.cast",
+        }
+        response = self.client.post(
+            self.uri,
+            json.dumps({"input": data}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+        )
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+
+    def test_upload_recording_missing_inputs(self):
+        """Test that missing required inputs returns 400."""
+        response = self.client.post(
+            self.uri,
+            json.dumps({"input": {}}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
+
+class GraphqlDownloadRecordingTests(TestCase):
+    """Collection of tests for :view:`api.GraphqlDownloadRecording`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="user", is_active=True)
+        cls.manager = UserFactory(password=PASSWORD, role="manager", is_active=True)
+        cls.other_user = UserFactory(password=PASSWORD, role="user", is_active=True)
+
+        cls.project = ProjectFactory()
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.oplog_entry = OplogEntryFactory(oplog_id__project=cls.project)
+        cls.recording = OplogEntryRecordingFactory(oplog_entry=cls.oplog_entry)
+
+        cls.entry_no_recording = OplogEntryFactory(oplog_id__project=cls.project)
+
+        cls.uri = reverse("api:graphql_download_oplog_recording")
+
+    def setUp(self):
+        self.client = Client()
+        _, self.user_token = utils.generate_jwt(self.user)
+        _, self.manager_token = utils.generate_jwt(self.manager)
+        _, self.other_user_token = utils.generate_jwt(self.other_user)
+
+    def _post(self, data, token):
+        return self.client.post(
+            self.uri,
+            json.dumps({"input": data}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+    def test_download_recording_success(self):
+        """Test that a user with project access can download a recording."""
+        response = self._post({"oplogEntryId": self.oplog_entry.id}, self.user_token)
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertEqual(result["recordingId"], self.recording.id)
+        self.assertEqual(result["oplogEntryId"], self.oplog_entry.id)
+        self.assertIn("filename", result)
+        self.assertIn("downloadUrl", result)
+        self.assertIn("fileBase64", result)
+        # Verify the base64 decodes to the original file content
+        decoded = base64.b64decode(result["fileBase64"])
+        self.recording.recording_file.seek(0)
+        self.assertEqual(decoded, self.recording.recording_file.read())
+
+    def test_download_recording_manager_access(self):
+        """Test that a manager can download a recording without a project assignment."""
+        response = self._post({"oplogEntryId": self.oplog_entry.id}, self.manager_token)
+        self.assertEqual(response.status_code, 200)
+
+    def test_download_recording_without_access(self):
+        """Test that a user without project access is rejected."""
+        response = self._post({"oplogEntryId": self.oplog_entry.id}, self.other_user_token)
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Unauthorized access", "extensions": {"code": "Unauthorized"}},
+        )
+
+    def test_download_recording_invalid_entry(self):
+        """Test that a non-existent oplog entry returns 404."""
+        response = self._post({"oplogEntryId": 99999}, self.user_token)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Oplog entry not found", "extensions": {"code": "OplogEntryNotFound"}},
+        )
+
+    def test_download_recording_no_recording(self):
+        """Test that an oplog entry without a recording returns 404."""
+        response = self._post({"oplogEntryId": self.entry_no_recording.id}, self.user_token)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "message": "No recording found for this oplog entry",
+                "extensions": {"code": "RecordingNotFound"},
+            },
+        )
+
+    def test_download_recording_file_not_found(self):
+        """Test that a missing physical file returns 404."""
+        entry = OplogEntryFactory(oplog_id__project=self.project)
+        recording = OplogEntryRecordingFactory(oplog_entry=entry)
+        file_path = recording.recording_file.path
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        response = self._post({"oplogEntryId": entry.id}, self.user_token)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "message": "Recording file not found on server",
+                "extensions": {"code": "RecordingFileNotFound"},
+            },
+        )
+
+    def test_download_recording_no_secret(self):
+        """Test that request without action secret is rejected."""
+        response = self.client.post(
+            self.uri,
+            json.dumps({"input": {"oplogEntryId": self.oplog_entry.id}}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+        )
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+
+    def test_download_recording_missing_inputs(self):
+        """Test that missing required inputs returns 400."""
+        response = self.client.post(
+            self.uri,
+            json.dumps({"input": {}}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)

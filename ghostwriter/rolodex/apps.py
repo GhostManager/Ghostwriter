@@ -6,6 +6,7 @@ from django.apps import AppConfig
 
 class RolodexConfig(AppConfig):
     name = "ghostwriter.rolodex"
+    verbose_name = "Clients & Projects"
 
     def ready(self):
         try:

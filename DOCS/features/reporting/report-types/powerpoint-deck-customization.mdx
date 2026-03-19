@@ -5,84 +5,127 @@ description: "Customizing PowerPoint slide deck generation"
 
 ## Getting Started with PowerPoint
 
-Ghostwriter uses template documents and the Jinja2 template language ([https://jinja.palletsprojects.com/en/2.11.x/](https://jinja.palletsprojects.com/en/2.11.x/)) to give you as much control over document generation as possible.
+Ghostwriter uses template documents and the Jinja2 template language ([https://jinja.palletsprojects.com/en/stable/](https://jinja.palletsprojects.com/en/stable/))
+to give you as much control over document generation as possible.
 
-Learn more about managing report templates here:
+Learn more about managing report templates here: [Report Templates](/features/reporting/report-templates)
 
-[Report Templates](/features/reporting/report-templates)
+You will need to upload at least one PowerPoint slide deck to use as a template. Once you have a template you can pick from, open your report and
+select the template from the dropdown menu under the **Generate Reports** section. You should see a notification when the template selection is saved.
+You can then click the PowerPoint icon to generate a report.
 
-You will need to upload at least one PowerPoint slide deck to use as a template. Once you have a template you can pick from, open your report and select the template from the dropdown menu under the **Generate Reports** section. You should see a notification when the template selection is saved. You can then click the PowerPoint icon to generate a report.
-
-Depending on the size of your report and template, rendering can take a few seconds. Once the report is done, your browser will download a new PowerPoint document.
+Depending on the size of your report and template, rendering can take a few seconds. Once the report is done, your browser will download a new PowerPoint
+document.
 
 The default filename will be: `YYYYMMDD_HHMMSS_CLIENT-NAME_ASESSMENT-TYPE.pptx`
 
 ### PowerPoint Templates
 
-There are fewer customization options for PowerPoint than Word. Your template slide deck controls how the generated slide deck looks, but the content will always be the same.
+There are fewer customization options for PowerPoint than Word. Your template slide deck controls how the generated slide deck looks, but the content
+will always be the same.
 
 <Warning>
-The PowerPoint template should be empty – i.e., should contain zero slides. Edit the master slides to control colors, layout, slide numbers, and other details.
+The PowerPoint template should be empty – i.e., should contain zero slides. Edit the master slides to control colors, layout, slide numbers, and other
+details.
 
 To open your slide master view in PowerPoint: *View* » *Slide Master*
+
+PowerPoint remembers if you closed the deck with the Slide Master view open or not and will re-open where you left off. To avoid every presentation opening
+on the view, close it before saving and uploading your template.
 </Warning>
+
+Your templates should include at least three slide layouts in your _Slide Master_ view. Your first layout must be your title slide layout, the second layout
+must be your content layout, and your last layout must be your final/conclusion slide layout. Ghostwriter uses these three layouts, but you are welcome to
+include additional layouts between the content layout and the final slide layout. Just ensure the layout for your conclusion slide is last.
+
+Ghostwriter will attempt to intelligently use the placeholders you include in your layouts. The slide's title (type 1 placeholder) will go into the slide's
+title placeholder. Likewise, when Ghostwriter adds a subtitle to the title slide, it will try to use a subtitle placeholder (type 4 placeholder), if present.
+Finally, you want a content placeholder (type 7 placeholder) for the slide's main body.
+
+<Info>
+Adding text boxes and other objects does not create placeholders. These are "shapes" that will always be present on slides created with the layout. If the
+expected placeholders are not present, Ghostwriter will try to fallback to using detected shapes. If there are no shapes, the reporting engine will create
+new shapes. Ghostwriter tries to make new shapes in the same position where title and content are often placed, but it's a best guess on our part.
+
+Make use of placeholders for the best output!
+</Info>
+
+Title and subtitle are special placeholders. Each slide can contain one of each. You can verify you have these placeholders in a couple of different ways.
+You can see if you have a title placeholder by looking at your layout and verifying the _Title_ checkbox is checked under the _Slide Master_ section of the
+ribbon menu. It's a good idea to toggle it off and on to verify the placeholder you expect to be the title is really the title. If someone manually moved
+the title to repurpose it (e.g., for content or as a footer placeholder), that placeholder is still the title for that layout.
+
+Subtitles are trickier because PowerPoint actually offers no way to create these from the _Insert Placeholder_ menu. There is also no checkbox to create one
+like there is for _Title_ or _Footers_. Many default PowerPoint layouts include them, which is one way to get them. You can also copy and paste a subtitle placeholder from another slide. Finally, you can use a macro to insert a subtitle placeholder.
+
+These two macros can be helpful for identifying the type of placeholder you have selected and inserting a subtitle placeholder on your title slide (for use
+or copy/pasting):
+
+```vb
+Sub InsertSubtitlePlaceholder()
+  Dim oSlideMaster As Master
+  Dim oLayout As CustomLayout
+  Dim oSubtitleShape As Shape
+
+  ' Reference the first slide master
+  Set oSlideMaster = ActivePresentation.SlideMaster
+
+  ' Reference the first layout (or specific layout)
+  Set oLayout = oSlideMaster.CustomLayouts(1)
+
+  ' Add a subtitle placeholder
+  Set oSubtitleShape = oLayout.Shapes.AddPlaceholder(Type:=ppPlaceholderSubtitle, _
+    Left:=100, Top:=300, Width:=500, Height:=100)
+
+  oSubtitleShape.TextFrame.TextRange.Text = "Subtitle Placeholder"
+End Sub
+
+Sub ShowPlaceholderType()
+  With ActiveWindow.Selection.ShapeRange
+    If .Type = msoPlaceholder Then
+      Select Case .PlaceholderFormat.Type
+
+        Case ppPlaceholderTitle
+        MsgBox "Title Placeholder"
+
+        Case ppPlaceholderCenterTitle
+        MsgBox "Centered Title Placeholder"
+
+        Case ppPlaceholderSubtitle
+        MsgBox "Subtitle Placeholder"
+
+        Case ppPlaceholderObject
+        MsgBox "Content Placeholder"
+
+      End Select
+    End If
+  End With
+End Sub
+```
+
+For further reference: [PowerPoint PpPlaceholderType Enumeration](https://learn.microsoft.com/en-us/office/vba/api/powerpoint.ppplaceholdertype)
+
+### PowerPoint Generation
+
 Ghostwriter will add slides to your chosen template slide deck. The new slides include placeholders and dynamic project information.
 
 <Info>
-Each slide is set to fit text to the size of the text field. This auto-resizing happens in PowerPoint's rendering engine, so a slide's text might extend beyond the slide's lower boundary when you open your new presentation.
+Each slide is set to fit text to the size of the text field. This auto-resizing happens in PowerPoint's rendering engine, so a slide's text might extend
+beyond the slide's lower boundary when you open your new presentation.
 
 PowerPoint should activate auto-resizing when you save the presentation or edit any text.
 </Info>
-* **Title Slide**
 
-  * Includes your configured company name, selected project type, and client name
-
-* **Agenda Slide**
-
-  * Placeholder for you to enter a meeting agenda
-
-* **Introduction Slide**
-
-  * Placeholder for any presenter introductions
-
-* **Methodology Slide**
-
-  * Placeholder for reviewing testing methodology
-
-* **Attack Path Overview Slide**
-
-  * Placeholder for where you might discuss assessment narratives
-
-* **Findings Overview Slide**
-
-  * Includes a two-column table showing all findings (full title and severity)
-
-* **Findings Slides**
-
-  * One slide per finding that includes:
-
-    * Finding title as the slide title
-
-    * All image evidence files as inserted images
-
-    * All text evidence files as new text blocks 9styled with a fixed-width font)
-
-    * Finding description as main slide content
-
-    * All other finding information in the slide's notes field
-
-* **Observations Slide**
-
-  * Placeholder for any additional observations
-
-* **Recommendations Slide**
-
-  * Placeholder for any recommendations
-
-* **Conclusion Slide**
-
-  * Placeholder for closing statements or next steps
-
-* **Final Slide**
-
-  * Closing title slide that includes your configured company name, social media account, and email address
+| Slide Type | Description |
+|------------|-------------|
+| Title Slide | Includes your configured company name, selected project type, and client name |
+| Agenda Slide | Placeholder for you to enter a meeting agenda |
+| Introduction Slide | Placeholder for any presenter introductions |
+| Methodology Slide | Placeholder for reviewing testing methodology |
+| Attack Path Overview Slide | Placeholder for where you might discuss assessment narratives |
+| Findings Overview Slide | Includes a two-column table showing all findings (full title and severity) |
+| Findings Slides | One slide per finding that includes:<br/>• Finding title as the slide title<br/>• All image evidence files as inserted images<br/>• All text evidence files as new text blocks (styled with a fixed-width font)<br/>• Finding description as main slide content<br/>• All other finding information in the slide's notes field |
+| Observations Slide | Placeholder for any additional observations |
+| Recommendations Slide | Placeholder for any recommendations |
+| Conclusion Slide | Placeholder for closing statements or next steps |
+| Final Slide | Closing title slide that includes your configured company name, social media account, and email address |

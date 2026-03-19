@@ -24,6 +24,7 @@ insert_permissions:
       columns:
         - added_as_blank
         - assigned_to_id
+        - complete
         - description
         - extra_fields
         - position
@@ -50,6 +51,7 @@ insert_permissions:
       columns:
         - added_as_blank
         - assigned_to_id
+        - complete
         - description
         - extra_fields
         - position
@@ -59,26 +61,28 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - assigned_to_id
-        - id
-        - report_id
         - added_as_blank
-        - title
-        - position
-        - extra_fields
+        - assigned_to_id
+        - complete
         - description
+        - extra_fields
+        - id
+        - position
+        - report_id
+        - title
       filter: {}
   - role: user
     permission:
       columns:
-        - assigned_to_id
-        - id
-        - report_id
         - added_as_blank
-        - title
-        - position
-        - extra_fields
+        - assigned_to_id
+        - complete
         - description
+        - extra_fields
+        - id
+        - position
+        - report_id
+        - title
       filter:
         report:
           project:
@@ -99,6 +103,7 @@ update_permissions:
       columns:
         - added_as_blank
         - assigned_to_id
+        - complete
         - description
         - extra_fields
         - position
@@ -111,6 +116,7 @@ update_permissions:
       columns:
         - added_as_blank
         - assigned_to_id
+        - complete
         - description
         - extra_fields
         - position

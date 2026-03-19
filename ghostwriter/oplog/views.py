@@ -5,11 +5,14 @@ import collections
 import csv
 import json
 import logging
+import mimetypes
+import os
 
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.db import transaction
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import ListView
@@ -28,8 +31,9 @@ from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
-from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
-from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.forms import OplogEntryForm, OplogEvidenceForm, OplogForm
+from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence, OplogEntryRecording
+from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.views
@@ -407,6 +411,9 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
         ctx["oplog_entry_extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
             ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
         ).data
+        ctx["project_has_reports"] = Report.objects.filter(
+            project=self.object.project
+        ).exists()
         return ctx
 
 
@@ -655,3 +662,193 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             writer.writerow(values)
 
         return response
+
+
+class OplogEvidenceCreate(RoleBasedAccessControlMixin, View):
+    """
+    Upload an :model:`reporting.Evidence` file and link it to an :model:`oplog.OplogEntry`
+    via an :model:`oplog.OplogEntryEvidence`.
+
+    Returns form HTML on GET (for AJAX modal), JSON response on POST.
+    """
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def get(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        project = entry.oplog_id.project
+        active_report_id = None
+        try:
+            active = request.session.get("active_report") or {}
+            active_report_id = int(active.get("id", 0)) or None
+        except (TypeError, ValueError, AttributeError):
+            active_report_id = None
+        form = OplogEvidenceForm(project=project, active_report_id=active_report_id)
+        form.helper.form_action = reverse("oplog:oplog_entry_evidence_upload", kwargs={"pk": entry.pk})
+        return render(request, "oplog/snippets/oplog_evidence_form_inner.html", {"form": form})
+
+    def post(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        project = entry.oplog_id.project
+        form = OplogEvidenceForm(request.POST, request.FILES, project=project)
+        if form.is_valid():
+            with transaction.atomic():
+                evidence = form.save(commit=False)
+                evidence.uploaded_by = request.user
+                evidence.save()
+                form.save_m2m()
+                OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence)
+            return JsonResponse({
+                "result": "success",
+                "evidence_id": evidence.pk,
+                "friendly_name": evidence.friendly_name,
+            })
+        # Return the form with errors for re-rendering in the modal
+        form.helper.form_action = reverse("oplog:oplog_entry_evidence_upload", kwargs={"pk": entry.pk})
+        return render(request, "oplog/snippets/oplog_evidence_form_inner.html", {"form": form})
+
+
+class OplogEntryEvidenceList(RoleBasedAccessControlMixin, View):
+    """Return a JSON list of :model:`reporting.Evidence` linked to an :model:`oplog.OplogEntry`."""
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def get(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        links = entry.evidence_links.select_related("evidence", "evidence__uploaded_by").all()
+        evidence_list = []
+        for link in links:
+            ev = link.evidence
+            evidence_list.append({
+                "id": ev.pk,
+                "friendly_name": ev.friendly_name,
+                "caption": ev.caption,
+                "document_url": reverse("reporting:evidence_download", kwargs={"pk": ev.pk}) + "?view=1" if ev.document else "",
+                "filename": ev.document.name.split("/")[-1] if ev.document else "",
+                "link_id": link.pk,
+                "uploaded_by_user": ev.uploaded_by_user,
+            })
+        return JsonResponse({"result": "success", "evidence": evidence_list})
+
+
+class OplogRecordingUpload(RoleBasedAccessControlMixin, View):
+    """
+    Upload or replace the Asciinema terminal recording for an :model:`oplog.OplogEntry`.
+
+    Returns a JSON response.
+    """
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def post(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        recording_file = request.FILES.get("recording_file")
+        if not recording_file:
+            return JsonResponse({"result": "error", "message": "No file provided."}, status=400)
+        filename_lower = recording_file.name.lower()
+        if not (filename_lower.endswith(".cast") or filename_lower.endswith(".cast.gz")):
+            return JsonResponse({"result": "error", "message": "Only .cast and .cast.gz files are accepted."}, status=400)
+        # Replace any existing recording
+        try:
+            entry.recording.delete()
+        except OplogEntryRecording.DoesNotExist:
+            pass
+        recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=request.user)
+        recording.recording_file = recording_file
+        recording.save()
+        return JsonResponse({
+            "result": "success",
+            "recording_url": reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk}),
+        })
+
+
+class OplogRecordingDelete(RoleBasedAccessControlMixin, View):
+    """Delete the Asciinema terminal recording for an :model:`oplog.OplogEntry`."""
+
+    def get_entry(self):
+        return get_object_or_404(OplogEntry, pk=self.kwargs["pk"])
+
+    def test_func(self):
+        return self.get_entry().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def post(self, request, *args, **kwargs):
+        entry = self.get_entry()
+        try:
+            entry.recording.delete()
+            logger.info("Deleted recording for %s %s by request of %s", entry.__class__.__name__, entry.id, self.request.user)
+            return JsonResponse({"result": "success"})
+        except OplogEntryRecording.DoesNotExist:
+            return JsonResponse({"result": "error", "message": "No recording found."}, status=404)
+
+
+class OplogRecordingDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Serve the Asciinema recording file for an :model:`oplog.OplogEntryRecording`."""
+
+    model = OplogEntryRecording
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse({"result": "error", "message": "You do not have permission to access that."}, status=403)
+
+    def get(self, request, *args, **kwargs):
+        recording = self.get_object()
+        file_path = recording.recording_file.path
+        if os.path.exists(file_path):
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            # Check if file is gzipped - if so, serve with Content-Encoding: gzip
+            # so the browser decompresses it for the Asciinema player
+            is_gzipped = file_path.lower().endswith(".gz")
+
+            response = FileResponse(
+                open(file_path, "rb"),
+                as_attachment=not inline_view,
+                filename=recording.filename,
+                content_type=content_type,
+            )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                # Additional hardening for inline content
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+
+            # For gzipped files, add Content-Encoding header so browser decompresses
+            if is_gzipped:
+                response["Content-Encoding"] = "gzip"
+
+            return response
+        raise Http404

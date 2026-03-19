@@ -3,10 +3,18 @@ import logging
 from datetime import datetime, timezone
 
 # Django Imports
+from django.db import IntegrityError
 from django.test import TestCase
 
 # Ghostwriter Libraries
-from ghostwriter.factories import OplogEntryFactory, OplogFactory
+from ghostwriter.factories import (
+    EvidenceOnReportFactory,
+    OplogEntryEvidenceFactory,
+    OplogEntryFactory,
+    OplogEntryRecordingFactory,
+    OplogFactory,
+)
+from ghostwriter.oplog.models import OplogEntryEvidence, OplogEntryRecording
 
 logging.disable(logging.CRITICAL)
 
@@ -99,3 +107,150 @@ class OplogEntryModelTests(TestCase):
         entry.refresh_from_db()
 
         self.assertEqual(list(entry.tags.names()), tags)
+
+
+class OplogEntryEvidenceModelTests(TestCase):
+    """Collection of tests for :model:`oplog.OplogEntryEvidence`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.OplogEntryEvidence = OplogEntryEvidenceFactory._meta.model
+
+    def test_crud(self):
+        # Create
+        link = OplogEntryEvidenceFactory()
+        self.assertIsNotNone(link.pk)
+
+        # Read
+        self.assertIsNotNone(link.oplog_entry)
+        self.assertIsNotNone(link.evidence)
+
+        # Delete
+        link.delete()
+        assert not self.OplogEntryEvidence.objects.all().exists()
+
+    def test_unique_together(self):
+        link = OplogEntryEvidenceFactory()
+        with self.assertRaises(IntegrityError):
+            OplogEntryEvidenceFactory(
+                oplog_entry=link.oplog_entry,
+                evidence=link.evidence,
+            )
+
+    def test_cascade_delete_entry(self):
+        link = OplogEntryEvidenceFactory()
+        entry = link.oplog_entry
+        entry.delete()
+        assert not self.OplogEntryEvidence.objects.filter(pk=link.pk).exists()
+
+    def test_cascade_delete_evidence(self):
+        link = OplogEntryEvidenceFactory()
+        evidence = link.evidence
+        evidence.delete()
+        assert not self.OplogEntryEvidence.objects.filter(pk=link.pk).exists()
+
+    def test_str(self):
+        link = OplogEntryEvidenceFactory()
+        self.assertIn(str(link.oplog_entry), str(link))
+
+    def test_evidence_tag_added_on_link_create(self):
+        """Creating an OplogEntryEvidence link adds 'evidence' tag to the OplogEntry."""
+        link = OplogEntryEvidenceFactory()
+        self.assertIn("evidence", list(link.oplog_entry.tags.names()))
+
+    def test_evidence_tag_removed_when_last_link_deleted(self):
+        """Deleting the last evidence link removes the 'evidence' tag from the OplogEntry."""
+        link = OplogEntryEvidenceFactory()
+        entry = link.oplog_entry
+        link.delete()
+        self.assertNotIn("evidence", list(entry.tags.names()))
+
+    def test_evidence_tag_retained_when_other_links_remain(self):
+        """Deleting one evidence link keeps the 'evidence' tag when other links remain."""
+        link1 = OplogEntryEvidenceFactory()
+        entry = link1.oplog_entry
+        evidence2 = EvidenceOnReportFactory()
+        link2 = OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence2)
+        # Now delete only one link; the tag should remain because link2 still exists
+        link1.delete()
+        self.assertIn("evidence", list(entry.tags.names()))
+
+    def test_evidence_tag_removed_on_cascade_evidence_delete(self):
+        """Deleting an Evidence record cascade-removes the tag when it was the last link."""
+        link = OplogEntryEvidenceFactory()
+        entry = link.oplog_entry
+        link.evidence.delete()
+        self.assertNotIn("evidence", list(entry.tags.names()))
+
+
+class OplogEntryRecordingModelTests(TestCase):
+    """Collection of tests for :model:`oplog.OplogEntryRecording`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.OplogEntryRecording = OplogEntryRecordingFactory._meta.model
+
+    def test_crud(self):
+        recording = OplogEntryRecordingFactory()
+        self.assertIsNotNone(recording.pk)
+        self.assertTrue(recording.recording_file.name.endswith(".cast"))
+        recording.delete()
+        assert not self.OplogEntryRecording.objects.all().exists()
+
+    def test_str(self):
+        recording = OplogEntryRecordingFactory()
+        self.assertIn(str(recording.oplog_entry_id), str(recording))
+
+    def test_one_recording_per_entry(self):
+        """A second recording cannot be created for the same entry (OneToOne)."""
+        recording = OplogEntryRecordingFactory()
+        with self.assertRaises(Exception):
+            OplogEntryRecordingFactory(oplog_entry=recording.oplog_entry)
+
+    def test_cascade_delete_on_entry_delete(self):
+        """Deleting an OplogEntry cascade-deletes its recording."""
+        recording = OplogEntryRecordingFactory()
+        recording_id = recording.pk
+        recording.oplog_entry.delete()
+        assert not self.OplogEntryRecording.objects.filter(pk=recording_id).exists()
+
+    def test_filename_property(self):
+        recording = OplogEntryRecordingFactory()
+        self.assertTrue(recording.filename.endswith(".cast"))
+
+    def test_upload_path_includes_project_id(self):
+        """The recording file is stored under the project-scoped recordings directory."""
+        recording = OplogEntryRecordingFactory()
+        project_id = str(recording.oplog_entry.oplog_id.project_id)
+        self.assertIn(f"recordings/{project_id}/", recording.recording_file.name)
+
+    def test_file_deleted_on_recording_delete(self):
+        """Deleting an OplogEntryRecording removes the file from disk."""
+        import os
+
+        recording = OplogEntryRecordingFactory()
+        file_path = recording.recording_file.path
+        self.assertTrue(os.path.exists(file_path))
+        recording.delete()
+        self.assertFalse(os.path.exists(file_path))
+
+    def test_recording_tag_added_on_create(self):
+        """Creating an OplogEntryRecording adds the 'recording' tag to the OplogEntry."""
+        recording = OplogEntryRecordingFactory()
+        self.assertIn("recording", list(recording.oplog_entry.tags.names()))
+
+    def test_recording_tag_removed_on_delete(self):
+        """Deleting an OplogEntryRecording removes the 'recording' tag from the OplogEntry."""
+        recording = OplogEntryRecordingFactory()
+        entry = recording.oplog_entry
+        recording.delete()
+        self.assertNotIn("recording", list(entry.tags.names()))
+
+    def test_recording_tag_removed_on_cascade_entry_delete(self):
+        """Deleting the OplogEntry does not raise an error for the recording tag signal."""
+        recording = OplogEntryRecordingFactory()
+        recording_id = recording.pk
+        # Cascade-deleting the entry should not raise — the signal handles DoesNotExist
+        recording.oplog_entry.delete()
+        self.assertFalse(OplogEntryRecordingFactory._meta.model.objects.filter(pk=recording_id).exists())
+

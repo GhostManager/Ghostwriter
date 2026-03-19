@@ -10,6 +10,8 @@
 - "!include public_home_userprofile.yaml"
 - "!include public_oplog_oplog.yaml"
 - "!include public_oplog_oplogentry.yaml"
+- "!include public_oplog_oplogentryevidence.yaml"
+- "!include public_oplog_oplogentryrecording.yaml"
 - "!include public_reporting_archive.yaml"
 - "!include public_reporting_doctype.yaml"
 - "!include public_reporting_evidence.yaml"

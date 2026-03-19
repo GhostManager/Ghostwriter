@@ -7,6 +7,8 @@ configuration:
       custom_name: findingId
     friendly_name:
       custom_name: friendlyName
+    report_id:
+      custom_name: reportId
     upload_date:
       custom_name: uploadDate
     uploaded_by_id:
@@ -14,6 +16,7 @@ configuration:
   custom_column_names:
     finding_id: findingId
     friendly_name: friendlyName
+    report_id: reportId
     upload_date: uploadDate
     uploaded_by_id: uploadedById
   custom_name: evidence

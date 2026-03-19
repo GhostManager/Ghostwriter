@@ -22,6 +22,9 @@ from rest_framework.serializers import (
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
+# Django Imports (additional)
+from django.core.exceptions import ObjectDoesNotExist
+
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, BloodHoundConfiguration
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -770,6 +773,17 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
 
     tags = TagListSerializerField()
     extra_fields = ExtraFieldsSerField(OplogEntry._meta.label)
+    recording_url = serializers.SerializerMethodField()
+
+    def get_recording_url(self, obj):
+        try:
+            rec = obj.recording
+            if rec and rec.recording_file:
+                from django.urls import reverse
+                return reverse("oplog:oplog_entry_recording_download", kwargs={"pk": rec.pk})
+        except ObjectDoesNotExist:
+            pass
+        return None
 
     class Meta:
         model = OplogEntry
