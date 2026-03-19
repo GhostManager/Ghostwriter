@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.0-rc2] - 19 March 2026
+
+### Added
+
+* **Operation Log Evidence Linking**: Added support for linking evidence to individual operation log entries
+  * New `OplogEntryEvidence` model to create many-to-many relationships between log entries and evidence
+  * New GraphQL `linkOplogEvidence` action to attach evidence via API
+  * New web form (`OplogEvidenceCreate` view) to attach evidence through the UI
+  * Evidence appears in a dedicated section within each log entry, with friendly names and direct links to the original evidence
+  * Automatic "evidence" tag applied when evidence is linked to an entry
+
+* **Operation Log Terminal Recordings**: Added support for uploading and playback of Asciinema terminal session recordings (.cast and .cast.gz files)
+  * New `OplogEntryRecording` model to store a single terminal recording per log entry
+  * New GraphQL `uploadOplogRecording` action for base64-encoded file uploads via API
+  * New GraphQL `downloadOplogRecording` action to retrieve recordings and metadata
+  * New Django views for recording upload, deletion, and download with file serving and inline playback support
+  * Support for Asciinema player integration for viewing recordings directly in the log entry's details pane
+  * Automatic "recording" tag applied when a recording is uploaded
+
+* **Automatic Tag Management for Log Entry Features**: Evidence linking and terminal recordings automatically apply and remove tags
+  * `evidence` tag added when first evidence is linked, removed when the last evidence is unlinked
+  * `recording` tag added when a recording is uploaded, removed when the recording is deleted
+  * Tags can be used for filtering log entries and visual identification
+
+### Fixed
+
+* Fixed JavaScript memory leak in preview and avatar preview functions
+  * Object URLs created via `URL.createObjectURL()` are now properly revoked before creating new ones
+  * Prevents memory accumulation when repeatedly uploading or previewing files
+
+### Changed
+
+* **New User Interface for Operation Logs**: Replaced the table view for operation logs with two pane interface
+  * New interface is similar to those used by many email clients
+  * Log entries appear on the left-side with at-a-glance information
+  * Details appear on the right-side in a details pane
+  * Details pane includes dedicated sections for attaching evidence and uploading terminal recordings
+
 ## [6.2.7] - 9 March 2026
 
 ### Added
