@@ -361,8 +361,7 @@ class ReportFindingAssign(RoleBasedAccessControlMixin, UpdateView):
                 messages.info(self.request, "The finding was already unassigned. No changes made.")
             return HttpResponseRedirect(self.get_success_url())
         try:
-            # Send a message to the assigned user
-            # only send if assigned_to is set to avoid sending notifications when unassigning an observation
+            # Send a message to the assigned user if `assigned_to` is set
             if self.object.assigned_to:
                 async_to_sync(get_channel_layer().group_send)(
                     f"notify_{self.object.assigned_to.get_clean_username()}",
