@@ -3311,6 +3311,20 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         response = self._post(data, self.user_token)
         self.assertEqual(response.status_code, 400)
 
+    def test_upload_recording_cast_gz_accepted(self):
+        """Test that .cast.gz files are accepted."""
+        import gzip
+        from base64 import b64encode
+        cast_content = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n'
+        gz_content = gzip.compress(cast_content)
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": b64encode(gz_content).decode("utf-8"),
+            "filename": "session.cast.gz",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 201)
+
     def test_upload_recording_invalid_base64(self):
         """Test that invalid base64 content is rejected."""
         data = {

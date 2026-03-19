@@ -261,11 +261,13 @@ class ApiOplogRecordingForm(forms.Form):
     oplog_entry_id = forms.IntegerField(required=True)
 
     def clean_filename(self):
-        _, ext = splitext(self.cleaned_data["filename"])
-        if ext.lower() != ".cast":
+        filename = self.cleaned_data["filename"]
+        filename_lower = filename.lower()
+        # Accept .cast or .cast.gz extensions
+        if not (filename_lower.endswith(".cast") or filename_lower.endswith(".cast.gz")):
             raise ValidationError(
-                f'File extension "{ext}" is not allowed. Only .cast files are accepted.',
+                f'File extension is not allowed. Only .cast and .cast.gz files are accepted.',
                 code="invalid",
             )
-        return self.cleaned_data["filename"]
+        return filename
 

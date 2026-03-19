@@ -766,8 +766,9 @@ class OplogRecordingUpload(RoleBasedAccessControlMixin, View):
         recording_file = request.FILES.get("recording_file")
         if not recording_file:
             return JsonResponse({"result": "error", "message": "No file provided."}, status=400)
-        if not recording_file.name.lower().endswith(".cast"):
-            return JsonResponse({"result": "error", "message": "Only .cast files are accepted."}, status=400)
+        filename_lower = recording_file.name.lower()
+        if not (filename_lower.endswith(".cast") or filename_lower.endswith(".cast.gz")):
+            return JsonResponse({"result": "error", "message": "Only .cast and .cast.gz files are accepted."}, status=400)
         # Replace any existing recording
         try:
             entry.recording.delete()
@@ -828,6 +829,10 @@ class OplogRecordingDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
             # Default to download (as_attachment=True) for security
             inline_view = request.GET.get("view", "").lower() in ("1", "true", "yes")
 
+            # Check if file is gzipped - if so, serve with Content-Encoding: gzip
+            # so the browser decompresses it for the Asciinema player
+            is_gzipped = file_path.lower().endswith(".gz")
+
             response = FileResponse(
                 open(file_path, "rb"),
                 as_attachment=not inline_view,
@@ -840,6 +845,10 @@ class OplogRecordingDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
             if inline_view:
                 # Additional hardening for inline content
                 response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+
+            # For gzipped files, add Content-Encoding header so browser decompresses
+            if is_gzipped:
+                response["Content-Encoding"] = "gzip"
 
             return response
         raise Http404

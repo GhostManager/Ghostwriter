@@ -416,7 +416,7 @@ $(document).ready(function () {
             html += `<div class="oplog-attachment-dropzone" id="recording-dropzone-${entry.id}" onclick="uploadRecording(${entry.id})">
                 <div class="dropzone-icon"><i class="fas fa-play-circle"></i></div>
                 <div class="dropzone-text">No terminal recording attached</div>
-                <div class="dropzone-hint">Drag & drop a .cast file or click to upload</div>
+                <div class="dropzone-hint">Drag & drop a .cast or .cast.gz file or click to upload</div>
             </div>`;
         }
         html += `</div>`;
@@ -557,9 +557,18 @@ $(document).ready(function () {
 
     // --- Attachment functions ---
 
-    // Upload a .cast file to the server for persistent storage, then update the detail view
+    // Upload a .cast or .cast.gz file to the server for persistent storage, then update the detail view
     function uploadCastFile(file, entryId) {
-        // Basic client-side validation before sending
+        // Skip client-side content validation for gzipped files (server will validate)
+        let isGzipped = file.name.toLowerCase().endsWith('.gz');
+
+        if (isGzipped) {
+            // For gzipped files, skip JSON validation and proceed directly to upload
+            uploadCastFileToServer(file, entryId);
+            return;
+        }
+
+        // Basic client-side validation before sending (only for non-gzipped files)
         let reader = new FileReader();
         reader.onload = function (ev) {
             let castData = ev.target.result;
@@ -574,47 +583,52 @@ $(document).ready(function () {
                 displayToastTop({ type: 'warning', string: 'Could not parse file. Please select a valid .cast file.', title: 'Invalid File' });
                 return;
             }
-
-            let $dropzone = $(`#recording-dropzone-${entryId}`);
-            $dropzone.html('<div class="dropzone-icon"><i class="fas fa-sync fa-spin"></i></div><div class="dropzone-text">Uploading...</div>');
-
-            let formData = new FormData();
-            formData.append('recording_file', file);
-            let csrfToken = $splitContainer.attr('data-csrf-token');
-
-            window.fetch('/oplog/entry/' + entryId + '/recording/upload', {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-CSRFToken': csrfToken },
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.result === 'success') {
-                    if (entryDataStore[entryId]) {
-                        entryDataStore[entryId].recording_url = data.recording_url;
-                    }
-                    if (selectedEntryId == entryId) {
-                        renderDetail(entryDataStore[entryId]);
-                    }
-                    displayToastTop({ type: 'success', string: 'Terminal recording uploaded successfully.', title: 'Recording Saved' });
-                } else {
-                    displayToastTop({ type: 'error', string: data.message || 'Upload failed.', title: 'Upload Error' });
-                    if (selectedEntryId == entryId) {
-                        renderDetail(entryDataStore[entryId]);
-                    }
-                }
-            })
-            .catch(function () {
-                displayToastTop({ type: 'error', string: 'Network error during upload.', title: 'Upload Error' });
-                if (selectedEntryId == entryId) {
-                    renderDetail(entryDataStore[entryId]);
-                }
-            });
+            uploadCastFileToServer(file, entryId);
         };
         reader.onerror = function () {
             displayToastTop({ type: 'error', string: 'Failed to read file.', title: 'File Error' });
         };
         reader.readAsText(file);
+    }
+
+    // Helper function to upload the file to the server
+    function uploadCastFileToServer(file, entryId) {
+
+        let $dropzone = $(`#recording-dropzone-${entryId}`);
+        $dropzone.html('<div class="dropzone-icon"><i class="fas fa-sync fa-spin"></i></div><div class="dropzone-text">Uploading...</div>');
+
+        let formData = new FormData();
+        formData.append('recording_file', file);
+        let csrfToken = $splitContainer.attr('data-csrf-token');
+
+        window.fetch('/oplog/entry/' + entryId + '/recording/upload', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken },
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.result === 'success') {
+                if (entryDataStore[entryId]) {
+                    entryDataStore[entryId].recording_url = data.recording_url;
+                }
+                if (selectedEntryId == entryId) {
+                    renderDetail(entryDataStore[entryId]);
+                }
+                displayToastTop({ type: 'success', string: 'Terminal recording uploaded successfully.', title: 'Recording Saved' });
+            } else {
+                displayToastTop({ type: 'error', string: data.message || 'Upload failed.', title: 'Upload Error' });
+                if (selectedEntryId == entryId) {
+                    renderDetail(entryDataStore[entryId]);
+                }
+            }
+        })
+        .catch(function () {
+            displayToastTop({ type: 'error', string: 'Network error during upload.', title: 'Upload Error' });
+            if (selectedEntryId == entryId) {
+                renderDetail(entryDataStore[entryId]);
+            }
+        });
     }
 
     window.uploadEvidence = function (entryId) {
@@ -761,7 +775,7 @@ $(document).ready(function () {
     }
 
     window.uploadRecording = function (entryId) {
-        let $input = $('<input type="file" accept=".cast,.txt,.json" style="display:none;">');
+        let $input = $('<input type="file" accept=".cast,.gz,.txt,.json" style="display:none;">');
         $input.on('change', function (e) {
             let file = e.target.files[0];
             if (file) uploadCastFile(file, entryId);

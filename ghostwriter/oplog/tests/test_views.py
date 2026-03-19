@@ -982,6 +982,23 @@ class OplogRecordingUploadViewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["result"], "error")
 
+    def test_cast_gz_accepted(self):
+        """Test that a .cast.gz file is accepted."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        import gzip
+        # Create a gzipped .cast file
+        cast_content = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "compressed"]\n'
+        gz_file = SimpleUploadedFile(
+            "session.cast.gz",
+            gzip.compress(cast_content),
+            content_type="application/gzip",
+        )
+        response = self.client_auth.post(self.uri, {"recording_file": gz_file})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+        self.assertIn("recording_url", data)
+
     def test_upload_success(self):
         """Test that a valid .cast file is accepted, saved, and tags the entry."""
         from ghostwriter.oplog.models import OplogEntryRecording
@@ -1139,3 +1156,25 @@ class OplogRecordingDownloadViewTests(TestCase):
         """Test that a manager can download the recording without a project assignment."""
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_download_gzipped_file(self):
+        """Test that a .cast.gz file is served with Content-Encoding: gzip header."""
+        import gzip
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        # Create a new entry with a gzipped recording
+        entry = OplogEntryFactory(oplog_id=self.oplog)
+        cast_content = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n'
+        gz_file = SimpleUploadedFile(
+            "session.cast.gz",
+            gzip.compress(cast_content),
+            content_type="application/gzip",
+        )
+        from ghostwriter.oplog.models import OplogEntryRecording
+        recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=self.user)
+        recording.recording_file = gz_file
+        recording.save()
+
+        uri = reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk})
+        response = self.client_auth.get(uri + "?view=1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("Content-Encoding"), "gzip")
