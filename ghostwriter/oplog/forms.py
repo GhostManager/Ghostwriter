@@ -165,8 +165,8 @@ class OplogEntryForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Row(
-                Column("description", css_class="form-group col-6 mb-0 empty-form"),
-                Column("comments", css_class="form-group col-6 mb-0 empty-form"),
+                Column("description", css_class="form-group col-6 mb-0"),
+                Column("comments", css_class="form-group col-6 mb-0"),
                 css_class="form-row",
             ),
             "tags",
