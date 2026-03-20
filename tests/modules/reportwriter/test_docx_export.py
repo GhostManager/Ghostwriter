@@ -45,6 +45,7 @@ class ExportReportDocxRegressionTests(TestCase):
         assert exporter.table_caption_location == "bottom"
         assert exporter.title_case_captions is False
         assert exporter.title_case_exceptions == ["a", "an", "the"]
+        assert exporter.evidence_image_width == self.report.docx_template.evidence_image_width
 
     def test_render_rich_text_docx_uses_restored_exporter_attributes(self):
         exporter = self.create_exporter()
@@ -82,4 +83,12 @@ class ExportReportDocxRegressionTests(TestCase):
         assert captured["kwargs"]["title_case_captions"] is False
         assert captured["kwargs"]["title_case_exceptions"] == ["a", "an", "the"]
         assert captured["kwargs"]["border_color_width"] == ("123456", 9876)
+        assert captured["kwargs"]["evidence_image_width"] == self.report.docx_template.evidence_image_width
         assert captured["kwargs"]["global_report_config"] == self.report_config
+
+    def test_report_template_exporter_uses_report_template_constructor(self):
+        exporter = self.report.docx_template.exporter(self.report)
+
+        assert isinstance(exporter, ExportReportDocx)
+        assert exporter.report_template == self.report.docx_template
+        assert exporter.evidence_image_width == self.report.docx_template.evidence_image_width

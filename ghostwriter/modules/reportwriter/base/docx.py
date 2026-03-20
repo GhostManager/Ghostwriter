@@ -190,6 +190,7 @@ class ExportDocxBase(ExportBase):
         self.table_caption_location = self.global_report_config.table_caption_location
         self.title_case_captions = self.global_report_config.title_case_captions
         self.title_case_exceptions = self.global_report_config.title_case_exceptions.split(",")
+        self.evidence_image_width = self.report_template.evidence_image_width
 
     def run(self) -> io.BytesIO:
         try:
@@ -356,6 +357,7 @@ class ExportDocxBase(ExportBase):
                     title_case_captions=self.title_case_captions,
                     title_case_exceptions=self.title_case_exceptions,
                     border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                    evidence_image_width=self.evidence_image_width,
                     report_template=self.report_template,
                     global_report_config=self.global_report_config,
                     images=self.image_replacements,
