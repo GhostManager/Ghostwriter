@@ -352,8 +352,10 @@ $(document).ready(function () {
             if (f.type === 'code') {
                 html += `<pre class="oplog-code-block">${jsEscape(val)}</pre>`;
             } else {
-                // Rich text already XSS cleaned by backend
-                html += `<div class="oplog-rich-content">${val}</div>`;
+                // Sanitize with DOMPurify before rendering as HTML (defense-in-depth
+                // alongside server-side bleach sanitization on save).
+                let safeVal = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(val) : jsEscape(val);
+                html += `<div class="oplog-rich-content">${safeVal}</div>`;
             }
             html += `</div>`;
         });
@@ -370,7 +372,8 @@ $(document).ready(function () {
                 if (spec.type === 'checkbox') {
                     html += val ? '<i class="fas fa-check text-success"></i> Yes' : '<i class="fas fa-times text-danger"></i> No';
                 } else if (spec.type === 'rich_text') {
-                    html += `<div class="oplog-rich-content">${val}</div>`;
+                    let safeVal = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(val) : jsEscape(val);
+                    html += `<div class="oplog-rich-content">${safeVal}</div>`;
                 } else {
                     html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
                 }
