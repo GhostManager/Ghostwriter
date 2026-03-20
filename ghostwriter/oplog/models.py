@@ -5,6 +5,10 @@ import logging
 import os
 from datetime import datetime
 
+# 3rd Party Libraries
+import bleach
+from bleach.css_sanitizer import CSSSanitizer
+
 # Django Imports
 from django import forms
 from django.conf import settings
@@ -20,6 +24,20 @@ from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.models
 logger = logging.getLogger(__name__)
+
+def _sanitize_rich_field(value):
+    """Strip disallowed HTML tags and attributes from a rich-text field value."""
+    if not value:
+        return value
+    css_sanitizer = CSSSanitizer(allowed_css_properties=settings.BLEACH_ALLOWED_STYLES)
+    return bleach.clean(
+        value,
+        tags=settings.BLEACH_ALLOWED_TAGS,
+        attributes=settings.BLEACH_ALLOWED_ATTRIBUTES,
+        css_sanitizer=css_sanitizer,
+        strip=settings.BLEACH_STRIP_TAGS,
+        strip_comments=settings.BLEACH_STRIP_COMMENTS,
+    )
 
 
 class NoLengthLimitCharField(models.TextField):
@@ -199,6 +217,11 @@ class OplogEntry(models.Model):
 
     def user_can_delete(self, user) -> bool:
         return self.oplog_id.user_can_edit(user)
+
+    def save(self, *args, **kwargs):
+        self.description = _sanitize_rich_field(self.description)
+        self.comments = _sanitize_rich_field(self.comments)
+        super().save(*args, **kwargs)
 
     def clean(self, *args, **kwargs):
         if isinstance(self.start_date, str):
