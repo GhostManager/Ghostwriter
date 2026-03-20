@@ -1744,10 +1744,17 @@ table.oplog-list-table {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.06);
+  text-align: justify;
 }
 
 .oplog-rich-content:empty {
   display: none;
+}
+
+.oplog-rich-content p {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 0.82rem;
 }
 
 /* Source/dest mono style in list */
@@ -4297,6 +4304,10 @@ input[type="color"]:focus,
 [data-theme="dark"] .task-card {
   background-color: var(--sidebar-background-color);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .sidebar-toggle-btn {
+  color: var(--ghost-white);
 }
 
 [data-theme="dark"] .btn,
