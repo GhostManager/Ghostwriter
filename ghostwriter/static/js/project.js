@@ -24,10 +24,15 @@ function displayToastTop({
     if (url !== '') {
         toastr.options.onclick = function () {
             try {
-                // Only navigate to http/https URLs to prevent javascript: URI injection
+                // Only navigate to same-origin http/https URLs to prevent javascript: URI injection
                 let parsed = new URL(url, window.location.href);
-                if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-                    window.location.href = url;
+                // Restrict navigation to same-origin http/https URLs only.
+                // Use parsed.href (not the raw string) so the destination exactly
+                // matches the sanitized, normalized URL and cannot be crafted to
+                // behave differently than the parsed result.
+                if (parsed.origin === window.location.origin &&
+                        (parsed.protocol === 'https:' || parsed.protocol === 'http:')) {
+                    window.location.href = parsed.href;
                 }
             } catch (e) {
                 // Malformed URL — do not navigate
