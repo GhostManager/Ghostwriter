@@ -38,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Details appear on the right-side in a details pane
   * Details pane includes dedicated sections for attaching evidence and uploading terminal recordings
 
+### Security
+
+* As we allow more user-editable content to be rendered in the DOM, we have implemented stronger controls to prevent JavaScript injection
+  * Updated the allowed HTML attributes to be more targeted
+  * Added sanitization to activity log entries that support rich text (`comments` and `description`)
+  * Added `DOMPurify` to the project for an extra layer of security and client-side sanitization
+
 ## [6.2.8] - 12 March 2026
 
 ### Added
@@ -141,13 +148,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * Also copy any custom settings files from _config/settings/production.d_ to _ghostwriter/settings/_
   * Ghostwriter CLI can be used with `--mode local-prod` to keep the old behavior of using a local copy of Ghostwriter's code
     * You will need to do this if you are using a customized version of the codebase
-
-### Security
-
-* As we allow more user-editable content to be rendered in the DOM, we have implemented stronger controls to prevent JavaScript injection
-  * Updated the allowed HTML attributes to be more targeted
-  * Added sanitization to activity log entries that support rich text (`comments` and `description`)
-  * Added `DOMPurify` to the project for an extra layer of security and client-side sanitization
 
 ## [6.2.3] — 5 February 2026
 
