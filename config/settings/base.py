@@ -458,8 +458,15 @@ BLEACH_ALLOWED_TAGS = [
     "tfoot",
     "caption",
 ]
-# Which HTML attributes are allowed
-BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"]
+# Which HTML attributes are allowed, keyed by tag name.
+# The "*" wildcard applies to every allowed tag.
+BLEACH_ALLOWED_ATTRIBUTES = {
+    "*": ["class", "style"],
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "width", "height"],
+    "td": ["colspan", "rowspan", "scope"],
+    "th": ["colspan", "rowspan", "scope"],
+}
 # Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
 BLEACH_ALLOWED_STYLES = [
     "color",
