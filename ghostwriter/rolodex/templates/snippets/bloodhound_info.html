@@ -21,17 +21,32 @@
                         </span>
                     </div>
                     <div class="ml-auto mr-2 domain-stats">
-                        <span class="stat-item">
+                        <span
+                            class="stat-item"
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="Number of users in the domain."
+                        >
                             <i class="fas fa-users" aria-hidden="true"></i>
                             <span class="sr-only">Users:</span>
                             <span class="stat-value">{{ domain.users.count }}</span>
                         </span>
-                        <span class="stat-item">
+                        <span
+                            class="stat-item"
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="Number of computers in the domain."
+                        >
                             <i class="fas fa-desktop" aria-hidden="true"></i>
                             <span class="sr-only">Computers:</span>
                             <span class="stat-value">{{ domain.computers.count }}</span>
                         </span>
-                        <span class="stat-item">
+                        <span
+                            class="stat-item"
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="Number of groups in the domain."
+                        >
                             <i class="fas fa-users-cog" aria-hidden="true"></i>
                             <span class="sr-only">Groups:</span>
                             <span class="stat-value">{{ domain.data_quality.groups|default:0 }}</span>
