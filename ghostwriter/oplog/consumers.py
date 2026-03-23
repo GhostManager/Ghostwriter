@@ -96,7 +96,11 @@ def copy_oplog_entry(entry_id, user):
         copy.start_date = make_aware(datetime.utcnow())
         copy.end_date = make_aware(datetime.utcnow())
         copy.save()
-        copy.tags.add(*entry.tags.all())
+        tags_to_copy = [
+            t for t in entry.tags.all()
+            if not any(kw in t.name.upper() for kw in ("RECORDING", "EVIDENCE"))
+        ]
+        copy.tags.add(*tags_to_copy)
     else:
         logger.warning(
             "User %s attempted to copy log entry %s for log ID %s without permission.",
