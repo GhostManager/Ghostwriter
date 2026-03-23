@@ -2778,7 +2778,7 @@ h5 a[aria-expanded=true]:after {
 }
 
 span.badge.functional-lvl-badge {
-  font-size: 0.85em !important;
+  font-size: 0.85em;
 }
 
 /* ---------------------------------------------------
