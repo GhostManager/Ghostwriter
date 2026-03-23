@@ -75,6 +75,7 @@
         <a id="createNewEntryButton" class="icon add-icon btn btn-primary btn-sm" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
         <a id="columnSelectDropdown" class="icon open-icon btn btn-info btn-sm" href="javascript:void(0);">Show/Hide Columns</a>
         <a id="resetSortBtn" class="btn btn-secondary icon sync-icon btn-sm" role="button">Reset Sort</a>
+        <a class="btn btn-outline-secondary btn-sm" role="button" data-toggle="modal" data-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</a>
 
         <div class="oplog-toolbar-right">
             <div class="input-group input-group-sm" style="width:280px;">
@@ -176,6 +177,106 @@
   </div>
 
   {{ oplog_entry_extra_fields_spec_ser|json_script:"oplog_entry_extra_fields_spec" }}
+
+  <!-- Oplog Help Modal -->
+  <div id="oplog-help-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="oplogHelpModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-super-sized" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="oplogHelpModalLabel"><i class="fas fa-book-open mr-2"></i>Activity Log &mdash; Quick Reference</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="modal-body">
+                  <div class="row">
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-wifi mr-1"></i> <strong>Live Updates</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-1">Entries are kept in sync via <strong>WebSockets</strong>. The <span class="badge badge-success">Connected</span> / <span class="badge badge-danger">Disconnected</span> indicator in the toolbar shows the current connection state.</p>
+                                  <p class="card-text small mb-0">Changes made by other operators appear automatically &mdash; no refresh needed.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-mouse-pointer mr-1"></i> <strong>Navigation &amp; Selection</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <ul class="small mb-0 pl-3">
+                                      <li><strong>Click</strong> a row to open the details pane.</li>
+                                      <li><strong>Double-click</strong> a row to edit the entry.</li>
+                                      <li><strong>&uarr;&darr; arrow keys</strong> move between entries once one is selected.</li>
+                                      <li><kbd>Enter</kbd> opens the edit form; tap <kbd>Enter</kbd> again to submit it, saving and closing the form.</li>
+                                      <li><kbd>Ctrl+N</kbd> creates a new entry.</li>
+                                  </ul>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-sort mr-1"></i> <strong>Sorting</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <ul class="small mb-0 pl-3">
+                                      <li>The default order is <strong>start date, newest first</strong>.</li>
+                                      <li><strong>Click</strong> a column header to sort by that column.</li>
+                                      <li><strong>Shift+click</strong> additional headers to add a secondary sort column.</li>
+                                      <li>Your sort preference is saved and restored on the next visit. Use <strong>Reset Sort</strong> to return to the default order.</li>
+                                  </ul>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-columns mr-1"></i> <strong>Show / Hide Columns</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-0">Click <strong>Show/Hide Columns</strong> to toggle individual columns on or off. Your preferences are saved in your browser. Long-form fields (Command, Output, Description, Comments) are truncated in the table &mdash; select an entry to read the full content in the details pane.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-filter mr-1"></i> <strong>Filtering</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-0">Type in the <strong>Filter Entries</strong> box to search across all fields, including fields not currently shown as columns. Results update as you type. Click <i class="fas fa-times"></i> or clear the box to remove the filter.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-link mr-1"></i> <strong>Details Pane &amp; Deep Links</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-0">The details pane shows the full entry, evidence attachments, and a terminal recording player. Use the <i class="fas fa-link"></i> <strong>deep link</strong> button in the details pane to copy a URL that opens this log and scrolls directly to that entry &mdash; useful for sharing specific entries with coworkers.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              </div>
+          </div>
+      </div>
+  </div>
 
 
 {% endblock %}
