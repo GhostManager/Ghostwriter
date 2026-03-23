@@ -823,7 +823,8 @@ ul ul button {
 ----------------------------------------------------- */
 
 #content {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 5px 20px 20px;
   min-height: 100vh;
   transition: all 0.3s;
@@ -1023,6 +1024,10 @@ ul.dashboard-checklist {
 .centered-container ul,
 .centered-container ol {
   text-align: left;
+}
+
+dd span.badge {
+  font-size: 0.82em;
 }
 
 
