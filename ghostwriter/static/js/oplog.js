@@ -1214,12 +1214,20 @@ $(document).ready(function () {
     });
 
     $('#resetSortBtn').click(function () {
+        // If no sort is active, there is nothing to reset
+        if (!$table[0].config.sortList.length) return false;
         // Clear saved sort from localStorage
         $table.trigger('saveSortReset');
-        // Reorder rows by entry ID descending (newest first)
+        // Reorder rows by start_date descending (newest first), entry ID as tiebreaker
         let $rows = $tableBody.find('tr').detach();
         $rows.sort(function (a, b) {
-            return parseInt(b.dataset.entryId) - parseInt(a.dataset.entryId);
+            let idA = parseInt(a.dataset.entryId);
+            let idB = parseInt(b.dataset.entryId);
+            let dateA = (entryDataStore[idA] || {}).start_date || '';
+            let dateB = (entryDataStore[idB] || {}).start_date || '';
+            if (dateB > dateA) return 1;
+            if (dateB < dateA) return -1;
+            return idB - idA;
         });
         $tableBody.append($rows);
         // Clear active sort list, then re-index so tablesorter treats this as natural order
