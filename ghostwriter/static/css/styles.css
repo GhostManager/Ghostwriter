@@ -2760,7 +2760,7 @@ h5 a[aria-expanded=true]:after {
   align-items: center;
   gap: 0.4rem;
   white-space: nowrap;
-  width: 60px;
+  min-width: 60px;
 }
 
 .domain-stats .stat-item i {
