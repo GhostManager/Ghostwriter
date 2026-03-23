@@ -18,12 +18,10 @@ $(document).ready(function () {
     const $oplogTableLoading = $('#oplogTableLoading');
     const $clearSearchBtn = $('#clearSearchBtn');
 
-    // Get the array of hidden columns from local storage or set to empty array
-    let hiddenLogTblColumns = JSON.parse(
-        localStorage.getItem('hiddenLogTblColumns') !== null
-            ? localStorage.getItem('hiddenLogTblColumns')
-            : JSON.stringify([])
-    );
+    // Track columns hidden by the user (overrides showByDefault: true)
+    let hiddenLogTblColumns = JSON.parse(localStorage.getItem('hiddenLogTblColumns') || '[]');
+    // Track columns explicitly shown by the user (overrides showByDefault: false)
+    let shownLogTblColumns = JSON.parse(localStorage.getItem('shownLogTblColumns') || '[]');
 
     const oplog_entry_extra_fields_spec = JSON.parse(
         document.getElementById('oplog_entry_extra_fields_spec').textContent
@@ -55,6 +53,16 @@ $(document).ready(function () {
             prettyName: 'Start Date',
             internalName: 'start_date',
             toHtml: v => formatDate(v),
+            showByDefault: true,
+            sanitizeByDefault: false,
+        },
+        {
+            checkBoxID: 'endDateCheckBox',
+            columnClass: 'endDateColumn',
+            prettyName: 'End Date',
+            internalName: 'end_date',
+            toHtml: v => formatDate(v),
+            showByDefault: false,
             sanitizeByDefault: false,
         },
         {
@@ -63,6 +71,7 @@ $(document).ready(function () {
             prettyName: 'Source',
             internalName: 'source_ip',
             toHtml: v => `<span class="oplog-source-dest">${jsEscape(v)}</span>`,
+            showByDefault: false,
             sanitizeByDefault: true,
         },
         {
@@ -71,6 +80,7 @@ $(document).ready(function () {
             prettyName: 'Dest',
             internalName: 'dest_ip',
             toHtml: v => `<span class="oplog-source-dest">${jsEscape(v)}</span>`,
+            showByDefault: true,
             sanitizeByDefault: true,
         },
         {
@@ -78,13 +88,68 @@ $(document).ready(function () {
             columnClass: 'toolNameColumn',
             prettyName: 'Tool',
             internalName: 'tool',
+            showByDefault: true,
             sanitizeByDefault: false,
+        },
+        {
+            checkBoxID: 'userContextCheckbox',
+            columnClass: 'userContextColumn',
+            prettyName: 'User Context',
+            internalName: 'user_context',
+            toHtml: v => `<span class="oplog-source-dest">${jsEscape(v)}</span>`,
+            showByDefault: false,
+            sanitizeByDefault: true,
+        },
+        {
+            checkBoxID: 'commandCheckbox',
+            columnClass: 'commandColumn',
+            prettyName: 'Command',
+            internalName: 'command',
+            toHtml: v => jsEscape(truncateText(v, 100)),
+            showByDefault: false,
+            sanitizeByDefault: true,
+        },
+        {
+            checkBoxID: 'outputCheckbox',
+            columnClass: 'outputColumn',
+            prettyName: 'Output',
+            internalName: 'output',
+            toHtml: v => jsEscape(truncateText(v, 100)),
+            showByDefault: false,
+            sanitizeByDefault: true,
+        },
+        {
+            checkBoxID: 'descriptionCheckbox',
+            columnClass: 'descriptionColumn',
+            prettyName: 'Description',
+            internalName: 'description',
+            toHtml: v => {
+                if (!v) return '';
+                let safe = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(v) : jsEscape(v);
+                return jsEscape(truncateText($('<div>').html(safe).text(), 100));
+            },
+            showByDefault: false,
+            sanitizeByDefault: true,
+        },
+        {
+            checkBoxID: 'commentsCheckbox',
+            columnClass: 'commentsColumn',
+            prettyName: 'Comments',
+            internalName: 'comments',
+            toHtml: v => {
+                if (!v) return '';
+                let safe = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(v) : jsEscape(v);
+                return jsEscape(truncateText($('<div>').html(safe).text(), 100));
+            },
+            showByDefault: false,
+            sanitizeByDefault: true,
         },
         {
             checkBoxID: 'operatorCheckbox',
             columnClass: 'operatorColumn',
             prettyName: 'Operator',
             internalName: 'operator_name',
+            showByDefault: true,
             sanitizeByDefault: false,
         },
         {
@@ -93,6 +158,7 @@ $(document).ready(function () {
             prettyName: 'Tags',
             internalName: 'tags',
             toHtml: v => stylizeTags(jsEscape(v)),
+            showByDefault: true,
             sanitizeByDefault: false,
         },
     ];
@@ -126,6 +192,12 @@ $(document).ready(function () {
     function formatDateFull(v) {
         if (!v) return '';
         return jsEscape(v).replace(/\.\d+/, '').replace('Z', '').replace('T', ' ');
+    }
+
+    function truncateText(text, maxLen) {
+        if (!text) return '';
+        let str = String(text);
+        return str.length > maxLen ? str.slice(0, maxLen) + '\u2026' : str;
     }
 
     function stylizeTags(tagString) {
@@ -196,23 +268,49 @@ $(document).ready(function () {
         return out;
     }
 
-    function coupleCheckboxColumn(checkboxId, columnClass) {
+    function coupleCheckboxColumn(checkboxId, columnClass, col) {
         $(checkboxId).change(function () {
             if (!this.checked) {
                 $(columnClass).hide();
-                hiddenLogTblColumns.push(columnClass);
+                if (col.showByDefault === false) {
+                    // Remove from explicit-show list; reverts to hidden-by-default
+                    shownLogTblColumns = shownLogTblColumns.filter(v => v !== columnClass);
+                } else {
+                    // Add to hidden list; overrides shown-by-default
+                    if (!hiddenLogTblColumns.includes(columnClass)) {
+                        hiddenLogTblColumns.push(columnClass);
+                    }
+                }
             } else {
                 $(columnClass).show();
-                hiddenLogTblColumns = hiddenLogTblColumns.filter(v => v !== columnClass);
+                if (col.showByDefault === false) {
+                    // Add to explicit-show list; overrides hidden-by-default
+                    if (!shownLogTblColumns.includes(columnClass)) {
+                        shownLogTblColumns.push(columnClass);
+                    }
+                } else {
+                    // Remove from hidden list; reverts to shown-by-default
+                    hiddenLogTblColumns = hiddenLogTblColumns.filter(v => v !== columnClass);
+                }
             }
             localStorage.setItem('hiddenLogTblColumns', JSON.stringify(hiddenLogTblColumns));
+            localStorage.setItem('shownLogTblColumns', JSON.stringify(shownLogTblColumns));
             $table.trigger('updateAll');
         });
     }
 
     function buildColumnsCheckboxes() {
         summaryColumns.forEach(col => {
-            let checked = (col.showByDefault === undefined || col.showByDefault) ? 'checked' : '';
+            let cls = '.' + col.columnClass;
+            let visible;
+            if (col.showByDefault === false) {
+                // Hidden by default; visible only if user explicitly enabled it
+                visible = shownLogTblColumns.includes(cls);
+            } else {
+                // Shown by default; hidden only if user explicitly disabled it
+                visible = !hiddenLogTblColumns.includes(cls);
+            }
+            let checked = visible ? 'checked' : '';
             let html = `
             <div class="form-check-inline">
               <div class="custom-control custom-switch">
@@ -221,16 +319,15 @@ $(document).ready(function () {
               </div>
             </div>`;
             $checkboxList.append(html);
-            coupleCheckboxColumn('#' + col.checkBoxID, '.' + col.columnClass);
-            if (hiddenLogTblColumns.includes('.' + col.columnClass)) {
-                $('#' + col.checkBoxID).prop('checked', false);
-            }
+            coupleCheckboxColumn('#' + col.checkBoxID, cls, col);
         });
     }
 
     function buildSanitizeCheckboxes() {
+        let coveredNames = new Set();
         // Summary columns
         summaryColumns.forEach(col => {
+            coveredNames.add(col.internalName);
             let checked = (col.sanitizeByDefault === undefined || col.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
             <div class="form-check-inline">
@@ -240,8 +337,10 @@ $(document).ready(function () {
               </div>
             </div>`);
         });
-        // Detail fields
+        // Detail fields - skip any already added via summaryColumns
         detailFields.forEach(f => {
+            if (coveredNames.has(f.internalName)) return;
+            coveredNames.add(f.internalName);
             let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
             <div class="form-check-inline">
@@ -251,8 +350,7 @@ $(document).ready(function () {
               </div>
             </div>`);
         });
-        // Meta fields not already covered
-        let coveredNames = new Set(summaryColumns.map(c => c.internalName).concat(detailFields.map(f => f.internalName)));
+        // Meta fields - skip any already covered
         metaFields.forEach(f => {
             if (coveredNames.has(f.internalName)) return;
             let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
