@@ -2685,10 +2685,6 @@ th.icon {
   font-size: 18px;
 }
 
-.finding-accordion span {
-  font-size: var(--main-font-size);
-}
-
 .finding-accordion .accordion-toggle.btn {
   font-weight: 600;
   color: #fff;
@@ -2750,6 +2746,39 @@ h5 a[aria-expanded=true]:after {
 .card-project .card-header {
   background-color: var(--neutral-color);
   color: var(--ghost-white);
+}
+
+/* Domain stats alignment */
+.domain-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.domain-stats .stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  width: 60px;
+}
+
+.domain-stats .stat-item i {
+  flex-shrink: 0;
+  width: 1rem;
+  text-align: center;
+}
+
+.domain-stats .stat-value {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  text-align: left;
+  flex: 1;
+  padding-left: 0.5rem;
+}
+
+span.badge.functional-lvl-badge {
+  font-size: 0.85em !important;
 }
 
 /* ---------------------------------------------------
