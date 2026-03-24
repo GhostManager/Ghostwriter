@@ -366,7 +366,7 @@ DEFAULT_DNS_FINDING_MAP: Dict[str, str] = {
     "The SPF record contains the overly permissive modifier '+all'": "email delivery for the domain",
 }
 
-DNS_IMPACT_MAP: Dict[str, str] = {
+DEFAULT_DNS_IMPACT_MAP: Dict[str, str] = {
     "One or more SOA fields are outside recommended ranges": "Incorrect SOA settings can disrupt DNS propagation, caching, and zone transfers, leading to stale or inconsistent domain data.",
     "Less than 2 nameservers exist": "Having fewer than two nameservers creates a single point of failure, increasing risk of domain outage if the sole server becomes unreachable.",
     "More than 8 nameservers exist": "Excessive nameservers increase administrative complexity and the likelihood of inconsistent configurations or stale records.",
@@ -462,6 +462,16 @@ def load_dns_soa_cap_map() -> Dict[str, str]:
         "cap_text",
         DEFAULT_DNS_SOA_CAP_MAP,
         key_field="soa_field",
+    )
+
+
+def load_dns_impact_map() -> Dict[str, str]:
+    """Return DNS impact mappings from the database or fall back to defaults."""
+
+    return _load_mapping(
+        "DNSImpactMapping",
+        "impact_text",
+        DEFAULT_DNS_IMPACT_MAP,
     )
 
 
@@ -3468,6 +3478,7 @@ def parse_dns_report(file_obj: File) -> List[Dict[str, str]]:
         "cap_text",
         DEFAULT_DNS_CAP_MAP,
     )
+    impact_map = load_dns_impact_map()
 
     issues: List[Dict[str, str]] = []
     target_issue = "One or more SOA fields are outside recommended ranges"
@@ -3503,7 +3514,7 @@ def parse_dns_report(file_obj: File) -> List[Dict[str, str]]:
         finding = finding_map.get(issue_text, "")
         recommendation = recommendation_map.get(issue_text, "")
         cap = cap_map.get(issue_text, "")
-        impact = DNS_IMPACT_MAP.get(issue_text, "")
+        impact = impact_map.get(issue_text, "")
 
         issue_entry: Dict[str, str] = {
             "issue": issue_text,
