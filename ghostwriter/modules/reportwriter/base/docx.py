@@ -178,6 +178,20 @@ class ExportDocxBase(ExportBase):
         self.global_report_config = ReportConfiguration.get_solo()
         self.company_config = CompanyInformation.get_solo()
 
+        # Preserve the exporter attribute contract used by lazy rich-text DOCX rendering.
+        self.enable_borders = self.global_report_config.enable_borders
+        self.border_color = self.global_report_config.border_color
+        self.border_weight = self.global_report_config.border_weight
+        self.prefix_figure = self.global_report_config.prefix_figure
+        self.label_figure = self.global_report_config.label_figure
+        self.figure_caption_location = self.global_report_config.figure_caption_location
+        self.prefix_table = self.global_report_config.prefix_table
+        self.label_table = self.global_report_config.label_table
+        self.table_caption_location = self.global_report_config.table_caption_location
+        self.title_case_captions = self.global_report_config.title_case_captions
+        self.title_case_exceptions = self.global_report_config.title_case_exceptions.split(",")
+        self.evidence_image_width = self.report_template.evidence_image_width
+
     def run(self) -> io.BytesIO:
         try:
             self.create_styles()
@@ -343,6 +357,7 @@ class ExportDocxBase(ExportBase):
                     title_case_captions=self.title_case_captions,
                     title_case_exceptions=self.title_case_exceptions,
                     border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+                    evidence_image_width=self.evidence_image_width,
                     report_template=self.report_template,
                     global_report_config=self.global_report_config,
                     images=self.image_replacements,
