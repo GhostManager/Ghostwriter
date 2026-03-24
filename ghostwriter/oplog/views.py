@@ -33,6 +33,7 @@ from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogEvidenceForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence, OplogEntryRecording
+from ghostwriter.oplog.utils import extract_cast_text
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Project
 
@@ -774,13 +775,23 @@ class OplogRecordingUpload(RoleBasedAccessControlMixin, View):
             entry.recording.delete()
         except OplogEntryRecording.DoesNotExist:
             pass
+
+        # Extract searchable text from the cast file before saving
+        file_content = recording_file.read()
+        recording_file.seek(0)
+        recording_text, text_warning = extract_cast_text(file_content)
+
         recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=request.user)
         recording.recording_file = recording_file
+        recording.recording_text = recording_text
         recording.save()
-        return JsonResponse({
+        response = {
             "result": "success",
             "recording_url": reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk}),
-        })
+        }
+        if text_warning:
+            response["warning"] = text_warning
+        return JsonResponse(response)
 
 
 class OplogRecordingDelete(RoleBasedAccessControlMixin, View):

@@ -41,6 +41,7 @@ from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence, OplogEntryRecording
+from ghostwriter.oplog.utils import extract_cast_text
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -1006,12 +1007,18 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
         except OplogEntryRecording.DoesNotExist:
             pass
 
+        # Extract searchable text from the cast file before saving
+        file_bytes = form.cleaned_data["file_base64"]
+        recording_text, text_warning = extract_cast_text(file_bytes)
+
         recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=self.user_obj)
-        recording.recording_file = ContentFile(
-            form.cleaned_data["file_base64"], name=form.cleaned_data["filename"]
-        )
+        recording.recording_file = ContentFile(file_bytes, name=form.cleaned_data["filename"])
+        recording.recording_text = recording_text
         recording.save()
-        return JsonResponse({"id": recording.pk}, status=201)
+        response_data = {"id": recording.pk}
+        if text_warning:
+            response_data["warning"] = text_warning
+        return JsonResponse(response_data, status=201)
 
 
 class GraphqlDownloadRecording(JwtRequiredMixin, HasuraActionView):
