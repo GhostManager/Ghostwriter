@@ -439,6 +439,28 @@ class DNSRecommendationMapping(models.Model):
         return f"{self.issue_text}"
 
 
+class DNSImpactMapping(models.Model):
+    """Store curated impact statements for DNS scanner issues."""
+
+    issue_text = models.TextField(
+        "DNS issue",
+        unique=True,
+        help_text="Exact text of the DNS check failure (matches dns_report.csv entries).",
+    )
+    impact_text = models.TextField(
+        "Impact",
+        help_text="Impact statement presented alongside the DNS finding.",
+    )
+
+    class Meta:
+        ordering = ["issue_text"]
+        verbose_name = "DNS impact mapping"
+        verbose_name_plural = "DNS impact mappings"
+
+    def __str__(self):
+        return f"{self.issue_text}"
+
+
 class GeneralCapMapping(models.Model):
     """Store general corrective action plan guidance and scoring."""
 

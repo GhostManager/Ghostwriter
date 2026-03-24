@@ -18,7 +18,9 @@ from ghostwriter.rolodex.data_parsers import (
     _build_nexpose_metrics_payload,
     normalize_nexpose_artifact_payload,
     normalize_nexpose_artifacts_map,
+    DEFAULT_DNS_IMPACT_MAP,
     load_general_cap_map,
+    load_dns_impact_map,
     load_dns_soa_cap_map,
     load_password_cap_map,
     load_password_compliance_matrix,
@@ -31,6 +33,7 @@ from ghostwriter.rolodex.models import (
     DNSCapMapping,
     DNSSOACapMapping,
     DNSFindingMapping,
+    DNSImpactMapping,
     DNSRecommendationMapping,
     GeneralCapMapping,
     PasswordCapMapping,
@@ -3822,6 +3825,10 @@ class DNSDataParserTests(TestCase):
             issue_text=issue_text,
             cap_text="custom cap language",
         )
+        DNSImpactMapping.objects.create(
+            issue_text=issue_text,
+            impact_text="custom impact language",
+        )
 
         upload = SimpleUploadedFile(
             "dns_report.csv",
@@ -3839,9 +3846,43 @@ class DNSDataParserTests(TestCase):
                 "finding": "custom finding language",
                 "recommendation": "custom recommendation language",
                 "cap": "custom cap language",
-                "impact": "",
+                "impact": "custom impact language",
             },
         )
+
+    def test_parse_dns_report_falls_back_to_default_impact_mappings(self):
+        issue_text = "The domain does not have an SPF record"
+        DNSImpactMapping.objects.all().delete()
+
+        upload = SimpleUploadedFile(
+            "dns_report.csv",
+            f"Status,Info\nFAIL,{issue_text}\n".encode("utf-8"),
+            content_type="text/csv",
+        )
+
+        issues = parse_dns_report(upload)
+
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(
+            issues[0].get("impact"),
+            DEFAULT_DNS_IMPACT_MAP[issue_text],
+        )
+
+    def test_load_dns_impact_map_prefers_database(self):
+        issue_text = "Less than 2 nameservers exist"
+        DNSImpactMapping.objects.update_or_create(
+            issue_text=issue_text,
+            defaults={"impact_text": "database impact language"},
+        )
+
+        mapping = load_dns_impact_map()
+
+        self.assertEqual(mapping.get(issue_text), "database impact language")
+
+    def test_dns_impact_mappings_seeded(self):
+        issue_text = "One or more SOA fields are outside recommended ranges"
+        seeded = DNSImpactMapping.objects.get(issue_text=issue_text)
+        self.assertEqual(seeded.impact_text, DEFAULT_DNS_IMPACT_MAP[issue_text])
 
     def test_parse_dns_report_extracts_soa_fields_from_info(self):
         info_value = (

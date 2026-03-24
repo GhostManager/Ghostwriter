@@ -15,6 +15,7 @@ from ghostwriter.rolodex.models import (
     DNSCapMapping,
     DNSSOACapMapping,
     DNSFindingMapping,
+    DNSImpactMapping,
     DNSRecommendationMapping,
     ADThresholdMapping,
     GeneralCapMapping,
@@ -54,6 +55,12 @@ class DNSFindingMappingAdmin(admin.ModelAdmin):
 class DNSRecommendationMappingAdmin(admin.ModelAdmin):
     list_display = ("issue_text", "recommendation_text")
     search_fields = ("issue_text", "recommendation_text")
+
+
+@admin.register(DNSImpactMapping)
+class DNSImpactMappingAdmin(admin.ModelAdmin):
+    list_display = ("issue_text", "impact_text")
+    search_fields = ("issue_text", "impact_text")
 
 
 @admin.register(DNSCapMapping)
