@@ -16,6 +16,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.files.base import ContentFile
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
@@ -975,8 +976,6 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
     def post(self, request, *args, **kwargs):
         if self.user_obj is None:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
-
-        from django.core.files.base import ContentFile
 
         form_data = {**self.input, "oplog_entry_id": self.input.get("oplogEntryId")}
         form = ApiOplogRecordingForm(form_data)

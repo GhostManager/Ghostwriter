@@ -169,8 +169,8 @@ class Command(BaseCommand):
 
         try:
             oplog = Oplog.objects.get(pk=oplog_id)
-        except Oplog.DoesNotExist:
-            raise CommandError(f"No Oplog found with ID {oplog_id}.")
+        except Oplog.DoesNotExist as exc:
+            raise CommandError(f"No Oplog found with ID {oplog_id}.") from exc
 
         self.stdout.write(f"Target: Oplog #{oplog.pk} — '{oplog.name}'")
 

@@ -44,7 +44,7 @@ def extract_cast_text(file_data: bytes) -> tuple:
         if file_data[:2] == b"\x1f\x8b":
             try:
                 file_data = gzip.decompress(file_data)
-            except Exception as exc:
+            except OSError as exc:
                 logger.warning("Failed to decompress cast file: %s", exc)
                 return (
                     "",
@@ -90,7 +90,7 @@ def extract_cast_text(file_data: bytes) -> tuple:
 
         return " ".join(parts), None
 
-    except Exception as exc:
+    except (UnicodeDecodeError, TypeError, AttributeError) as exc:
         logger.warning("Failed to extract text from cast file: %s", exc)
         return (
             "",

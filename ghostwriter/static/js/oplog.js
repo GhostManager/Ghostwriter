@@ -1429,14 +1429,14 @@ $(document).ready(function () {
     // --- Arrow key navigation in list ---
     $(document).keydown(function (e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        
+
         // ESC key: deselect entry
         if (e.keyCode === 27) {
             e.preventDefault();
             deselectEntry();
             return;
         }
-        
+
         if (!selectedEntryId) return;
 
         let $current = $(`#entry-${selectedEntryId}`);
