@@ -730,6 +730,9 @@ $(document).ready(function () {
                     renderDetail(entryDataStore[entryId]);
                 }
                 displayToastTop({ type: 'success', string: 'Terminal recording uploaded successfully.', title: 'Recording Saved' });
+                if (data.warning) {
+                    displayToastTop({ type: 'warning', string: data.warning, title: 'Recording Warning' });
+                }
             } else {
                 displayToastTop({ type: 'error', string: data.message || 'Upload failed.', title: 'Upload Error' });
                 if (selectedEntryId == entryId) {
