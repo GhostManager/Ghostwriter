@@ -432,14 +432,12 @@ class APIClient:
                     "inbound_trusts": [],
                     "outbound_trusts": [],
                 }
-                if domain_data.get("inboundTrusts", 0) > 0:
-                    domain_out["inbound_trusts"] = [{
-                        "name": v["name"],
-                    } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/inbound-trusts").json()["data"]]
-                if domain_data.get("outboundTrusts", 0) > 0:
-                    domain_out["outbound_trusts"] = [{
-                        "name": v["name"],
-                    } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts").json()["data"]]
+                domain_out["inbound_trusts"] = [{
+                    "name": v["name"],
+                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/inbound-trusts?skip=0&limit=128").json()["data"]]
+                domain_out["outbound_trusts"] = [{
+                    "name": v["name"],
+                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts?skip=0&limit=128").json()["data"]]
 
                 try:
                     domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
