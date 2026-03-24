@@ -1029,6 +1029,50 @@ class OplogRecordingUploadViewTests(TestCase):
         self.entry.refresh_from_db()
         self.assertIn("recording", list(self.entry.tags.names()))
 
+    def test_upload_populates_recording_text(self):
+        """recording_text is populated from the cast file's 'o' event data on upload."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        response = self.client_auth.post(self.uri, {"recording_file": self._cast_file()})
+        self.assertEqual(response.status_code, 200)
+        recording = OplogEntryRecording.objects.get(oplog_entry=self.entry)
+        # _cast_file() contains [0.5, "o", "test"]
+        self.assertIn("test", recording.recording_text)
+
+    def test_upload_v3_file_accepted_and_text_extracted(self):
+        """A v3 format file is accepted and both 'o' and 'i' events populate recording_text."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        v3_data = (
+            b'{"version": 3, "term": {"cols": 80, "rows": 24}}\n'
+            b'[0.5, "o", "v3 command output"]\n'
+            b'[1.0, "i", "user input"]\n'
+        )
+        v3_file = SimpleUploadedFile("v3session.cast", v3_data, content_type="application/octet-stream")
+        response = self.client_auth.post(self.uri, {"recording_file": v3_file})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["result"], "success")
+        recording = OplogEntryRecording.objects.get(oplog_entry=self.entry)
+        self.assertIn("v3 command output", recording.recording_text)
+        self.assertIn("user input", recording.recording_text)
+
+    def test_upload_parse_warning_in_response(self):
+        """A file with an unsupported version still uploads but the response includes a 'warning' key."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        bad_version = SimpleUploadedFile(
+            "bad.cast",
+            b'{"version": 99, "width": 80}\n[0.5, "o", "text"]\n',
+            content_type="application/octet-stream",
+        )
+        response = self.client_auth.post(self.uri, {"recording_file": bad_version})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+        self.assertIn("warning", data)
+
 
 class OplogRecordingDeleteViewTests(TestCase):
     """Collection of tests for :view:`oplog.OplogRecordingDelete`."""

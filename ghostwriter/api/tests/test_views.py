@@ -3361,6 +3361,73 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         )
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
 
+    def test_upload_v2_populates_recording_text(self):
+        """An asciicast v2 file extracts 'o' event data into recording_text."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        raw = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "v2 output"]\n'
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": base64.b64encode(raw).decode(),
+            "filename": "v2session.cast",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 201)
+        recording = OplogEntryRecording.objects.get(oplog_entry=self.oplog_entry)
+        self.assertIn("v2 output", recording.recording_text)
+
+    def test_upload_v3_populates_recording_text(self):
+        """An asciicast v3 file extracts both 'o' and 'i' event data into recording_text."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        raw = (
+            b'{"version": 3, "term": {"cols": 80, "rows": 24}}\n'
+            b'[0.5, "o", "v3 command output"]\n'
+            b'[1.0, "i", "user input"]\n'
+        )
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": base64.b64encode(raw).decode(),
+            "filename": "v3session.cast",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 201)
+        recording = OplogEntryRecording.objects.get(oplog_entry=self.oplog_entry)
+        self.assertIn("v3 command output", recording.recording_text)
+        self.assertIn("user input", recording.recording_text)
+
+    def test_upload_v1_triggers_warning(self):
+        """An asciicast v1 file (unsupported format) uploads successfully but returns a 'warning' key.
+
+        asciicast v1 uses a single JSON object for the entire recording (not newline-delimited
+        JSON), so the header will have version=1 and the parser will reject it.
+        """
+        # v1 format: single JSON object with a 'stdout' array — version key is 1
+        raw = b'{"version": 1, "width": 80, "height": 24, "stdout": [[0.5, "hello"]]}\n'
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": base64.b64encode(raw).decode(),
+            "filename": "v1session.cast",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 201)
+        result = response.json()
+        self.assertIn("warning", result)
+
+    def test_upload_unsupported_version_recording_text_empty(self):
+        """When parsing fails the recording still saves, but recording_text is empty."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        raw = b'{"version": 1, "width": 80, "height": 24, "stdout": [[0.5, "hello"]]}\n'
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": base64.b64encode(raw).decode(),
+            "filename": "v1empty.cast",
+        }
+        self._post(data, self.user_token)
+        recording = OplogEntryRecording.objects.get(oplog_entry=self.oplog_entry)
+        self.assertEqual(recording.recording_text, "")
+
 
 class GraphqlDownloadRecordingTests(TestCase):
     """Collection of tests for :view:`api.GraphqlDownloadRecording`."""
