@@ -300,6 +300,11 @@ class OplogEntryRecording(models.Model):
         upload_to=set_recording_upload_destination,
         max_length=255,
     )
+    recording_text = models.TextField(
+        blank=True,
+        default="",
+        help_text="Searchable text extracted from the asciicast recording (input and output events, ANSI stripped).",
+    )
     uploaded_date = models.DateTimeField(
         "Upload Date",
         auto_now_add=True,
