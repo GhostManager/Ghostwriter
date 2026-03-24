@@ -5,7 +5,19 @@ description: "Document terminal activities with Asciinema recordings"
 
 ## Overview
 
-Asciinema `.cast` files are text-based recordings of terminal sessions that capture every command, keystroke, and output from your terminal. By attaching Asciinema recordings to operation log entries, you create an immutable, reproducible record of your operational activities.
+Asciinema `.cast` files are text-based recordings of terminal sessions that capture every command, keystroke, and output from your
+terminal. By attaching Asciinema recordings to operation log entries, you create an immutable, reproducible record of your
+operational activities.
+
+### Asciicast Files
+
+Asciinema records asciicast files. The file specification is detailed in the Asciinema documentation. Ghostwriter supports v2 and v3:
+
+* [asciicast v2](https://docs.asciinema.org/manual/asciicast/v2/)
+* [asciicast v3](https://docs.asciinema.org/manual/asciicast/v3/)
+
+Ghostwriter parses your uploaded asciicast file and stores the raw `i` and `o` (input and output) event strings alongside the
+recording file. In this way, Ghostwriter includes recording content in your searches when you filter your log entries.
 
 <Tip>
 Ghostwriter supports both plain `.cast` files and Gzip-compressed `.cast.gz` files. Compressed recordings are
