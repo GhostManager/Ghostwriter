@@ -35,6 +35,15 @@ $(document).ready(function () {
     let errorDisplayed = false;
     let pendingOperation = null;
     let selectedEntryId = null;
+    let pendingAutoSelectCreate = false;
+
+    // Prevent deselecting the entry when a modal is open or in the process of closing.
+    // Bootstrap closes non-fade modals synchronously, so hidden.bs.modal fires before our
+    // keydown handler runs. We defer clearing the shield via setTimeout(0) so it outlasts
+    // the current event loop and correctly blocks any call to deselectEntry().
+    let modalShield = false;
+    $(document).on('show.bs.modal', function () { modalShield = true; });
+    $(document).on('hidden.bs.modal', function () { setTimeout(function () { modalShield = false; }, 0); });
 
     // Deep-link support: read ?entry=<id>#entry-<id> from the URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -605,6 +614,7 @@ $(document).ready(function () {
     }
 
     function deselectEntry() {
+        if (modalShield) return;
         if (selectedEntryId !== null) {
             $tableBody.find('tr').removeClass('oplog-entry-selected');
             selectedEntryId = null;
@@ -618,6 +628,7 @@ $(document).ready(function () {
 
     // --- Global actions ---
     window.createEntry = function (id) {
+        pendingAutoSelectCreate = true;
         socket.send(JSON.stringify({ action: 'create', oplog_id: id }));
         displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
     };
@@ -1080,7 +1091,12 @@ $(document).ready(function () {
                     $newRow.hide();
                     hideColumns();
                     $table.trigger('update', [true]);
-                    $newRow.fadeIn(400);
+                    $newRow.fadeIn(400, function () {
+                        if (pendingAutoSelectCreate) {
+                            pendingAutoSelectCreate = false;
+                            selectEntry(entryId);
+                        }
+                    });
                 }
                 updatePlaceholder();
             } else if (message.action === 'fetch_entry') {
@@ -1103,9 +1119,7 @@ $(document).ready(function () {
                         $(this).remove();
                         delete entryDataStore[id];
                         if (selectedEntryId == id) {
-                            selectedEntryId = null;
-                            $detailContent.hide();
-                            $detailEmpty.show();
+                            deselectEntry();
                         }
                         updatePlaceholder();
                     });
@@ -1430,14 +1444,26 @@ $(document).ready(function () {
     $(document).keydown(function (e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-        // ESC key: deselect entry
+        // ESC key: deselect entry (only when no modal is open or closing)
         if (e.keyCode === 27) {
-            e.preventDefault();
-            deselectEntry();
+            if (!modalShield) {
+                e.preventDefault();
+                deselectEntry();
+            }
             return;
         }
 
-        if (!selectedEntryId) return;
+        // If no entry is selected and an arrow key is pressed, select the first visible entry
+        if (!selectedEntryId) {
+            if (e.keyCode === 40 || e.keyCode === 38) {
+                let $firstRow = $tableBody.find('tr:first');
+                if ($firstRow.length > 0) {
+                    e.preventDefault();
+                    selectEntry($firstRow.data('entry-id'));
+                }
+            }
+            return;
+        }
 
         let $current = $(`#entry-${selectedEntryId}`);
         let $next = null;
