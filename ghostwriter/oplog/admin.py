@@ -65,7 +65,7 @@ class OplogEntryRecordingAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Recording",
-            {"fields": ("oplog_entry", "recording_file", "recording_file_download_link", "uploaded_by")},
+            {"fields": ("oplog_entry", "recording_file", "recording_file_download_link", "uploaded_by", "recording_text")},
         ),
     )
 
