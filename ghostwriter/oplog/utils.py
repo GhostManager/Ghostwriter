@@ -22,7 +22,8 @@ _ANSI_ESCAPE_RE = re.compile(
 
 
 def extract_cast_text(file_data: bytes) -> tuple:
-    """Parse an asciicast v2 or v3 file and return ``(text, warning)``.
+    """
+    Parse an asciicast v2 or v3 file and return ``(text, warning)``.
 
     Reads the format version from the header line. Extracts ``"i"`` (keyboard
     input) and ``"o"`` (terminal output) event data strings, strips ANSI escape
