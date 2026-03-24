@@ -162,6 +162,9 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
                 )
             )
 
+            # OneToOne reverse accessor — resolved as a simple LEFT JOIN by PostgreSQL
+            simple_vector_args.append(F("recording__recording_text"))
+
             # JSON operations to fetch extra fields
             for spec in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
                 if spec.type == "json":
