@@ -1282,10 +1282,11 @@ $(document).ready(function () {
         if (!entryId) return;
 
         if (clickTimer !== null && clickedEntryId === entryId) {
-            // Double-click: open edit modal
+            // Double-click: select entry and open edit modal
             clearTimeout(clickTimer);
             clickTimer = null;
             clickedEntryId = null;
+            selectEntry(entryId);
             editEntry(entryId);
         } else {
             // Single-click: select entry
