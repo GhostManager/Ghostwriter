@@ -1438,6 +1438,18 @@ table.table-oplog tbody tr {
   background: var(--main-bg-color);
 }
 
+/* When no entry is selected: hide detail pane and resize handle */
+.oplog-split-container:not(.oplog-has-selection) .oplog-resize-handle,
+.oplog-split-container:not(.oplog-has-selection) .oplog-detail-pane {
+  display: none;
+}
+
+/* When no entry is selected: list pane uses full width */
+.oplog-split-container:not(.oplog-has-selection) .oplog-list-pane {
+  width: 100%;
+  min-width: unset;
+}
+
 /* Left pane: entry list */
 .oplog-list-pane {
   width: 42%;

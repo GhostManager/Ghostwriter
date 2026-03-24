@@ -413,6 +413,7 @@ $(document).ready(function () {
             <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${safeId})"><i class="fas fa-clipboard"></i></button>
             <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy deep link" onclick="copyDeepLink(${safeId})"><i class="fas fa-link"></i></button>
             <button class="btn btn-sm btn-outline-danger danger" data-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${safeId}"><i class="fa fa-trash"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Close details (ESC)" onclick="deselectEntry()"><i class="fas fa-times"></i></button>
         </div>`;
         html += `</div>`;
         if (tags) {
@@ -591,6 +592,7 @@ $(document).ready(function () {
         selectedEntryId = safeId;
         $tableBody.find('tr').removeClass('oplog-entry-selected');
         $(`#entry-${safeId}`).addClass('oplog-entry-selected');
+        $splitContainer.addClass('oplog-has-selection');
         renderDetail(entryDataStore[safeId]);
     }
 
@@ -601,6 +603,18 @@ $(document).ready(function () {
         $row.addClass('oplog-entry-highlight');
         setTimeout(function () { $row.removeClass('oplog-entry-highlight'); }, 2000);
     }
+
+    function deselectEntry() {
+        if (selectedEntryId !== null) {
+            $tableBody.find('tr').removeClass('oplog-entry-selected');
+            selectedEntryId = null;
+            $splitContainer.removeClass('oplog-has-selection');
+            renderDetail(null);
+        }
+    }
+
+    // Expose deselectEntry globally for onclick handlers
+    window.deselectEntry = deselectEntry;
 
     // --- Global actions ---
     window.createEntry = function (id) {
@@ -1415,6 +1429,14 @@ $(document).ready(function () {
     // --- Arrow key navigation in list ---
     $(document).keydown(function (e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        
+        // ESC key: deselect entry
+        if (e.keyCode === 27) {
+            e.preventDefault();
+            deselectEntry();
+            return;
+        }
+        
         if (!selectedEntryId) return;
 
         let $current = $(`#entry-${selectedEntryId}`);
