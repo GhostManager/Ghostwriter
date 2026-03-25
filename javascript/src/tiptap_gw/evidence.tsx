@@ -105,7 +105,10 @@ function useTextContent(id: number, isText: boolean): string | null {
     React.useEffect(() => {
         if (!isText) return;
         fetch("/reporting/evidence/download/" + id)
-            .then((r) => r.text())
+            .then((r) => {
+                if (!r.ok) throw new Error(r.statusText);
+                return r.text();
+            })
             .then(setContent)
             .catch(() => setContent(null));
     }, [id, isText]);
