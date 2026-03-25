@@ -5,11 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import EvidenceModal from "./modal";
 import { useEditorState } from "@tiptap/react";
 
+// null = closed, "new" = inserting, number = editing existing, { file } = paste-triggered upload
+type ModalState = null | "new" | number | { file: File };
+
 export default function EvidenceButton({ editor }: { editor: Editor }) {
-    // null = closed, "new" = inserting, number = editing with the existing ID as the number
-    const [modalInitial, setModalInitial] = useState<null | "new" | number>(
-        null
-    );
+    const [modalState, setModalState] = useState<ModalState>(null);
 
     const { enabled, active } = useEditorState({
         editor,
@@ -31,17 +31,22 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
             if (id) {
                 editor.chain().setEvidence({ id }).run();
             }
-            setModalInitial(null);
+            setModalState(null);
         },
-        [setModalInitial, editor]
+        [setModalState, editor]
     );
 
     let modal = null;
-    if (modalInitial !== null) {
+    if (modalState !== null) {
+        const initialId =
+            typeof modalState === "number" ? modalState : null;
+        const initialFile =
+            typeof modalState === "object" ? modalState.file : undefined;
         modal = (
             <EvidenceModal
                 editor={editor}
-                initialId={modalInitial === "new" ? null : modalInitial}
+                initialId={initialId}
+                initialFile={initialFile}
                 setEvidenceId={applyCb}
             />
         );
@@ -49,9 +54,22 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
 
     const editorEl = editor.view.dom;
     useEffect(() => {
-        const evl = () => setModalInitial("new");
-        editorEl.addEventListener("openevidencemodal", evl);
-        return () => editorEl.removeEventListener("openevidencemodal", evl);
+        const handleOpenModal = () => setModalState("new");
+        const handlePaste = (ev: ClipboardEvent) => {
+            const files = ev.clipboardData?.files;
+            if (!files || files.length !== 1) return;
+            const file = files[0];
+            if (!file.type.match(/^image\/(png|jpeg)$/)) return;
+            ev.preventDefault();
+            setModalState({ file });
+        };
+        editorEl.addEventListener("openevidencemodal", handleOpenModal);
+        // Capture phase so we intercept before ProseMirror's paste handler
+        editorEl.addEventListener("paste", handlePaste, { capture: true });
+        return () => {
+            editorEl.removeEventListener("openevidencemodal", handleOpenModal);
+            editorEl.removeEventListener("paste", handlePaste, { capture: true });
+        };
     }, [editorEl]);
 
     return (
@@ -65,9 +83,9 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
                     e.preventDefault();
                     const active = editor.isActive("evidence");
                     if (active) {
-                        setModalInitial(editor.getAttributes("evidence").id);
+                        setModalState(editor.getAttributes("evidence").id);
                     } else {
-                        setModalInitial("new");
+                        setModalState("new");
                     }
                 }}
             >

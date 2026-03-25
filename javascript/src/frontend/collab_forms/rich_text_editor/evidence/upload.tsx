@@ -7,10 +7,14 @@ type DjangoFormErrors = Record<string, string[]>;
 export default function EvidenceUploadForm(props: {
     onSubmit: (id: number | null) => void;
     switchMode: () => void;
+    initialFile?: File;
 }) {
     const evidences = useContext(EvidencesContext)!;
     const [state, setState] = useState<null | DjangoFormErrors | "loading">(
         null
+    );
+    const [friendlyName, setFriendlyName] = useState<string>(
+        props.initialFile ? props.initialFile.name.replace(/\.[^.]+$/, "") : ""
     );
     const formRef = useRef<HTMLFormElement | null>(null);
     const friendlyNameId = useId();
@@ -86,6 +90,8 @@ export default function EvidenceUploadForm(props: {
                             autoComplete="off"
                             placeholder="Friendly Name"
                             disabled={disabled}
+                            value={friendlyName}
+                            onChange={(e) => setFriendlyName(e.target.value)}
                         />
                         <ErrorFeedback errors={errors?.friendly_name} />
                         <small>
@@ -122,7 +128,11 @@ export default function EvidenceUploadForm(props: {
                 <input type="hidden" name="tags" value="" />
                 <input type="hidden" name="description" value="" />
 
-                <FileInput errors={errors} disabled={disabled} />
+                <FileInput
+                    errors={errors}
+                    disabled={disabled}
+                    initialFile={props.initialFile}
+                />
             </div>
 
             <div className="modal-footer">
@@ -157,10 +167,21 @@ export default function EvidenceUploadForm(props: {
 function FileInput(props: {
     errors: DjangoFormErrors | null;
     disabled: boolean;
+    initialFile?: File;
 }) {
     const id = useId();
     const fileRef = useRef<HTMLInputElement | null>(null);
-    const [fileName, setFileName] = useState<string | null>(null);
+    const [fileName, setFileName] = useState<string | null>(
+        props.initialFile?.name ?? null
+    );
+
+    // Pre-populate the file input when an initial file is provided (paste-to-upload)
+    useEffect(() => {
+        if (!props.initialFile || !fileRef.current) return;
+        const dt = new DataTransfer();
+        dt.items.add(props.initialFile);
+        fileRef.current.files = dt.files;
+    }, [props.initialFile]);
 
     useEffect(() => {
         const cb = (ev: ClipboardEvent) => {
