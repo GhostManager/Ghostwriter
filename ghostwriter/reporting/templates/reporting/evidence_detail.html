@@ -114,10 +114,10 @@
       <ul class="list-group offset-2 col-8 mb-4">
         {% for link in group.list %}
           {% with entry=link.oplog_entry %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
+          <li class="list-group-item d-flex justify-content-between align-items-center text-left">
             <div>
               <span class="mr-3 text-muted small">{{ entry.start_date|date:"Y-m-d H:i" }}</span>
-              {% if entry.tool %}<span class="mr-2 badge badge-secondary">{{ entry.tool }}</span>{% endif %}
+              {% if entry.tool %}<span class="mr-2 badge badge-secondary">{{ entry.tool|truncatechars:25 }}</span>{% endif %}
               {% if entry.operator_name %}<span class="small">{{ entry.operator_name }}</span>{% endif %}
             </div>
             <a href="{% url 'oplog:oplog_entries' group.grouper.id %}?entry={{ entry.id }}#entry-{{ entry.id }}"
