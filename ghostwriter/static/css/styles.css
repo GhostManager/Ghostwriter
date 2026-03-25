@@ -4565,7 +4565,6 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] code {
-  background-color: var(--search-input-background-color);
   color: var(--main-txt-color);
 }
 

@@ -270,6 +270,10 @@
     .node-evidence.ProseMirror-selectednode .richtext-evidence {
         color: #fff;
         background-color: #88c;
+
+        pre.richtext-evidence-text {
+            color: #222;
+        }
     }
     .richtext-evidence {
         display: flex;
@@ -304,7 +308,7 @@
         }
         .richtext-evidence-text-field {
             border: 1px solid #aaa;
-            background-color: #fafafa;
+            // background-color: #fafafa;
             border-radius: 0.5rem;
             padding-left: 1rem;
             padding-right: 1rem;
@@ -329,6 +333,23 @@
         }
         .richtext-evidence-caption {
             margin-top: 0.5rem;
+        }
+        pre.richtext-evidence-text {
+            border: 1px solid #aaa;
+            background-color: #fafafa;
+            color: #222;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
         }
     }
 
