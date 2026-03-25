@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Details appear on the right-side in a details pane
   * Details pane includes dedicated sections for attaching evidence and uploading terminal recordings
 
+* **Text Evidence Previews**: Text evidence now has previews in the collaborative editor like image evidence
+
+** **Pasting Images into Collab Editor**: You can now paste an image file or screenshot in your clipboard into a collaborative editor field
+  * The paste will automatically trigger the modal window for uploading your evidence
+  * Your filename will be the default friendly name for the upload
+
 ### Security
 
 * As we allow more user-editable content to be rendered in the DOM, we have implemented stronger controls to prevent JavaScript injection
