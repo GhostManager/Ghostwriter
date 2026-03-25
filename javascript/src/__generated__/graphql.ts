@@ -19,6 +19,7 @@ export type Scalars = {
   float8: { input: any; output: any; }
   inet: { input: any; output: any; }
   jsonb: { input: any; output: any; }
+  smallint: { input: any; output: any; }
   time: { input: any; output: any; }
   timestamptz: { input: any; output: any; }
 };
@@ -34,6 +35,24 @@ export type Boolean_Comparison_Exp = {
   _lte?: InputMaybe<Scalars['Boolean']['input']>;
   _neq?: InputMaybe<Scalars['Boolean']['input']>;
   _nin?: InputMaybe<Array<Scalars['Boolean']['input']>>;
+};
+
+export type DownloadEvidenceResponse = {
+  __typename?: 'DownloadEvidenceResponse';
+  downloadUrl: Scalars['String']['output'];
+  evidenceId: Scalars['Int']['output'];
+  fileBase64: Scalars['String']['output'];
+  filename: Scalars['String']['output'];
+  friendlyName: Scalars['String']['output'];
+};
+
+export type DownloadRecordingResponse = {
+  __typename?: 'DownloadRecordingResponse';
+  downloadUrl: Scalars['String']['output'];
+  fileBase64: Scalars['String']['output'];
+  filename: Scalars['String']['output'];
+  oplogEntryId: Scalars['Int']['output'];
+  recordingId: Scalars['Int']['output'];
 };
 
 export type ExtraFieldSpecOutput = {
@@ -57,6 +76,16 @@ export type GetOplogEntryByTagsResponse = {
   __typename?: 'GetOplogEntryByTagsResponse';
   id: Scalars['Int']['output'];
   oplog_entry?: Maybe<OplogEntry>;
+};
+
+export type GetProjectByTagsResponse = {
+  __typename?: 'GetProjectByTagsResponse';
+  id: Scalars['Int']['output'];
+};
+
+export type GetReportByTagsResponse = {
+  __typename?: 'GetReportByTagsResponse';
+  id: Scalars['Int']['output'];
 };
 
 export type GetReportFindingByTagsResponse = {
@@ -1546,6 +1575,7 @@ export type Client = {
   contacts: Array<ClientContact>;
   /** An aggregate relationship */
   contacts_aggregate: ClientContact_Aggregate;
+  description: Scalars['String']['output'];
   /** An array relationship */
   domains: Array<DomainCheckout>;
   /** An aggregate relationship */
@@ -1556,8 +1586,10 @@ export type Client = {
   invites: Array<ClientInvite>;
   /** An aggregate relationship */
   invites_aggregate: ClientInvite_Aggregate;
+  logo?: Maybe<Scalars['String']['output']>;
+  logo_height?: Maybe<Scalars['Int']['output']>;
+  logo_width?: Maybe<Scalars['Int']['output']>;
   name: Scalars['String']['output'];
-  note: Scalars['String']['output'];
   /** An array relationship */
   projects: Array<Project>;
   /** An aggregate relationship */
@@ -1726,12 +1758,13 @@ export type ClientContact = {
   /** An object relationship */
   client: Client;
   clientId: Scalars['bigint']['output'];
+  description: Scalars['String']['output'];
   email: Scalars['String']['output'];
   id: Scalars['bigint']['output'];
   jobTitle: Scalars['String']['output'];
   name: Scalars['String']['output'];
-  note: Scalars['String']['output'];
   phone: Scalars['String']['output'];
+  primary: Scalars['Boolean']['output'];
   timezone: Scalars['String']['output'];
 };
 
@@ -1743,7 +1776,23 @@ export type ClientContact_Aggregate = {
 };
 
 export type ClientContact_Aggregate_Bool_Exp = {
+  bool_and?: InputMaybe<ClientContact_Aggregate_Bool_Exp_Bool_And>;
+  bool_or?: InputMaybe<ClientContact_Aggregate_Bool_Exp_Bool_Or>;
   count?: InputMaybe<ClientContact_Aggregate_Bool_Exp_Count>;
+};
+
+export type ClientContact_Aggregate_Bool_Exp_Bool_And = {
+  arguments: ClientContact_Select_Column_ClientContact_Aggregate_Bool_Exp_Bool_And_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ClientContact_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
+};
+
+export type ClientContact_Aggregate_Bool_Exp_Bool_Or = {
+  arguments: ClientContact_Select_Column_ClientContact_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ClientContact_Bool_Exp>;
+  predicate: Boolean_Comparison_Exp;
 };
 
 export type ClientContact_Aggregate_Bool_Exp_Count = {
@@ -1818,12 +1867,13 @@ export type ClientContact_Bool_Exp = {
   _or?: InputMaybe<Array<ClientContact_Bool_Exp>>;
   client?: InputMaybe<Client_Bool_Exp>;
   clientId?: InputMaybe<Bigint_Comparison_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   email?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   jobTitle?: InputMaybe<String_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   phone?: InputMaybe<String_Comparison_Exp>;
+  primary?: InputMaybe<Boolean_Comparison_Exp>;
   timezone?: InputMaybe<String_Comparison_Exp>;
 };
 
@@ -1845,12 +1895,13 @@ export type ClientContact_Inc_Input = {
 export type ClientContact_Insert_Input = {
   client?: InputMaybe<Client_Obj_Rel_Insert_Input>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   jobTitle?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
+  primary?: InputMaybe<Scalars['Boolean']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1858,11 +1909,11 @@ export type ClientContact_Insert_Input = {
 export type ClientContact_Max_Fields = {
   __typename?: 'clientContact_max_fields';
   clientId?: Maybe<Scalars['bigint']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   jobTitle?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   phone?: Maybe<Scalars['String']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
 };
@@ -1870,11 +1921,11 @@ export type ClientContact_Max_Fields = {
 /** order by max() on columns of table "rolodex_clientcontact" */
 export type ClientContact_Max_Order_By = {
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   jobTitle?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   phone?: InputMaybe<Order_By>;
   timezone?: InputMaybe<Order_By>;
 };
@@ -1883,11 +1934,11 @@ export type ClientContact_Max_Order_By = {
 export type ClientContact_Min_Fields = {
   __typename?: 'clientContact_min_fields';
   clientId?: Maybe<Scalars['bigint']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   jobTitle?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   phone?: Maybe<Scalars['String']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
 };
@@ -1895,11 +1946,11 @@ export type ClientContact_Min_Fields = {
 /** order by min() on columns of table "rolodex_clientcontact" */
 export type ClientContact_Min_Order_By = {
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   jobTitle?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   phone?: InputMaybe<Order_By>;
   timezone?: InputMaybe<Order_By>;
 };
@@ -1924,12 +1975,13 @@ export type ClientContact_On_Conflict = {
 export type ClientContact_Order_By = {
   client?: InputMaybe<Client_Order_By>;
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   jobTitle?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   phone?: InputMaybe<Order_By>;
+  primary?: InputMaybe<Order_By>;
   timezone?: InputMaybe<Order_By>;
 };
 
@@ -1943,6 +1995,8 @@ export enum ClientContact_Select_Column {
   /** column name */
   ClientId = 'clientId',
   /** column name */
+  Description = 'description',
+  /** column name */
   Email = 'email',
   /** column name */
   Id = 'id',
@@ -1951,22 +2005,35 @@ export enum ClientContact_Select_Column {
   /** column name */
   Name = 'name',
   /** column name */
-  Note = 'note',
-  /** column name */
   Phone = 'phone',
   /** column name */
+  Primary = 'primary',
+  /** column name */
   Timezone = 'timezone'
+}
+
+/** select "clientContact_aggregate_bool_exp_bool_and_arguments_columns" columns of table "rolodex_clientcontact" */
+export enum ClientContact_Select_Column_ClientContact_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
+  /** column name */
+  Primary = 'primary'
+}
+
+/** select "clientContact_aggregate_bool_exp_bool_or_arguments_columns" columns of table "rolodex_clientcontact" */
+export enum ClientContact_Select_Column_ClientContact_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
+  /** column name */
+  Primary = 'primary'
 }
 
 /** input type for updating data in table "rolodex_clientcontact" */
 export type ClientContact_Set_Input = {
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   jobTitle?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
+  primary?: InputMaybe<Scalars['Boolean']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2020,12 +2087,13 @@ export type ClientContact_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type ClientContact_Stream_Cursor_Value_Input = {
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   jobTitle?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
+  primary?: InputMaybe<Scalars['Boolean']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2047,6 +2115,8 @@ export enum ClientContact_Update_Column {
   /** column name */
   ClientId = 'clientId',
   /** column name */
+  Description = 'description',
+  /** column name */
   Email = 'email',
   /** column name */
   Id = 'id',
@@ -2055,9 +2125,9 @@ export enum ClientContact_Update_Column {
   /** column name */
   Name = 'name',
   /** column name */
-  Note = 'note',
-  /** column name */
   Phone = 'phone',
+  /** column name */
+  Primary = 'primary',
   /** column name */
   Timezone = 'timezone'
 }
@@ -2899,6 +2969,8 @@ export type Client_Append_Input = {
 export type Client_Avg_Fields = {
   __typename?: 'client_avg_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  logo_height?: Maybe<Scalars['Float']['output']>;
+  logo_width?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Boolean expression to filter rows from the table "rolodex_client". All fields are combined with a logical 'AND'. */
@@ -2912,14 +2984,17 @@ export type Client_Bool_Exp = {
   comments_aggregate?: InputMaybe<ClientNote_Aggregate_Bool_Exp>;
   contacts?: InputMaybe<ClientContact_Bool_Exp>;
   contacts_aggregate?: InputMaybe<ClientContact_Aggregate_Bool_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   domains?: InputMaybe<DomainCheckout_Bool_Exp>;
   domains_aggregate?: InputMaybe<DomainCheckout_Aggregate_Bool_Exp>;
   extraFields?: InputMaybe<Jsonb_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   invites?: InputMaybe<ClientInvite_Bool_Exp>;
   invites_aggregate?: InputMaybe<ClientInvite_Aggregate_Bool_Exp>;
+  logo?: InputMaybe<String_Comparison_Exp>;
+  logo_height?: InputMaybe<Int_Comparison_Exp>;
+  logo_width?: InputMaybe<Int_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   projects?: InputMaybe<Project_Bool_Exp>;
   projects_aggregate?: InputMaybe<Project_Aggregate_Bool_Exp>;
   servers?: InputMaybe<ServerCheckout_Bool_Exp>;
@@ -2956,6 +3031,8 @@ export type Client_Delete_Key_Input = {
 /** input type for incrementing numeric columns in table "rolodex_client" */
 export type Client_Inc_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
+  logo_height?: InputMaybe<Scalars['Int']['input']>;
+  logo_width?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** input type for inserting data into table "rolodex_client" */
@@ -2964,12 +3041,15 @@ export type Client_Insert_Input = {
   codename?: InputMaybe<Scalars['String']['input']>;
   comments?: InputMaybe<ClientNote_Arr_Rel_Insert_Input>;
   contacts?: InputMaybe<ClientContact_Arr_Rel_Insert_Input>;
+  description?: InputMaybe<Scalars['String']['input']>;
   domains?: InputMaybe<DomainCheckout_Arr_Rel_Insert_Input>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   invites?: InputMaybe<ClientInvite_Arr_Rel_Insert_Input>;
+  logo?: InputMaybe<Scalars['String']['input']>;
+  logo_height?: InputMaybe<Scalars['Int']['input']>;
+  logo_width?: InputMaybe<Scalars['Int']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   projects?: InputMaybe<Project_Arr_Rel_Insert_Input>;
   servers?: InputMaybe<ServerCheckout_Arr_Rel_Insert_Input>;
   shortName?: InputMaybe<Scalars['String']['input']>;
@@ -2982,9 +3062,12 @@ export type Client_Max_Fields = {
   __typename?: 'client_max_fields';
   address?: Maybe<Scalars['String']['output']>;
   codename?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
+  logo?: Maybe<Scalars['String']['output']>;
+  logo_height?: Maybe<Scalars['Int']['output']>;
+  logo_width?: Maybe<Scalars['Int']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   shortName?: Maybe<Scalars['String']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
 };
@@ -2994,9 +3077,12 @@ export type Client_Min_Fields = {
   __typename?: 'client_min_fields';
   address?: Maybe<Scalars['String']['output']>;
   codename?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
+  logo?: Maybe<Scalars['String']['output']>;
+  logo_height?: Maybe<Scalars['Int']['output']>;
+  logo_width?: Maybe<Scalars['Int']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   shortName?: Maybe<Scalars['String']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
 };
@@ -3030,12 +3116,15 @@ export type Client_Order_By = {
   codename?: InputMaybe<Order_By>;
   comments_aggregate?: InputMaybe<ClientNote_Aggregate_Order_By>;
   contacts_aggregate?: InputMaybe<ClientContact_Aggregate_Order_By>;
+  description?: InputMaybe<Order_By>;
   domains_aggregate?: InputMaybe<DomainCheckout_Aggregate_Order_By>;
   extraFields?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   invites_aggregate?: InputMaybe<ClientInvite_Aggregate_Order_By>;
+  logo?: InputMaybe<Order_By>;
+  logo_height?: InputMaybe<Order_By>;
+  logo_width?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   projects_aggregate?: InputMaybe<Project_Aggregate_Order_By>;
   servers_aggregate?: InputMaybe<ServerCheckout_Aggregate_Order_By>;
   shortName?: InputMaybe<Order_By>;
@@ -3060,13 +3149,19 @@ export enum Client_Select_Column {
   /** column name */
   Codename = 'codename',
   /** column name */
+  Description = 'description',
+  /** column name */
   ExtraFields = 'extraFields',
   /** column name */
   Id = 'id',
   /** column name */
-  Name = 'name',
+  Logo = 'logo',
   /** column name */
-  Note = 'note',
+  LogoHeight = 'logo_height',
+  /** column name */
+  LogoWidth = 'logo_width',
+  /** column name */
+  Name = 'name',
   /** column name */
   ShortName = 'shortName',
   /** column name */
@@ -3077,10 +3172,13 @@ export enum Client_Select_Column {
 export type Client_Set_Input = {
   address?: InputMaybe<Scalars['String']['input']>;
   codename?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  logo?: InputMaybe<Scalars['String']['input']>;
+  logo_height?: InputMaybe<Scalars['Int']['input']>;
+  logo_width?: InputMaybe<Scalars['Int']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   shortName?: InputMaybe<Scalars['String']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
@@ -3089,18 +3187,24 @@ export type Client_Set_Input = {
 export type Client_Stddev_Fields = {
   __typename?: 'client_stddev_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  logo_height?: Maybe<Scalars['Float']['output']>;
+  logo_width?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate stddev_pop on columns */
 export type Client_Stddev_Pop_Fields = {
   __typename?: 'client_stddev_pop_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  logo_height?: Maybe<Scalars['Float']['output']>;
+  logo_width?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate stddev_samp on columns */
 export type Client_Stddev_Samp_Fields = {
   __typename?: 'client_stddev_samp_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  logo_height?: Maybe<Scalars['Float']['output']>;
+  logo_width?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Streaming cursor of the table "client" */
@@ -3115,10 +3219,13 @@ export type Client_Stream_Cursor_Input = {
 export type Client_Stream_Cursor_Value_Input = {
   address?: InputMaybe<Scalars['String']['input']>;
   codename?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  logo?: InputMaybe<Scalars['String']['input']>;
+  logo_height?: InputMaybe<Scalars['Int']['input']>;
+  logo_width?: InputMaybe<Scalars['Int']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   shortName?: InputMaybe<Scalars['String']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
@@ -3127,6 +3234,8 @@ export type Client_Stream_Cursor_Value_Input = {
 export type Client_Sum_Fields = {
   __typename?: 'client_sum_fields';
   id?: Maybe<Scalars['bigint']['output']>;
+  logo_height?: Maybe<Scalars['Int']['output']>;
+  logo_width?: Maybe<Scalars['Int']['output']>;
 };
 
 /** update columns of table "rolodex_client" */
@@ -3136,13 +3245,19 @@ export enum Client_Update_Column {
   /** column name */
   Codename = 'codename',
   /** column name */
+  Description = 'description',
+  /** column name */
   ExtraFields = 'extraFields',
   /** column name */
   Id = 'id',
   /** column name */
-  Name = 'name',
+  Logo = 'logo',
   /** column name */
-  Note = 'note',
+  LogoHeight = 'logo_height',
+  /** column name */
+  LogoWidth = 'logo_width',
+  /** column name */
+  Name = 'name',
   /** column name */
   ShortName = 'shortName',
   /** column name */
@@ -3172,18 +3287,24 @@ export type Client_Updates = {
 export type Client_Var_Pop_Fields = {
   __typename?: 'client_var_pop_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  logo_height?: Maybe<Scalars['Float']['output']>;
+  logo_width?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate var_samp on columns */
 export type Client_Var_Samp_Fields = {
   __typename?: 'client_var_samp_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  logo_height?: Maybe<Scalars['Float']['output']>;
+  logo_width?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate variance on columns */
 export type Client_Variance_Fields = {
   __typename?: 'client_variance_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  logo_height?: Maybe<Scalars['Float']['output']>;
+  logo_width?: Maybe<Scalars['Float']['output']>;
 };
 
 /** columns and relationships of "shepherd_transientserver" */
@@ -3193,6 +3314,7 @@ export type CloudServer = {
   activityType: ActivityType;
   activityTypeId: Scalars['bigint']['output'];
   auxAddress?: Maybe<Array<Scalars['inet']['output']>>;
+  description: Scalars['String']['output'];
   /** An array relationship */
   domainServerConnections: Array<DomainServerConnection>;
   /** An aggregate relationship */
@@ -3200,7 +3322,6 @@ export type CloudServer = {
   id: Scalars['bigint']['output'];
   ipAddress: Scalars['inet']['output'];
   name: Scalars['String']['output'];
-  note: Scalars['String']['output'];
   operatorId?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
   project?: Maybe<Project>;
@@ -3327,12 +3448,12 @@ export type CloudServer_Bool_Exp = {
   activityType?: InputMaybe<ActivityType_Bool_Exp>;
   activityTypeId?: InputMaybe<Bigint_Comparison_Exp>;
   auxAddress?: InputMaybe<Inet_Array_Comparison_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   domainServerConnections?: InputMaybe<DomainServerConnection_Bool_Exp>;
   domainServerConnections_aggregate?: InputMaybe<DomainServerConnection_Aggregate_Bool_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   ipAddress?: InputMaybe<Inet_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   operatorId?: InputMaybe<Bigint_Comparison_Exp>;
   project?: InputMaybe<Project_Bool_Exp>;
   projectId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -3364,11 +3485,11 @@ export type CloudServer_Insert_Input = {
   activityType?: InputMaybe<ActivityType_Obj_Rel_Insert_Input>;
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   auxAddress?: InputMaybe<Array<Scalars['inet']['input']>>;
+  description?: InputMaybe<Scalars['String']['input']>;
   domainServerConnections?: InputMaybe<DomainServerConnection_Arr_Rel_Insert_Input>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['inet']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   project?: InputMaybe<Project_Obj_Rel_Insert_Input>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -3384,9 +3505,9 @@ export type CloudServer_Max_Fields = {
   __typename?: 'cloudServer_max_fields';
   activityTypeId?: Maybe<Scalars['bigint']['output']>;
   auxAddress?: Maybe<Array<Scalars['inet']['output']>>;
+  description?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   serverProviderId?: Maybe<Scalars['bigint']['output']>;
@@ -3397,9 +3518,9 @@ export type CloudServer_Max_Fields = {
 export type CloudServer_Max_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   auxAddress?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   serverProviderId?: InputMaybe<Order_By>;
@@ -3411,9 +3532,9 @@ export type CloudServer_Min_Fields = {
   __typename?: 'cloudServer_min_fields';
   activityTypeId?: Maybe<Scalars['bigint']['output']>;
   auxAddress?: Maybe<Array<Scalars['inet']['output']>>;
+  description?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   serverProviderId?: Maybe<Scalars['bigint']['output']>;
@@ -3424,9 +3545,9 @@ export type CloudServer_Min_Fields = {
 export type CloudServer_Min_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   auxAddress?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   serverProviderId?: InputMaybe<Order_By>;
@@ -3461,11 +3582,11 @@ export type CloudServer_Order_By = {
   activityType?: InputMaybe<ActivityType_Order_By>;
   activityTypeId?: InputMaybe<Order_By>;
   auxAddress?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   domainServerConnections_aggregate?: InputMaybe<DomainServerConnection_Aggregate_Order_By>;
   id?: InputMaybe<Order_By>;
   ipAddress?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   project?: InputMaybe<Project_Order_By>;
   projectId?: InputMaybe<Order_By>;
@@ -3488,13 +3609,13 @@ export enum CloudServer_Select_Column {
   /** column name */
   AuxAddress = 'auxAddress',
   /** column name */
+  Description = 'description',
+  /** column name */
   Id = 'id',
   /** column name */
   IpAddress = 'ipAddress',
   /** column name */
   Name = 'name',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -3509,10 +3630,10 @@ export enum CloudServer_Select_Column {
 export type CloudServer_Set_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   auxAddress?: InputMaybe<Array<Scalars['inet']['input']>>;
+  description?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['inet']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   serverProviderId?: InputMaybe<Scalars['bigint']['input']>;
@@ -3594,10 +3715,10 @@ export type CloudServer_Stream_Cursor_Input = {
 export type CloudServer_Stream_Cursor_Value_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   auxAddress?: InputMaybe<Array<Scalars['inet']['input']>>;
+  description?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['inet']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   serverProviderId?: InputMaybe<Scalars['bigint']['input']>;
@@ -3632,13 +3753,13 @@ export enum CloudServer_Update_Column {
   /** column name */
   AuxAddress = 'auxAddress',
   /** column name */
+  Description = 'description',
+  /** column name */
   Id = 'id',
   /** column name */
   IpAddress = 'ipAddress',
   /** column name */
   Name = 'name',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -5248,6 +5369,7 @@ export type Domain = {
   /** An aggregate relationship */
   comments_aggregate: DomainNote_Aggregate;
   creation: Scalars['date']['output'];
+  description: Scalars['String']['output'];
   dns?: Maybe<Scalars['jsonb']['output']>;
   /** An object relationship */
   domainStatus?: Maybe<DomainStatus>;
@@ -5262,7 +5384,6 @@ export type Domain = {
   lastHealthCheck?: Maybe<Scalars['date']['output']>;
   lastUsedById?: Maybe<Scalars['bigint']['output']>;
   name: Scalars['String']['output'];
-  note: Scalars['String']['output'];
   registrar: Scalars['String']['output'];
   resetDns: Scalars['Boolean']['output'];
   /** An object relationship */
@@ -5340,6 +5461,7 @@ export type DomainCheckout = {
   /** An object relationship */
   client: Client;
   clientId: Scalars['bigint']['output'];
+  description: Scalars['String']['output'];
   /** An object relationship */
   domain: Domain;
   domainId: Scalars['bigint']['output'];
@@ -5349,7 +5471,6 @@ export type DomainCheckout = {
   domainServerConnections_aggregate: DomainServerConnection_Aggregate;
   endDate: Scalars['date']['output'];
   id: Scalars['bigint']['output'];
-  note: Scalars['String']['output'];
   operatorId?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
   project?: Maybe<Project>;
@@ -5472,13 +5593,13 @@ export type DomainCheckout_Bool_Exp = {
   activityTypeId?: InputMaybe<Bigint_Comparison_Exp>;
   client?: InputMaybe<Client_Bool_Exp>;
   clientId?: InputMaybe<Bigint_Comparison_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   domain?: InputMaybe<Domain_Bool_Exp>;
   domainId?: InputMaybe<Bigint_Comparison_Exp>;
   domainServerConnections?: InputMaybe<DomainServerConnection_Bool_Exp>;
   domainServerConnections_aggregate?: InputMaybe<DomainServerConnection_Aggregate_Bool_Exp>;
   endDate?: InputMaybe<Date_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   operatorId?: InputMaybe<Bigint_Comparison_Exp>;
   project?: InputMaybe<Project_Bool_Exp>;
   projectId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -5508,12 +5629,12 @@ export type DomainCheckout_Insert_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   client?: InputMaybe<Client_Obj_Rel_Insert_Input>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   domain?: InputMaybe<Domain_Obj_Rel_Insert_Input>;
   domainId?: InputMaybe<Scalars['bigint']['input']>;
   domainServerConnections?: InputMaybe<DomainServerConnection_Arr_Rel_Insert_Input>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   project?: InputMaybe<Project_Obj_Rel_Insert_Input>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -5526,10 +5647,10 @@ export type DomainCheckout_Max_Fields = {
   __typename?: 'domainCheckout_max_fields';
   activityTypeId?: Maybe<Scalars['bigint']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   domainId?: Maybe<Scalars['bigint']['output']>;
   endDate?: Maybe<Scalars['date']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   startDate?: Maybe<Scalars['date']['output']>;
@@ -5539,10 +5660,10 @@ export type DomainCheckout_Max_Fields = {
 export type DomainCheckout_Max_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   domainId?: InputMaybe<Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   startDate?: InputMaybe<Order_By>;
@@ -5553,10 +5674,10 @@ export type DomainCheckout_Min_Fields = {
   __typename?: 'domainCheckout_min_fields';
   activityTypeId?: Maybe<Scalars['bigint']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   domainId?: Maybe<Scalars['bigint']['output']>;
   endDate?: Maybe<Scalars['date']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   startDate?: Maybe<Scalars['date']['output']>;
@@ -5566,10 +5687,10 @@ export type DomainCheckout_Min_Fields = {
 export type DomainCheckout_Min_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   domainId?: InputMaybe<Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   startDate?: InputMaybe<Order_By>;
@@ -5604,12 +5725,12 @@ export type DomainCheckout_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   client?: InputMaybe<Client_Order_By>;
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   domain?: InputMaybe<Domain_Order_By>;
   domainId?: InputMaybe<Order_By>;
   domainServerConnections_aggregate?: InputMaybe<DomainServerConnection_Aggregate_Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   project?: InputMaybe<Project_Order_By>;
   projectId?: InputMaybe<Order_By>;
@@ -5629,13 +5750,13 @@ export enum DomainCheckout_Select_Column {
   /** column name */
   ClientId = 'clientId',
   /** column name */
+  Description = 'description',
+  /** column name */
   DomainId = 'domainId',
   /** column name */
   EndDate = 'endDate',
   /** column name */
   Id = 'id',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -5648,10 +5769,10 @@ export enum DomainCheckout_Select_Column {
 export type DomainCheckout_Set_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   domainId?: InputMaybe<Scalars['bigint']['input']>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   startDate?: InputMaybe<Scalars['date']['input']>;
@@ -5732,10 +5853,10 @@ export type DomainCheckout_Stream_Cursor_Input = {
 export type DomainCheckout_Stream_Cursor_Value_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   domainId?: InputMaybe<Scalars['bigint']['input']>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   startDate?: InputMaybe<Scalars['date']['input']>;
@@ -5769,13 +5890,13 @@ export enum DomainCheckout_Update_Column {
   /** column name */
   ClientId = 'clientId',
   /** column name */
+  Description = 'description',
+  /** column name */
   DomainId = 'domainId',
   /** column name */
   EndDate = 'endDate',
   /** column name */
   Id = 'id',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -7016,6 +7137,7 @@ export type Domain_Bool_Exp = {
   comments?: InputMaybe<DomainNote_Bool_Exp>;
   comments_aggregate?: InputMaybe<DomainNote_Aggregate_Bool_Exp>;
   creation?: InputMaybe<Date_Comparison_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   dns?: InputMaybe<Jsonb_Comparison_Exp>;
   domainStatus?: InputMaybe<DomainStatus_Bool_Exp>;
   domainStatusId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -7028,7 +7150,6 @@ export type Domain_Bool_Exp = {
   lastHealthCheck?: InputMaybe<Date_Comparison_Exp>;
   lastUsedById?: InputMaybe<Bigint_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   registrar?: InputMaybe<String_Comparison_Exp>;
   resetDns?: InputMaybe<Boolean_Comparison_Exp>;
   user?: InputMaybe<User_Bool_Exp>;
@@ -7083,6 +7204,7 @@ export type Domain_Insert_Input = {
   checkouts?: InputMaybe<DomainCheckout_Arr_Rel_Insert_Input>;
   comments?: InputMaybe<DomainNote_Arr_Rel_Insert_Input>;
   creation?: InputMaybe<Scalars['date']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   dns?: InputMaybe<Scalars['jsonb']['input']>;
   domainStatus?: InputMaybe<DomainStatus_Obj_Rel_Insert_Input>;
   domainStatusId?: InputMaybe<Scalars['bigint']['input']>;
@@ -7095,7 +7217,6 @@ export type Domain_Insert_Input = {
   lastHealthCheck?: InputMaybe<Scalars['date']['input']>;
   lastUsedById?: InputMaybe<Scalars['bigint']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   registrar?: InputMaybe<Scalars['String']['input']>;
   resetDns?: InputMaybe<Scalars['Boolean']['input']>;
   user?: InputMaybe<User_Obj_Rel_Insert_Input>;
@@ -7109,6 +7230,7 @@ export type Domain_Max_Fields = {
   __typename?: 'domain_max_fields';
   burned_explanation?: Maybe<Scalars['String']['output']>;
   creation?: Maybe<Scalars['date']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   domainStatusId?: Maybe<Scalars['bigint']['output']>;
   expiration?: Maybe<Scalars['date']['output']>;
   healthStatusId?: Maybe<Scalars['bigint']['output']>;
@@ -7116,7 +7238,6 @@ export type Domain_Max_Fields = {
   lastHealthCheck?: Maybe<Scalars['date']['output']>;
   lastUsedById?: Maybe<Scalars['bigint']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   registrar?: Maybe<Scalars['String']['output']>;
   vtPermalink?: Maybe<Scalars['String']['output']>;
   whoisStatusId?: Maybe<Scalars['bigint']['output']>;
@@ -7126,6 +7247,7 @@ export type Domain_Max_Fields = {
 export type Domain_Max_Order_By = {
   burned_explanation?: InputMaybe<Order_By>;
   creation?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   domainStatusId?: InputMaybe<Order_By>;
   expiration?: InputMaybe<Order_By>;
   healthStatusId?: InputMaybe<Order_By>;
@@ -7133,7 +7255,6 @@ export type Domain_Max_Order_By = {
   lastHealthCheck?: InputMaybe<Order_By>;
   lastUsedById?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   registrar?: InputMaybe<Order_By>;
   vtPermalink?: InputMaybe<Order_By>;
   whoisStatusId?: InputMaybe<Order_By>;
@@ -7144,6 +7265,7 @@ export type Domain_Min_Fields = {
   __typename?: 'domain_min_fields';
   burned_explanation?: Maybe<Scalars['String']['output']>;
   creation?: Maybe<Scalars['date']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   domainStatusId?: Maybe<Scalars['bigint']['output']>;
   expiration?: Maybe<Scalars['date']['output']>;
   healthStatusId?: Maybe<Scalars['bigint']['output']>;
@@ -7151,7 +7273,6 @@ export type Domain_Min_Fields = {
   lastHealthCheck?: Maybe<Scalars['date']['output']>;
   lastUsedById?: Maybe<Scalars['bigint']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   registrar?: Maybe<Scalars['String']['output']>;
   vtPermalink?: Maybe<Scalars['String']['output']>;
   whoisStatusId?: Maybe<Scalars['bigint']['output']>;
@@ -7161,6 +7282,7 @@ export type Domain_Min_Fields = {
 export type Domain_Min_Order_By = {
   burned_explanation?: InputMaybe<Order_By>;
   creation?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   domainStatusId?: InputMaybe<Order_By>;
   expiration?: InputMaybe<Order_By>;
   healthStatusId?: InputMaybe<Order_By>;
@@ -7168,7 +7290,6 @@ export type Domain_Min_Order_By = {
   lastHealthCheck?: InputMaybe<Order_By>;
   lastUsedById?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   registrar?: InputMaybe<Order_By>;
   vtPermalink?: InputMaybe<Order_By>;
   whoisStatusId?: InputMaybe<Order_By>;
@@ -7205,6 +7326,7 @@ export type Domain_Order_By = {
   checkouts_aggregate?: InputMaybe<DomainCheckout_Aggregate_Order_By>;
   comments_aggregate?: InputMaybe<DomainNote_Aggregate_Order_By>;
   creation?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   dns?: InputMaybe<Order_By>;
   domainStatus?: InputMaybe<DomainStatus_Order_By>;
   domainStatusId?: InputMaybe<Order_By>;
@@ -7217,7 +7339,6 @@ export type Domain_Order_By = {
   lastHealthCheck?: InputMaybe<Order_By>;
   lastUsedById?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   registrar?: InputMaybe<Order_By>;
   resetDns?: InputMaybe<Order_By>;
   user?: InputMaybe<User_Order_By>;
@@ -7249,6 +7370,8 @@ export enum Domain_Select_Column {
   /** column name */
   Creation = 'creation',
   /** column name */
+  Description = 'description',
+  /** column name */
   Dns = 'dns',
   /** column name */
   DomainStatusId = 'domainStatusId',
@@ -7268,8 +7391,6 @@ export enum Domain_Select_Column {
   LastUsedById = 'lastUsedById',
   /** column name */
   Name = 'name',
-  /** column name */
-  Note = 'note',
   /** column name */
   Registrar = 'registrar',
   /** column name */
@@ -7306,6 +7427,7 @@ export type Domain_Set_Input = {
   burned_explanation?: InputMaybe<Scalars['String']['input']>;
   categorization?: InputMaybe<Scalars['jsonb']['input']>;
   creation?: InputMaybe<Scalars['date']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   dns?: InputMaybe<Scalars['jsonb']['input']>;
   domainStatusId?: InputMaybe<Scalars['bigint']['input']>;
   expiration?: InputMaybe<Scalars['date']['input']>;
@@ -7316,7 +7438,6 @@ export type Domain_Set_Input = {
   lastHealthCheck?: InputMaybe<Scalars['date']['input']>;
   lastUsedById?: InputMaybe<Scalars['bigint']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   registrar?: InputMaybe<Scalars['String']['input']>;
   resetDns?: InputMaybe<Scalars['Boolean']['input']>;
   vtPermalink?: InputMaybe<Scalars['String']['input']>;
@@ -7394,6 +7515,7 @@ export type Domain_Stream_Cursor_Value_Input = {
   burned_explanation?: InputMaybe<Scalars['String']['input']>;
   categorization?: InputMaybe<Scalars['jsonb']['input']>;
   creation?: InputMaybe<Scalars['date']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   dns?: InputMaybe<Scalars['jsonb']['input']>;
   domainStatusId?: InputMaybe<Scalars['bigint']['input']>;
   expiration?: InputMaybe<Scalars['date']['input']>;
@@ -7404,7 +7526,6 @@ export type Domain_Stream_Cursor_Value_Input = {
   lastHealthCheck?: InputMaybe<Scalars['date']['input']>;
   lastUsedById?: InputMaybe<Scalars['bigint']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   registrar?: InputMaybe<Scalars['String']['input']>;
   resetDns?: InputMaybe<Scalars['Boolean']['input']>;
   vtPermalink?: InputMaybe<Scalars['String']['input']>;
@@ -7441,6 +7562,8 @@ export enum Domain_Update_Column {
   /** column name */
   Creation = 'creation',
   /** column name */
+  Description = 'description',
+  /** column name */
   Dns = 'dns',
   /** column name */
   DomainStatusId = 'domainStatusId',
@@ -7460,8 +7583,6 @@ export enum Domain_Update_Column {
   LastUsedById = 'lastUsedById',
   /** column name */
   Name = 'name',
-  /** column name */
-  Note = 'note',
   /** column name */
   Registrar = 'registrar',
   /** column name */
@@ -7561,7 +7682,7 @@ export type Evidence = {
   id: Scalars['bigint']['output'];
   /** An object relationship */
   report?: Maybe<Report>;
-  report_id?: Maybe<Scalars['bigint']['output']>;
+  reportId?: Maybe<Scalars['bigint']['output']>;
   uploadDate: Scalars['date']['output'];
   uploadedById?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
@@ -7636,7 +7757,7 @@ export type Evidence_Avg_Fields = {
   __typename?: 'evidence_avg_fields';
   findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
-  report_id?: Maybe<Scalars['Float']['output']>;
+  reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -7644,7 +7765,7 @@ export type Evidence_Avg_Fields = {
 export type Evidence_Avg_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -7661,7 +7782,7 @@ export type Evidence_Bool_Exp = {
   friendlyName?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   report?: InputMaybe<Report_Bool_Exp>;
-  report_id?: InputMaybe<Bigint_Comparison_Exp>;
+  reportId?: InputMaybe<Bigint_Comparison_Exp>;
   uploadDate?: InputMaybe<Date_Comparison_Exp>;
   uploadedById?: InputMaybe<Bigint_Comparison_Exp>;
   user?: InputMaybe<User_Bool_Exp>;
@@ -7677,7 +7798,7 @@ export enum Evidence_Constraint {
 export type Evidence_Inc_Input = {
   findingId?: InputMaybe<Scalars['bigint']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  report_id?: InputMaybe<Scalars['bigint']['input']>;
+  reportId?: InputMaybe<Scalars['bigint']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
 };
 
@@ -7691,7 +7812,7 @@ export type Evidence_Insert_Input = {
   friendlyName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   report?: InputMaybe<Report_Obj_Rel_Insert_Input>;
-  report_id?: InputMaybe<Scalars['bigint']['input']>;
+  reportId?: InputMaybe<Scalars['bigint']['input']>;
   uploadDate?: InputMaybe<Scalars['date']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
   user?: InputMaybe<User_Obj_Rel_Insert_Input>;
@@ -7706,7 +7827,7 @@ export type Evidence_Max_Fields = {
   findingId?: Maybe<Scalars['bigint']['output']>;
   friendlyName?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  report_id?: Maybe<Scalars['bigint']['output']>;
+  reportId?: Maybe<Scalars['bigint']['output']>;
   uploadDate?: Maybe<Scalars['date']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
 };
@@ -7719,7 +7840,7 @@ export type Evidence_Max_Order_By = {
   findingId?: InputMaybe<Order_By>;
   friendlyName?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadDate?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -7733,7 +7854,7 @@ export type Evidence_Min_Fields = {
   findingId?: Maybe<Scalars['bigint']['output']>;
   friendlyName?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  report_id?: Maybe<Scalars['bigint']['output']>;
+  reportId?: Maybe<Scalars['bigint']['output']>;
   uploadDate?: Maybe<Scalars['date']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
 };
@@ -7746,7 +7867,7 @@ export type Evidence_Min_Order_By = {
   findingId?: InputMaybe<Order_By>;
   friendlyName?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadDate?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -7758,6 +7879,13 @@ export type Evidence_Mutation_Response = {
   affected_rows: Scalars['Int']['output'];
   /** data from the rows affected by the mutation */
   returning: Array<Evidence>;
+};
+
+/** input type for inserting object relation for remote table "reporting_evidence" */
+export type Evidence_Obj_Rel_Insert_Input = {
+  data: Evidence_Insert_Input;
+  /** upsert condition */
+  on_conflict?: InputMaybe<Evidence_On_Conflict>;
 };
 
 /** on_conflict condition type for table "reporting_evidence" */
@@ -7777,7 +7905,7 @@ export type Evidence_Order_By = {
   friendlyName?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   report?: InputMaybe<Report_Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadDate?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
   user?: InputMaybe<User_Order_By>;
@@ -7803,7 +7931,7 @@ export enum Evidence_Select_Column {
   /** column name */
   Id = 'id',
   /** column name */
-  ReportId = 'report_id',
+  ReportId = 'reportId',
   /** column name */
   UploadDate = 'uploadDate',
   /** column name */
@@ -7818,7 +7946,7 @@ export type Evidence_Set_Input = {
   findingId?: InputMaybe<Scalars['bigint']['input']>;
   friendlyName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  report_id?: InputMaybe<Scalars['bigint']['input']>;
+  reportId?: InputMaybe<Scalars['bigint']['input']>;
   uploadDate?: InputMaybe<Scalars['date']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -7828,7 +7956,7 @@ export type Evidence_Stddev_Fields = {
   __typename?: 'evidence_stddev_fields';
   findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
-  report_id?: Maybe<Scalars['Float']['output']>;
+  reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -7836,7 +7964,7 @@ export type Evidence_Stddev_Fields = {
 export type Evidence_Stddev_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -7845,7 +7973,7 @@ export type Evidence_Stddev_Pop_Fields = {
   __typename?: 'evidence_stddev_pop_fields';
   findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
-  report_id?: Maybe<Scalars['Float']['output']>;
+  reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -7853,7 +7981,7 @@ export type Evidence_Stddev_Pop_Fields = {
 export type Evidence_Stddev_Pop_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -7862,7 +7990,7 @@ export type Evidence_Stddev_Samp_Fields = {
   __typename?: 'evidence_stddev_samp_fields';
   findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
-  report_id?: Maybe<Scalars['Float']['output']>;
+  reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -7870,7 +7998,7 @@ export type Evidence_Stddev_Samp_Fields = {
 export type Evidence_Stddev_Samp_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -7890,7 +8018,7 @@ export type Evidence_Stream_Cursor_Value_Input = {
   findingId?: InputMaybe<Scalars['bigint']['input']>;
   friendlyName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  report_id?: InputMaybe<Scalars['bigint']['input']>;
+  reportId?: InputMaybe<Scalars['bigint']['input']>;
   uploadDate?: InputMaybe<Scalars['date']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -7900,7 +8028,7 @@ export type Evidence_Sum_Fields = {
   __typename?: 'evidence_sum_fields';
   findingId?: Maybe<Scalars['bigint']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  report_id?: Maybe<Scalars['bigint']['output']>;
+  reportId?: Maybe<Scalars['bigint']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
 };
 
@@ -7908,7 +8036,7 @@ export type Evidence_Sum_Fields = {
 export type Evidence_Sum_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -7927,7 +8055,7 @@ export enum Evidence_Update_Column {
   /** column name */
   Id = 'id',
   /** column name */
-  ReportId = 'report_id',
+  ReportId = 'reportId',
   /** column name */
   UploadDate = 'uploadDate',
   /** column name */
@@ -7948,7 +8076,7 @@ export type Evidence_Var_Pop_Fields = {
   __typename?: 'evidence_var_pop_fields';
   findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
-  report_id?: Maybe<Scalars['Float']['output']>;
+  reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -7956,7 +8084,7 @@ export type Evidence_Var_Pop_Fields = {
 export type Evidence_Var_Pop_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -7965,7 +8093,7 @@ export type Evidence_Var_Samp_Fields = {
   __typename?: 'evidence_var_samp_fields';
   findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
-  report_id?: Maybe<Scalars['Float']['output']>;
+  reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -7973,7 +8101,7 @@ export type Evidence_Var_Samp_Fields = {
 export type Evidence_Var_Samp_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -7982,7 +8110,7 @@ export type Evidence_Variance_Fields = {
   __typename?: 'evidence_variance_fields';
   findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
-  report_id?: Maybe<Scalars['Float']['output']>;
+  reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -7990,7 +8118,7 @@ export type Evidence_Variance_Fields = {
 export type Evidence_Variance_Order_By = {
   findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  report_id?: InputMaybe<Order_By>;
+  reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
 
@@ -10983,6 +11111,11 @@ export type Jsonb_Comparison_Exp = {
   _nin?: InputMaybe<Array<Scalars['jsonb']['input']>>;
 };
 
+export type LinkOplogEvidenceResponse = {
+  __typename?: 'linkOplogEvidenceResponse';
+  id: Scalars['Int']['output'];
+};
+
 /** mutation root */
 export type Mutation_Root = {
   __typename?: 'mutation_root';
@@ -11140,6 +11273,14 @@ export type Mutation_Root = {
   delete_oplogEntry_by_pk?: Maybe<OplogEntry>;
   /** delete single row from the table: "oplog_oplog" */
   delete_oplog_by_pk?: Maybe<Oplog>;
+  /** delete data from the table: "oplog_oplogentryevidence" */
+  delete_oplog_oplogentryevidence?: Maybe<Oplog_Oplogentryevidence_Mutation_Response>;
+  /** delete single row from the table: "oplog_oplogentryevidence" */
+  delete_oplog_oplogentryevidence_by_pk?: Maybe<Oplog_Oplogentryevidence>;
+  /** delete data from the table: "oplog_oplogentryrecording" */
+  delete_oplog_oplogentryrecording?: Maybe<Oplog_Oplogentryrecording_Mutation_Response>;
+  /** delete single row from the table: "oplog_oplogentryrecording" */
+  delete_oplog_oplogentryrecording_by_pk?: Maybe<Oplog_Oplogentryrecording>;
   /** delete data from the table: "rolodex_project" */
   delete_project?: Maybe<Project_Mutation_Response>;
   /** delete data from the table: "rolodex_projectassignment" */
@@ -11408,6 +11549,14 @@ export type Mutation_Root = {
   insert_oplogEntry_one?: Maybe<OplogEntry>;
   /** insert a single row into the table: "oplog_oplog" */
   insert_oplog_one?: Maybe<Oplog>;
+  /** insert data into the table: "oplog_oplogentryevidence" */
+  insert_oplog_oplogentryevidence?: Maybe<Oplog_Oplogentryevidence_Mutation_Response>;
+  /** insert a single row into the table: "oplog_oplogentryevidence" */
+  insert_oplog_oplogentryevidence_one?: Maybe<Oplog_Oplogentryevidence>;
+  /** insert data into the table: "oplog_oplogentryrecording" */
+  insert_oplog_oplogentryrecording?: Maybe<Oplog_Oplogentryrecording_Mutation_Response>;
+  /** insert a single row into the table: "oplog_oplogentryrecording" */
+  insert_oplog_oplogentryrecording_one?: Maybe<Oplog_Oplogentryrecording>;
   /** insert data into the table: "rolodex_project" */
   insert_project?: Maybe<Project_Mutation_Response>;
   /** insert data into the table: "rolodex_projectassignment" */
@@ -11532,6 +11681,7 @@ export type Mutation_Root = {
   insert_whoisStatus?: Maybe<WhoisStatus_Mutation_Response>;
   /** insert a single row into the table: "shepherd_whoisstatus" */
   insert_whoisStatus_one?: Maybe<WhoisStatus>;
+  linkOplogEvidence: LinkOplogEvidenceResponse;
   login?: Maybe<LoginResponse>;
   /** Set Tags */
   setTags: TagsResult;
@@ -11745,6 +11895,18 @@ export type Mutation_Root = {
   update_oplog_by_pk?: Maybe<Oplog>;
   /** update multiples rows of table: "oplog_oplog" */
   update_oplog_many?: Maybe<Array<Maybe<Oplog_Mutation_Response>>>;
+  /** update data of the table: "oplog_oplogentryevidence" */
+  update_oplog_oplogentryevidence?: Maybe<Oplog_Oplogentryevidence_Mutation_Response>;
+  /** update single row of the table: "oplog_oplogentryevidence" */
+  update_oplog_oplogentryevidence_by_pk?: Maybe<Oplog_Oplogentryevidence>;
+  /** update multiples rows of table: "oplog_oplogentryevidence" */
+  update_oplog_oplogentryevidence_many?: Maybe<Array<Maybe<Oplog_Oplogentryevidence_Mutation_Response>>>;
+  /** update data of the table: "oplog_oplogentryrecording" */
+  update_oplog_oplogentryrecording?: Maybe<Oplog_Oplogentryrecording_Mutation_Response>;
+  /** update single row of the table: "oplog_oplogentryrecording" */
+  update_oplog_oplogentryrecording_by_pk?: Maybe<Oplog_Oplogentryrecording>;
+  /** update multiples rows of table: "oplog_oplogentryrecording" */
+  update_oplog_oplogentryrecording_many?: Maybe<Array<Maybe<Oplog_Oplogentryrecording_Mutation_Response>>>;
   /** update data of the table: "rolodex_project" */
   update_project?: Maybe<Project_Mutation_Response>;
   /** update data of the table: "rolodex_projectassignment" */
@@ -11932,6 +12094,8 @@ export type Mutation_Root = {
   /** update multiples rows of table: "shepherd_whoisstatus" */
   update_whoisStatus_many?: Maybe<Array<Maybe<WhoisStatus_Mutation_Response>>>;
   uploadEvidence: UploadEvidenceResult;
+  /** Upload an Asciinema terminal recording for an oplog entry */
+  uploadOplogRecording: UploadOplogRecordingResult;
   uploadReportTemplate: UploadReportTemplateResult;
 };
 
@@ -11946,9 +12110,9 @@ export type Mutation_RootAttachFindingArgs = {
 /** mutation root */
 export type Mutation_RootCheckoutDomainArgs = {
   activityTypeId: Scalars['Int']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
   domainId: Scalars['Int']['input'];
   endDate: Scalars['date']['input'];
-  note?: InputMaybe<Scalars['String']['input']>;
   projectId: Scalars['Int']['input'];
   startDate: Scalars['date']['input'];
 };
@@ -11957,8 +12121,8 @@ export type Mutation_RootCheckoutDomainArgs = {
 /** mutation root */
 export type Mutation_RootCheckoutServerArgs = {
   activityTypeId: Scalars['Int']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
   endDate: Scalars['date']['input'];
-  note?: InputMaybe<Scalars['String']['input']>;
   projectId: Scalars['Int']['input'];
   serverId: Scalars['Int']['input'];
   serverRoleId: Scalars['Int']['input'];
@@ -12419,6 +12583,30 @@ export type Mutation_RootDelete_OplogEntry_By_PkArgs = {
 
 /** mutation root */
 export type Mutation_RootDelete_Oplog_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Oplog_OplogentryevidenceArgs = {
+  where: Oplog_Oplogentryevidence_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Oplog_Oplogentryevidence_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Oplog_OplogentryrecordingArgs = {
+  where: Oplog_Oplogentryrecording_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_Oplog_Oplogentryrecording_By_PkArgs = {
   id: Scalars['bigint']['input'];
 };
 
@@ -13292,6 +13480,34 @@ export type Mutation_RootInsert_Oplog_OneArgs = {
 
 
 /** mutation root */
+export type Mutation_RootInsert_Oplog_OplogentryevidenceArgs = {
+  objects: Array<Oplog_Oplogentryevidence_Insert_Input>;
+  on_conflict?: InputMaybe<Oplog_Oplogentryevidence_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Oplog_Oplogentryevidence_OneArgs = {
+  object: Oplog_Oplogentryevidence_Insert_Input;
+  on_conflict?: InputMaybe<Oplog_Oplogentryevidence_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Oplog_OplogentryrecordingArgs = {
+  objects: Array<Oplog_Oplogentryrecording_Insert_Input>;
+  on_conflict?: InputMaybe<Oplog_Oplogentryrecording_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_Oplog_Oplogentryrecording_OneArgs = {
+  object: Oplog_Oplogentryrecording_Insert_Input;
+  on_conflict?: InputMaybe<Oplog_Oplogentryrecording_On_Conflict>;
+};
+
+
+/** mutation root */
 export type Mutation_RootInsert_ProjectArgs = {
   objects: Array<Project_Insert_Input>;
   on_conflict?: InputMaybe<Project_On_Conflict>;
@@ -13722,6 +13938,13 @@ export type Mutation_RootInsert_WhoisStatusArgs = {
 export type Mutation_RootInsert_WhoisStatus_OneArgs = {
   object: WhoisStatus_Insert_Input;
   on_conflict?: InputMaybe<WhoisStatus_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootLinkOplogEvidenceArgs = {
+  evidenceId: Scalars['Int']['input'];
+  oplogEntryId: Scalars['Int']['input'];
 };
 
 
@@ -14549,6 +14772,50 @@ export type Mutation_RootUpdate_Oplog_ManyArgs = {
 
 
 /** mutation root */
+export type Mutation_RootUpdate_Oplog_OplogentryevidenceArgs = {
+  _inc?: InputMaybe<Oplog_Oplogentryevidence_Inc_Input>;
+  _set?: InputMaybe<Oplog_Oplogentryevidence_Set_Input>;
+  where: Oplog_Oplogentryevidence_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Oplog_Oplogentryevidence_By_PkArgs = {
+  _inc?: InputMaybe<Oplog_Oplogentryevidence_Inc_Input>;
+  _set?: InputMaybe<Oplog_Oplogentryevidence_Set_Input>;
+  pk_columns: Oplog_Oplogentryevidence_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Oplog_Oplogentryevidence_ManyArgs = {
+  updates: Array<Oplog_Oplogentryevidence_Updates>;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Oplog_OplogentryrecordingArgs = {
+  _inc?: InputMaybe<Oplog_Oplogentryrecording_Inc_Input>;
+  _set?: InputMaybe<Oplog_Oplogentryrecording_Set_Input>;
+  where: Oplog_Oplogentryrecording_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Oplog_Oplogentryrecording_By_PkArgs = {
+  _inc?: InputMaybe<Oplog_Oplogentryrecording_Inc_Input>;
+  _set?: InputMaybe<Oplog_Oplogentryrecording_Set_Input>;
+  pk_columns: Oplog_Oplogentryrecording_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_Oplog_Oplogentryrecording_ManyArgs = {
+  updates: Array<Oplog_Oplogentryrecording_Updates>;
+};
+
+
+/** mutation root */
 export type Mutation_RootUpdate_ProjectArgs = {
   _append?: InputMaybe<Project_Append_Input>;
   _delete_at_path?: InputMaybe<Project_Delete_At_Path_Input>;
@@ -15310,6 +15577,14 @@ export type Mutation_RootUploadEvidenceArgs = {
   friendly_name: Scalars['String']['input'];
   report?: InputMaybe<Scalars['Int']['input']>;
   tags?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadOplogRecordingArgs = {
+  file_base64: Scalars['String']['input'];
+  filename: Scalars['String']['input'];
+  oplogEntryId: Scalars['Int']['input'];
 };
 
 
@@ -17113,6 +17388,13 @@ export type OplogEntry_Mutation_Response = {
   returning: Array<OplogEntry>;
 };
 
+/** input type for inserting object relation for remote table "oplog_oplogentry" */
+export type OplogEntry_Obj_Rel_Insert_Input = {
+  data: OplogEntry_Insert_Input;
+  /** upsert condition */
+  on_conflict?: InputMaybe<OplogEntry_On_Conflict>;
+};
+
 /** on_conflict condition type for table "oplog_oplogentry" */
 export type OplogEntry_On_Conflict = {
   constraint: OplogEntry_Constraint;
@@ -17555,6 +17837,520 @@ export type Oplog_On_Conflict = {
   constraint: Oplog_Constraint;
   update_columns?: Array<Oplog_Update_Column>;
   where?: InputMaybe<Oplog_Bool_Exp>;
+};
+
+/** columns and relationships of "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence = {
+  __typename?: 'oplog_oplogentryevidence';
+  /** An object relationship */
+  evidence?: Maybe<Evidence>;
+  evidenceId: Scalars['bigint']['output'];
+  id: Scalars['bigint']['output'];
+  /** An object relationship */
+  oplogEntry: OplogEntry;
+  oplogEntryId: Scalars['bigint']['output'];
+};
+
+/** aggregated selection of "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Aggregate = {
+  __typename?: 'oplog_oplogentryevidence_aggregate';
+  aggregate?: Maybe<Oplog_Oplogentryevidence_Aggregate_Fields>;
+  nodes: Array<Oplog_Oplogentryevidence>;
+};
+
+/** aggregate fields of "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Aggregate_Fields = {
+  __typename?: 'oplog_oplogentryevidence_aggregate_fields';
+  avg?: Maybe<Oplog_Oplogentryevidence_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Oplog_Oplogentryevidence_Max_Fields>;
+  min?: Maybe<Oplog_Oplogentryevidence_Min_Fields>;
+  stddev?: Maybe<Oplog_Oplogentryevidence_Stddev_Fields>;
+  stddev_pop?: Maybe<Oplog_Oplogentryevidence_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Oplog_Oplogentryevidence_Stddev_Samp_Fields>;
+  sum?: Maybe<Oplog_Oplogentryevidence_Sum_Fields>;
+  var_pop?: Maybe<Oplog_Oplogentryevidence_Var_Pop_Fields>;
+  var_samp?: Maybe<Oplog_Oplogentryevidence_Var_Samp_Fields>;
+  variance?: Maybe<Oplog_Oplogentryevidence_Variance_Fields>;
+};
+
+
+/** aggregate fields of "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Oplog_Oplogentryevidence_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Oplog_Oplogentryevidence_Avg_Fields = {
+  __typename?: 'oplog_oplogentryevidence_avg_fields';
+  evidenceId?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "oplog_oplogentryevidence". All fields are combined with a logical 'AND'. */
+export type Oplog_Oplogentryevidence_Bool_Exp = {
+  _and?: InputMaybe<Array<Oplog_Oplogentryevidence_Bool_Exp>>;
+  _not?: InputMaybe<Oplog_Oplogentryevidence_Bool_Exp>;
+  _or?: InputMaybe<Array<Oplog_Oplogentryevidence_Bool_Exp>>;
+  evidence?: InputMaybe<Evidence_Bool_Exp>;
+  evidenceId?: InputMaybe<Bigint_Comparison_Exp>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  oplogEntry?: InputMaybe<OplogEntry_Bool_Exp>;
+  oplogEntryId?: InputMaybe<Bigint_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "oplog_oplogentryevidence" */
+export enum Oplog_Oplogentryevidence_Constraint {
+  /** unique or primary key constraint on columns "oplog_entry_id", "evidence_id" */
+  OplogOplogentryevidenceOplogEntryIdEvidence_8003540dUniq = 'oplog_oplogentryevidence_oplog_entry_id_evidence__8003540d_uniq',
+  /** unique or primary key constraint on columns "id" */
+  OplogOplogentryevidencePkey = 'oplog_oplogentryevidence_pkey'
+}
+
+/** input type for incrementing numeric columns in table "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Inc_Input = {
+  evidenceId?: InputMaybe<Scalars['bigint']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** input type for inserting data into table "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Insert_Input = {
+  evidence?: InputMaybe<Evidence_Obj_Rel_Insert_Input>;
+  evidenceId?: InputMaybe<Scalars['bigint']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntry?: InputMaybe<OplogEntry_Obj_Rel_Insert_Input>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate max on columns */
+export type Oplog_Oplogentryevidence_Max_Fields = {
+  __typename?: 'oplog_oplogentryevidence_max_fields';
+  evidenceId?: Maybe<Scalars['bigint']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogEntryId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** aggregate min on columns */
+export type Oplog_Oplogentryevidence_Min_Fields = {
+  __typename?: 'oplog_oplogentryevidence_min_fields';
+  evidenceId?: Maybe<Scalars['bigint']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogEntryId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** response of any mutation on the table "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Mutation_Response = {
+  __typename?: 'oplog_oplogentryevidence_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<Oplog_Oplogentryevidence>;
+};
+
+/** on_conflict condition type for table "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_On_Conflict = {
+  constraint: Oplog_Oplogentryevidence_Constraint;
+  update_columns?: Array<Oplog_Oplogentryevidence_Update_Column>;
+  where?: InputMaybe<Oplog_Oplogentryevidence_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "oplog_oplogentryevidence". */
+export type Oplog_Oplogentryevidence_Order_By = {
+  evidence?: InputMaybe<Evidence_Order_By>;
+  evidenceId?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  oplogEntry?: InputMaybe<OplogEntry_Order_By>;
+  oplogEntryId?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: oplog_oplogentryevidence */
+export type Oplog_Oplogentryevidence_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** select columns of table "oplog_oplogentryevidence" */
+export enum Oplog_Oplogentryevidence_Select_Column {
+  /** column name */
+  EvidenceId = 'evidenceId',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  OplogEntryId = 'oplogEntryId'
+}
+
+/** input type for updating data in table "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Set_Input = {
+  evidenceId?: InputMaybe<Scalars['bigint']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type Oplog_Oplogentryevidence_Stddev_Fields = {
+  __typename?: 'oplog_oplogentryevidence_stddev_fields';
+  evidenceId?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Oplog_Oplogentryevidence_Stddev_Pop_Fields = {
+  __typename?: 'oplog_oplogentryevidence_stddev_pop_fields';
+  evidenceId?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Oplog_Oplogentryevidence_Stddev_Samp_Fields = {
+  __typename?: 'oplog_oplogentryevidence_stddev_samp_fields';
+  evidenceId?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "oplog_oplogentryevidence" */
+export type Oplog_Oplogentryevidence_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Oplog_Oplogentryevidence_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Oplog_Oplogentryevidence_Stream_Cursor_Value_Input = {
+  evidenceId?: InputMaybe<Scalars['bigint']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Oplog_Oplogentryevidence_Sum_Fields = {
+  __typename?: 'oplog_oplogentryevidence_sum_fields';
+  evidenceId?: Maybe<Scalars['bigint']['output']>;
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogEntryId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** update columns of table "oplog_oplogentryevidence" */
+export enum Oplog_Oplogentryevidence_Update_Column {
+  /** column name */
+  EvidenceId = 'evidenceId',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  OplogEntryId = 'oplogEntryId'
+}
+
+export type Oplog_Oplogentryevidence_Updates = {
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<Oplog_Oplogentryevidence_Inc_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<Oplog_Oplogentryevidence_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: Oplog_Oplogentryevidence_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type Oplog_Oplogentryevidence_Var_Pop_Fields = {
+  __typename?: 'oplog_oplogentryevidence_var_pop_fields';
+  evidenceId?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Oplog_Oplogentryevidence_Var_Samp_Fields = {
+  __typename?: 'oplog_oplogentryevidence_var_samp_fields';
+  evidenceId?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Oplog_Oplogentryevidence_Variance_Fields = {
+  __typename?: 'oplog_oplogentryevidence_variance_fields';
+  evidenceId?: Maybe<Scalars['Float']['output']>;
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** columns and relationships of "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording = {
+  __typename?: 'oplog_oplogentryrecording';
+  id: Scalars['bigint']['output'];
+  /** An object relationship */
+  oplogEntry: OplogEntry;
+  oplogEntryId: Scalars['bigint']['output'];
+  recordingFile: Scalars['String']['output'];
+  recording_text: Scalars['String']['output'];
+  uploadedById?: Maybe<Scalars['bigint']['output']>;
+  uploadedDate: Scalars['timestamptz']['output'];
+  /** An object relationship */
+  user?: Maybe<User>;
+};
+
+/** aggregated selection of "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Aggregate = {
+  __typename?: 'oplog_oplogentryrecording_aggregate';
+  aggregate?: Maybe<Oplog_Oplogentryrecording_Aggregate_Fields>;
+  nodes: Array<Oplog_Oplogentryrecording>;
+};
+
+/** aggregate fields of "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Aggregate_Fields = {
+  __typename?: 'oplog_oplogentryrecording_aggregate_fields';
+  avg?: Maybe<Oplog_Oplogentryrecording_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Oplog_Oplogentryrecording_Max_Fields>;
+  min?: Maybe<Oplog_Oplogentryrecording_Min_Fields>;
+  stddev?: Maybe<Oplog_Oplogentryrecording_Stddev_Fields>;
+  stddev_pop?: Maybe<Oplog_Oplogentryrecording_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Oplog_Oplogentryrecording_Stddev_Samp_Fields>;
+  sum?: Maybe<Oplog_Oplogentryrecording_Sum_Fields>;
+  var_pop?: Maybe<Oplog_Oplogentryrecording_Var_Pop_Fields>;
+  var_samp?: Maybe<Oplog_Oplogentryrecording_Var_Samp_Fields>;
+  variance?: Maybe<Oplog_Oplogentryrecording_Variance_Fields>;
+};
+
+
+/** aggregate fields of "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Oplog_Oplogentryrecording_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Oplog_Oplogentryrecording_Avg_Fields = {
+  __typename?: 'oplog_oplogentryrecording_avg_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+  uploadedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "oplog_oplogentryrecording". All fields are combined with a logical 'AND'. */
+export type Oplog_Oplogentryrecording_Bool_Exp = {
+  _and?: InputMaybe<Array<Oplog_Oplogentryrecording_Bool_Exp>>;
+  _not?: InputMaybe<Oplog_Oplogentryrecording_Bool_Exp>;
+  _or?: InputMaybe<Array<Oplog_Oplogentryrecording_Bool_Exp>>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  oplogEntry?: InputMaybe<OplogEntry_Bool_Exp>;
+  oplogEntryId?: InputMaybe<Bigint_Comparison_Exp>;
+  recordingFile?: InputMaybe<String_Comparison_Exp>;
+  recording_text?: InputMaybe<String_Comparison_Exp>;
+  uploadedById?: InputMaybe<Bigint_Comparison_Exp>;
+  uploadedDate?: InputMaybe<Timestamptz_Comparison_Exp>;
+  user?: InputMaybe<User_Bool_Exp>;
+};
+
+/** unique or primary key constraints on table "oplog_oplogentryrecording" */
+export enum Oplog_Oplogentryrecording_Constraint {
+  /** unique or primary key constraint on columns "oplog_entry_id" */
+  OplogOplogentryrecordingOplogEntryIdKey = 'oplog_oplogentryrecording_oplog_entry_id_key',
+  /** unique or primary key constraint on columns "id" */
+  OplogOplogentryrecordingPkey = 'oplog_oplogentryrecording_pkey'
+}
+
+/** input type for incrementing numeric columns in table "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Inc_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+  uploadedById?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** input type for inserting data into table "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Insert_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntry?: InputMaybe<OplogEntry_Obj_Rel_Insert_Input>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+  recordingFile?: InputMaybe<Scalars['String']['input']>;
+  recording_text?: InputMaybe<Scalars['String']['input']>;
+  uploadedById?: InputMaybe<Scalars['bigint']['input']>;
+  uploadedDate?: InputMaybe<Scalars['timestamptz']['input']>;
+  user?: InputMaybe<User_Obj_Rel_Insert_Input>;
+};
+
+/** aggregate max on columns */
+export type Oplog_Oplogentryrecording_Max_Fields = {
+  __typename?: 'oplog_oplogentryrecording_max_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogEntryId?: Maybe<Scalars['bigint']['output']>;
+  recordingFile?: Maybe<Scalars['String']['output']>;
+  recording_text?: Maybe<Scalars['String']['output']>;
+  uploadedById?: Maybe<Scalars['bigint']['output']>;
+  uploadedDate?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** aggregate min on columns */
+export type Oplog_Oplogentryrecording_Min_Fields = {
+  __typename?: 'oplog_oplogentryrecording_min_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogEntryId?: Maybe<Scalars['bigint']['output']>;
+  recordingFile?: Maybe<Scalars['String']['output']>;
+  recording_text?: Maybe<Scalars['String']['output']>;
+  uploadedById?: Maybe<Scalars['bigint']['output']>;
+  uploadedDate?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** response of any mutation on the table "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Mutation_Response = {
+  __typename?: 'oplog_oplogentryrecording_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<Oplog_Oplogentryrecording>;
+};
+
+/** on_conflict condition type for table "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_On_Conflict = {
+  constraint: Oplog_Oplogentryrecording_Constraint;
+  update_columns?: Array<Oplog_Oplogentryrecording_Update_Column>;
+  where?: InputMaybe<Oplog_Oplogentryrecording_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "oplog_oplogentryrecording". */
+export type Oplog_Oplogentryrecording_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogEntry?: InputMaybe<OplogEntry_Order_By>;
+  oplogEntryId?: InputMaybe<Order_By>;
+  recordingFile?: InputMaybe<Order_By>;
+  recording_text?: InputMaybe<Order_By>;
+  uploadedById?: InputMaybe<Order_By>;
+  uploadedDate?: InputMaybe<Order_By>;
+  user?: InputMaybe<User_Order_By>;
+};
+
+/** primary key columns input for table: oplog_oplogentryrecording */
+export type Oplog_Oplogentryrecording_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** select columns of table "oplog_oplogentryrecording" */
+export enum Oplog_Oplogentryrecording_Select_Column {
+  /** column name */
+  Id = 'id',
+  /** column name */
+  OplogEntryId = 'oplogEntryId',
+  /** column name */
+  RecordingFile = 'recordingFile',
+  /** column name */
+  RecordingText = 'recording_text',
+  /** column name */
+  UploadedById = 'uploadedById',
+  /** column name */
+  UploadedDate = 'uploadedDate'
+}
+
+/** input type for updating data in table "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Set_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+  recordingFile?: InputMaybe<Scalars['String']['input']>;
+  recording_text?: InputMaybe<Scalars['String']['input']>;
+  uploadedById?: InputMaybe<Scalars['bigint']['input']>;
+  uploadedDate?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type Oplog_Oplogentryrecording_Stddev_Fields = {
+  __typename?: 'oplog_oplogentryrecording_stddev_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+  uploadedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Oplog_Oplogentryrecording_Stddev_Pop_Fields = {
+  __typename?: 'oplog_oplogentryrecording_stddev_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+  uploadedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Oplog_Oplogentryrecording_Stddev_Samp_Fields = {
+  __typename?: 'oplog_oplogentryrecording_stddev_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+  uploadedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "oplog_oplogentryrecording" */
+export type Oplog_Oplogentryrecording_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Oplog_Oplogentryrecording_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Oplog_Oplogentryrecording_Stream_Cursor_Value_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogEntryId?: InputMaybe<Scalars['bigint']['input']>;
+  recordingFile?: InputMaybe<Scalars['String']['input']>;
+  recording_text?: InputMaybe<Scalars['String']['input']>;
+  uploadedById?: InputMaybe<Scalars['bigint']['input']>;
+  uploadedDate?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Oplog_Oplogentryrecording_Sum_Fields = {
+  __typename?: 'oplog_oplogentryrecording_sum_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogEntryId?: Maybe<Scalars['bigint']['output']>;
+  uploadedById?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** update columns of table "oplog_oplogentryrecording" */
+export enum Oplog_Oplogentryrecording_Update_Column {
+  /** column name */
+  Id = 'id',
+  /** column name */
+  OplogEntryId = 'oplogEntryId',
+  /** column name */
+  RecordingFile = 'recordingFile',
+  /** column name */
+  RecordingText = 'recording_text',
+  /** column name */
+  UploadedById = 'uploadedById',
+  /** column name */
+  UploadedDate = 'uploadedDate'
+}
+
+export type Oplog_Oplogentryrecording_Updates = {
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<Oplog_Oplogentryrecording_Inc_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<Oplog_Oplogentryrecording_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: Oplog_Oplogentryrecording_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type Oplog_Oplogentryrecording_Var_Pop_Fields = {
+  __typename?: 'oplog_oplogentryrecording_var_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+  uploadedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Oplog_Oplogentryrecording_Var_Samp_Fields = {
+  __typename?: 'oplog_oplogentryrecording_var_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+  uploadedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Oplog_Oplogentryrecording_Variance_Fields = {
+  __typename?: 'oplog_oplogentryrecording_variance_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogEntryId?: Maybe<Scalars['Float']['output']>;
+  uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Ordering options when selecting data from "oplog_oplog". */
@@ -18177,9 +18973,9 @@ export type ProjectWhitecards_AggregateArgs = {
 /** columns and relationships of "rolodex_projectassignment" */
 export type ProjectAssignment = {
   __typename?: 'projectAssignment';
+  description: Scalars['String']['output'];
   endDate?: Maybe<Scalars['date']['output']>;
   id: Scalars['bigint']['output'];
-  note: Scalars['String']['output'];
   operatorId?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
   project: Project;
@@ -18277,9 +19073,9 @@ export type ProjectAssignment_Bool_Exp = {
   _and?: InputMaybe<Array<ProjectAssignment_Bool_Exp>>;
   _not?: InputMaybe<ProjectAssignment_Bool_Exp>;
   _or?: InputMaybe<Array<ProjectAssignment_Bool_Exp>>;
+  description?: InputMaybe<String_Comparison_Exp>;
   endDate?: InputMaybe<Date_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   operatorId?: InputMaybe<Bigint_Comparison_Exp>;
   project?: InputMaybe<Project_Bool_Exp>;
   projectId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -18305,9 +19101,9 @@ export type ProjectAssignment_Inc_Input = {
 
 /** input type for inserting data into table "rolodex_projectassignment" */
 export type ProjectAssignment_Insert_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   project?: InputMaybe<Project_Obj_Rel_Insert_Input>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -18320,9 +19116,9 @@ export type ProjectAssignment_Insert_Input = {
 /** aggregate max on columns */
 export type ProjectAssignment_Max_Fields = {
   __typename?: 'projectAssignment_max_fields';
+  description?: Maybe<Scalars['String']['output']>;
   endDate?: Maybe<Scalars['date']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   roleId?: Maybe<Scalars['bigint']['output']>;
@@ -18331,9 +19127,9 @@ export type ProjectAssignment_Max_Fields = {
 
 /** order by max() on columns of table "rolodex_projectassignment" */
 export type ProjectAssignment_Max_Order_By = {
+  description?: InputMaybe<Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   roleId?: InputMaybe<Order_By>;
@@ -18343,9 +19139,9 @@ export type ProjectAssignment_Max_Order_By = {
 /** aggregate min on columns */
 export type ProjectAssignment_Min_Fields = {
   __typename?: 'projectAssignment_min_fields';
+  description?: Maybe<Scalars['String']['output']>;
   endDate?: Maybe<Scalars['date']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   roleId?: Maybe<Scalars['bigint']['output']>;
@@ -18354,9 +19150,9 @@ export type ProjectAssignment_Min_Fields = {
 
 /** order by min() on columns of table "rolodex_projectassignment" */
 export type ProjectAssignment_Min_Order_By = {
+  description?: InputMaybe<Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   roleId?: InputMaybe<Order_By>;
@@ -18381,9 +19177,9 @@ export type ProjectAssignment_On_Conflict = {
 
 /** Ordering options when selecting data from "rolodex_projectassignment". */
 export type ProjectAssignment_Order_By = {
+  description?: InputMaybe<Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   project?: InputMaybe<Project_Order_By>;
   projectId?: InputMaybe<Order_By>;
@@ -18401,11 +19197,11 @@ export type ProjectAssignment_Pk_Columns_Input = {
 /** select columns of table "rolodex_projectassignment" */
 export enum ProjectAssignment_Select_Column {
   /** column name */
+  Description = 'description',
+  /** column name */
   EndDate = 'endDate',
   /** column name */
   Id = 'id',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -18418,9 +19214,9 @@ export enum ProjectAssignment_Select_Column {
 
 /** input type for updating data in table "rolodex_projectassignment" */
 export type ProjectAssignment_Set_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   roleId?: InputMaybe<Scalars['bigint']['input']>;
@@ -18488,9 +19284,9 @@ export type ProjectAssignment_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type ProjectAssignment_Stream_Cursor_Value_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   roleId?: InputMaybe<Scalars['bigint']['input']>;
@@ -18517,11 +19313,11 @@ export type ProjectAssignment_Sum_Order_By = {
 /** update columns of table "rolodex_projectassignment" */
 export enum ProjectAssignment_Update_Column {
   /** column name */
+  Description = 'description',
+  /** column name */
   EndDate = 'endDate',
   /** column name */
   Id = 'id',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -18595,11 +19391,11 @@ export type ProjectAssignment_Variance_Order_By = {
 /** columns and relationships of "rolodex_projectcontact" */
 export type ProjectContact = {
   __typename?: 'projectContact';
+  description: Scalars['String']['output'];
   email: Scalars['String']['output'];
   id: Scalars['bigint']['output'];
   job_title: Scalars['String']['output'];
   name: Scalars['String']['output'];
-  note: Scalars['String']['output'];
   phone: Scalars['String']['output'];
   primary: Scalars['Boolean']['output'];
   /** An object relationship */
@@ -18705,11 +19501,11 @@ export type ProjectContact_Bool_Exp = {
   _and?: InputMaybe<Array<ProjectContact_Bool_Exp>>;
   _not?: InputMaybe<ProjectContact_Bool_Exp>;
   _or?: InputMaybe<Array<ProjectContact_Bool_Exp>>;
+  description?: InputMaybe<String_Comparison_Exp>;
   email?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   job_title?: InputMaybe<String_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   phone?: InputMaybe<String_Comparison_Exp>;
   primary?: InputMaybe<Boolean_Comparison_Exp>;
   project?: InputMaybe<Project_Bool_Exp>;
@@ -18733,11 +19529,11 @@ export type ProjectContact_Inc_Input = {
 
 /** input type for inserting data into table "rolodex_projectcontact" */
 export type ProjectContact_Insert_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   job_title?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
   primary?: InputMaybe<Scalars['Boolean']['input']>;
   project?: InputMaybe<Project_Obj_Rel_Insert_Input>;
@@ -18748,11 +19544,11 @@ export type ProjectContact_Insert_Input = {
 /** aggregate max on columns */
 export type ProjectContact_Max_Fields = {
   __typename?: 'projectContact_max_fields';
+  description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   job_title?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   phone?: Maybe<Scalars['String']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
@@ -18760,11 +19556,11 @@ export type ProjectContact_Max_Fields = {
 
 /** order by max() on columns of table "rolodex_projectcontact" */
 export type ProjectContact_Max_Order_By = {
+  description?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   job_title?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   phone?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   timezone?: InputMaybe<Order_By>;
@@ -18773,11 +19569,11 @@ export type ProjectContact_Max_Order_By = {
 /** aggregate min on columns */
 export type ProjectContact_Min_Fields = {
   __typename?: 'projectContact_min_fields';
+  description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   job_title?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   phone?: Maybe<Scalars['String']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
@@ -18785,11 +19581,11 @@ export type ProjectContact_Min_Fields = {
 
 /** order by min() on columns of table "rolodex_projectcontact" */
 export type ProjectContact_Min_Order_By = {
+  description?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   job_title?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   phone?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   timezone?: InputMaybe<Order_By>;
@@ -18813,11 +19609,11 @@ export type ProjectContact_On_Conflict = {
 
 /** Ordering options when selecting data from "rolodex_projectcontact". */
 export type ProjectContact_Order_By = {
+  description?: InputMaybe<Order_By>;
   email?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   job_title?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   phone?: InputMaybe<Order_By>;
   primary?: InputMaybe<Order_By>;
   project?: InputMaybe<Project_Order_By>;
@@ -18833,6 +19629,8 @@ export type ProjectContact_Pk_Columns_Input = {
 /** select columns of table "rolodex_projectcontact" */
 export enum ProjectContact_Select_Column {
   /** column name */
+  Description = 'description',
+  /** column name */
   Email = 'email',
   /** column name */
   Id = 'id',
@@ -18840,8 +19638,6 @@ export enum ProjectContact_Select_Column {
   JobTitle = 'job_title',
   /** column name */
   Name = 'name',
-  /** column name */
-  Note = 'note',
   /** column name */
   Phone = 'phone',
   /** column name */
@@ -18866,11 +19662,11 @@ export enum ProjectContact_Select_Column_ProjectContact_Aggregate_Bool_Exp_Bool_
 
 /** input type for updating data in table "rolodex_projectcontact" */
 export type ProjectContact_Set_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   job_title?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
   primary?: InputMaybe<Scalars['Boolean']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -18926,11 +19722,11 @@ export type ProjectContact_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type ProjectContact_Stream_Cursor_Value_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   job_title?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
   primary?: InputMaybe<Scalars['Boolean']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -18953,6 +19749,8 @@ export type ProjectContact_Sum_Order_By = {
 /** update columns of table "rolodex_projectcontact" */
 export enum ProjectContact_Update_Column {
   /** column name */
+  Description = 'description',
+  /** column name */
   Email = 'email',
   /** column name */
   Id = 'id',
@@ -18960,8 +19758,6 @@ export enum ProjectContact_Update_Column {
   JobTitle = 'job_title',
   /** column name */
   Name = 'name',
-  /** column name */
-  Note = 'note',
   /** column name */
   Phone = 'phone',
   /** column name */
@@ -21029,6 +21825,10 @@ export type Query_Root = {
   domain_aggregate: Domain_Aggregate;
   /** fetch data from the table: "shepherd_domain" using primary key columns */
   domain_by_pk?: Maybe<Domain>;
+  /** Request the specified evidence file to receive a download URL or base64-encoded blob */
+  downloadEvidence?: Maybe<DownloadEvidenceResponse>;
+  /** Request the specified oplog entry's terminal recording to receive a download URL or base64-encoded blob */
+  downloadOplogRecording?: Maybe<DownloadRecordingResponse>;
   /** An array relationship */
   evidence: Array<Evidence>;
   /** An aggregate relationship */
@@ -21132,6 +21932,18 @@ export type Query_Root = {
   oplog_aggregate: Oplog_Aggregate;
   /** fetch data from the table: "oplog_oplog" using primary key columns */
   oplog_by_pk?: Maybe<Oplog>;
+  /** fetch data from the table: "oplog_oplogentryevidence" */
+  oplog_oplogentryevidence: Array<Oplog_Oplogentryevidence>;
+  /** fetch aggregated fields from the table: "oplog_oplogentryevidence" */
+  oplog_oplogentryevidence_aggregate: Oplog_Oplogentryevidence_Aggregate;
+  /** fetch data from the table: "oplog_oplogentryevidence" using primary key columns */
+  oplog_oplogentryevidence_by_pk?: Maybe<Oplog_Oplogentryevidence>;
+  /** fetch data from the table: "oplog_oplogentryrecording" */
+  oplog_oplogentryrecording: Array<Oplog_Oplogentryrecording>;
+  /** fetch aggregated fields from the table: "oplog_oplogentryrecording" */
+  oplog_oplogentryrecording_aggregate: Oplog_Oplogentryrecording_Aggregate;
+  /** fetch data from the table: "oplog_oplogentryrecording" using primary key columns */
+  oplog_oplogentryrecording_by_pk?: Maybe<Oplog_Oplogentryrecording>;
   /** fetch data from the table: "rolodex_project" */
   project: Array<Project>;
   /** fetch data from the table: "rolodex_projectassignment" */
@@ -21174,6 +21986,8 @@ export type Query_Root = {
   project_aggregate: Project_Aggregate;
   /** fetch data from the table: "rolodex_project" using primary key columns */
   project_by_pk?: Maybe<Project>;
+  /** project_by_tag */
+  project_by_tag?: Maybe<Array<GetProjectByTagsResponse>>;
   /** fetch data from the table: "reporting_report" */
   report: Array<Report>;
   /** fetch data from the table: "commandcenter_reportconfiguration" */
@@ -21186,6 +22000,8 @@ export type Query_Root = {
   report_aggregate: Report_Aggregate;
   /** fetch data from the table: "reporting_report" using primary key columns */
   report_by_pk?: Maybe<Report>;
+  /** ReportByTag */
+  report_by_tag?: Maybe<Array<GetReportByTagsResponse>>;
   /** fetch data from the table: "reporting_reportfindinglink" */
   reportedFinding: Array<ReportedFinding>;
   /** fetch data from the table: "reporting_localfindingnote" */
@@ -21765,6 +22581,16 @@ export type Query_RootDomain_By_PkArgs = {
 };
 
 
+export type Query_RootDownloadEvidenceArgs = {
+  evidenceId: Scalars['Int']['input'];
+};
+
+
+export type Query_RootDownloadOplogRecordingArgs = {
+  oplogEntryId: Scalars['Int']['input'];
+};
+
+
 export type Query_RootEvidenceArgs = {
   distinct_on?: InputMaybe<Array<Evidence_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -22153,6 +22979,52 @@ export type Query_RootOplog_By_PkArgs = {
 };
 
 
+export type Query_RootOplog_OplogentryevidenceArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryevidence_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryevidence_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryevidence_Bool_Exp>;
+};
+
+
+export type Query_RootOplog_Oplogentryevidence_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryevidence_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryevidence_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryevidence_Bool_Exp>;
+};
+
+
+export type Query_RootOplog_Oplogentryevidence_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Query_RootOplog_OplogentryrecordingArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryrecording_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryrecording_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryrecording_Bool_Exp>;
+};
+
+
+export type Query_RootOplog_Oplogentryrecording_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryrecording_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryrecording_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryrecording_Bool_Exp>;
+};
+
+
+export type Query_RootOplog_Oplogentryrecording_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
 export type Query_RootProjectArgs = {
   distinct_on?: InputMaybe<Array<Project_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -22314,6 +23186,11 @@ export type Query_RootProject_By_PkArgs = {
 };
 
 
+export type Query_RootProject_By_TagArgs = {
+  tag: Scalars['String']['input'];
+};
+
+
 export type Query_RootReportArgs = {
   distinct_on?: InputMaybe<Array<Report_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -22357,6 +23234,11 @@ export type Query_RootReport_AggregateArgs = {
 
 export type Query_RootReport_By_PkArgs = {
   id: Scalars['bigint']['input'];
+};
+
+
+export type Query_RootReport_By_TagArgs = {
+  tag: Scalars['String']['input'];
 };
 
 
@@ -22902,6 +23784,7 @@ export type Report = {
   /** An aggregate relationship */
   findings_aggregate: ReportedFinding_Aggregate;
   id: Scalars['bigint']['output'];
+  include_bloodhound_data: Scalars['Boolean']['output'];
   last_update: Scalars['date']['output'];
   /** An array relationship */
   observations: Array<Reporting_Reportobservationlink>;
@@ -22911,8 +23794,8 @@ export type Report = {
   pptxTemplate?: Maybe<Template>;
   pptxTemplateId?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
-  project?: Maybe<Project>;
-  projectId?: Maybe<Scalars['bigint']['output']>;
+  project: Project;
+  projectId: Scalars['bigint']['output'];
   title: Scalars['String']['output'];
   /** An object relationship */
   user?: Maybe<User>;
@@ -22989,6 +23872,7 @@ export type ReportConfiguration = {
   __typename?: 'reportConfiguration';
   borderColor: Scalars['String']['output'];
   borderWeight: Scalars['Int']['output'];
+  default_cvss_version: Scalars['String']['output'];
   /** An object relationship */
   docxTemplate?: Maybe<Template>;
   docxTemplateId?: Maybe<Scalars['bigint']['output']>;
@@ -23115,6 +23999,7 @@ export type ReportConfiguration_Bool_Exp = {
   _or?: InputMaybe<Array<ReportConfiguration_Bool_Exp>>;
   borderColor?: InputMaybe<String_Comparison_Exp>;
   borderWeight?: InputMaybe<Int_Comparison_Exp>;
+  default_cvss_version?: InputMaybe<String_Comparison_Exp>;
   docxTemplate?: InputMaybe<Template_Bool_Exp>;
   docxTemplateId?: InputMaybe<Bigint_Comparison_Exp>;
   enableBorders?: InputMaybe<Boolean_Comparison_Exp>;
@@ -23153,6 +24038,7 @@ export type ReportConfiguration_Inc_Input = {
 export type ReportConfiguration_Insert_Input = {
   borderColor?: InputMaybe<Scalars['String']['input']>;
   borderWeight?: InputMaybe<Scalars['Int']['input']>;
+  default_cvss_version?: InputMaybe<Scalars['String']['input']>;
   docxTemplate?: InputMaybe<Template_Obj_Rel_Insert_Input>;
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   enableBorders?: InputMaybe<Scalars['Boolean']['input']>;
@@ -23177,6 +24063,7 @@ export type ReportConfiguration_Max_Fields = {
   __typename?: 'reportConfiguration_max_fields';
   borderColor?: Maybe<Scalars['String']['output']>;
   borderWeight?: Maybe<Scalars['Int']['output']>;
+  default_cvss_version?: Maybe<Scalars['String']['output']>;
   docxTemplateId?: Maybe<Scalars['bigint']['output']>;
   figure_caption_location?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
@@ -23196,6 +24083,7 @@ export type ReportConfiguration_Max_Fields = {
 export type ReportConfiguration_Max_Order_By = {
   borderColor?: InputMaybe<Order_By>;
   borderWeight?: InputMaybe<Order_By>;
+  default_cvss_version?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
   figure_caption_location?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -23216,6 +24104,7 @@ export type ReportConfiguration_Min_Fields = {
   __typename?: 'reportConfiguration_min_fields';
   borderColor?: Maybe<Scalars['String']['output']>;
   borderWeight?: Maybe<Scalars['Int']['output']>;
+  default_cvss_version?: Maybe<Scalars['String']['output']>;
   docxTemplateId?: Maybe<Scalars['bigint']['output']>;
   figure_caption_location?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
@@ -23235,6 +24124,7 @@ export type ReportConfiguration_Min_Fields = {
 export type ReportConfiguration_Min_Order_By = {
   borderColor?: InputMaybe<Order_By>;
   borderWeight?: InputMaybe<Order_By>;
+  default_cvss_version?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
   figure_caption_location?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -23270,6 +24160,7 @@ export type ReportConfiguration_On_Conflict = {
 export type ReportConfiguration_Order_By = {
   borderColor?: InputMaybe<Order_By>;
   borderWeight?: InputMaybe<Order_By>;
+  default_cvss_version?: InputMaybe<Order_By>;
   docxTemplate?: InputMaybe<Template_Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
   enableBorders?: InputMaybe<Order_By>;
@@ -23300,6 +24191,8 @@ export enum ReportConfiguration_Select_Column {
   BorderColor = 'borderColor',
   /** column name */
   BorderWeight = 'borderWeight',
+  /** column name */
+  DefaultCvssVersion = 'default_cvss_version',
   /** column name */
   DocxTemplateId = 'docxTemplateId',
   /** column name */
@@ -23352,6 +24245,7 @@ export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool
 export type ReportConfiguration_Set_Input = {
   borderColor?: InputMaybe<Scalars['String']['input']>;
   borderWeight?: InputMaybe<Scalars['Int']['input']>;
+  default_cvss_version?: InputMaybe<Scalars['String']['input']>;
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   enableBorders?: InputMaybe<Scalars['Boolean']['input']>;
   figure_caption_location?: InputMaybe<Scalars['String']['input']>;
@@ -23438,6 +24332,7 @@ export type ReportConfiguration_Stream_Cursor_Input = {
 export type ReportConfiguration_Stream_Cursor_Value_Input = {
   borderColor?: InputMaybe<Scalars['String']['input']>;
   borderWeight?: InputMaybe<Scalars['Int']['input']>;
+  default_cvss_version?: InputMaybe<Scalars['String']['input']>;
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   enableBorders?: InputMaybe<Scalars['Boolean']['input']>;
   figure_caption_location?: InputMaybe<Scalars['String']['input']>;
@@ -23480,6 +24375,8 @@ export enum ReportConfiguration_Update_Column {
   BorderColor = 'borderColor',
   /** column name */
   BorderWeight = 'borderWeight',
+  /** column name */
+  DefaultCvssVersion = 'default_cvss_version',
   /** column name */
   DocxTemplateId = 'docxTemplateId',
   /** column name */
@@ -23699,6 +24596,7 @@ export type Report_Bool_Exp = {
   findings?: InputMaybe<ReportedFinding_Bool_Exp>;
   findings_aggregate?: InputMaybe<ReportedFinding_Aggregate_Bool_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
+  include_bloodhound_data?: InputMaybe<Boolean_Comparison_Exp>;
   last_update?: InputMaybe<Date_Comparison_Exp>;
   observations?: InputMaybe<Reporting_Reportobservationlink_Bool_Exp>;
   observations_aggregate?: InputMaybe<Reporting_Reportobservationlink_Aggregate_Bool_Exp>;
@@ -23753,6 +24651,7 @@ export type Report_Insert_Input = {
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   findings?: InputMaybe<ReportedFinding_Arr_Rel_Insert_Input>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  include_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
   last_update?: InputMaybe<Scalars['date']['input']>;
   observations?: InputMaybe<Reporting_Reportobservationlink_Arr_Rel_Insert_Input>;
   pptxTemplate?: InputMaybe<Template_Obj_Rel_Insert_Input>;
@@ -23849,6 +24748,7 @@ export type Report_Order_By = {
   extraFields?: InputMaybe<Order_By>;
   findings_aggregate?: InputMaybe<ReportedFinding_Aggregate_Order_By>;
   id?: InputMaybe<Order_By>;
+  include_bloodhound_data?: InputMaybe<Order_By>;
   last_update?: InputMaybe<Order_By>;
   observations_aggregate?: InputMaybe<Reporting_Reportobservationlink_Aggregate_Order_By>;
   pptxTemplate?: InputMaybe<Template_Order_By>;
@@ -23888,6 +24788,8 @@ export enum Report_Select_Column {
   /** column name */
   Id = 'id',
   /** column name */
+  IncludeBloodhoundData = 'include_bloodhound_data',
+  /** column name */
   LastUpdate = 'last_update',
   /** column name */
   PptxTemplateId = 'pptxTemplateId',
@@ -23904,7 +24806,9 @@ export enum Report_Select_Column_Report_Aggregate_Bool_Exp_Bool_And_Arguments_Co
   /** column name */
   Complete = 'complete',
   /** column name */
-  Delivered = 'delivered'
+  Delivered = 'delivered',
+  /** column name */
+  IncludeBloodhoundData = 'include_bloodhound_data'
 }
 
 /** select "report_aggregate_bool_exp_bool_or_arguments_columns" columns of table "reporting_report" */
@@ -23914,7 +24818,9 @@ export enum Report_Select_Column_Report_Aggregate_Bool_Exp_Bool_Or_Arguments_Col
   /** column name */
   Complete = 'complete',
   /** column name */
-  Delivered = 'delivered'
+  Delivered = 'delivered',
+  /** column name */
+  IncludeBloodhoundData = 'include_bloodhound_data'
 }
 
 /** input type for updating data in table "reporting_report" */
@@ -23927,6 +24833,7 @@ export type Report_Set_Input = {
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  include_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
   last_update?: InputMaybe<Scalars['date']['input']>;
   pptxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -24008,6 +24915,7 @@ export type Report_Stream_Cursor_Value_Input = {
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  include_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
   last_update?: InputMaybe<Scalars['date']['input']>;
   pptxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -24051,6 +24959,8 @@ export enum Report_Update_Column {
   ExtraFields = 'extraFields',
   /** column name */
   Id = 'id',
+  /** column name */
+  IncludeBloodhoundData = 'include_bloodhound_data',
   /** column name */
   LastUpdate = 'last_update',
   /** column name */
@@ -25688,6 +26598,7 @@ export type Reporting_Reportobservationlink = {
   assigned_to_id?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
   asssignedTo?: Maybe<User>;
+  complete: Scalars['Boolean']['output'];
   description: Scalars['String']['output'];
   extraFields: Scalars['jsonb']['output'];
   id: Scalars['bigint']['output'];
@@ -25813,6 +26724,7 @@ export type Reporting_Reportobservationlink_Bool_Exp = {
   added_as_blank?: InputMaybe<Boolean_Comparison_Exp>;
   assigned_to_id?: InputMaybe<Bigint_Comparison_Exp>;
   asssignedTo?: InputMaybe<User_Bool_Exp>;
+  complete?: InputMaybe<Boolean_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   extraFields?: InputMaybe<Jsonb_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
@@ -25856,6 +26768,7 @@ export type Reporting_Reportobservationlink_Insert_Input = {
   added_as_blank?: InputMaybe<Scalars['Boolean']['input']>;
   assigned_to_id?: InputMaybe<Scalars['bigint']['input']>;
   asssignedTo?: InputMaybe<User_Obj_Rel_Insert_Input>;
+  complete?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -25928,6 +26841,7 @@ export type Reporting_Reportobservationlink_Order_By = {
   added_as_blank?: InputMaybe<Order_By>;
   assigned_to_id?: InputMaybe<Order_By>;
   asssignedTo?: InputMaybe<User_Order_By>;
+  complete?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   extraFields?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
@@ -25954,6 +26868,8 @@ export enum Reporting_Reportobservationlink_Select_Column {
   /** column name */
   AssignedToId = 'assigned_to_id',
   /** column name */
+  Complete = 'complete',
+  /** column name */
   Description = 'description',
   /** column name */
   ExtraFields = 'extraFields',
@@ -25970,19 +26886,24 @@ export enum Reporting_Reportobservationlink_Select_Column {
 /** select "reporting_reportobservationlink_aggregate_bool_exp_bool_and_arguments_columns" columns of table "reporting_reportobservationlink" */
 export enum Reporting_Reportobservationlink_Select_Column_Reporting_Reportobservationlink_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
   /** column name */
-  AddedAsBlank = 'added_as_blank'
+  AddedAsBlank = 'added_as_blank',
+  /** column name */
+  Complete = 'complete'
 }
 
 /** select "reporting_reportobservationlink_aggregate_bool_exp_bool_or_arguments_columns" columns of table "reporting_reportobservationlink" */
 export enum Reporting_Reportobservationlink_Select_Column_Reporting_Reportobservationlink_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
   /** column name */
-  AddedAsBlank = 'added_as_blank'
+  AddedAsBlank = 'added_as_blank',
+  /** column name */
+  Complete = 'complete'
 }
 
 /** input type for updating data in table "reporting_reportobservationlink" */
 export type Reporting_Reportobservationlink_Set_Input = {
   added_as_blank?: InputMaybe<Scalars['Boolean']['input']>;
   assigned_to_id?: InputMaybe<Scalars['bigint']['input']>;
+  complete?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -26054,6 +26975,7 @@ export type Reporting_Reportobservationlink_Stream_Cursor_Input = {
 export type Reporting_Reportobservationlink_Stream_Cursor_Value_Input = {
   added_as_blank?: InputMaybe<Scalars['Boolean']['input']>;
   assigned_to_id?: InputMaybe<Scalars['bigint']['input']>;
+  complete?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
@@ -26085,6 +27007,8 @@ export enum Reporting_Reportobservationlink_Update_Column {
   AddedAsBlank = 'added_as_blank',
   /** column name */
   AssignedToId = 'assigned_to_id',
+  /** column name */
+  Complete = 'complete',
   /** column name */
   Description = 'description',
   /** column name */
@@ -26576,13 +27500,13 @@ export type ServerCheckout = {
   /** An object relationship */
   client: Client;
   clientId: Scalars['bigint']['output'];
+  description: Scalars['String']['output'];
   /** An array relationship */
   domainServerConnections: Array<DomainServerConnection>;
   /** An aggregate relationship */
   domainServerConnections_aggregate: DomainServerConnection_Aggregate;
   endDate: Scalars['date']['output'];
   id: Scalars['bigint']['output'];
-  note: Scalars['String']['output'];
   operatorId?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
   project?: Maybe<Project>;
@@ -26713,11 +27637,11 @@ export type ServerCheckout_Bool_Exp = {
   activityTypeId?: InputMaybe<Bigint_Comparison_Exp>;
   client?: InputMaybe<Client_Bool_Exp>;
   clientId?: InputMaybe<Bigint_Comparison_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   domainServerConnections?: InputMaybe<DomainServerConnection_Bool_Exp>;
   domainServerConnections_aggregate?: InputMaybe<DomainServerConnection_Aggregate_Bool_Exp>;
   endDate?: InputMaybe<Date_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   operatorId?: InputMaybe<Bigint_Comparison_Exp>;
   project?: InputMaybe<Project_Bool_Exp>;
   projectId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -26752,10 +27676,10 @@ export type ServerCheckout_Insert_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   client?: InputMaybe<Client_Obj_Rel_Insert_Input>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   domainServerConnections?: InputMaybe<DomainServerConnection_Arr_Rel_Insert_Input>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   project?: InputMaybe<Project_Obj_Rel_Insert_Input>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
@@ -26772,9 +27696,9 @@ export type ServerCheckout_Max_Fields = {
   __typename?: 'serverCheckout_max_fields';
   activityTypeId?: Maybe<Scalars['bigint']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   endDate?: Maybe<Scalars['date']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   serverId?: Maybe<Scalars['bigint']['output']>;
@@ -26786,9 +27710,9 @@ export type ServerCheckout_Max_Fields = {
 export type ServerCheckout_Max_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   serverId?: InputMaybe<Order_By>;
@@ -26801,9 +27725,9 @@ export type ServerCheckout_Min_Fields = {
   __typename?: 'serverCheckout_min_fields';
   activityTypeId?: Maybe<Scalars['bigint']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   endDate?: Maybe<Scalars['date']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   operatorId?: Maybe<Scalars['bigint']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
   serverId?: Maybe<Scalars['bigint']['output']>;
@@ -26815,9 +27739,9 @@ export type ServerCheckout_Min_Fields = {
 export type ServerCheckout_Min_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
   serverId?: InputMaybe<Order_By>;
@@ -26854,10 +27778,10 @@ export type ServerCheckout_Order_By = {
   activityTypeId?: InputMaybe<Order_By>;
   client?: InputMaybe<Client_Order_By>;
   clientId?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   domainServerConnections_aggregate?: InputMaybe<DomainServerConnection_Aggregate_Order_By>;
   endDate?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   operatorId?: InputMaybe<Order_By>;
   project?: InputMaybe<Project_Order_By>;
   projectId?: InputMaybe<Order_By>;
@@ -26881,11 +27805,11 @@ export enum ServerCheckout_Select_Column {
   /** column name */
   ClientId = 'clientId',
   /** column name */
+  Description = 'description',
+  /** column name */
   EndDate = 'endDate',
   /** column name */
   Id = 'id',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -26902,9 +27826,9 @@ export enum ServerCheckout_Select_Column {
 export type ServerCheckout_Set_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   serverId?: InputMaybe<Scalars['bigint']['input']>;
@@ -26993,9 +27917,9 @@ export type ServerCheckout_Stream_Cursor_Input = {
 export type ServerCheckout_Stream_Cursor_Value_Input = {
   activityTypeId?: InputMaybe<Scalars['bigint']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['date']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   operatorId?: InputMaybe<Scalars['bigint']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
   serverId?: InputMaybe<Scalars['bigint']['input']>;
@@ -27033,11 +27957,11 @@ export enum ServerCheckout_Update_Column {
   /** column name */
   ClientId = 'clientId',
   /** column name */
+  Description = 'description',
+  /** column name */
   EndDate = 'endDate',
   /** column name */
   Id = 'id',
-  /** column name */
-  Note = 'note',
   /** column name */
   OperatorId = 'operatorId',
   /** column name */
@@ -28254,6 +29178,19 @@ export type ServerStatus_Variance_Fields = {
   id?: Maybe<Scalars['Float']['output']>;
 };
 
+/** Boolean expression to compare columns of type "smallint". All fields are combined with logical 'AND'. */
+export type Smallint_Comparison_Exp = {
+  _eq?: InputMaybe<Scalars['smallint']['input']>;
+  _gt?: InputMaybe<Scalars['smallint']['input']>;
+  _gte?: InputMaybe<Scalars['smallint']['input']>;
+  _in?: InputMaybe<Array<Scalars['smallint']['input']>>;
+  _is_null?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['smallint']['input']>;
+  _lte?: InputMaybe<Scalars['smallint']['input']>;
+  _neq?: InputMaybe<Scalars['smallint']['input']>;
+  _nin?: InputMaybe<Array<Scalars['smallint']['input']>>;
+};
+
 /** columns and relationships of "shepherd_staticserver" */
 export type StaticServer = {
   __typename?: 'staticServer';
@@ -28269,12 +29206,12 @@ export type StaticServer = {
   comments: Array<ServerNote>;
   /** An aggregate relationship */
   comments_aggregate: ServerNote_Aggregate;
+  description: Scalars['String']['output'];
   extraFields: Scalars['jsonb']['output'];
   id: Scalars['bigint']['output'];
   ipAddress: Scalars['inet']['output'];
   lastUsedById?: Maybe<Scalars['bigint']['output']>;
   name: Scalars['String']['output'];
-  note: Scalars['String']['output'];
   /** An object relationship */
   serverProvider?: Maybe<ServerProvider>;
   serverProviderId?: Maybe<Scalars['bigint']['output']>;
@@ -28447,12 +29384,12 @@ export type StaticServer_Bool_Exp = {
   checkouts_aggregate?: InputMaybe<ServerCheckout_Aggregate_Bool_Exp>;
   comments?: InputMaybe<ServerNote_Bool_Exp>;
   comments_aggregate?: InputMaybe<ServerNote_Aggregate_Bool_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   extraFields?: InputMaybe<Jsonb_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   ipAddress?: InputMaybe<Inet_Comparison_Exp>;
   lastUsedById?: InputMaybe<Bigint_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   serverProvider?: InputMaybe<ServerProvider_Bool_Exp>;
   serverProviderId?: InputMaybe<Bigint_Comparison_Exp>;
   serverStatus?: InputMaybe<ServerStatus_Bool_Exp>;
@@ -28496,12 +29433,12 @@ export type StaticServer_Insert_Input = {
   auxServerAddresses?: InputMaybe<AuxServerAddresses_Arr_Rel_Insert_Input>;
   checkouts?: InputMaybe<ServerCheckout_Arr_Rel_Insert_Input>;
   comments?: InputMaybe<ServerNote_Arr_Rel_Insert_Input>;
+  description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['inet']['input']>;
   lastUsedById?: InputMaybe<Scalars['bigint']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   serverProvider?: InputMaybe<ServerProvider_Obj_Rel_Insert_Input>;
   serverProviderId?: InputMaybe<Scalars['bigint']['input']>;
   serverStatus?: InputMaybe<ServerStatus_Obj_Rel_Insert_Input>;
@@ -28512,20 +29449,20 @@ export type StaticServer_Insert_Input = {
 /** aggregate max on columns */
 export type StaticServer_Max_Fields = {
   __typename?: 'staticServer_max_fields';
+  description?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   lastUsedById?: Maybe<Scalars['bigint']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   serverProviderId?: Maybe<Scalars['bigint']['output']>;
   serverStatusId?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by max() on columns of table "shepherd_staticserver" */
 export type StaticServer_Max_Order_By = {
+  description?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   lastUsedById?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   serverProviderId?: InputMaybe<Order_By>;
   serverStatusId?: InputMaybe<Order_By>;
 };
@@ -28533,20 +29470,20 @@ export type StaticServer_Max_Order_By = {
 /** aggregate min on columns */
 export type StaticServer_Min_Fields = {
   __typename?: 'staticServer_min_fields';
+  description?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   lastUsedById?: Maybe<Scalars['bigint']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   serverProviderId?: Maybe<Scalars['bigint']['output']>;
   serverStatusId?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by min() on columns of table "shepherd_staticserver" */
 export type StaticServer_Min_Order_By = {
+  description?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   lastUsedById?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   serverProviderId?: InputMaybe<Order_By>;
   serverStatusId?: InputMaybe<Order_By>;
 };
@@ -28579,12 +29516,12 @@ export type StaticServer_Order_By = {
   auxServerAddresses_aggregate?: InputMaybe<AuxServerAddresses_Aggregate_Order_By>;
   checkouts_aggregate?: InputMaybe<ServerCheckout_Aggregate_Order_By>;
   comments_aggregate?: InputMaybe<ServerNote_Aggregate_Order_By>;
+  description?: InputMaybe<Order_By>;
   extraFields?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   ipAddress?: InputMaybe<Order_By>;
   lastUsedById?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   serverProvider?: InputMaybe<ServerProvider_Order_By>;
   serverProviderId?: InputMaybe<Order_By>;
   serverStatus?: InputMaybe<ServerStatus_Order_By>;
@@ -28605,6 +29542,8 @@ export type StaticServer_Prepend_Input = {
 /** select columns of table "shepherd_staticserver" */
 export enum StaticServer_Select_Column {
   /** column name */
+  Description = 'description',
+  /** column name */
   ExtraFields = 'extraFields',
   /** column name */
   Id = 'id',
@@ -28615,8 +29554,6 @@ export enum StaticServer_Select_Column {
   /** column name */
   Name = 'name',
   /** column name */
-  Note = 'note',
-  /** column name */
   ServerProviderId = 'serverProviderId',
   /** column name */
   ServerStatusId = 'serverStatusId'
@@ -28624,12 +29561,12 @@ export enum StaticServer_Select_Column {
 
 /** input type for updating data in table "shepherd_staticserver" */
 export type StaticServer_Set_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['inet']['input']>;
   lastUsedById?: InputMaybe<Scalars['bigint']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   serverProviderId?: InputMaybe<Scalars['bigint']['input']>;
   serverStatusId?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -28695,12 +29632,12 @@ export type StaticServer_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type StaticServer_Stream_Cursor_Value_Input = {
+  description?: InputMaybe<Scalars['String']['input']>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['inet']['input']>;
   lastUsedById?: InputMaybe<Scalars['bigint']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   serverProviderId?: InputMaybe<Scalars['bigint']['input']>;
   serverStatusId?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -28725,6 +29662,8 @@ export type StaticServer_Sum_Order_By = {
 /** update columns of table "shepherd_staticserver" */
 export enum StaticServer_Update_Column {
   /** column name */
+  Description = 'description',
+  /** column name */
   ExtraFields = 'extraFields',
   /** column name */
   Id = 'id',
@@ -28734,8 +29673,6 @@ export enum StaticServer_Update_Column {
   LastUsedById = 'lastUsedById',
   /** column name */
   Name = 'name',
-  /** column name */
-  Note = 'note',
   /** column name */
   ServerProviderId = 'serverProviderId',
   /** column name */
@@ -29092,6 +30029,22 @@ export type Subscription_Root = {
   oplog_aggregate: Oplog_Aggregate;
   /** fetch data from the table: "oplog_oplog" using primary key columns */
   oplog_by_pk?: Maybe<Oplog>;
+  /** fetch data from the table: "oplog_oplogentryevidence" */
+  oplog_oplogentryevidence: Array<Oplog_Oplogentryevidence>;
+  /** fetch aggregated fields from the table: "oplog_oplogentryevidence" */
+  oplog_oplogentryevidence_aggregate: Oplog_Oplogentryevidence_Aggregate;
+  /** fetch data from the table: "oplog_oplogentryevidence" using primary key columns */
+  oplog_oplogentryevidence_by_pk?: Maybe<Oplog_Oplogentryevidence>;
+  /** fetch data from the table in a streaming manner: "oplog_oplogentryevidence" */
+  oplog_oplogentryevidence_stream: Array<Oplog_Oplogentryevidence>;
+  /** fetch data from the table: "oplog_oplogentryrecording" */
+  oplog_oplogentryrecording: Array<Oplog_Oplogentryrecording>;
+  /** fetch aggregated fields from the table: "oplog_oplogentryrecording" */
+  oplog_oplogentryrecording_aggregate: Oplog_Oplogentryrecording_Aggregate;
+  /** fetch data from the table: "oplog_oplogentryrecording" using primary key columns */
+  oplog_oplogentryrecording_by_pk?: Maybe<Oplog_Oplogentryrecording>;
+  /** fetch data from the table in a streaming manner: "oplog_oplogentryrecording" */
+  oplog_oplogentryrecording_stream: Array<Oplog_Oplogentryrecording>;
   /** fetch data from the table in a streaming manner: "oplog_oplog" */
   oplog_stream: Array<Oplog>;
   /** fetch data from the table: "rolodex_project" */
@@ -30385,6 +31338,66 @@ export type Subscription_RootOplog_AggregateArgs = {
 
 export type Subscription_RootOplog_By_PkArgs = {
   id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootOplog_OplogentryevidenceArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryevidence_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryevidence_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryevidence_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplog_Oplogentryevidence_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryevidence_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryevidence_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryevidence_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplog_Oplogentryevidence_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootOplog_Oplogentryevidence_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Oplog_Oplogentryevidence_Stream_Cursor_Input>>;
+  where?: InputMaybe<Oplog_Oplogentryevidence_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplog_OplogentryrecordingArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryrecording_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryrecording_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryrecording_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplog_Oplogentryrecording_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Oplog_Oplogentryrecording_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Oplog_Oplogentryrecording_Order_By>>;
+  where?: InputMaybe<Oplog_Oplogentryrecording_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplog_Oplogentryrecording_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootOplog_Oplogentryrecording_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Oplog_Oplogentryrecording_Stream_Cursor_Input>>;
+  where?: InputMaybe<Oplog_Oplogentryrecording_Bool_Exp>;
 };
 
 
@@ -31954,10 +32967,10 @@ export type TaggedItem_Variance_Order_By = {
 export type Target = {
   __typename?: 'target';
   compromised: Scalars['Boolean']['output'];
+  description: Scalars['String']['output'];
   hostname: Scalars['String']['output'];
   id: Scalars['bigint']['output'];
   ipAddress: Scalars['String']['output'];
-  note: Scalars['String']['output'];
   /** An object relationship */
   project: Project;
   projectId: Scalars['bigint']['output'];
@@ -32061,10 +33074,10 @@ export type Target_Bool_Exp = {
   _not?: InputMaybe<Target_Bool_Exp>;
   _or?: InputMaybe<Array<Target_Bool_Exp>>;
   compromised?: InputMaybe<Boolean_Comparison_Exp>;
+  description?: InputMaybe<String_Comparison_Exp>;
   hostname?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   ipAddress?: InputMaybe<String_Comparison_Exp>;
-  note?: InputMaybe<String_Comparison_Exp>;
   project?: InputMaybe<Project_Bool_Exp>;
   projectId?: InputMaybe<Bigint_Comparison_Exp>;
 };
@@ -32084,10 +33097,10 @@ export type Target_Inc_Input = {
 /** input type for inserting data into table "rolodex_projecttarget" */
 export type Target_Insert_Input = {
   compromised?: InputMaybe<Scalars['Boolean']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   hostname?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   project?: InputMaybe<Project_Obj_Rel_Insert_Input>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
 };
@@ -32095,38 +33108,38 @@ export type Target_Insert_Input = {
 /** aggregate max on columns */
 export type Target_Max_Fields = {
   __typename?: 'target_max_fields';
+  description?: Maybe<Scalars['String']['output']>;
   hostname?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   ipAddress?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by max() on columns of table "rolodex_projecttarget" */
 export type Target_Max_Order_By = {
+  description?: InputMaybe<Order_By>;
   hostname?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   ipAddress?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
 };
 
 /** aggregate min on columns */
 export type Target_Min_Fields = {
   __typename?: 'target_min_fields';
+  description?: Maybe<Scalars['String']['output']>;
   hostname?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   ipAddress?: Maybe<Scalars['String']['output']>;
-  note?: Maybe<Scalars['String']['output']>;
   projectId?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by min() on columns of table "rolodex_projecttarget" */
 export type Target_Min_Order_By = {
+  description?: InputMaybe<Order_By>;
   hostname?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   ipAddress?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   projectId?: InputMaybe<Order_By>;
 };
 
@@ -32149,10 +33162,10 @@ export type Target_On_Conflict = {
 /** Ordering options when selecting data from "rolodex_projecttarget". */
 export type Target_Order_By = {
   compromised?: InputMaybe<Order_By>;
+  description?: InputMaybe<Order_By>;
   hostname?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   ipAddress?: InputMaybe<Order_By>;
-  note?: InputMaybe<Order_By>;
   project?: InputMaybe<Project_Order_By>;
   projectId?: InputMaybe<Order_By>;
 };
@@ -32167,13 +33180,13 @@ export enum Target_Select_Column {
   /** column name */
   Compromised = 'compromised',
   /** column name */
+  Description = 'description',
+  /** column name */
   Hostname = 'hostname',
   /** column name */
   Id = 'id',
   /** column name */
   IpAddress = 'ipAddress',
-  /** column name */
-  Note = 'note',
   /** column name */
   ProjectId = 'projectId'
 }
@@ -32193,10 +33206,10 @@ export enum Target_Select_Column_Target_Aggregate_Bool_Exp_Bool_Or_Arguments_Col
 /** input type for updating data in table "rolodex_projecttarget" */
 export type Target_Set_Input = {
   compromised?: InputMaybe<Scalars['Boolean']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   hostname?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
 };
 
@@ -32250,10 +33263,10 @@ export type Target_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Target_Stream_Cursor_Value_Input = {
   compromised?: InputMaybe<Scalars['Boolean']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   hostname?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   ipAddress?: InputMaybe<Scalars['String']['input']>;
-  note?: InputMaybe<Scalars['String']['input']>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
 };
 
@@ -32275,13 +33288,13 @@ export enum Target_Update_Column {
   /** column name */
   Compromised = 'compromised',
   /** column name */
+  Description = 'description',
+  /** column name */
   Hostname = 'hostname',
   /** column name */
   Id = 'id',
   /** column name */
   IpAddress = 'ipAddress',
-  /** column name */
-  Note = 'note',
   /** column name */
   ProjectId = 'projectId'
 }
@@ -32664,6 +33677,7 @@ export type Task_Variance_Fields = {
 /** columns and relationships of "reporting_reporttemplate" */
 export type Template = {
   __typename?: 'template';
+  bloodhound_heading_offset: Scalars['smallint']['output'];
   changelog: Scalars['String']['output'];
   /** An object relationship */
   client?: Maybe<Client>;
@@ -32676,6 +33690,7 @@ export type Template = {
   commandcenter_reportconfigurations: Array<ReportConfiguration>;
   /** An aggregate relationship */
   commandcenter_reportconfigurations_aggregate: ReportConfiguration_Aggregate;
+  contains_bloodhound_data: Scalars['Boolean']['output'];
   description: Scalars['String']['output'];
   docTypeId?: Maybe<Scalars['bigint']['output']>;
   document: Scalars['String']['output'];
@@ -32951,6 +33966,7 @@ export type Template_Arr_Rel_Insert_Input = {
 /** aggregate avg on columns */
 export type Template_Avg_Fields = {
   __typename?: 'template_avg_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
   evidence_image_width?: Maybe<Scalars['Float']['output']>;
@@ -32960,6 +33976,7 @@ export type Template_Avg_Fields = {
 
 /** order by avg() on columns of table "reporting_reporttemplate" */
 export type Template_Avg_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -32972,6 +33989,7 @@ export type Template_Bool_Exp = {
   _and?: InputMaybe<Array<Template_Bool_Exp>>;
   _not?: InputMaybe<Template_Bool_Exp>;
   _or?: InputMaybe<Array<Template_Bool_Exp>>;
+  bloodhound_heading_offset?: InputMaybe<Smallint_Comparison_Exp>;
   changelog?: InputMaybe<String_Comparison_Exp>;
   client?: InputMaybe<Client_Bool_Exp>;
   clientId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -32979,6 +33997,7 @@ export type Template_Bool_Exp = {
   commandcenterReportconfigurationsByDefaultPptxTemplateId_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp>;
   commandcenter_reportconfigurations?: InputMaybe<ReportConfiguration_Bool_Exp>;
   commandcenter_reportconfigurations_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp>;
+  contains_bloodhound_data?: InputMaybe<Boolean_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   docTypeId?: InputMaybe<Bigint_Comparison_Exp>;
   document?: InputMaybe<String_Comparison_Exp>;
@@ -33024,6 +34043,7 @@ export type Template_Delete_Key_Input = {
 
 /** input type for incrementing numeric columns in table "reporting_reporttemplate" */
 export type Template_Inc_Input = {
+  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
@@ -33033,11 +34053,13 @@ export type Template_Inc_Input = {
 
 /** input type for inserting data into table "reporting_reporttemplate" */
 export type Template_Insert_Input = {
+  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
   changelog?: InputMaybe<Scalars['String']['input']>;
   client?: InputMaybe<Client_Obj_Rel_Insert_Input>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
   commandcenterReportconfigurationsByDefaultPptxTemplateId?: InputMaybe<ReportConfiguration_Arr_Rel_Insert_Input>;
   commandcenter_reportconfigurations?: InputMaybe<ReportConfiguration_Arr_Rel_Insert_Input>;
+  contains_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
@@ -33061,6 +34083,7 @@ export type Template_Insert_Input = {
 /** aggregate max on columns */
 export type Template_Max_Fields = {
   __typename?: 'template_max_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['smallint']['output']>;
   changelog?: Maybe<Scalars['String']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
   description?: Maybe<Scalars['String']['output']>;
@@ -33078,6 +34101,7 @@ export type Template_Max_Fields = {
 
 /** order by max() on columns of table "reporting_reporttemplate" */
 export type Template_Max_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   changelog?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
@@ -33096,6 +34120,7 @@ export type Template_Max_Order_By = {
 /** aggregate min on columns */
 export type Template_Min_Fields = {
   __typename?: 'template_min_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['smallint']['output']>;
   changelog?: Maybe<Scalars['String']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
   description?: Maybe<Scalars['String']['output']>;
@@ -33113,6 +34138,7 @@ export type Template_Min_Fields = {
 
 /** order by min() on columns of table "reporting_reporttemplate" */
 export type Template_Min_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   changelog?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
@@ -33153,11 +34179,13 @@ export type Template_On_Conflict = {
 
 /** Ordering options when selecting data from "reporting_reporttemplate". */
 export type Template_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   changelog?: InputMaybe<Order_By>;
   client?: InputMaybe<Client_Order_By>;
   clientId?: InputMaybe<Order_By>;
   commandcenterReportconfigurationsByDefaultPptxTemplateId_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Order_By>;
   commandcenter_reportconfigurations_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Order_By>;
+  contains_bloodhound_data?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
@@ -33191,9 +34219,13 @@ export type Template_Prepend_Input = {
 /** select columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column {
   /** column name */
+  BloodhoundHeadingOffset = 'bloodhound_heading_offset',
+  /** column name */
   Changelog = 'changelog',
   /** column name */
   ClientId = 'clientId',
+  /** column name */
+  ContainsBloodhoundData = 'contains_bloodhound_data',
   /** column name */
   Description = 'description',
   /** column name */
@@ -33233,6 +34265,8 @@ export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Avg_Arguments_Col
 /** select "template_aggregate_bool_exp_bool_and_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
   /** column name */
+  ContainsBloodhoundData = 'contains_bloodhound_data',
+  /** column name */
   Landscape = 'landscape',
   /** column name */
   Protected = 'protected'
@@ -33240,6 +34274,8 @@ export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_And_Argument
 
 /** select "template_aggregate_bool_exp_bool_or_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
+  /** column name */
+  ContainsBloodhoundData = 'contains_bloodhound_data',
   /** column name */
   Landscape = 'landscape',
   /** column name */
@@ -33290,8 +34326,10 @@ export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Var_Samp_Argument
 
 /** input type for updating data in table "reporting_reporttemplate" */
 export type Template_Set_Input = {
+  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
   changelog?: InputMaybe<Scalars['String']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  contains_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
@@ -33311,6 +34349,7 @@ export type Template_Set_Input = {
 /** aggregate stddev on columns */
 export type Template_Stddev_Fields = {
   __typename?: 'template_stddev_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
   evidence_image_width?: Maybe<Scalars['Float']['output']>;
@@ -33320,6 +34359,7 @@ export type Template_Stddev_Fields = {
 
 /** order by stddev() on columns of table "reporting_reporttemplate" */
 export type Template_Stddev_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -33330,6 +34370,7 @@ export type Template_Stddev_Order_By = {
 /** aggregate stddev_pop on columns */
 export type Template_Stddev_Pop_Fields = {
   __typename?: 'template_stddev_pop_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
   evidence_image_width?: Maybe<Scalars['Float']['output']>;
@@ -33339,6 +34380,7 @@ export type Template_Stddev_Pop_Fields = {
 
 /** order by stddev_pop() on columns of table "reporting_reporttemplate" */
 export type Template_Stddev_Pop_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -33349,6 +34391,7 @@ export type Template_Stddev_Pop_Order_By = {
 /** aggregate stddev_samp on columns */
 export type Template_Stddev_Samp_Fields = {
   __typename?: 'template_stddev_samp_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
   evidence_image_width?: Maybe<Scalars['Float']['output']>;
@@ -33358,6 +34401,7 @@ export type Template_Stddev_Samp_Fields = {
 
 /** order by stddev_samp() on columns of table "reporting_reporttemplate" */
 export type Template_Stddev_Samp_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -33375,8 +34419,10 @@ export type Template_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Template_Stream_Cursor_Value_Input = {
+  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
   changelog?: InputMaybe<Scalars['String']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
+  contains_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
@@ -33396,6 +34442,7 @@ export type Template_Stream_Cursor_Value_Input = {
 /** aggregate sum on columns */
 export type Template_Sum_Fields = {
   __typename?: 'template_sum_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['smallint']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
   docTypeId?: Maybe<Scalars['bigint']['output']>;
   evidence_image_width?: Maybe<Scalars['float8']['output']>;
@@ -33405,6 +34452,7 @@ export type Template_Sum_Fields = {
 
 /** order by sum() on columns of table "reporting_reporttemplate" */
 export type Template_Sum_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -33415,9 +34463,13 @@ export type Template_Sum_Order_By = {
 /** update columns of table "reporting_reporttemplate" */
 export enum Template_Update_Column {
   /** column name */
+  BloodhoundHeadingOffset = 'bloodhound_heading_offset',
+  /** column name */
   Changelog = 'changelog',
   /** column name */
   ClientId = 'clientId',
+  /** column name */
+  ContainsBloodhoundData = 'contains_bloodhound_data',
   /** column name */
   Description = 'description',
   /** column name */
@@ -33470,6 +34522,7 @@ export type Template_Updates = {
 /** aggregate var_pop on columns */
 export type Template_Var_Pop_Fields = {
   __typename?: 'template_var_pop_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
   evidence_image_width?: Maybe<Scalars['Float']['output']>;
@@ -33479,6 +34532,7 @@ export type Template_Var_Pop_Fields = {
 
 /** order by var_pop() on columns of table "reporting_reporttemplate" */
 export type Template_Var_Pop_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -33489,6 +34543,7 @@ export type Template_Var_Pop_Order_By = {
 /** aggregate var_samp on columns */
 export type Template_Var_Samp_Fields = {
   __typename?: 'template_var_samp_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
   evidence_image_width?: Maybe<Scalars['Float']['output']>;
@@ -33498,6 +34553,7 @@ export type Template_Var_Samp_Fields = {
 
 /** order by var_samp() on columns of table "reporting_reporttemplate" */
 export type Template_Var_Samp_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -33508,6 +34564,7 @@ export type Template_Var_Samp_Order_By = {
 /** aggregate variance on columns */
 export type Template_Variance_Fields = {
   __typename?: 'template_variance_fields';
+  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
   evidence_image_width?: Maybe<Scalars['Float']['output']>;
@@ -33517,6 +34574,7 @@ export type Template_Variance_Fields = {
 
 /** order by variance() on columns of table "reporting_reporttemplate" */
 export type Template_Variance_Order_By = {
+  bloodhound_heading_offset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   evidence_image_width?: InputMaybe<Order_By>;
@@ -33548,6 +34606,12 @@ export type Timestamptz_Comparison_Exp = {
   _lte?: InputMaybe<Scalars['timestamptz']['input']>;
   _neq?: InputMaybe<Scalars['timestamptz']['input']>;
   _nin?: InputMaybe<Array<Scalars['timestamptz']['input']>>;
+};
+
+export type UploadOplogRecordingResult = {
+  __typename?: 'uploadOplogRecordingResult';
+  id: Scalars['Int']['output'];
+  oplogEntry?: Maybe<OplogEntry>;
 };
 
 /** columns and relationships of "users_user" */
