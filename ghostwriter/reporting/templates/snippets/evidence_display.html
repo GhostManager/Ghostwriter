@@ -34,7 +34,7 @@
             tabindex="0" role="button"
             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
           {% endif %}
-        ><code>{{ file_content|bleach }}</code></pre>
+        ><code>{{ file_content }}</code></pre>
       {% else %}
         <p>No file content to display.</p>
       {% endif %}
