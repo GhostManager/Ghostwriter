@@ -131,6 +131,33 @@ class TemplateTagTests(TestCase):
         self.assertEqual(report_tags.get_file_content(txt_evidence), "lorem ipsum")
         self.assertEqual(report_tags.get_file_content(deleted_evidence), "FILE NOT FOUND")
 
+    def test_file_content_xss_escaping(self):
+        """Verify that HTML/JS in an evidence text file is escaped when rendered in the template."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.template.loader import render_to_string
+        from django.utils.safestring import SafeData
+
+        from ghostwriter.commandcenter.models import ReportConfiguration
+
+        xss_payload = b"<script>alert('xss')</script>"
+        xss_evidence = EvidenceOnFindingFactory(
+            document=SimpleUploadedFile("evidence.txt", xss_payload, content_type="text/plain")
+        )
+
+        # The template tag must never return a SafeData instance (which would bypass auto-escaping)
+        raw = report_tags.get_file_content(xss_evidence)
+        self.assertNotIsInstance(raw, SafeData, "get_file_content must not return mark_safe/SafeData")
+        self.assertIn("<script>", raw)  # raw string is unescaped
+
+        # When rendered through the template the tags must be escaped
+        report_config = ReportConfiguration.get_solo()
+        rendered = render_to_string(
+            "snippets/evidence_display.html",
+            {"evidence": xss_evidence, "report_config": report_config, "clickable": False},
+        )
+        self.assertNotIn("<script>", rendered)
+        self.assertIn("&lt;script&gt;", rendered)
+
     def test_field_spec_filters(self):
         report_extra_field = ExtraFieldModelFactory(
             model_internal_name="reporting.Report", model_display_name="Reports"
@@ -155,6 +182,207 @@ class TemplateTagTests(TestCase):
     def test_truncate_filename_filter(self):
         filename = "This is a long filename that should be truncated.txt"
         self.assertEqual(report_tags.truncate_filename(filename, 15), "This i...ed.txt")
+
+
+# Tests verifying injection and XSS are not possible via evidence uploads and display
+
+
+class EvidenceInjectionTests(TestCase):
+    """
+    Security tests verifying that XSS and HTML/JS injection attacks cannot be
+    carried out via evidence file content, evidence metadata (friendly_name,
+    caption), or the evidence download endpoint.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+
+    def setUp(self):
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    # --- Extension allowlist ---
+
+    def test_extension_allowlist_rejects_dangerous_types(self):
+        """Extension validator must reject file types that could be served as active content."""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from ghostwriter.reporting.validators import validate_evidence_extension
+
+        dangerous = ["html", "svg", "js", "php", "py", "rb", "sh", "xml", "htm"]
+        for ext in dangerous:
+            bad_file = SimpleUploadedFile(f"evil.{ext}", b"content")
+            with self.assertRaises(DjangoValidationError, msg=f".{ext} should be rejected"):
+                validate_evidence_extension(bad_file)
+
+    def test_extension_allowlist_accepts_safe_types(self):
+        """Extension validator must accept the declared safe types without raising."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from ghostwriter.reporting.validators import validate_evidence_extension
+
+        safe = ["txt", "log", "md", "png", "jpg", "jpeg"]
+        for ext in safe:
+            safe_file = SimpleUploadedFile(f"evidence.{ext}", b"content")
+            validate_evidence_extension(safe_file)  # must not raise
+
+    # --- Template rendering: HTML context ---
+
+    def _render_evidence_display(self, friendly_name, caption, file_content=b"safe content"):
+        """Helper: render evidence_display.html with the given metadata."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.template.loader import render_to_string
+
+        from ghostwriter.commandcenter.models import ReportConfiguration
+
+        evidence = EvidenceOnFindingFactory(
+            friendly_name=friendly_name,
+            caption=caption,
+            document=SimpleUploadedFile("evidence.txt", file_content),
+        )
+        report_config = ReportConfiguration.get_solo()
+        return render_to_string(
+            "snippets/evidence_display.html",
+            {"evidence": evidence, "report_config": report_config, "clickable": True},
+        )
+
+    def test_template_escapes_script_tag_in_friendly_name(self):
+        """A <script> tag in friendly_name must be HTML-escaped in the rendered output."""
+        rendered = self._render_evidence_display(
+            friendly_name="<script>alert('xss')</script>",
+            caption="normal caption",
+        )
+        self.assertNotIn("<script>", rendered)
+        self.assertIn("&lt;script&gt;", rendered)
+
+    def test_template_escapes_script_tag_in_caption(self):
+        """A <script> tag in caption must be HTML-escaped in the rendered output."""
+        rendered = self._render_evidence_display(
+            friendly_name="normal name",
+            caption="<script>alert('xss')</script>",
+        )
+        self.assertNotIn("<script>", rendered)
+        self.assertIn("&lt;script&gt;", rendered)
+
+    def test_template_escapes_img_onerror_in_friendly_name(self):
+        """An <img onerror=...> payload in friendly_name must be escaped."""
+        rendered = self._render_evidence_display(
+            friendly_name='<img src=x onerror="alert(1)">',
+            caption="normal caption",
+        )
+        self.assertNotIn("<img src=x", rendered)
+
+    # --- Template rendering: HTML attribute injection ---
+
+    def test_template_escapes_quote_injection_in_data_attribute(self):
+        """
+        A double-quote in friendly_name must be entity-encoded so it cannot
+        close the data-evidence-name attribute and inject new attributes/handlers.
+        """
+        payload = '" onmouseover="alert(document.cookie)" x="'
+        rendered = self._render_evidence_display(
+            friendly_name=payload,
+            caption="normal caption",
+        )
+        self.assertNotIn('" onmouseover="', rendered)
+        self.assertIn("&quot;", rendered)
+
+    def test_template_escapes_single_quote_injection_in_data_attribute(self):
+        """A single-quote in friendly_name must be entity-encoded."""
+        payload = "' onmouseover='alert(1)' x='"
+        rendered = self._render_evidence_display(
+            friendly_name=payload,
+            caption="normal caption",
+        )
+        self.assertNotIn("' onmouseover='", rendered)
+
+    # --- File content XSS ---
+
+    def test_template_escapes_script_tag_in_file_content(self):
+        """HTML in a text evidence file must be escaped when rendered via the template."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.template.loader import render_to_string
+        from django.utils.safestring import SafeData
+
+        from ghostwriter.commandcenter.models import ReportConfiguration
+        from ghostwriter.reporting.templatetags.report_tags import get_file_content
+
+        xss = b"<script>alert('xss')</script>"
+        evidence = EvidenceOnFindingFactory(
+            document=SimpleUploadedFile("evidence.txt", xss),
+        )
+        # The template tag must never return marked-safe content
+        raw = get_file_content(evidence)
+        self.assertNotIsInstance(raw, SafeData)
+
+        report_config = ReportConfiguration.get_solo()
+        rendered = render_to_string(
+            "snippets/evidence_display.html",
+            {"evidence": evidence, "report_config": report_config, "clickable": False},
+        )
+        self.assertNotIn("<script>", rendered)
+        self.assertIn("&lt;script&gt;", rendered)
+
+    # --- Download response headers ---
+
+    def test_download_sets_nosniff_header(self):
+        """Every evidence download must include X-Content-Type-Options: nosniff."""
+        evidence = EvidenceOnReportFactory()
+        uri = reverse("reporting:evidence_download", kwargs={"pk": evidence.pk})
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+    def test_inline_view_sets_csp_header(self):
+        """Inline evidence viewing (?view=1) must include a Content-Security-Policy header."""
+        evidence = EvidenceOnReportFactory()
+        uri = reverse("reporting:evidence_download", kwargs={"pk": evidence.pk})
+        response = self.client_mgr.get(f"{uri}?view=1")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Content-Security-Policy", response)
+
+    def test_inline_view_csp_blocks_scripts(self):
+        """The inline-view CSP must use default-src 'none' and must not permit script execution."""
+        evidence = EvidenceOnReportFactory()
+        uri = reverse("reporting:evidence_download", kwargs={"pk": evidence.pk})
+        response = self.client_mgr.get(f"{uri}?view=1")
+        csp = response.get("Content-Security-Policy", "")
+        self.assertIn("default-src 'none'", csp)
+        self.assertNotIn("unsafe-inline", csp)
+        self.assertNotIn("script-src", csp)
+
+    # --- JS context in form error template ---
+
+    def test_form_error_template_uses_escapejs_filter(self):
+        """
+        The evidence form error template must use |escapejs on all error strings.
+        FileExtensionValidator echoes the raw file extension into its error message,
+        so without |escapejs a crafted extension (e.g. containing a newline or
+        backslash) could break the surrounding JS string literal.
+        """
+        import re
+
+        template_path = os.path.normpath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "templates",
+                "reporting",
+                "evidence_form_template.html",
+            )
+        )
+        with open(template_path, encoding="utf-8") as f:
+            source = f.read()
+
+        raw_occurrences = re.findall(r"\{\{\s*error\s*\}\}", source)
+        self.assertEqual(
+            raw_occurrences,
+            [],
+            "Found {{ error }} without |escapejs — use {{ error|escapejs }} to "
+            "prevent JS string injection via validator error messages.",
+        )
 
 
 # Tests related to report modification actions
