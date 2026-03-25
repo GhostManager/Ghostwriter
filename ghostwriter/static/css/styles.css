@@ -83,7 +83,8 @@ hr {
   margin-top: 10px;
 }
 
-.img-evidence {
+.img-evidence,
+.text-evidence {
   height: auto;
   width: 6.5in;
   max-width: 6.5in;
@@ -4565,7 +4566,7 @@ input[type="color"]:focus,
 
 [data-theme="dark"] code {
   background-color: var(--search-input-background-color);
-  color: var(--secondary-color-fade);
+  color: var(--main-txt-color);
 }
 
 /* Pagination */
