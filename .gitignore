@@ -283,3 +283,7 @@ cypress/*
 ghostwriter-cli
 
 .gwcli-last-update-check
+
+# Ignore any *.cast or *.cast.gz files
+*.cast
+*.cast.gz
