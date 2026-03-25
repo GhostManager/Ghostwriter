@@ -13,6 +13,7 @@ export default function EvidenceUploadForm(props: {
     const [state, setState] = useState<null | DjangoFormErrors | "loading">(
         null
     );
+    // Pre-populate the friendly name based on the initial file name without the extension, if provided
     const [friendlyName, setFriendlyName] = useState<string>(
         props.initialFile ? props.initialFile.name.replace(/\.[^.]+$/, "") : ""
     );
