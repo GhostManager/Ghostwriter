@@ -152,6 +152,9 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         except (json.JSONDecodeError, TypeError):
             fields_json = []
 
+        # Extract ``sanitize_recordings`` flag from the posted JSON before the existing field filtering
+        sanitize_recordings = any(field["name"] == "recordings" for field in fields_json)
+
         entry_field_specs = {spec.internal_name: spec for spec in ExtraFieldSpec.for_model(OplogEntry)}
         fields = [
             field["name"]
@@ -172,7 +175,8 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         if any(field["name"] in entry_field_specs for field in fields_json):
             bulk_update_fields.append("extra_fields")
 
-        if fields:
+        # Allows a recordings-only sanitization that doesn't require any field selections, since recordings are handled separately
+        if fields or sanitize_recordings:
             entries = obj.entries.all()
             logger.info(
                 "Sanitizing log entries for %s %s by request of %s", obj.__class__.__name__, obj.id, self.request.user
@@ -183,19 +187,30 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             }
             try:
                 for entry in entries:
-                    extra_fields_data = entry.extra_fields
-                    for field in fields:
-                        if field == "command":
-                            if entry.command:
-                                setattr(entry, field, entry.command.split(" ")[0])
-                        elif field == "tags":
-                            entry.tags.clear()
-                        elif field in self.clearable_fields:
-                            setattr(entry, field, "")
-                        elif field in entry_field_specs:
-                            extra_fields_data[field] = entry_field_specs[field].empty_value()
-                    entry.extra_fields = extra_fields_data
-                OplogEntry.objects.bulk_update(entries, bulk_update_fields, batch_size=100)
+                    # Only process fields if non-recording fields were selected; otherwise skip directly to recording sanitization
+                    if fields:
+                        extra_fields_data = entry.extra_fields
+                        for field in fields:
+                            if field == "command":
+                                if entry.command:
+                                    setattr(entry, field, entry.command.split(" ")[0])
+                            elif field == "tags":
+                                entry.tags.clear()
+                            elif field in self.clearable_fields:
+                                setattr(entry, field, "")
+                            elif field in entry_field_specs:
+                                extra_fields_data[field] = entry_field_specs[field].empty_value()
+                        entry.extra_fields = extra_fields_data
+
+                    if sanitize_recordings:
+                        try:
+                            entry.recording.delete()
+                        except OplogEntryRecording.DoesNotExist:
+                            pass
+
+                # Only perform a bulk update if there are non-recording fields to update
+                if fields:
+                    OplogEntry.objects.bulk_update(entries, bulk_update_fields, batch_size=100)
             except Exception as exception:  # pragma: no cover
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 log_message = template.format(type(exception).__name__, exception.args)

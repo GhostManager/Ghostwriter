@@ -371,6 +371,14 @@ $(document).ready(function () {
               </div>
             </div>`);
         });
+        // Recordings — separate option: deletes recording files from disk
+        $sanitizeCheckboxList.append(`
+        <div class="form-check-inline">
+          <div class="custom-control custom-switch">
+            <input type="checkbox" name="recordings" id="sanitize_recordingsCheckbox" class="form-check-input custom-control-input"/>
+            <label class="form-check-label custom-control-label" for="sanitize_recordingsCheckbox">Recordings <span class="badge badge-danger">Deletes Files</span></label>
+          </div>
+        </div>`);
     }
 
     function hideColumns() {
