@@ -4348,7 +4348,6 @@ def _build_nexpose_metrics_payload(findings: List[Dict[str, Any]]) -> Dict[str, 
 
     total_entries: List[Dict[str, Any]] = []
     unique_entries: "OrderedDict[Tuple[int, str], Dict[str, Any]]" = OrderedDict()
-    seen_total_keys: Set[Tuple[str, str, str, int]] = set()
     host_counters: Dict[str, Dict[str, int]] = {}
     impact_counter: Counter[str] = Counter()
     high_issues: List[Dict[str, Any]] = []
@@ -4389,10 +4388,7 @@ def _build_nexpose_metrics_payload(findings: List[Dict[str, Any]]) -> Dict[str, 
             "severity": severity,
         }
 
-        total_key = (ip_address, hostnames, title.lower(), severity)
-        if total_key not in seen_total_keys:
-            total_entries.append(normalized_entry)
-            seen_total_keys.add(total_key)
+        total_entries.append(normalized_entry)
 
         unique_key = (severity, title.lower())
         if unique_key not in unique_entries:
