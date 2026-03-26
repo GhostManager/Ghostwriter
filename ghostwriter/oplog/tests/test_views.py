@@ -26,6 +26,7 @@ from ghostwriter.factories import (
     ReportFactory,
     UserFactory,
 )
+from ghostwriter.oplog.models import OplogEntryRecording
 
 logging.disable(logging.CRITICAL)
 
@@ -638,6 +639,7 @@ class OplogSanitizeViewTests(TestCase):
     def setUpTestData(cls):
         cls.log = OplogFactory()
         cls.OplogEntry = OplogEntryFactory._meta.model
+        cls.OplogEntryRecording = OplogEntryRecordingFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = MgrFactory(password=PASSWORD)
         cls.admin_user = AdminFactory(password=PASSWORD)
@@ -752,17 +754,20 @@ class OplogSanitizeViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_field_sanitization_with_extra_field(self):
+        """Sanitizing selected fields empties/trims them while leaving unselected fields intact."""
         data = {
             "result": "success",
             "message": "Successfully sanitized log entries.",
         }
-        entries = self.OplogEntry.objects.filter(oplog_id=self.log)
+        entries = list(self.OplogEntry.objects.filter(oplog_id=self.log))
         for entry in entries:
             entry.user_context = "some_user"
             entry.command = "some command with spaces"
-            entry.extra_fields = {"test_field": "some value"}
-            entry.extra_fields = {"test_field_2": "test value"}
+            entry.source_ip = "10.0.0.1"  # not selected — must be preserved
+            # Single assignment so both keys are present before sanitization
+            entry.extra_fields = {"test_field": "some value", "test_field_2": "test value"}
             entry.save()
+
         response = self.client_mgr.post(
             self.uri,
             data={
@@ -772,10 +777,91 @@ class OplogSanitizeViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+
+        self.entry.refresh_from_db()
+        # Selected string field → emptied
+        self.assertEqual(self.entry.user_context, "")
+        # command → trimmed to first whitespace-delimited token
+        self.assertEqual(self.entry.command, "some")
+        # Unselected clearable field → unchanged
+        self.assertEqual(self.entry.source_ip, "10.0.0.1")
+        # Selected extra field → cleared; unselected extra field → preserved
+        self.assertEqual(self.entry.extra_fields, {"test_field": "", "test_field_2": "test value"})
+
+    def test_recording_only_sanitization(self):
+        """Selecting only 'recordings' should succeed and delete recordings without requiring any other fields."""
+
+        # Attach a recording to every entry in the log
+        entries = list(self.OplogEntry.objects.filter(oplog_id=self.log))
+        for entry in entries:
+            OplogEntryRecordingFactory(oplog_entry=entry)
+
+        self.assertEqual(
+            OplogEntryRecording.objects.filter(oplog_entry__oplog_id=self.log).count(),
+            len(entries),
+        )
+
+        response = self.client_mgr.post(
+            self.uri,
+            data={"fields": '[{"name": "recordings", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"result": "success", "message": "Successfully sanitized log entries."},
+        )
+        self.assertEqual(
+            OplogEntryRecording.objects.filter(oplog_entry__oplog_id=self.log).count(),
+            0,
+        )
+
+    def test_recording_sanitization_with_fields(self):
+        """Selecting 'recordings' alongside regular fields sanitizes both independently."""
+
+        # Give the tracked entry a recording and some field values
+        recording = OplogEntryRecordingFactory(oplog_entry=self.entry)
+        recording_pk = recording.pk
+        self.entry.user_context = "sensitive_user"
+        self.entry.save()
+
+        response = self.client_mgr.post(
+            self.uri,
+            data={
+                "fields": '[{"name": "recordings", "value": "on"}, {"name": "user_context", "value": "on"}]'
+            },
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"result": "success", "message": "Successfully sanitized log entries."},
+        )
+        # Recording must be gone
+        self.assertFalse(OplogEntryRecording.objects.filter(pk=recording_pk).exists())
+        # Field must be cleared
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.user_context, "")
-        self.assertEqual(self.entry.command, "some")
-        self.assertEqual(self.entry.extra_fields, {"test_field": "", "test_field_2": "test value"})
+
+    def test_recording_sanitization_tolerates_entries_without_recordings(self):
+        """Sanitizing recordings on a log where some entries have no recording must not raise an error."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        # Only one entry has a recording; the rest do not
+        recording = OplogEntryRecordingFactory(oplog_entry=self.entry)
+        recording_pk = recording.pk
+
+        response = self.client_mgr.post(
+            self.uri,
+            data={"fields": '[{"name": "recordings", "value": "on"}]'},
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"result": "success", "message": "Successfully sanitized log entries."},
+        )
+        self.assertFalse(OplogEntryRecording.objects.filter(pk=recording_pk).exists())
 
 
 class OplogEvidenceCreateViewTests(TestCase):
