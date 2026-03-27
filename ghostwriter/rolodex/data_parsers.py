@@ -1073,7 +1073,7 @@ def build_ad_risk_contrib(
 
     risk_value = _get_nested_value(
         source_data,
-        ("external_internal_grades", "internal", "iam", "risk"),
+        ("external_internal_grades", "iam", "ad", "risk"),
     )
     risk_text = str(risk_value).strip().lower() if risk_value is not None else ""
     if risk_text not in ("medium", "high", "medium-->low", "medium-->high", "high-->medium"):
