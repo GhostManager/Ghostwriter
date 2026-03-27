@@ -135,13 +135,64 @@ function jsEscape(s) {
 
 // Download a file from a URL and save it with a given filename
 function download(url, filename) {
-    fetch(url).then(function (t) {
-        return t.blob().then((b) => {
-            let a = document.createElement('a');
-            a.href = URL.createObjectURL(b);
+    function getDownloadErrorMessage(response, responseText) {
+        const defaultMessage = `The download failed with status ${response.status}.`;
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+            try {
+                const data = JSON.parse(responseText);
+                const candidate = data.message || data.detail || data.error;
+                if (typeof candidate === 'string' && candidate.trim() !== '') {
+                    return candidate.trim().slice(0, 200);
+                }
+            } catch (e) {
+                return defaultMessage;
+            }
+        }
+
+        return defaultMessage;
+    }
+
+    return fetch(url).then(function (response) {
+        if (!response.ok) {
+            return response.text().then(function (message) {
+                const errorMessage = getDownloadErrorMessage(response, message);
+                displayToastTop({
+                    type: 'error',
+                    title: 'Download Failed',
+                    string: errorMessage,
+                });
+                throw new Error(errorMessage);
+            });
+        }
+
+        return response.blob().then(function (blob) {
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
             a.setAttribute('download', filename);
             a.click();
+            setTimeout(function () {
+                URL.revokeObjectURL(objectUrl);
+            }, 0);
+            return blob;
         });
+    }).catch(function (error) {
+        if (!(error instanceof Error && error.message)) {
+            displayToastTop({
+                type: 'error',
+                title: 'Download Failed',
+                string: 'An unexpected error occurred while downloading the file.',
+            });
+        } else if (error.message === 'Failed to fetch') {
+            displayToastTop({
+                type: 'error',
+                title: 'Download Failed',
+                string: 'Could not reach the server to download the file.',
+            });
+        }
+        throw error;
     });
 }
 
@@ -310,4 +361,3 @@ function update_project_contacts() {
     });
   }
 }
-
