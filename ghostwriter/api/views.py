@@ -1015,7 +1015,7 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
         recording.recording_file = ContentFile(file_bytes, name=form.cleaned_data["filename"])
         recording.recording_text = recording_text
         recording.save()
-        response_data = {"id": recording.pk}
+        response_data = {"id": recording.pk, "oplogEntryId": entry.pk}
         if text_warning:
             response_data["warning"] = text_warning
         return JsonResponse(response_data, status=201)

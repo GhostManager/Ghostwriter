@@ -409,7 +409,7 @@ custom_types:
     - name: uploadOplogRecordingResult
       relationships:
         - field_mapping:
-            id: id
+            oplogEntryId: id
           name: oplogEntry
           remote_table:
             name: oplog_oplogentry

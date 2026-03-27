@@ -323,5 +323,6 @@ type linkOplogEvidenceResponse {
 
 type uploadOplogRecordingResult {
   id: Int!
+  oplogEntryId: Int
 }
 
