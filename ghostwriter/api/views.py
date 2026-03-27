@@ -947,9 +947,9 @@ class GraphqlLinkOplogEvidence(JwtRequiredMixin, HasuraActionView):
                 status=401,
             )
 
-        # Verify evidence belongs to the same project via its report
-        # TODO: Update this check when we remove finding evidence links with PR #790
-        if evidence.report or evidence.finding and evidence.associated_report.project.project != entry.oplog_id.project:
+        # Verify evidence belongs to the same project via its directly associated
+        # report or the report linked through its finding.
+        if evidence.associated_report.project != entry.oplog_id.project:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Evidence does not belong to the same project", "ProjectMismatch"
