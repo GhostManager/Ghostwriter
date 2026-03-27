@@ -687,6 +687,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             if arcname not in used_names:
                 used_names.add(arcname)
                 return arcname
+        raise RuntimeError("Could not generate a unique archive name")
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
