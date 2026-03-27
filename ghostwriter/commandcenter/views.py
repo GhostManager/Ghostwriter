@@ -11,7 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import requires_csrf_token
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, generate_jwt
-from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 
 # Ensure a CSRF token is available for JS code that makes use of it.
@@ -45,6 +45,7 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
 
     @staticmethod
     def context_data(user, obj_id, extra_fields=None):
+        report_config = ReportConfiguration.get_solo()
         return {
             "collab_user": user,
             "collab_jwt": generate_jwt(
@@ -55,6 +56,7 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
             "collab_media_url": settings.MEDIA_URL,
             "collab_extra_fields_spec_ser":
                 ExtraFieldsSpecSerializer(extra_fields, many=True).data if extra_fields is not None else None,
+            "collab_default_cvss_version": report_config.default_cvss_version,
         }
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:

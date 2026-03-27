@@ -4,10 +4,10 @@
 import logging
 import os
 from datetime import datetime
+import mimetypes
 from os.path import exists
 
 # Django Imports
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -731,6 +731,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
             report = self.finding_instance.report
         else:
             report = self.report_instance
+        ctx["report"] = report
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#evidence"
         if "modal" in self.kwargs:
             friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
@@ -818,6 +819,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["report"] = self.object.associated_report
         ctx["cancel_link"] = reverse(
             "reporting:evidence_detail",
             kwargs={"pk": self.object.pk},
@@ -894,7 +896,7 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
 
 
 class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Return the target :model:`reporting.Evidence` file for download."""
+    """Return the target :model:`reporting.Evidence` file for viewing or download."""
 
     model = Evidence
 
@@ -907,13 +909,31 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        file_path = obj.document.path
         if os.path.exists(file_path):
-            return FileResponse(
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=True,
+                as_attachment=not inline_view,
                 filename=os.path.basename(file_path),
+                content_type=content_type,
             )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                # Additional hardening for inline content
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
+
+            return response
         raise Http404
 
 

@@ -3,6 +3,7 @@ from datetime import datetime
 import io
 import os
 import logging
+import mimetypes
 import zipfile
 from socket import gaierror
 from asgiref.sync import async_to_sync
@@ -652,19 +653,37 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
 
 
 class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Return the target :model:`reporting.ReportTemplate` template file for download."""
+    """Return the target :model:`reporting.ReportTemplate` template file for viewing or download."""
 
     model = ReportTemplate
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        file_path = obj.document.path
         if os.path.exists(file_path):
-            return FileResponse(
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=True,
+                as_attachment=not inline_view,
                 filename=os.path.basename(file_path),
+                content_type=content_type,
             )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                # Additional hardening for inline content
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
+
+            return response
         raise Http404
 
 class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):

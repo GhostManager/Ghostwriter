@@ -418,11 +418,13 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
         if any(self.errors):
             return
 
+        active_forms = []
         contacts = set()
         primary_set = False
         for form in self.forms:
             if not form.cleaned_data or form.cleaned_data["DELETE"]:
                 continue
+            active_forms.append(form)
             name = form.cleaned_data["name"]
             primary = form.cleaned_data["primary"]
 
@@ -449,8 +451,23 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
                     )
                 primary_set = True
 
-
-# Forms used with the inline formsets
+        # Auto-set primary when only one contact is being submitted
+        if len(active_forms) == 1 and not primary_set:
+            active_forms[0].cleaned_data["primary"] = True
+            active_forms[0].instance.primary = True
+        # Require a primary when multiple contacts exist
+        elif len(active_forms) > 1 and not primary_set:
+            active_forms[0].add_error(
+                "primary",
+                ValidationError(
+                    _("You must designate one contact as the primary point of contact."),
+                    code="required",
+                ),
+            )
+            raise ValidationError(
+                _("You must designate one contact as the primary point of contact. You may have marked the primary for deletion. If so, please mark a different contact as primary."),
+                code="required",
+            )
 
 
 class ProjectAssignmentForm(forms.ModelForm):

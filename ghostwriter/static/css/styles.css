@@ -251,6 +251,7 @@ label {
   top: 15px;
   right: 25px;
   border-color: rgba(255, 255, 255, 0.3);
+  object-fit: cover;
 }
 
 /* ---------------------------------------------------
@@ -538,6 +539,7 @@ input[type='file'] {
   position: relative;
   display: inline-block;
   border-color: rgba(255, 255, 255, 0.3);
+  object-fit: cover;
 }
 
 .avatar_note {
@@ -546,6 +548,7 @@ input[type='file'] {
   border-radius: 50%;
   border-style: solid;
   border-width: 1px;
+  object-fit: cover;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
@@ -820,7 +823,8 @@ ul ul button {
 ----------------------------------------------------- */
 
 #content {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 5px 20px 20px;
   min-height: 100vh;
   transition: all 0.3s;
@@ -1020,6 +1024,10 @@ ul.dashboard-checklist {
 .centered-container ul,
 .centered-container ol {
   text-align: left;
+}
+
+dd span.badge {
+  font-size: 0.82em;
 }
 
 
@@ -2677,10 +2685,6 @@ th.icon {
   font-size: 18px;
 }
 
-.finding-accordion span {
-  font-size: var(--main-font-size);
-}
-
 .finding-accordion .accordion-toggle.btn {
   font-weight: 600;
   color: #fff;
@@ -2728,6 +2732,7 @@ h5 a[aria-expanded=true]:after {
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 5px;
 }
 
 .card-help-text {
@@ -2741,6 +2746,39 @@ h5 a[aria-expanded=true]:after {
 .card-project .card-header {
   background-color: var(--neutral-color);
   color: var(--ghost-white);
+}
+
+/* Domain stats alignment */
+.domain-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.domain-stats .stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.domain-stats .stat-item i {
+  flex-shrink: 0;
+  width: 1rem;
+  text-align: center;
+}
+
+.domain-stats .stat-value {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  text-align: left;
+  flex: 1;
+  padding-left: 0.5rem;
+}
+
+span.badge.functional-lvl-badge {
+  font-size: 0.85em;
 }
 
 /* ---------------------------------------------------
@@ -3240,15 +3278,15 @@ li[role="presentation"].active a {
 }
 
 .task-future {
-  color: var(--primary-color);
+  color: var(--primary-color)!important;
 }
 
 .task-due-soon {
-  color: var(--warning-color);
+  color: var(--warning-color)!important;
 }
 
 .task-imminent {
-  color: var(--blocked-color);
+  color: var(--blocked-color)!important;
 }
 
 .task-header {
@@ -3335,6 +3373,10 @@ th.priority-header.primary {
 
 th.priority-header.primary:before {
   content: '\f12a';
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
+  margin-right: 0.5em;
 }
 
 th.priority-header.secondary {
@@ -3343,6 +3385,10 @@ th.priority-header.secondary {
 
 th.priority-header.secondary:before {
   content: '\f005';
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
+  margin-right: 0.5em;
 }
 
 th.priority-header.tertiary {
@@ -3351,6 +3397,10 @@ th.priority-header.tertiary {
 
 th.priority-header.tertiary:before {
   content: '\f063';
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
+  margin-right: 0.5em;
 }
 
 .js-connection-status {
@@ -3730,6 +3780,27 @@ input[type="color"]:focus,
     DARK MODE OVERRIDES
 ----------------------------------------------------- */
 
+[data-theme="dark"] .task-card {
+  background-color: var(--sidebar-background-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .btn {
+  color: var(--ghost-white);
+}
+
+[data-theme="dark"] .icon::before {
+  color: var(--primary-color);
+}
+
+[data-theme="dark"] th.priority-header:before {
+  color: var(--ghost-white);
+}
+
+[data-theme="dark"] .table thead th.icon::before {
+  color: var(--ghost-white);
+}
+
 /* Form controls and inputs */
 [data-theme="dark"] .form-select,
 [data-theme="dark"] .form-control,
@@ -3764,7 +3835,7 @@ input[type="color"]:focus,
 [data-theme="dark"] .btn-secondary {
   background-color: #3a3a3a;
   border-color: #555;
-  color: var(--main-txt-color);
+  color: var(--ghost-white);
 }
 
 [data-theme="dark"] .btn-secondary:hover {
@@ -3811,10 +3882,6 @@ input[type="color"]:focus,
   border-color: var(--search-box-shadow);
 }
 
-[data-theme="dark"] .card-body {
-  color: var(--main-txt-color);
-}
-
 /* Modals */
 [data-theme="dark"] .modal-content {
   background-color: var(--sidebar-background-color);
@@ -3845,31 +3912,36 @@ input[type="color"]:focus,
 }
 
 /* Alerts */
-[data-theme="dark"] .alert {
-  background-color: var(--search-input-background-color);
-  border-color: var(--search-box-shadow);
-  color: var(--main-txt-color);
+[data-theme="dark"] .alert,
+[data-theme="dark"] .alert p {
+  /* background-color: var(--search-input-background-color);
+  border-color: var(--search-box-shadow); */
+  color: var(--main-bg-color);
 }
 
-[data-theme="dark"] .alert-success {
+[data-theme="dark"] .alert-success,
+[data-theme="dark"] .alert-success p {
   background-color: var(--navbar-report-selected-background-color);
   border-color: var(--primary-color);
   color: var(--h2-font-color);
 }
 
-[data-theme="dark"] .alert-warning {
+[data-theme="dark"] .alert-warning,
+[data-theme="dark"] .alert-warning p {
   background-color: #4a3d2d;
   border-color: var(--warning-color);
   color: var(--warning-color);
 }
 
-[data-theme="dark"] .alert-danger {
+[data-theme="dark"] .alert-danger,
+[data-theme="dark"] .alert-danger p {
   background-color: var(--navbar-report-empty-background-color);
   border-color: var(--blocked-color);
   color: var(--blocked-color);
 }
 
-[data-theme="dark"] .alert-info {
+[data-theme="dark"] .alert-info,
+[data-theme="dark"] .alert-info p {
   background-color: #2d3a4a;
   border-color: var(--info-rating-color);
   color: var(--info-rating-color);
@@ -4030,6 +4102,10 @@ input[type="color"]:focus,
   color: var(--main-txt-color);
 }
 
+[data-theme="dark"] .tagify__input:before {
+  color: var(--main-txt-color);
+}
+
 [data-theme="dark"] .custom-file-label::after {
   background-color: var(--sidebar-background-color);
   color: var(--main-txt-color);
@@ -4061,12 +4137,12 @@ input[type="color"]:focus,
 /* Icon button contrast fix for dark mode */
 [data-theme="dark"] .icon:before,
 [data-theme="dark"] .icon:after {
-  color: var(--main-txt-color);
+  color: var(--ghost-white);
 }
 
 [data-theme="dark"] button.icon,
 [data-theme="dark"] a.icon {
-  color: var(--main-txt-color);
+  color: var(--ghost-white);
 }
 
 /* Make icon and text turn white on hover for buttons and links styled as buttons */
@@ -4157,7 +4233,9 @@ input[type="color"]:focus,
   color: #fff;
 }
 
-
+[data-theme="dark"] .sidebar-header-tab {
+  color: var(--ghost-white);
+}
 
 /* File input overlap fix */
 .custom-file {

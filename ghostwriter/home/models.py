@@ -6,7 +6,6 @@ import os
 # Django Imports
 from django.conf import settings
 from django.db import models
-from django.templatetags.static import static
 
 
 # Create your models here.
@@ -29,13 +28,3 @@ class UserProfile(models.Model):
         ordering = ["user"]
         verbose_name = "User profile"
         verbose_name_plural = "User profiles"
-
-    @property
-    def avatar_url(self):
-        try:
-            # Only return the image URL if the file is present
-            if os.path.exists(self.avatar.path):
-                return self.avatar.url
-            return static("images/default_avatar.png")
-        except ValueError:
-            return static("images/default_avatar.png")

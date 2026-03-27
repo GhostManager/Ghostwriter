@@ -30,14 +30,12 @@
           </div>
         </div>
       </th>
-      <th class="align-middle">
+      <th class="align-middle text-left">
         <div class="dropdown dropleft">
           <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                 aria-expanded="false">Status</span>
           <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
-            <p>Mark a finding as ready or in need of editing. Findings marked as in need of editing will appear
-              on
-              the assigned user's dashboard.</p>
+            <p>Mark a finding as ready or in need of editing.</p>
           </div>
         </div>
       </th>
@@ -158,8 +156,7 @@
                   {% else %}
                     burned">
                   {% endif %}
-                  You</td>
-                </span>
+                  You</span>
               </td>
             {% else %}
               {% if finding.assigned_to %}
@@ -168,7 +165,7 @@
                 <td class="medium align-middle text-left">TBD</td>
               {% endif %}
             {% endif %}
-            <td class="align-middle">
+            <td class="align-middle text-left">
               <span id="finding-status-{{ finding.id }}" class="
                 {% if finding.complete %}
                   healthy">Ready

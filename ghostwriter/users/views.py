@@ -2,6 +2,7 @@
 
 
 # Standard Libraries
+import mimetypes
 import os
 
 # Django Imports
@@ -219,7 +220,7 @@ account_reset_password_from_key = GhostwriterPasswordSetFromKeyView.as_view()
 class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Return the target :model:`users.User` entries avatar file from
-    :model:`home.UserProfile` for download.
+    :model:`home.UserProfile` for viewing or download.
     """
 
     model = UserProfile
@@ -231,6 +232,8 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
+
+        # Check if the user has an avatar, if not use the default avatar
         try:
             file_path = os.path.join(settings.MEDIA_ROOT, obj.avatar.path)
         except ValueError:
@@ -239,12 +242,29 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         if not os.path.exists(file_path):
             file_path = os.path.join(settings.STATICFILES_DIRS[0], "images/default_avatar.png")
 
-        return FileResponse(
+        # Detect the content type
+        content_type, _ = mimetypes.guess_type(file_path)
+        if content_type is None:
+            content_type = "application/octet-stream"
+
+        # Check if inline viewing is explicitly requested via query parameter
+        # Default to download (as_attachment=True) for security
+        inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+        response = FileResponse(
             open(file_path, "rb"),
-            as_attachment=True,
+            as_attachment=not inline_view,
             filename=os.path.basename(file_path),
+            content_type=content_type,
         )
 
+        # Add security headers to mitigate XSS risks
+        response["X-Content-Type-Options"] = "nosniff"
+        if inline_view:
+            # Additional hardening for inline content (avatars are typically images)
+            response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
+
+        return response
 
 avatar_download = AvatarDownload.as_view()
 

@@ -7,9 +7,10 @@
     <h1>System Status</h1>
     <table>
       <thead>
-        <th colspan="2">Service</th>
-        <th>Status</th>
-        <th class="align-right">Time Taken</th>
+        <th class="align-middle text-left"></th>
+        <th class="align-middle text-left">Service</th>
+        <th class="align-middle text-left">Status</th>
+        <th class="align-middle text-left">Time Taken</th>
       </thead>
       <tbody>
         {% for plugin in plugins %}
@@ -23,9 +24,9 @@
                 {% endif %}
               </span>
             </td>
-            <td>{{ plugin.identifier }}</td>
-            <td>{{ plugin.pretty_status | linebreaks }}</td>
-            <td class="align-right">{{ plugin.time_taken|floatformat:4 }} seconds</td>
+            <td class="align-middle text-left">{{ plugin.identifier }}</td>
+            <td class="align-middle text-left">{{ plugin.pretty_status | linebreaks }}</td>
+            <td class="align-middle text-left">{{ plugin.time_taken|floatformat:4 }} seconds</td>
           </tr>
         {% endfor %}
       </tbody>

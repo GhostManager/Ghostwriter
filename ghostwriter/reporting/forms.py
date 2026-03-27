@@ -66,6 +66,28 @@ class AssignReportFindingForm(forms.ModelForm):
             )
         )
 
+class AssignReportObservationForm(forms.ModelForm):
+    class Meta:
+        model = ReportObservationLink
+        fields = ("assigned_to",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Field("assigned_to"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML("""
+                    <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
+                """)
+            )
+        )
+
+
 class ReportForm(forms.ModelForm):
     """
     Save an individual :model:`reporting.Report` associated with an individual
@@ -218,7 +240,7 @@ class EvidenceForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <h4 class="icon signature-icon">Report Information</h4>
+                <h4 class="icon edit-icon">Evidence Information</h4>
                 <hr>
                 <p>The friendly name is used to reference this evidence in the report and the caption appears below
                 the figures in the generated reports.</p>
@@ -250,8 +272,8 @@ class EvidenceForm(forms.ModelForm):
                 ),
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">
-                    Click here to select or drag and drop your file...</label>
+                    <label id="filename" class="custom-file-label" for="id_document">
+                    Click here or drag and drop...</label>
                     """
                 ),
                 css_class="custom-file",
@@ -371,11 +393,14 @@ class ReportTemplateForm(forms.ModelForm):
     """Save an individual :model:`reporting.ReportTemplate`."""
 
     def clean(self):
-        filename_override = self.cleaned_data["filename_override"]
+        filename_override = self.cleaned_data.get("filename_override")
         if not filename_override:
-            return
+            return self.cleaned_data
 
-        doc_typ = self.cleaned_data["doc_type"]
+        doc_typ = self.cleaned_data.get("doc_type")
+        if not doc_typ:
+            return self.cleaned_data
+
         try:
             if doc_typ.doc_type == "docx":
                 ExportReportBase.check_filename_template(filename_override)
@@ -383,6 +408,8 @@ class ReportTemplateForm(forms.ModelForm):
                 ExportProjectBase.check_filename_template(filename_override)
         except ValidationError as e:
             self.add_error("filename_override", e)
+
+        return self.cleaned_data
 
     class Meta:
         model = ReportTemplate
@@ -415,6 +442,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
+        self.fields["doc_type"].required = True
         self.fields["evidence_image_width"].label = "Evidence Image Width"
         self.fields["evidence_image_width"].initial = "6.5"
 
@@ -743,6 +771,8 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
             "report",
             "position",
             "added_as_blank",
+            "assigned_to",
+            "complete",
         )
         field_classes = {
             "description": JinjaRichTextField,

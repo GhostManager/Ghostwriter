@@ -4,6 +4,7 @@
 import datetime
 import json
 import logging
+import mimetypes
 import os
 from urllib.parse import urlparse
 
@@ -1075,14 +1076,23 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 contact_dict = to_dict(contact_instance, resolve_fk=True)
                 del contact_dict["client"]
                 del contact_dict["description"]
+                del contact_dict["primary"]
+
+                project = self.get_object()
 
                 # Check if this contact already exists in the project
-                if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
+                if ProjectContact.objects.filter(**contact_dict, project=project).exists():
                     message = "{} already exists in your project.".format(contact_instance.name)
                     data = {"result": "error", "message": message}
                 else:
+                    # Carry over primary status only if no project contact is already primary
+                    project_has_primary = ProjectContact.objects.filter(project=project, primary=True).exists()
+                    inherit_primary = contact_instance.primary and not project_has_primary
                     project_contact = ProjectContact(
-                        project=self.get_object(), **contact_dict, description=contact_instance.description
+                        project=project,
+                        **contact_dict,
+                        description=contact_instance.description,
+                        primary=inherit_primary,
                     )
                     project_contact.save()
 
@@ -1092,8 +1102,8 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                         "Assigned %s %s to %s %s by request of %s",
                         contact_instance.__class__.__name__,
                         contact_instance.id,
-                        self.get_object().__class__.__name__,
-                        self.get_object().id,
+                        project.__class__.__name__,
+                        project.id,
                         self.request.user,
                     )
         except ValueError:
@@ -1138,7 +1148,7 @@ def index(request):
 
 
 class ClientLogoDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Return the target :model:`reporting.Evidence` file for download."""
+    """Return the target :model:`rolodex.Client` logo file for download."""
 
     model = Client
 
@@ -1151,13 +1161,33 @@ class ClientLogoDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.logo.path)
+        try:
+            file_path = os.path.join(settings.MEDIA_ROOT, obj.logo.path)
+        except ValueError as exc:
+            raise Http404 from exc
         if os.path.exists(file_path):
-            return FileResponse(
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=True,
+                as_attachment=not inline_view,
                 filename=os.path.basename(file_path),
+                content_type=content_type,
             )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
+
+            return response
         raise Http404
 
 

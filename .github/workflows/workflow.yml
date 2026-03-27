@@ -8,6 +8,12 @@ on:
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - "CHANGELOG.md"
+      - "README.md"
+      - "SECURITY.md"
+      - "CONTRIBUTING.md"
+      - "DOCS/**"
 
 jobs:
   run-unit-tests:

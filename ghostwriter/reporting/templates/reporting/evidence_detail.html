@@ -106,18 +106,18 @@
   <script src="{% static 'js/evidence-lightbox.js' %}"></script>
   <script>
     $(document).ready(function() {
-      console.log('Evidence detail page loaded');
+      // console.log('Evidence detail page loaded');
 
       // Initialize evidence lightbox
       if (typeof initEvidenceLightbox === 'function') {
-        console.log('initEvidenceLightbox function found');
+        // console.log('initEvidenceLightbox function found');
         initEvidenceLightbox();
       } else {
         console.error('initEvidenceLightbox function not found');
       }
 
       // Check if elements exist
-      console.log('Clickable elements found:', $('.js-open-lightbox').length);
+      // console.log('Clickable elements found:', $('.js-open-lightbox').length);
     });
   </script>
 {% endblock %}

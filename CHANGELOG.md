@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.9] - 23 March 2026
+
+### Changed
+
+* Includes some code clean-up and general improvements to styles in dark mode
+
+### Fixed
+
+* Fixed outbound and inbound trust information not being collected from BloodHound Enterprise
+
+## [6.2.8] - 12 March 2026
+
+### Added
+
+* Implemented status and assignment fields for observations to match the functionality for findings (PR #840; Closes #601)
+  * These changes make observations on reports work very similarly to findings on reports
+  * Observations on reports now have a status for tracking if they need editing or are complete
+  * The `assigned_to` field is now fully implemented and displayed for tracking
+* Added the "primary" status to client contacts to be consistent with project contacts (PR #841; Closes #789)
+  * You can now flag a point of contact on a client as the primary contact
+  * If a client contact is set as the primary on a client and is then added to a project for that client, they will inherit their primary status on the project
+  * If there is already a primary contact on the project, the incoming client contact will not be flagged as the primary for the project
+  * Users can always edit the primary contact on the project
+
+### Changed
+
+* Clients and projects must now have one contact flagged as the primary contact (unless there are no contacts)
+  * If there is only one contact, that lone contact will automatically become the primary contact
+  * If a user is adding two contacts (going from zero to two), the form will now require they pick one as the primary
+  * If a user tries to delete the current primary, they will need to select a new primary unless there are no more contacts
+  * This change improves consistency and will allow reports to reliably reference the primary contact
+
+## [6.2.7] - 9 March 2026
+
+### Added
+
+* Added the option to set a default CVSS calculator version in the global report configuration
+* Each user's last selected CVSS version is now tracked in their browser's local storage
+  * This selection will take priority over the global default selection
+
+### Fixed
+
+* Fixed user profile pictures appearing distorted when the uploaded image is not a square
+
+## [6.2.6] - 5 March 2026
+
+### Added
+
+* Added a "Download" link to the admin console for models with a file field — report templates, user profiles, and evidence
+
+### Changed
+
+* Updated PowerPoint slide generation to attempt to intelligently adjust for different slide layouts (Fixes #836)
+  * If shape indices are non-sequential (can happen when shapes are deleted), Ghostwriter will fallback to searching
+  * If there are multiple placeholders, it will try to find the first with the content type (7 or 17)
+  * Ghostwriter now uses the final layout for the final slide instead of expecting it at position 12
+
+### Fixed
+
+* Fixed file field links in the admin console returning a 404 Not Found after recent changes to media links (Fixes #837)
+
+## [6.2.5] - 3 March 2026
+
+### Changed
+
+* Changed PowerPoint title slide generation to detect subtitle placeholders for more intelligent subtitle placement
+* Document type is now a required field for the report template form to prevent issues with that field being forgotten
+
+### Fixed
+
+* Fixed PowerPoint generation failing with some templates when slide layout content did not match expectation (Fixes #836)
+* Fixed domain and server history not properly showing the "Checked Out By" column
+* Fixed updating a domain or server checkout setting the user value to null
+* Fixed some contrast issues with the objectives table and dark mode
+
 ## [6.2.4] - 24 February 2026
 
 ### Added

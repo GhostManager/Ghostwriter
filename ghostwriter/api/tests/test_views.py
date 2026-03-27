@@ -607,10 +607,11 @@ class HasuraCheckoutTests(TestCase):
         cls.other_project = ProjectFactory()
         cls.assignment = ProjectAssignmentFactory(operator=cls.user, project=cls.project)
 
+        cls.domain_available = DomainStatusFactory(domain_status="Available")
         cls.domain_unavailable = DomainStatusFactory(domain_status="Unavailable")
-        cls.domain = DomainFactory()
+        cls.domain = DomainFactory(domain_status=cls.domain_available)
         cls.unavailable_domain = DomainFactory(domain_status=cls.domain_unavailable)
-        cls.expired_domain = DomainFactory(expiration=timezone.now() - timedelta(days=1))
+        cls.expired_domain = DomainFactory(expiration=timezone.now() - timedelta(days=1), domain_status=cls.domain_available)
 
         cls.server_unavailable = ServerStatusFactory(server_status="Unavailable")
         cls.server = StaticServerFactory()

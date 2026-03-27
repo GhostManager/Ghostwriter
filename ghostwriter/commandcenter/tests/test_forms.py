@@ -58,6 +58,7 @@ class ReportConfigurationFormTests(TestCase):
         title_case_captions=None,
         title_case_exceptions=None,
         target_delivery_date=None,
+        default_cvss_version=None,
         **kwargs,
     ):
         return ReportConfigurationForm(
@@ -78,6 +79,7 @@ class ReportConfigurationFormTests(TestCase):
                 "title_case_captions": title_case_captions,
                 "title_case_exceptions": title_case_exceptions,
                 "target_delivery_date": target_delivery_date,
+                "default_cvss_version": default_cvss_version,
             },
         )
 

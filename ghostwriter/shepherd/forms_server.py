@@ -427,7 +427,7 @@ class ServerCheckoutForm(forms.ModelForm):
 
     class Meta:
         model = ServerHistory
-        fields = "__all__"
+        exclude = ("operator",)
         widgets = {
             "server": forms.HiddenInput(),
             "start_date": forms.DateInput(
