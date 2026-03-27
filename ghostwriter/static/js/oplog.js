@@ -1384,8 +1384,28 @@ $(document).ready(function () {
 
     // --- Export ---
     $('#exportEntries').click(function () {
-        let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
+        // Open modal with a clean set of export options each time.
+        $('#export-recordings').prop('checked', false);
+        $('#export-evidence').prop('checked', false);
+        $('#export-modal').modal('show');
+    });
+
+    $('#exportModalDownload').click(function () {
+        let includeRecordings = $('#export-recordings').prop('checked');
+        let includeEvidence = $('#export-evidence').prop('checked');
+        let includeParts = [];
+        if (includeRecordings) includeParts.push('recordings');
+        if (includeEvidence) includeParts.push('evidence');
+        let includeParam = includeParts.join(',');
+
+        let filenameExt = includeParam ? 'zip' : 'csv';
+        let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.' + filenameExt);
         let export_url = $splitContainer.attr('data-oplog-export-url');
+        if (includeParam) {
+            export_url += '?include=' + encodeURIComponent(includeParam);
+        }
+        // Close modal then initiate download
+        $('#export-modal').modal('hide');
         download(export_url, filename);
     });
 

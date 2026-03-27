@@ -176,6 +176,37 @@
       </div>
   </div>
 
+  <!-- Export Modal -->
+  <div id="export-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="exportModalLabel"><i class="fas fa-file-archive mr-2"></i> Export Entries</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="modal-body">
+                  <p>Select what to include with the export. If no attachments are selected, a plain CSV will be returned.</p>
+                  <div class="form-group">
+                      <div class="custom-control custom-checkbox">
+                          <input type="checkbox" class="custom-control-input" id="export-recordings">
+                          <label class="custom-control-label" for="export-recordings">Include terminal recordings</label>
+                      </div>
+                      <div class="custom-control custom-checkbox mt-2">
+                          <input type="checkbox" class="custom-control-input" id="export-evidence">
+                          <label class="custom-control-label" for="export-evidence">Include linked evidence files</label>
+                      </div>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button id="exportModalDownload" type="button" class="btn btn-primary">Download</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
   {{ oplog_entry_extra_fields_spec_ser|json_script:"oplog_entry_extra_fields_spec" }}
 
   <!-- Oplog Help Modal -->

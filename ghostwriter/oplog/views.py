@@ -3,10 +3,15 @@
 # Standard Libraries
 import collections
 import csv
+from datetime import datetime
+import io
 import json
 import logging
 import mimetypes
 import os
+import tempfile
+import zipfile
+from itertools import count
 
 # Django Imports
 from django.contrib import messages
@@ -637,6 +642,8 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Export the :oplog:`oplog.Entries` for an individual :model:`oplog.Oplog` in a csv format."""
 
     model = Oplog
+    valid_include_values = {"recordings", "evidence", "all"}
+    attachment_chunk_size = 1024 * 1024
 
     def test_func(self):
         return self.get_object().user_can_view(self.request.user)
@@ -645,39 +652,181 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("oplog:index")
 
+    def _write_file_to_zip(self, zf, field_file, arcname):
+        """Write a storage-backed file into the ZIP without reading the whole file into memory."""
+        try:
+            path = field_file.path
+            if os.path.exists(path):
+                zf.write(path, arcname)
+                return True
+        except Exception:
+            pass
+
+        try:
+            field_file.open("rb")
+            with zf.open(arcname, "w") as zip_member:
+                for chunk in field_file.chunks(self.attachment_chunk_size):
+                    zip_member.write(chunk)
+            return True
+        finally:
+            try:
+                field_file.close()
+            except Exception:
+                pass
+
+    @staticmethod
+    def _next_arcname(directory, entry_id, basename, used_names):
+        """Generate a unique archive name for an attachment inside the ZIP."""
+        stem, ext = os.path.splitext(basename)
+        for index in count():
+            suffix = "" if index == 0 else f"_{index}"
+            arcname = f"{directory}/{entry_id}_{stem}{suffix}{ext}"
+            if arcname not in used_names:
+                used_names.add(arcname)
+                return arcname
+
     def get(self, *args, **kwargs):
         obj = self.get_object()
 
-        queryset = obj.entries.all()
+        # Determine whether attachments should be included. Accepted values:
+        # - no param / empty: CSV only (existing behavior)
+        # - include=recordings
+        # - include=evidence
+        # - include=all
+        include_param = (self.request.GET.get("include") or "").lower()
+        include_set = {p.strip() for p in include_param.split(",") if p.strip()}
+        invalid_include_values = include_set - self.valid_include_values
+        if invalid_include_values:
+            invalid_options = ", ".join(sorted(invalid_include_values))
+            return HttpResponse(
+                f"Invalid include value(s): {invalid_options}",
+                status=400,
+                content_type="text/plain",
+            )
+
+        queryset = obj.entries.select_related("recording").prefetch_related("tags", "evidence_links__evidence")
         opts = queryset.model._meta
 
-        response = HttpResponse(content_type="text/csv")
-        add_content_disposition_header(response, f"{obj.name}.csv")
-
-        writer = csv.writer(response)
+        # Prepare CSV data into memory (small) for inclusion in ZIP
         field_names = [field.name for field in opts.fields]
-        field_names.remove("id")
-
+        if "id" in field_names:
+            field_names.remove("id")
         # Add the tags field to the list of fields
-        field_names.append("tags")
+        if "tags" not in field_names:
+            field_names.append("tags")
 
-        # Write the headers to the csv file
-        writer.writerow(field_names)
+        # If no attachments requested, return original CSV response for compatibility
+        if not include_set:
+            response = HttpResponse(content_type="text/csv")
+            add_content_disposition_header(response, f"{obj.name}.csv")
+            writer = csv.writer(response)
+            writer.writerow(field_names)
+            for entry in queryset:
+                tag_names = ", ".join(tag.name for tag in entry.tags.all())
+                values = []
+                for field in field_names:
+                    if field == "oplog_id":
+                        values.append(getattr(entry, field).id)
+                    elif field == "tags":
+                        values.append(tag_names)
+                    else:
+                        values.append(getattr(entry, field))
+                writer.writerow(values)
+            return response
 
-        for obj in queryset:
-            values = []
-            for field in field_names:
-                # Special case for oplog_id to write the ID of the oplog instead of the object
-                if field == "oplog_id":
-                    values.append(getattr(obj, field).id)
-                # Special case for tags to write a comma-separated list of tag names
-                elif field == "tags":
-                    values.append(", ".join([tag.name for tag in obj.tags.all()]))
-                else:
-                    values.append(getattr(obj, field))
-            writer.writerow(values)
+        # Build the ZIP in a spooled temp file so small exports stay in memory and
+        # larger ones spill to disk without buffering every attachment in RAM.
+        tmp = tempfile.SpooledTemporaryFile(max_size=50 * 1024 * 1024, mode="w+b")
+        manifest = {"generated_at": datetime.utcnow().isoformat() + "Z", "entries": {}}
+        attachments_map = {}
+        used_archive_names = set()
+        try:
+            with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                # First pass: collect and add attachment files, record filenames per entry
+                for entry in queryset:
+                    attachments_map[str(entry.id)] = {"recordings": [], "evidence": []}
+                    # Recordings
+                    if "recordings" in include_set or "all" in include_set:
+                        try:
+                            rec = entry.recording
+                            if rec.recording_file:
+                                fname = os.path.basename(rec.recording_file.name)
+                                arcname = self._next_arcname("recordings", entry.id, fname, used_archive_names)
+                                try:
+                                    self._write_file_to_zip(zf, rec.recording_file, arcname)
+                                except Exception:
+                                    logger.exception("Could not include recording for entry %s", entry.id)
+                                    continue
+                                attachments_map[str(entry.id)]["recordings"].append(arcname)
+                        except OplogEntryRecording.DoesNotExist:
+                            pass
 
-        return response
+                    # Evidence files
+                    if "evidence" in include_set or "all" in include_set:
+                        links = entry.evidence_links.all()
+                        for link in links:
+                            ev = link.evidence
+                            if ev.document:
+                                fname = os.path.basename(ev.document.name)
+                                arcname = self._next_arcname("evidence", entry.id, fname, used_archive_names)
+                                try:
+                                    self._write_file_to_zip(zf, ev.document, arcname)
+                                except Exception:
+                                    logger.exception(
+                                        "Could not include evidence %s for entry %s",
+                                        getattr(ev, "pk", "?"),
+                                        entry.id,
+                                    )
+                                    continue
+                                attachments_map[str(entry.id)]["evidence"].append(arcname)
+
+                    if attachments_map[str(entry.id)]["recordings"] or attachments_map[str(entry.id)]["evidence"]:
+                        manifest["entries"][str(entry.id)] = {
+                            "recordings": attachments_map[str(entry.id)]["recordings"],
+                            "evidence": attachments_map[str(entry.id)]["evidence"],
+                        }
+
+                # After attachments are added, build CSV text including attachment columns
+                # Extend field_names with attachment columns when relevant
+                if "recordings" in include_set or "all" in include_set:
+                    if "recordings" not in field_names:
+                        field_names.append("recordings")
+                if "evidence" in include_set or "all" in include_set:
+                    if "evidence" not in field_names:
+                        field_names.append("evidence")
+
+                csv_buf = io.StringIO()
+                csv_writer = csv.writer(csv_buf)
+                csv_writer.writerow(field_names)
+                for entry in queryset:
+                    tag_names = ", ".join(tag.name for tag in entry.tags.all())
+                    values = []
+                    for field in field_names:
+                        if field == "oplog_id":
+                            values.append(getattr(entry, field).id)
+                        elif field == "tags":
+                            values.append(tag_names)
+                        elif field == "recordings":
+                            values.append(", ".join(attachments_map.get(str(entry.id), {}).get("recordings", [])))
+                        elif field == "evidence":
+                            values.append(", ".join(attachments_map.get(str(entry.id), {}).get("evidence", [])))
+                        else:
+                            values.append(getattr(entry, field))
+                    csv_writer.writerow(values)
+                zf.writestr(f"{obj.name}.csv", csv_buf.getvalue().encode("utf-8"))
+
+                # Add manifest.json for mapping and metadata
+                zf.writestr("manifest.json", json.dumps(manifest, indent=2))
+
+            # Rewind temp file and return it as a response body
+            tmp.seek(0)
+            zip_name = f"{obj.name}_attachments.zip"
+            response = FileResponse(tmp, as_attachment=True, filename=zip_name, content_type="application/zip")
+            return response
+        except Exception:
+            logger.exception("Failed while creating ZIP export for oplog %s", obj.id)
+            tmp.close()
+            raise
 
 
 class OplogEvidenceCreate(RoleBasedAccessControlMixin, View):

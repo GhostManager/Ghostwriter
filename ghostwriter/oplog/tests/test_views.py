@@ -1,10 +1,14 @@
 # Standard Libraries
 import csv
+import io
+import json
 import logging
 import os
+import zipfile
 from datetime import datetime
 
 # Django Imports
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.contrib.messages import get_messages
 from django.urls import reverse
@@ -615,6 +619,23 @@ class OplogExportViewTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
+    def _get_zip_export(self, include):
+        response = self.client_mgr.get(f"{self.uri}?include={include}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("Content-Type"), "application/zip")
+        return response, zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content)))
+
+    def _assert_single_csv_file(self, zf):
+        self.assertIn("manifest.json", zf.namelist())
+        csv_files = [name for name in zf.namelist() if name.endswith(".csv")]
+        self.assertEqual(len(csv_files), 1)
+        return csv_files[0]
+
+    def _read_zip_csv(self, zf, csv_name):
+        with zf.open(csv_name) as csv_file:
+            reader = csv.DictReader(io.TextIOWrapper(csv_file, encoding="utf-8"))
+            return reader.fieldnames, list(reader)
+
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -630,6 +651,144 @@ class OplogExportViewTests(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_csv_only_export(self):
+        """GET without ?include returns a plain CSV with no attachment columns."""
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("Content-Type"), "text/csv")
+        content = response.content.decode("utf-8")
+        reader = csv.DictReader(io.StringIO(content))
+        self.assertIsNotNone(reader.fieldnames)
+        self.assertNotIn("recordings", reader.fieldnames)
+        self.assertNotIn("evidence", reader.fieldnames)
+        self.assertIn("oplog_id", reader.fieldnames)
+        self.assertIn("tags", reader.fieldnames)
+        rows = list(reader)
+        self.assertEqual(len(rows), 5)
+
+    def test_export_rejects_invalid_include_values(self):
+        """GET with an unsupported include value returns HTTP 400."""
+        response = self.client_mgr.get(f"{self.uri}?include=recording")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get("Content-Type"), "text/plain")
+        self.assertIn("Invalid include value(s): recording", force_str(response.content))
+
+    def test_export_with_recordings(self):
+        """GET with ?include=recordings returns a ZIP whose CSV has a recordings column."""
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        recording = OplogEntryRecordingFactory(oplog_entry=entry)
+
+        _, zf = self._get_zip_export("recordings")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+            archive_names = zf.namelist()
+            recording_files = [name for name in archive_names if name.startswith("recordings/")]
+            self.assertEqual(len(recording_files), 1)
+            self.assertFalse(any(name.startswith("evidence/") for name in archive_names))
+
+            expected_recording_name = f"recordings/{entry.id}_{os.path.basename(recording.recording_file.name)}"
+            self.assertIn(expected_recording_name, recording_files)
+
+            fieldnames, rows = self._read_zip_csv(zf, csv_name)
+            self.assertIn("recordings", fieldnames)
+            self.assertNotIn("evidence", fieldnames)
+            self.assertEqual(len(rows), 5)
+
+            row = next(row for row in rows if row["entry_identifier"] == entry.entry_identifier)
+            self.assertEqual(row["recordings"], expected_recording_name)
+
+            manifest = json.loads(zf.read("manifest.json"))
+            self.assertEqual(manifest["entries"][str(entry.id)]["recordings"], [expected_recording_name])
+            self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], [])
+
+    def test_export_with_evidence(self):
+        """GET with ?include=evidence returns a ZIP whose CSV has an evidence column."""
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        evidence = EvidenceOnReportFactory()
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
+
+        _, zf = self._get_zip_export("evidence")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+            archive_names = zf.namelist()
+            evidence_files = [name for name in archive_names if name.startswith("evidence/")]
+            self.assertEqual(len(evidence_files), 1)
+            self.assertFalse(any(name.startswith("recordings/") for name in archive_names))
+
+            expected_evidence_name = f"evidence/{entry.id}_{os.path.basename(evidence.document.name)}"
+            self.assertIn(expected_evidence_name, evidence_files)
+
+            fieldnames, rows = self._read_zip_csv(zf, csv_name)
+            self.assertNotIn("recordings", fieldnames)
+            self.assertIn("evidence", fieldnames)
+            self.assertEqual(len(rows), 5)
+
+            row = next(row for row in rows if row["entry_identifier"] == entry.entry_identifier)
+            self.assertEqual(row["evidence"], expected_evidence_name)
+
+            manifest = json.loads(zf.read("manifest.json"))
+            self.assertEqual(manifest["entries"][str(entry.id)]["recordings"], [])
+            self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], [expected_evidence_name])
+
+    def test_export_with_recordings_and_evidence(self):
+        """GET with ?include=recordings,evidence includes both columns and both file folders."""
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        recording = OplogEntryRecordingFactory(oplog_entry=entry)
+        evidence = EvidenceOnReportFactory()
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
+
+        _, zf = self._get_zip_export("recordings,evidence")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+            archive_names = zf.namelist()
+            recording_files = [name for name in archive_names if name.startswith("recordings/")]
+            evidence_files = [name for name in archive_names if name.startswith("evidence/")]
+            self.assertEqual(len(recording_files), 1)
+            self.assertEqual(len(evidence_files), 1)
+
+            expected_recording_name = f"recordings/{entry.id}_{os.path.basename(recording.recording_file.name)}"
+            expected_evidence_name = f"evidence/{entry.id}_{os.path.basename(evidence.document.name)}"
+            self.assertIn(expected_recording_name, recording_files)
+            self.assertIn(expected_evidence_name, evidence_files)
+
+            fieldnames, rows = self._read_zip_csv(zf, csv_name)
+            self.assertIn("recordings", fieldnames)
+            self.assertIn("evidence", fieldnames)
+            self.assertEqual(len(rows), 5)
+
+            row = next(row for row in rows if row["entry_identifier"] == entry.entry_identifier)
+            self.assertEqual(row["recordings"], expected_recording_name)
+            self.assertEqual(row["evidence"], expected_evidence_name)
+
+            manifest = json.loads(zf.read("manifest.json"))
+            self.assertEqual(manifest["entries"][str(entry.id)]["recordings"], [expected_recording_name])
+            self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], [expected_evidence_name])
+
+    def test_export_with_duplicate_evidence_filenames_uses_unique_archive_names(self):
+        """Evidence files with the same basename should not overwrite each other in the ZIP."""
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        evidence_one = EvidenceOnReportFactory(document=SimpleUploadedFile("duplicate.txt", b"first"))
+        evidence_two = EvidenceOnReportFactory(document=SimpleUploadedFile("duplicate.txt", b"second"))
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence_one)
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence_two)
+
+        _, zf = self._get_zip_export("evidence")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+            evidence_files = sorted(name for name in zf.namelist() if name.startswith("evidence/"))
+            self.assertEqual(
+                evidence_files,
+                [f"evidence/{entry.id}_duplicate.txt", f"evidence/{entry.id}_duplicate_1.txt"],
+            )
+
+            fieldnames, rows = self._read_zip_csv(zf, csv_name)
+            self.assertIn("evidence", fieldnames)
+            row = next(row for row in rows if row["entry_identifier"] == entry.entry_identifier)
+            self.assertEqual(row["evidence"], ", ".join(evidence_files))
+
+            manifest = json.loads(zf.read("manifest.json"))
+            self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], evidence_files)
 
 
 class OplogSanitizeViewTests(TestCase):
