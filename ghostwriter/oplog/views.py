@@ -644,6 +644,9 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Oplog
     valid_include_values = {"recordings", "evidence", "all"}
     attachment_chunk_size = 1024 * 1024
+    recoverable_attachment_errors = (OSError, RuntimeError, TypeError, ValueError)
+    path_lookup_errors = (AttributeError, NotImplementedError, OSError, TypeError, ValueError)
+    close_errors = (AttributeError, OSError, ValueError)
 
     def test_func(self):
         return self.get_object().user_can_view(self.request.user)
@@ -659,7 +662,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             if os.path.exists(path):
                 zf.write(path, arcname)
                 return True
-        except Exception:
+        except self.path_lookup_errors:
             pass
 
         try:
@@ -671,7 +674,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         finally:
             try:
                 field_file.close()
-            except Exception:
+            except self.close_errors:
                 pass
 
     @staticmethod
@@ -736,6 +739,8 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
         # Build the ZIP in a spooled temp file so small exports stay in memory and
         # larger ones spill to disk without buffering every attachment in RAM.
+        # Do not wrap this in ``with``: FileResponse needs the file handle to remain
+        # open after this method returns so Django can stream it to the client.
         tmp = tempfile.SpooledTemporaryFile(max_size=50 * 1024 * 1024, mode="w+b")
         manifest = {"generated_at": datetime.utcnow().isoformat() + "Z", "entries": {}}
         attachments_map = {}
@@ -754,7 +759,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                                 arcname = self._next_arcname("recordings", entry.id, fname, used_archive_names)
                                 try:
                                     self._write_file_to_zip(zf, rec.recording_file, arcname)
-                                except Exception:
+                                except self.recoverable_attachment_errors:
                                     logger.exception("Could not include recording for entry %s", entry.id)
                                     continue
                                 attachments_map[str(entry.id)]["recordings"].append(arcname)
@@ -771,7 +776,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                                 arcname = self._next_arcname("evidence", entry.id, fname, used_archive_names)
                                 try:
                                     self._write_file_to_zip(zf, ev.document, arcname)
-                                except Exception:
+                                except self.recoverable_attachment_errors:
                                     logger.exception(
                                         "Could not include evidence %s for entry %s",
                                         getattr(ev, "pk", "?"),
