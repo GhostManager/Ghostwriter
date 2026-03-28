@@ -83,14 +83,18 @@
     }
 
     function gwRefreshTinyMceLayout(editor) {
-        if (!editor || editor.removed) {
+        if (!editor || editor.removed || !editor.initialized || !editor.getBody()) {
             return;
         }
 
         gwApplyTinyMceTheme(editor);
 
         if (typeof editor.execCommand === 'function') {
-            editor.execCommand('mceAutoResize');
+            window.requestAnimationFrame(function () {
+                if (!editor.removed && editor.initialized && editor.getBody()) {
+                    editor.execCommand('mceAutoResize');
+                }
+            });
         }
     }
 
@@ -350,7 +354,7 @@
                 gwObserveTinyMceTheme();
             });
 
-            editor.on('SetContent ResizeEditor focus', function () {
+            editor.on('SetContent ResizeEditor', function () {
                 gwScheduleTinyMceLayoutRefresh(editor);
             });
         },
