@@ -45,12 +45,12 @@
     }
 
     function gwGetTinyMceSkin() {
-        return gwGetTinyMceTheme() === 'dark' ? 'oxide-dark' : 'Ghostwriter';
+        return gwGetTinyMceTheme() === 'dark' ? 'GhostwriterDark' : 'Ghostwriter';
     }
 
     function gwGetTinyMceContentCss() {
         const tinyContentCss = gwGetTinyMceTheme() === 'dark'
-            ? '/static/js/tinymce/skins/content/dark/content.min.css'
+            ? '/static/js/tinymce/skins/content/GhostwriterDark/content.min.css'
             : '/static/js/tinymce/skins/content/default/content.min.css';
 
         return [tinyContentCss, '/static/css/wysiwyg_styles.css'];
