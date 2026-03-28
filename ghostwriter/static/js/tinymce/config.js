@@ -287,7 +287,6 @@
         browser_spellcheck: true,
         resize: true,
         content_style: `
-            body.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before { color: #999; opacity: 1; }
             .left { text-align: left; }
             img.left { float: left; }
             table.left { float: left; }
