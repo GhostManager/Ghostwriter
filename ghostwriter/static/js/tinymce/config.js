@@ -144,9 +144,48 @@
         });
     }
 
+    function gwIsTinyMceEditorVisible(editor) {
+        if (!editor || editor.removed) {
+            return false;
+        }
+
+        const container = editor.getContainer();
+        if (!container) {
+            return false;
+        }
+
+        return !!(container.offsetWidth || container.offsetHeight || container.getClientRects().length);
+    }
+
+    function gwEditorNeedsThemeReinit(editor) {
+        if (!editor || editor.removed) {
+            return false;
+        }
+
+        const nextThemeConfig = gwGetTinyMceThemeConfig({});
+        const currentContentCss = Array.isArray(editor.settings.content_css)
+            ? editor.settings.content_css.join('|')
+            : editor.settings.content_css;
+        const nextContentCss = Array.isArray(nextThemeConfig.content_css)
+            ? nextThemeConfig.content_css.join('|')
+            : nextThemeConfig.content_css;
+
+        return editor.settings.skin !== nextThemeConfig.skin || currentContentCss !== nextContentCss;
+    }
+
     function gwReinitializeTinyMceEditor(editor) {
         if (!editor || editor.removed || !editor.targetElm) {
             return;
+        }
+
+        const wasFocused = typeof editor.hasFocus === 'function' && editor.hasFocus();
+        let bookmark = null;
+        if (wasFocused && editor.selection) {
+            try {
+                bookmark = editor.selection.getBookmark(2, true);
+            } catch (error) {
+                bookmark = null;
+            }
         }
 
         editor.save();
@@ -156,6 +195,24 @@
             target: editor.targetElm,
         };
         delete settings.selector;
+
+        const existingInitInstanceCallback = settings.init_instance_callback;
+        settings.init_instance_callback = function (newEditor) {
+            if (typeof existingInitInstanceCallback === 'function') {
+                existingInitInstanceCallback(newEditor);
+            }
+
+            if (wasFocused) {
+                newEditor.focus();
+                if (bookmark && newEditor.selection) {
+                    try {
+                        newEditor.selection.moveToBookmark(bookmark);
+                    } catch (error) {
+                        // Ignore selection restore failures and leave the editor focused.
+                    }
+                }
+            }
+        };
 
         editor.remove();
         tinymce.init(settings);
@@ -184,7 +241,9 @@
 
                 gwObservedTinyMceTheme = nextTheme;
                 tinymce.editors.slice().forEach(function (editor) {
-                    gwReinitializeTinyMceEditor(editor);
+                    if (gwEditorNeedsThemeReinit(editor) && (gwIsTinyMceEditorVisible(editor) || editor.hasFocus())) {
+                        gwReinitializeTinyMceEditor(editor);
+                    }
                 });
             });
         });
@@ -548,6 +607,10 @@
 
     $(document).on('shown.bs.modal shown.bs.tab shown.bs.collapse', function () {
         tinymce.editors.forEach(function (editor) {
+            if (gwEditorNeedsThemeReinit(editor) && gwIsTinyMceEditorVisible(editor)) {
+                gwReinitializeTinyMceEditor(editor);
+                return;
+            }
             gwScheduleTinyMceLayoutRefresh(editor);
         });
     });
