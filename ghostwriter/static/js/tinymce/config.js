@@ -277,6 +277,7 @@
         max_height: window_height - 250,
         min_height: 160,
         autoresize_bottom_margin: 10,
+        autoresize_on_init: false,
         toolbar_mode: 'floating',
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
         toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | richcode codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
@@ -437,12 +438,9 @@
             });
 
             editor.on('init', function () {
+                gwApplyTinyMceTheme(editor);
                 gwScheduleTinyMceLayoutRefresh(editor);
                 gwObserveTinyMceTheme();
-            });
-
-            editor.on('SetContent ResizeEditor', function () {
-                gwScheduleTinyMceLayoutRefresh(editor);
             });
 
             editor.on('remove', function () {
@@ -605,7 +603,7 @@
     }
     $(tinyInit);
 
-    $(document).on('shown.bs.modal shown.bs.tab shown.bs.collapse', function () {
+    $(document).on('shown.bs.modal shown.bs.collapse', function () {
         tinymce.editors.forEach(function (editor) {
             if (gwEditorNeedsThemeReinit(editor) && gwIsTinyMceEditorVisible(editor)) {
                 gwReinitializeTinyMceEditor(editor);
