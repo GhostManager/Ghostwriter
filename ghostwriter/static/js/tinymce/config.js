@@ -64,6 +64,8 @@
         };
     }
 
+    window.gwGetTinyMceThemeConfig = gwGetTinyMceThemeConfig;
+
     function gwApplyTinyMceTheme(editor) {
         if (!editor || editor.removed) {
             return;
