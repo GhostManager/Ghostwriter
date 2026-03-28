@@ -610,6 +610,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         }
         field_classes = {
             "description": JinjaRichTextField,
+            "result": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -622,6 +623,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["description"].widget.attrs[
             "placeholder"
         ] = "The task is to escalate privileges to a domain admin and..."
+        self.fields["result"].widget.attrs["placeholder"] = "Document the outcome, evidence, or result of this objective..."
         self.fields["priority"].empty_label = "-- Prioritize Objective --"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`

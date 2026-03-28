@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.10] - 27 March 2026
+
+### Changed
+
+* Updated TinyMCE to work better with Ghostwriter's dark mode using a new dark-mode skin
+
+### Fixed
+
+* Fixed TinyMCE editors not initiating correctly for the "Results" field on objectives when adding new forms
+* Fixed TinyMCE editors sometimes appearing with a very short height and needing to be resized
+
 ## [6.2.9] - 23 March 2026
 
 ### Changed
