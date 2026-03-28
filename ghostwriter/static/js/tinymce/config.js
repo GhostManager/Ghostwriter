@@ -154,8 +154,8 @@
         const settings = {
             ...gwGetTinyMceThemeConfig(editor.settings),
             target: editor.targetElm,
-            selector: undefined,
         };
+        delete settings.selector;
 
         editor.remove();
         tinymce.init(settings);
