@@ -6,6 +6,6 @@
 ----------------------------------------------------- */
 
 .mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before {
-  color: var(--primary-color);
+  color: #aaa;
   opacity: 0.75;
 }
