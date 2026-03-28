@@ -89,10 +89,16 @@
             return;
         }
 
+        if (editor._gwTinyMceRefreshRafId) {
+            window.cancelAnimationFrame(editor._gwTinyMceRefreshRafId);
+            editor._gwTinyMceRefreshRafId = null;
+        }
+
         gwApplyTinyMceTheme(editor);
 
         if (typeof editor.execCommand === 'function') {
-            window.requestAnimationFrame(function () {
+            editor._gwTinyMceRefreshRafId = window.requestAnimationFrame(function () {
+                editor._gwTinyMceRefreshRafId = null;
                 if (!editor.removed && editor.initialized && editor.getBody()) {
                     editor.execCommand('mceAutoResize');
                 }
@@ -100,22 +106,42 @@
         }
     }
 
+    function gwClearTinyMceRefreshTimers(editor) {
+        if (!editor) {
+            return;
+        }
+
+        if (editor._gwTinyMceRefreshScheduleRafId) {
+            window.cancelAnimationFrame(editor._gwTinyMceRefreshScheduleRafId);
+            editor._gwTinyMceRefreshScheduleRafId = null;
+        }
+
+        if (editor._gwTinyMceRefreshTimeoutIds) {
+            editor._gwTinyMceRefreshTimeoutIds.forEach(function (timeoutId) {
+                window.clearTimeout(timeoutId);
+            });
+        }
+
+        editor._gwTinyMceRefreshTimeoutIds = [];
+    }
+
     function gwScheduleTinyMceLayoutRefresh(editor) {
         if (!editor || editor.removed) {
             return;
         }
 
-        window.requestAnimationFrame(function () {
+        gwClearTinyMceRefreshTimers(editor);
+
+        editor._gwTinyMceRefreshScheduleRafId = window.requestAnimationFrame(function () {
+            editor._gwTinyMceRefreshScheduleRafId = null;
             gwRefreshTinyMceLayout(editor);
         });
 
-        window.setTimeout(function () {
-            gwRefreshTinyMceLayout(editor);
-        }, 100);
-
-        window.setTimeout(function () {
-            gwRefreshTinyMceLayout(editor);
-        }, 300);
+        editor._gwTinyMceRefreshTimeoutIds = [100, 300].map(function (delay) {
+            return window.setTimeout(function () {
+                gwRefreshTinyMceLayout(editor);
+            }, delay);
+        });
     }
 
     function gwReinitializeTinyMceEditor(editor) {
@@ -358,6 +384,14 @@
 
             editor.on('SetContent ResizeEditor', function () {
                 gwScheduleTinyMceLayoutRefresh(editor);
+            });
+
+            editor.on('remove', function () {
+                gwClearTinyMceRefreshTimers(editor);
+                if (editor._gwTinyMceRefreshRafId) {
+                    window.cancelAnimationFrame(editor._gwTinyMceRefreshRafId);
+                    editor._gwTinyMceRefreshRafId = null;
+                }
             });
         },
         paste_preprocess: function(_, event) {
