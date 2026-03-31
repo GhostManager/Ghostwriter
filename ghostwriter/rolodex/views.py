@@ -2,10 +2,14 @@
 
 # Standard Libraries
 import datetime
+import io
 import json
 import logging
 import mimetypes
 import os
+import re
+import zipfile
+from pathlib import Path
 from urllib.parse import urlparse
 
 # Django Imports
@@ -21,7 +25,8 @@ from django.http import (
     HttpResponse,
     HttpResponseRedirect,
     FileResponse,
-    JsonResponse
+    JsonResponse,
+    StreamingHttpResponse,
 )
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -82,6 +87,8 @@ from ghostwriter.rolodex.models import (
     ObjectiveStatus,
     Project,
     ProjectAssignment,
+    ProjectCollabNote,
+    ProjectCollabNoteField,
     ProjectContact,
     ProjectInvite,
     ProjectNote,
@@ -2287,6 +2294,188 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
+
+
+class NoteImageUploadForm(forms.Form):
+    """Django form for validating image uploads to collab note fields."""
+
+    image = forms.ImageField(
+        help_text="Image file (PNG, JPG, GIF, WebP, max 10 MB)",
+    )
+
+    def clean_image(self):
+        image = self.cleaned_data["image"]
+        allowed_types = {"image/png", "image/jpeg", "image/gif", "image/webp"}
+        if image.content_type not in allowed_types:
+            raise forms.ValidationError(
+                f"Invalid file type: {image.content_type}. "
+                "Allowed types: png, jpg, gif, webp"
+            )
+        max_size = 10 * 1024 * 1024
+        if image.size > max_size:
+            raise forms.ValidationError(
+                f"File too large: {image.size / 1024 / 1024:.1f} MB. Maximum: 10 MB"
+            )
+        return image
+
+
+@login_required
+def ajax_upload_note_field_image(request, pk, field_pk=None):
+    """
+    Upload an image for a :model:`rolodex.ProjectCollabNoteField`.
+
+    If ``field_pk`` is provided, updates an existing image field.
+    Otherwise, creates a new image field attached to the specified note.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"result": "error", "message": "Invalid request method"}, status=405
+        )
+
+    try:
+        note = get_object_or_404(ProjectCollabNote, pk=pk)
+        if not note.user_can_edit(request.user):
+            return ForbiddenJsonResponse()
+
+        form = NoteImageUploadForm(request.POST, request.FILES)
+        if not form.is_valid():
+            errors = form.errors.as_text()
+            return JsonResponse(
+                {"result": "error", "message": errors}, status=400
+            )
+
+        image_file = form.cleaned_data["image"]
+
+        if field_pk is not None:
+            field = get_object_or_404(
+                ProjectCollabNoteField, pk=field_pk, note=note
+            )
+            if field.field_type != "image":
+                return JsonResponse(
+                    {"result": "error", "message": "Field is not an image field"},
+                    status=400,
+                )
+            field.image = image_file
+            field.save()
+            image_url = request.build_absolute_uri(field.image.url)
+
+            logger.info(
+                "User %s uploaded image to existing field %s for note %s",
+                request.user, field.id, note.id,
+            )
+            return JsonResponse({"result": "success", "imageUrl": image_url})
+
+        max_position = (
+            ProjectCollabNoteField.objects.filter(note=note)
+            .order_by("-position")
+            .values_list("position", flat=True)
+            .first()
+        ) or 0
+
+        field = ProjectCollabNoteField.objects.create(
+            note=note,
+            field_type="image",
+            image=image_file,
+            position=max_position + 1,
+        )
+        image_url = request.build_absolute_uri(field.image.url)
+
+        logger.info(
+            "User %s uploaded image field %s for note %s",
+            request.user, field.id, note.id,
+        )
+        return JsonResponse({
+            "result": "success",
+            "id": field.id,
+            "imageUrl": image_url,
+            "position": field.position,
+        })
+
+    except Exception:
+        logger.exception("Failed to upload image for note %s", pk)
+        return JsonResponse(
+            {"result": "error", "message": "Failed to upload image"}, status=500
+        )
+
+
+def _sanitize_filename(name):
+    """Sanitize a string for use as a filename."""
+    sanitized = re.sub(r'[<>:"/\\|?*]', "_", name)
+    sanitized = re.sub(r"_+", "_", sanitized)
+    sanitized = sanitized.strip(" _")
+    if len(sanitized) > 200:
+        sanitized = sanitized[:200]
+    return sanitized or "untitled"
+
+
+@login_required
+def export_collab_notes_zip(request, pk):
+    """Export all collab notes for a project as a streaming ZIP response."""
+    from markdownify import markdownify as md
+
+    project = get_object_or_404(Project, pk=pk)
+
+    if not project.user_can_edit(request.user):
+        return ForbiddenJsonResponse()
+
+    notes = ProjectCollabNote.objects.filter(project=project).prefetch_related("fields")
+
+    notes_by_parent = {}
+    for note in notes:
+        notes_by_parent.setdefault(note.parent_id, []).append(note)
+    for parent_id in notes_by_parent:
+        notes_by_parent[parent_id].sort(key=lambda n: n.position)
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        def process_node(note, path_prefix=""):
+            safe_title = _sanitize_filename(note.title)
+            if note.node_type == "folder":
+                folder_path = f"{path_prefix}{safe_title}/"
+                for child in notes_by_parent.get(note.id, []):
+                    process_node(child, folder_path)
+            else:
+                md_content = f"# {note.title}\n\n"
+                image_num = 1
+                fields = sorted(note.fields.all(), key=lambda f: f.position)
+                for field in fields:
+                    if field.field_type == "rich_text":
+                        converted = md(field.content or "")
+                        md_content += converted + "\n\n"
+                    elif field.field_type == "image" and field.image:
+                        try:
+                            img_filename = (
+                                f"image_{image_num}{Path(field.image.name).suffix}"
+                            )
+                            img_folder = f"{path_prefix}{safe_title}_images/"
+                            zf.write(
+                                field.image.path, f"{img_folder}{img_filename}"
+                            )
+                            md_content += (
+                                f"![Image {image_num}]"
+                                f"(./{safe_title}_images/{img_filename})\n\n"
+                            )
+                            image_num += 1
+                        except (FileNotFoundError, OSError):
+                            logger.exception(
+                                "Could not include image for field %s", field.id
+                            )
+                            md_content += f"![Image {image_num}](missing)\n\n"
+                            image_num += 1
+
+                zf.writestr(f"{path_prefix}{safe_title}.md", md_content)
+
+        for note in notes_by_parent.get(None, []):
+            process_node(note)
+
+    buffer.seek(0)
+
+    safe_codename = _sanitize_filename(project.codename)
+    response = StreamingHttpResponse(
+        buffer, content_type="application/zip"
+    )
+    add_content_disposition_header(response, f"{safe_codename}_notes.zip")
+    return response
 
 
 class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):

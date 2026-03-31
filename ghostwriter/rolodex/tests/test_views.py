@@ -20,6 +20,8 @@ from ghostwriter.factories import (
     ClientNoteFactory,
     HistoryFactory,
     ObjectiveStatusFactory,
+    ProjectCollabNoteFactory,
+    ProjectCollabNoteFieldFactory,
     ProjectContactFactory,
     ProjectFactory,
     ProjectInviteFactory,
@@ -1125,5 +1127,117 @@ class ClientLogoDownloadTests(TestCase):
         self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
         # CSP is only added for inline responses
         self.assertIsNone(response.get("Content-Security-Policy"))
+
+
+class CollabNoteImageUploadTests(TestCase):
+    """Collection of tests for :view:`rolodex.ajax_upload_note_field_image`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.project = ProjectFactory()
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.note = ProjectCollabNoteFactory(project=cls.project)
+        cls.uri = reverse(
+            "rolodex:ajax_upload_note_field_image", kwargs={"pk": cls.note.pk}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_rejects_get_method(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 405)
+
+    def test_rejects_missing_image(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 400)
+
+    def test_upload_creates_field(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        import io
+        from PIL import Image
+
+        img = Image.new("RGB", (10, 10), color="red")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        image_file = SimpleUploadedFile("test.png", buf.read(), content_type="image/png")
+        response = self.client_auth.post(self.uri, {"image": image_file})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+        self.assertIn("imageUrl", data)
+        self.assertIn("id", data)
+
+    def test_upload_to_existing_field(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        import io
+        from PIL import Image
+
+        field = ProjectCollabNoteFieldFactory(note=self.note, field_type="image")
+        uri = reverse(
+            "rolodex:ajax_upload_to_existing_field",
+            kwargs={"pk": self.note.pk, "field_pk": field.pk},
+        )
+
+        img = Image.new("RGB", (10, 10), color="blue")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        image_file = SimpleUploadedFile("test.png", buf.read(), content_type="image/png")
+        response = self.client_auth.post(uri, {"image": image_file})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["result"], "success")
+        self.assertIn("imageUrl", data)
+
+
+class CollabNotesExportTests(TestCase):
+    """Collection of tests for :view:`rolodex.export_collab_notes_zip`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.project = ProjectFactory()
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.uri = reverse(
+            "rolodex:ajax_export_collab_notes", kwargs={"pk": cls.project.pk}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_export_empty_project(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/zip")
+
+    def test_export_with_notes(self):
+        note = ProjectCollabNoteFactory(project=self.project, title="Test Note")
+        ProjectCollabNoteFieldFactory(
+            note=note, field_type="rich_text", content="<p>Hello world</p>"
+        )
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/zip")
 
 

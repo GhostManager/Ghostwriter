@@ -578,6 +578,32 @@ class ProjectNoteFactory(factory.django.DjangoModelFactory):
     operator = factory.SubFactory(UserFactory)
 
 
+class ProjectCollabNoteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ProjectCollabNote"
+
+    title = Faker("sentence", nb_words=3)
+    node_type = "note"
+    content = Faker("rich_text")
+    position = factory.Sequence(lambda n: n * 1000)
+    project = factory.SubFactory(ProjectFactory)
+
+
+class ProjectCollabNoteFolderFactory(ProjectCollabNoteFactory):
+    node_type = "folder"
+    content = ""
+
+
+class ProjectCollabNoteFieldFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ProjectCollabNoteField"
+
+    field_type = "rich_text"
+    content = Faker("rich_text")
+    position = factory.Sequence(lambda n: n)
+    note = factory.SubFactory(ProjectCollabNoteFactory)
+
+
 class ClientInviteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ClientInvite"

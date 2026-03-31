@@ -65,6 +65,13 @@ array_relationships:
         table:
           name: shepherd_transientserver
           schema: public
+  - name: collabNotes
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          name: rolodex_projectcollabnote
+          schema: public
   - name: comments
     using:
       foreign_key_constraint_on:

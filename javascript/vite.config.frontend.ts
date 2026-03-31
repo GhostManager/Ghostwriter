@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
                     collab_forms_report_field:
                         "./src/frontend/collab_forms/forms/report_field.tsx",
                     collab_forms_project_collabnote:
-                        "./src/frontend/collab_forms/forms/project_collabnote.tsx",
+                        "./src/frontend/collab_forms/forms/project_collabnotes/index.tsx",
                     admin_tiptap: "./src/frontend/admin_tiptap.tsx",
                 },
                 output: {

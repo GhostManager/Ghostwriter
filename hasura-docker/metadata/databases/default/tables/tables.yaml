@@ -32,6 +32,8 @@
 - "!include public_rolodex_objectivepriority.yaml"
 - "!include public_rolodex_objectivestatus.yaml"
 - "!include public_rolodex_project.yaml"
+- "!include public_rolodex_projectcollabnote.yaml"
+- "!include public_rolodex_projectcollabnotefield.yaml"
 - "!include public_rolodex_projectassignment.yaml"
 - "!include public_rolodex_projectcontact.yaml"
 - "!include public_rolodex_projectinvite.yaml"
