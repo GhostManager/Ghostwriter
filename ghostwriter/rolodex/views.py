@@ -2332,70 +2332,74 @@ def ajax_upload_note_field_image(request, pk, field_pk=None):
             {"result": "error", "message": "Invalid request method"}, status=405
         )
 
+    note = get_object_or_404(ProjectCollabNote, pk=pk)
+    if not note.user_can_edit(request.user):
+        return ForbiddenJsonResponse()
+
+    form = NoteImageUploadForm(request.POST, request.FILES)
+    if not form.is_valid():
+        return JsonResponse(
+            {"result": "error", "message": form.errors.as_text()}, status=400
+        )
+
+    image_file = form.cleaned_data["image"]
+
     try:
-        note = get_object_or_404(ProjectCollabNote, pk=pk)
-        if not note.user_can_edit(request.user):
-            return ForbiddenJsonResponse()
-
-        form = NoteImageUploadForm(request.POST, request.FILES)
-        if not form.is_valid():
-            errors = form.errors.as_text()
-            return JsonResponse(
-                {"result": "error", "message": errors}, status=400
-            )
-
-        image_file = form.cleaned_data["image"]
-
         if field_pk is not None:
-            field = get_object_or_404(
-                ProjectCollabNoteField, pk=field_pk, note=note
-            )
-            if field.field_type != "image":
-                return JsonResponse(
-                    {"result": "error", "message": "Field is not an image field"},
-                    status=400,
-                )
-            field.image = image_file
-            field.save()
-            image_url = request.build_absolute_uri(field.image.url)
-
-            logger.info(
-                "User %s uploaded image to existing field %s for note %s",
-                request.user, field.id, note.id,
-            )
-            return JsonResponse({"result": "success", "imageUrl": image_url})
-
-        max_position = (
-            ProjectCollabNoteField.objects.filter(note=note)
-            .order_by("-position")
-            .values_list("position", flat=True)
-            .first()
-        ) or 0
-
-        field = ProjectCollabNoteField.objects.create(
-            note=note,
-            field_type="image",
-            image=image_file,
-            position=max_position + 1,
-        )
-        image_url = request.build_absolute_uri(field.image.url)
-
-        logger.info(
-            "User %s uploaded image field %s for note %s",
-            request.user, field.id, note.id,
-        )
-        return JsonResponse({
-            "result": "success",
-            "id": field.id,
-            "imageUrl": image_url,
-            "position": field.position,
-        })
-
-    except Exception:
+            return _update_existing_image_field(request, note, field_pk, image_file)
+        return _create_new_image_field(request, note, image_file)
+    except (OSError, IntegrityError):
         logger.exception("Failed to upload image for note %s", pk)
         return JsonResponse(
             {"result": "error", "message": "Failed to upload image"}, status=500
         )
+
+
+def _update_existing_image_field(request, note, field_pk, image_file):
+    """Update an existing image field with a new image."""
+    field = get_object_or_404(ProjectCollabNoteField, pk=field_pk, note=note)
+    if field.field_type != "image":
+        return JsonResponse(
+            {"result": "error", "message": "Field is not an image field"},
+            status=400,
+        )
+    field.image = image_file
+    field.save()
+    logger.info(
+        "User %s uploaded image to existing field %s for note %s",
+        request.user, field.id, note.id,
+    )
+    return JsonResponse({
+        "result": "success",
+        "imageUrl": request.build_absolute_uri(field.image.url),
+    })
+
+
+def _create_new_image_field(request, note, image_file):
+    """Create a new image field attached to a note."""
+    max_position = (
+        ProjectCollabNoteField.objects.filter(note=note)
+        .order_by("-position")
+        .values_list("position", flat=True)
+        .first()
+    ) or 0
+
+    field = ProjectCollabNoteField.objects.create(
+        note=note,
+        field_type="image",
+        image=image_file,
+        position=max_position + 1,
+    )
+    logger.info(
+        "User %s uploaded image field %s for note %s",
+        request.user, field.id, note.id,
+    )
+    return JsonResponse({
+        "result": "success",
+        "id": field.id,
+        "imageUrl": request.build_absolute_uri(field.image.url),
+        "position": field.position,
+    })
 
 
 def _sanitize_filename(name):
@@ -2423,8 +2427,8 @@ def export_collab_notes_zip(request, pk):
     notes_by_parent = {}
     for note in notes:
         notes_by_parent.setdefault(note.parent_id, []).append(note)
-    for parent_id in notes_by_parent:
-        notes_by_parent[parent_id].sort(key=lambda n: n.position)
+    for _parent_id, children in notes_by_parent.items():
+        children.sort(key=lambda n: n.position)
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
