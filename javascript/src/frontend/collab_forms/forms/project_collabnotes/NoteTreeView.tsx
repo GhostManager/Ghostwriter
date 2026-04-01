@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import {
     DndContext,
     DragOverlay,
-    closestCenter,
+    pointerWithin,
     KeyboardSensor,
     PointerSensor,
     useSensor,
@@ -233,8 +233,9 @@ export default function NoteTreeView({
 
             <DndContext
                 sensors={sensors}
-                collisionDetection={closestCenter}
+                collisionDetection={pointerWithin}
                 onDragStart={handleDragStart}
+                onDragMove={handleDragOver}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
                 onDragCancel={handleDragCancel}
