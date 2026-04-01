@@ -55,6 +55,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     username = Faker("user_name")
     email = Faker("email")
     name = Faker("name")
+    bio = Faker("paragraph")
     phone = Faker("phone_number")
     timezone = random.choice(TIMEZONES)
     password = factory.PostGenerationMethodCall("set_password", "mysecret")

@@ -5,7 +5,7 @@ from binascii import hexlify
 
 # Django Imports
 from django.contrib.auth.models import AbstractUser
-from django.db.models import BooleanField, CharField
+from django.db.models import BooleanField, CharField, TextField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -27,6 +27,12 @@ class User(AbstractUser):
 
     # First Name and Last Name do not cover name patterns around the globe
     name = CharField(_("Name of User"), blank=True, max_length=255)
+    bio = TextField(
+        "Bio",
+        blank=True,
+        default="",
+        help_text="Short professional biography shown on your profile and project teams",
+    )
     first_name = None
     last_name = None
     timezone = TimeZoneField(

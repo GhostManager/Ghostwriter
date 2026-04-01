@@ -403,6 +403,7 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
 
     name = SerializerMethodField("get_operator")
     email = SerializerMethodField("get_email")
+    bio = SerializerMethodField("get_bio")
     start_date = SerializerMethodField("get_start_date")
     end_date = SerializerMethodField("get_end_date")
     phone = SerializerMethodField("get_phone")
@@ -420,6 +421,9 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
 
     def get_email(self, obj):
         return obj.operator.email
+
+    def get_bio(self, obj):
+        return strip_html(obj.operator.bio)
 
     def get_start_date(self, obj):
         return dateformat.format(obj.start_date, settings.DATE_FORMAT)
