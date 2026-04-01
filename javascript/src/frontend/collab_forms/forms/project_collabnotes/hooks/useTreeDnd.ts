@@ -93,8 +93,17 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 return;
             }
 
-            const overId = over.id as number;
             const activeId = active.id as number;
+            const overIdRaw = over.id;
+
+            // Handle sentinel drop zones at top/bottom of tree
+            if (overIdRaw === "tree-top" || overIdRaw === "tree-bottom") {
+                const dropPosition: DropPosition = overIdRaw === "tree-top" ? "before" : "after";
+                setDragState((prev) => ({ ...prev, overId: overIdRaw as any, dropPosition }));
+                return;
+            }
+
+            const overId = overIdRaw as number;
 
             if (activeId === overId) {
                 setDragState((prev) => ({ ...prev, overId: null, dropPosition: null }));
@@ -107,18 +116,12 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 return;
             }
 
-            // Use the drag delta to determine direction of movement.
-            // Positive delta.y = moving down, negative = moving up.
-            // Combined with which item we're over, this determines before/after.
             let dropPosition: DropPosition;
             const movingDown = event.delta.y > 0;
 
             if (overNode.nodeType === "folder") {
-                // For folders: default to "inside", but if we just arrived
-                // from a different item use direction to pick before/after
                 dropPosition = "inside";
             } else {
-                // For notes: top half = before, bottom half = after
                 dropPosition = movingDown ? "after" : "before";
             }
 
@@ -136,7 +139,6 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
             }
 
             lastOverId.current = overId;
-            console.warn("DnD dragOver:", { overId, dropPosition, deltaY: event.delta.y });
             setDragState((prev) => ({ ...prev, overId, dropPosition }));
         },
         [flatNodes, isValidDrop]
@@ -153,11 +155,27 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
             if (!over || overId === null || dropPosition === null) return;
 
             const activeId = active.id as number;
-            const overNode = flatNodes.find((n) => n.id === overId);
-            if (!overNode) return;
 
-            const newParentId = dropPosition === "inside" ? overId : overNode.parentId;
-            const newPosition = calculateNewPosition(overId, dropPosition, newParentId);
+            // Handle sentinel drop zones
+            let newParentId: number | null;
+            let newPosition: number;
+
+            if (overId === "tree-top" || overId === "tree-bottom") {
+                const rootNodes = flatNodes
+                    .filter((n) => n.parentId === null)
+                    .sort((a, b) => a.position - b.position);
+                newParentId = null;
+                if (overId === "tree-top") {
+                    newPosition = rootNodes.length > 0 ? rootNodes[0].position - 1000 : 0;
+                } else {
+                    newPosition = rootNodes.length > 0 ? rootNodes[rootNodes.length - 1].position + 1000 : 0;
+                }
+            } else {
+                const overNode = flatNodes.find((n) => n.id === overId);
+                if (!overNode) return;
+                newParentId = dropPosition === "inside" ? (overId as number) : overNode.parentId;
+                newPosition = calculateNewPosition(overId as number, dropPosition, newParentId);
+            }
 
             try {
                 await moveNote(activeId, newParentId, newPosition);

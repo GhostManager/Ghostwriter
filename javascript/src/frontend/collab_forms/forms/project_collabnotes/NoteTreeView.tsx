@@ -7,6 +7,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    useDroppable,
 } from "@dnd-kit/core";
 import {
     SortableContext,
@@ -82,11 +83,22 @@ export default function NoteTreeView({
 
             if (over && overId !== null && dropPosition !== null) {
                 const activeId = active.id as number;
-                const overNode = flatNodes.find((n) => n.id === overId);
-                if (overNode) {
-                    const newParentId = dropPosition === "inside" ? overId : overNode.parentId;
-                    const newPosition = calculateNewPosition(overId, dropPosition, newParentId);
-                    updateNode(activeId, { parentId: newParentId, position: newPosition });
+
+                if (overId === "tree-top" || overId === "tree-bottom") {
+                    const rootNodes = flatNodes
+                        .filter((n) => n.parentId === null)
+                        .sort((a, b) => a.position - b.position);
+                    const newPosition = overId === "tree-top"
+                        ? (rootNodes.length > 0 ? rootNodes[0].position - 1000 : 0)
+                        : (rootNodes.length > 0 ? rootNodes[rootNodes.length - 1].position + 1000 : 0);
+                    updateNode(activeId, { parentId: null, position: newPosition });
+                } else {
+                    const overNode = flatNodes.find((n) => n.id === overId);
+                    if (overNode) {
+                        const newParentId = dropPosition === "inside" ? (overId as number) : overNode.parentId;
+                        const newPosition = calculateNewPosition(overId as number, dropPosition, newParentId);
+                        updateNode(activeId, { parentId: newParentId, position: newPosition });
+                    }
                 }
             }
 
@@ -243,6 +255,7 @@ export default function NoteTreeView({
                     strategy={verticalListSortingStrategy}
                 >
                     <div className="tree-items p-2" style={{ overflowY: "auto" }}>
+                        <TreeDropSentinel id="tree-top" />
                         {tree.map((item) => (
                             <SortableTreeItem
                                 key={item.id}
@@ -256,6 +269,7 @@ export default function NoteTreeView({
                                 dragState={dragState}
                             />
                         ))}
+                        <TreeDropSentinel id="tree-bottom" />
                         {tree.length === 0 && (
                             <div className="text-muted small p-2">
                                 No notes yet. Create one using the buttons above.
@@ -296,5 +310,20 @@ export default function NoteTreeView({
                 onConfirm={handleConfirmDelete}
             />
         </div>
+    );
+}
+
+function TreeDropSentinel({ id }: { id: string }) {
+    const { setNodeRef, isOver } = useDroppable({ id });
+    return (
+        <div
+            ref={setNodeRef}
+            style={{
+                height: isOver ? "6px" : "12px",
+                backgroundColor: isOver ? "#0d6efd" : "transparent",
+                borderRadius: "3px",
+                transition: "all 0.15s ease",
+            }}
+        />
     );
 }
