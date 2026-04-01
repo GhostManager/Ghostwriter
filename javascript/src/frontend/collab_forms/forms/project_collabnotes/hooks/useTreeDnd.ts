@@ -8,6 +8,42 @@ interface UseTreeDndProps {
     onTreeMutated: () => void;
 }
 
+interface ClientRect {
+    top: number;
+    height: number;
+}
+
+/** Determine before/inside/after based on pointer Y within an item rect. */
+function computeDropPosition(
+    nodeType: "folder" | "note",
+    pointerY: number | null,
+    overRect: ClientRect | null,
+    deltaY: number,
+): DropPosition {
+    if (nodeType === "folder") {
+        if (pointerY != null && overRect && overRect.height > 0) {
+            const ratio = (pointerY - overRect.top) / overRect.height;
+            if (ratio < 0.25) return "before";
+            if (ratio > 0.75) return "after";
+            return "inside";
+        }
+        return "inside";
+    }
+    if (pointerY != null && overRect && overRect.height > 0) {
+        return (pointerY - overRect.top) < overRect.height * 0.5 ? "before" : "after";
+    }
+    return deltaY > 0 ? "after" : "before";
+}
+
+/** Calculate position for sentinel (tree-top / tree-bottom) drops. */
+function sentinelPosition(sentinelId: string, rootNodes: FlatNote[]): number {
+    if (rootNodes.length === 0) return 0;
+    const sorted = [...rootNodes].sort((a, b) => a.position - b.position);
+    return sentinelId === "tree-top"
+        ? sorted[0].position - 1000
+        : sorted[sorted.length - 1].position + 1000;
+}
+
 export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndProps) {
     const [dragState, setDragState] = useState<DragState>({
         activeId: null,
@@ -116,40 +152,15 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 return;
             }
 
-            // Compute pointer Y from initial activation point + drag delta
-            let dropPosition: DropPosition;
             const activatorY = (event.activatorEvent as PointerEvent)?.clientY;
             const pointerY = activatorY != null ? activatorY + event.delta.y : null;
-            const overRect = over.rect;
-
-            if (overNode.nodeType === "folder") {
-                // Folders: top 25% = before, middle 50% = inside, bottom 25% = after
-                if (pointerY != null && overRect && overRect.height > 0) {
-                    const relY = pointerY - overRect.top;
-                    const ratio = relY / overRect.height;
-                    if (ratio < 0.25) {
-                        dropPosition = "before";
-                    } else if (ratio > 0.75) {
-                        dropPosition = "after";
-                    } else {
-                        dropPosition = "inside";
-                    }
-                } else {
-                    dropPosition = "inside";
-                }
-            } else {
-                // Notes: top half = before, bottom half = after
-                if (pointerY != null && overRect && overRect.height > 0) {
-                    const relY = pointerY - overRect.top;
-                    dropPosition = relY < overRect.height * 0.5 ? "before" : "after";
-                } else {
-                    dropPosition = event.delta.y > 0 ? "after" : "before";
-                }
-            }
+            let dropPosition = computeDropPosition(
+                overNode.nodeType, pointerY, over.rect, event.delta.y
+            );
 
             if (!isValidDrop(activeId, overId, dropPosition)) {
                 if (dropPosition === "inside") {
-                    dropPosition = movingDown ? "after" : "before";
+                    dropPosition = event.delta.y > 0 ? "after" : "before";
                     if (!isValidDrop(activeId, overId, dropPosition)) {
                         setDragState((prev) => ({ ...prev, overId: null, dropPosition: null }));
                         return;
@@ -183,15 +194,9 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
             let newPosition: number;
 
             if (overId === "tree-top" || overId === "tree-bottom") {
-                const rootNodes = flatNodes
-                    .filter((n) => n.parentId === null)
-                    .sort((a, b) => a.position - b.position);
+                const rootNodes = flatNodes.filter((n) => n.parentId === null);
                 newParentId = null;
-                if (overId === "tree-top") {
-                    newPosition = rootNodes.length > 0 ? rootNodes[0].position - 1000 : 0;
-                } else {
-                    newPosition = rootNodes.length > 0 ? rootNodes[rootNodes.length - 1].position + 1000 : 0;
-                }
+                newPosition = sentinelPosition(overId as string, rootNodes);
             } else {
                 const overNode = flatNodes.find((n) => n.id === overId);
                 if (!overNode) return;

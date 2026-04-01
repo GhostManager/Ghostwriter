@@ -39,6 +39,7 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.db.models import Exists, OuterRef
 
 # 3rd Party Libraries
+from markdownify import markdownify as md
 from taggit.models import Tag
 
 # Ghostwriter Libraries
@@ -2306,8 +2307,8 @@ def serve_note_field_image(request, pk):
         raise Http404
     try:
         return FileResponse(field.image.open("rb"), content_type="image/png")
-    except FileNotFoundError:
-        raise Http404
+    except FileNotFoundError as exc:
+        raise Http404 from exc
 
 
 class NoteImageUploadForm(forms.Form):
@@ -2431,7 +2432,6 @@ def _sanitize_filename(name):
 @login_required
 def export_collab_notes_zip(request, pk):
     """Export all collab notes for a project as a streaming ZIP response."""
-    from markdownify import markdownify as md
 
     project = get_object_or_404(Project, pk=pk)
 

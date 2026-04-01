@@ -16,6 +16,53 @@ interface TreeItemProps {
     renderChildren?: (children: NoteTreeNode[], depth: number) => React.ReactNode;
 }
 
+function TreeItemIcon({ isFolder, expanded }: { isFolder: boolean; expanded: boolean }) {
+    if (isFolder) {
+        return <i className={`fas ${expanded ? "fa-folder-open" : "fa-folder"}`}></i>;
+    }
+    return <i className="fas fa-file-alt"></i>;
+}
+
+function TreeItemChevron({ isFolder, hasChildren, expanded }: { isFolder: boolean; hasChildren: boolean; expanded: boolean }) {
+    if (!isFolder || !hasChildren) return null;
+    return expanded
+        ? <i className="fas fa-chevron-down fa-xs"></i>
+        : <i className="fas fa-chevron-right fa-xs"></i>;
+}
+
+interface ActionButtonsProps {
+    isFolder: boolean;
+    buttonClass: string;
+    deleteClass: string;
+    onAddNote: (e: React.MouseEvent) => void;
+    onAddFolder: (e: React.MouseEvent) => void;
+    onRename: (e: React.MouseEvent) => void;
+    onDelete: (e: React.MouseEvent) => void;
+}
+
+function TreeItemActions({ isFolder, buttonClass, deleteClass, onAddNote, onAddFolder, onRename, onDelete }: ActionButtonsProps) {
+    return (
+        <span className="tree-item-actions flex-shrink-0">
+            {isFolder && (
+                <>
+                    <button className={buttonClass} onClick={onAddNote} title="Add note">
+                        <i className="fas fa-plus"></i>
+                    </button>
+                    <button className={buttonClass} onClick={onAddFolder} title="Add subfolder">
+                        <i className="fas fa-folder-plus"></i>
+                    </button>
+                </>
+            )}
+            <button className={buttonClass} onClick={onRename} title="Rename">
+                <i className="fas fa-edit"></i>
+            </button>
+            <button className={deleteClass} onClick={onDelete} title="Delete">
+                <i className="fas fa-trash"></i>
+            </button>
+        </span>
+    );
+}
+
 export default function TreeItem({
     item,
     depth,
@@ -36,14 +83,10 @@ export default function TreeItem({
 
     const isFolder = item.nodeType === "folder";
     const isSelected = selectedId === item.id;
-    const hasChildren = item.children.length > 0;
 
     const handleClick = () => {
-        if (isFolder) {
-            setExpanded(!expanded);
-        } else {
-            onSelect(item.id);
-        }
+        if (isFolder) setExpanded(!expanded);
+        else onSelect(item.id);
     };
 
     const handleRenameSubmit = () => {
@@ -63,7 +106,6 @@ export default function TreeItem({
 
     const dropClass = dropPosition ? `tree-item-drop-${dropPosition}` : "";
 
-    // Inline drop indicator styles as fallback (works regardless of CSS loading)
     const dropIndicatorStyle: React.CSSProperties = {};
     if (dropPosition === "before") {
         dropIndicatorStyle.borderTop = "3px solid #0d6efd";
@@ -79,7 +121,6 @@ export default function TreeItem({
     const actionButtonClass = isSelected
         ? "btn btn-sm p-0 me-1 text-white"
         : "btn btn-link btn-sm p-0 me-1";
-
     const deleteButtonClass = isSelected
         ? "btn btn-sm p-0 text-white"
         : "btn btn-link btn-sm p-0 text-danger";
@@ -101,19 +142,11 @@ export default function TreeItem({
                 {...dragHandleProps}
             >
                 <span className="me-1" style={{ width: "16px", textAlign: "center" }}>
-                    {isFolder && hasChildren && (
-                        expanded
-                            ? <i className="fas fa-chevron-down fa-xs"></i>
-                            : <i className="fas fa-chevron-right fa-xs"></i>
-                    )}
+                    <TreeItemChevron isFolder={isFolder} hasChildren={item.children.length > 0} expanded={expanded} />
                 </span>
 
                 <span className="me-2">
-                    {isFolder ? (
-                        <i className={`fas ${expanded ? "fa-folder-open" : "fa-folder"}`}></i>
-                    ) : (
-                        <i className="fas fa-file-alt"></i>
-                    )}
+                    <TreeItemIcon isFolder={isFolder} expanded={expanded} />
                 </span>
 
                 {isRenaming ? (
@@ -135,40 +168,15 @@ export default function TreeItem({
                 )}
 
                 {!isRenaming && (
-                    <span className="tree-item-actions flex-shrink-0">
-                        {isFolder && (
-                            <>
-                                <button
-                                    className={actionButtonClass}
-                                    onClick={(e) => { e.stopPropagation(); onCreateChild(item.id, "note"); setExpanded(true); }}
-                                    title="Add note"
-                                >
-                                    <i className="fas fa-plus"></i>
-                                </button>
-                                <button
-                                    className={actionButtonClass}
-                                    onClick={(e) => { e.stopPropagation(); onCreateChild(item.id, "folder"); setExpanded(true); }}
-                                    title="Add subfolder"
-                                >
-                                    <i className="fas fa-folder-plus"></i>
-                                </button>
-                            </>
-                        )}
-                        <button
-                            className={actionButtonClass}
-                            onClick={(e) => { e.stopPropagation(); setRenameValue(item.title); setIsRenaming(true); }}
-                            title="Rename"
-                        >
-                            <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                            className={deleteButtonClass}
-                            onClick={(e) => { e.stopPropagation(); onRequestDelete(item); }}
-                            title="Delete"
-                        >
-                            <i className="fas fa-trash"></i>
-                        </button>
-                    </span>
+                    <TreeItemActions
+                        isFolder={isFolder}
+                        buttonClass={actionButtonClass}
+                        deleteClass={deleteButtonClass}
+                        onAddNote={(e) => { e.stopPropagation(); onCreateChild(item.id, "note"); setExpanded(true); }}
+                        onAddFolder={(e) => { e.stopPropagation(); onCreateChild(item.id, "folder"); setExpanded(true); }}
+                        onRename={(e) => { e.stopPropagation(); setRenameValue(item.title); setIsRenaming(true); }}
+                        onDelete={(e) => { e.stopPropagation(); onRequestDelete(item); }}
+                    />
                 )}
             </div>
 
