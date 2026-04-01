@@ -194,11 +194,9 @@ export default function NoteTreeView({
 
     if (loading) {
         return (
-            <div className="p-3 text-center">
-                <div className="spinner-border spinner-border-sm" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
-                <span className="ms-2">Loading notes...</span>
+            <div className="d-flex align-items-center justify-content-center p-3">
+                <div className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+                <span>Loading notes...</span>
             </div>
         );
     }
