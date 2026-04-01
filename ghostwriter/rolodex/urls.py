@@ -169,6 +169,11 @@ urlpatterns += [
         name="ajax_bloodhound_fetch",
     ),
     path(
+        "ajax/note/field/<int:pk>/image/serve",
+        views.serve_note_field_image,
+        name="ajax_serve_note_image",
+    ),
+    path(
         "ajax/note/<int:pk>/field/image",
         views.ajax_upload_note_field_image,
         name="ajax_upload_note_field_image",

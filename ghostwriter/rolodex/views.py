@@ -2296,6 +2296,20 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
         return ctx
 
 
+@login_required
+def serve_note_field_image(request, pk):
+    """Serve an image from a :model:`rolodex.ProjectCollabNoteField` with auth check."""
+    field = get_object_or_404(ProjectCollabNoteField, pk=pk)
+    if not field.note.user_can_view(request.user):
+        return ForbiddenJsonResponse()
+    if not field.image:
+        raise Http404
+    try:
+        return FileResponse(field.image.open("rb"), content_type="image/png")
+    except FileNotFoundError:
+        raise Http404
+
+
 class NoteImageUploadForm(forms.Form):
     """Django form for validating image uploads to collab note fields."""
 
@@ -2365,13 +2379,14 @@ def _update_existing_image_field(request, note, field_pk, image_file):
         )
     field.image = image_file
     field.save()
+    image_url = reverse("rolodex:ajax_serve_note_image", kwargs={"pk": field.pk})
     logger.info(
         "User %s uploaded image to existing field %s for note %s",
         request.user, field.id, note.id,
     )
     return JsonResponse({
         "result": "success",
-        "imageUrl": request.build_absolute_uri(field.image.url),
+        "imageUrl": image_url,
     })
 
 
@@ -2390,6 +2405,7 @@ def _create_new_image_field(request, note, image_file):
         image=image_file,
         position=max_position + 1,
     )
+    image_url = reverse("rolodex:ajax_serve_note_image", kwargs={"pk": field.pk})
     logger.info(
         "User %s uploaded image field %s for note %s",
         request.user, field.id, note.id,
@@ -2397,7 +2413,7 @@ def _create_new_image_field(request, note, image_file):
     return JsonResponse({
         "result": "success",
         "id": field.id,
-        "imageUrl": request.build_absolute_uri(field.image.url),
+        "imageUrl": image_url,
         "position": field.position,
     })
 

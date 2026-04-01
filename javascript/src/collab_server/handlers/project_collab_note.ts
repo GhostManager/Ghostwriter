@@ -68,7 +68,7 @@ const ProjectCollabNoteItemHandler: ModelHandler<FieldData[]> = {
                 fieldDataArr = [legacyField];
             } else {
                 fieldDataArr = obj.fields.map((field: any) => {
-                    const imageUrl = field.image ? `/media/${field.image}` : null;
+                    const imageUrl = field.image ? `/rolodex/ajax/note/field/${field.id}/image/serve` : null;
                     const fieldData: FieldData = {
                         id: field.id.toString(),
                         fieldType: field.fieldType,
