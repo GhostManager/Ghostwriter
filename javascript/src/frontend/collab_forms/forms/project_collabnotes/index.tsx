@@ -15,7 +15,7 @@ function ProjectCollabNotesContainer() {
     return (
         <div
             className="collab-notes-container d-flex"
-            style={{ height: "600px" }}
+            style={{ height: "calc(100vh - 300px)", minHeight: "400px" }}
         >
             <div
                 className="collab-notes-tree border-end"
