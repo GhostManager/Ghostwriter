@@ -116,13 +116,35 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 return;
             }
 
+            // Compute pointer Y from initial activation point + drag delta
             let dropPosition: DropPosition;
-            const movingDown = event.delta.y > 0;
+            const activatorY = (event.activatorEvent as PointerEvent)?.clientY;
+            const pointerY = activatorY != null ? activatorY + event.delta.y : null;
+            const overRect = over.rect;
 
             if (overNode.nodeType === "folder") {
-                dropPosition = "inside";
+                // Folders: top 25% = before, middle 50% = inside, bottom 25% = after
+                if (pointerY != null && overRect && overRect.height > 0) {
+                    const relY = pointerY - overRect.top;
+                    const ratio = relY / overRect.height;
+                    if (ratio < 0.25) {
+                        dropPosition = "before";
+                    } else if (ratio > 0.75) {
+                        dropPosition = "after";
+                    } else {
+                        dropPosition = "inside";
+                    }
+                } else {
+                    dropPosition = "inside";
+                }
             } else {
-                dropPosition = movingDown ? "after" : "before";
+                // Notes: top half = before, bottom half = after
+                if (pointerY != null && overRect && overRect.height > 0) {
+                    const relY = pointerY - overRect.top;
+                    dropPosition = relY < overRect.height * 0.5 ? "before" : "after";
+                } else {
+                    dropPosition = event.delta.y > 0 ? "after" : "before";
+                }
             }
 
             if (!isValidDrop(activeId, overId, dropPosition)) {
