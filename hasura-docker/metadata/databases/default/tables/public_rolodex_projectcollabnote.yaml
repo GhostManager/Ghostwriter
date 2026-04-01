@@ -47,6 +47,9 @@ insert_permissions:
   - role: manager
     permission:
       check: {}
+      set:
+        created_at: now()
+        updated_at: now()
       columns:
         - title
         - node_type
@@ -69,6 +72,9 @@ insert_permissions:
                 invites:
                   user_id:
                     _eq: X-Hasura-User-Id
+      set:
+        created_at: now()
+        updated_at: now()
       columns:
         - title
         - node_type

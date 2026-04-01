@@ -103,17 +103,19 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 return;
             }
 
-            // Determine drop position based on cursor Y relative to the over item
+            // Determine drop position based on dragged item's Y relative to the over item.
+            // Use the translated rect of the active (dragged) element to get current position.
             let dropPosition: DropPosition;
             const overRect = over.rect;
-            const pointerY = (event.activatorEvent as PointerEvent)?.clientY;
-            const delta = event.delta?.y ?? 0;
-            const cursorY = pointerY !== undefined ? pointerY + delta : undefined;
+            const activeTranslated = active.rect.current.translated;
+            const activeCenterY = activeTranslated
+                ? activeTranslated.top + activeTranslated.height / 2
+                : null;
 
             if (overNode.nodeType === "folder") {
                 // Folders have 3 zones: top 25% = before, middle 50% = inside, bottom 25% = after
-                if (cursorY !== undefined && overRect) {
-                    const relY = cursorY - overRect.top;
+                if (activeCenterY !== null && overRect) {
+                    const relY = activeCenterY - overRect.top;
                     const height = overRect.height;
                     if (relY < height * 0.25) {
                         dropPosition = "before";
@@ -127,8 +129,8 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 }
             } else {
                 // Notes have 2 zones: top 50% = before, bottom 50% = after
-                if (cursorY !== undefined && overRect) {
-                    const relY = cursorY - overRect.top;
+                if (activeCenterY !== null && overRect) {
+                    const relY = activeCenterY - overRect.top;
                     dropPosition = relY < overRect.height * 0.5 ? "before" : "after";
                 } else {
                     dropPosition = "after";
