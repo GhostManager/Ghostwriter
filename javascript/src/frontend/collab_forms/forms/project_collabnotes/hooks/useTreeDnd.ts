@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 import { FlatNote, DropPosition, DragState } from "../types";
 
@@ -14,6 +14,7 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
         overId: null,
         dropPosition: null,
     });
+    const lastOverId = useRef<number | null>(null);
 
     const isDescendant = useCallback(
         (nodeId: number, ancestorId: number): boolean => {
@@ -78,6 +79,7 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
     );
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
+        lastOverId.current = null;
         setDragState({ activeId: event.active.id as number, overId: null, dropPosition: null });
     }, []);
 
@@ -86,6 +88,7 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
             const { active, over } = event;
             if (!over) {
                 setDragState((prev) => ({ ...prev, overId: null, dropPosition: null }));
+                lastOverId.current = null;
                 return;
             }
 
@@ -103,44 +106,24 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 return;
             }
 
-            // Determine drop position based on dragged item's Y relative to the over item.
-            // Use the translated rect of the active (dragged) element to get current position.
+            // Use the drag delta to determine direction of movement.
+            // Positive delta.y = moving down, negative = moving up.
+            // Combined with which item we're over, this determines before/after.
             let dropPosition: DropPosition;
-            const overRect = over.rect;
-            const activeTranslated = active.rect.current.translated;
-            const activeCenterY = activeTranslated
-                ? activeTranslated.top + activeTranslated.height / 2
-                : null;
+            const movingDown = event.delta.y > 0;
 
             if (overNode.nodeType === "folder") {
-                // Folders have 3 zones: top 25% = before, middle 50% = inside, bottom 25% = after
-                if (activeCenterY !== null && overRect) {
-                    const relY = activeCenterY - overRect.top;
-                    const height = overRect.height;
-                    if (relY < height * 0.25) {
-                        dropPosition = "before";
-                    } else if (relY > height * 0.75) {
-                        dropPosition = "after";
-                    } else {
-                        dropPosition = "inside";
-                    }
-                } else {
-                    dropPosition = "inside";
-                }
+                // For folders: default to "inside", but if we just arrived
+                // from a different item use direction to pick before/after
+                dropPosition = "inside";
             } else {
-                // Notes have 2 zones: top 50% = before, bottom 50% = after
-                if (activeCenterY !== null && overRect) {
-                    const relY = activeCenterY - overRect.top;
-                    dropPosition = relY < overRect.height * 0.5 ? "before" : "after";
-                } else {
-                    dropPosition = "after";
-                }
+                // For notes: top half = before, bottom half = after
+                dropPosition = movingDown ? "after" : "before";
             }
 
             if (!isValidDrop(activeId, overId, dropPosition)) {
-                // Fallback: try "after" if "inside" was invalid
                 if (dropPosition === "inside") {
-                    dropPosition = "after";
+                    dropPosition = movingDown ? "after" : "before";
                     if (!isValidDrop(activeId, overId, dropPosition)) {
                         setDragState((prev) => ({ ...prev, overId: null, dropPosition: null }));
                         return;
@@ -151,6 +134,8 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
                 }
             }
 
+            lastOverId.current = overId;
+            console.debug("DnD dragOver:", { overId, dropPosition, deltaY: event.delta.y });
             setDragState((prev) => ({ ...prev, overId, dropPosition }));
         },
         [flatNodes, isValidDrop]
@@ -162,6 +147,7 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
             const { overId, dropPosition } = dragState;
 
             setDragState({ activeId: null, overId: null, dropPosition: null });
+            lastOverId.current = null;
 
             if (!over || overId === null || dropPosition === null) return;
 
@@ -184,6 +170,7 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
 
     const handleDragCancel = useCallback(() => {
         setDragState({ activeId: null, overId: null, dropPosition: null });
+        lastOverId.current = null;
     }, []);
 
     return { dragState, handleDragStart, handleDragOver, handleDragEnd, handleDragCancel };
