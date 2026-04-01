@@ -71,9 +71,10 @@ export default function NoteTreeView({
         handleDragOver,
         handleDragEnd: rawDragEnd,
         handleDragCancel,
+        calculateNewPosition,
     } = useTreeDnd({ flatNodes, moveNote, onTreeMutated });
 
-    // Wrap handleDragEnd to also update Yjs tree
+    // Wrap handleDragEnd to also update Yjs tree with both parent and position
     const handleDragEnd = useCallback(
         async (event: any) => {
             const { active, over } = event;
@@ -84,15 +85,14 @@ export default function NoteTreeView({
                 const overNode = flatNodes.find((n) => n.id === overId);
                 if (overNode) {
                     const newParentId = dropPosition === "inside" ? overId : overNode.parentId;
-                    // Update the Yjs node with new parent/position
-                    // (the actual DB mutation happens in rawDragEnd)
-                    updateNode(activeId, { parentId: newParentId });
+                    const newPosition = calculateNewPosition(overId, dropPosition, newParentId);
+                    updateNode(activeId, { parentId: newParentId, position: newPosition });
                 }
             }
 
             await rawDragEnd(event);
         },
-        [dragState, flatNodes, rawDragEnd, updateNode]
+        [dragState, flatNodes, rawDragEnd, updateNode, calculateNewPosition]
     );
 
     const allItemIds = useMemo(() => flatNodes.map((n) => n.id), [flatNodes]);

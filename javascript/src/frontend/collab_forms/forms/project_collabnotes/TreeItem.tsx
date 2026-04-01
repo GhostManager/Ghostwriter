@@ -63,6 +63,19 @@ export default function TreeItem({
 
     const dropClass = dropPosition ? `tree-item-drop-${dropPosition}` : "";
 
+    // Inline drop indicator styles as fallback (works regardless of CSS loading)
+    const dropIndicatorStyle: React.CSSProperties = {};
+    if (dropPosition === "before") {
+        dropIndicatorStyle.borderTop = "3px solid #0d6efd";
+    } else if (dropPosition === "after") {
+        dropIndicatorStyle.borderBottom = "3px solid #0d6efd";
+    } else if (dropPosition === "inside") {
+        dropIndicatorStyle.outline = "2px solid #0d6efd";
+        dropIndicatorStyle.outlineOffset = "-2px";
+        dropIndicatorStyle.borderRadius = "4px";
+        dropIndicatorStyle.backgroundColor = "rgba(13, 110, 253, 0.1)";
+    }
+
     const actionButtonClass = isSelected
         ? "btn btn-sm p-0 me-1 text-white"
         : "btn btn-link btn-sm p-0 me-1";
@@ -72,7 +85,7 @@ export default function TreeItem({
         : "btn btn-link btn-sm p-0 text-danger";
 
     return (
-        <div className={`tree-item-container ${dropClass}`} {...dragAttributes}>
+        <div className={`tree-item-container ${dropClass}`} style={dropIndicatorStyle} {...dragAttributes}>
             <div
                 className={`tree-item d-flex align-items-center py-1 ${
                     isSelected ? "bg-primary text-white" : ""

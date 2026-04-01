@@ -174,5 +174,5 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
         lastOverId.current = null;
     }, []);
 
-    return { dragState, handleDragStart, handleDragOver, handleDragEnd, handleDragCancel };
+    return { dragState, handleDragStart, handleDragOver, handleDragEnd, handleDragCancel, calculateNewPosition };
 }
