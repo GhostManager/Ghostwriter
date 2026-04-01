@@ -63,9 +63,11 @@ select_permissions:
     permission:
       columns: '*'
       filter: {}
+      allow_aggregations: true
   - role: user
     permission:
       columns: '*'
+      allow_aggregations: true
       filter:
         note:
           project:

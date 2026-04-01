@@ -8,6 +8,30 @@ interface CreateModalProps {
     onCreate: (title: string) => void;
 }
 
+const OVERLAY_STYLE: ReactModal.Styles = {
+    overlay: {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1050,
+    },
+    content: {
+        position: "relative",
+        inset: "auto",
+        border: "none",
+        background: "none",
+        padding: 0,
+        maxWidth: "500px",
+        width: "100%",
+    },
+};
+
 export default function CreateModal({
     isOpen,
     type,
@@ -40,9 +64,7 @@ export default function CreateModal({
         <ReactModal
             isOpen={isOpen}
             onRequestClose={handleClose}
-            className="modal-dialog modal-dialog-centered"
-            overlayClassName="collab-modal-overlay"
-            style={{ content: { position: "relative", inset: "auto", border: "none", background: "none", padding: 0, maxWidth: "500px", width: "100%" } }}
+            style={OVERLAY_STYLE}
         >
             <div className="modal-content">
                 <div className="modal-header">

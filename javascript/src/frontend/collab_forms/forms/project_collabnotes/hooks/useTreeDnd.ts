@@ -98,10 +98,45 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
             }
 
             const overNode = flatNodes.find((n) => n.id === overId);
-            let dropPosition: DropPosition =
-                overNode?.nodeType === "folder" ? "inside" : "after";
+            if (!overNode) {
+                setDragState((prev) => ({ ...prev, overId: null, dropPosition: null }));
+                return;
+            }
+
+            // Determine drop position based on cursor Y relative to the over item
+            let dropPosition: DropPosition;
+            const overRect = over.rect;
+            const pointerY = (event.activatorEvent as PointerEvent)?.clientY;
+            const delta = event.delta?.y ?? 0;
+            const cursorY = pointerY !== undefined ? pointerY + delta : undefined;
+
+            if (overNode.nodeType === "folder") {
+                // Folders have 3 zones: top 25% = before, middle 50% = inside, bottom 25% = after
+                if (cursorY !== undefined && overRect) {
+                    const relY = cursorY - overRect.top;
+                    const height = overRect.height;
+                    if (relY < height * 0.25) {
+                        dropPosition = "before";
+                    } else if (relY > height * 0.75) {
+                        dropPosition = "after";
+                    } else {
+                        dropPosition = "inside";
+                    }
+                } else {
+                    dropPosition = "inside";
+                }
+            } else {
+                // Notes have 2 zones: top 50% = before, bottom 50% = after
+                if (cursorY !== undefined && overRect) {
+                    const relY = cursorY - overRect.top;
+                    dropPosition = relY < overRect.height * 0.5 ? "before" : "after";
+                } else {
+                    dropPosition = "after";
+                }
+            }
 
             if (!isValidDrop(activeId, overId, dropPosition)) {
+                // Fallback: try "after" if "inside" was invalid
                 if (dropPosition === "inside") {
                     dropPosition = "after";
                     if (!isValidDrop(activeId, overId, dropPosition)) {
