@@ -86,6 +86,7 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
     const handleDragOver = useCallback(
         (event: DragOverEvent) => {
             const { active, over } = event;
+            console.warn("DnD handler called, over:", over?.id ?? "null", "delta:", event.delta);
             if (!over) {
                 setDragState((prev) => ({ ...prev, overId: null, dropPosition: null }));
                 lastOverId.current = null;
@@ -135,7 +136,7 @@ export function useTreeDnd({ flatNodes, moveNote, onTreeMutated }: UseTreeDndPro
             }
 
             lastOverId.current = overId;
-            console.debug("DnD dragOver:", { overId, dropPosition, deltaY: event.delta.y });
+            console.warn("DnD dragOver:", { overId, dropPosition, deltaY: event.delta.y });
             setDragState((prev) => ({ ...prev, overId, dropPosition }));
         },
         [flatNodes, isValidDrop]
