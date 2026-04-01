@@ -182,5 +182,15 @@ function buildTree(flatNodes: FlatNote[]): NoteTreeNode[] {
         }
     }
 
+    // Sort by position then title at every level
+    const sortNodes = (a: NoteTreeNode, b: NoteTreeNode) =>
+        a.position !== b.position ? a.position - b.position : a.title.localeCompare(b.title);
+    roots.sort(sortNodes);
+    for (const node of nodeMap.values()) {
+        if (node.children.length > 1) {
+            node.children.sort(sortNodes);
+        }
+    }
+
     return roots;
 }
