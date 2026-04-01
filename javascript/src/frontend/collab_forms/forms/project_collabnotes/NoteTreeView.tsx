@@ -250,33 +250,35 @@ export default function NoteTreeView({
                 onDragEnd={handleDragEnd}
                 onDragCancel={handleDragCancel}
             >
-                <SortableContext
-                    items={allItemIds}
-                    strategy={verticalListSortingStrategy}
-                >
-                    <div className="tree-items p-2" style={{ overflowY: "auto" }}>
-                        <TreeDropSentinel id="tree-top" />
-                        {tree.map((item) => (
-                            <SortableTreeItem
-                                key={item.id}
-                                item={item}
-                                depth={0}
-                                selectedId={selectedId}
-                                onSelect={onSelect}
-                                onRequestDelete={requestDelete}
-                                onRename={handleRename}
-                                onCreateChild={handleCreateChild}
-                                dragState={dragState}
-                            />
-                        ))}
-                        <TreeDropSentinel id="tree-bottom" />
-                        {tree.length === 0 && (
-                            <div className="text-muted small p-2">
-                                No notes yet. Create one using the buttons above.
-                            </div>
-                        )}
-                    </div>
-                </SortableContext>
+                <div className="tree-items" style={{ overflowY: "auto" }}>
+                    <TreeDropSentinel id="tree-top" />
+                    <SortableContext
+                        items={allItemIds}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div className="p-2">
+                            {tree.map((item) => (
+                                <SortableTreeItem
+                                    key={item.id}
+                                    item={item}
+                                    depth={0}
+                                    selectedId={selectedId}
+                                    onSelect={onSelect}
+                                    onRequestDelete={requestDelete}
+                                    onRename={handleRename}
+                                    onCreateChild={handleCreateChild}
+                                    dragState={dragState}
+                                />
+                            ))}
+                            {tree.length === 0 && (
+                                <div className="text-muted small p-2">
+                                    No notes yet. Create one using the buttons above.
+                                </div>
+                            )}
+                        </div>
+                    </SortableContext>
+                    <TreeDropSentinel id="tree-bottom" />
+                </div>
 
                 <DragOverlay>
                     {activeItem && (
@@ -319,9 +321,9 @@ function TreeDropSentinel({ id }: { id: string }) {
         <div
             ref={setNodeRef}
             style={{
-                height: isOver ? "6px" : "12px",
-                backgroundColor: isOver ? "#0d6efd" : "transparent",
-                borderRadius: "3px",
+                minHeight: "24px",
+                backgroundColor: isOver ? "rgba(13, 110, 253, 0.15)" : "transparent",
+                borderTop: isOver ? "3px solid #0d6efd" : "3px solid transparent",
                 transition: "all 0.15s ease",
             }}
         />
