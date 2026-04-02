@@ -9,8 +9,13 @@ from django.db import migrations, models
 def backfill_project_role_positions(apps, schema_editor):
     ProjectRole = apps.get_model("rolodex", "ProjectRole")
 
-    for position, role in enumerate(ProjectRole.objects.order_by("project_role", "id"), start=1):
-        ProjectRole.objects.filter(pk=role.pk).update(position=position)
+    roles = list(ProjectRole.objects.order_by("project_role", "id"))
+
+    for position, role in enumerate(roles, start=1):
+        role.position = position
+
+    if roles:
+        ProjectRole.objects.bulk_update(roles, ["position"])
 
 
 def assign_missing_project_assignment_roles(apps, schema_editor):
