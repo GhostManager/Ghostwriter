@@ -427,6 +427,11 @@ class ProjectRole(models.Model):
         return cls.objects.aggregate(max_position=Max("position"))["max_position"] or 0
 
     @classmethod
+    def _lock_roles(cls):
+        """Lock existing roles so concurrent reordering operations serialize cleanly."""
+        list(cls.objects.select_for_update().order_by("pk").values_list("pk", flat=True))
+
+    @classmethod
     def _shift_positions(cls, queryset, delta):
         """Shift a queryset of positions while avoiding unique conflicts."""
         queryset = queryset.order_by()
@@ -452,6 +457,7 @@ class ProjectRole(models.Model):
 
     def save(self, *args, **kwargs):
         with atomic():
+            self.__class__._lock_roles()
             if self._state.adding:
                 self.position = self._normalize_position()
                 self._shift_positions(self.__class__.objects.filter(position__gte=self.position), 1)
@@ -486,6 +492,7 @@ class ProjectRole(models.Model):
 
     def delete(self, *args, **kwargs):
         with atomic():
+            self.__class__._lock_roles()
             position = self.position
             response = super().delete(*args, **kwargs)
             self.__class__._shift_positions(self.__class__.objects.filter(position__gt=position), -1)
