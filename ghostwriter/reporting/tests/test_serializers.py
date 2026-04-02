@@ -12,7 +12,16 @@ from django.utils import dateformat
 from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
-from ghostwriter.factories import GenerateMockProject, OplogEntryFactory, OplogFactory
+from ghostwriter.factories import (
+    GenerateMockProject,
+    OplogEntryFactory,
+    OplogFactory,
+    ProjectAssignmentFactory,
+    ProjectFactory,
+    ProjectRoleFactory,
+    ReportFactory,
+    UserFactory,
+)
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 
 logging.disable(logging.CRITICAL)
@@ -130,3 +139,33 @@ class ReportDataSerializerTests(TestCase):
             for entry in log["entries"]:
                 print(entry["tool"])
                 self.assertTrue(entry["tool"] is not None)
+
+    def test_team_entries_are_ordered_by_role_position_then_operator_name(self):
+        project = ProjectFactory()
+        report = ReportFactory(project=project)
+        lead_role = ProjectRoleFactory(project_role="Lead", position=1)
+        operator_role = ProjectRoleFactory(project_role="Operator", position=2)
+
+        ProjectAssignmentFactory(
+            project=project,
+            role=operator_role,
+            operator=UserFactory(name="Zed Zebra"),
+        )
+        ProjectAssignmentFactory(
+            project=project,
+            role=lead_role,
+            operator=UserFactory(name="Beth Baker"),
+        )
+        ProjectAssignmentFactory(
+            project=project,
+            role=lead_role,
+            operator=UserFactory(name="Amy Adams"),
+        )
+
+        serializer = ReportDataSerializer(report, exclude=["id"])
+        report_json = json.loads(JSONRenderer().render(serializer.data))
+
+        self.assertEqual(
+            [entry["name"] for entry in report_json["team"]],
+            ["Amy Adams", "Beth Baker", "Zed Zebra"],
+        )
