@@ -7,7 +7,7 @@ from datetime import time, timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import connection, models
 from django.db.models import F, Max, Q
 from django.db.transaction import atomic
 from django.urls import reverse
@@ -391,6 +391,8 @@ class Project(models.Model):
 class ProjectRole(models.Model):
     """Stores an individual project role."""
 
+    ADVISORY_LOCK_KEY = 1_346_001
+
     project_role = models.CharField(
         "Project Role",
         max_length=255,
@@ -427,9 +429,10 @@ class ProjectRole(models.Model):
         return cls.objects.aggregate(max_position=Max("position"))["max_position"] or 0
 
     @classmethod
-    def _lock_roles(cls):
-        """Lock existing roles so concurrent reordering operations serialize cleanly."""
-        list(cls.objects.select_for_update().order_by("pk").values_list("pk", flat=True))
+    def _acquire_reorder_lock(cls):
+        """Serialize role reordering, including the empty-table case."""
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [cls.ADVISORY_LOCK_KEY])
 
     @classmethod
     def _shift_positions(cls, queryset, delta):
@@ -457,7 +460,7 @@ class ProjectRole(models.Model):
 
     def save(self, *args, **kwargs):
         with atomic():
-            self.__class__._lock_roles()
+            self.__class__._acquire_reorder_lock()
             if self._state.adding:
                 self.position = self._normalize_position()
                 self._shift_positions(self.__class__.objects.filter(position__gte=self.position), 1)
@@ -492,7 +495,7 @@ class ProjectRole(models.Model):
 
     def delete(self, *args, **kwargs):
         with atomic():
-            self.__class__._lock_roles()
+            self.__class__._acquire_reorder_lock()
             position = self.position
             response = super().delete(*args, **kwargs)
             self.__class__._shift_positions(self.__class__.objects.filter(position__gt=position), -1)
