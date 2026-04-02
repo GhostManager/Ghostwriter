@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="projectrole",
             constraint=models.CheckConstraint(
-                condition=models.Q(("position__gte", 1)),
+                check=models.Q(("position__gte", 1)),
                 name="rolodex_projectrole_position_gte_1",
             ),
         ),
