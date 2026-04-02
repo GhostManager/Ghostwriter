@@ -380,6 +380,7 @@ class ProjectAssignmentFormTests(TestCase):
     def form_data(
         self,
         operator=None,
+        role=None,
         start_date=None,
         end_date=None,
         description=None,
@@ -389,6 +390,7 @@ class ProjectAssignmentFormTests(TestCase):
         return ProjectAssignmentForm(
             data={
                 "operator": operator,
+                "role": role,
                 "start_date": start_date,
                 "end_date": end_date,
                 "project": project_id,

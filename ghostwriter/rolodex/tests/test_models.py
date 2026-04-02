@@ -1,6 +1,7 @@
 # Standard Libraries
 import logging
 from datetime import date, datetime, timedelta, timezone
+from unittest.mock import patch
 
 # Django Imports
 from django.core.exceptions import ValidationError
@@ -36,6 +37,7 @@ from ghostwriter.factories import (
     UserFactory,
     WhiteCardFactory,
 )
+from ghostwriter.rolodex.admin import ProjectRoleAdminForm
 from ghostwriter.rolodex.models import Client, Project
 
 logging.disable(logging.CRITICAL)
@@ -300,10 +302,11 @@ class ProjectRoleModelTests(TestCase):
 
     def test_crud_finding(self):
         # Create
-        project_role = ProjectRoleFactory(project_role="Lead")
+        project_role = ProjectRoleFactory(project_role="Lead", position=1)
 
         # Read
         self.assertEqual(project_role.project_role, "Lead")
+        self.assertEqual(project_role.position, 1)
         self.assertEqual(project_role.pk, project_role.id)
 
         # Update
@@ -313,6 +316,112 @@ class ProjectRoleModelTests(TestCase):
         # Delete
         project_role.delete()
         assert not self.ProjectRole.objects.all().exists()
+
+    def test_inserting_role_at_existing_position_shifts_following_roles(self):
+        ProjectRoleFactory(project_role="Lead", position=1)
+        ProjectRoleFactory(project_role="QA", position=2)
+        new_role = ProjectRoleFactory(project_role="Operator", position=2)
+
+        self.assertEqual(
+            list(self.ProjectRole.objects.values_list("project_role", "position")),
+            [("Lead", 1), ("Operator", 2), ("QA", 3)],
+        )
+        self.assertEqual(new_role.position, 2)
+
+    def test_moving_role_to_earlier_position_shifts_intervening_roles(self):
+        lead = ProjectRoleFactory(project_role="Lead", position=1)
+        qa = ProjectRoleFactory(project_role="QA", position=2)
+        operator = ProjectRoleFactory(project_role="Operator", position=3)
+
+        operator.position = 1
+        operator.save()
+
+        lead.refresh_from_db()
+        qa.refresh_from_db()
+        operator.refresh_from_db()
+
+        self.assertEqual(
+            [
+                (lead.project_role, lead.position),
+                (qa.project_role, qa.position),
+                (operator.project_role, operator.position),
+            ],
+            [("Lead", 2), ("QA", 3), ("Operator", 1)],
+        )
+
+    def test_moving_role_to_later_position_shifts_intervening_roles(self):
+        lead = ProjectRoleFactory(project_role="Lead", position=1)
+        qa = ProjectRoleFactory(project_role="QA", position=2)
+        operator = ProjectRoleFactory(project_role="Operator", position=3)
+
+        lead.position = 3
+        lead.save()
+
+        lead.refresh_from_db()
+        qa.refresh_from_db()
+        operator.refresh_from_db()
+
+        self.assertEqual(
+            [
+                (lead.project_role, lead.position),
+                (qa.project_role, qa.position),
+                (operator.project_role, operator.position),
+            ],
+            [("Lead", 3), ("QA", 1), ("Operator", 2)],
+        )
+
+    def test_deleting_role_closes_position_gap(self):
+        lead = ProjectRoleFactory(project_role="Lead", position=1)
+        qa = ProjectRoleFactory(project_role="QA", position=2)
+        operator = ProjectRoleFactory(project_role="Operator", position=3)
+
+        qa.delete()
+
+        lead.refresh_from_db()
+        operator.refresh_from_db()
+
+        self.assertEqual(
+            list(self.ProjectRole.objects.values_list("project_role", "position")),
+            [("Lead", 1), ("Operator", 2)],
+        )
+
+    def test_position_must_be_greater_than_zero(self):
+        project_role = self.ProjectRole(project_role="Lead", position=0)
+
+        with self.assertRaises(ValidationError):
+            project_role.full_clean()
+
+    def test_admin_form_allows_taken_position_for_reordering(self):
+        lead = ProjectRoleFactory(project_role="Lead", position=1)
+        operator = ProjectRoleFactory(project_role="Operator", position=2)
+
+        form = ProjectRoleAdminForm(
+            data={"project_role": operator.project_role, "position": 1},
+            instance=operator,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+        form.save()
+        lead.refresh_from_db()
+        operator.refresh_from_db()
+
+        self.assertEqual(lead.position, 2)
+        self.assertEqual(operator.position, 1)
+
+    def test_save_acquires_advisory_lock(self):
+        with patch.object(self.ProjectRole, "_acquire_reorder_lock") as lock_mock:
+            ProjectRoleFactory(project_role="Lead", position=1)
+
+        lock_mock.assert_called_once()
+
+    def test_delete_acquires_advisory_lock(self):
+        role = ProjectRoleFactory(project_role="Lead", position=1)
+
+        with patch.object(self.ProjectRole, "_acquire_reorder_lock") as lock_mock:
+            role.delete()
+
+        lock_mock.assert_called_once()
 
 
 class ProjectAssignmentModelTests(TestCase):
@@ -339,6 +448,32 @@ class ProjectAssignmentModelTests(TestCase):
         # Delete
         assignment.delete()
         assert not self.ProjectAssignment.objects.all().exists()
+
+    def test_assignments_are_ordered_by_role_position_then_operator_name(self):
+        project = ProjectFactory()
+        lead_role = ProjectRoleFactory(project_role="Lead", position=1)
+        operator_role = ProjectRoleFactory(project_role="Operator", position=2)
+
+        zed = UserFactory(name="Zed Zebra")
+        amy = UserFactory(name="Amy Adams")
+        beth = UserFactory(name="Beth Baker")
+
+        ProjectAssignmentFactory(project=project, role=operator_role, operator=zed)
+        ProjectAssignmentFactory(project=project, role=lead_role, operator=beth)
+        ProjectAssignmentFactory(project=project, role=lead_role, operator=amy)
+
+        self.assertEqual(
+            list(
+                self.ProjectAssignment.objects.filter(project=project).values_list(
+                    "operator__name", "role__project_role"
+                )
+            ),
+            [
+                ("Amy Adams", "Lead"),
+                ("Beth Baker", "Lead"),
+                ("Zed Zebra", "Operator"),
+            ],
+        )
 
 
 class ObjectiveStatusModelTests(TestCase):

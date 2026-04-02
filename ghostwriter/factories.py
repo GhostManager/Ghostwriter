@@ -150,6 +150,7 @@ class ProjectRoleFactory(factory.django.DjangoModelFactory):
         model = "rolodex.ProjectRole"
 
     project_role = factory.Sequence(lambda n: "Type %s" % n)
+    position = factory.Sequence(lambda n: n + 1)
 
 
 class ProjectFactory(factory.django.DjangoModelFactory):
