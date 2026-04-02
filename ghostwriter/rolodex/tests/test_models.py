@@ -1,6 +1,7 @@
 # Standard Libraries
 import logging
 from datetime import date, datetime, timedelta, timezone
+from unittest.mock import patch
 
 # Django Imports
 from django.core.exceptions import ValidationError
@@ -407,6 +408,20 @@ class ProjectRoleModelTests(TestCase):
 
         self.assertEqual(lead.position, 2)
         self.assertEqual(operator.position, 1)
+
+    def test_save_acquires_advisory_lock(self):
+        with patch.object(self.ProjectRole, "_acquire_reorder_lock") as lock_mock:
+            ProjectRoleFactory(project_role="Lead", position=1)
+
+        lock_mock.assert_called_once()
+
+    def test_delete_acquires_advisory_lock(self):
+        role = ProjectRoleFactory(project_role="Lead", position=1)
+
+        with patch.object(self.ProjectRole, "_acquire_reorder_lock") as lock_mock:
+            role.delete()
+
+        lock_mock.assert_called_once()
 
 
 class ProjectAssignmentModelTests(TestCase):
