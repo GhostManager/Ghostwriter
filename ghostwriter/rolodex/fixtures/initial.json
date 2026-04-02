@@ -31,21 +31,24 @@
     "model": "rolodex.projectrole",
     "pk": 1,
     "fields": {
-      "project_role": "Assessment Lead"
+      "project_role": "Assessment Lead",
+      "position": 1
     }
   },
   {
     "model": "rolodex.projectrole",
     "pk": 2,
     "fields": {
-      "project_role": "Assessment Oversight"
+      "project_role": "Assessment Oversight",
+      "position": 2
     }
   },
   {
     "model": "rolodex.projectrole",
     "pk": 3,
     "fields": {
-      "project_role": "Operator"
+      "project_role": "Operator",
+      "position": 3
     }
   },
   {
