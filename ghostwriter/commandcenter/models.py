@@ -642,11 +642,15 @@ class ExtraFieldSpec(models.Model):
 
     def save(self, *args, **kwargs):
         target_model_id = self.target_model_id or self._target_model_id(self.target_model)
+        update_fields = kwargs.get("update_fields")
+        must_persist_position = False
+        must_persist_target_model = False
 
         with atomic():
             if self._state.adding:
                 self.__class__._lock_target_model(target_model_id)
                 self.position = self._normalize_position(target_model_id)
+                must_persist_position = True
                 self._shift_positions(
                     self.__class__.objects.filter(target_model=target_model_id, position__gte=self.position),
                     1,
@@ -659,6 +663,8 @@ class ExtraFieldSpec(models.Model):
                     self.__class__._lock_target_model(lock_id)
 
                 if current.target_model_id != target_model_id:
+                    must_persist_position = True
+                    must_persist_target_model = True
                     temp_position = self.get_last_position(current.target_model_id) + 1
                     self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
                     self.__class__._shift_positions(
@@ -679,6 +685,7 @@ class ExtraFieldSpec(models.Model):
                     requested_position = self._normalize_position(target_model_id, current.position)
 
                     if requested_position != current.position:
+                        must_persist_position = True
                         temp_position = self.get_last_position(target_model_id) + 1
                         self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
 
@@ -704,6 +711,14 @@ class ExtraFieldSpec(models.Model):
                         )
 
                     self.position = requested_position
+
+            if update_fields is not None and (must_persist_position or must_persist_target_model):
+                update_fields = set(update_fields)
+                if must_persist_position:
+                    update_fields.add("position")
+                if must_persist_target_model:
+                    update_fields.add("target_model")
+                kwargs["update_fields"] = update_fields
 
             super().save(*args, **kwargs)
 
