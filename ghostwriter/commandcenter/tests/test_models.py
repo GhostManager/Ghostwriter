@@ -10,6 +10,8 @@ from ghostwriter.factories import (
     BannerConfigurationFactory,
     CloudServicesConfigurationFactory,
     CompanyInformationFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
     GeneralConfigurationFactory,
     NamecheapConfigurationFactory,
     ReportConfigurationFactory,
@@ -330,3 +332,201 @@ class BannerConfigurationTests(TestCase):
             self.assertEqual(entry.pk, 1)
         except Exception:
             self.fail("BannerConfiguration model `get_solo` method failed unexpectedly!")
+
+
+class ExtraFieldSpecModelTests(TestCase):
+    """Collection of tests for :model:`commandcenter.ExtraFieldSpec`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.model = ExtraFieldModelFactory(
+            model_internal_name="rolodex.Client",
+            model_display_name="Clients",
+        )
+
+    def test_moving_field_to_later_position_shifts_intervening_fields(self):
+        first = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="first",
+            display_name="First",
+            type="single_line_text",
+            position=1,
+        )
+        second = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="second",
+            display_name="Second",
+            type="single_line_text",
+            position=2,
+        )
+        third = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="third",
+            display_name="Third",
+            type="single_line_text",
+            position=3,
+        )
+
+        first.position = 3
+        first.save()
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        third.refresh_from_db()
+
+        self.assertEqual(
+            [
+                (first.internal_name, first.position),
+                (second.internal_name, second.position),
+                (third.internal_name, third.position),
+            ],
+            [("first", 3), ("second", 1), ("third", 2)],
+        )
+
+    def test_inserting_field_at_existing_position_shifts_following_fields(self):
+        ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="first",
+            display_name="First",
+            type="single_line_text",
+            position=1,
+        )
+        ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="second",
+            display_name="Second",
+            type="single_line_text",
+            position=2,
+        )
+        inserted = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="inserted",
+            display_name="Inserted",
+            type="single_line_text",
+            position=2,
+        )
+
+        self.assertEqual(
+            list(
+                inserted.__class__.objects.filter(target_model=self.model)
+                .values_list("internal_name", "position")
+            ),
+            [("first", 1), ("inserted", 2), ("second", 3)],
+        )
+
+    def test_moving_field_to_earlier_position_shifts_intervening_fields(self):
+        first = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="first",
+            display_name="First",
+            type="single_line_text",
+            position=1,
+        )
+        second = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="second",
+            display_name="Second",
+            type="single_line_text",
+            position=2,
+        )
+        third = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="third",
+            display_name="Third",
+            type="single_line_text",
+            position=3,
+        )
+
+        third.position = 1
+        third.save()
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        third.refresh_from_db()
+
+        self.assertEqual(
+            [
+                (first.internal_name, first.position),
+                (second.internal_name, second.position),
+                (third.internal_name, third.position),
+            ],
+            [("first", 2), ("second", 3), ("third", 1)],
+        )
+
+    def test_deleting_field_closes_position_gap(self):
+        first = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="first",
+            display_name="First",
+            type="single_line_text",
+            position=1,
+        )
+        second = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="second",
+            display_name="Second",
+            type="single_line_text",
+            position=2,
+        )
+        third = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="third",
+            display_name="Third",
+            type="single_line_text",
+            position=3,
+        )
+
+        second.delete()
+        first.refresh_from_db()
+        third.refresh_from_db()
+
+        self.assertEqual(
+            list(
+                third.__class__.objects.filter(target_model=self.model)
+                .values_list("internal_name", "position")
+            ),
+            [("first", 1), ("third", 2)],
+        )
+
+    def test_blank_position_appends_to_end(self):
+        ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="first",
+            display_name="First",
+            type="single_line_text",
+            position=1,
+        )
+        appended = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="appended",
+            display_name="Appended",
+            type="single_line_text",
+            position=None,
+        )
+
+        appended.refresh_from_db()
+        self.assertEqual(appended.position, 2)
+
+    def test_same_position_is_allowed_on_different_models(self):
+        other_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Report",
+            model_display_name="Reports",
+        )
+
+        first = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="first",
+            display_name="First",
+            type="single_line_text",
+            position=1,
+        )
+        second = ExtraFieldSpecFactory(
+            target_model=other_model,
+            internal_name="second",
+            display_name="Second",
+            type="single_line_text",
+            position=1,
+        )
+
+        self.assertEqual(first.position, 1)
+        self.assertEqual(second.position, 1)
