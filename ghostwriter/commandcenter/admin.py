@@ -166,6 +166,7 @@ class ExtraFieldSpecInline(admin.TabularInline):
     model = ExtraFieldSpec
     form = ExtraFieldSpecForm
     formset = ExtraFieldSpecInlineFormSet
+    template = "admin/commandcenter/extrafieldspec/tabular.html"
 
 
 class ExtraFieldModelAdmin(admin.ModelAdmin):
