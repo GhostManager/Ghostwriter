@@ -3,6 +3,7 @@
 # Django Imports
 from django.contrib import admin
 from django import forms
+from django.forms.models import BaseInlineFormSet
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ReportConfigurationForm
@@ -132,9 +133,39 @@ class ExtraFieldSpecForm(forms.ModelForm):
         exclude = ["target_model"]
 
 
+class ExtraFieldSpecInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+
+        seen_positions = {}
+        has_errors = False
+
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data") or not form.cleaned_data:
+                continue
+            if form.cleaned_data.get("DELETE"):
+                continue
+
+            position = form.cleaned_data.get("position")
+            if position is None:
+                continue
+
+            if position in seen_positions:
+                message = "Each extra field must have a unique position within this model."
+                form.add_error("position", forms.ValidationError(message, code="duplicate"))
+                seen_positions[position].add_error("position", forms.ValidationError(message, code="duplicate"))
+                has_errors = True
+            else:
+                seen_positions[position] = form
+
+        if has_errors:
+            raise forms.ValidationError("Resolve duplicate extra field positions before saving.", code="duplicate")
+
+
 class ExtraFieldSpecInline(admin.TabularInline):
     model = ExtraFieldSpec
     form = ExtraFieldSpecForm
+    formset = ExtraFieldSpecInlineFormSet
 
 
 class ExtraFieldModelAdmin(admin.ModelAdmin):
