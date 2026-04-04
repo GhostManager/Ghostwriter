@@ -1,6 +1,7 @@
 # Standard Libraries
 import logging
 import zoneinfo
+from unittest.mock import patch
 
 # Django Imports
 from django.test import TestCase
@@ -609,3 +610,30 @@ class ExtraFieldSpecModelTests(TestCase):
         self.assertEqual(moving.target_model_id, other_model.pk)
         self.assertEqual(moving.position, 1)
         self.assertEqual(destination.position, 2)
+
+    def test_existing_save_locks_row_before_target_models(self):
+        field = ExtraFieldSpecFactory(
+            target_model=self.model,
+            internal_name="first",
+            display_name="First",
+            type="single_line_text",
+            position=1,
+        )
+        lock_order = []
+        manager = type(field).objects
+        original_select_for_update = manager.select_for_update
+
+        def tracked_select_for_update(*args, **kwargs):
+            lock_order.append("row")
+            return original_select_for_update(*args, **kwargs)
+
+        def tracked_model_lock(target_model_id):
+            lock_order.append(f"model:{target_model_id}")
+
+        field.position = 1
+        with patch.object(manager, "select_for_update", side_effect=tracked_select_for_update):
+            with patch.object(type(field), "_lock_target_model", side_effect=tracked_model_lock):
+                field.save()
+
+        self.assertEqual(lock_order[0], "row")
+        self.assertIn(f"model:{self.model.pk}", lock_order[1:])

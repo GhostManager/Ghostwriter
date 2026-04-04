@@ -657,7 +657,7 @@ class ExtraFieldSpec(models.Model):
                     target_model_id,
                 )
             else:
-                current = self.__class__.objects.get(pk=self.pk)
+                current = self.__class__.objects.select_for_update().get(pk=self.pk)
                 lock_ids = sorted({current.target_model_id, target_model_id})
                 for lock_id in lock_ids:
                     self.__class__._lock_target_model(lock_id)
