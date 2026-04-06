@@ -564,7 +564,7 @@ class ExtraFieldSpec(models.Model):
 
     @classmethod
     def for_model(cls, model):
-        return cls.objects.filter(target_model=model._meta.label).order_by("position", "id")
+        return cls.objects.filter(target_model=model._meta.label).order_by(F("position").asc(nulls_last=True), "id")
 
     @classmethod
     def for_instance(cls, instance):
@@ -737,7 +737,7 @@ class ExtraFieldSpec(models.Model):
         return result
 
     class Meta:
-        ordering = ["target_model", "position", "id"]
+        ordering = ["target_model", F("position").asc(nulls_last=True), "id"]
         verbose_name = "Extra Field"
         unique_together = [("target_model", "internal_name")]
         constraints = [
