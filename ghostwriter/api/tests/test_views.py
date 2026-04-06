@@ -1373,6 +1373,44 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["message"], "Model does not exist")
 
+    def test_graphql_get_extra_field_spec_preserves_position_order(self):
+        _, token = utils.generate_jwt(self.user)
+        extra_field_model = self.ExtraFieldModel.objects.get(pk="reporting.Finding")
+        third = ExtraFieldSpecFactory(
+            internal_name="third_field",
+            display_name="Third Field",
+            type="single_line_text",
+            target_model=extra_field_model,
+            position=3,
+        )
+        first = ExtraFieldSpecFactory(
+            internal_name="first_field",
+            display_name="First Field",
+            type="single_line_text",
+            target_model=extra_field_model,
+            position=1,
+        )
+        second = ExtraFieldSpecFactory(
+            internal_name="second_field",
+            display_name="Second Field",
+            type="single_line_text",
+            target_model=extra_field_model,
+            position=2,
+        )
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            list(response.json()["extraFieldSpec"].keys()),
+            [first.internal_name, second.internal_name, third.internal_name],
+        )
+
 
 class HasuraCreateUserTests(TestCase):
     """Collection of tests for :view:`api:GraphqlUserCreate`."""

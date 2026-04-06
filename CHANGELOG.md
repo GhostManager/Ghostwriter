@@ -50,6 +50,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Added sanitization to activity log entries that support rich text (`comments` and `description`)
   * Added `DOMPurify` to the project for an extra layer of security and client-side sanitization
 
+## [6.2.12] - 6 April 2026
+
+### Added
+
+* **Extra Field Ordering**: Added a `position` field to extra fields to enable custom ordering
+  * Admins can now set an order for their extra fields
+  * Ordering impacts the display of extra fields in all locations
+
+* **Exposures Now Available for BHE Reporting**: Added `exposures` to the domain data for BHE tenants
+  * This is a new key in the domain data pulled from all BHE tenants
+  * The key includes data like the domain's calculated exposure percentage
+
+## [6.2.11] - 2 April 2026
+
+### Added
+
+* **Ordering Based on Project Role Assignments**: Added a `position` field to `ProjectRole` to order team members
+  * Team members will now order by their role's position and then by their name
+  * Admins can set the position for each role in the admin console
+  * Ordering applies to the project dashboard and the ordering of the team in the report data
+
 ## [6.2.10] - 27 March 2026
 
 ### Changed
