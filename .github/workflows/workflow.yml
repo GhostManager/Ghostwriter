@@ -5,14 +5,20 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - "**.md"
+      - "**.mdx"
+      - "**.html"
+      - "**.css"
+      - "DOCS/**"
   pull_request:
     branches:
       - master
     paths-ignore:
-      - "CHANGELOG.md"
-      - "README.md"
-      - "SECURITY.md"
-      - "CONTRIBUTING.md"
+      - "**.md"
+      - "**.mdx"
+      - "**.html"
+      - "**.css"
       - "DOCS/**"
 
 jobs:
