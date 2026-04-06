@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.12] - 6 April 2026
+
+### Added
+
+* **Extra Field Ordering**: Added a `position` field to extra fields to enable custom ordering
+  * Admins can now set an order for their extra fields
+  * Ordering impacts the display of extra fields in all locations
+
+* **Exposures Now Available for BHE Reporting**: Added `exposures` to the domain data for BHE tenants
+  * This is a new key in the domain data pulled from all BHE tenants
+  * The key includes data like the domain's calculated exposure percentage
+
 ## [6.2.11] - 2 April 2026
 
 ### Added
