@@ -460,6 +460,10 @@ class APIClient:
                     "count": len(domain_computers["nodes"]),
                     "operating_systems": domain_oses,
                 }
+
+                # Exposures are only present in BHE, so we check for the field before trying to access it
+                if "exposures" in domain:
+                    domain_out["exposures"] = domain["exposures"]
             except APIException as err:
                 logger.error(f"Error retrieving data for domain {domain['name']}: {err}")
                 continue
