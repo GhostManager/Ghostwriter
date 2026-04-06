@@ -4364,7 +4364,25 @@ input[type="color"]:focus,
 [data-theme="dark"] .btn a,
 [data-theme="dark"] .btn:before,
 [data-theme="dark"] .btn a:before {
-  color: var(--ghost-white)!important;
+  color: var(--ghost-white);
+}
+
+[data-theme="dark"] .excel-btn-icon:before {
+  content: '\f1c3';
+  font-size: 2em;
+  color: var(--excel-color);
+}
+
+[data-theme="dark"] .archive-btn-icon:before {
+  content: '\f1c6';
+  font-size: 2em;
+  color: #FFBA01;
+}
+
+[data-theme="dark"] .json-btn-icon:before {
+  content: '\f1c9';
+  font-size: 2em;
+  color: var(--ghost-grey);
 }
 
 [data-theme="dark"] .icon::before {
