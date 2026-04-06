@@ -6,8 +6,11 @@ from urllib.parse import urlparse
 
 # Django Imports
 from django.db import models
+from django.db.models import F, Max, Q
+from django.db.transaction import atomic
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
@@ -543,6 +546,13 @@ class ExtraFieldSpec(models.Model):
     internal_name = models.CharField(max_length=255)
     display_name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    position = models.PositiveIntegerField(
+        "Position",
+        blank=True,
+        null=True,
+        help_text="Enter the display order for this extra field. Changing it will reorder the other extra fields for this model.",
+        validators=[MinValueValidator(1)],
+    )
     type = models.CharField(
         max_length=255, choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
     )
@@ -554,15 +564,50 @@ class ExtraFieldSpec(models.Model):
 
     @classmethod
     def for_model(cls, model):
-        return cls.objects.filter(target_model=model._meta.label)
+        return cls.objects.filter(target_model=model._meta.label).order_by(F("position").asc(nulls_last=True), "id")
 
     @classmethod
     def for_instance(cls, instance):
-        return cls.objects.filter(target_model=type(instance)._meta.label)
+        return cls.for_model(type(instance))
 
     @classmethod
     def initial_json(cls, model):
         return {v.internal_name: v.initial_value() for v in cls.for_model(model)}
+
+    @classmethod
+    def get_last_position(cls, target_model):
+        target_model_id = cls._target_model_id(target_model)
+        return cls.objects.filter(target_model=target_model_id).aggregate(max_position=Max("position"))["max_position"] or 0
+
+    @staticmethod
+    def _target_model_id(target_model):
+        return getattr(target_model, "pk", target_model)
+
+    @classmethod
+    def _lock_target_model(cls, target_model_id):
+        ExtraFieldModel.objects.select_for_update().get(pk=target_model_id)
+
+    @classmethod
+    def _shift_positions(cls, queryset, delta, target_model_id):
+        queryset = queryset.order_by()
+        if not queryset.exists():
+            return
+
+        target_ids = list(queryset.values_list("pk", flat=True))
+        max_position = cls.get_last_position(target_model_id)
+        offset = max_position + len(target_ids) + 1
+        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(position=F("position") + offset)
+        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(position=F("position") - offset + delta)
+
+    def _normalize_position(self, target_model_id, current_position=None):
+        last_position = self.get_last_position(target_model_id)
+        if current_position is not None:
+            last_position -= 1
+
+        if self.position is None:
+            return last_position + 1
+
+        return min(max(1, self.position), last_position + 1)
 
     def __str__(self):
         return "Extra Field"
@@ -595,7 +640,113 @@ class ExtraFieldSpec(models.Model):
     def empty_value(self):
         return self.field_type_spec().empty_value()
 
+    def save(self, *args, **kwargs):
+        target_model_id = self.target_model_id or self._target_model_id(self.target_model)
+        update_fields = kwargs.get("update_fields")
+        must_persist_position = False
+        must_persist_target_model = False
+
+        with atomic():
+            if self._state.adding:
+                self.__class__._lock_target_model(target_model_id)
+                self.position = self._normalize_position(target_model_id)
+                must_persist_position = True
+                self._shift_positions(
+                    self.__class__.objects.filter(target_model=target_model_id, position__gte=self.position),
+                    1,
+                    target_model_id,
+                )
+            else:
+                current = self.__class__.objects.select_for_update().get(pk=self.pk)
+                lock_ids = sorted({current.target_model_id, target_model_id})
+                for lock_id in lock_ids:
+                    self.__class__._lock_target_model(lock_id)
+
+                if current.target_model_id != target_model_id:
+                    must_persist_position = True
+                    must_persist_target_model = True
+                    temp_position = self.get_last_position(current.target_model_id) + 1
+                    self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
+                    self.__class__._shift_positions(
+                        self.__class__.objects.filter(
+                            target_model=current.target_model_id,
+                            position__gt=current.position,
+                        ),
+                        -1,
+                        current.target_model_id,
+                    )
+                    self.position = self._normalize_position(target_model_id)
+                    self._shift_positions(
+                        self.__class__.objects.filter(target_model=target_model_id, position__gte=self.position),
+                        1,
+                        target_model_id,
+                    )
+                else:
+                    requested_position = self._normalize_position(target_model_id, current.position)
+
+                    if requested_position != current.position:
+                        must_persist_position = True
+                        temp_position = self.get_last_position(target_model_id) + 1
+                        self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
+
+                    if requested_position < current.position:
+                        self._shift_positions(
+                            self.__class__.objects.filter(
+                                target_model=target_model_id,
+                                position__gte=requested_position,
+                                position__lt=current.position,
+                            ),
+                            1,
+                            target_model_id,
+                        )
+                    elif requested_position > current.position:
+                        self._shift_positions(
+                            self.__class__.objects.filter(
+                                target_model=target_model_id,
+                                position__gt=current.position,
+                                position__lte=requested_position,
+                            ),
+                            -1,
+                            target_model_id,
+                        )
+
+                    self.position = requested_position
+
+            if update_fields is not None and (must_persist_position or must_persist_target_model):
+                update_fields = set(update_fields)
+                if must_persist_position:
+                    update_fields.add("position")
+                if must_persist_target_model:
+                    update_fields.add("target_model")
+                kwargs["update_fields"] = update_fields
+
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        target_model_id = self.target_model_id
+        deleted_position = self.position
+
+        with atomic():
+            self.__class__._lock_target_model(target_model_id)
+            result = super().delete(*args, **kwargs)
+            self.__class__._shift_positions(
+                self.__class__.objects.filter(target_model=target_model_id, position__gt=deleted_position),
+                -1,
+                target_model_id,
+            )
+        return result
+
     class Meta:
+        ordering = ["target_model", F("position").asc(nulls_last=True), "id"]
         verbose_name = "Extra Field"
-        order_with_respect_to = "target_model"
         unique_together = [("target_model", "internal_name")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["target_model", "position"],
+                name="commandcenter_extrafieldspec_unique_position_per_model",
+            ),
+            models.CheckConstraint(
+                check=Q(position__gte=1) | Q(position__isnull=True),
+                name="commandcenter_extrafieldspec_position_gte_1",
+            ),
+        ]

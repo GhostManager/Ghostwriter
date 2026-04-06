@@ -495,6 +495,8 @@ class ProjectAssignmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["operator"].queryset = self.fields["operator"].queryset.order_by("-is_active", "username", "name")
         self.fields["operator"].label_from_instance = lambda obj: obj.get_display_name
+        # Inline formset validation handles incomplete assignment combinations so users get targeted errors.
+        self.fields["role"].required = False
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"

@@ -23,6 +23,7 @@ from ghostwriter.factories import (
     ProjectCollabNoteFactory,
     ProjectCollabNoteFieldFactory,
     ProjectContactFactory,
+    ProjectRoleFactory,
     ProjectFactory,
     ProjectInviteFactory,
     ProjectNoteFactory,
@@ -968,6 +969,34 @@ class ProjectDetailViewTests(TestCase):
         ProjectAssignmentFactory(project=self.project, operator=self.user)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_project_assignments_render_in_role_order(self):
+        lead_role = ProjectRoleFactory(project_role="Lead", position=1)
+        operator_role = ProjectRoleFactory(project_role="Operator", position=2)
+
+        ProjectAssignmentFactory(
+            project=self.project,
+            role=operator_role,
+            operator=UserFactory(name="Zed Zebra"),
+        )
+        ProjectAssignmentFactory(
+            project=self.project,
+            role=lead_role,
+            operator=UserFactory(name="Beth Baker"),
+        )
+        ProjectAssignmentFactory(
+            project=self.project,
+            role=lead_role,
+            operator=UserFactory(name="Amy Adams"),
+        )
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        content = force_str(response.content)
+
+        self.assertLess(content.index("Amy Adams"), content.index("Beth Baker"))
+        self.assertLess(content.index("Beth Baker"), content.index("Zed Zebra"))
 
 class ProjectInviteDeleteTests(TestCase):
     """Collection of tests for :view:`rolodex.ProjectInviteDelete`."""

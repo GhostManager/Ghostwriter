@@ -10,7 +10,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("rolodex", "0063_alter_projectcollabnote_id_and_more"),
+        ("rolodex", "0064_alter_projectcollabnote_id_and_more"),
     ]
 
     operations = [

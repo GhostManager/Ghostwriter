@@ -31,7 +31,7 @@ def reverse_migrate(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("rolodex", "0061_projectcollabnote_projectcollabnotefield"),
+        ("rolodex", "0062_projectcollabnote_projectcollabnotefield"),
     ]
 
     operations = [

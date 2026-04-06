@@ -187,6 +187,14 @@ class APIClient:
             "domains": domains,
         }
 
+    def _apply_exposures(self, domain: dict, domain_out: dict) -> None:
+        """
+        Applies BHE-specific exposures data from a raw API ``domain`` dict into ``domain_out`` in-place.
+        Exposures are only present in BHE (not BHCE).
+        """
+        if "exposures" in domain:
+            domain_out["exposures"] = domain["exposures"]
+
     def get_enterprise_findings(self) -> dict:
         """
         Gets findings from BHEE
@@ -460,6 +468,7 @@ class APIClient:
                     "count": len(domain_computers["nodes"]),
                     "operating_systems": domain_oses,
                 }
+
             except APIException as err:
                 logger.error(f"Error retrieving data for domain {domain['name']}: {err}")
                 continue
@@ -493,6 +502,7 @@ class APIClient:
                 "with_old_pw": pw_old_count
             }
 
+            self._apply_exposures(domain, domain_out)
             domains_out.append(domain_out)
 
         return domains_out

@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("rolodex", "0060_alter_clientcontact_options_and_more"),
+        ("rolodex", "0061_projectrole_position_ordering"),
     ]
 
     operations = [
