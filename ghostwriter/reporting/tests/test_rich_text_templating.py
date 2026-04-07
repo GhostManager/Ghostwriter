@@ -33,16 +33,21 @@ class RichTextTemplatingTests(TestCase):
         with self.assertRaisesMessage(ReportExportTemplateError, "Jinja tag prefixed with 'li' was not a descendant of a li tag"):
             rich_text_template(env, "<ol>{%li for i in thelist %}<li>{{i}}</li><li>{%li endfor %}</li></ol>")
 
-    def test_legacy_reference_tag_accepts_whitespace_after_opening_braces(self):
+    def test_legacy_reference_and_caption_tags_accept_whitespace_after_opening_braces(self):
         env, _ = prepare_jinja2_env(debug=True)
         template = rich_text_template(
             env,
-            "<p><mark>({{ .ref Ref with Space }})</mark></p>",
+            '<h2 xmlns="http://www.w3.org/1999/xhtml">Some H2</h2>'
+            '<p xmlns="http://www.w3.org/1999/xhtml">The following is an example.</p>'
+            '<h3 xmlns="http://www.w3.org/1999/xhtml">Some H3</h3>'
+            '<p xmlns="http://www.w3.org/1999/xhtml">{{ .ref Payload Hosting and Lateral Movement With Codex }} is a reference with a space after the dot.</p>'
+            '<p xmlns="http://www.w3.org/1999/xhtml">{{ .caption Here is a Caption}}</p>',
         )
         out = template.render({})
-        self.assertIn('data-gw-ref="Ref with Space"', out)
+        self.assertIn('data-gw-ref="Payload Hosting and Lateral Movement With Codex"', out)
+        self.assertIn('data-gw-caption="Here is a Caption"', out)
 
-    def test_report_export_handles_report_extra_field_with_spaced_legacy_reference_tag(self):
+    def test_report_export_handles_report_extra_field_with_spaced_legacy_reference_and_caption_tags(self):
         report_extra_field = ExtraFieldModelFactory(
             model_internal_name=Report._meta.label,
             model_display_name="Reports",
@@ -58,12 +63,15 @@ class RichTextTemplatingTests(TestCase):
                 "narrative": (
                     '<h2 xmlns="http://www.w3.org/1999/xhtml">Some H2</h2>'
                     '<p xmlns="http://www.w3.org/1999/xhtml">'
-                    "The following in an example."
+                    "The following is an example."
                     "</p>"
                     '<h3 xmlns="http://www.w3.org/1999/xhtml">Some H3</h3>'
                     '<p xmlns="http://www.w3.org/1999/xhtml">'
-                    "<mark>({{ .ref Ref with Space }}) </mark>"
+                    "{{ .ref Payload Hosting and Lateral Movement With Codex }} "
                     "is a reference with a space after the dot."
+                    "</p>"
+                    '<p xmlns="http://www.w3.org/1999/xhtml">'
+                    "{{ .caption Here is a Caption}}"
                     "</p>"
                 )
             },
