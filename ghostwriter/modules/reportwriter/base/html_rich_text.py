@@ -31,7 +31,9 @@ def rich_text_template(
             return jinja_funcs.caption(contents[8:].strip())
         return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
 
-    text = re.sub(r"\{\{\.([^\{\}]*)\}\}", replace_old_tag, text)
+    # Replace items with old dot syntax
+    # Detect both `{{.item}}` and `{{ .item }}` (with spaces) to be forgiving of formatting inconsistencies
+    text = re.sub(r"\{\{\s*\.([^\{\}]*?)\s*\}\}", replace_old_tag, text)
 
     # Replace TinyMCE page breaks with something that the parser can easily pick up
     text = text.replace(
