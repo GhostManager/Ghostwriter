@@ -32,7 +32,8 @@ def rich_text_template(
         return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
 
     # Replace items with old dot syntax
-    # Detect both `{{.item}}` and `{{ .item }}` (with spaces) to be forgiving of formatting inconsistencies
+    # Detect `{{.item}}` and other old dot-style forms with optional whitespace after `{{`,
+    # after `.`, and before `}}` to be forgiving of formatting inconsistencies
     text = re.sub(r"\{\{\s*\.([^\{\}]*?)\s*\}\}", replace_old_tag, text)
 
     # Replace TinyMCE page breaks with something that the parser can easily pick up
