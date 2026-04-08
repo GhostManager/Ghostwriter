@@ -271,6 +271,9 @@
         color: #fff;
         background-color: #88c;
     }
+    .node-evidence.ProseMirror-selectednode .richtext-evidence .richtext-evidence-missing {
+        color: #fff;
+    }
     .richtext-evidence {
         display: flex;
         flex-direction: column;

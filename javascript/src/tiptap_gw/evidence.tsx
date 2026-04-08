@@ -109,7 +109,7 @@ function EvidenceView(props: NodeViewProps) {
         return (
             <NodeViewWrapper className="richtext-evidence">
                 <span className="richtext-evidence-missing">
-                    (Evidence Missing)
+                    « Evidence Missing »
                 </span>
             </NodeViewWrapper>
         );
