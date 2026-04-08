@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Adjusted substitution for `.ref` and `.caption` to be forgiving of extra spaces before/after the `.`
   * This resolves a potential syntax error when rendering a report that could be difficult to identify
-* Adjusted font color of "Evidence Missing" message for better contrast on in-focus evidence preview objects
+* Adjusted font color of in-focus evidence preview objects for better contrast
 
 ## [6.2.12] - 6 April 2026
 
