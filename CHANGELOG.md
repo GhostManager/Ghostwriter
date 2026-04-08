@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.13] - 8 April 2026
+
+### Changed
+
+* Adjusted substitution for `.ref` and `.caption` to be forgiving of extra spaces before/after the `.`
+  * This resolves a potential syntax error when rendering a report that could be difficult to identify
+* Adjusted font color of "Evidence Missing" message for better contrast on in-focus evidence preview objects
+
 ## [6.2.12] - 6 April 2026
 
 ### Added
