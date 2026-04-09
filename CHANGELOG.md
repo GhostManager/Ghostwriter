@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `recording` tag added when a recording is uploaded, removed when the recording is deleted
   * Tags can be used for filtering log entries and visual identification
 
+* **Build a Narrative Outline from Log Entries**: Construct an outline for a report narrative based on tagged log entries
+  * This is useful for quickly generating a narrative outline to kickstart a report draft
+  * Added a button to the collaborative editor to insert a narrative outline based on activity logs
+  * The action includes any log entries tagged with `evidence` or `report`
+  * Each line includes the start date and time, tool used, target, and comments
+  * The action also inserts evidence objects below each line for any evidence linked with that entry
+
 ### Changed
 
 * **New User Interface for Operation Logs**: Replaced the table view for operation logs with two pane interface (Closes #831)
@@ -39,9 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * **Text Evidence Previews**: Text evidence now has previews in the collaborative editor like image evidence
 
-* **Pasting Images into Collab Editor**: You can now paste an image file or screenshot in your clipboard into a collaborative editor field
+* **Pasting Images into Collaborative Editor**: You can now paste an image file or screenshot in your clipboard into a collaborative editor field
   * The paste will automatically trigger the modal window for uploading your evidence
   * Your filename will be the default friendly name for the upload
+
+* Report names in the sidebar now also include the parent project's codename to aid in identification
 
 ### Security
 
