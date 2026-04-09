@@ -6,6 +6,7 @@ import logging
 import os
 import zipfile
 from datetime import datetime
+from unittest.mock import patch
 
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -1265,6 +1266,22 @@ class OplogRecordingUploadViewTests(TestCase):
         self.assertEqual(OplogEntryRecording.objects.filter(oplog_entry=self.entry).count(), 1)
         self.entry.refresh_from_db()
         self.assertIn("recording", list(self.entry.tags.names()))
+
+    def test_failed_replacement_preserves_existing_recording(self):
+        """A failed replacement must not remove the existing recording."""
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        self.client_auth.post(self.uri, {"recording_file": self._cast_file("first.cast")})
+        original_recording = OplogEntryRecording.objects.get(oplog_entry=self.entry)
+        original_name = original_recording.recording_file.name
+
+        with patch("ghostwriter.oplog.views.OplogEntryRecording.save", side_effect=RuntimeError("boom")):
+            with self.assertRaises(RuntimeError):
+                self.client_auth.post(self.uri, {"recording_file": self._cast_file("second.cast")})
+
+        preserved_recording = OplogEntryRecording.objects.get(oplog_entry=self.entry)
+        self.assertEqual(preserved_recording.pk, original_recording.pk)
+        self.assertEqual(preserved_recording.recording_file.name, original_name)
 
     def test_manager_access(self):
         """Test that a manager can upload a recording without a project assignment."""
