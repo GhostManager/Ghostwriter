@@ -130,7 +130,7 @@
                                                 " activate-report-csrftoken="{{ csrf_token }}"
                        activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
                        activate-report-id="{{ report.id }}">
-                      {{ report.title }}</a>
+                      {{ report.title }} ({{ report.project.codename }})</a>
                   </li>
                 {% endfor %}
               {% else %}
