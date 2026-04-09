@@ -96,6 +96,18 @@ class ReportConfigurationTests(TestCase):
         except Exception:
             self.fail("ReportConfiguration model `get_solo` method failed unexpectedly!")
 
+    def test_parse_outline_tags_includes_defaults_and_prefix_rules(self):
+        rules = self.ReportConfiguration.parse_outline_tags("cred*, ATT&CK:, report")
+
+        self.assertEqual(rules.exact_tags, ("report", "evidence"))
+        self.assertEqual(rules.prefix_tags, ("cred", "att&ck:"))
+
+    def test_parse_outline_tags_without_defaults_preserves_exact_and_prefix_rules(self):
+        rules = self.ReportConfiguration.parse_outline_tags("Credential,att&ck:*", include_defaults=False)
+
+        self.assertEqual(rules.exact_tags, ("credential",))
+        self.assertEqual(rules.prefix_tags, ("att&ck:",))
+
 
 class SlackConfigurationTests(TestCase):
     """Collection of tests for :model:`commandcenter.SlackConfiguration`."""

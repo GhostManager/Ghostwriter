@@ -66,6 +66,12 @@ class ReportConfigurationForm(forms.ModelForm):
         ExportProjectBase.check_filename_template(name_template)
         return name_template
 
+    def clean_outline_tags(self):
+        """Validate and normalize the configured narrative outline tags."""
+
+        outline_tags = self.cleaned_data["outline_tags"]
+        return ReportConfiguration.validate_outline_tags(outline_tags)
+
 
 # Marker object to signal ExtraFieldsWidget to use the admin-configured defaults in the DB rather than loading from a value.
 #
