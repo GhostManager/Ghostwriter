@@ -1,6 +1,7 @@
 
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 import io
+import json
 import os
 import logging
 import mimetypes
@@ -14,6 +15,7 @@ from django.http import (
     Http404,
     HttpResponse,
     HttpResponseRedirect,
+    JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -23,6 +25,8 @@ from django.views.generic.list import ListView
 from django.views.generic import View
 from django.conf import settings
 from django.contrib import messages
+from django.utils import dateformat, timezone
+from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
 from taggit.models import Tag
 
@@ -37,6 +41,7 @@ from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
 from ghostwriter.reporting.forms import ReportForm, ReportTemplateForm, SelectReportTemplateForm
@@ -45,6 +50,101 @@ from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
+
+
+def _outline_value(value):
+    """Return plain text content for outline sentences, defaulting blanks to ``N/A``."""
+    text = strip_tags(value or "").strip()
+    return text if text else "N/A"
+
+
+def _entry_start_utc(entry: OplogEntry) -> datetime:
+    """Normalize an oplog entry timestamp to an aware UTC ``datetime``."""
+    start_date = entry.start_date
+    if timezone.is_naive(start_date):
+        start_date = timezone.make_aware(start_date, dt_timezone.utc)
+    return start_date.astimezone(dt_timezone.utc)
+
+
+def _report_evidence_refs_for_entry(report: Report, entry: OplogEntry) -> list[tuple[str, int]]:
+    """
+    Return the linked evidence references for an entry that belong to the target report.
+
+    The result is ordered by friendly name so the generated outline is deterministic.
+    """
+    evidence_by_name: dict[str, int] = {}
+    for link in entry.evidence_links.all():
+        evidence = link.evidence
+        evidence_report_id = evidence.report_id
+        if evidence_report_id is None and evidence.finding_id is not None:
+            evidence_report_id = evidence.finding.report_id
+        if evidence_report_id != report.id:
+            continue
+        friendly_name = evidence.friendly_name.strip()
+        if not friendly_name:
+            continue
+        evidence_by_name[friendly_name] = evidence.id
+    return [(name, evidence_by_name[name]) for name in sorted(evidence_by_name)]
+
+
+def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str, int | str]]:
+    """
+    Build Tiptap-ready outline content for a report extra field from an oplog.
+
+    The returned blocks are either paragraph text or evidence node references so the
+    frontend can append real evidence embeds with previews instead of legacy keyword text.
+    """
+    entries = (
+        OplogEntry.objects.filter(
+            oplog_id=oplog,
+            start_date__isnull=False,
+            tags__name__in=["report", "evidence"],
+        )
+        .prefetch_related(
+            "evidence_links__evidence__report",
+            "evidence_links__evidence__finding__report",
+        )
+        .order_by("start_date", "pk")
+        .distinct()
+    )
+
+    blocks: list[dict[str, int | str]] = []
+    previous_day = None
+    for entry in entries:
+        dt = _entry_start_utc(entry)
+        current_day = dt.date()
+        if current_day != previous_day:
+            timestamp = (
+                f"On {dateformat.format(dt, settings.DATE_FORMAT)} "
+                f"at {dt.strftime('%H:%M:%S')} UTC"
+            )
+            previous_day = current_day
+        else:
+            timestamp = f"At {dt.strftime('%H:%M:%S')} UTC"
+
+        blocks.append(
+            (
+                {
+                    "type": "paragraph",
+                    "text": (
+                        "{timestamp}, the assessment team used {tool} from {source} "
+                        "against {dest}. Comments: {comments}"
+                    ).format(
+                        timestamp=timestamp,
+                        tool=_outline_value(entry.tool),
+                        source=_outline_value(entry.source_ip),
+                        dest=_outline_value(entry.dest_ip),
+                        comments=_outline_value(entry.comments),
+                    ),
+                }
+            )
+        )
+
+        for friendly_name, evidence_id in _report_evidence_refs_for_entry(report, entry):
+            blocks.append({"type": "paragraph", "text": "{{.ref " + friendly_name + "}}"})
+            blocks.append({"type": "evidence", "evidence_id": evidence_id})
+
+    return blocks
 
 class ReportListView(RoleBasedAccessControlMixin, ListView):
     """
@@ -429,7 +529,61 @@ class ReportExtraFieldEdit(CollabModelUpdate):
         ctx = super().get_context_data(**kwargs)
         field = get_object_or_404(ExtraFieldSpec.for_model(self.model), internal_name=self.extra_field_name)
         ctx["target_field"] = field
+        ctx["report_oplogs"] = list(
+            self.object.project.oplog_set.order_by("name", "pk").values("id", "name")
+        )
         return ctx
+
+
+class ReportOplogOutlineGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Generate Tiptap content blocks for an oplog narrative outline.
+
+    The frontend uses these blocks to append normal paragraphs and first-class evidence
+    embeds into a report extra field.
+    """
+
+    model = Report
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse(
+            {
+                "result": "error",
+                "message": "You do not have permission to access that.",
+            },
+            status=403,
+        )
+
+    def post(self, request, *args, **kwargs):
+        report = self.get_object()
+
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (TypeError, json.JSONDecodeError):
+            return JsonResponse(
+                {"result": "error", "message": "Could not read the selected oplog."},
+                status=400,
+            )
+
+        oplog_id = payload.get("oplog_id")
+        if not isinstance(oplog_id, int):
+            return JsonResponse(
+                {"result": "error", "message": "Select an oplog before generating the outline."},
+                status=400,
+            )
+
+        oplog = get_object_or_404(Oplog, pk=oplog_id, project=report.project)
+        blocks = generate_oplog_outline_blocks(report, oplog)
+        return JsonResponse(
+            {
+                "result": "success",
+                "blocks": blocks,
+                "message": "Generated outline successfully.",
+            }
+        )
 
 
 class ReportTemplateListView(RoleBasedAccessControlMixin, ListView):

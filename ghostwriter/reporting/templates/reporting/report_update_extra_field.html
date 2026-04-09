@@ -45,6 +45,8 @@
 
 {%  block morescripts %}
     {{ block.super }}
+    {{ report_oplogs|json_script:"report-oplog-options" }}
     <script type="text/plain" id="graphql-evidence-report-id">{{object.id}}</script>
     <script type="text/plain" id="graphql-evidence-upload-url">{% url 'reporting:upload_evidence' 'report' object.id %}</script>
+    <script type="text/plain" id="report-oplog-outline-url">{% url 'reporting:report_generate_oplog_outline' object.id %}</script>
 {% endblock %}

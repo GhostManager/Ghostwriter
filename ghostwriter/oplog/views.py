@@ -940,21 +940,36 @@ class OplogRecordingUpload(RoleBasedAccessControlMixin, View):
         filename_lower = recording_file.name.lower()
         if not (filename_lower.endswith(".cast") or filename_lower.endswith(".cast.gz")):
             return JsonResponse({"result": "error", "message": "Only .cast and .cast.gz files are accepted."}, status=400)
-        # Replace any existing recording
+
+        # Update an existing recording in place when possible so a failed replacement
+        # does not delete the current attachment before the new file is safely saved.
         try:
-            entry.recording.delete()
+            recording = entry.recording
         except OplogEntryRecording.DoesNotExist:
-            pass
+            recording = OplogEntryRecording(oplog_entry=entry)
+
+        old_recording_name = ""
+        old_recording_storage = None
+        if recording.pk and recording.recording_file:
+            # Keep a handle to the previous file and only delete it after the new save
+            # commits successfully. This avoids data loss on transient upload failures.
+            old_recording_name = recording.recording_file.name
+            old_recording_storage = recording.recording_file.storage
 
         # Extract searchable text from the cast file before saving
         file_content = recording_file.read()
         recording_file.seek(0)
         recording_text, text_warning = extract_cast_text(file_content)
 
-        recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=request.user)
+        recording.uploaded_by = request.user
         recording.recording_file = recording_file
         recording.recording_text = recording_text
-        recording.save()
+        with transaction.atomic():
+            recording.save()
+            if old_recording_name and old_recording_name != recording.recording_file.name:
+                # Delay file deletion until after commit so the old recording remains
+                # available if saving the replacement raises or the transaction rolls back.
+                transaction.on_commit(lambda: old_recording_storage.delete(old_recording_name))
         response = {
             "result": "success",
             "recording_url": reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk}),
