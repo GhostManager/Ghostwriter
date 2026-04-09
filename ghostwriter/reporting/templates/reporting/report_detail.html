@@ -196,11 +196,11 @@
             <tr>
               <td class="text-left icon tag-icon">Operation Log Tags</td>
               <td class="text-justify">
-              {% if report_config.outline_tags %}
-                {{ report_config.outline_tags }}
-              {% else %}
-                No tags specified
-              {% endif %}
+                {% if report_config.outline_tags %}
+                  {{ report_config.outline_tags|humanize_comma_list }}
+                {% else %}
+                  report and evidence
+                {% endif %}
               </td>
             </tr>
           {% endif %}
