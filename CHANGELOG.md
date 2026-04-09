@@ -9,14 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* **Operation Log Evidence Linking**: Added support for linking evidence to individual operation log entries (Closes #132)
+* **Operation Log Evidence Linking**: Added support for linking evidence to individual operation log entries (Closes #132; Closes #831)
   * New `OplogEntryEvidence` model to create many-to-many relationships between log entries and evidence
   * New GraphQL `linkOplogEvidence` action to attach evidence via API
   * New web form (`OplogEvidenceCreate` view) to attach evidence through the UI
   * Evidence appears in a dedicated section within each log entry, with friendly names and direct links to the original evidence
   * Automatic "evidence" tag applied when evidence is linked to an entry
 
-* **Operation Log Terminal Recordings**: Added support for uploading and playback of Asciinema terminal session recordings (.cast and .cast.gz files)
+* **Operation Log Terminal Recordings**: Added support for uploading and playback of Asciinema terminal session recordings (.cast and .cast.gz files) (Closes #831)
   * New `OplogEntryRecording` model to store a single terminal recording per log entry
   * New GraphQL `uploadOplogRecording` action for base64-encoded file uploads via API
   * New GraphQL `downloadOplogRecording` action to retrieve recordings and metadata
@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `evidence` tag added when first evidence is linked, removed when the last evidence is unlinked
   * `recording` tag added when a recording is uploaded, removed when the recording is deleted
   * Tags can be used for filtering log entries and visual identification
+
+* **Passive Voice Detection**: Added support for performing passive voice identification inside the collaborative editor (PR #796)
+  * Ghostwriter now hosts a small local copy of the spaCy language model for text analysis
+  * Select "Check Passive Voice" in the collaborative editor to examine text and highlight instances of passive voice
+  * See the wiki for more details and an explanation for how to change the model's language
 
 * **Build a Narrative Outline from Log Entries**: Construct an outline for a report narrative based on tagged log entries (Closes #863)
   * This is useful for quickly generating a narrative outline to kickstart a report draft
@@ -54,7 +59,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The paste will automatically trigger the modal window for uploading your evidence
   * Your filename will be the default friendly name for the upload
 
+* ***Updated GHostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.0
+  * Review the Ghostwriter CLI CHANGELOG for complete notes
+  * Going forward, we recommend all users use the new published container images for easier updates
+  * Existing installations will need to migrate some files
+    * Copy the _ssl/_ directory to the _ghostwriter/_ directory inside your operating system's data file directory
+    * Also copy any custom settings files from _config/settings/production.d_ to _ghostwriter/settings/_
+  * Ghostwriter CLI can be used with `--mode local-prod` to keep the old behavior of using a local copy of Ghostwriter's code
+    * You will need to do this if you are using a customized version of the codebase
+
 * Report names in the sidebar now also include the parent project's codename to aid in identification
+
+### Fixed
+
+* Fixed an error that occurred in local development environments related to trying to connect to nginx (Closes #847)
 
 ### Security
 
