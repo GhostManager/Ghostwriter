@@ -114,6 +114,16 @@ class TemplateTagTests(TestCase):
         self.assertEqual(projects[0], self.project)
         self.assertEqual(len(reports), 1)
         self.assertEqual(reports[0], self.report)
+        self.assertEqual(reports[0].project, self.project)
+
+    def test_get_assignment_data_prefetches_report_projects(self):
+        response = self.client_auth.get(self.uri)
+        request = response.wsgi_request
+
+        with self.assertNumQueries(2):
+            projects, reports = custom_tags.get_assignment_data(request)
+            self.assertEqual(projects[0].codename, self.project.codename)
+            self.assertEqual(reports[0].project.codename, self.project.codename)
 
         result = custom_tags.settings_value("DATE_FORMAT")
         self.assertEqual(result, settings.DATE_FORMAT)

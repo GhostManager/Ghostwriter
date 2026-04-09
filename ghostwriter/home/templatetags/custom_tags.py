@@ -70,23 +70,23 @@ def get_assignment_data(request):
     with an individual :model:`users.User` and return a list of unique
     :model:`rolodex.Project` entries and a list of unique :model:`reporting.Report` entries.
     """
-    active_projects = []
-    active_reports = []
-
     user_assignments = (
         ProjectAssignment.objects.select_related("project")
         .filter(Q(operator=request.user) & Q(project__complete=False))
         .order_by("project__end_date")
     )
+    active_projects = []
+    project_ids = []
     for assignment in user_assignments:
         if assignment.project not in active_projects:
             active_projects.append(assignment.project)
+            project_ids.append(assignment.project_id)
 
-    for active_project in active_projects:
-        reports = Report.objects.filter(Q(project=active_project) & Q(complete=False))
-        for report in reports:
-            if report not in active_reports:
-                active_reports.append(report)
+    active_reports = list(
+        Report.objects.select_related("project")
+        .filter(project_id__in=project_ids, complete=False)
+        .order_by("project__end_date", "title", "id")
+    )
     return active_projects, active_reports
 
 
