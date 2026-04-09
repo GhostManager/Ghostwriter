@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Each line includes the start date and time (assumes UTC), tool used, target, and comments
   * The action also inserts evidence objects below each line for any evidence linked with that entry
   * Pairs nicely with Ghostwriter's external tools, `mythic_sync` and `cobalt_sync`
+  * Big thanks to @C0KERNEL who created the initial PoC of this
 
 ### Changed
 
