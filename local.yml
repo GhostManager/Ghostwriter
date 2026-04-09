@@ -223,3 +223,27 @@ services:
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: ./compose/production/mcp-server/Dockerfile
+    image: ghostwriter_local_mcp_server
+    depends_on:
+      - graphql_engine
+    ports:
+      - "8081:3001"
+    volumes:
+      - ./mcp-server:/app
+    labels:
+      name: ghostwriter_mcp_server
+    environment:
+      - GHOSTWRITER_URL=http://${DJANGO_HOST}:${DJANGO_PORT}
+      - GRAPHQL_URL=http://${HASURA_GRAPHQL_SERVER_HOSTNAME}:${HASURA_GRAPHQL_SERVER_PORT}/v1/graphql
+      - JWT_SECRET_KEY=${DJANGO_JWT_SECRET_KEY}
+    healthcheck:
+      test: curl --insecure --fail http://mcp-server:8000/healthz || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
