@@ -88,6 +88,7 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                 "fields": (
                     "report_filename",
                     "project_filename",
+                    "outline_tags",
                     "target_delivery_date",
                     "default_docx_template",
                     "default_pptx_template",

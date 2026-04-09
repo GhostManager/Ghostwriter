@@ -865,6 +865,7 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     title_case_exceptions = str(Faker("csv"))[:255]
     target_delivery_date = Faker("pyint")
     default_cvss_version = "3.1"
+    outline_tags = "report,evidence"
     default_docx_template = factory.SubFactory(ReportDocxTemplateFactory)
     default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
 

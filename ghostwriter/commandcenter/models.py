@@ -1,6 +1,7 @@
 """This contains all the database models for the CommandCenter application."""
 
 import json
+from dataclasses import dataclass
 from typing import Any, Callable, NamedTuple
 from urllib.parse import urlparse
 
@@ -150,6 +151,15 @@ class NamecheapConfiguration(SingletonModel):
 
 
 class ReportConfiguration(SingletonModel):
+    @dataclass(frozen=True)
+    class OutlineTagRules:
+        """Normalized tag rules for narrative outline generation."""
+
+        exact_tags: tuple[str, ...]
+        prefix_tags: tuple[str, ...]
+
+    OUTLINE_DEFAULT_TAGS = ("report", "evidence")
+
     enable_borders = models.BooleanField(default=False, help_text="Enable borders around images in Word documents")
     border_weight = models.IntegerField(
         default=12700,
@@ -231,6 +241,19 @@ class ReportConfiguration(SingletonModel):
         default="3.1",
         help_text="Default CVSS calculator version to display when no user preference is saved in browser local storage",
     )
+    outline_tags = models.CharField(
+        "Narrative Outline Tags",
+        max_length=255,
+        default="report,evidence",
+        help_text=(
+            "Comma-separated list of additional tags to include in generated narrative "
+            "outlines. Built-in `report` and `evidence` tags are always included and "
+            "cannot be removed here. Use exact tags like `credentials` or `detection`, wildcard "
+            "prefixes like `cred*`, or namespaced prefixes like `att&ck:`. Matching is "
+            "case-insensitive."
+        ),
+        blank=True,
+    )
     # Foreign Keys
     default_docx_template = models.ForeignKey(
         "reporting.reporttemplate",
@@ -259,6 +282,96 @@ class ReportConfiguration(SingletonModel):
 
     def __str__(self):
         return "Global Report Configuration"
+
+    @classmethod
+    def parse_outline_tags(
+        cls,
+        outline_tags: str | None,
+        include_defaults: bool = True,
+    ) -> "ReportConfiguration.OutlineTagRules":
+        """
+        Parse outline tag configuration into normalized exact and prefix match rules.
+
+        Matching is case-insensitive, ignores empty comma-separated segments, and supports
+        trailing ``*`` or ``:`` to indicate a prefix match. The built-in ``report`` and
+        ``evidence`` tags are included by default for backwards-compatible behavior.
+        """
+
+        exact_tags: list[str] = []
+        prefix_tags: list[str] = []
+        seen_exact: set[str] = set()
+        seen_prefix: set[str] = set()
+
+        def add_exact(tag: str):
+            if tag and tag not in seen_exact:
+                seen_exact.add(tag)
+                exact_tags.append(tag)
+
+        def add_prefix(prefix: str):
+            if prefix and prefix not in seen_prefix:
+                seen_prefix.add(prefix)
+                prefix_tags.append(prefix)
+
+        if include_defaults:
+            for tag in cls.OUTLINE_DEFAULT_TAGS:
+                add_exact(tag)
+
+        for raw_token in (outline_tags or "").split(","):
+            token = raw_token.strip().lower()
+            if not token:
+                continue
+            if token.endswith("*"):
+                add_prefix(token[:-1])
+            elif token.endswith(":"):
+                add_prefix(token)
+            else:
+                add_exact(token)
+
+        return cls.OutlineTagRules(tuple(exact_tags), tuple(prefix_tags))
+
+    @classmethod
+    def normalize_outline_tags(cls, outline_tags: str | None) -> str:
+        """Return the canonical comma-separated storage form for outline tags."""
+
+        rules = cls.parse_outline_tags(outline_tags, include_defaults=False)
+        return ",".join([*rules.exact_tags, *(f"{prefix}*" for prefix in rules.prefix_tags)])
+
+    @classmethod
+    def validate_outline_tags(cls, outline_tags: str | None) -> str:
+        """
+        Validate and normalize outline tags for configuration storage.
+
+        The input may contain exact tags or prefix rules that end in ``*`` or ``:``.
+        Empty tokens are ignored, and malformed wildcard tokens raise ``ValidationError``.
+        """
+
+        normalized_tokens: list[str] = []
+        seen_tokens: set[str] = set()
+
+        for raw_token in (outline_tags or "").split(","):
+            token = raw_token.strip().lower()
+            if not token:
+                continue
+            if token == "*" or token == ":":
+                raise ValidationError(_("Outline tag wildcard rules must include a prefix before '*' or ':'"))
+            if token.count("*") > 1 or "*" in token[:-1]:
+                raise ValidationError(_("Outline tag wildcard rules may only include '*' at the end"))
+            if token.endswith("*"):
+                normalized = f"{token[:-1]}*"
+                if normalized == "*":
+                    raise ValidationError(_("Outline tag wildcard rules must include a prefix before '*'"))
+            elif token.endswith(":"):
+                if "*" in token or token[:-1].endswith(":"):
+                    raise ValidationError(_("Outline tag ':' prefixes must end with a single trailing ':'"))
+                normalized = token
+            else:
+                normalized = token
+
+            if normalized not in seen_tokens:
+                seen_tokens.add(normalized)
+                normalized_tokens.append(normalized)
+
+        return cls.normalize_outline_tags(",".join(normalized_tokens))
 
     def clear_incorrect_template_defaults(self, template):
         altered = False

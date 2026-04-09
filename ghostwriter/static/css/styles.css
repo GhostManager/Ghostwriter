@@ -2665,6 +2665,10 @@ th.icon {
   content: '\f292';
 }
 
+.wand-icon:before {
+  content: '\f0d0';
+}
+
 .notification-icon:before {
   content: '\f0f3';
 }

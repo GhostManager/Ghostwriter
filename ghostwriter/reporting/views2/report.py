@@ -87,6 +87,24 @@ def _report_evidence_refs_for_entry(report: Report, entry: OplogEntry) -> list[t
     return [(name, evidence_by_name[name]) for name in sorted(evidence_by_name)]
 
 
+def _outline_entry_tag_query(report_config: ReportConfiguration) -> Q:
+    """
+    Build the tag filter used to decide which oplog entries belong in an outline.
+
+    Rules are sourced from :model:`commandcenter.ReportConfiguration` so admins can
+    add exact tags or prefix wildcards while preserving the built-in ``report`` and
+    ``evidence`` tags used by the initial MVP.
+    """
+
+    rules = report_config.parse_outline_tags(report_config.outline_tags)
+    tag_query = Q()
+    for tag_name in rules.exact_tags:
+        tag_query |= Q(tags__name__iexact=tag_name)
+    for prefix in rules.prefix_tags:
+        tag_query |= Q(tags__name__istartswith=prefix)
+    return tag_query
+
+
 def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str, int | str]]:
     """
     Build Tiptap-ready outline content for a report extra field from an oplog.
@@ -94,12 +112,13 @@ def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str
     The returned blocks are either paragraph text or evidence node references so the
     frontend can append real evidence embeds with previews instead of legacy keyword text.
     """
+    report_config = ReportConfiguration.get_solo()
     entries = (
         OplogEntry.objects.filter(
             oplog_id=oplog,
             start_date__isnull=False,
-            tags__name__in=["report", "evidence"],
         )
+        .filter(_outline_entry_tag_query(report_config))
         .prefetch_related(
             "evidence_links__evidence__report",
             "evidence_links__evidence__finding__report",

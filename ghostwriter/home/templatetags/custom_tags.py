@@ -205,6 +205,19 @@ def split_and_join(value, delimiter):
 
 
 @register.filter
+def humanize_comma_list(value, delimiter=","):
+    """Split a delimited string and return a human-readable list with ``and``."""
+    items = [item.strip() for item in value.split(delimiter) if item.strip()]
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return " and ".join(items)
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
+@register.filter
 def get_tags_list(value):
     """Return a list of tags from an object's `tags.names` value."""
     return ", ".join(value)

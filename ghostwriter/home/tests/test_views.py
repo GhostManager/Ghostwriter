@@ -175,6 +175,10 @@ class TemplateTagTests(TestCase):
         test_string = "test,example,sample"
         result = custom_tags.split_and_join(test_string, ",")
         self.assertEqual(result, "test, example, sample")
+        result = custom_tags.humanize_comma_list(test_string)
+        self.assertEqual(result, "test, example, and sample")
+        result = custom_tags.humanize_comma_list("report,evidence")
+        self.assertEqual(result, "report and evidence")
 
         test_date = datetime(2024, 2, 20)
         result = custom_tags.add_days(test_date, 5)
