@@ -130,23 +130,23 @@
 
         <table class="table table-responsive-lg table-borderless table-config">
           <tr>
-            <td class="text-left icon tag-icon">Figure Label & Prefix</td>
+            <td class="text-left icon hash-icon">Figure Label & Prefix</td>
             <td class="text-justify">{{ report_config.label_figure }}{{ report_config.prefix_figure }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Figure Caption Location</td>
+            <td class="text-left icon hash-icon">Figure Caption Location</td>
             <td class="text-justify">{{ report_config.get_figure_caption_location_display }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Table Label & Prefix</td>
+            <td class="text-left icon hash-icon">Table Label & Prefix</td>
             <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Table Caption Location</td>
+            <td class="text-left icon hash-icon">Table Caption Location</td>
             <td class="text-justify">{{ report_config.get_table_caption_location_display }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Title Case Captions</td>
+            <td class="text-left icon wand-icon">Title Case Captions</td>
             <td class="text-justify">
               {% if report_config.title_case_captions %}
                 <span class="align-middle healthy"><i class="fas fa-check"></i></span>
@@ -156,7 +156,7 @@
             </td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Title Case Exceptions</td>
+            <td class="text-left icon wand-icon">Title Case Exceptions</td>
             <td class="text-justify"> {{ report_config.title_case_exceptions|split_and_join:"," }}</td>
           </tr>
           <tr>
@@ -191,6 +191,16 @@
               <td class="text-left icon calendar-icon">Delivery Date</td>
               <td class="text-justify">{% if report_config.target_delivery_date > 0 %}
                 +{% endif %}{{ report_config.target_delivery_date }} business days
+              </td>
+            </tr>
+            <tr>
+              <td class="text-left icon tag-icon">Operation Log Tags</td>
+              <td class="text-justify">
+              {% if report_config.outline_tags %}
+                {{ report_config.outline_tags }}
+              {% else %}
+                No tags specified
+              {% endif %}
               </td>
             </tr>
           {% endif %}
