@@ -549,8 +549,13 @@ class ReportOplogOutlineGenerate(RoleBasedAccessControlMixin, SingleObjectMixin,
         return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return JsonResponse(
+            {
+                "result": "error",
+                "message": "You do not have permission to access that.",
+            },
+            status=403,
+        )
 
     def post(self, request, *args, **kwargs):
         report = self.get_object()
