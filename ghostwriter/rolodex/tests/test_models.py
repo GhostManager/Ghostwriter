@@ -21,6 +21,9 @@ from ghostwriter.factories import (
     OplogEntryFactory,
     OplogFactory,
     ProjectAssignmentFactory,
+    ProjectCollabNoteFactory,
+    ProjectCollabNoteFieldFactory,
+    ProjectCollabNoteFolderFactory,
     ProjectContactFactory,
     ProjectFactory,
     ProjectInviteFactory,
@@ -38,7 +41,7 @@ from ghostwriter.factories import (
     WhiteCardFactory,
 )
 from ghostwriter.rolodex.admin import ProjectRoleAdminForm
-from ghostwriter.rolodex.models import Client, Project
+from ghostwriter.rolodex.models import Client, Project, ProjectCollabNote, ProjectCollabNoteField
 
 logging.disable(logging.CRITICAL)
 
@@ -891,3 +894,87 @@ class ProjectContactModelTests(TestCase):
         # Delete
         contact.delete()
         assert not self.ProjectContact.objects.all().exists()
+
+
+class ProjectCollabNoteModelTests(TestCase):
+    """Collection of tests for :model:`rolodex.ProjectCollabNote`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password="test")
+        cls.project = ProjectFactory()
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+
+    def test_crud(self):
+        note = ProjectCollabNoteFactory(project=self.project, title="Test Note")
+        self.assertEqual(note.title, "Test Note")
+        self.assertEqual(note.node_type, "note")
+
+        note.title = "Updated"
+        note.save()
+        note.refresh_from_db()
+        self.assertEqual(note.title, "Updated")
+
+        note.delete()
+        self.assertFalse(ProjectCollabNote.objects.filter(pk=note.pk).exists())
+
+    def test_folder_creation(self):
+        folder = ProjectCollabNoteFolderFactory(project=self.project, title="Folder")
+        self.assertEqual(folder.node_type, "folder")
+        self.assertEqual(folder.content, "")
+
+    def test_hierarchical_structure(self):
+        folder = ProjectCollabNoteFolderFactory(project=self.project)
+        note = ProjectCollabNoteFactory(project=self.project, parent=folder)
+        self.assertEqual(note.parent, folder)
+        self.assertIn(note, folder.children.all())
+
+    def test_cascade_delete(self):
+        folder = ProjectCollabNoteFolderFactory(project=self.project)
+        child = ProjectCollabNoteFactory(project=self.project, parent=folder)
+        child_id = child.pk
+        folder.delete()
+        self.assertFalse(ProjectCollabNote.objects.filter(pk=child_id).exists())
+
+    def test_user_can_edit_delegates_to_project(self):
+        note = ProjectCollabNoteFactory(project=self.project)
+        self.assertEqual(note.user_can_edit(self.user), self.project.user_can_edit(self.user))
+
+    def test_str(self):
+        note = ProjectCollabNoteFactory(title="My Note")
+        self.assertEqual(str(note), "My Note (note)")
+
+
+class ProjectCollabNoteFieldModelTests(TestCase):
+    """Collection of tests for :model:`rolodex.ProjectCollabNoteField`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.note = ProjectCollabNoteFactory()
+
+    def test_crud(self):
+        field = ProjectCollabNoteFieldFactory(note=self.note, content="<p>Hello</p>")
+        self.assertEqual(field.field_type, "rich_text")
+        self.assertEqual(field.content, "<p>Hello</p>")
+
+        field.content = "<p>Updated</p>"
+        field.save()
+        field.refresh_from_db()
+        self.assertEqual(field.content, "<p>Updated</p>")
+
+        field.delete()
+        self.assertFalse(ProjectCollabNoteField.objects.filter(pk=field.pk).exists())
+
+    def test_cascade_delete_with_note(self):
+        note = ProjectCollabNoteFactory()
+        field = ProjectCollabNoteFieldFactory(note=note)
+        field_id = field.pk
+        note.delete()
+        self.assertFalse(ProjectCollabNoteField.objects.filter(pk=field_id).exists())
+
+    def test_ordering(self):
+        f1 = ProjectCollabNoteFieldFactory(note=self.note, position=2)
+        f2 = ProjectCollabNoteFieldFactory(note=self.note, position=0)
+        f3 = ProjectCollabNoteFieldFactory(note=self.note, position=1)
+        fields = list(self.note.fields.all())
+        self.assertEqual(fields, [f2, f3, f1])

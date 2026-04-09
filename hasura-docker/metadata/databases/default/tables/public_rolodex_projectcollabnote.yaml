@@ -1,0 +1,171 @@
+table:
+  name: rolodex_projectcollabnote
+  schema: public
+configuration:
+  column_config:
+    node_type:
+      custom_name: nodeType
+    parent_id:
+      custom_name: parentId
+    project_id:
+      custom_name: projectId
+    created_at:
+      custom_name: createdAt
+    updated_at:
+      custom_name: updatedAt
+  custom_column_names:
+    node_type: nodeType
+    parent_id: parentId
+    project_id: projectId
+    created_at: createdAt
+    updated_at: updatedAt
+  custom_name: projectCollabNote
+  custom_root_fields: {}
+object_relationships:
+  - name: project
+    using:
+      foreign_key_constraint_on: project_id
+  - name: parent
+    using:
+      foreign_key_constraint_on: parent_id
+array_relationships:
+  - name: children
+    using:
+      foreign_key_constraint_on:
+        column: parent_id
+        table:
+          name: rolodex_projectcollabnote
+          schema: public
+  - name: fields
+    using:
+      foreign_key_constraint_on:
+        column: note_id
+        table:
+          name: rolodex_projectcollabnotefield
+          schema: public
+insert_permissions:
+  - role: manager
+    permission:
+      check: {}
+      set:
+        created_at: now()
+        updated_at: now()
+      columns:
+        - title
+        - node_type
+        - content
+        - position
+        - parent_id
+        - project_id
+  - role: user
+    permission:
+      check:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+      set:
+        created_at: now()
+        updated_at: now()
+      columns:
+        - title
+        - node_type
+        - content
+        - position
+        - parent_id
+        - project_id
+select_permissions:
+  - role: manager
+    permission:
+      columns: '*'
+      filter: {}
+      allow_aggregations: true
+  - role: user
+    permission:
+      columns: '*'
+      allow_aggregations: true
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+update_permissions:
+  - role: manager
+    permission:
+      columns:
+        - title
+        - node_type
+        - content
+        - position
+        - parent_id
+      filter: {}
+      check: {}
+  - role: user
+    permission:
+      columns:
+        - title
+        - node_type
+        - content
+        - position
+        - parent_id
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+      check:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+delete_permissions:
+  - role: manager
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id

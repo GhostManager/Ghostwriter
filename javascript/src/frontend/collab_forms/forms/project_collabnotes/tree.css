@@ -1,0 +1,138 @@
+.tree-item-dragging {
+    visibility: hidden;
+}
+
+.tree-item-container {
+    position: relative;
+}
+
+.tree-item-drop-before::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #0d6efd;
+    border-radius: 2px;
+    z-index: 10;
+    box-shadow: 0 0 0 1px rgba(13, 110, 253, 0.3);
+}
+
+.tree-item-drop-after::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #0d6efd;
+    border-radius: 2px;
+    z-index: 10;
+    box-shadow: 0 0 0 1px rgba(13, 110, 253, 0.3);
+}
+
+.tree-item-drop-inside > .tree-item {
+    background-color: #cfe2ff;
+    border-radius: 4px;
+    outline: 2px solid #0d6efd;
+    outline-offset: -2px;
+}
+
+.tree-drag-overlay {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    padding: 2px;
+    opacity: 0.9;
+}
+
+.tree-item {
+    cursor: grab;
+}
+
+.tree-item:active {
+    cursor: grabbing;
+}
+
+/* Image field placeholder - addresses PR comment #16 and #27 (use CSS not inline styles) */
+.image-field-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    min-height: 150px;
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 8px;
+    background-color: var(--bs-tertiary-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.image-field-placeholder:focus,
+.image-field-placeholder.drag-active {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.image-field-placeholder.uploading {
+    cursor: wait;
+}
+
+.image-field-placeholder__icon {
+    font-size: 32px;
+    color: var(--bs-secondary-color);
+    margin-bottom: 12px;
+}
+
+.image-field-placeholder.drag-active .image-field-placeholder__icon {
+    color: var(--bs-primary);
+}
+
+.image-field-placeholder__text {
+    color: var(--bs-secondary-color);
+    text-align: center;
+}
+
+.image-field-placeholder__hint {
+    font-size: 12px;
+    color: var(--bs-secondary-color);
+    margin-top: 4px;
+}
+
+/* Delete confirm modal - addresses PR comment #13 and #26 (use CSS not inline styles) */
+.collab-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+}
+
+.collab-modal-content {
+    position: relative;
+    inset: auto;
+    border: none;
+    background: none;
+    padding: 0;
+    max-width: 500px;
+    width: 100%;
+}
+
+/* Add field toolbar */
+.add-field-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 16px;
+    background-color: var(--bs-tertiary-bg);
+}

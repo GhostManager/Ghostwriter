@@ -168,6 +168,26 @@ urlpatterns += [
         views.BloodhoundApiFetchView.as_view(),
         name="ajax_bloodhound_fetch",
     ),
+    path(
+        "ajax/note/field/<int:pk>/image/serve",
+        views.serve_note_field_image,
+        name="ajax_serve_note_image",
+    ),
+    path(
+        "ajax/note/<int:pk>/field/image",
+        views.ajax_upload_note_field_image,
+        name="ajax_upload_note_field_image",
+    ),
+    path(
+        "ajax/note/<int:pk>/field/<int:field_pk>/image",
+        views.ajax_upload_note_field_image,
+        name="ajax_upload_to_existing_field",
+    ),
+    path(
+        "ajax/project/<int:pk>/notes/export",
+        views.export_collab_notes_zip,
+        name="ajax_export_collab_notes",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views
