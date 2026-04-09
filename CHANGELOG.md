@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * This is useful for quickly generating a narrative outline to kickstart a report draft
   * Added a button to the collaborative editor to insert a narrative outline based on activity logs
   * The action includes any log entries tagged with `evidence` or `report`
+  * Extended the global report configuration to include a field for specifying additional tags
+    * Includes support for partial tags—e.g., `cred*` will match `creds` or `credentials`.
   * Each line includes the start date and time (assumes UTC), tool used, target, and comments
   * The action also inserts evidence objects below each line for any evidence linked with that entry
   * Pairs nicely with Ghostwriter's external tools, `mythic_sync` and `cobalt_sync`
