@@ -276,7 +276,11 @@ class OplogEvidenceForm(forms.ModelForm):
         friendly_name = cleaned_data.get("friendly_name")
         report = cleaned_data.get("report")
         if friendly_name and report:
-            qs = Evidence.objects.filter(friendly_name=friendly_name, report=report)
+            # TODO: Remove finding-level evidence compatibility after PR #790 lands
+            # For now, oplog uploads must reject any duplicate friendly name across all
+            # evidence associated with the report so {{.ref ...}} references stay unique
+            qs = report.all_evidences().filter(friendly_name=friendly_name)
+            # qs = Evidence.objects.filter(friendly_name=friendly_name, report=report)
             if self.instance.pk:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():

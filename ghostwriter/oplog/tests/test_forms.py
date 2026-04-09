@@ -7,12 +7,14 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    EvidenceOnFindingFactory,
     EvidenceOnReportFactory,
     OplogEntryFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
+    ReportFindingLinkFactory,
     UserFactory,
 )
 from ghostwriter.modules.model_utils import to_dict
@@ -207,6 +209,20 @@ class OplogEvidenceFormTests(TestCase):
             files={"document": file},
         )
         self.assertTrue(form.is_valid())
+
+    def test_clean_rejects_duplicate_friendly_name_from_finding_evidence(self):
+        """Finding-level evidence on the same report also blocks duplicate friendly names."""
+        finding = ReportFindingLinkFactory(report=self.report)
+        EvidenceOnFindingFactory(friendly_name="Duplicate Evidence", finding=finding)
+        file = SimpleUploadedFile("evidence.png", b"img data", content_type="image/png")
+        form = OplogEvidenceForm(
+            project=self.project,
+            data={"friendly_name": "Duplicate Evidence", "report": self.report.pk, "caption": "Test"},
+            files={"document": file},
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
+        self.assertIn("friendly name already exists", form.errors["__all__"][0])
 
     def test_clean_allows_update_existing_instance(self):
         """Updating an existing evidence instance does not falsely trigger the duplicate check."""
