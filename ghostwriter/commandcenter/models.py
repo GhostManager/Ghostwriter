@@ -246,9 +246,11 @@ class ReportConfiguration(SingletonModel):
         max_length=255,
         default="report,evidence",
         help_text=(
-            "Comma-separated list of tags to include in generated narrative outlines. "
-            "Use exact tags like `report` or `evidence`, wildcard prefixes like `cred*`, or "
-            "namespaced prefixes like `att&ck:`. Matching is case-insensitive."
+            "Comma-separated list of additional tags to include in generated narrative "
+            "outlines. Built-in `report` and `evidence` tags are always included and "
+            "cannot be removed here. Use exact tags like `credentials` or `detection`, wildcard "
+            "prefixes like `cred*`, or namespaced prefixes like `att&ck:`. Matching is "
+            "case-insensitive."
         ),
         blank=True,
     )
