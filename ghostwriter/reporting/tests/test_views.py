@@ -2,10 +2,11 @@
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Django Imports
 from django.contrib.messages import get_messages
+from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
@@ -29,6 +30,9 @@ from ghostwriter.factories import (
     GenerateMockProject,
     LocalFindingNoteFactory,
     ObservationFactory,
+    OplogEntryEvidenceFactory,
+    OplogEntryFactory,
+    OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectTargetFactory,
@@ -1177,6 +1181,143 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
+
+
+class ReportOplogOutlineGenerateTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportOplogOutlineGenerate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.oplog = OplogFactory(project=cls.report.project, name="Primary Log")
+        cls.other_report = ReportFactory()
+        cls.other_oplog = OplogFactory(project=cls.other_report.project, name="Other Log")
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse(
+            "reporting:report_generate_oplog_outline",
+            kwargs={"pk": cls.report.pk},
+        )
+        cls.failure_redirect_uri = reverse("home:dashboard")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_permission(self):
+        response = self.client.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.oplog.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.oplog.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.failure_redirect_uri)
+
+    def test_view_rejects_oplog_from_another_project(self):
+        response = self.client_mgr.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.other_oplog.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_view_returns_empty_list_when_no_matching_entries_exist(self):
+        response = self.client_mgr.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.oplog.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["blocks"], [])
+
+    def test_view_generates_expected_outline_lines(self):
+        first_start = datetime(2024, 5, 1, 14, 0, 0, tzinfo=timezone.utc)
+        second_start = datetime(2024, 5, 1, 15, 30, 0, tzinfo=timezone.utc)
+
+        entry_one = OplogEntryFactory(
+            oplog_id=self.oplog,
+            start_date=first_start,
+            tool="Nmap",
+            source_ip="10.0.0.10",
+            dest_ip="10.0.0.20",
+            comments="<p>Initial foothold confirmed.</p>",
+            tags=["report"],
+        )
+        entry_two = OplogEntryFactory(
+            oplog_id=self.oplog,
+            start_date=second_start,
+            tool="",
+            source_ip="",
+            dest_ip="",
+            comments="",
+            tags=["evidence"],
+        )
+        OplogEntryFactory(
+            oplog_id=self.oplog,
+            start_date=datetime(2024, 5, 2, 9, 0, 0, tzinfo=timezone.utc),
+            tags=["internal"],
+        )
+
+        report_evidence = EvidenceOnReportFactory(
+            report=self.report,
+            friendly_name="Alpha",
+        )
+        finding = ReportFindingLinkFactory(report=self.report)
+        finding_evidence = EvidenceOnFindingFactory(
+            finding=finding,
+            friendly_name="Bravo",
+        )
+        foreign_evidence = EvidenceOnReportFactory(
+            report=self.other_report,
+            friendly_name="Foreign",
+        )
+
+        OplogEntryEvidenceFactory(oplog_entry=entry_one, evidence=report_evidence)
+        OplogEntryEvidenceFactory(oplog_entry=entry_one, evidence=finding_evidence)
+        OplogEntryEvidenceFactory(oplog_entry=entry_one, evidence=foreign_evidence)
+
+        response = self.client_mgr.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.oplog.pk}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(
+            body["blocks"],
+            [
+                {
+                    "type": "paragraph",
+                    "text": (
+                        f"On {dateformat(first_start, settings.DATE_FORMAT)} at 14:00:00 UTC, "
+                        "the assessment team used Nmap from 10.0.0.10 against 10.0.0.20. "
+                        "Comments: Initial foothold confirmed."
+                    ),
+                },
+                {"type": "paragraph", "text": "{{.ref Alpha}}"},
+                {"type": "evidence", "evidence_id": report_evidence.id},
+                {"type": "paragraph", "text": "{{.ref Bravo}}"},
+                {"type": "evidence", "evidence_id": finding_evidence.id},
+                {
+                    "type": "paragraph",
+                    "text": (
+                        "At 15:30:00 UTC, the assessment team used N/A from N/A "
+                        "against N/A. Comments: N/A"
+                    ),
+                },
+            ],
+        )
 
 
 class ReportCreateViewTests(TestCase):
