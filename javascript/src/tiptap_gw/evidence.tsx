@@ -121,15 +121,14 @@ function EvidenceView(props: NodeViewProps) {
     const evidence =
         ghostwriterEvidences &&
         ghostwriterEvidences.evidence.find((v) => v.id === id);
+    const normalizedDocument = evidence?.document.toLowerCase() ?? "";
 
     const [lightboxOpen, setLightboxOpen] = useState(false);
 
     const isImage =
-        !!evidence &&
-        IMAGE_EXTENSIONS.some((ext) => evidence.document.endsWith(ext));
+        !!evidence && IMAGE_EXTENSIONS.some((ext) => normalizedDocument.endsWith(ext));
     const isText =
-        !!evidence &&
-        TEXT_EXTENSIONS.some((ext) => evidence.document.endsWith(ext));
+        !!evidence && TEXT_EXTENSIONS.some((ext) => normalizedDocument.endsWith(ext));
     const textContent = useTextContent(id, isText);
 
     if (!evidence) {
