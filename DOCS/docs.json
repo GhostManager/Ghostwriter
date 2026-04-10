@@ -104,6 +104,9 @@
                   "features/operation-logs",
                   "features/operation-logs/creating-a-new-oplog",
                   "features/operation-logs/create-a-new-entry",
+                  "features/operation-logs/generating-narrative-outlines",
+                  "features/operation-logs/linking-evidence-to-entries",
+                  "features/operation-logs/attaching-terminal-recordings",
                   "features/operation-logs/setting-up-automated-logging",
                   "features/operation-logs/exporting-importing-oplogs"
                 ]
@@ -112,6 +115,13 @@
                 "group": "Reporting",
                 "pages": [
                   "features/reporting",
+                  {
+                    "group": "Collaborative Editor",
+                    "pages": [
+                      "features/reporting/collaborative-editing",
+                      "features/reporting/collaborative-editor/editor-features"
+                    ]
+                  },
                   {
                     "group": "Report Types",
                     "pages": [

@@ -15,6 +15,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_project_list
 from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.reporting.models import Evidence, Report
 from ghostwriter.rolodex.models import Project
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 
@@ -164,8 +165,8 @@ class OplogEntryForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Row(
-                Column("description", css_class="form-group col-6 mb-0 empty-form"),
-                Column("comments", css_class="form-group col-6 mb-0 empty-form"),
+                Column("description", css_class="form-group col-6 mb-0"),
+                Column("comments", css_class="form-group col-6 mb-0"),
                 css_class="form-row",
             ),
             "tags",
@@ -185,3 +186,105 @@ class OplogEntryForm(forms.ModelForm):
                 ),
             ),
         )
+
+
+class OplogEvidenceForm(forms.ModelForm):
+    """Upload evidence and link it to an :model:`oplog.OplogEntry`."""
+
+    report = forms.ModelChoiceField(
+        queryset=Report.objects.none(),
+        required=True,
+        help_text="Select the report this evidence belongs to.",
+    )
+
+    class Meta:
+        model = Evidence
+        fields = (
+            "friendly_name",
+            "document",
+            "report",
+            "caption",
+            "description",
+            "tags",
+        )
+        widgets = {
+            "document": forms.FileInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"rows": 1}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.project = kwargs.pop("project", None)
+        active_report_id = kwargs.pop("active_report_id", None)
+        super().__init__(*args, **kwargs)
+        self.fields["friendly_name"].required = True
+        self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
+        self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
+        self.fields["caption"].required = True
+        self.fields["caption"].widget.attrs["autocomplete"] = "off"
+        self.fields["caption"].widget.attrs["placeholder"] = "Report Caption"
+        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["document"].label = "Evidence File"
+
+        if self.project:
+            reports = Report.objects.filter(project=self.project).order_by("title")
+            self.fields["report"].queryset = reports
+            # Prefer: 1) active report (if valid for this project), 2) first report in list
+            initial_report = None
+            if active_report_id:
+                initial_report = reports.filter(pk=active_report_id).first()
+            if initial_report is None:
+                initial_report = reports.first()
+            if initial_report is not None:
+                self.fields["report"].initial = initial_report
+
+        self.helper = FormHelper()
+        self.helper.form_show_errors = False
+        self.helper.form_method = "post"
+        self.helper.attrs = {"enctype": "multipart/form-data"}
+        self.helper.form_id = "oplog-evidence-form"
+        self.helper.layout = Layout(
+            HTML(
+                """
+                <p class="mb-1">Upload evidence and attach it to the selected report. The friendly name is used to
+                reference this evidence in reports, and the caption appears below figures.
+                You can press <em>Enter</em> to submit.</p>
+                """
+            ),
+            "report",
+            Row(
+                Column("friendly_name", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            "caption",
+            "description",
+            Field("document", css_class="custom-file-input"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button data-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+                css_class="mt-3",
+            ),
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        friendly_name = cleaned_data.get("friendly_name")
+        report = cleaned_data.get("report")
+        if friendly_name and report:
+            # TODO: Remove finding-level evidence compatibility after PR #790 lands
+            # For now, oplog uploads must reject any duplicate friendly name across all
+            # evidence associated with the report so {{.ref ...}} references stay unique
+            qs = report.all_evidences().filter(friendly_name=friendly_name)
+            # qs = Evidence.objects.filter(friendly_name=friendly_name, report=report)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(
+                    "An evidence item with this friendly name already exists for the selected report."
+                )
+        return cleaned_data

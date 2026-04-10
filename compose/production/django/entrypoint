@@ -13,4 +13,22 @@ if [ -z "${POSTGRES_USER}" ]; then
 fi
 export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
 
+# The default spaCy model is baked into published images. If operators override
+# SPACY_MODEL with a custom model, allow an explicit opt-in runtime download for
+# environments where internet access is available.
+SPACY_MODEL="${SPACY_MODEL:-en_core_web_sm}"
+SPACY_DOWNLOAD_MISSING_MODEL="${SPACY_DOWNLOAD_MISSING_MODEL:-0}"
+export SPACY_MODEL
+export SPACY_DOWNLOAD_MISSING_MODEL
+
+if ! python -c "import importlib.util, os, sys; model = os.environ.get('SPACY_MODEL', 'en_core_web_sm'); sys.exit(0 if importlib.util.find_spec(model) or os.path.exists(model) else 1)" 2>/dev/null; then
+    if [ "${SPACY_DOWNLOAD_MISSING_MODEL}" = "1" ]; then
+        echo "Downloading missing spaCy model: ${SPACY_MODEL}"
+        python -m spacy download "${SPACY_MODEL}"
+    else
+        echo "WARNING: spaCy model '${SPACY_MODEL}' is not installed and runtime download is disabled." >&2
+        echo "Set SPACY_DOWNLOAD_MISSING_MODEL=1 to opt in to downloading missing models at container startup." >&2
+    fi
+fi
+
 exec "$@"

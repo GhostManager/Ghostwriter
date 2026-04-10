@@ -22,7 +22,7 @@ export function usePageEvidence(): Evidences | null {
         )?.innerHTML;
         const filters: Evidence_Bool_Exp["_or"] = [
             {
-                report_id: { _eq: reportId },
+                reportId: { _eq: reportId },
             },
         ];
         if (findingIdText !== undefined) {

@@ -19,7 +19,9 @@
     {% crispy filter.form filter.helper %}
   </div>
 
-  {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
+  {% if filter.qs|length > 0 %}
+    {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
+  {% endif %}
 
   <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create Entry</a>
   <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>

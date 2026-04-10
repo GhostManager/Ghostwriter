@@ -5,6 +5,82 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.0] - 10 April 2026
+
+### Added
+
+* **Operation Log Evidence Linking**: Added support for linking evidence to individual operation log entries (Closes #132; Closes #831)
+  * New `OplogEntryEvidence` model to create many-to-many relationships between log entries and evidence
+  * New GraphQL `linkOplogEvidence` action to attach evidence via API
+  * New web form (`OplogEvidenceCreate` view) to attach evidence through the UI
+  * Evidence appears in a dedicated section within each log entry, with friendly names and direct links to the original evidence
+  * Automatic "evidence" tag applied when evidence is linked to an entry
+
+* **Operation Log Terminal Recordings**: Added support for uploading and playback of Asciinema terminal session recordings (.cast and .cast.gz files) (Closes #831)
+  * New `OplogEntryRecording` model to store a single terminal recording per log entry
+  * New GraphQL `uploadOplogRecording` action for base64-encoded file uploads via API
+  * New GraphQL `downloadOplogRecording` action to retrieve recordings and metadata
+  * New Django views for recording upload, deletion, and download with file serving and inline playback support
+  * Support for Asciinema player integration for viewing recordings directly in the log entry's details pane
+  * Automatic "recording" tag applied when a recording is uploaded
+
+* **Automatic Tag Management for Log Entry Features**: Evidence linking and terminal recordings automatically apply and remove tags
+  * `evidence` tag added when first evidence is linked, removed when the last evidence is unlinked
+  * `recording` tag added when a recording is uploaded, removed when the recording is deleted
+  * Tags can be used for filtering log entries and visual identification
+
+* **Passive Voice Detection**: Added support for performing passive voice identification inside the collaborative editor (PR #796)
+  * Ghostwriter now hosts a small local copy of the spaCy language model for text analysis
+  * Select "Check Passive Voice" in the collaborative editor to examine text and highlight instances of passive voice
+  * See the wiki for more details and an explanation for how to change the model's language
+
+* **Build a Narrative Outline from Log Entries**: Construct an outline for a report narrative based on tagged log entries (Closes #863)
+  * This is useful for quickly generating a narrative outline to kickstart a report draft
+  * Added a button to the collaborative editor to insert a narrative outline based on activity logs
+  * The action includes any log entries tagged with `evidence` or `report`
+  * Extended the global report configuration to include a field for specifying additional tags
+    * Includes support for partial tags—e.g., `cred*` will match `creds` or `credentials`.
+  * Each line includes the start date and time (assumes UTC), tool used, target, and comments
+  * The action also inserts evidence objects below each line for any evidence linked with that entry
+  * Pairs nicely with Ghostwriter's external tools, `mythic_sync` and `cobalt_sync`
+  * Big thanks to @C0KERNEL who created the initial PoC of this
+
+### Changed
+
+* **New User Interface for Operation Logs**: Replaced the table view for operation logs with two pane interface (Closes #831)
+  * New interface is similar to those used by many email clients
+  * Log entries appear on the left-side with at-a-glance information
+  * Details appear on the right-side in a details pane
+  * Details pane includes dedicated sections for attaching evidence and uploading terminal recordings
+
+* **Text Evidence Previews**: Text evidence now has previews in the collaborative editor like image evidence
+
+* **Pasting Images into Collaborative Editor**: You can now paste an image file or screenshot in your clipboard into a collaborative editor field
+  * The paste will automatically trigger the modal window for uploading your evidence
+  * Your filename will be the default friendly name for the upload
+
+* **Updated Ghostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.0
+  * Review the Ghostwriter CLI CHANGELOG for complete notes
+  * Going forward, we recommend all users use the new published container images for easier updates
+  * Existing installations will need to migrate some files
+    * Copy the _ssl/_ directory to the _ghostwriter/_ directory inside your operating system's data file directory
+    * Also copy any custom settings files from _config/settings/production.d_ to _ghostwriter/settings/_
+  * Ghostwriter CLI can be used with `--mode local-prod` to keep the old behavior of using a local copy of Ghostwriter's code
+    * You will need to do this if you are using a customized version of the codebase
+
+* Report names in the sidebar now also include the parent project's codename to aid in identification
+
+### Fixed
+
+* Fixed an error that occurred in local development environments related to trying to connect to nginx (Closes #847)
+
+### Security
+
+* As we allow more user-editable content to be rendered in the DOM, we have implemented stronger controls to prevent JavaScript injection
+  * Updated the allowed HTML attributes to be more targeted
+  * Added sanitization to activity log entries that support rich text (`comments` and `description`)
+  * Added `DOMPurify` to the project for an extra layer of security and client-side sanitization
+
 ## [6.2.13] - 8 April 2026
 
 ### Changed
@@ -137,6 +213,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed client logos not showing properly on client dashboards
 * Fixed issue with the `last_update` column preventing creation of a report via the GraphQL API (Fixes #828)
+
+## [6.3.0-rc1] - 24 February 2026
+
+### Added
+
+* Added support for performing passive voice identification inside the collaborative editor
+  * Ghostwriter now hosts a small local copy of the spaCy language model for text analysis
+  * Select "Check Passive Voice" in the collaborative editor to examine text and highlight instances of passive voice
+  * See the wiki for more details and an explanation for how to change the model's language
+* Added fonts formerly imported from Google Fonts to the local codebase to support systems without network connections (Fixes #823)
+
+### Changed
+
+* Updated the pre-built Ghostwriter CLI binaries to v1.0.0
+  * Review the Ghostwriter CLI CHANGELOG for complete notes
+  * Going forward, we recommend all users use the new published container images for easier updates
+  * Existing installations will need to migrate some files
+    * Copy the _ssl/_ directory to the _ghostwriter/_ directory inside your operating system's data file directory
+    * Also copy any custom settings files from _config/settings/production.d_ to _ghostwriter/settings/_
+  * Ghostwriter CLI can be used with `--mode local-prod` to keep the old behavior of using a local copy of Ghostwriter's code
+    * You will need to do this if you are using a customized version of the codebase
 
 ## [6.2.3] — 5 February 2026
 

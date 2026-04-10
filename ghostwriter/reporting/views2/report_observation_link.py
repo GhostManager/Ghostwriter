@@ -349,11 +349,13 @@ class ReportObservationLinkAssign(RoleBasedAccessControlMixin, UpdateView):
                 messages.info(self.request, "The observation was already unassigned. No changes made.")
             return HttpResponseRedirect(self.get_success_url())
         try:
-            async_to_sync(get_channel_layer().group_send)(
-                f"notify_{self.object.assigned_to.get_clean_username() if self.object.assigned_to else None}",
-                {
-                    "type": "message",
-                    "message": {
+            # Send a message to the assigned user if `assigned_to` is set
+            if self.object.assigned_to:
+                async_to_sync(get_channel_layer().group_send)(
+                    f"notify_{self.object.assigned_to.get_clean_username()}",
+                    {
+                        "type": "message",
+                        "message": {
                         "message": "You have been assigned to this observation for {}:\n{}".format(
                             self.object.report, self.object.title
                         ),

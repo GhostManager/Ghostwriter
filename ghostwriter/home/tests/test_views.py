@@ -114,6 +114,16 @@ class TemplateTagTests(TestCase):
         self.assertEqual(projects[0], self.project)
         self.assertEqual(len(reports), 1)
         self.assertEqual(reports[0], self.report)
+        self.assertEqual(reports[0].project, self.project)
+
+    def test_get_assignment_data_prefetches_report_projects(self):
+        response = self.client_auth.get(self.uri)
+        request = response.wsgi_request
+
+        with self.assertNumQueries(2):
+            projects, reports = custom_tags.get_assignment_data(request)
+            self.assertEqual(projects[0].codename, self.project.codename)
+            self.assertEqual(reports[0].project.codename, self.project.codename)
 
         result = custom_tags.settings_value("DATE_FORMAT")
         self.assertEqual(result, settings.DATE_FORMAT)
@@ -165,6 +175,10 @@ class TemplateTagTests(TestCase):
         test_string = "test,example,sample"
         result = custom_tags.split_and_join(test_string, ",")
         self.assertEqual(result, "test, example, sample")
+        result = custom_tags.humanize_comma_list(test_string)
+        self.assertEqual(result, "test, example, and sample")
+        result = custom_tags.humanize_comma_list("report,evidence")
+        self.assertEqual(result, "report and evidence")
 
         test_date = datetime(2024, 2, 20)
         result = custom_tags.add_days(test_date, 5)

@@ -84,19 +84,54 @@
     </tr>
   </table>
 
+
+
   <!-- File Content Section -->
-  <h4 class="icon file-icon">File Contents</h4>
+  <h4 class="icon file-icon">File Preview</h4>
   <hr>
 
-  <p>This is a preview of what your evidence file will look like in a report.
-    It may not look exactly like this (depending on your template's styles),
-    but it will give you an idea of what to expect.</p>
-  <p>The width is 6.5" (165.1mm), the default full width of a Word document.</p>
-  <p>If you have borders enabled for reports, images will include a border with your configured color and width.</p>
-  <p>Previews also show you what captions will look like with your caption and configured labelling for figures.</p>
+  <div class="text-left offset-2 col-8">
+    <p>This is a preview of what your evidence file will look like in a report.
+      It may not look exactly like this (depending on your template's styles),
+      but it will give you an idea of what to expect.</p>
+    <p>The width is 6.5" (165.1mm), the default full width of a Word document. If you have borders enabled for reports,
+      images will include a border with your configured color and width. Previews also show you what captions will look
+      like with your caption and configured labelling for figures.
+    </p>
+  </div>
+
   <p class="text-muted"><i class="fas fa-search-plus"></i> Click on the preview to view full size</p>
 
   {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config clickable=True %}
+
+  <!-- Linked Log Entries Section -->
+  <h4 class="icon link-icon">Linked Log Entries</h4>
+  <hr>
+  {% if linked_oplog_entries %}
+    {% regroup linked_oplog_entries by oplog_entry.oplog_id as oplog_groups %}
+    {% for group in oplog_groups %}
+      <h6 class="offset-2 col-8 mb-2"><i class="fas fa-list-alt"></i> {{ group.grouper.name }}</h6>
+      <ul class="list-group offset-2 col-8 mb-4">
+        {% for link in group.list %}
+          {% with entry=link.oplog_entry %}
+          <li class="list-group-item d-flex justify-content-between align-items-center text-left">
+            <div>
+              <span class="mr-3 text-muted small">{{ entry.start_date|date:"Y-m-d H:i" }}</span>
+              {% if entry.tool %}<span class="mr-2 badge badge-secondary">{{ entry.tool|truncatechars:25 }}</span>{% endif %}
+              {% if entry.operator_name %}<span class="small">{{ entry.operator_name }}</span>{% endif %}
+            </div>
+            <a href="{% url 'oplog:oplog_entries' group.grouper.id %}?entry={{ entry.id }}#entry-{{ entry.id }}"
+               class="btn btn-sm btn-outline-secondary" target="_blank" title="Open in log">
+              <i class="fas fa-external-link-alt"></i>
+            </a>
+          </li>
+          {% endwith %}
+        {% endfor %}
+      </ul>
+    {% endfor %}
+  {% else %}
+    <p class="offset-2 col-8 text-muted">This evidence file has not been linked to any log entries.</p>
+  {% endif %}
 
   <!-- Include the lightbox modal -->
   {% include "snippets/evidence_lightbox_modal.html" %}

@@ -72,6 +72,12 @@ type Query {
 }
 
 type Query {
+  downloadOplogRecording(
+    oplogEntryId: Int!
+  ): DownloadRecordingResponse
+}
+
+type Query {
   finding_by_tag(
     tag: String!
   ): [GetFindingByTagsResponse!]
@@ -91,6 +97,13 @@ type Query {
   getExtraFieldSpec(
     model: String!
   ): ExtraFieldSpecOutput
+}
+
+type Mutation {
+  linkOplogEvidence(
+    oplogEntryId: Int!
+    evidenceId: Int!
+  ): linkOplogEvidenceResponse!
 }
 
 type Mutation {
@@ -162,6 +175,14 @@ type Mutation {
     report: Int
     finding: Int
   ): UploadEvidenceResult!
+}
+
+type Mutation {
+  uploadOplogRecording(
+    oplogEntryId: Int!
+    file_base64: String!
+    filename: String!
+  ): uploadOplogRecordingResult!
 }
 
 type Mutation {
@@ -280,11 +301,28 @@ type DownloadEvidenceResponse {
   fileBase64: String!
 }
 
+type DownloadRecordingResponse {
+  recordingId: Int!
+  oplogEntryId: Int!
+  filename: String!
+  downloadUrl: String!
+  fileBase64: String!
+}
+
 type GetReportByTagsResponse {
   id: Int!
 }
 
 type GetProjectByTagsResponse {
   id: Int!
+}
+
+type linkOplogEvidenceResponse {
+  id: Int!
+}
+
+type uploadOplogRecordingResult {
+  id: Int!
+  oplogEntryId: Int
 }
 

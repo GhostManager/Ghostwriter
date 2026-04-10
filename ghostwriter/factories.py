@@ -636,6 +636,25 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+class OplogEntryEvidenceFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.OplogEntryEvidence"
+
+    oplog_entry = factory.SubFactory(OplogEntryFactory)
+    evidence = factory.SubFactory(EvidenceOnReportFactory)
+
+
+class OplogEntryRecordingFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.OplogEntryRecording"
+
+    oplog_entry = factory.SubFactory(OplogEntryFactory)
+    recording_file = factory.django.FileField(
+        filename="test.cast",
+        data=b'{"version": 3, "term": {"cols": 80, "rows": 24}}\n[0.5, "o", "Hello, world!"]\n',
+    )
+
+
 # Shepherd Factories
 
 
@@ -846,6 +865,7 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     title_case_exceptions = str(Faker("csv"))[:255]
     target_delivery_date = Faker("pyint")
     default_cvss_version = "3.1"
+    outline_tags = "report,evidence"
     default_docx_template = factory.SubFactory(ReportDocxTemplateFactory)
     default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
 

@@ -79,6 +79,7 @@ class ReportConfigurationFormTests(TestCase):
         title_case_exceptions=None,
         target_delivery_date=None,
         default_cvss_version=None,
+        outline_tags=None,
         **kwargs,
     ):
         return ReportConfigurationForm(
@@ -100,6 +101,7 @@ class ReportConfigurationFormTests(TestCase):
                 "title_case_exceptions": title_case_exceptions,
                 "target_delivery_date": target_delivery_date,
                 "default_cvss_version": default_cvss_version,
+                "outline_tags": outline_tags,
             },
         )
 
@@ -133,6 +135,24 @@ class ReportConfigurationFormTests(TestCase):
         errors = form.errors["default_pptx_template"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+
+    def test_clean_outline_tags_normalizes_and_deduplicates_rules(self):
+        config = self.config.__dict__.copy()
+        config["outline_tags"] = " report , EVIDENCE, cred* , att&ck: , cred* , ATT&CK:* ,, "
+
+        form = self.form_data(**config)
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["outline_tags"], "report,evidence,cred*,att&ck:*")
+
+    def test_clean_outline_tags_rejects_malformed_rules(self):
+        config = self.config.__dict__.copy()
+        config["outline_tags"] = "report,foo::,cred**"
+
+        form = self.form_data(**config)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("outline_tags", form.errors)
 
 
 class ExtraFieldFormTest(TestCase):

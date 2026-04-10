@@ -649,6 +649,15 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["linked_oplog_entries"] = (
+            self.object.oplog_entry_links.select_related(
+                "oplog_entry__oplog_id",
+            ).order_by("oplog_entry__oplog_id__name", "-oplog_entry__start_date")
+        )
+        return ctx
+
 
 class EvidencePreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """

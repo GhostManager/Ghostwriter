@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "6.2.13"
+__version__ = "6.3.0"
 VERSION = __version__
-RELEASE_DATE = "8 April 2026"
+RELEASE_DATE = "10 April 2026"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -458,8 +458,15 @@ BLEACH_ALLOWED_TAGS = [
     "tfoot",
     "caption",
 ]
-# Which HTML attributes are allowed
-BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"]
+# Which HTML attributes are allowed, keyed by tag name.
+# The "*" wildcard applies to every allowed tag.
+BLEACH_ALLOWED_ATTRIBUTES = {
+    "*": ["class", "style"],
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "width", "height"],
+    "td": ["colspan", "rowspan", "scope"],
+    "th": ["colspan", "rowspan", "scope"],
+}
 # Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
 BLEACH_ALLOWED_STYLES = [
     "color",
@@ -525,6 +532,12 @@ REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
 # Tagging
 # ------------------------------------------------------------------------------
 TAGGIT_CASE_INSENSITIVE = True
+
+# spaCy NLP Configuration
+# ------------------------------------------------------------------------------
+# https://spacy.io/usage/models
+SPACY_MODEL = env("SPACY_MODEL", default="en_core_web_sm")
+SPACY_MAX_TEXT_LENGTH = env.int("SPACY_MAX_TEXT_LENGTH", default=100000)
 
 
 def include_settings(py_glob):

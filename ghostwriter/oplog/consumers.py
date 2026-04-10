@@ -96,7 +96,11 @@ def copy_oplog_entry(entry_id, user):
         copy.start_date = make_aware(datetime.utcnow())
         copy.end_date = make_aware(datetime.utcnow())
         copy.save()
-        copy.tags.add(*entry.tags.all())
+        tags_to_copy = [
+            t for t in entry.tags.all()
+            if not any(kw in t.name.upper() for kw in ("RECORDING", "EVIDENCE"))
+        ]
+        copy.tags.add(*tags_to_copy)
     else:
         logger.warning(
             "User %s attempted to copy log entry %s for log ID %s without permission.",
@@ -158,6 +162,9 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
                 )
             )
 
+            # OneToOne reverse accessor — resolved as a simple LEFT JOIN by PostgreSQL
+            simple_vector_args.append(F("recording__recording_text"))
+
             # JSON operations to fetch extra fields
             for spec in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
                 if spec.type == "json":
@@ -204,6 +211,17 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         entries = entries[offset : offset + 100]
         return OplogEntrySerializer(entries, many=True).data
 
+    @database_sync_to_async
+    def get_single_entry(self, entry_id: int, user: User):
+        """Fetch and serialize a single :model:`oplog.OplogEntry` by ID for deep-linking."""
+        try:
+            entry = OplogEntry.objects.get(pk=entry_id)
+        except OplogEntry.DoesNotExist:
+            return None
+        if not entry.user_can_view(user):
+            return None
+        return OplogEntrySerializer(entry).data
+
     async def send_oplog_entry(self, event):
         await self.send(text_data=event["text"])
 
@@ -246,3 +264,10 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             )
 
             await self.send(text_data=message)
+
+        if json_data["action"] == "fetch_entry":
+            entry_id = int(json_data["oplogEntryId"])
+            entry = await self.get_single_entry(entry_id, user)
+            if entry is not None:
+                message = json.dumps({"action": "fetch_entry", "data": entry})
+                await self.send(text_data=message)
