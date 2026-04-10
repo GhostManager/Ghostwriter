@@ -59,7 +59,7 @@
         "@yaireo/tagify": "^4.33.1",
         "ae-cvss-calculator": "^1.0.4",
         "dompurify": "^3.3.3",
-        "happy-dom": "^20.0.8",
+        "happy-dom": "^20.8.9",
         "pino": "^9.6.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
