@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The paste will automatically trigger the modal window for uploading your evidence
   * Your filename will be the default friendly name for the upload
 
-* ***Updated GHostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.0
+* **Updated Ghostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.0
   * Review the Ghostwriter CLI CHANGELOG for complete notes
   * Going forward, we recommend all users use the new published container images for easier updates
   * Existing installations will need to migrate some files
