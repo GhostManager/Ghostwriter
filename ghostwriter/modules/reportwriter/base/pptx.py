@@ -91,22 +91,22 @@ class ExportBasePptx(ExportBase):
         """
         Add footer elements (if there is one) to all slides based on the footer placeholder in the template
         """
-        for idx, slide in enumerate(self.ppt_presentation.slides):
+        for slide_idx, slide in enumerate(self.ppt_presentation.slides):
             date_placeholder_idx = -1
             footer_placeholder_idx = -1
             slide_number_placeholder_idx = -1
             slide_layout = slide.slide_layout
 
-            for idx, place in enumerate(slide_layout.placeholders):
+            for placeholder_idx, place in enumerate(slide_layout.placeholders):
                 if "Footer" in place.name:
-                    footer_placeholder_idx = idx
+                    footer_placeholder_idx = placeholder_idx
                 if "Slide Number" in place.name:
-                    slide_number_placeholder_idx = idx
+                    slide_number_placeholder_idx = placeholder_idx
                 if "Date" in place.name:
-                    date_placeholder_idx = idx
+                    date_placeholder_idx = placeholder_idx
 
             # Skip the title slide at index 0
-            if idx > 0:
+            if slide_idx > 0:
                 if footer_placeholder_idx > 0:
                     footer_layout_placeholder, footer_placeholder = clone_placeholder(
                         slide, slide_layout, footer_placeholder_idx
