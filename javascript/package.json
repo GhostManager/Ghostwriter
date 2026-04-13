@@ -12,8 +12,8 @@
         "run-collab-server-prod": "node ./dist_collab_server/index.js"
     },
     "devDependencies": {
-        "@graphql-codegen/cli": "^5.0.3",
-        "@graphql-codegen/client-preset": "^4.5.1",
+        "@graphql-codegen/cli": "^6.0.0",
+        "@graphql-codegen/client-preset": "^5.0.0",
         "@graphql-typed-document-node/core": "^3.2.0",
         "@types/node": "^22.8.1",
         "@types/react": "^19.0.7",
@@ -24,7 +24,7 @@
         "prettier": "^3.5.0",
         "sass": "^1.83.4",
         "typescript": "^5.7.3",
-        "vite": "^7.3.1"
+        "vite": "^7.3.2"
     },
     "dependencies": {
         "@apollo/client": "^3.13.1",
