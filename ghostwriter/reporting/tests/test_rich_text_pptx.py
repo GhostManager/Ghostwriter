@@ -2,7 +2,7 @@ import pptx
 from io import BytesIO
 from zipfile import ZipFile
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from .test_rich_text_docx import clean_xml
 
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptx
@@ -92,7 +92,7 @@ def mk_test_pptx(name, input, expected_output, add_suffix=True):
     return test_func
 
 
-class RichTextToPptxTests(TestCase):
+class RichTextToPptxTests(SimpleTestCase):
     maxDiff = None
 
     test_paragraphs = mk_test_pptx(

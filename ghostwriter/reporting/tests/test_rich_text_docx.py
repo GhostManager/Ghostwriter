@@ -3,7 +3,7 @@ from io import BytesIO
 from zipfile import ZipFile
 
 # Django Imports
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 # 3rd Party Libraries
 import docx
@@ -67,7 +67,7 @@ def mk_test_docx(name, input, expected_output, p_style=None):
     return test_func
 
 
-class RichTextToDocxTests(TestCase):
+class RichTextToDocxTests(SimpleTestCase):
     maxDiff = None
 
     test_paragraphs = mk_test_docx(
@@ -675,7 +675,7 @@ class RichTextToDocxTests(TestCase):
     )
 
 
-class FootnoteToDocxTests(TestCase):
+class FootnoteToDocxTests(SimpleTestCase):
     """Tests for footnote HTML to DOCX conversion."""
 
     maxDiff = None
@@ -804,4 +804,3 @@ class FootnoteToDocxTests(TestCase):
                 # Filter out separators (-1, 0)
                 footnote_ids = [fid for fid in footnote_ids if int(fid) > 0]
                 self.assertEqual(sorted(footnote_ids), ["1", "2", "3"])
-

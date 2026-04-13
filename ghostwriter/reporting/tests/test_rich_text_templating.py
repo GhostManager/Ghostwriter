@@ -1,5 +1,5 @@
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from ghostwriter.factories import ExtraFieldModelFactory, ExtraFieldSpecFactory, ReportFactory
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
@@ -9,7 +9,7 @@ from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.reporting.models import Report
 
 
-class RichTextTemplatingTests(TestCase):
+class RichTextTemplatingTests(SimpleTestCase):
     maxDiff = None
 
     def test_list(self):
@@ -47,6 +47,8 @@ class RichTextTemplatingTests(TestCase):
         self.assertIn('data-gw-ref="Payload Hosting and Lateral Movement With Codex"', out)
         self.assertIn('data-gw-caption="Here is a Caption"', out)
 
+
+class RichTextTemplatingExportTests(TestCase):
     def test_report_export_handles_report_extra_field_with_spaced_legacy_reference_and_caption_tags(self):
         report_extra_field = ExtraFieldModelFactory(
             model_internal_name=Report._meta.label,

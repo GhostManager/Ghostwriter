@@ -4,14 +4,14 @@ import os
 import shutil
 import tempfile
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from docx import Document
 
 from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx
 
 
-class FootnoteCreationTests(TestCase):
+class FootnoteCreationTests(SimpleTestCase):
     """Test footnote creation with python-docx."""
 
     def setUp(self):
@@ -183,7 +183,7 @@ class FootnoteCreationTests(TestCase):
             self.assertGreater(footnote_ids[i], footnote_ids[i - 1])
 
 
-class FootnoteRichTextConversionTests(TestCase):
+class FootnoteRichTextConversionTests(SimpleTestCase):
     """Test footnote conversion from HTML rich text to DOCX."""
 
     def setUp(self):
