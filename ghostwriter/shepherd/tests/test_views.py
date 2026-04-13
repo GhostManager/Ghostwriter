@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 # Django Imports
 from django.test import Client, TestCase
@@ -32,7 +32,6 @@ from ghostwriter.factories import (
     VirusTotalConfigurationFactory,
 )
 from ghostwriter.shepherd.forms_server import TransientServerForm
-from ghostwriter.shepherd.views import ServerHistoryCreate
 
 logging.disable(logging.CRITICAL)
 

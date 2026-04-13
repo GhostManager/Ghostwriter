@@ -1,6 +1,3 @@
-# Standard Libraries
-import logging
-
 # Django Imports
 from django.test import Client, TestCase, tag
 from django.urls import reverse
