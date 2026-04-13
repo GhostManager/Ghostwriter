@@ -15,7 +15,7 @@ Use Docker for the Django stack and `npm` only inside `javascript/`.
 - `cd javascript && npm run codegen` regenerates GraphQL client artifacts after schema or query changes.
 
 ## Coding Style & Naming Conventions
-Python uses 4-space indentation, `Black`, `isort`, and `flake8`. Follow the project docstring style in `DOCS/coding-style-guide/`, and keep imports grouped and sorted. JavaScript/TypeScript also uses 4-space indentation; Prettier enforces semicolons, double quotes, and the repository's line-ending settings. Use `snake_case` for Python modules and tests, `PascalCase` for React components, and keep test files named `test_<feature>.py`.
+Python uses 4-space indentation, `Black`, `isort`, and `flake8`. Follow the project docstring style in `DOCS/coding-style-guide/`, and keep imports grouped and sorted. JavaScript/TypeScript also uses 4-space indentation; Prettier enforces semicolons and double quotes for frontend sources. Use `snake_case` for Python modules and tests, `PascalCase` for React components, and keep test files named `test_<feature>.py`.
 
 ## Testing Guidelines
 Add or update tests for every behavior change; PR templates require it. Prefer app-local tests in the matching `ghostwriter/<app>/tests/` package. For frontend GraphQL changes, regenerate `javascript/src/__generated__/` and run `npm run check` before opening a PR. Maintain coverage for touched code paths; CI uploads coverage from the Django suite.
