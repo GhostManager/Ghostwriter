@@ -170,7 +170,7 @@ class OplogEntryEvidenceModelTests(TestCase):
         entry = link1.oplog_entry
         evidence2 = EvidenceOnReportFactory()
         _ = self.OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence2)
-        # Now delete only one link; the tag should remain because link2 still exists
+        # Now delete only one link; the tag should remain because the second link still exists
         link1.delete()
         self.assertIn("evidence", list(entry.tags.names()))
 
