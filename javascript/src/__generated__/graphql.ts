@@ -1,7 +1,7 @@
 /* eslint-disable */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';
 export type Maybe<T> = T | null;
-export type InputMaybe<T> = Maybe<T>;
+export type InputMaybe<T> = T | null | undefined;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
@@ -8276,7 +8276,6 @@ export type ExtraFieldModel_Updates = {
 /** columns and relationships of "commandcenter_extrafieldspec" */
 export type ExtraFieldSpec = {
   __typename?: 'extraFieldSpec';
-  _order: Scalars['Int']['output'];
   defaultValue: Scalars['String']['output'];
   description: Scalars['String']['output'];
   displayName: Scalars['String']['output'];
@@ -8284,6 +8283,7 @@ export type ExtraFieldSpec = {
   extraFieldModel: ExtraFieldModel;
   id: Scalars['bigint']['output'];
   internalName: Scalars['String']['output'];
+  position?: Maybe<Scalars['Int']['output']>;
   targetModel: Scalars['String']['output'];
   type: Scalars['String']['output'];
 };
@@ -8321,8 +8321,8 @@ export type ExtraFieldSpec_Aggregate_FieldsCountArgs = {
 /** aggregate avg on columns */
 export type ExtraFieldSpec_Avg_Fields = {
   __typename?: 'extraFieldSpec_avg_fields';
-  _order?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Boolean expression to filter rows from the table "commandcenter_extrafieldspec". All fields are combined with a logical 'AND'. */
@@ -8330,13 +8330,13 @@ export type ExtraFieldSpec_Bool_Exp = {
   _and?: InputMaybe<Array<ExtraFieldSpec_Bool_Exp>>;
   _not?: InputMaybe<ExtraFieldSpec_Bool_Exp>;
   _or?: InputMaybe<Array<ExtraFieldSpec_Bool_Exp>>;
-  _order?: InputMaybe<Int_Comparison_Exp>;
   defaultValue?: InputMaybe<String_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   displayName?: InputMaybe<String_Comparison_Exp>;
   extraFieldModel?: InputMaybe<ExtraFieldModel_Bool_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   internalName?: InputMaybe<String_Comparison_Exp>;
+  position?: InputMaybe<Int_Comparison_Exp>;
   targetModel?: InputMaybe<String_Comparison_Exp>;
   type?: InputMaybe<String_Comparison_Exp>;
 };
@@ -8346,24 +8346,26 @@ export enum ExtraFieldSpec_Constraint {
   /** unique or primary key constraint on columns "internal_name", "target_model_id" */
   CommandcenterExtrafieldTargetModelIdInternal_75bb84caUniq = 'commandcenter_extrafield_target_model_id_internal_75bb84ca_uniq',
   /** unique or primary key constraint on columns "id" */
-  CommandcenterExtrafieldspecPkey = 'commandcenter_extrafieldspec_pkey'
+  CommandcenterExtrafieldspecPkey = 'commandcenter_extrafieldspec_pkey',
+  /** unique or primary key constraint on columns "position", "target_model_id" */
+  CommandcenterExtrafieldspecUniquePositionPerModel = 'commandcenter_extrafieldspec_unique_position_per_model'
 }
 
 /** input type for incrementing numeric columns in table "commandcenter_extrafieldspec" */
 export type ExtraFieldSpec_Inc_Input = {
-  _order?: InputMaybe<Scalars['Int']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** input type for inserting data into table "commandcenter_extrafieldspec" */
 export type ExtraFieldSpec_Insert_Input = {
-  _order?: InputMaybe<Scalars['Int']['input']>;
   defaultValue?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   displayName?: InputMaybe<Scalars['String']['input']>;
   extraFieldModel?: InputMaybe<ExtraFieldModel_Obj_Rel_Insert_Input>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   internalName?: InputMaybe<Scalars['String']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
   targetModel?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scalars['String']['input']>;
 };
@@ -8371,12 +8373,12 @@ export type ExtraFieldSpec_Insert_Input = {
 /** aggregate max on columns */
 export type ExtraFieldSpec_Max_Fields = {
   __typename?: 'extraFieldSpec_max_fields';
-  _order?: Maybe<Scalars['Int']['output']>;
   defaultValue?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   displayName?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   internalName?: Maybe<Scalars['String']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
   targetModel?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['String']['output']>;
 };
@@ -8384,12 +8386,12 @@ export type ExtraFieldSpec_Max_Fields = {
 /** aggregate min on columns */
 export type ExtraFieldSpec_Min_Fields = {
   __typename?: 'extraFieldSpec_min_fields';
-  _order?: Maybe<Scalars['Int']['output']>;
   defaultValue?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   displayName?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   internalName?: Maybe<Scalars['String']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
   targetModel?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['String']['output']>;
 };
@@ -8412,13 +8414,13 @@ export type ExtraFieldSpec_On_Conflict = {
 
 /** Ordering options when selecting data from "commandcenter_extrafieldspec". */
 export type ExtraFieldSpec_Order_By = {
-  _order?: InputMaybe<Order_By>;
   defaultValue?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   displayName?: InputMaybe<Order_By>;
   extraFieldModel?: InputMaybe<ExtraFieldModel_Order_By>;
   id?: InputMaybe<Order_By>;
   internalName?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
   targetModel?: InputMaybe<Order_By>;
   type?: InputMaybe<Order_By>;
 };
@@ -8431,8 +8433,6 @@ export type ExtraFieldSpec_Pk_Columns_Input = {
 /** select columns of table "commandcenter_extrafieldspec" */
 export enum ExtraFieldSpec_Select_Column {
   /** column name */
-  Order = '_order',
-  /** column name */
   DefaultValue = 'defaultValue',
   /** column name */
   Description = 'description',
@@ -8443,6 +8443,8 @@ export enum ExtraFieldSpec_Select_Column {
   /** column name */
   InternalName = 'internalName',
   /** column name */
+  Position = 'position',
+  /** column name */
   TargetModel = 'targetModel',
   /** column name */
   Type = 'type'
@@ -8450,12 +8452,12 @@ export enum ExtraFieldSpec_Select_Column {
 
 /** input type for updating data in table "commandcenter_extrafieldspec" */
 export type ExtraFieldSpec_Set_Input = {
-  _order?: InputMaybe<Scalars['Int']['input']>;
   defaultValue?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   displayName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   internalName?: InputMaybe<Scalars['String']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
   targetModel?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scalars['String']['input']>;
 };
@@ -8463,22 +8465,22 @@ export type ExtraFieldSpec_Set_Input = {
 /** aggregate stddev on columns */
 export type ExtraFieldSpec_Stddev_Fields = {
   __typename?: 'extraFieldSpec_stddev_fields';
-  _order?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate stddev_pop on columns */
 export type ExtraFieldSpec_Stddev_Pop_Fields = {
   __typename?: 'extraFieldSpec_stddev_pop_fields';
-  _order?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate stddev_samp on columns */
 export type ExtraFieldSpec_Stddev_Samp_Fields = {
   __typename?: 'extraFieldSpec_stddev_samp_fields';
-  _order?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Streaming cursor of the table "extraFieldSpec" */
@@ -8491,12 +8493,12 @@ export type ExtraFieldSpec_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type ExtraFieldSpec_Stream_Cursor_Value_Input = {
-  _order?: InputMaybe<Scalars['Int']['input']>;
   defaultValue?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   displayName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   internalName?: InputMaybe<Scalars['String']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
   targetModel?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scalars['String']['input']>;
 };
@@ -8504,14 +8506,12 @@ export type ExtraFieldSpec_Stream_Cursor_Value_Input = {
 /** aggregate sum on columns */
 export type ExtraFieldSpec_Sum_Fields = {
   __typename?: 'extraFieldSpec_sum_fields';
-  _order?: Maybe<Scalars['Int']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
 };
 
 /** update columns of table "commandcenter_extrafieldspec" */
 export enum ExtraFieldSpec_Update_Column {
-  /** column name */
-  Order = '_order',
   /** column name */
   DefaultValue = 'defaultValue',
   /** column name */
@@ -8522,6 +8522,8 @@ export enum ExtraFieldSpec_Update_Column {
   Id = 'id',
   /** column name */
   InternalName = 'internalName',
+  /** column name */
+  Position = 'position',
   /** column name */
   TargetModel = 'targetModel',
   /** column name */
@@ -8540,22 +8542,22 @@ export type ExtraFieldSpec_Updates = {
 /** aggregate var_pop on columns */
 export type ExtraFieldSpec_Var_Pop_Fields = {
   __typename?: 'extraFieldSpec_var_pop_fields';
-  _order?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate var_samp on columns */
 export type ExtraFieldSpec_Var_Samp_Fields = {
   __typename?: 'extraFieldSpec_var_samp_fields';
-  _order?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate variance on columns */
 export type ExtraFieldSpec_Variance_Fields = {
   __typename?: 'extraFieldSpec_variance_fields';
-  _order?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** columns and relationships of "reporting_finding" */
@@ -18981,8 +18983,8 @@ export type ProjectAssignment = {
   project: Project;
   projectId: Scalars['bigint']['output'];
   /** An object relationship */
-  projectRole?: Maybe<ProjectRole>;
-  roleId?: Maybe<Scalars['bigint']['output']>;
+  projectRole: ProjectRole;
+  roleId: Scalars['bigint']['output'];
   startDate?: Maybe<Scalars['date']['output']>;
   /** An object relationship */
   user?: Maybe<User>;
@@ -20574,6 +20576,7 @@ export type ProjectRole = {
   /** An aggregate relationship */
   assignments_aggregate: ProjectAssignment_Aggregate;
   id: Scalars['bigint']['output'];
+  position: Scalars['Int']['output'];
   projectRole: Scalars['String']['output'];
 };
 
@@ -20631,6 +20634,7 @@ export type ProjectRole_Aggregate_FieldsCountArgs = {
 export type ProjectRole_Avg_Fields = {
   __typename?: 'projectRole_avg_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Boolean expression to filter rows from the table "rolodex_projectrole". All fields are combined with a logical 'AND'. */
@@ -20641,6 +20645,7 @@ export type ProjectRole_Bool_Exp = {
   assignments?: InputMaybe<ProjectAssignment_Bool_Exp>;
   assignments_aggregate?: InputMaybe<ProjectAssignment_Aggregate_Bool_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
+  position?: InputMaybe<Int_Comparison_Exp>;
   projectRole?: InputMaybe<String_Comparison_Exp>;
 };
 
@@ -20649,18 +20654,22 @@ export enum ProjectRole_Constraint {
   /** unique or primary key constraint on columns "id" */
   RolodexProjectrolePkey = 'rolodex_projectrole_pkey',
   /** unique or primary key constraint on columns "project_role" */
-  RolodexProjectroleProjectRoleKey = 'rolodex_projectrole_project_role_key'
+  RolodexProjectroleProjectRoleKey = 'rolodex_projectrole_project_role_key',
+  /** unique or primary key constraint on columns "position" */
+  RolodexProjectroleUniquePosition = 'rolodex_projectrole_unique_position'
 }
 
 /** input type for incrementing numeric columns in table "rolodex_projectrole" */
 export type ProjectRole_Inc_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** input type for inserting data into table "rolodex_projectrole" */
 export type ProjectRole_Insert_Input = {
   assignments?: InputMaybe<ProjectAssignment_Arr_Rel_Insert_Input>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
   projectRole?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -20668,6 +20677,7 @@ export type ProjectRole_Insert_Input = {
 export type ProjectRole_Max_Fields = {
   __typename?: 'projectRole_max_fields';
   id?: Maybe<Scalars['bigint']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
   projectRole?: Maybe<Scalars['String']['output']>;
 };
 
@@ -20675,6 +20685,7 @@ export type ProjectRole_Max_Fields = {
 export type ProjectRole_Min_Fields = {
   __typename?: 'projectRole_min_fields';
   id?: Maybe<Scalars['bigint']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
   projectRole?: Maybe<Scalars['String']['output']>;
 };
 
@@ -20705,6 +20716,7 @@ export type ProjectRole_On_Conflict = {
 export type ProjectRole_Order_By = {
   assignments_aggregate?: InputMaybe<ProjectAssignment_Aggregate_Order_By>;
   id?: InputMaybe<Order_By>;
+  position?: InputMaybe<Order_By>;
   projectRole?: InputMaybe<Order_By>;
 };
 
@@ -20718,12 +20730,15 @@ export enum ProjectRole_Select_Column {
   /** column name */
   Id = 'id',
   /** column name */
+  Position = 'position',
+  /** column name */
   ProjectRole = 'projectRole'
 }
 
 /** input type for updating data in table "rolodex_projectrole" */
 export type ProjectRole_Set_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
   projectRole?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -20731,18 +20746,21 @@ export type ProjectRole_Set_Input = {
 export type ProjectRole_Stddev_Fields = {
   __typename?: 'projectRole_stddev_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate stddev_pop on columns */
 export type ProjectRole_Stddev_Pop_Fields = {
   __typename?: 'projectRole_stddev_pop_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate stddev_samp on columns */
 export type ProjectRole_Stddev_Samp_Fields = {
   __typename?: 'projectRole_stddev_samp_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** Streaming cursor of the table "projectRole" */
@@ -20756,6 +20774,7 @@ export type ProjectRole_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type ProjectRole_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
   projectRole?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -20763,12 +20782,15 @@ export type ProjectRole_Stream_Cursor_Value_Input = {
 export type ProjectRole_Sum_Fields = {
   __typename?: 'projectRole_sum_fields';
   id?: Maybe<Scalars['bigint']['output']>;
+  position?: Maybe<Scalars['Int']['output']>;
 };
 
 /** update columns of table "rolodex_projectrole" */
 export enum ProjectRole_Update_Column {
   /** column name */
   Id = 'id',
+  /** column name */
+  Position = 'position',
   /** column name */
   ProjectRole = 'projectRole'
 }
@@ -20786,18 +20808,21 @@ export type ProjectRole_Updates = {
 export type ProjectRole_Var_Pop_Fields = {
   __typename?: 'projectRole_var_pop_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate var_samp on columns */
 export type ProjectRole_Var_Samp_Fields = {
   __typename?: 'projectRole_var_samp_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** aggregate variance on columns */
 export type ProjectRole_Variance_Fields = {
   __typename?: 'projectRole_variance_fields';
   id?: Maybe<Scalars['Float']['output']>;
+  position?: Maybe<Scalars['Float']['output']>;
 };
 
 /** columns and relationships of "rolodex_projecttype" */
@@ -23881,6 +23906,7 @@ export type ReportConfiguration = {
   id: Scalars['bigint']['output'];
   labelFigure: Scalars['String']['output'];
   labelTable: Scalars['String']['output'];
+  outline_tags: Scalars['String']['output'];
   /** An object relationship */
   pptxTemplate?: Maybe<Template>;
   pptxTemplateId?: Maybe<Scalars['bigint']['output']>;
@@ -24007,6 +24033,7 @@ export type ReportConfiguration_Bool_Exp = {
   id?: InputMaybe<Bigint_Comparison_Exp>;
   labelFigure?: InputMaybe<String_Comparison_Exp>;
   labelTable?: InputMaybe<String_Comparison_Exp>;
+  outline_tags?: InputMaybe<String_Comparison_Exp>;
   pptxTemplate?: InputMaybe<Template_Bool_Exp>;
   pptxTemplateId?: InputMaybe<Bigint_Comparison_Exp>;
   prefixFigure?: InputMaybe<String_Comparison_Exp>;
@@ -24046,6 +24073,7 @@ export type ReportConfiguration_Insert_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
   labelFigure?: InputMaybe<Scalars['String']['input']>;
   labelTable?: InputMaybe<Scalars['String']['input']>;
+  outline_tags?: InputMaybe<Scalars['String']['input']>;
   pptxTemplate?: InputMaybe<Template_Obj_Rel_Insert_Input>;
   pptxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   prefixFigure?: InputMaybe<Scalars['String']['input']>;
@@ -24069,6 +24097,7 @@ export type ReportConfiguration_Max_Fields = {
   id?: Maybe<Scalars['bigint']['output']>;
   labelFigure?: Maybe<Scalars['String']['output']>;
   labelTable?: Maybe<Scalars['String']['output']>;
+  outline_tags?: Maybe<Scalars['String']['output']>;
   pptxTemplateId?: Maybe<Scalars['bigint']['output']>;
   prefixFigure?: Maybe<Scalars['String']['output']>;
   prefixTable?: Maybe<Scalars['String']['output']>;
@@ -24089,6 +24118,7 @@ export type ReportConfiguration_Max_Order_By = {
   id?: InputMaybe<Order_By>;
   labelFigure?: InputMaybe<Order_By>;
   labelTable?: InputMaybe<Order_By>;
+  outline_tags?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   prefixFigure?: InputMaybe<Order_By>;
   prefixTable?: InputMaybe<Order_By>;
@@ -24110,6 +24140,7 @@ export type ReportConfiguration_Min_Fields = {
   id?: Maybe<Scalars['bigint']['output']>;
   labelFigure?: Maybe<Scalars['String']['output']>;
   labelTable?: Maybe<Scalars['String']['output']>;
+  outline_tags?: Maybe<Scalars['String']['output']>;
   pptxTemplateId?: Maybe<Scalars['bigint']['output']>;
   prefixFigure?: Maybe<Scalars['String']['output']>;
   prefixTable?: Maybe<Scalars['String']['output']>;
@@ -24130,6 +24161,7 @@ export type ReportConfiguration_Min_Order_By = {
   id?: InputMaybe<Order_By>;
   labelFigure?: InputMaybe<Order_By>;
   labelTable?: InputMaybe<Order_By>;
+  outline_tags?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   prefixFigure?: InputMaybe<Order_By>;
   prefixTable?: InputMaybe<Order_By>;
@@ -24168,6 +24200,7 @@ export type ReportConfiguration_Order_By = {
   id?: InputMaybe<Order_By>;
   labelFigure?: InputMaybe<Order_By>;
   labelTable?: InputMaybe<Order_By>;
+  outline_tags?: InputMaybe<Order_By>;
   pptxTemplate?: InputMaybe<Template_Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   prefixFigure?: InputMaybe<Order_By>;
@@ -24205,6 +24238,8 @@ export enum ReportConfiguration_Select_Column {
   LabelFigure = 'labelFigure',
   /** column name */
   LabelTable = 'labelTable',
+  /** column name */
+  OutlineTags = 'outline_tags',
   /** column name */
   PptxTemplateId = 'pptxTemplateId',
   /** column name */
@@ -24252,6 +24287,7 @@ export type ReportConfiguration_Set_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
   labelFigure?: InputMaybe<Scalars['String']['input']>;
   labelTable?: InputMaybe<Scalars['String']['input']>;
+  outline_tags?: InputMaybe<Scalars['String']['input']>;
   pptxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   prefixFigure?: InputMaybe<Scalars['String']['input']>;
   prefixTable?: InputMaybe<Scalars['String']['input']>;
@@ -24339,6 +24375,7 @@ export type ReportConfiguration_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['bigint']['input']>;
   labelFigure?: InputMaybe<Scalars['String']['input']>;
   labelTable?: InputMaybe<Scalars['String']['input']>;
+  outline_tags?: InputMaybe<Scalars['String']['input']>;
   pptxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   prefixFigure?: InputMaybe<Scalars['String']['input']>;
   prefixTable?: InputMaybe<Scalars['String']['input']>;
@@ -24389,6 +24426,8 @@ export enum ReportConfiguration_Update_Column {
   LabelFigure = 'labelFigure',
   /** column name */
   LabelTable = 'labelTable',
+  /** column name */
+  OutlineTags = 'outline_tags',
   /** column name */
   PptxTemplateId = 'pptxTemplateId',
   /** column name */
@@ -34612,6 +34651,7 @@ export type UploadOplogRecordingResult = {
   __typename?: 'uploadOplogRecordingResult';
   id: Scalars['Int']['output'];
   oplogEntry?: Maybe<OplogEntry>;
+  oplogEntryId?: Maybe<Scalars['Int']['output']>;
 };
 
 /** columns and relationships of "users_user" */
