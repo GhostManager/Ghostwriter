@@ -169,3 +169,9 @@ class ReportDataSerializerTests(TestCase):
             [entry["name"] for entry in report_json["team"]],
             ["Amy Adams", "Beth Baker", "Zed Zebra"],
         )
+
+    def test_unknown_excluded_field_is_ignored(self):
+        serializer = ReportDataSerializer(self.report, exclude=["does_not_exist"])
+        report_json = json.loads(JSONRenderer().render(serializer.data))
+
+        self.assertIn("project", report_json)
