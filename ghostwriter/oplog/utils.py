@@ -4,21 +4,71 @@
 import gzip
 import json
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 
-# Matches ANSI/VT100 escape sequences: CSI, SGR, OSC, cursor movement, etc.
-_ANSI_ESCAPE_RE = re.compile(
-    r"\x1b"
-    r"(?:"
-    r"[@-Z\\-_]"  # Fe escape sequences (e.g. \x1bO, \x1b7)
-    r"|"
-    r"\[[0-?]*[ -/]*[@-~]"  # CSI sequences (e.g. \x1b[0m, \x1b[32m, \x1b[2J)
-    r"|"
-    r"\][^\x07]*(?:\x07|\x1b\\)"  # OSC sequences terminated by BEL or ST
-    r")"
-)
+def _strip_ansi_escapes(text: str) -> str:
+    """
+    Remove ANSI/VT100 escape sequences using a linear scan.
+
+    This strips the same families covered previously by the regex:
+    single-character Fe escapes, CSI sequences, and OSC sequences
+    terminated by BEL or ST. Unterminated/unknown escape fragments are
+    preserved as literal text.
+    """
+    cleaned = []
+    index = 0
+    length = len(text)
+
+    while index < length:
+        if text[index] != "\x1b":
+            cleaned.append(text[index])
+            index += 1
+            continue
+
+        if index + 1 >= length:
+            cleaned.append(text[index])
+            break
+
+        next_char = text[index + 1]
+        next_ord = ord(next_char)
+
+        if next_char == "[":
+            cursor = index + 2
+            while cursor < length:
+                if 0x40 <= ord(text[cursor]) <= 0x7E:
+                    index = cursor + 1
+                    break
+                cursor += 1
+            else:
+                cleaned.append(text[index])
+                index += 1
+            continue
+
+        if next_char == "]":
+            cursor = index + 2
+            while cursor < length:
+                if text[cursor] == "\x07":
+                    index = cursor + 1
+                    break
+                if text[cursor] == "\x1b" and cursor + 1 < length and text[cursor + 1] == "\\":
+                    index = cursor + 2
+                    break
+                cursor += 1
+            else:
+                cleaned.append(text[index])
+                index += 1
+            continue
+
+        # Fe escape sequences use a single final byte in the 0x40-0x5F range.
+        if 0x40 <= next_ord <= 0x5F:
+            index += 2
+            continue
+
+        cleaned.append(text[index])
+        index += 1
+
+    return "".join(cleaned)
 
 
 def extract_cast_text(file_data: bytes) -> tuple:
@@ -84,7 +134,7 @@ def extract_cast_text(file_data: bytes) -> tuple:
                 continue
 
             if event[1] in ("i", "o"):
-                clean = _ANSI_ESCAPE_RE.sub("", str(event[2]))
+                clean = _strip_ansi_escapes(str(event[2]))
                 if clean:
                     parts.append(clean)
 
