@@ -4,7 +4,7 @@
 from unittest.mock import MagicMock, patch
 
 # Django Imports
-from django.test import TestCase, RequestFactory, override_settings
+from django.test import SimpleTestCase, TestCase, RequestFactory, override_settings
 from django.urls import reverse
 
 # Ghostwriter Libraries
@@ -189,13 +189,14 @@ class PassiveVoiceAPITests(TestCase):
         self.assertEqual(data["error"], "Failed to analyze text")
 
 
-class ValidatePassiveVoiceRequestTests(TestCase):
+class ValidatePassiveVoiceRequestTests(SimpleTestCase):
     """Tests for _validate_passive_voice_request helper function."""
 
     def setUp(self):
         """Set up request factory and test user."""
         self.factory = RequestFactory()
-        self.user = UserFactory()
+        self.user = MagicMock()
+        self.user.is_authenticated = True
 
     def _make_request(self, method="POST", body=b'{"text": "Test."}', user=None):
         """Create a mock request for testing."""

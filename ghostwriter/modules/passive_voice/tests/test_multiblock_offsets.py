@@ -17,13 +17,13 @@ Issue: TipTap/ProseMirror uses document positions that account for node boundari
 """
 
 # Django Imports
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 # Ghostwriter Libraries
 from ghostwriter.modules.passive_voice.detector import PassiveVoiceDetector
 
 
-class MultiBlockOffsetTests(TestCase):
+class MultiBlockOffsetTests(SimpleTestCase):
     """Test suite for multi-block text offset calculations."""
 
     def setUp(self):
