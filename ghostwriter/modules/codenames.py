@@ -119,7 +119,7 @@ OBJECTS = [
     "wolf",
     "boar",
     "gopher",
-    "bloodhound"
+    "bloodhound",
     # Reptiles
     "viper",
     "cottonmouth",
