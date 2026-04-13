@@ -6,7 +6,7 @@
 ## Build, Test, and Development Commands
 Use Docker for the Django stack and `npm` only inside `javascript/`.
 
-- `./ghostwriter-cli install --mode local-dev` bootstraps the recommended local development environment.
+- Bootstrap the recommended local development environment with the platform-specific CLI binary: `./ghostwriter-cli-linux install --mode local-dev` on Linux, `./ghostwriter-cli-macos install --mode local-dev` on macOS, or `./ghostwriter-cli.exe install --mode local-dev` on Windows.
 - `docker compose -f local.yml up -d` starts or refreshes the local services after config changes.
 - `docker compose -f local.yml run --rm django python manage.py makemigrations && docker compose -f local.yml run --rm django python manage.py migrate` creates and applies schema changes.
 - `docker compose -f local.yml run django coverage run manage.py test --exclude-tag=GitHub` runs the Python test suite the same way CI does.
