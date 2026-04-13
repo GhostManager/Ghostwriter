@@ -137,7 +137,6 @@ class ReportDataSerializerTests(TestCase):
 
         for log in report_json["logs"]:
             for entry in log["entries"]:
-                print(entry["tool"])
                 self.assertTrue(entry["tool"] is not None)
 
     def test_team_entries_are_ordered_by_role_position_then_operator_name(self):
