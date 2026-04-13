@@ -289,6 +289,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
             # Set the optional inputs (keys will not always exist)
             if "description" in self.input:
                 self.description = self.input["description"]
+            return None
         else:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
