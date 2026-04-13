@@ -254,7 +254,7 @@
         });
     }
 
-    GW_TINYMCE_DEFAULT_CONFIG = {
+    const GW_TINYMCE_DEFAULT_CONFIG = window.GW_TINYMCE_DEFAULT_CONFIG = {
         entity_encoding: 'raw',
         branding: false,
         width: '100%',
@@ -467,12 +467,12 @@
     };
 
     // TinyMCE config for most fields
-    GW_TINYMCE_BASIC_CONFIG = {
+    const GW_TINYMCE_BASIC_CONFIG = window.GW_TINYMCE_BASIC_CONFIG = {
         ...GW_TINYMCE_DEFAULT_CONFIG,
     };
 
     // TinyMCE config for finding fields, with additional functionality for evidence uploads
-    GW_TINYMCE_FINDING_CONFIG = {
+    const GW_TINYMCE_FINDING_CONFIG = window.GW_TINYMCE_FINDING_CONFIG = {
         ...GW_TINYMCE_BASIC_CONFIG,
         selector: "textarea.enable-evidence-upload",
         setup: function (editor) {
