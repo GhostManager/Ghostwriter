@@ -213,8 +213,8 @@ class HasuraActionView(HasuraView):
 
 class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
     """
-    Adds a custom ``post()`` method to the ``HasuraActionView`` class for
-    ``checkoutDomain`` and ``checkoutServer`` actions. This class adds a
+    Shared validation logic for ``checkoutDomain`` and ``checkoutServer``
+    actions. This class adds a
     ``status_model`` attribute to determine which status model to use for
     adjusting the domain or server after checkout. It then handles the
     common validation steps for both actions.
@@ -229,7 +229,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
     end_date = None
     description = None
 
-    def post(self, request, *args, **kwargs):
+    def validate_checkout_request(self):
         # Get the :model:`rolodex.Project` object and verify access
         project_id = self.input["projectId"]
         try:
@@ -672,8 +672,8 @@ class GraphqlCheckoutDomain(HasuraCheckoutView):
     ]
 
     def post(self, request, *args, **kwargs):
-        # Run validation on the input with in ``HasuraCheckoutView.post()``
-        result = super().post(request, *args, **kwargs)
+        # Run the shared checkout validation first.
+        result = self.validate_checkout_request()
         # If validation fails, return the error response
         if result:
             return result
@@ -725,8 +725,8 @@ class GraphqlCheckoutServer(HasuraCheckoutView):
     ]
 
     def post(self, request, *args, **kwargs):
-        # Run validation on the input with in ``HasuraCheckoutView.post()``
-        result = super().post(request, *args, **kwargs)
+        # Run the shared checkout validation first.
+        result = self.validate_checkout_request()
         # If validation fails, return the error response
         if result:
             return result
