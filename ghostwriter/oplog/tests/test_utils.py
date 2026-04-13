@@ -138,6 +138,55 @@ class ExtractCastTextTests(unittest.TestCase):
         self.assertNotIn("\x1b", text)
         self.assertIn("text", text)
 
+    def test_malformed_csi_with_embedded_escape_preserved(self):
+        r"""Malformed CSI text with an embedded ESC remains literal."""
+        events = '[0.5, "o", "prefix\\u001b[12\\u001bXsuffix"]\n'
+        text, warning = extract_cast_text(self._v3(events))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "prefix\x1b[12suffix")
+
+    def test_ansi_osc_bel_sequence_stripped(self):
+        r"""OSC sequences terminated by BEL are removed."""
+        events = '[0.5, "o", "before\\u001b]0;title\\u0007after"]\n'
+        text, warning = extract_cast_text(self._v3(events))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "beforeafter")
+
+    def test_ansi_osc_st_sequence_stripped(self):
+        r"""OSC sequences terminated by ST (\x1b\\) are removed."""
+        events = '[0.5, "o", "before\\u001b]0;title\\u001b\\\\after"]\n'
+        text, warning = extract_cast_text(self._v3(events))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "beforeafter")
+
+    def test_ansi_fe_sequence_stripped(self):
+        r"""Single-character Fe escape sequences are removed."""
+        events = '[0.5, "o", "before\\u001bMafter"]\n'
+        text, warning = extract_cast_text(self._v3(events))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "beforeafter")
+
+    def test_unterminated_osc_sequence_preserved(self):
+        r"""Malformed OSC fragments without BEL or ST remain in the extracted text."""
+        events = '[0.5, "o", "prefix\\u001b]title only"]\n'
+        text, warning = extract_cast_text(self._v3(events))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "prefix\x1b]title only")
+
+    def test_large_unterminated_osc_sequence_preserved(self):
+        """Large malformed OSC payloads are preserved without raising an exception."""
+        payload = "prefix\\u001b]" + ("a" * 10000)
+        text, warning = extract_cast_text(self._v3(f'[0.5, "o", "{payload}"]\n'))
+        self.assertIsNone(warning)
+        self.assertEqual(text, f"prefix\x1b]{'a' * 10000}")
+
+    def test_repeated_unterminated_osc_prefixes_preserved(self):
+        """Repeated unterminated OSC prefixes are preserved without rescanning the tail."""
+        payload = "\\u001b]a" * 2000
+        text, warning = extract_cast_text(self._v3(f'[0.5, "o", "{payload}"]\n'))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "\x1b]a" * 2000)
+
     # ------------------------------------------------------------------
     # Gzip support
     # ------------------------------------------------------------------
