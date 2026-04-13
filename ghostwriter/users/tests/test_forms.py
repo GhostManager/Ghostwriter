@@ -3,6 +3,7 @@ import logging
 from unittest.mock import patch
 
 # Django Imports
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 
 # 3rd Party Libraries
@@ -55,6 +56,7 @@ class GroupAdminFormTests(TestCase):
         cls.group = GroupFactory()
         cls.user = UserFactory()
         cls.added_user = UserFactory(groups=(cls.group,))
+        cls.permissions = list(Permission.objects.order_by("pk")[:2])
 
     def setUp(self):
         pass
@@ -79,7 +81,7 @@ class GroupAdminFormTests(TestCase):
     def test_valid_data(self):
         form = self.form_data(
             name="Test Group",
-            permissions=[25, 250],
+            permissions=[permission.pk for permission in self.permissions],
             users=[
                 self.user.id,
             ],
