@@ -138,6 +138,13 @@ class ExtractCastTextTests(unittest.TestCase):
         self.assertNotIn("\x1b", text)
         self.assertIn("text", text)
 
+    def test_malformed_csi_with_embedded_escape_preserved(self):
+        r"""Malformed CSI text with an embedded ESC remains literal."""
+        events = '[0.5, "o", "prefix\\u001b[12\\u001bXsuffix"]\n'
+        text, warning = extract_cast_text(self._v3(events))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "prefix\x1b[12suffix")
+
     def test_ansi_osc_bel_sequence_stripped(self):
         r"""OSC sequences terminated by BEL are removed."""
         events = '[0.5, "o", "before\\u001b]0;title\\u0007after"]\n'
@@ -172,6 +179,13 @@ class ExtractCastTextTests(unittest.TestCase):
         text, warning = extract_cast_text(self._v3(f'[0.5, "o", "{payload}"]\n'))
         self.assertIsNone(warning)
         self.assertEqual(text, f"prefix\x1b]{'a' * 10000}")
+
+    def test_repeated_unterminated_osc_prefixes_preserved(self):
+        """Repeated unterminated OSC prefixes are preserved without rescanning the tail."""
+        payload = "\\u001b]a" * 2000
+        text, warning = extract_cast_text(self._v3(f'[0.5, "o", "{payload}"]\n'))
+        self.assertIsNone(warning)
+        self.assertEqual(text, "\x1b]a" * 2000)
 
     # ------------------------------------------------------------------
     # Gzip support

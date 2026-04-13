@@ -35,14 +35,31 @@ def _strip_ansi_escapes(text: str) -> str:
 
         if next_char == "[":
             cursor = index + 2
+            seen_intermediate = False
             while cursor < length:
-                if 0x40 <= ord(text[cursor]) <= 0x7E:
+                char_ord = ord(text[cursor])
+
+                if 0x30 <= char_ord <= 0x3F and not seen_intermediate:
+                    cursor += 1
+                    continue
+
+                if 0x20 <= char_ord <= 0x2F:
+                    seen_intermediate = True
+                    cursor += 1
+                    continue
+
+                if 0x40 <= char_ord <= 0x7E:
                     index = cursor + 1
                     break
-                cursor += 1
+
+                # Preserve malformed CSI text and continue from the invalid byte
+                # so we do not rescan the tail and drift into quadratic behavior.
+                cleaned.append(text[index:cursor])
+                index = cursor
+                break
             else:
-                cleaned.append(text[index])
-                index += 1
+                cleaned.append(text[index:])
+                break
             continue
 
         if next_char == "]":
@@ -56,8 +73,8 @@ def _strip_ansi_escapes(text: str) -> str:
                     break
                 cursor += 1
             else:
-                cleaned.append(text[index])
-                index += 1
+                cleaned.append(text[index:])
+                break
             continue
 
         # Fe escape sequences use a single final byte in the 0x40-0x5F range.
