@@ -88,7 +88,7 @@ def _strip_ansi_escapes(text: str) -> str:
     return "".join(cleaned)
 
 
-def extract_cast_text(file_data: bytes) -> tuple:
+def extract_cast_text(file_data: bytes) -> tuple[str, str | None]:
     """
     Parse an asciicast v2 or v3 file and return ``(text, warning)``.
 
@@ -138,6 +138,12 @@ def extract_cast_text(file_data: bytes) -> tuple:
             if isinstance(event, dict):
                 # Header object — read version and move on to events
                 version = event.get("version")
+                if version is None:
+                    logger.warning("Missing version key in asciicast header")
+                    return (
+                        "",
+                        "Missing version key in asciicast header. Only v2 and v3 are supported.",
+                    )
                 if version not in (2, 3):
                     logger.warning("Unsupported asciicast version: %s", version)
                     return (
