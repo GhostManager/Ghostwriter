@@ -35,7 +35,6 @@ from ghostwriter.factories import (
     SeverityFactory,
     UserFactory,
     ReportObservationLinkFactory,
-    ObservationFactory
 )
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.reporting.models import Report

@@ -137,7 +137,6 @@ class ReportDataSerializerTests(TestCase):
 
         for log in report_json["logs"]:
             for entry in log["entries"]:
-                print(entry["tool"])
                 self.assertTrue(entry["tool"] is not None)
 
     def test_team_entries_are_ordered_by_role_position_then_operator_name(self):
@@ -169,3 +168,9 @@ class ReportDataSerializerTests(TestCase):
             [entry["name"] for entry in report_json["team"]],
             ["Amy Adams", "Beth Baker", "Zed Zebra"],
         )
+
+    def test_unknown_excluded_field_is_ignored(self):
+        serializer = ReportDataSerializer(self.report, exclude=["does_not_exist"])
+        report_json = json.loads(JSONRenderer().render(serializer.data))
+
+        self.assertIn("project", report_json)

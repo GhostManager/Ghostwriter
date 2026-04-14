@@ -108,11 +108,11 @@
         }
 
         $(".js-export-oplog").on("click", function () {
-            id = $(this).attr('oplog-id')
-            name = $(this).attr('oplog-name')
-            export_url = $(this).attr('export_url')
-            base_name = `${name}-log-export-${id}.csv`
-            filename = generateDownloadName(base_name);
+            let id = $(this).attr('oplog-id')
+            let name = $(this).attr('oplog-name')
+            let export_url = $(this).attr('export_url')
+            let base_name = `${name}-log-export-${id}.csv`
+            let filename = generateDownloadName(base_name);
             download(export_url, filename);
         });
     </script>

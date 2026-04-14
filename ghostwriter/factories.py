@@ -4,6 +4,7 @@ from datetime import date, timedelta, timezone
 
 # Django Imports
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 # 3rd Party Libraries
@@ -28,6 +29,12 @@ EXTRA_FIELD_TYPES = [
     "integer",
     "float",
 ]
+
+DEFAULT_TEMPLATE_LINT_RESULT = {
+    "result": "success",
+    "warnings": [],
+    "errors": [],
+}
 
 # Add faker provider for rich text (html)
 class RichTextProvider(BaseProvider):
@@ -343,6 +350,7 @@ class DocTypeFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ("doc_type", "extension", "name")
 
 
+@factory.django.mute_signals(post_save)
 class ReportTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportTemplate"
@@ -351,7 +359,7 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: "Template %s" % n)
     description = Faker("rich_text")
     changelog = Faker("rich_text")
-    lint_result = ""
+    lint_result = factory.LazyFunction(lambda: DEFAULT_TEMPLATE_LINT_RESULT.copy())
     protected = False
     client = None
     bloodhound_heading_offset = 0
@@ -379,6 +387,7 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+@factory.django.mute_signals(post_save)
 class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportTemplate"
@@ -387,7 +396,7 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: "Template %s" % n)
     description = Faker("rich_text")
     changelog = Faker("rich_text")
-    lint_result = ""
+    lint_result = factory.LazyFunction(lambda: DEFAULT_TEMPLATE_LINT_RESULT.copy())
     protected = False
     client = None
     bloodhound_heading_offset = 0
@@ -396,6 +405,7 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     uploaded_by = factory.SubFactory(UserFactory)
 
 
+@factory.django.mute_signals(post_save)
 class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportTemplate"
@@ -404,7 +414,7 @@ class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: "Template %s" % n)
     description = Faker("rich_text")
     changelog = Faker("rich_text")
-    lint_result = ""
+    lint_result = factory.LazyFunction(lambda: DEFAULT_TEMPLATE_LINT_RESULT.copy())
     protected = False
     client = None
     bloodhound_heading_offset = 0

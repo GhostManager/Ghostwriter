@@ -8,13 +8,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
-from ghostwriter.factories import (
-    ClientInviteFactory,
-    ProjectAssignmentFactory,
-    ProjectFactory,
-    ProjectInviteFactory,
-    UserFactory,
-)
+from ghostwriter.factories import UserFactory
 
 # 3rd Party Libraries
 from allauth.mfa.models import Authenticator
@@ -164,7 +158,7 @@ class TestUserHasValidWebAuthnDevice(TestCase):
         """Test that WebAuthn devices are properly isolated between users."""
         # Create another user with WebAuthn device
         other_user = UserFactory(password="otherpass123")
-        
+
         Authenticator.objects.create(
             user=other_user,
             type=Authenticator.Type.WEBAUTHN,

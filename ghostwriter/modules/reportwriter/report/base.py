@@ -152,10 +152,6 @@ class ExportReportBase(ExportBase):
         # Report extra fields
         self.process_extra_fields("the report", base_context["extra_fields"], Report, rich_text_context)
 
-        # Report Evidence
-        # for evidence in base_context["evidence"]:
-        #     self.process_extra_fields("the evidence", evidence["extra_fields"], Evidence, rich_text_context)
-
         return base_context
 
     @classmethod

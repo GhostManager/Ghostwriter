@@ -14,7 +14,6 @@ from ghostwriter.factories import (
     OplogEntryRecordingFactory,
     OplogFactory,
 )
-from ghostwriter.oplog.models import OplogEntryEvidence, OplogEntryRecording
 
 logging.disable(logging.CRITICAL)
 
@@ -170,8 +169,8 @@ class OplogEntryEvidenceModelTests(TestCase):
         link1 = OplogEntryEvidenceFactory()
         entry = link1.oplog_entry
         evidence2 = EvidenceOnReportFactory()
-        link2 = OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence2)
-        # Now delete only one link; the tag should remain because link2 still exists
+        _ = self.OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence2)
+        # Now delete only one link; the tag should remain because the second link still exists
         link1.delete()
         self.assertIn("evidence", list(entry.tags.names()))
 

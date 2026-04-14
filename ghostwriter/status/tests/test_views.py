@@ -1,11 +1,6 @@
-# Standard Libraries
-import logging
-
 # Django Imports
 from django.test import Client, TestCase, tag
 from django.urls import reverse
-
-# logging.disable(logging.CRITICAL)
 
 
 # Health checks for RAM and disk cannot be completed successfully in the GitHub CI/CD pipeline

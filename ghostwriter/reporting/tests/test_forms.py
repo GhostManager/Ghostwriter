@@ -402,6 +402,7 @@ class ReportTemplateFormTests(TestCase):
 
     def test_valid_data(self):
         template = self.template_dict.copy()
+        template["document"] = self.template.document.file
 
         form = self.form_data(**template, user=self.user)
         self.assertTrue(form.is_valid())

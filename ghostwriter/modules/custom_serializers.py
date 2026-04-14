@@ -80,11 +80,11 @@ class CustomModelSerializer(serializers.ModelSerializer):
     """
 
     def __init__(self, *args, exclude=None, **kwargs):
+        super().__init__(*args, **kwargs)
         if exclude:
             exclude = set(exclude)
             for field in exclude:
-                self.fields.pop(field)
-        super().__init__(*args, **kwargs)
+                self.fields.pop(field, None)
 
     def to_representation(self, instance):
         """

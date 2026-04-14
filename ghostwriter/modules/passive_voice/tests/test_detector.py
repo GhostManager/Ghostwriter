@@ -1,13 +1,13 @@
 """Tests for passive voice detector."""
 
 # Django Imports
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 # Ghostwriter Libraries
 from ghostwriter.modules.passive_voice.detector import PassiveVoiceDetector
 
 
-class PassiveVoiceDetectorTests(TestCase):
+class PassiveVoiceDetectorTests(SimpleTestCase):
     """Test suite for PassiveVoiceDetector."""
 
     def setUp(self):

@@ -792,7 +792,9 @@ class ListTracking:
                 par.style = "Number List" if is_ordered else "Bullet List"
             except KeyError:
                 try:
-                    par.style = "ListParagraph"
+                    # Use the built-in style name rather than its style_id to avoid
+                    # python-docx's deprecated style_id lookup path.
+                    par.style = "List Paragraph"
                 except KeyError:
                     pass
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
