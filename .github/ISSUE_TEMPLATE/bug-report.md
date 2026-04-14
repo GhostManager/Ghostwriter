@@ -1,33 +1,79 @@
 ---
 name: Bug Report
 about: Create a report to help us improve
-title: ''
+title: '[Bug] '
 labels: bug
-assignees: chrismaddalena
-
+assignees: ''
+type: bug
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Description:
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+*A clear and concise description of the bug you're encountering.*
 
-**Expected Behavior**
-A clear and concise description of what you expected to happen.
+### Are you intending to fix this bug?
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+*Please indicate "yes" or "no".*
 
-**Server Specs:**
- - OS: [e.g., Ubuntu]
- - Docker [e.g., output of `docker --version`]
- - Docker compose [e.g., output of `docker compose version`]
- - Ghostwriter [e.g., 2.2.3 or whatever is printed at the bottom of the left-hand sidebar]
+## Component(s) Affected:
 
-**Additional context**
-Add any other context about the problem here.
+<!-- Please remove any that don't apply. -->
+
+- UI
+- API
+- PostgreSQL
+- Other (tooling, documentation, etc.)
+
+## Steps to Reproduce:
+
+1. Go to [specific page or endpoint]
+2. Click on [button/element/etc.]
+3. Enter [input/data]
+4. See error at [this point]
+
+## Expected Behavior:
+
+*A description of what you expected to happen.*
+
+## Actual Behavior:
+
+*A description of what actually happened.*
+
+## Screenshots/Code Snippets/Sample Files:
+
+*If applicable, add screenshots, relevant code snippets, or sample files that help illustrate the issue.*
+
+## Environment Information:
+
+<!-- Please use proper version numbers instead of `latest` -->
+
+Ghostwriter: [Ghostwriter version or revision]
+
+OS: [your OS and version]
+
+Browser (if UI related): [browser name and version]
+
+Docker: [Docker version; output of `docker --version`]
+
+Docker Compose: [Docker Compose version; output of `docker compose version`
+
+## Additional Information:
+
+*Any additional context or information that might be helpful in understanding and diagnosing the issue.*
+
+## Potential Solution (optional):
+
+*If you have any ideas about what might be causing the issue or how it could be fixed, you can share them here.*
+
+## Related Issues:
+
+*If you've found related issues in the project's issue tracker, mention them here.*
+
+## Contributor Checklist:
+
+<!-- Please remove items that don't apply. -->
+
+- [ ] I have searched the issue tracker to ensure this bug hasn't been reported before or is not already being addressed.
+- [ ] I have provided clear steps to reproduce the issue.
+- [ ] I have included relevant environment information details.
+- [ ] I have attached necessary supporting documents.

@@ -7,7 +7,6 @@ $(document).ready(function () {
     const $tableBody = $('#oplogTableBody');
     const $tableHeader = $('#oplogTableHeader');
     const $tableHeaderHidden = $('#oplogTableHeaderHidden');
-    const $detailPane = $('#oplogDetailPane');
     const $detailEmpty = $('#oplogDetailEmpty');
     const $detailContent = $('#oplogDetailContent');
     const $checkboxList = $('#checkboxList');
