@@ -139,7 +139,7 @@ def extract_cast_text(file_data: bytes) -> tuple[str, str | None]:
                 # Header object — read version and move on to events
                 version = event.get("version")
                 if version is None:
-                    logger.warning("Missing asciicast version in header")
+                    logger.warning("Missing version key in asciicast header")
                     return (
                         "",
                         "Missing version key in asciicast header. Only v2 and v3 are supported.",
