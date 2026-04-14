@@ -28,9 +28,9 @@ PASSWORD = "SuperNaturalReporting!"
 # Helper function: returns a mock rate limit check that always succeeds
 def mock_rate_limit_check(): # pragma: no cover
     """Mock rate limit check that always succeeds"""
-    def clear_rate_limit():
+    def rate_limit_check():
         pass
-    return clear_rate_limit
+    return rate_limit_check
 
 # Helper function: Generate a valid TOTP code from a secret
 def get_code_from_totp_device(secret) -> str:
@@ -155,7 +155,7 @@ class UserMFAAuthenticateFormTests(TestCase):
         self.consume_patcher.stop()
         self.clear_patcher.stop()  # Stop the new patcher
 
-    def createAuthenticator(self, user):
+    def create_authenticator(self, user):
         """Helper function to create an Authenticator instance for a user."""
         return user.totpdevice_set.create()
 
