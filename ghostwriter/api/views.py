@@ -172,22 +172,48 @@ class HasuraActionView(HasuraView):
     input = None
     required_inputs = []
     allow_large_input = False
+    # Maximum bytes accepted when allow_large_input is True. Defaults to Django's
+    # DATA_UPLOAD_MAX_MEMORY_SIZE (2.5 MB). Subclasses that handle file uploads
+    # should override this with an appropriate bound.
+    max_upload_size: int | None = None
+
+    def _get_max_upload_size(self) -> int:
+        if self.max_upload_size is not None:
+            return self.max_upload_size
+        return getattr(settings, "DATA_UPLOAD_MAX_MEMORY_SIZE", 2621440)
 
     def setup(self, request, *args, **kwargs):
+        self._content_too_large = False
         # Load JSON data from request body and look for the Hasura ``input`` key
         try:
             if self.allow_large_input:
-                data = json.load(request)
+                # Read at most max_upload_size+1 bytes so we can distinguish
+                # "fits" from "too large" without consuming unbounded memory.
+                # This protects against both absent and spoofed Content-Length.
+                max_bytes = self._get_max_upload_size()
+                chunk = request.read(max_bytes + 1)
+                if len(chunk) > max_bytes:
+                    self._content_too_large = True
+                else:
+                    data = json.loads(chunk)
+                    self.data = data
+                    if "input" in data:
+                        self.input = data["input"]
             else:
                 data = json.loads(request.body)
-            self.data = data
-            if "input" in data:
-                self.input = data["input"]
+                self.data = data
+                if "input" in data:
+                    self.input = data["input"]
         except JSONDecodeError:
-            logger.exception("Failed to decode JSON data from supposed Hasura Action request: %s", request.body)
+            logger.exception("Failed to decode JSON data from supposed Hasura Action request")
         return super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
+        # Reject oversized payloads before any further processing
+        if self._content_too_large:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Request payload too large", "PayloadTooLarge"), status=413
+            )
         # For actions, only proceed if the requests checks out as a valid request from Hasura, and we have a JWT
         if utils.verify_graphql_request(request.headers):
             # Return 400 if no input was found but some input is required
@@ -878,6 +904,7 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
 
 class GraphqlUploadEvidenceView(JwtRequiredMixin, HasuraActionView):
     allow_large_input = True
+    max_upload_size = 10 * 1024 * 1024  # 10 MB
 
     def post(self, request):
         if self.user_obj is None:
@@ -973,6 +1000,7 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
     """
 
     allow_large_input = True
+    max_upload_size = 10 * 1024 * 1024  # 10 MB
     required_inputs = ["oplogEntryId", "file_base64", "filename"]
 
     def post(self, request, *args, **kwargs):

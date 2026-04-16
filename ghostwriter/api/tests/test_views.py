@@ -1282,6 +1282,23 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         )
         self.assertNotEqual(response.status_code, 201, response.content)
 
+    def test_upload_evidence_oversized_payload_rejected(self):
+        """Regression test: payloads exceeding max_upload_size must return 413, not exhaust memory."""
+        from ghostwriter.api.views import GraphqlUploadEvidenceView
+
+        _, token = utils.generate_jwt(self.user)
+        # Build a JSON body that exceeds the view's max_upload_size limit by one byte.
+        # Using a raw bytes body avoids base64-encoding overhead doubling the size.
+        oversized_body = b"x" * (GraphqlUploadEvidenceView.max_upload_size + 1)
+        response = self.client.post(
+            self.uri,
+            data=oversized_body,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
+
 
 class GraphqlGenerateCodenameActionTests(TestCase):
     """Collection of tests for :view:`GraphqlGenerateCodenameAction`."""
@@ -3372,6 +3389,21 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         }
         response = self._post(data, self.user_token)
         self.assertEqual(response.status_code, 400)
+
+    def test_upload_recording_oversized_payload_rejected(self):
+        """Regression test: payloads exceeding max_upload_size must return 413, not exhaust memory."""
+        from ghostwriter.api.views import GraphqlUploadOplogRecording
+
+        oversized_body = b"x" * (GraphqlUploadOplogRecording.max_upload_size + 1)
+        response = self.client.post(
+            self.uri,
+            oversized_body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
 
     def test_upload_recording_no_secret(self):
         """Test that request without action secret is rejected."""
