@@ -42,6 +42,16 @@ class OplogModelTests(TestCase):
         oplog.delete()
         assert not self.Oplog.objects.all().exists()
 
+    def test_get_safe_export_name_strips_path_components(self):
+        oplog = OplogFactory(name=r"../nested\evil.csv")
+
+        self.assertEqual(oplog.get_safe_export_name(), "evil.csv")
+
+    def test_get_safe_export_name_falls_back_when_empty(self):
+        oplog = OplogFactory(name="../")
+
+        self.assertEqual(oplog.get_safe_export_name(), f"oplog-{oplog.pk}")
+
 
 class OplogEntryModelTests(TestCase):
     """Collection of tests for :model:`oplog.OplogEntry`."""
@@ -252,4 +262,3 @@ class OplogEntryRecordingModelTests(TestCase):
         # Cascade-deleting the entry should not raise — the signal handles DoesNotExist
         recording.oplog_entry.delete()
         self.assertFalse(OplogEntryRecordingFactory._meta.model.objects.filter(pk=recording_id).exists())
-

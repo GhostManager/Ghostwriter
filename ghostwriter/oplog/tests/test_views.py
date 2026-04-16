@@ -668,6 +668,15 @@ class OplogExportViewTests(TestCase):
         rows = list(reader)
         self.assertEqual(len(rows), 5)
 
+    def test_csv_export_sanitizes_filename(self):
+        self.oplog.name = r"../reports\evil"
+        self.oplog.save()
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('filename="evil.csv"', response.get("Content-Disposition"))
+
     def test_export_rejects_invalid_include_values(self):
         """GET with an unsupported include value returns HTTP 400."""
         response = self.client_mgr.get(f"{self.uri}?include=recording")
@@ -702,6 +711,19 @@ class OplogExportViewTests(TestCase):
             manifest = json.loads(zf.read("manifest.json"))
             self.assertEqual(manifest["entries"][str(entry.id)]["recordings"], [expected_recording_name])
             self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], [])
+
+    def test_zip_export_sanitizes_csv_member_name(self):
+        self.oplog.name = r"..\nested/evil"
+        self.oplog.save()
+
+        response, zf = self._get_zip_export("recordings")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+
+            self.assertEqual(csv_name, "evil.csv")
+            self.assertNotIn("/", csv_name)
+            self.assertNotIn("\\", csv_name)
+            self.assertIn('filename="evil_attachments.zip"', response.get("Content-Disposition"))
 
     def test_export_with_evidence(self):
         """GET with ?include=evidence returns a ZIP whose CSV has an evidence column."""

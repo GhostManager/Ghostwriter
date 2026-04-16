@@ -719,10 +719,12 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         if "tags" not in field_names:
             field_names.append("tags")
 
+        export_name = obj.get_safe_export_name()
+
         # If no attachments requested, return original CSV response for compatibility
         if not include_set:
             response = HttpResponse(content_type="text/csv")
-            add_content_disposition_header(response, f"{obj.name}.csv")
+            add_content_disposition_header(response, f"{export_name}.csv")
             writer = csv.writer(response)
             writer.writerow(field_names)
             for entry in queryset:
@@ -819,14 +821,14 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                         else:
                             values.append(getattr(entry, field))
                     csv_writer.writerow(values)
-                zf.writestr(f"{obj.name}.csv", csv_buf.getvalue().encode("utf-8"))
+                zf.writestr(f"{export_name}.csv", csv_buf.getvalue().encode("utf-8"))
 
                 # Add manifest.json for mapping and metadata
                 zf.writestr("manifest.json", json.dumps(manifest, indent=2))
 
             # Rewind temp file and return it as a response body
             tmp.seek(0)
-            zip_name = f"{obj.name}_attachments.zip"
+            zip_name = f"{export_name}_attachments.zip"
             response = FileResponse(tmp, as_attachment=True, filename=zip_name, content_type="application/zip")
             return response
         except Exception:
