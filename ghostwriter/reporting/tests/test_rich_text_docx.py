@@ -1,16 +1,24 @@
 # Standard Libraries
+import base64
 from io import BytesIO
+import os
+import tempfile
 from zipfile import ZipFile
 
 # Django Imports
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 
 # 3rd Party Libraries
 import docx
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from lxml import etree
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx
+from ghostwriter.commandcenter.models import ReportConfiguration
+from ghostwriter.factories import ReportDocxTemplateFactory
+from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx, HtmlToDocxWithEvidence
+from ghostwriter.reporting.models import EvidenceImageAlignment, EvidenceImageAlignmentOverride
 
 WORD_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:mv="urn:schemas-microsoft-com:mac:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14"><w:body>"""  # noqa: E501
@@ -804,3 +812,111 @@ class FootnoteToDocxTests(SimpleTestCase):
                 # Filter out separators (-1, 0)
                 footnote_ids = [fid for fid in footnote_ids if int(fid) > 0]
                 self.assertEqual(sorted(footnote_ids), ["1", "2", "3"])
+
+
+class HtmlToDocxWithEvidenceTests(TestCase):
+    ONE_PIXEL_PNG = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yF9kAAAAASUVORK5CYII="
+    )
+
+    def build_converter(self, *, report_template=None, report_config=None, doc=None):
+        return HtmlToDocxWithEvidence(
+            doc or docx.Document(),
+            evidences={},
+            report_template=report_template or ReportDocxTemplateFactory(),
+            global_report_config=report_config or ReportConfiguration.get_solo(),
+            images={},
+        )
+
+    def test_text_evidence_uses_codeblock_style_without_forcing_alignment(self):
+        doc = docx.Document()
+        style = doc.styles.add_style("CodeBlock", WD_STYLE_TYPE.PARAGRAPH)
+        style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        converter = self.build_converter(doc=doc)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "gw-evidence-codeblock.txt"
+            evidence_path = os.path.join(temp_dir, evidence_name)
+            with open(evidence_path, "w", encoding="utf-8") as evidence_file:
+                evidence_file.write("printf('hello');")
+
+            with override_settings(MEDIA_ROOT=temp_dir):
+                paragraph = doc.add_paragraph()
+                converter.make_evidence(
+                    paragraph,
+                    {"path": evidence_name, "friendly_name": "code", "caption": ""},
+                )
+
+        self.assertEqual(paragraph.style.name, "CodeBlock")
+        self.assertIsNone(paragraph.alignment)
+
+    def test_text_evidence_falls_back_to_left_alignment_without_codeblock_style(self):
+        doc = docx.Document()
+        converter = self.build_converter(doc=doc)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "gw-evidence-plain.txt"
+            evidence_path = os.path.join(temp_dir, evidence_name)
+            with open(evidence_path, "w", encoding="utf-8") as evidence_file:
+                evidence_file.write("printf('hello');")
+
+            with override_settings(MEDIA_ROOT=temp_dir):
+                paragraph = doc.add_paragraph()
+                converter.make_evidence(
+                    paragraph,
+                    {"path": evidence_name, "friendly_name": "code", "caption": ""},
+                )
+
+        self.assertEqual(paragraph.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+
+    def test_image_alignment_uses_global_default_when_template_defers(self):
+        report_template = ReportDocxTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+        doc = docx.Document()
+        converter = self.build_converter(report_template=report_template, report_config=report_config, doc=doc)
+
+        with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
+            image_file.write(self.ONE_PIXEL_PNG)
+            image_file.flush()
+            paragraph = doc.add_paragraph()
+            converter._make_image(paragraph, image_file.name)
+
+        self.assertEqual(paragraph.alignment, WD_ALIGN_PARAGRAPH.RIGHT)
+
+    def test_image_alignment_uses_template_override(self):
+        report_template = ReportDocxTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.LEFT,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+        doc = docx.Document()
+        converter = self.build_converter(report_template=report_template, report_config=report_config, doc=doc)
+
+        with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
+            image_file.write(self.ONE_PIXEL_PNG)
+            image_file.flush()
+            paragraph = doc.add_paragraph()
+            converter._make_image(paragraph, image_file.name)
+
+        self.assertEqual(paragraph.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+
+    def test_image_width_uses_global_default_when_template_is_blank(self):
+        report_template = ReportDocxTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = 4.75
+
+        converter = self.build_converter(report_template=report_template, report_config=report_config)
+
+        self.assertEqual(converter.image_width, 4.75)
+
+    def test_image_width_falls_back_to_default_when_global_is_blank(self):
+        report_template = ReportDocxTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = None
+
+        converter = self.build_converter(report_template=report_template, report_config=report_config)
+
+        self.assertEqual(converter.image_width, 6.5)
