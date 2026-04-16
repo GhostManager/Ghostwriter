@@ -1126,7 +1126,6 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
     """Endpoint for creating a user object with the ``createUser`` action."""
 
     def post(self, request, *args, **kwargs):
-        logger.info(self.input)
         if not utils.verify_user_is_privileged(self.user_obj):
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
