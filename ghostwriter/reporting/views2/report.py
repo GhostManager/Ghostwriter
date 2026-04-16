@@ -679,7 +679,7 @@ class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
         return {
             "changelog": initial_upload,
             "p_style": "Normal",
-            "evidence_image_width": 6.5,
+            "evidence_image_alignment": "USE_GLOBAL",
         }
 
     def get_success_url(self):

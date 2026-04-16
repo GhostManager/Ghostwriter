@@ -29,9 +29,15 @@ from ghostwriter.modules.reportwriter.richtext.ooxml import (
     BaseHtmlToOOXML,
     parse_styles,
 )
-from ghostwriter.reporting.models import ReportTemplate
+from ghostwriter.reporting.models import EvidenceImageAlignment, ReportTemplate
 
 logger = logging.getLogger(__name__)
+
+EVIDENCE_IMAGE_ALIGNMENT_MAP = {
+    EvidenceImageAlignment.LEFT: WD_ALIGN_PARAGRAPH.LEFT,
+    EvidenceImageAlignment.CENTER: WD_ALIGN_PARAGRAPH.CENTER,
+    EvidenceImageAlignment.RIGHT: WD_ALIGN_PARAGRAPH.RIGHT,
+}
 
 
 class HtmlToDocx(BaseHtmlToOOXML):
@@ -373,6 +379,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
     report_template: ReportTemplate
     global_report_config: ReportConfiguration
+    image_alignment: WD_ALIGN_PARAGRAPH
+    image_width: float
 
     def __init__(
         self,
@@ -391,6 +399,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
         self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
         self.title_case_exceptions = self.global_report_config.title_case_exceptions.split(",")
+        effective_alignment = self.report_template.get_effective_evidence_image_alignment(self.global_report_config)
+        self.image_alignment = EVIDENCE_IMAGE_ALIGNMENT_MAP[effective_alignment]
+        self.image_width = self.report_template.get_effective_evidence_image_width(self.global_report_config)
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -621,9 +632,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             raise ReportExportTemplateError("Image %s was not recognized as an image file. Try opening it, exporting as desired type, and re-uploading it.", name)
 
     def _make_image(self, par, file_path: str):
-        par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        par.alignment = self.image_alignment
         run = par.add_run()
-        run.add_picture(file_path, width=Inches(self.report_template.evidence_image_width))
+        run.add_picture(file_path, width=Inches(self.image_width))
 
         if self.global_report_config.enable_borders:
             border_color = self.global_report_config.border_color
