@@ -14,6 +14,9 @@ from factory import Faker
 from faker.providers import BaseProvider
 from faker.providers.lorem.en_US import Provider as LoremProvider
 
+# Ghostwriter Libraries
+from ghostwriter.reporting.models import EvidenceImageAlignment, EvidenceImageAlignmentOverride
+
 # Couple of timezones to test with
 TIMEZONES = [
     zoneinfo.ZoneInfo("America/Los_Angeles"),
@@ -350,6 +353,8 @@ class DocTypeFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ("doc_type", "extension", "name")
 
 
+alignments = list(EvidenceImageAlignment.values)
+
 @factory.django.mute_signals(post_save)
 class ReportTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -366,6 +371,9 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
+    p_style = "Normal"
+    evidence_image_width = None
+    evidence_image_alignment = EvidenceImageAlignmentOverride.USE_GLOBAL
 
     class Params:
         docx = factory.Trait(
@@ -403,6 +411,9 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
+    p_style = "Normal"
+    evidence_image_width = None
+    evidence_image_alignment = EvidenceImageAlignmentOverride.USE_GLOBAL
 
 
 @factory.django.mute_signals(post_save)
@@ -421,7 +432,9 @@ class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx")
     uploaded_by = factory.SubFactory(UserFactory)
-
+    p_style = "Normal"
+    evidence_image_width = None
+    evidence_image_alignment = EvidenceImageAlignmentOverride.USE_GLOBAL
 
 class ReportFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -867,8 +880,12 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     border_color = "2D2B6B"
     prefix_figure = Faker("word")
     label_figure = Faker("word")
+    figure_caption_location = "bottom"
+    evidence_image_alignment = EvidenceImageAlignment.CENTER
+    evidence_image_width = None
     prefix_table = Faker("word")
     label_table = Faker("word")
+    table_caption_location = "top"
     report_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
     project_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
     title_case_captions = Faker("boolean")

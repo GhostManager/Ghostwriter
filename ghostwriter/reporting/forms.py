@@ -444,7 +444,10 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["doc_type"].label = "Document Type"
         self.fields["doc_type"].required = True
         self.fields["evidence_image_width"].label = "Evidence Image Width"
-        self.fields["evidence_image_width"].initial = "6.5"
+        self.fields["evidence_image_width"].required = False
+        self.fields["evidence_image_width"].help_text = (
+            "Leave blank to use the global default evidence image width. If the global default is blank, 6.5 inches is used."
+        )
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -472,7 +475,7 @@ class ReportTemplateForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Row(
-                Column("tags", css_class="form-group col-md-6 mb-0"),
+                Column("evidence_image_alignment", css_class="form-group col-md-6 mb-0"),
                 Column("evidence_image_width", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
@@ -484,6 +487,12 @@ class ReportTemplateForm(forms.ModelForm):
                 Column(
                     "bloodhound_heading_offset",
                     css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row pb-2",
+            ),
+            Row(
+                Column(
+                    "tags", css_class="orm-group col-md-12 mb-0"
                 ),
                 css_class="form-row pb-2",
             ),

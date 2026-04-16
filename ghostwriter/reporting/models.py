@@ -25,6 +25,19 @@ from ghostwriter.reporting.validators import validate_evidence_extension
 logger = logging.getLogger(__name__)
 
 
+class EvidenceImageAlignment(models.TextChoices):
+    LEFT = "LEFT", "Left"
+    CENTER = "CENTER", "Center"
+    RIGHT = "RIGHT", "Right"
+
+
+class EvidenceImageAlignmentOverride(models.TextChoices):
+    USE_GLOBAL = "USE_GLOBAL", "Use global default"
+    LEFT = EvidenceImageAlignment.LEFT, EvidenceImageAlignment.LEFT.label
+    CENTER = EvidenceImageAlignment.CENTER, EvidenceImageAlignment.CENTER.label
+    RIGHT = EvidenceImageAlignment.RIGHT, EvidenceImageAlignment.RIGHT.label
+
+
 class Severity(models.Model):
     """Stores an individual severity rating."""
 
@@ -358,6 +371,28 @@ class ReportTemplate(models.Model):
         default=False,
         help_text="Set to true if this template is designed to include data from BloodHound",
     )
+    p_style = models.CharField(
+        "New Paragraph Style",
+        max_length=255,
+        default="",
+        blank=True,
+        help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
+    )
+    evidence_image_width = models.FloatField(
+        "Evidence Image Width",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0)],
+        help_text="Override the global evidence image width for this template, in inches (Word only).",
+    )
+    evidence_image_alignment = models.CharField(
+        "Image Evidence Alignment",
+        max_length=16,
+        choices=EvidenceImageAlignmentOverride.choices,
+        default=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        help_text="Override the global image evidence alignment for this template (Word only).",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
@@ -375,20 +410,6 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Select the file type and target for this template",
     )
-    p_style = models.CharField(
-        "New Paragraph Style",
-        max_length=255,
-        default="",
-        blank=True,
-        help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
-    )
-    evidence_image_width = models.FloatField(
-        "Evidence Image Width",
-        default=6.5,
-        blank=True,
-        validators=[MinValueValidator(0)],
-        help_text="The width of inserted evidence images, in inches (Word only)",
-    )
 
     class Meta:
         ordering = ["doc_type", "client", "name"]
@@ -400,6 +421,18 @@ class ReportTemplate(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+    def get_effective_evidence_image_alignment(self, report_config):
+        if self.evidence_image_alignment == EvidenceImageAlignmentOverride.USE_GLOBAL:
+            return EvidenceImageAlignment(report_config.evidence_image_alignment)
+        return EvidenceImageAlignment(self.evidence_image_alignment)
+
+    def get_effective_evidence_image_width(self, report_config):
+        if self.evidence_image_width is not None:
+            return self.evidence_image_width
+        if report_config.evidence_image_width is not None:
+            return report_config.evidence_image_width
+        return 6.5
 
     @property
     def filename(self):
@@ -442,7 +475,6 @@ class ReportTemplate(models.Model):
                 object,
                 template_loc=self.document.path,
                 p_style=self.p_style,
-                evidence_image_width=self.evidence_image_width,
                 **kwargs
             )
         if self.doc_type.doc_type == "project_docx":
