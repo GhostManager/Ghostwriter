@@ -20,7 +20,7 @@
   </h2>
 
   {% if unused_codes %}
-    {% if not reveal_tokens %}
+    {% if reveal_tokens %}
       <div class="row justify-content-center">
         <table id="token-table" class="table table-striped col-4">
           {% for code in unused_codes %}
