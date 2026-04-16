@@ -877,7 +877,10 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     include_bloodhound: bool
 
     def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
+        try:
+            return self.get_object().user_can_view(self.request.user)
+        except Http404:
+            return False
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
