@@ -585,11 +585,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 par = self.doc.add_paragraph()
 
             par.text = evidence_text
-            par.alignment = WD_ALIGN_PARAGRAPH.LEFT
             try:
                 par.style = "CodeBlock"
             except KeyError:
-                pass
+                par.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
             if self.global_report_config.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()
