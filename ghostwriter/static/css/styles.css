@@ -2467,6 +2467,14 @@ th.icon {
   padding: 0;
 }
 
+.align-icon:before {
+  content: '\f036';
+}
+
+.width-icon:before {
+  content: '\f035';
+}
+
 .custom-field-icon:before {
   content: '\f0d0';
 }
