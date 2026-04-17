@@ -130,7 +130,7 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Oplog
 
     clearable_fields = {
-        "identifier",
+        "entry_identifier",
         "start_date",
         "end_date",
         "source_ip",
