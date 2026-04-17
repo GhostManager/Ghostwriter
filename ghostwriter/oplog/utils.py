@@ -162,8 +162,10 @@ def validate_cast_gzip_upload(fileobj) -> tuple[str | None, int | None]:
     _, error = _scan_gzip_size_limited(fileobj, get_cast_decompressed_bytes())
     try:
         fileobj.seek(0)
-    except (AttributeError, OSError):
-        pass
+    except (AttributeError, OSError) as exc:
+        # Rewinding is best-effort: some file-like objects are non-seekable
+        # Validation result is still based on the gzip scan above
+        logger.debug("Could not rewind uploaded cast file after validation scan: %s", exc)
 
     if error == CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE:
         return error, 413
