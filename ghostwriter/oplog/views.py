@@ -690,6 +690,13 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 return arcname
         raise RuntimeError("Could not generate a unique archive name")
 
+    @staticmethod
+    def _csv_export_filename(export_name):
+        """Return a CSV filename without duplicating a .csv suffix."""
+        if export_name.lower().endswith(".csv"):
+            return export_name
+        return f"{export_name}.csv"
+
     def get(self, *args, **kwargs):
         obj = self.get_object()
 
@@ -721,11 +728,12 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             field_names.append("tags")
 
         export_name = obj.get_safe_export_name()
+        csv_filename = self._csv_export_filename(export_name)
 
         # If no attachments requested, return original CSV response for compatibility
         if not include_set:
             response = HttpResponse(content_type="text/csv")
-            add_content_disposition_header(response, f"{export_name}.csv")
+            add_content_disposition_header(response, csv_filename)
             writer = csv.writer(response)
             writer.writerow(field_names)
             for entry in queryset:
@@ -822,7 +830,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                         else:
                             values.append(getattr(entry, field))
                     csv_writer.writerow(values)
-                zf.writestr(f"{export_name}.csv", csv_buf.getvalue().encode("utf-8"))
+                zf.writestr(csv_filename, csv_buf.getvalue().encode("utf-8"))
 
                 # Add manifest.json for mapping and metadata
                 zf.writestr("manifest.json", json.dumps(manifest, indent=2))

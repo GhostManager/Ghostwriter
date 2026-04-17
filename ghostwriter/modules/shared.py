@@ -57,7 +57,8 @@ def add_content_disposition_header(response, filename):
     """
     try:
         filename.encode("ascii")
-        file_expr = 'filename="{}"'.format(filename)
+        escaped_filename = filename.replace("\\", "\\\\").replace('"', r"\"")
+        file_expr = 'filename="{}"'.format(escaped_filename)
     except UnicodeEncodeError:
         file_expr = "filename*=utf-8''{}".format(quote(filename))
     response["Content-Disposition"] = "attachment; {}".format(file_expr)

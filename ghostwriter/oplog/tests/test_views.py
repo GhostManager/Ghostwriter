@@ -682,6 +682,25 @@ class OplogExportViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('filename="evil.csv"', response.get("Content-Disposition"))
 
+    def test_csv_export_does_not_duplicate_csv_extension(self):
+        self.oplog.name = r"../reports\evil.csv"
+        self.oplog.save()
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('filename="evil.csv"', response.get("Content-Disposition"))
+        self.assertNotIn('filename="evil.csv.csv"', response.get("Content-Disposition"))
+
+    def test_csv_export_escapes_quotes_in_content_disposition_filename(self):
+        self.oplog.name = r'../reports/evil"name'
+        self.oplog.save()
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(r'filename="evil\"name.csv"', response.get("Content-Disposition"))
+
     def test_export_rejects_invalid_include_values(self):
         """GET with an unsupported include value returns HTTP 400."""
         response = self.client_mgr.get(f"{self.uri}?include=recording")
@@ -729,6 +748,15 @@ class OplogExportViewTests(TestCase):
             self.assertNotIn("/", csv_name)
             self.assertNotIn("\\", csv_name)
             self.assertIn('filename="evil_attachments.zip"', response.get("Content-Disposition"))
+
+    def test_zip_export_does_not_duplicate_csv_member_extension(self):
+        self.oplog.name = r"..\nested/evil.csv"
+        self.oplog.save()
+
+        _, zf = self._get_zip_export("recordings")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+            self.assertEqual(csv_name, "evil.csv")
 
     def test_export_with_evidence(self):
         """GET with ?include=evidence returns a ZIP whose CSV has an evidence column."""
