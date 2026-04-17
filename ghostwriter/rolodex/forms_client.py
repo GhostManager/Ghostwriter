@@ -81,6 +81,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
         if len(active_forms) == 1 and not primary_set:
             active_forms[0].cleaned_data["primary"] = True
             active_forms[0].instance.primary = True
+            active_forms[0]._force_primary_save = True
         # Require a primary when multiple contacts exist
         elif len(active_forms) > 1 and not primary_set:
             active_forms[0].add_error(
@@ -94,6 +95,28 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                 _("You must designate one contact as the primary point of contact. You may have marked the primary for deletion. If so, please mark a different contact as primary."),
                 code="required",
             )
+
+    def save(self, commit=True):
+        instances = super().save(commit=commit)
+        if commit:
+            for form in self.forms:
+                if (
+                    getattr(form, "_force_primary_save", False)
+                    and form.instance.pk
+                    and not form.has_changed()
+                    and form not in self.deleted_forms
+                ):
+                    form.instance.save(update_fields=["primary"])
+        else:
+            for form in self.forms:
+                if (
+                    getattr(form, "_force_primary_save", False)
+                    and form.instance.pk
+                    and form.instance not in instances
+                    and form not in self.deleted_forms
+                ):
+                    instances.append(form.instance)
+        return instances
 
 
 class ClientContactForm(forms.ModelForm):

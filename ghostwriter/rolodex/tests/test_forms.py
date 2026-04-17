@@ -138,6 +138,31 @@ class ClientContactFormSetTests(TestCase):
         self.assertTrue(form.is_valid())
         self.assertTrue(form.forms[0].cleaned_data["primary"])
 
+    def test_single_existing_contact_auto_sets_primary_on_save(self):
+        self.contact_1.primary = False
+        self.contact_1.save(update_fields=["primary"])
+        prefix = ClientContactFormSet().prefix
+        form = ClientContactFormSet(
+            data={
+                f"{prefix}-TOTAL_FORMS": 1,
+                f"{prefix}-INITIAL_FORMS": 1,
+                f"{prefix}-0-id": self.contact_1.pk,
+                f"{prefix}-0-name": self.contact_1.name,
+                f"{prefix}-0-email": self.contact_1.email,
+                f"{prefix}-0-job_title": self.contact_1.job_title,
+                f"{prefix}-0-phone": self.contact_1.phone,
+                f"{prefix}-0-description": self.contact_1.description,
+                f"{prefix}-0-timezone": self.contact_1.timezone,
+                f"{prefix}-0-primary": False,
+            },
+            instance=self.org,
+        )
+
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.contact_1.refresh_from_db()
+        self.assertTrue(self.contact_1.primary)
+
     def test_multiple_contacts_no_primary(self):
         contact_1 = self.contact_1.__dict__.copy()
         contact_2 = self.contact_2.__dict__.copy()
@@ -1169,6 +1194,31 @@ class ProjectContactFormSetTests(TestCase):
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
         self.assertTrue(form.forms[0].cleaned_data["primary"])
+
+    def test_single_existing_contact_auto_sets_primary_on_save(self):
+        self.contact_1.primary = False
+        self.contact_1.save(update_fields=["primary"])
+        prefix = ProjectContactFormSet().prefix
+        form = ProjectContactFormSet(
+            data={
+                f"{prefix}-TOTAL_FORMS": 1,
+                f"{prefix}-INITIAL_FORMS": 1,
+                f"{prefix}-0-id": self.contact_1.pk,
+                f"{prefix}-0-name": self.contact_1.name,
+                f"{prefix}-0-email": self.contact_1.email,
+                f"{prefix}-0-job_title": self.contact_1.job_title,
+                f"{prefix}-0-phone": self.contact_1.phone,
+                f"{prefix}-0-description": self.contact_1.description,
+                f"{prefix}-0-timezone": self.contact_1.timezone,
+                f"{prefix}-0-primary": False,
+            },
+            instance=self.project,
+        )
+
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.contact_1.refresh_from_db()
+        self.assertTrue(self.contact_1.primary)
 
     def test_multiple_contacts_no_primary(self):
         contact_1 = self.contact_1.__dict__.copy()
