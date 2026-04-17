@@ -353,8 +353,6 @@ class DocTypeFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ("doc_type", "extension", "name")
 
 
-alignments = list(EvidenceImageAlignment.values)
-
 @factory.django.mute_signals(post_save)
 class ReportTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:

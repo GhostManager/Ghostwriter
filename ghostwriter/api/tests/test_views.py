@@ -3671,8 +3671,6 @@ class GraphqlDownloadRecordingTests(TestCase):
         """Test that recording files exceeding GHOSTWRITER_MAX_FILE_SIZE are rejected with 413."""
         from django.test import override_settings
 
-        data = {"input": {"oplogEntryId": self.oplog_entry.id}}
-
         # Set the limit to 1 byte so any real file exceeds it
         with override_settings(GHOSTWRITER_MAX_FILE_SIZE=1):
             response = self._post({"oplogEntryId": self.oplog_entry.id}, self.user_token)
