@@ -280,10 +280,19 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                     "doc_type",
                     "p_style",
                     "evidence_image_width",
-                    "contains_bloodhound_data",
+                    "evidence_image_alignment",
                     "tags",
                 )
             },
+        ),
+        (
+            "BloodHound",
+            {
+                "fields": (
+                    "contains_bloodhound_data",
+                    "bloodhound_heading_offset",
+                )
+            }
         ),
         (
             "Template Linting",

@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.1] - 17 April 2026
+
+### Added
+
+* **Control Over Max File Size**: Added `GHOSTWRITER_MAX_FILE_SIZE` to manage the maximum file size for uploads
+  * This new value defaults to 10MB and can be controlled via Ghostwriter CLI
+  * The value limits the size of evidence and terminal recording uploads and downloads
+  * These files load into memory for certain actions (e.g., recording playback, base64-encoding) and this guards against extremely large files using excessive system resources
+
+### Changed
+
+* **Better Control Over Image Evidence Display**: Global and template values for controlling evidence width and alignment
+  * Previously, you could only set image width on a template and images were always center aligned
+  * Width and alignment are now global report configuration values and template configuration values
+  * Ghostwriter uses the global value unless a template has its own values set
+  * If no width value is set inn either location, Ghostwriter defaults to 6.5" (full width for a default Word document)
+* Offloaded alignment of code blocks for text evidence to the `CodeBlock` style in the template
+  * Previously, Ghostwriter always set code blocks to be left aligned
+  * Ghostwriter will now set left alignment only if the `CodeBlock` style is missing
+  * The `CodeBlock` style's alignment configuration will determine the block's alignment
+* The MOTD banner's `banner_link` field is now a URL field and applies URL validation
+* Set a max upload size for evidence as a guard against very large uploads
+* The collaborative editor's color picker now validates color values
+* Added sanitization to strip some characters from the export filenames for operation logs for safer exports
+* The start script for Django will now run the `migrate_totp_device` to migrate MFA records set up prior to v6.1
+
+### Fixed
+
+* Fixed MFA recovery codes not displaying when they should
+* Fixed an issue that could occur when rendering a report with a table that was missing `table` tags
+* Fixed a report generation endpoint that did not properly redirect when the report did not exist
+* Fixed sanitizing the identifier on log entries
+* Fixed an issue that could occur with `filter_bhe_findings_by_domain` when domain SID or BloodHound `environment_id` were empty
+* Fixed an edge case where a single contact on a client or project could be flagged as not the primary contact
+
 ## [6.3.0] - 10 April 2026
 
 ### Added
@@ -15,7 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * New web form (`OplogEvidenceCreate` view) to attach evidence through the UI
   * Evidence appears in a dedicated section within each log entry, with friendly names and direct links to the original evidence
   * Automatic "evidence" tag applied when evidence is linked to an entry
-
 * **Operation Log Terminal Recordings**: Added support for uploading and playback of Asciinema terminal session recordings (.cast and .cast.gz files) (Closes #831)
   * New `OplogEntryRecording` model to store a single terminal recording per log entry
   * New GraphQL `uploadOplogRecording` action for base64-encoded file uploads via API
@@ -23,17 +57,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * New Django views for recording upload, deletion, and download with file serving and inline playback support
   * Support for Asciinema player integration for viewing recordings directly in the log entry's details pane
   * Automatic "recording" tag applied when a recording is uploaded
-
 * **Automatic Tag Management for Log Entry Features**: Evidence linking and terminal recordings automatically apply and remove tags
   * `evidence` tag added when first evidence is linked, removed when the last evidence is unlinked
   * `recording` tag added when a recording is uploaded, removed when the recording is deleted
   * Tags can be used for filtering log entries and visual identification
-
 * **Passive Voice Detection**: Added support for performing passive voice identification inside the collaborative editor (PR #796)
   * Ghostwriter now hosts a small local copy of the spaCy language model for text analysis
   * Select "Check Passive Voice" in the collaborative editor to examine text and highlight instances of passive voice
   * See the wiki for more details and an explanation for how to change the model's language
-
 * **Build a Narrative Outline from Log Entries**: Construct an outline for a report narrative based on tagged log entries (Closes #863)
   * This is useful for quickly generating a narrative outline to kickstart a report draft
   * Added a button to the collaborative editor to insert a narrative outline based on activity logs
@@ -52,13 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Log entries appear on the left-side with at-a-glance information
   * Details appear on the right-side in a details pane
   * Details pane includes dedicated sections for attaching evidence and uploading terminal recordings
-
 * **Text Evidence Previews**: Text evidence now has previews in the collaborative editor like image evidence
-
 * **Pasting Images into Collaborative Editor**: You can now paste an image file or screenshot in your clipboard into a collaborative editor field
   * The paste will automatically trigger the modal window for uploading your evidence
   * Your filename will be the default friendly name for the upload
-
 * **Updated Ghostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.0
   * Review the Ghostwriter CLI CHANGELOG for complete notes
   * Going forward, we recommend all users use the new published container images for easier updates
@@ -67,7 +95,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * Also copy any custom settings files from _config/settings/production.d_ to _ghostwriter/settings/_
   * Ghostwriter CLI can be used with `--mode local-prod` to keep the old behavior of using a local copy of Ghostwriter's code
     * You will need to do this if you are using a customized version of the codebase
-
 * Report names in the sidebar now also include the parent project's codename to aid in identification
 
 ### Fixed
@@ -96,7 +123,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * **Extra Field Ordering**: Added a `position` field to extra fields to enable custom ordering
   * Admins can now set an order for their extra fields
   * Ordering impacts the display of extra fields in all locations
-
 * **Exposures Now Available for BHE Reporting**: Added `exposures` to the domain data for BHE tenants
   * This is a new key in the domain data pulled from all BHE tenants
   * The key includes data like the domain's calculated exposure percentage

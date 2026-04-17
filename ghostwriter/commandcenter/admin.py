@@ -69,6 +69,8 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                     "prefix_figure",
                     "label_figure",
                     "figure_caption_location",
+                    "evidence_image_alignment",
+                    "evidence_image_width",
                 )
             },
         ),

@@ -2910,6 +2910,18 @@ class GenerateReportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         assignment.delete()
 
+    def test_view_json_missing_report_requires_login_without_crashing(self):
+        missing_uri = reverse("reporting:generate_json", kwargs={"pk": 999999})
+        response = self.client.get(missing_uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next=" + missing_uri)
+
+    def test_view_json_missing_report_redirects_authenticated_user(self):
+        missing_uri = reverse("reporting:generate_json", kwargs={"pk": 999999})
+        response = self.client_mgr.get(missing_uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("home:dashboard"))
+
     def test_view_docx_requires_login_and_permissions(self):
         response = self.client.get(self.docx_uri)
         self.assertEqual(response.status_code, 302)
@@ -3171,6 +3183,16 @@ class ReportTemplateFilterTests(TestCase):
         ]
         filtered = filter_bhe_findings_by_domain(findings, "example.com")
         self.assertEqual(len(filtered), 2)
+
+        findings_with_missing_domain = [
+            {"environment_id": None},
+            {"environment_id": "example.com"},
+            {},
+        ]
+        filtered = filter_bhe_findings_by_domain(findings_with_missing_domain, None)
+        self.assertEqual(filtered, [])
+        filtered = filter_bhe_findings_by_domain(findings_with_missing_domain, "example.com")
+        self.assertEqual(filtered, [{"environment_id": "example.com"}])
 
         with self.assertRaises(InvalidFilterValue):
             filter_bhe_findings_by_domain("Not a list", "example.com")

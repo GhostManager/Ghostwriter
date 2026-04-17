@@ -210,6 +210,21 @@
       <td class="text-justify">{{ report_config.get_figure_caption_location_display }}</td>
     </tr>
     <tr>
+      <td class="text-left icon align-icon">Default Evidence Image Alignment</td>
+      <td class="text-justify">{{ report_config.get_evidence_image_alignment_display }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon width-icon">Default Evidence Image Width</td>
+      <td class="text-justify">
+        {% if report_config.evidence_image_width is not None %}
+          {{ report_config.evidence_image_width }}
+        {% else %}
+          6.5
+        {% endif %}
+        inches
+      </td>
+    </tr>
+    <tr>
       <td class="text-left icon tag-icon">Table Label & Prefix</td>
       <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
     </tr>
@@ -218,7 +233,7 @@
       <td class="text-justify">{{ report_config.get_table_caption_location_display }}</td>
     </tr>
     <tr>
-      <td class="text-left icon tag-icon">Title Case Captions</td>
+      <td class="text-left icon toggle-on-icon">Title Case Captions</td>
       <td class="text-justify"> {{ report_config.title_case_captions }}</td>
     </tr>
     <tr>

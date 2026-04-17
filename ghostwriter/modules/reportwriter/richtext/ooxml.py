@@ -247,6 +247,9 @@ class BaseHtmlToOOXML:
         classes = el.attrs.get("class", [])
         if "collab-table-wrapper" in classes:
             table = el.find("table")
+            if table is None:
+                logger.warning("collab-table-wrapper div has no nested table element, skipping: %s", el)
+                return
             caption_el = el.find(class_="collab-table-caption-content")
             caption_bookmark_el = el.find(class_="collab-table-caption")
             caption_bookmark = caption_bookmark_el.attrs.get("data-bookmark") if caption_bookmark_el is not None else None

@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "6.3.0"
+__version__ = "6.3.1"
 VERSION = __version__
-RELEASE_DATE = "10 April 2026"
+RELEASE_DATE = "17 April 2026"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -520,6 +520,12 @@ HASURA_ACTION_SECRET = env(
 )
 
 GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
+
+# Maximum file size (bytes) for API uploads and inline base64 download responses
+# Uploads exceeding this limit are rejected with 413 during request parsing
+# Downloads exceeding this limit are rejected with 413 before the file is read
+# Admins can override via the ``GHOSTWRITER_MAX_FILE_SIZE`` environment variable
+GHOSTWRITER_MAX_FILE_SIZE = env.int("GHOSTWRITER_MAX_FILE_SIZE", default=10 * 1024 * 1024)  # 10 MB
 
 # Health Checks
 # ------------------------------------------------------------------------------

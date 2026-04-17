@@ -679,7 +679,7 @@ class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
         return {
             "changelog": initial_upload,
             "p_style": "Normal",
-            "evidence_image_width": 6.5,
+            "evidence_image_alignment": "USE_GLOBAL",
         }
 
     def get_success_url(self):
@@ -877,14 +877,24 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     include_bloodhound: bool
 
     def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
+        try:
+            return self.get_object().user_can_view(self.request.user)
+        except Http404:
+            return False
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
+        try:
+            self.object = self.get_object()
+        except Http404:
+            return self.handle_no_permission()
+
         self.include_bloodhound = self.object.include_bloodhound_data
         return super().dispatch(request, *args, **kwargs)
 

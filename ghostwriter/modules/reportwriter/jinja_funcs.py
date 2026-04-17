@@ -370,8 +370,13 @@ def filter_bhe_findings_by_domain(findings, domain_sid):
     """
     filtered_values = []
     try:
+        normalized_domain_sid = domain_sid.lower() if isinstance(domain_sid, str) and domain_sid else None
         for finding in findings:
-            if finding.get("environment_id", "").lower() == domain_sid.lower():
+            environment_id = finding.get("environment_id")
+            normalized_environment_id = (
+                environment_id.lower() if isinstance(environment_id, str) and environment_id else None
+            )
+            if normalized_domain_sid and normalized_environment_id == normalized_domain_sid:
                 filtered_values.append(finding)
     except (KeyError, TypeError, AttributeError) as e:
         logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)

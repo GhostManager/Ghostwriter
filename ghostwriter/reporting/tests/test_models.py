@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.factories import (
     ArchiveFactory,
     ClientFactory,
@@ -37,7 +38,7 @@ from ghostwriter.factories import (
     ReportObservationLinkFactory,
 )
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.reporting.models import Report
+from ghostwriter.reporting.models import EvidenceImageAlignment, EvidenceImageAlignmentOverride, Report
 from ghostwriter.rolodex.models import Project
 
 
@@ -328,6 +329,55 @@ class ReportTemplateModelTests(TestCase):
         # Also verify it's set to today's date
         today = timezone.now().date()
         self.assertEqual(template.upload_date, today)
+
+    def test_get_effective_evidence_image_alignment_uses_global_default(self):
+        template = ReportTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+
+        alignment = template.get_effective_evidence_image_alignment(report_config)
+
+        self.assertEqual(alignment, EvidenceImageAlignment.RIGHT)
+
+    def test_get_effective_evidence_image_alignment_uses_template_override(self):
+        template = ReportTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.LEFT,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+
+        alignment = template.get_effective_evidence_image_alignment(report_config)
+
+        self.assertEqual(alignment, EvidenceImageAlignment.LEFT)
+
+    def test_get_effective_evidence_image_width_uses_template_override(self):
+        template = ReportTemplateFactory(evidence_image_width=4.25)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = 7.0
+
+        width = template.get_effective_evidence_image_width(report_config)
+
+        self.assertEqual(width, 4.25)
+
+    def test_get_effective_evidence_image_width_uses_global_default(self):
+        template = ReportTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = 7.0
+
+        width = template.get_effective_evidence_image_width(report_config)
+
+        self.assertEqual(width, 7.0)
+
+    def test_get_effective_evidence_image_width_falls_back_to_default(self):
+        template = ReportTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = None
+
+        width = template.get_effective_evidence_image_width(report_config)
+
+        self.assertEqual(width, 6.5)
 
     def test_clean_template_signal(self):
         template = ReportDocxTemplateFactory()

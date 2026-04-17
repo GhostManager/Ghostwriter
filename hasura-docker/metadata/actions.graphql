@@ -199,6 +199,8 @@ type Mutation {
     client: Int
     doc_type: Int!
     p_style: String
+    evidence_image_width: Float
+    evidence_image_alignment: String
   ): UploadReportTemplateResult!
 }
 
@@ -325,4 +327,3 @@ type uploadOplogRecordingResult {
   id: Int!
   oplogEntryId: Int
 }
-
