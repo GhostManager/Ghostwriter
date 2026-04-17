@@ -1286,8 +1286,8 @@ class GraphqlUploadEvidenceViewTests(TestCase):
     def test_upload_evidence_oversized_payload_rejected(self):
         """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
         _, token = utils.generate_jwt(self.user)
-        # Build a body one byte over the configured limit
-        oversized_body = b"x" * (settings.GHOSTWRITER_MAX_FILE_SIZE + 1)
+        # Build a body one byte over the transport envelope cap for large-input uploads
+        oversized_body = b"x" * ((settings.GHOSTWRITER_MAX_FILE_SIZE * 2) + 1)
         response = self.client.post(
             self.uri,
             data=oversized_body,
@@ -1296,6 +1296,34 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 413)
         self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
+
+    def test_upload_evidence_accepts_valid_file_when_encoded_body_exceeds_file_limit(self):
+        """Base64+JSON overhead should not cause a valid sub-limit file upload to be rejected."""
+        _, token = utils.generate_jwt(self.user)
+        file_bytes = b"x" * 90
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(file_bytes).decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "report": str(self.report.pk),
+        }
+        request_body = json.dumps({"input": data}).encode("utf-8")
+        max_file_size = (len(file_bytes) + len(request_body)) // 2
+
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=max_file_size):
+            self.assertGreater(len(request_body), settings.GHOSTWRITER_MAX_FILE_SIZE)
+            self.assertLessEqual(len(file_bytes), settings.GHOSTWRITER_MAX_FILE_SIZE)
+
+            response = self.client.post(
+                self.uri,
+                data=request_body,
+                content_type="application/json",
+                **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            )
+        self.assertEqual(response.status_code, 201, response.content)
 
 
 class GraphqlGenerateCodenameActionTests(TestCase):
@@ -3440,7 +3468,7 @@ class GraphqlUploadOplogRecordingTests(TestCase):
 
     def test_upload_recording_oversized_payload_rejected(self):
         """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
-        oversized_body = b"x" * (settings.GHOSTWRITER_MAX_FILE_SIZE + 1)
+        oversized_body = b"x" * ((settings.GHOSTWRITER_MAX_FILE_SIZE * 2) + 1)
         response = self.client.post(
             self.uri,
             oversized_body,
@@ -3450,6 +3478,33 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         )
         self.assertEqual(response.status_code, 413)
         self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
+
+    def test_upload_recording_accepts_valid_file_when_encoded_body_exceeds_file_limit(self):
+        """Base64+JSON overhead should not cause a valid sub-limit recording upload to be rejected."""
+        cast_bytes = (
+            b'{"version": 2, "width": 80, "height": 24}\n'
+            + b'[0.5, "o", "' + (b"x" * 30) + b'"]\n'
+        )
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": base64.b64encode(cast_bytes).decode("utf-8"),
+            "filename": "session.cast",
+        }
+        request_body = json.dumps({"input": data}).encode("utf-8")
+        max_file_size = (len(cast_bytes) + len(request_body)) // 2
+
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=max_file_size):
+            self.assertGreater(len(request_body), settings.GHOSTWRITER_MAX_FILE_SIZE)
+            self.assertLessEqual(len(cast_bytes), settings.GHOSTWRITER_MAX_FILE_SIZE)
+
+            response = self.client.post(
+                self.uri,
+                request_body,
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+                HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+            )
+        self.assertEqual(response.status_code, 201, response.content)
 
     def test_upload_recording_no_secret(self):
         """Test that request without action secret is rejected."""

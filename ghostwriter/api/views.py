@@ -177,6 +177,16 @@ class HasuraActionView(HasuraView):
     def _get_max_upload_size(self) -> int:
         return getattr(settings, "GHOSTWRITER_MAX_FILE_SIZE", 10 * 1024 * 1024)
 
+    def _get_max_large_input_body_size(self) -> int:
+        """
+        Return the maximum JSON request-body size for base64-wrapped uploads.
+
+        The configured file-size limit applies to decoded file bytes, but large-input
+        actions carry those bytes in base64 inside a JSON envelope. Allow headroom for
+        base64 expansion and surrounding metadata while still bounding request memory.
+        """
+        return self._get_max_upload_size() * 2
+
     def setup(self, request, *args, **kwargs):
         self._content_too_large = False
         # Load JSON data from request body and look for the Hasura ``input`` key
@@ -185,7 +195,7 @@ class HasuraActionView(HasuraView):
                 # Read at most max_upload_size+1 bytes so we can distinguish
                 # "fits" from "too large" without consuming unbounded memory.
                 # This protects against both absent and spoofed Content-Length.
-                max_bytes = self._get_max_upload_size()
+                max_bytes = self._get_max_large_input_body_size()
                 chunk = request.read(max_bytes + 1)
                 if len(chunk) > max_bytes:
                     self._content_too_large = True
