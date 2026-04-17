@@ -3070,6 +3070,24 @@ class ReportTemplateFilterTests(TestCase):
         parsed_date = to_datetime(test_date, "%d %b %Y")
         self.assertEqual(parsed_date, self.test_date)
 
+    def test_to_datetime_uses_default_format_when_omitted(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date)
+        self.assertEqual(parsed_date, self.test_date)
+
+    def test_to_datetime_uses_default_format_when_empty(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date, "")
+        self.assertEqual(parsed_date, self.test_date)
+
+    def test_to_datetime_uses_default_format_when_none(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date, None)
+        self.assertEqual(parsed_date, self.test_date)
+
     def test_to_datetime_with_invalid_string(self):
         test_date = "Not a Date"
         with self.assertRaises(InvalidFilterValue):

@@ -190,7 +190,7 @@ def format_datetime(date, new_format=None):
     return formatted_date
 
 
-def to_datetime(date, format_str):
+def to_datetime(date, format_str=None):
     """
     Convert a date string to a datetime object using the given format.
 
@@ -199,11 +199,15 @@ def to_datetime(date, format_str):
     ``date``
         Date string to convert
     ``format_str``
-        Format string to use for conversion
+        Format string to use for conversion (uses the global setting if omitted)
     """
     try:
-        return datetime.strptime(date, format_str)
-    except ValueError as e:
+        if isinstance(date, datetime):
+            return date
+        if format_str:
+            return datetime.strptime(date, format_str)
+        return parse_datetime(date)
+    except (ParserError, TypeError, ValueError) as e:
         logger.exception("Error parsing ``date`` with the provided format: %s", date)
         raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter') from e
 
