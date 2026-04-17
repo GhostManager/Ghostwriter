@@ -19,6 +19,7 @@ from ghostwriter.factories import (
     ReportFindingLinkFactory,
     UserFactory,
 )
+from ghostwriter.reporting.models import EvidenceImageAlignmentOverride
 
 logging.disable(logging.CRITICAL)
 
@@ -251,26 +252,30 @@ class ApiReportTemplateFormTests(TestCase):
         file_base64=None,
         user_obj=None,
         bloodhound_heading_offset=None,
+        evidence_image_width=None,
+        evidence_image_alignment=None,
         **kwargs,
     ):
-        return ApiReportTemplateForm(
-            data={
-                "name": name,
-                "description": description,
-                "protected": protected,
-                "changelog": changelog,
-                "landscape": landscape,
-                "filename_override": filename_override,
-                "tags": tags,
-                "doc_type": doc_type,
-                "client": client,
-                "p_style": p_style,
-                "filename": filename,
-                "file_base64": file_base64,
-                "bloodhound_heading_offset": bloodhound_heading_offset,
-            },
-            user_obj=user_obj,
-        )
+        data = {
+            "name": name,
+            "description": description,
+            "protected": protected,
+            "changelog": changelog,
+            "landscape": landscape,
+            "filename_override": filename_override,
+            "tags": tags,
+            "doc_type": doc_type,
+            "client": client,
+            "p_style": p_style,
+            "filename": filename,
+            "file_base64": file_base64,
+            "bloodhound_heading_offset": bloodhound_heading_offset,
+        }
+        if evidence_image_width is not None:
+            data["evidence_image_width"] = evidence_image_width
+        if evidence_image_alignment is not None:
+            data["evidence_image_alignment"] = evidence_image_alignment
+        return ApiReportTemplateForm(data=data, user_obj=user_obj)
 
     def test_valid_data(self):
         form = self.form_data(
@@ -289,6 +294,10 @@ class ApiReportTemplateFormTests(TestCase):
             user_obj=self.user,
         )
         self.assertTrue(form.is_valid())
+        self.assertEqual(
+            form.cleaned_data["evidence_image_alignment"],
+            EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
 
         form = self.form_data(
             name="Test Template",
@@ -306,6 +315,27 @@ class ApiReportTemplateFormTests(TestCase):
             user_obj=self.user,
         )
         self.assertTrue(form.is_valid())
+
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+            evidence_image_width=4.25,
+            evidence_image_alignment=EvidenceImageAlignmentOverride.RIGHT,
+        )
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["evidence_image_width"], 4.25)
+        self.assertEqual(form.cleaned_data["evidence_image_alignment"], EvidenceImageAlignmentOverride.RIGHT)
 
     def test_unauthorized_or_invalid_client(self):
         form = self.form_data(

@@ -23,7 +23,12 @@ from docx import Document
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list
-from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
+from ghostwriter.reporting.models import (
+    Evidence,
+    EvidenceImageAlignmentOverride,
+    ReportFindingLink,
+    ReportTemplate,
+)
 from ghostwriter.reporting.validators import (
     DOCX_ALLOWED_EXTENSIONS,
     EVIDENCE_ALLOWED_EXTENSIONS,
@@ -175,18 +180,41 @@ class ApiReportTemplateForm(forms.ModelForm):
 
     class Meta:
         model = ReportTemplate
-        exclude = ("document", "upload_date", "last_update", "lint_result", "uploaded_by")
+        fields = (
+            "name",
+            "description",
+            "protected",
+            "changelog",
+            "landscape",
+            "filename_override",
+            "tags",
+            "doc_type",
+            "client",
+            "p_style",
+            "bloodhound_heading_offset",
+            "evidence_image_width",
+            "evidence_image_alignment",
+        )
 
     def __init__(self, *args, **kwargs):
         self.user_obj = kwargs.pop("user_obj")
         super().__init__(*args, **kwargs)
         self.fields["client"].queryset = get_client_list(self.user_obj)
+        self.fields["evidence_image_width"].required = False
+        self.fields["evidence_image_alignment"].required = False
+
+    def clean_evidence_image_alignment(self):
+        value = self.cleaned_data.get("evidence_image_alignment")
+        if not value:
+            return EvidenceImageAlignmentOverride.USE_GLOBAL
+        return value
 
     def clean(self):
         cleaned_data = super().clean()
 
         # Validate the file extension is allowed for support templates
-        _, ext = splitext(self.cleaned_data["filename"])
+        filename = cleaned_data.get("filename", "")
+        _, ext = splitext(filename)
         if not ext.startswith(".") or ext[1:].lower() not in TEMPLATE_ALLOWED_EXTENSIONS:
             self.add_error(
                 "filename",
@@ -211,11 +239,11 @@ class ApiReportTemplateForm(forms.ModelForm):
         if "filename" in cleaned_data:
             if ext[1:].lower() in DOCX_ALLOWED_EXTENSIONS:
                 try:
-                    Document(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
+                    Document(ContentFile(self.cleaned_data["file_base64"], name=filename))
                 except ValueError as e:
                     logger.error(
                         "Could not open this template. %s, from %s as a Microsoft Word document: %s",
-                        self.cleaned_data["filename"],
+                        filename,
                         self.user_obj,
                         e,
                     )
@@ -226,11 +254,11 @@ class ApiReportTemplateForm(forms.ModelForm):
 
             if ext[1:].lower() in PPTX_ALLOWED_EXTENSIONS:
                 try:
-                    Presentation(ContentFile(self.cleaned_data["file_base64"], name=self.cleaned_data["filename"]))
+                    Presentation(ContentFile(self.cleaned_data["file_base64"], name=filename))
                 except ValueError as e:
                     logger.error(
                         "Could not open this template. %s, from %s as a Microsoft PowerPoint document: %s",
-                        self.cleaned_data["filename"],
+                        filename,
                         self.user_obj,
                         e,
                     )
@@ -270,4 +298,3 @@ class ApiOplogRecordingForm(forms.Form):
                 code="invalid",
             )
         return filename
-
