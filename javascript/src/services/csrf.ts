@@ -3,13 +3,12 @@
  */
 
 /**
- * Get CSRF token from cookie.
- * Django sets this as 'csrftoken' cookie.
+ * Get CSRF token from the server-rendered DOM.
  * @returns CSRF token string or empty string if not found
  */
 export function getCsrfToken(): string {
-    const cookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("csrftoken="));
-    return cookie ? cookie.split("=")[1] : "";
+    const token = document.querySelector<HTMLMetaElement>(
+        'meta[name="csrf-token"]'
+    )?.content;
+    return token ?? "";
 }
