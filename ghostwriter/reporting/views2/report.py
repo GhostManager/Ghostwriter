@@ -887,7 +887,14 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return redirect("home:dashboard")
 
     def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
+        try:
+            self.object = self.get_object()
+        except Http404:
+            return self.handle_no_permission()
+
         self.include_bloodhound = self.object.include_bloodhound_data
         return super().dispatch(request, *args, **kwargs)
 

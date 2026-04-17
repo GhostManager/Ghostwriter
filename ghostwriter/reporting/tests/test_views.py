@@ -2910,6 +2910,18 @@ class GenerateReportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         assignment.delete()
 
+    def test_view_json_missing_report_requires_login_without_crashing(self):
+        missing_uri = reverse("reporting:generate_json", kwargs={"pk": 999999})
+        response = self.client.get(missing_uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/accounts/login/?next=" + missing_uri)
+
+    def test_view_json_missing_report_redirects_authenticated_user(self):
+        missing_uri = reverse("reporting:generate_json", kwargs={"pk": 999999})
+        response = self.client_mgr.get(missing_uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("home:dashboard"))
+
     def test_view_docx_requires_login_and_permissions(self):
         response = self.client.get(self.docx_uri)
         self.assertEqual(response.status_code, 302)
