@@ -473,8 +473,7 @@ class ReportTemplate(models.Model):
 
             return ExportReportDocx(
                 object,
-                template_loc=self.document.path,
-                p_style=self.p_style,
+                report_template=self,
                 **kwargs
             )
         if self.doc_type.doc_type == "project_docx":
