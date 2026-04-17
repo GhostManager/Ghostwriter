@@ -1,9 +1,24 @@
 # Standard Libraries
 import gzip
+import io
+import logging
 import unittest
 
+# Django Imports
+from django.test import override_settings
+
 # Ghostwriter Libraries
-from ghostwriter.oplog.utils import extract_cast_text
+from ghostwriter.oplog.utils import (
+    CAST_DECOMPRESS_TOO_LARGE_WARNING,
+    CAST_INVALID_GZIP_UPLOAD_MESSAGE,
+    CAST_PARSE_TOO_LARGE_WARNING,
+    extract_cast_text,
+    get_cast_decompressed_bytes,
+    get_cast_parse_input_bytes,
+    validate_cast_gzip_upload,
+)
+
+logging.disable(logging.CRITICAL)
 
 
 class ExtractCastTextTests(unittest.TestCase):
@@ -203,6 +218,44 @@ class ExtractCastTextTests(unittest.TestCase):
         text, warning = extract_cast_text(b"\x1f\x8b\x00\x00this is not gzip")
         self.assertEqual(text, "")
         self.assertIsNotNone(warning)
+
+    def test_truncated_gzip_returns_warning(self):
+        """Truncated gzip payloads do not raise and instead return a warning."""
+        data = gzip.compress(self._v3('[0.5, "o", "compressed output"]\n'))[:-1]
+
+        text, warning = extract_cast_text(data)
+
+        self.assertEqual(text, "")
+        self.assertIsNotNone(warning)
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=16)
+    def test_oversized_input_returns_warning(self):
+        """Files larger than the parse cap are skipped before parsing."""
+        data = b"a" * (get_cast_parse_input_bytes() + 1)
+
+        text, warning = extract_cast_text(data)
+
+        self.assertEqual(text, "")
+        self.assertEqual(warning, CAST_PARSE_TOO_LARGE_WARNING)
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=128)
+    def test_gzip_bomb_like_payload_returns_warning(self):
+        """Gzip payloads that expand past the safe decompression limit are skipped."""
+        data = gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1))
+
+        text, warning = extract_cast_text(data)
+
+        self.assertEqual(text, "")
+        self.assertEqual(warning, CAST_DECOMPRESS_TOO_LARGE_WARNING)
+
+    def test_validate_cast_gzip_upload_rejects_truncated_stream(self):
+        """Upload validation rejects malformed gzip content instead of crashing later."""
+        data = io.BytesIO(gzip.compress(self._v2('[0.5, "o", "x"]\n'))[:-1])
+
+        message, status = validate_cast_gzip_upload(data)
+
+        self.assertEqual(message, CAST_INVALID_GZIP_UPLOAD_MESSAGE)
+        self.assertEqual(status, 400)
 
     # ------------------------------------------------------------------
     # Edge cases

@@ -1,6 +1,7 @@
 """This contains all the views used by the API application."""
 
 # Standard Libraries
+import io
 import json
 import logging
 import os
@@ -42,7 +43,7 @@ from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence, OplogEntryRecording
-from ghostwriter.oplog.utils import extract_cast_text
+from ghostwriter.oplog.utils import extract_cast_text, validate_cast_gzip_upload
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -1032,6 +1033,20 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
 
         # Extract searchable text from the cast file before saving
         file_bytes = form.cleaned_data["file_base64"]
+        if len(file_bytes) > settings.GHOSTWRITER_MAX_FILE_SIZE:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Recording file is too large", "PayloadTooLarge"),
+                status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            )
+        if form.cleaned_data["filename"].lower().endswith(".cast.gz"):
+            error_message, error_status = validate_cast_gzip_upload(io.BytesIO(file_bytes))
+            if error_message:
+                status = HTTPStatus.REQUEST_ENTITY_TOO_LARGE if error_status == 413 else HTTPStatus.BAD_REQUEST
+                code = "PayloadTooLarge" if error_status == 413 else "Invalid"
+                return JsonResponse(
+                    utils.generate_hasura_error_payload(error_message, code),
+                    status=status,
+                )
         recording_text, text_warning = extract_cast_text(file_bytes)
 
         recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=self.user_obj)

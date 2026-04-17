@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils.encoding import force_str
@@ -32,6 +32,11 @@ from ghostwriter.factories import (
     UserFactory,
 )
 from ghostwriter.oplog.models import OplogEntryRecording
+from ghostwriter.oplog.utils import (
+    CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
+    get_cast_decompressed_bytes,
+    get_cast_parse_input_bytes,
+)
 
 logging.disable(logging.CRITICAL)
 
@@ -1267,6 +1272,36 @@ class OplogRecordingUploadViewTests(TestCase):
         self.assertEqual(data["result"], "success")
         self.assertIn("recording_url", data)
 
+    def test_invalid_cast_gz_rejected(self):
+        """Malformed .cast.gz files are rejected instead of crashing during parsing."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        bad_gz_file = SimpleUploadedFile(
+            "session.cast.gz",
+            b"\x1f\x8b\x08\x00truncated",
+            content_type="application/gzip",
+        )
+        response = self.client_auth.post(self.uri, {"recording_file": bad_gz_file})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["result"], "error")
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=128)
+    def test_gzip_bomb_like_cast_gz_rejected(self):
+        """Compressed recordings that expand beyond the playback safety limit are rejected."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        import gzip
+
+        gz_file = SimpleUploadedFile(
+            "session.cast.gz",
+            gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1)),
+            content_type="application/gzip",
+        )
+        response = self.client_auth.post(self.uri, {"recording_file": gz_file})
+
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["message"], CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE)
+
     def test_upload_success(self):
         """Test that a valid .cast file is accepted, saved, and tags the entry."""
         from ghostwriter.oplog.models import OplogEntryRecording
@@ -1356,6 +1391,22 @@ class OplogRecordingUploadViewTests(TestCase):
         data = response.json()
         self.assertEqual(data["result"], "success")
         self.assertIn("warning", data)
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=16)
+    def test_upload_large_file_rejected(self):
+        """Recordings larger than the configured file-size cap are rejected."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        large_file = SimpleUploadedFile(
+            "large.cast",
+            b"a" * (get_cast_parse_input_bytes() + 1),
+            content_type="application/octet-stream",
+        )
+
+        response = self.client_auth.post(self.uri, {"recording_file": large_file})
+
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["result"], "error")
 
 
 class OplogRecordingDeleteViewTests(TestCase):

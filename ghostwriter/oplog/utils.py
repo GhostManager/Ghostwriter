@@ -2,10 +2,55 @@
 
 # Standard Libraries
 import gzip
+import io
 import json
 import logging
 
+# Django Imports
+from django.conf import settings
+
 logger = logging.getLogger(__name__)
+CAST_PARSE_TOO_LARGE_WARNING = (
+    "The recording file is too large to parse for search indexing. It was uploaded successfully, "
+    "but it will not appear in search results."
+)
+CAST_DECOMPRESS_TOO_LARGE_WARNING = (
+    "The recording file expands too large to parse safely. It was uploaded successfully, "
+    "but it will not appear in search results."
+)
+CAST_INVALID_GZIP_UPLOAD_MESSAGE = "The gzip-compressed recording file is invalid."
+CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE = (
+    "The gzip-compressed recording expands too large for safe playback."
+)
+
+
+def get_cast_parse_input_bytes() -> int:
+    """Return the raw-byte parsing cap based on the configured max upload size."""
+    return getattr(settings, "GHOSTWRITER_MAX_FILE_SIZE", 10 * 1024 * 1024)
+
+
+def get_cast_decompressed_bytes() -> int:
+    """Allow a modest gzip expansion window while keeping parsing bounded."""
+    return get_cast_parse_input_bytes() * 2
+
+
+def _scan_gzip_size_limited(fileobj, max_output_bytes: int) -> tuple[int | None, str | None]:
+    """Read a gzip stream safely, counting decompressed bytes without unbounded buffering."""
+    total = 0
+    try:
+        with gzip.GzipFile(fileobj=fileobj) as gz_file:
+            while True:
+                chunk = gz_file.read(64 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > max_output_bytes:
+                    logger.warning("Cast gzip payload exceeded safe decompression limit")
+                    return None, CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE
+    except (OSError, EOFError) as exc:
+        logger.warning("Failed to decompress cast file: %s", exc)
+        return None, CAST_INVALID_GZIP_UPLOAD_MESSAGE
+    return total, None
 
 def _strip_ansi_escapes(text: str) -> str:
     """
@@ -88,6 +133,45 @@ def _strip_ansi_escapes(text: str) -> str:
     return "".join(cleaned)
 
 
+def _decompress_gzip_limited(file_data: bytes, max_output_bytes: int) -> tuple[bytes | None, str | None]:
+    """Decompress gzip data while enforcing a maximum output size."""
+    out = bytearray()
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(file_data)) as gz_file:
+            while True:
+                chunk = gz_file.read(min(64 * 1024, max_output_bytes - len(out) + 1))
+                if not chunk:
+                    break
+                out.extend(chunk)
+                if len(out) > max_output_bytes:
+                    logger.warning("Cast gzip payload exceeded safe decompression limit")
+                    return None, CAST_DECOMPRESS_TOO_LARGE_WARNING
+    except (OSError, EOFError) as exc:
+        logger.warning("Failed to decompress cast file: %s", exc)
+        return None, "Could not decompress the recording file. It will not appear in search results."
+    return bytes(out), None
+
+
+def validate_cast_gzip_upload(fileobj) -> tuple[str | None, int | None]:
+    """
+    Validate that a .cast.gz file is well-formed and safe to hand to the browser.
+
+    Returns ``(message, status_code)`` when the upload should be rejected, or
+    ``(None, None)`` when the file is acceptable.
+    """
+    _, error = _scan_gzip_size_limited(fileobj, get_cast_decompressed_bytes())
+    try:
+        fileobj.seek(0)
+    except (AttributeError, OSError):
+        pass
+
+    if error == CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE:
+        return error, 413
+    if error == CAST_INVALID_GZIP_UPLOAD_MESSAGE:
+        return error, 400
+    return None, None
+
+
 def extract_cast_text(file_data: bytes) -> tuple[str, str | None]:
     """
     Parse an asciicast v2 or v3 file and return ``(text, warning)``.
@@ -107,16 +191,15 @@ def extract_cast_text(file_data: bytes) -> tuple[str, str | None]:
         ``warning`` -- a human-readable warning string, or ``None`` on success
     """
     try:
+        if len(file_data) > get_cast_parse_input_bytes():
+            logger.warning("Cast file exceeded safe parse input limit")
+            return "", CAST_PARSE_TOO_LARGE_WARNING
+
         # Decompress if gzip-compressed (magic bytes 0x1f 0x8b)
         if file_data[:2] == b"\x1f\x8b":
-            try:
-                file_data = gzip.decompress(file_data)
-            except OSError as exc:
-                logger.warning("Failed to decompress cast file: %s", exc)
-                return (
-                    "",
-                    "Could not decompress the recording file. It will not appear in search results.",
-                )
+            file_data, warning = _decompress_gzip_limited(file_data, get_cast_decompressed_bytes())
+            if warning:
+                return "", warning
 
         text = file_data.decode("utf-8", errors="replace")
         lines = iter(text.splitlines())

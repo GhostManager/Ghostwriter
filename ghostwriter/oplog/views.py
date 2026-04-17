@@ -19,6 +19,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.conf import settings
 from django.urls import reverse
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
@@ -38,7 +39,7 @@ from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogEvidenceForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence, OplogEntryRecording
-from ghostwriter.oplog.utils import extract_cast_text
+from ghostwriter.oplog.utils import extract_cast_text, get_cast_parse_input_bytes, validate_cast_gzip_upload
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Project
 
@@ -942,6 +943,15 @@ class OplogRecordingUpload(RoleBasedAccessControlMixin, View):
         filename_lower = recording_file.name.lower()
         if not (filename_lower.endswith(".cast") or filename_lower.endswith(".cast.gz")):
             return JsonResponse({"result": "error", "message": "Only .cast and .cast.gz files are accepted."}, status=400)
+        if recording_file.size > settings.GHOSTWRITER_MAX_FILE_SIZE:
+            return JsonResponse(
+                {"result": "error", "message": "The recording file is too large."},
+                status=413,
+            )
+        if filename_lower.endswith(".cast.gz"):
+            error_message, error_status = validate_cast_gzip_upload(recording_file)
+            if error_message:
+                return JsonResponse({"result": "error", "message": error_message}, status=error_status)
 
         # Update an existing recording in place when possible so a failed replacement
         # does not delete the current attachment before the new file is safely saved.
@@ -958,8 +968,9 @@ class OplogRecordingUpload(RoleBasedAccessControlMixin, View):
             old_recording_name = recording.recording_file.name
             old_recording_storage = recording.recording_file.storage
 
-        # Extract searchable text from the cast file before saving
-        file_content = recording_file.read()
+        # Extract searchable text from a bounded prefix of the cast file before saving.
+        # The upload itself is still stored in full; only the search-text extraction is capped.
+        file_content = recording_file.read(get_cast_parse_input_bytes() + 1)
         recording_file.seek(0)
         recording_text, text_warning = extract_cast_text(file_content)
 

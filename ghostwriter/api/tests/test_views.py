@@ -10,7 +10,7 @@ from http import HTTPStatus
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -51,6 +51,7 @@ from ghostwriter.factories import (
     StaticServerFactory,
     UserFactory,
 )
+from ghostwriter.oplog.utils import CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE, get_cast_decompressed_bytes
 from ghostwriter.reporting.models import Evidence
 
 logging.disable(logging.CRITICAL)
@@ -3398,6 +3399,34 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         }
         response = self._post(data, self.user_token)
         self.assertEqual(response.status_code, 201)
+
+    def test_upload_recording_invalid_cast_gz_rejected(self):
+        """Malformed .cast.gz files are rejected instead of crashing during parsing."""
+        from base64 import b64encode
+
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": b64encode(b"\x1f\x8b\x08\x00truncated").decode("utf-8"),
+            "filename": "session.cast.gz",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["extensions"]["code"], "Invalid")
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=128)
+    def test_upload_recording_gzip_bomb_like_cast_gz_rejected(self):
+        """Compressed recordings that expand beyond the playback safety limit are rejected."""
+        import gzip
+        from base64 import b64encode
+
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": b64encode(gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1))).decode("utf-8"),
+            "filename": "session.cast.gz",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["message"], CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE)
 
     def test_upload_recording_invalid_base64(self):
         """Test that invalid base64 content is rejected."""
