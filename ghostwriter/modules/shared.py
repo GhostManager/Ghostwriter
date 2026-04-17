@@ -69,3 +69,8 @@ def search_tags(queryset, value):
     """Filter a queryset by tags."""
     # There is no case-insensitive version of `in` for Django ORM, so we use `iregex` instead.
     return queryset.filter(tags__name__iregex=r"(" + value + ")").distinct()
+
+
+def get_tags_for_queryset(queryset):
+    """Return the distinct tags attached to objects in the provided queryset."""
+    return Tag.objects.filter(id__in=queryset.values_list("tags__id", flat=True)).order_by("name").distinct()

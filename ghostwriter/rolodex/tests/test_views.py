@@ -700,6 +700,20 @@ class ClientListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 2)
 
+    def test_tags_are_scoped_to_visible_clients(self):
+        visible_client = ClientFactory(name="Visible Client")
+        hidden_client = ClientFactory(name="Hidden Client")
+        ClientInviteFactory(user=self.user, client=visible_client)
+        visible_client.tags.add("visible-tag")
+        hidden_client.tags.add("hidden-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-tag", tag_names)
+        self.assertNotIn("hidden-tag", tag_names)
+
 
 class ClientDetailViewTest(TestCase):
     @classmethod
@@ -807,6 +821,20 @@ class ProjectListViewTests(TestCase):
         response = self.client_mgr.get(f"{self.uri}?client=SpecterOps")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
+
+    def test_tags_are_scoped_to_visible_projects(self):
+        visible_project = ProjectFactory(codename="VISIBLE")
+        hidden_project = ProjectFactory(codename="HIDDEN")
+        ProjectInviteFactory(user=self.user, project=visible_project)
+        visible_project.tags.add("visible-project-tag")
+        hidden_project.tags.add("hidden-project-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-project-tag", tag_names)
+        self.assertNotIn("hidden-project-tag", tag_names)
 
         response = self.client_mgr.get(f"{self.uri}?client=pops")
         self.assertEqual(response.status_code, 200)
@@ -1154,4 +1182,3 @@ class ClientLogoDownloadTests(TestCase):
         self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
         # CSP is only added for inline responses
         self.assertIsNone(response.get("Content-Security-Policy"))
-

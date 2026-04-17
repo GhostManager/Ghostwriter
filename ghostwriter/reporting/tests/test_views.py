@@ -1142,6 +1142,20 @@ class ReportsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 5)
 
+    def test_tags_are_scoped_to_visible_reports(self):
+        visible_report = ReportFactory(title="Visible Report")
+        hidden_report = ReportFactory(title="Hidden Report")
+        ProjectAssignmentFactory(project=visible_report.project, operator=self.user)
+        visible_report.tags.add("visible-report-tag")
+        hidden_report.tags.add("hidden-report-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-report-tag", tag_names)
+        self.assertNotIn("hidden-report-tag", tag_names)
+
 
 class ReportDetailViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportDetailView`."""

@@ -34,7 +34,6 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.db.models import Exists, OuterRef
 
 # 3rd Party Libraries
-from taggit.models import Tag
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -51,6 +50,7 @@ from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.modules.shared import get_tags_for_queryset
 from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
@@ -1235,9 +1235,10 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset(), request=self.request)
+        queryset = self.get_queryset()
+        ctx["filter"] = ClientFilter(self.request.GET, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = Tag.objects.all()
+        ctx["tags"] = get_tags_for_queryset(queryset)
         return ctx
 
 
@@ -1666,14 +1667,15 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
         # Copy the GET request data
         data = self.request.GET.copy()
         # If user has not submitted their own filter, default to showing only active projects
         if len(data) == 0:
             data["complete"] = 0
-        ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset(), request=self.request)
+        ctx["filter"] = ProjectFilter(data, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = Tag.objects.all()
+        ctx["tags"] = get_tags_for_queryset(queryset)
         return ctx
 
 
