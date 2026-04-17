@@ -78,6 +78,38 @@ def mk_test_docx(name, input, expected_output, p_style=None):
 class RichTextToDocxTests(SimpleTestCase):
     maxDiff = None
 
+    def test_safe_links_are_preserved(self):
+        doc = docx.Document()
+        HtmlToDocx.run('<p><a href="https://example.com">Example</a></p>', doc, None)
+        out = BytesIO()
+        doc.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/document.xml") as file:
+                document_xml = file.read().decode("utf-8")
+            with zip.open("word/_rels/document.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Example", document_xml)
+        self.assertIn("w:hyperlink", document_xml)
+        self.assertIn('Target="https://example.com"', rels_xml)
+
+    def test_unsafe_links_are_removed(self):
+        doc = docx.Document()
+        HtmlToDocx.run('<p><a href="javascript:alert(1)">Example</a></p>', doc, None)
+        out = BytesIO()
+        doc.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/document.xml") as file:
+                document_xml = file.read().decode("utf-8")
+            with zip.open("word/_rels/document.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Example", document_xml)
+        self.assertNotIn("w:hyperlink", document_xml)
+        self.assertNotIn("javascript:alert(1)", rels_xml)
+
     test_paragraphs = mk_test_docx(
         "test_paragraphs",
         "<p>Hello World!</p><p>This is a test!</p>",
