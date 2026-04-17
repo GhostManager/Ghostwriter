@@ -492,7 +492,7 @@ class ReportTemplateForm(forms.ModelForm):
             ),
             Row(
                 Column(
-                    "tags", css_class="orm-group col-md-12 mb-0"
+                    "tags", css_class="form-group col-md-12 mb-0"
                 ),
                 css_class="form-row pb-2",
             ),
