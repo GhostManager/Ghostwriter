@@ -1283,13 +1283,10 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertNotEqual(response.status_code, 201, response.content)
 
     def test_upload_evidence_oversized_payload_rejected(self):
-        """Regression test: payloads exceeding max_upload_size must return 413, not exhaust memory."""
-        from ghostwriter.api.views import GraphqlUploadEvidenceView
-
+        """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
         _, token = utils.generate_jwt(self.user)
-        # Build a JSON body that exceeds the view's max_upload_size limit by one byte.
-        # Using a raw bytes body avoids base64-encoding overhead doubling the size.
-        oversized_body = b"x" * (GraphqlUploadEvidenceView.max_upload_size + 1)
+        # Build a body one byte over the configured limit
+        oversized_body = b"x" * (settings.GHOSTWRITER_MAX_FILE_SIZE + 1)
         response = self.client.post(
             self.uri,
             data=oversized_body,
@@ -3067,6 +3064,28 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         }
         self.assertJSONEqual(force_str(response.content), result)
 
+    def test_download_evidence_oversized_file_rejected(self):
+        """Test that evidence files exceeding GHOSTWRITER_MAX_FILE_SIZE are rejected with 413."""
+        from django.test import override_settings
+
+        evidence = EvidenceOnFindingFactory(finding=self.finding)
+        evidence.document.save("oversize_evidence.txt", ContentFile(b"some content"), save=True)
+
+        data = {"input": {"evidenceId": evidence.id}}
+
+        # Set the limit to 1 byte so any real file exceeds it
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=1):
+            response = self.client.post(
+                self.uri,
+                json.dumps(data),
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+                HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+            )
+
+        self.assertEqual(response.status_code, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+        self.assertEqual(response.json()["extensions"]["code"], "FileTooLargeForInline")
+
     def test_download_evidence_with_forwarded_ip(self):
         """Test that request with forwarded IP header is handled correctly."""
         test_content = b"Forwarded IP test content"
@@ -3391,10 +3410,8 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_upload_recording_oversized_payload_rejected(self):
-        """Regression test: payloads exceeding max_upload_size must return 413, not exhaust memory."""
-        from ghostwriter.api.views import GraphqlUploadOplogRecording
-
-        oversized_body = b"x" * (GraphqlUploadOplogRecording.max_upload_size + 1)
+        """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
+        oversized_body = b"x" * (settings.GHOSTWRITER_MAX_FILE_SIZE + 1)
         response = self.client.post(
             self.uri,
             oversized_body,
@@ -3620,3 +3637,16 @@ class GraphqlDownloadRecordingTests(TestCase):
             HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
         )
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
+    def test_download_recording_oversized_file_rejected(self):
+        """Test that recording files exceeding GHOSTWRITER_MAX_FILE_SIZE are rejected with 413."""
+        from django.test import override_settings
+
+        data = {"input": {"oplogEntryId": self.oplog_entry.id}}
+
+        # Set the limit to 1 byte so any real file exceeds it
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=1):
+            response = self._post({"oplogEntryId": self.oplog_entry.id}, self.user_token)
+
+        self.assertEqual(response.status_code, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+        self.assertEqual(response.json()["extensions"]["code"], "FileTooLargeForInline")

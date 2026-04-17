@@ -521,6 +521,12 @@ HASURA_ACTION_SECRET = env(
 
 GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
 
+# Maximum file size (bytes) for API uploads and inline base64 download responses
+# Uploads exceeding this limit are rejected with 413 during request parsing
+# Downloads exceeding this limit are rejected with 413 before the file is read
+# Admins can override via the ``GHOSTWRITER_MAX_FILE_SIZE`` environment variable
+GHOSTWRITER_MAX_FILE_SIZE = env.int("GHOSTWRITER_MAX_FILE_SIZE", default=10 * 1024 * 1024)  # 10 MB
+
 # Health Checks
 # ------------------------------------------------------------------------------
 HEALTH_CHECK = {
