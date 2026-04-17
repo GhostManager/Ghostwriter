@@ -3172,6 +3172,16 @@ class ReportTemplateFilterTests(TestCase):
         filtered = filter_bhe_findings_by_domain(findings, "example.com")
         self.assertEqual(len(filtered), 2)
 
+        findings_with_missing_domain = [
+            {"environment_id": None},
+            {"environment_id": "example.com"},
+            {},
+        ]
+        filtered = filter_bhe_findings_by_domain(findings_with_missing_domain, None)
+        self.assertEqual(filtered, [])
+        filtered = filter_bhe_findings_by_domain(findings_with_missing_domain, "example.com")
+        self.assertEqual(filtered, [{"environment_id": "example.com"}])
+
         with self.assertRaises(InvalidFilterValue):
             filter_bhe_findings_by_domain("Not a list", "example.com")
 
