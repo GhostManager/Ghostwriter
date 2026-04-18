@@ -11,6 +11,9 @@ from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django import forms
+from django.utils import formats
 from django.utils.dateformat import format as dateformat
 import jinja2
 from markupsafe import Markup
@@ -199,15 +202,20 @@ def to_datetime(date, format_str=None):
     ``date``
         Date string to convert
     ``format_str``
-        Format string to use for conversion (uses the global setting if omitted)
+        Format string to use for conversion (uses Django's configured date input formats if omitted)
     """
     try:
         if isinstance(date, datetime):
             return date
         if format_str:
             return datetime.strptime(date, format_str)
-        return parse_datetime(date)
-    except (ParserError, TypeError, ValueError) as e:
+        return datetime.combine(
+            forms.DateField(
+                input_formats=formats.get_format("DATE_INPUT_FORMATS")
+            ).clean(date),
+            datetime.min.time(),
+        )
+    except (ParserError, TypeError, ValueError, ValidationError) as e:
         logger.exception("Error parsing ``date`` with the provided format: %s", date)
         raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter') from e
 

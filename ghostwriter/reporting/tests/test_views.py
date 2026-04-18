@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from django.contrib.messages import get_messages
 from django.conf import settings
 from django.test import Client, TestCase
+from django.test import override_settings
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
 from django.utils.encoding import force_str
@@ -3100,6 +3101,20 @@ class ReportTemplateFilterTests(TestCase):
         test_date = dateformat(self.test_date, self.test_date_string)
 
         parsed_date = to_datetime(test_date, None)
+        self.assertEqual(parsed_date, self.test_date)
+
+    @override_settings(DATE_INPUT_FORMATS=["%m/%d/%Y"])
+    def test_to_datetime_uses_overridden_default_numeric_input_format(self):
+        test_date = dateformat(self.test_date, "m/d/Y")
+
+        parsed_date = to_datetime(test_date)
+        self.assertEqual(parsed_date, self.test_date)
+
+    @override_settings(DATE_INPUT_FORMATS=["%d %B %Y"])
+    def test_to_datetime_uses_overridden_default_month_name_input_format(self):
+        test_date = dateformat(self.test_date, "d F Y")
+
+        parsed_date = to_datetime(test_date)
         self.assertEqual(parsed_date, self.test_date)
 
     def test_to_datetime_with_invalid_string(self):
