@@ -8,6 +8,8 @@ import bs4
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_HYPERLINK_PROTOCOLS = {"http", "https", "mailto", "tel"}
+
 
 def set_style_method(tag_name, style_key, style_value=True):
     """
@@ -168,7 +170,10 @@ class BaseHtmlToOOXML:
     tag_del = set_style_method("del", "strikethrough")
 
     def tag_a(self, el, *, style={}, **kwargs):
-        style = style | {"hyperlink_url": el.attrs.get("href")}
+        style = style.copy()
+        hyperlink_url = sanitize_hyperlink_url(el.attrs.get("href"))
+        if hyperlink_url:
+            style["hyperlink_url"] = hyperlink_url
         self.process_children(el.children, style=style, **kwargs)
 
     def tag_span(self, el, *, style={}, **kwargs):
@@ -310,6 +315,32 @@ def strip_text_whitespace(text: str):
     Consolidates adjacent whitespace into one space, similar to how browsers display it
     """
     return re.sub(r"\s+", " ", text)
+
+
+def sanitize_hyperlink_url(url: str | None) -> str | None:
+    """
+    Allow safe relative URLs and a small allowlist of schemes for exported hyperlinks.
+    """
+    if not url:
+        return None
+    trimmed_url = url.strip()
+    if not trimmed_url or re.search(r"[\x00-\x20\x7f]", trimmed_url):
+        return None
+    if trimmed_url.startswith(("#", "?")):
+        return trimmed_url
+    if (
+        (trimmed_url.startswith("/") and not trimmed_url.startswith("//"))
+        or trimmed_url.startswith("./")
+        or trimmed_url.startswith("../")
+    ):
+        return trimmed_url
+
+    match = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", trimmed_url)
+    if match:
+        return trimmed_url if match.group(1).lower() in ALLOWED_HYPERLINK_PROTOCOLS else None
+    if trimmed_url.startswith("//"):
+        return None
+    return trimmed_url
 
 
 def parse_styles(style: str, handle):

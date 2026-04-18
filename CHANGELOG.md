@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The collaborative editor's color picker now validates color values
 * Added sanitization to strip some characters from the export filenames for operation logs for safer exports
 * The start script for Django will now run the `migrate_totp_device` to migrate MFA records set up prior to v6.1
+* Restricted links in the collaborative editor to valid URL schemes (e.g., http, https, mailto)
+* Changed the `to_datetime` filter to not require a format string
+  * The filter will now automatically match a format string with Django's `DATE_INPUT_FORMATS` when a format string is not provided
+* Adjusted tag autocomplete to only offer tags already applied to objects to which the user has access
 
 ### Fixed
 
@@ -39,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed sanitizing the identifier on log entries
 * Fixed an issue that could occur with `filter_bhe_findings_by_domain` when domain SID or BloodHound `environment_id` were empty
 * Fixed an edge case where a single contact on a client or project could be flagged as not the primary contact
+* Fixed an issue that prevented report archives from being created
+* Fixed the table caption "Set Bookmark" command in the editor being available when it should not be
+
+### Security
+
+* Restored the HttpOnly flag to cookies
+* Restricted collab-server inspector to localhost for development environments
 
 ## [6.3.0] - 10 April 2026
 

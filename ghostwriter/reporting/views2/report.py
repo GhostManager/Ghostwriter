@@ -28,8 +28,6 @@ from django.contrib import messages
 from django.utils import dateformat, timezone
 from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
-from taggit.models import Tag
-
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate
@@ -41,6 +39,7 @@ from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.modules.shared import get_tags_for_queryset
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
@@ -181,11 +180,12 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
         return get_reports_list(self.request.user)
 
     def get(self, request, *args, **kwarg):
-        reports_filter = ReportFilter(request.GET, queryset=self.get_queryset())
+        queryset = self.get_queryset()
+        reports_filter = ReportFilter(request.GET, queryset=queryset)
         return render(
             request,
             "reporting/report_list.html",
-            {"filter": reports_filter, "tags": Tag.objects.all()}
+            {"filter": reports_filter, "tags": get_tags_for_queryset(queryset)}
         )
 
 

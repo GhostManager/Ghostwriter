@@ -181,7 +181,7 @@ services:
       - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
     ports:
       - "8001:8000" # HTTP. Also reverse-proxied through nginx
-      - "9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
+      - "127.0.0.1:9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
 
   graphql_engine:
     build:

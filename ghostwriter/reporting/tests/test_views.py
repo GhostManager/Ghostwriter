@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from django.contrib.messages import get_messages
 from django.conf import settings
 from django.test import Client, TestCase
+from django.test import override_settings
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
 from django.utils.encoding import force_str
@@ -1141,6 +1142,20 @@ class ReportsListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 5)
+
+    def test_tags_are_scoped_to_visible_reports(self):
+        visible_report = ReportFactory(title="Visible Report")
+        hidden_report = ReportFactory(title="Hidden Report")
+        ProjectAssignmentFactory(project=visible_report.project, operator=self.user)
+        visible_report.tags.add("visible-report-tag")
+        hidden_report.tags.add("hidden-report-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-report-tag", tag_names)
+        self.assertNotIn("hidden-report-tag", tag_names)
 
 
 class ReportDetailViewTests(TestCase):
@@ -3068,6 +3083,38 @@ class ReportTemplateFilterTests(TestCase):
         test_date = dateformat(self.test_date, self.test_date_string)
 
         parsed_date = to_datetime(test_date, "%d %b %Y")
+        self.assertEqual(parsed_date, self.test_date)
+
+    def test_to_datetime_uses_default_format_when_omitted(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date)
+        self.assertEqual(parsed_date, self.test_date)
+
+    def test_to_datetime_uses_default_format_when_empty(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date, "")
+        self.assertEqual(parsed_date, self.test_date)
+
+    def test_to_datetime_uses_default_format_when_none(self):
+        test_date = dateformat(self.test_date, self.test_date_string)
+
+        parsed_date = to_datetime(test_date, None)
+        self.assertEqual(parsed_date, self.test_date)
+
+    @override_settings(DATE_INPUT_FORMATS=["%m/%d/%Y"])
+    def test_to_datetime_uses_overridden_default_numeric_input_format(self):
+        test_date = dateformat(self.test_date, "m/d/Y")
+
+        parsed_date = to_datetime(test_date)
+        self.assertEqual(parsed_date, self.test_date)
+
+    @override_settings(DATE_INPUT_FORMATS=["%d %B %Y"])
+    def test_to_datetime_uses_overridden_default_month_name_input_format(self):
+        test_date = dateformat(self.test_date, "d F Y")
+
+        parsed_date = to_datetime(test_date)
         self.assertEqual(parsed_date, self.test_date)
 
     def test_to_datetime_with_invalid_string(self):

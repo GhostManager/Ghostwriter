@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.factories import (
     ArchiveFactory,
@@ -291,6 +292,14 @@ class ReportTemplateModelTests(TestCase):
             self.assertEqual("success", status)
         except Exception:
             self.fail("ReportTemplate model `get_status` method failed unexpectedly with PPTX template!")
+
+    def test_exporter_uses_report_template_for_docx_exports(self):
+        report = ReportFactory()
+
+        exporter = report.docx_template.exporter(report)
+
+        self.assertIsInstance(exporter, ExportReportDocx)
+        self.assertEqual(exporter.report_template, report.docx_template)
 
     def test_update_upload_date_signal(self):
         # Create a template with an initial document
