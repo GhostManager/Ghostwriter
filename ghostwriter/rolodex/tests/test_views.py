@@ -1029,6 +1029,7 @@ class ProjectDetailViewTests(TestCase):
     def test_shared_global_bloodhound_copy_renders_for_project_viewers(self):
         ProjectAssignmentFactory(project=self.project, operator=self.user)
         bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.allow_project_fallback = True
         bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
         bloodhound_config.bloodhound_api_key_id = "id"
         bloodhound_config.bloodhound_api_key_token = "token"
@@ -1038,6 +1039,20 @@ class ProjectDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Using Shared Global Configuration")
         self.assertContains(response, "shared global BloodHound configuration and cached results")
+
+    def test_shared_global_bloodhound_tab_hidden_when_fallback_disabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = False
+        bloodhound_config.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Using Shared Global Configuration")
+        self.assertNotContains(response, "This project is using the shared global BloodHound configuration")
 
 
 class BloodhoundApiAccessTests(TestCase):
@@ -1055,6 +1070,7 @@ class BloodhoundApiAccessTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
+        self.project = ProjectFactory()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
         self.user_mgr.user_permissions.add(self.admin_permission)
@@ -1071,6 +1087,36 @@ class BloodhoundApiAccessTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
         response = self.client_mgr.post(self.test_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_project_viewer_cannot_use_global_fallback_when_not_enabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = False
+        bloodhound_config.save()
+
+        response = self.client_auth.post(f"{self.fetch_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_auth.post(f"{self.test_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 403)
+
+    def test_project_viewer_can_use_global_fallback_when_explicitly_enabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = True
+        bloodhound_config.save()
+
+        response = self.client_auth.post(f"{self.fetch_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(f"{self.test_uri}?project={self.project.pk}")
         self.assertEqual(response.status_code, 302)
 
 class ProjectInviteDeleteTests(TestCase):

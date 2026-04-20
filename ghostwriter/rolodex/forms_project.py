@@ -28,7 +28,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ExtraFieldsField
-from ghostwriter.commandcenter.models import GeneralConfiguration
+from ghostwriter.commandcenter.models import BloodHoundConfiguration, GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import (
@@ -1024,6 +1024,7 @@ class ProjectContactForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
+        self.bloodhound_config = BloodHoundConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Janine Melnitz"
@@ -1294,6 +1295,7 @@ class ProjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
+        self.bloodhound_config = BloodHoundConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
@@ -1385,7 +1387,13 @@ class ProjectForm(forms.ModelForm):
                 ),
                 CustomTab(
                     "BloodHound Integration",
-                    HTML("<p>Overrides the global configuration (if any)</p>"),
+                    HTML(
+                        (
+                            "<p>Project-specific settings override the shared global BloodHound configuration.</p>"
+                            if self.bloodhound_config.allows_project_fallback()
+                            else "<p>Configure project-specific BloodHound settings here. Shared global fallback is currently disabled.</p>"
+                        )
+                    ),
                     "bloodhound_api_root_url",
                     "bloodhound_api_key_id",
                     "bloodhound_api_key_token",

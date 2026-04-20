@@ -197,10 +197,11 @@ class BloodhoundConfigurationAdmin(SingletonModelAdmin):
             "Shared BloodHound Configuration",
             {
                 "description": (
-                    "This configuration is shared across projects that do not have their own "
-                    "BloodHound API settings. Only enable it when that shared access pattern is desired."
+                    "This configuration can be used only from the admin page, or it can be "
+                    "explicitly shared with projects that do not have their own BloodHound API settings."
                 ),
                 "fields": (
+                    "allow_project_fallback",
                     "bloodhound_api_root_url",
                     "bloodhound_api_key_id",
                     "bloodhound_api_key_token",

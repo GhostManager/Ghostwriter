@@ -109,6 +109,34 @@ class ReportConfigurationTests(TestCase):
         self.assertEqual(rules.prefix_tags, ("att&ck:",))
 
 
+class BloodHoundConfigurationTests(TestCase):
+    """Collection of tests for :model:`commandcenter.BloodHoundConfiguration`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from ghostwriter.commandcenter.models import BloodHoundConfiguration
+        cls.BloodHoundConfiguration = BloodHoundConfiguration
+
+    def test_get_solo_method(self):
+        try:
+            entry = self.BloodHoundConfiguration.get_solo()
+            self.assertEqual(entry.pk, 1)
+        except Exception:
+            self.fail("BloodHoundConfiguration model `get_solo` method failed unexpectedly!")
+
+    def test_allows_project_fallback_requires_opt_in_and_complete_configuration(self):
+        entry = self.BloodHoundConfiguration.get_solo()
+        self.assertFalse(entry.allows_project_fallback())
+
+        entry.allow_project_fallback = True
+        self.assertFalse(entry.allows_project_fallback())
+
+        entry.bloodhound_api_root_url = "https://bloodhound.example"
+        entry.bloodhound_api_key_id = "id"
+        entry.bloodhound_api_key_token = "token"
+        self.assertTrue(entry.allows_project_fallback())
+
+
 class SlackConfigurationTests(TestCase):
     """Collection of tests for :model:`commandcenter.SlackConfiguration`."""
 

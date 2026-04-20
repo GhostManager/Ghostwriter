@@ -1713,11 +1713,11 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["global_bloodhound_config"] = bhc
 
         if object.has_bloodhound_api():
-            ctx["bhc_api"] = object
-        elif bhc.has_bloodhound_api():
-            ctx["bhc_api"] = bhc
+            ctx["bh_api"] = object
+        elif bhc.allows_project_fallback():
+            ctx["bh_api"] = bhc
         else:
-            ctx["bhc_api"] = None
+            ctx["bh_api"] = None
 
         return ctx
 
@@ -2293,28 +2293,36 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
 
 class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
     project: Project | None
-    bh_api: Project | BloodHoundConfiguration
+    bh_api: Project | BloodHoundConfiguration | None
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
+        self.global_bh_api = BloodHoundConfiguration.get_solo()
         if "project" in request.GET:
             try:
                 project_id = int(request.GET["project"])
             except ValueError:
                 return self.render_result(request, messages.constants.ERROR, "Project does not exist.")
             self.project = get_object_or_404(Project, pk=project_id)
-            self.bh_api = self.project if self.project.has_bloodhound_api() else BloodHoundConfiguration.get_solo()
+            if self.project.has_bloodhound_api():
+                self.bh_api = self.project
+            elif self.global_bh_api.allows_project_fallback():
+                self.bh_api = self.global_bh_api
+            else:
+                self.bh_api = None
         else:
             self.project = None
-            self.bh_api = BloodHoundConfiguration.get_solo()
+            self.bh_api = self.global_bh_api
         return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
         if self.project is not None:
-            return self.project.user_can_view(self.request.user)
+            if self.project.has_bloodhound_api():
+                return self.project.user_can_view(self.request.user)
+            return self.project.user_can_view(self.request.user) and self.global_bh_api.allows_project_fallback()
         return verify_user_is_privileged(self.request.user)
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        if not self.bh_api.has_bloodhound_api():
+        if self.bh_api is None or not self.bh_api.has_bloodhound_api():
             return self.render_result(messages.constants.ERROR, "BloodHound is not configured.")
         bh_url = urlparse(self.bh_api.bloodhound_api_root_url)
         bh_client = BhAPIClient(

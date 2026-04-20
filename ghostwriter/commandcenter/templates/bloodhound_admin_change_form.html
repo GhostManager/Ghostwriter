@@ -48,8 +48,9 @@
     <div class="bh-warning-alert" role="alert">
         <span class="bh-warning-icon">&#9888;&#65039;</span>
         <div>
-            <strong>Warning:</strong> This global BloodHound configuration is shared across projects that do not
-            have a project-specific BloodHound API configured. Only enable it if that shared access model is intended.
+            <strong>Warning:</strong> This is a shared global BloodHound configuration. Projects can use it only if
+            <em>Allow Projects to Use Shared Configuration</em> is enabled, and any project using that fallback will
+            see and refresh the same cached results.
         </div>
     </div>
 {% endblock %}
