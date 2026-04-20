@@ -2311,11 +2311,11 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
     def test_func(self):
         if self.project is not None:
             return self.project.user_can_view(self.request.user)
-        return self.request.user.is_authenticated
+        return verify_user_is_privileged(self.request.user)
 
     def post(self, request: HttpRequest, *args, **kwargs):
         if not self.bh_api.has_bloodhound_api():
-            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured.")
+            return self.render_result(messages.constants.ERROR, "BloodHound is not configured.")
         bh_url = urlparse(self.bh_api.bloodhound_api_root_url)
         bh_client = BhAPIClient(
             scheme=bh_url.scheme,
