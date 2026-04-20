@@ -1107,7 +1107,10 @@
             {% if project.has_bloodhound_api %}
               Using Project Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
             {% elif global_bloodhound_config.has_bloodhound_api %}
-              Using Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em>
+              Using Shared Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em><br/>
+              <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
+                This project is using the shared global BloodHound configuration and cached results.
+              </div>
             {% else %}
               Unavailable
             {% endif %}
