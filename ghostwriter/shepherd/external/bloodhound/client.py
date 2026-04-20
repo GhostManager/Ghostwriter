@@ -15,7 +15,7 @@ import hmac
 import json
 import logging
 from datetime import datetime
-from typing import Counter, Literal, Optional, NamedTuple, Dict, Any, List
+from typing import Literal, Optional, NamedTuple, Dict, Any, List
 
 # Django Imports
 from django.conf import settings
@@ -457,8 +457,10 @@ class APIClient:
         """
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
+        pw_cutoff = str(int(datetime.now().timestamp() - 90 * 86400))
         for domain in available_domains:
             logger.debug(f"Processing domain {domain['name']}")
+            domain_name = self._escape_cypher_string(domain["name"])
             # A domain lookup may 404 if the domain is an Azure tenant without AD data collected
             try:
                 domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}?counts=false").json()["data"]
@@ -480,25 +482,35 @@ class APIClient:
                 } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts?skip=0&limit=128").json()["data"]]
 
                 try:
-                    domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                        "query": 'MATCH (n:Computer) WHERE n.domain = "{}" RETURN n'.format(domain['name']),
-                        "include_properties": True,
-                    }).encode("utf-8")).json()["data"]
+                    computer_count = self._run_cypher_count_query(
+                        f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" RETURN count(n) AS count'
+                    )
+                    operating_systems = {}
+                    operating_system_names = self._run_cypher_literal_query(
+                        f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" '
+                        "AND n.operatingsystem IS NOT NULL "
+                        "RETURN DISTINCT n.operatingsystem AS operating_system",
+                        "operating_system",
+                    )
+                    for operating_system in operating_system_names:
+                        if operating_system is None:
+                            continue
+                        escaped_os = self._escape_cypher_string(str(operating_system))
+                        operating_systems[str(operating_system)] = self._run_cypher_count_query(
+                            f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" '
+                            f'AND n.operatingsystem = "{escaped_os}" '
+                            "RETURN count(n) AS count"
+                        )
                 except APIException as err:
                     if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
-                        # No results
                         logger.info(f"No computers found for domain {domain['name']}")
-                        domain_computers = {"nodes": {}}
+                        computer_count = 0
+                        operating_systems = {}
                     else:
                         raise
-                domain_oses = Counter(
-                    value["properties"]["operatingsystem"]
-                    for value in domain_computers["nodes"].values()
-                    if "properties" in value and "operatingsystem" in value["properties"]
-                )
                 domain_out["computers"] = {
-                    "count": len(domain_computers["nodes"]),
-                    "operating_systems": domain_oses,
+                    "count": computer_count,
+                    "operating_systems": operating_systems,
                 }
 
             except APIException as err:
@@ -506,31 +518,27 @@ class APIClient:
                 continue
 
             try:
-                domain_users = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                    "query": 'MATCH (u:User) WHERE u.domain = "{}" RETURN u'.format(domain['name']),
-                    "include_properties": True,
-                }).encode("utf-8")).json()["data"]
+                user_count = self._run_cypher_count_query(
+                    f'MATCH (u:User) WHERE u.domain = "{domain_name}" RETURN count(u) AS count'
+                )
+                pw_old_count = self._run_cypher_count_query(
+                    f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
+                    "AND u.pwdlastset IS NOT NULL "
+                    'AND u.pwdlastset <> "0" '
+                    'AND u.pwdlastset <> "-1" '
+                    f'AND u.pwdlastset <= "{pw_cutoff}" '
+                    "RETURN count(u) AS count"
+                )
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
-                    # No results
                     logger.info(f"No users found for domain {domain['name']}")
-                    domain_users = {"nodes": {}}
+                    user_count = 0
+                    pw_old_count = 0
                 else:
                     raise
 
-            pw_cutoff = datetime.now().timestamp() - 90*86400
-            pw_old_count = 0
-            for node in domain_users["nodes"].values():
-                if "pwdlastset" not in node["properties"]:
-                    continue
-                last_set = node["properties"]["pwdlastset"]
-                if last_set in (0, -1):
-                    continue
-                if last_set <= pw_cutoff:
-                    pw_old_count += 1
-
             domain_out["users"] = {
-                "count": len(domain_users["nodes"]),
+                "count": user_count,
                 "with_old_pw": pw_old_count
             }
 
