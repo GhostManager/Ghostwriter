@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.2] - TBD
+
+### Changed
+
+* The BloodHound global server configuration now has an explicit flag to be set that allows it to be used as a fallback for projects
+  * Defaults to off so the configuration is more explicitly opt-in
+  * Previously, the fallback was implicit when you configured the global server
+* Adjusted permissions for triggering a global BloodHound data fetch
+  * Changed from any authenticated user to users with access to a project using the global configuration or privileged users
+* Changed some Cypher queries to use `count()` to avoid potential issues with very large environments
+* Pinned base images for containers to specific versions for reliability (e.g., `node:25` to `node:25.9.0`)
+
 ## [6.3.1] - 17 April 2026
 
 ### Added
