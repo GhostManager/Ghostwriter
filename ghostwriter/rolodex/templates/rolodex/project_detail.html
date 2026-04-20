@@ -1108,13 +1108,15 @@
               Using Project-Specific Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
             {% elif global_bloodhound_config.has_bloodhound_api %}
               Using Shared Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em><br/>
-              <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
-                This project is using the shared global BloodHound configuration and cached results. Refreshing data here updates the shared cache used by other projects that rely on the same fallback.
-              </div>
             {% else %}
               Unavailable
             {% endif %}
           </p>
+          {% if global_bloodhound_config.has_bloodhound_api and not project.has_bloodhound_api%}
+            <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
+              This project is using the shared global BloodHound configuration and cached results. Refreshing data here updates the shared cache used by other projects that rely on the same fallback.
+            </div>
+          {% endif %}
 
           <div class="btn-group-equal-height justify-content-center mb-3 row" role="group" aria-label="BloodHound buttons">
             <div class="col-md-4 col-sm-4 px-1 mb-2">
