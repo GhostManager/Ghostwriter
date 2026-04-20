@@ -187,6 +187,38 @@ class APIClient:
             "domains": domains,
         }
 
+    @staticmethod
+    def _escape_cypher_string(value: str) -> str:
+        """Escape a string value for safe interpolation into a cypher query."""
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
+    def _run_cypher_literal_query(self, query: str, alias: str) -> list[Any]:
+        """Execute a cypher query and return literal values for the requested alias."""
+        response = self._request(
+            "POST",
+            "/api/v2/graphs/cypher",
+            body=json.dumps({
+                "query": query,
+                "include_properties": False,
+            }).encode("utf-8"),
+        ).json()["data"]
+
+        literals = response.get("literals", [])
+        matching_values = [entry["value"] for entry in literals if entry.get("key") == alias]
+        if matching_values:
+            return matching_values
+        return [entry["value"] for entry in literals]
+
+    def _run_cypher_count_query(self, query: str) -> int:
+        """Execute a cypher count query and normalize the first returned value to an integer."""
+        values = self._run_cypher_literal_query(query, "count")
+        if not values:
+            return 0
+        try:
+            return int(values[0])
+        except (TypeError, ValueError):
+            return 0
+
     def _apply_exposures(self, domain: dict, domain_out: dict) -> None:
         """
         Applies BHE-specific exposures data from a raw API ``domain`` dict into ``domain_out`` in-place.
