@@ -2301,7 +2301,7 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
             try:
                 project_id = int(request.GET["project"])
             except ValueError:
-                return self.render_result(request, messages.constants.ERROR, "Project does not exist.")
+                return self.render_result(messages.constants.ERROR, "Project does not exist.")
             self.project = get_object_or_404(Project, pk=project_id)
             if self.project.has_bloodhound_api():
                 self.bh_api = self.project
