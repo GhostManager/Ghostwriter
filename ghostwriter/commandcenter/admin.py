@@ -192,6 +192,22 @@ admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
 
 class BloodhoundConfigurationAdmin(SingletonModelAdmin):
     change_form_template = "bloodhound_admin_change_form.html"
+    fieldsets = (
+        (
+            "Shared BloodHound Configuration",
+            {
+                "description": (
+                    "This configuration is shared across projects that do not have their own "
+                    "BloodHound API settings. Only enable it when that shared access pattern is desired."
+                ),
+                "fields": (
+                    "bloodhound_api_root_url",
+                    "bloodhound_api_key_id",
+                    "bloodhound_api_key_token",
+                ),
+            },
+        ),
+    )
 
 admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 
