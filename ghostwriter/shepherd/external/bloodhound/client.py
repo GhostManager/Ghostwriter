@@ -219,6 +219,33 @@ class APIClient:
         except (TypeError, ValueError):
             return 0
 
+    def _run_cypher_grouped_count_query(self, query: str, group_alias: str, count_alias: str = "count") -> dict[str, int]:
+        """Execute a grouped cypher query and return a mapping of group value to count."""
+        response = self._request(
+            "POST",
+            "/api/v2/graphs/cypher",
+            body=json.dumps({
+                "query": query,
+                "include_properties": False,
+            }).encode("utf-8"),
+        ).json()["data"]
+
+        grouped_counts: dict[str, int] = {}
+        current_group = None
+        for entry in response.get("literals", []):
+            key = entry.get("key")
+            value = entry.get("value")
+            if key == group_alias:
+                current_group = None if value is None else str(value)
+            elif key == count_alias and current_group is not None:
+                try:
+                    grouped_counts[current_group] = int(value)
+                except (TypeError, ValueError):
+                    grouped_counts[current_group] = 0
+                current_group = None
+
+        return grouped_counts
+
     def _apply_exposures(self, domain: dict, domain_out: dict) -> None:
         """
         Applies BHE-specific exposures data from a raw API ``domain`` dict into ``domain_out`` in-place.
@@ -485,22 +512,12 @@ class APIClient:
                     computer_count = self._run_cypher_count_query(
                         f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" RETURN count(n) AS count'
                     )
-                    operating_systems = {}
-                    operating_system_names = self._run_cypher_literal_query(
+                    operating_systems = self._run_cypher_grouped_count_query(
                         f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" '
                         "AND n.operatingsystem IS NOT NULL "
-                        "RETURN DISTINCT n.operatingsystem AS operating_system",
+                        "RETURN n.operatingsystem AS operating_system, count(n) AS count",
                         "operating_system",
                     )
-                    for operating_system in operating_system_names:
-                        if operating_system is None:
-                            continue
-                        escaped_os = self._escape_cypher_string(str(operating_system))
-                        operating_systems[str(operating_system)] = self._run_cypher_count_query(
-                            f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" '
-                            f'AND n.operatingsystem = "{escaped_os}" '
-                            "RETURN count(n) AS count"
-                        )
                 except APIException as err:
                     if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
                         logger.info(f"No computers found for domain {domain['name']}")
