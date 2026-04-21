@@ -1229,14 +1229,20 @@
         event.preventDefault();
         $(this).tab("show");
       });
+      $('a[data-toggle="tab"]').on("shown.bs.tab", function (event) {
+        const href = $(event.target).attr("href");
+        if (!href || !href.startsWith("#")) {
+          return;
+        }
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set("tab", href.substring(1));
+        window.history.replaceState({}, document.title, `${currentUrl.pathname}?${currentUrl.searchParams.toString()}${currentUrl.hash}`);
+      });
       if (activeTab) {
         const $tab = $(`a[data-toggle="tab"][href="#${activeTab}"]`);
         if ($tab.length) {
           $tab.tab("show");
         }
-        url.searchParams.delete("tab");
-        const nextSearch = url.searchParams.toString();
-        window.history.replaceState({}, document.title, `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`);
       }
 
       const projectExportSelector = $("#projectExportSelector");
