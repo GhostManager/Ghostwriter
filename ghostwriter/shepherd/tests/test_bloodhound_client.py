@@ -127,6 +127,15 @@ class BloodHoundClientTests(TestCase):
             1,
         )
 
+    def test_get_all_marks_empty_instances(self):
+        with patch.object(self.client, "get_enterprise_findings", return_value=[]), patch.object(
+            self.client, "get_community_domains", return_value=[]
+        ):
+            result = self.client.get_all()
+
+        self.assertTrue(result["empty"])
+        self.assertIn("no domains or findings yet", result["status_message"])
+
     def test_escape_cypher_string_escapes_quotes_and_backslashes(self):
         escaped = self.client._escape_cypher_string('EXAMPLE\\"LOCAL')
         self.assertEqual(escaped, 'EXAMPLE\\\\\\"LOCAL')
@@ -172,6 +181,30 @@ class BloodHoundClientTests(TestCase):
                     )
                 self.assertEqual(result, 0)
 
+    def test_get_data_quality_returns_defaults_when_api_has_no_stats_yet(self):
+        def fake_request(method, uri, body=None):
+            self.assertEqual(method, "GET")
+            self.assertEqual(uri, "/api/v2/ad-domains/domain-id/data-quality-stats?limit=1")
+            return MockResponse({"data": []})
+
+        with patch.object(self.client, "_request", side_effect=fake_request):
+            result = self.client.get_data_quality(
+                {"id": "domain-id", "name": "EXAMPLE.LOCAL", "type": "active-directory"}
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "groups": 0,
+                "sessions": 0,
+                "gpos": 0,
+                "acls": 0,
+                "relationships": 0,
+                "session_completeness": 0,
+                "local_group_completeness": 0,
+            },
+        )
+
     def test_count_users_with_old_passwords_uses_numeric_query_first(self):
         captured_queries = []
 
@@ -184,8 +217,8 @@ class BloodHoundClientTests(TestCase):
 
         self.assertEqual(result, 5)
         self.assertEqual(len(captured_queries), 1)
-        self.assertIn("u.pwdlastset <> 0", captured_queries[0])
-        self.assertIn("u.pwdlastset <> -1", captured_queries[0])
+        self.assertIn("u.enabled = true", captured_queries[0])
+        self.assertIn("NOT u.pwdlastset IN ['-1', '0']", captured_queries[0])
         self.assertIn("u.pwdlastset <= 12345", captured_queries[0])
         self.assertNotIn('"12345"', captured_queries[0])
 
