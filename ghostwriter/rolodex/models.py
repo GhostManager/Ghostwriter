@@ -257,7 +257,7 @@ class Project(models.Model):
         "Collaborative Notes",
         default="",
         blank=True,
-        null=False,
+        null=True,
     )
     tags = TaggableManager(blank=True)
 
@@ -267,6 +267,7 @@ class Project(models.Model):
         help_text="The URL of the BloodHound instance",
         default="",
         blank=True,
+        null=True,
         validators=[validate_endpoint],
     )
 
@@ -276,6 +277,7 @@ class Project(models.Model):
         help_text="The ID portion of a BloodHound API Key",
         default="",
         blank=True,
+        null=True,
     )
 
     bloodhound_api_key_token = models.CharField(
@@ -284,6 +286,7 @@ class Project(models.Model):
         help_text="The token portion of a BloodHound API Key",
         default="",
         blank=True,
+        null=True,
     )
 
     bloodhound_results = models.JSONField(
@@ -345,7 +348,11 @@ class Project(models.Model):
         return reverse("rolodex:project_detail", args=[str(self.id)])
 
     def has_bloodhound_api(self) -> bool:
-        return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
+        return all([
+            self.bloodhound_api_root_url,
+            self.bloodhound_api_key_id,
+            self.bloodhound_api_key_token,
+        ])
 
     def __str__(self):
         return f"{self.start_date} {self.client} {self.project_type} ({self.codename})"

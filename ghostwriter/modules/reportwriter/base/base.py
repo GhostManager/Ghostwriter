@@ -82,7 +82,9 @@ class ExportBase:
             self.evidences_by_id[evi["id"]] = evi
         return out
 
-    def create_lazy_template(self, location: str | None, text: str, context: dict, **kwargs) -> LazilyRenderedTemplate:
+    def create_lazy_template(
+        self, location: str | None, text: str | None, context: dict, **kwargs
+    ) -> LazilyRenderedTemplate:
         """
         Creates a `LazilyRenderedTemplate` that will `text` as a jinja template when needed.
 
@@ -91,7 +93,7 @@ class ExportBase:
         """
         return LazilyRenderedTemplate(
             ReportExportTemplateError.map_errors(
-                lambda: rich_text_template(self.jinja_env, text, **kwargs),
+                lambda: rich_text_template(self.jinja_env, text or "", **kwargs),
                 location,
             ),
             location,

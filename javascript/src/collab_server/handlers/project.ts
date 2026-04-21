@@ -25,7 +25,7 @@ const ProjectCollabNoteHandler = simpleModelHandler(
     (doc, res) => {
         const obj = res.project_by_pk;
         if (!obj) throw new Error("No object");
-        htmlToYjs(obj.collab_note, doc.get("collabNote", Y.XmlFragment));
+        htmlToYjs(obj.collab_note ?? "", doc.get("collabNote", Y.XmlFragment));
         return null;
     },
     (doc, id, _: null) => {

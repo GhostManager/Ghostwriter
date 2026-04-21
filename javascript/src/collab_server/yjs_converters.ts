@@ -38,13 +38,13 @@ function sanitizeAnchorHrefs(root: QueryableNode) {
  * @param html Source HTML to read
  * @param frag Empty XmlFragment to write to
  */
-export function htmlToYjs(html: string, frag: Y.XmlFragment) {
+export function htmlToYjs(html: string | null | undefined, frag: Y.XmlFragment) {
     // Partially copied from `@tiptap/html` `generateJSON`, but using the constant SCHEMA
     // and not converting to JSON just to read it again.
     const window = new Window();
     const parser = new window.DOMParser();
     try {
-        const fullHtml = `<!DOCTYPE html><html><body>${html}</body></html>`;
+        const fullHtml = `<!DOCTYPE html><html><body>${html ?? ""}</body></html>`;
         const doc = parser.parseFromString(fullHtml, "text/html");
         if (!doc) throw new Error("Could not parse HTML doc");
         sanitizeAnchorHrefs(doc.body);

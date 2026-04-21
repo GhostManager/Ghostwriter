@@ -1309,6 +1309,9 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
+        self.fields["bloodhound_api_root_url"].required = False
+        self.fields["bloodhound_api_key_id"].required = False
+        self.fields["bloodhound_api_key_token"].required = False
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -1434,6 +1437,27 @@ class ProjectForm(forms.ModelForm):
                     code="invalid_channel",
                 )
         return slack_channel
+
+    def clean(self):
+        cleaned_data = super().clean()
+        bloodhound_fields = {
+            "bloodhound_api_root_url": cleaned_data.get("bloodhound_api_root_url"),
+            "bloodhound_api_key_id": cleaned_data.get("bloodhound_api_key_id"),
+            "bloodhound_api_key_token": cleaned_data.get("bloodhound_api_key_token"),
+        }
+
+        if any(bloodhound_fields.values()) and not all(bloodhound_fields.values()):
+            for field_name, value in bloodhound_fields.items():
+                if not value:
+                    self.add_error(
+                        field_name,
+                        ValidationError(
+                            _("Complete all BloodHound configuration fields or leave them all blank"),
+                            code="incomplete",
+                        ),
+                    )
+
+        return cleaned_data
 
 
 class ProjectNoteForm(forms.ModelForm):
