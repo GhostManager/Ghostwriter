@@ -200,6 +200,11 @@
             </tbody>
         </table>
     {% endif %}
+{% elif res.empty %}
+  <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
+    <h4 style="margin-top: 0;" class="alert-heading">BloodHound Data Not Ready Yet</h4>
+      <p>The connection is configured and the fetch completed, but this BloodHound instance does not have any domains available yet. The server may still be ingesting or processing data.</p>
+  </div>
 {% else %}
   <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">
     <h4 style="margin-top: 0;" class="alert-heading">BloodHound Info Unavailable</h4>

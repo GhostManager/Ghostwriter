@@ -62,6 +62,12 @@ class BloodHoundConfiguration(SingletonModel):
     BloodHoundConfiguration represents a global BloodHound API integration that can be used to
     access the BloodHound API of the configured instance.
     """
+    allow_project_fallback = models.BooleanField(
+        default=False,
+        verbose_name="Allow Projects to Use Shared Configuration",
+        help_text="Allow projects without their own BloodHound settings to use this shared configuration and its cached results",
+    )
+
     bloodhound_api_root_url = models.CharField(
         max_length=255,
         verbose_name="BloodHound API URL",
@@ -95,6 +101,9 @@ class BloodHoundConfiguration(SingletonModel):
 
     def has_bloodhound_api(self) -> bool:
         return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
+
+    def allows_project_fallback(self) -> bool:
+        return self.allow_project_fallback and self.has_bloodhound_api()
 
     def __str__(self):
         return "BloodHound API Configuration"
