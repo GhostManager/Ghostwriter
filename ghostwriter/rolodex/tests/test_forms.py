@@ -570,6 +570,9 @@ class ProjectFormTests(TestCase):
         slack_channel=None,
         description=None,
         timezone=None,
+        bloodhound_api_root_url=None,
+        bloodhound_api_key_id=None,
+        bloodhound_api_key_token=None,
         **kwargs,
     ):
         return ProjectForm(
@@ -583,6 +586,9 @@ class ProjectFormTests(TestCase):
                 "slack_channel": slack_channel,
                 "description": description,
                 "timezone": timezone,
+                "bloodhound_api_root_url": bloodhound_api_root_url,
+                "bloodhound_api_key_id": bloodhound_api_key_id,
+                "bloodhound_api_key_token": bloodhound_api_key_token,
             },
         )
 
@@ -617,6 +623,26 @@ class ProjectFormTests(TestCase):
 
         form = self.form_data(**project)
         self.assertTrue(form.is_valid())
+
+    def test_blank_bloodhound_configuration_is_valid(self):
+        project = self.project_dict.copy()
+        project["bloodhound_api_root_url"] = ""
+        project["bloodhound_api_key_id"] = ""
+        project["bloodhound_api_key_token"] = ""
+
+        form = self.form_data(**project)
+        self.assertTrue(form.is_valid())
+
+    def test_partial_bloodhound_configuration_is_invalid(self):
+        project = self.project_dict.copy()
+        project["bloodhound_api_root_url"] = "https://bloodhound.example"
+        project["bloodhound_api_key_id"] = ""
+        project["bloodhound_api_key_token"] = ""
+
+        form = self.form_data(**project)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["bloodhound_api_key_id"].as_data()[0].code, "incomplete")
+        self.assertEqual(form.errors["bloodhound_api_key_token"].as_data()[0].code, "incomplete")
 
 
 class ProjectAssignmentFormSetTests(TestCase):
