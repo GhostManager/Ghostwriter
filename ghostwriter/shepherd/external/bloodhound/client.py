@@ -273,7 +273,7 @@ class APIClient:
             f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
             "AND u.enabled = true "
             "AND u.pwdlastset IS NOT NULL "
-            "AND NOT u.pwdlastset IN ['-1', '0'] "
+            "AND NOT u.pwdlastset IN [-1, 0] "
             f"AND u.pwdlastset <= {pw_cutoff} "
             "RETURN count(u) AS count"
         )

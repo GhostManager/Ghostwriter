@@ -3,7 +3,13 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from ghostwriter.shepherd.external.bloodhound.client import APIClient, Credentials, APIException, ErrorDetails, ErrorResponse
+from ghostwriter.shepherd.external.bloodhound.client import (
+    APIClient,
+    Credentials,
+    APIException,
+    ErrorDetails,
+    ErrorResponse
+)
 
 
 class MockResponse:
