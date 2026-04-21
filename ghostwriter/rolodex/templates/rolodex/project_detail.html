@@ -1120,7 +1120,7 @@
 
           <div class="btn-group-equal-height justify-content-center mb-3 row" role="group" aria-label="BloodHound buttons">
             <div class="col-md-4 col-sm-4 px-1 mb-2">
-              <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" class="h-100">
+              <form id="bh-test-form" action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" class="h-100">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-secondary w-100 btn-text-wrap h-100" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound">Test BloodHound Connectivity</button>
               </form>
@@ -1223,28 +1223,6 @@
     const $editTodoInout = $('.edit-todo-input')
 
     $(document).ready(function() {
-      const url = new URL(window.location.href);
-      const activeTab = url.searchParams.get("tab");
-      $('a[data-toggle="tab"]').on("click", function (event) {
-        event.preventDefault();
-        $(this).tab("show");
-      });
-      $('a[data-toggle="tab"]').on("shown.bs.tab", function (event) {
-        const href = $(event.target).attr("href");
-        if (!href || !href.startsWith("#")) {
-          return;
-        }
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set("tab", href.substring(1));
-        window.history.replaceState({}, document.title, `${currentUrl.pathname}?${currentUrl.searchParams.toString()}${currentUrl.hash}`);
-      });
-      if (activeTab) {
-        const $tab = $(`a[data-toggle="tab"][href="#${activeTab}"]`);
-        if ($tab.length) {
-          $tab.tab("show");
-        }
-      }
-
       const projectExportSelector = $("#projectExportSelector");
       const projectExportButton = $("#projectExportButton");
       projectExportButton.on("click", function() {
@@ -2054,30 +2032,47 @@
       prepareTodoList();
     });
 
-    {% comment %} BloodHound fetch {% endcomment %}
+    {% comment %} BloodHound actions {% endcomment %}
     $(document).ready(() => {
-      let bh_form = document.getElementById("bh-fetch-form");
-      if (!bh_form) {
-        return;
-      }
-      bh_form.addEventListener("submit", e => {
-        e.preventDefault();
+      const bindBloodHoundAsyncForm = (formId, inProgressTitle, inProgressMessage, successTitle, failureTitle) => {
+        const form = document.getElementById(formId);
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", e => {
+          e.preventDefault();
 
-        displayToastTop({type: "info", string: "Please wait. Fetching can take several minutes.", title: "Fetching BloodHound Info"});
-        fetch(bh_form.action, {
-          method: "POST",
-          body: new FormData(bh_form, e.submitter),
-          headers: {
-            "X-GW-Async": "True"
-          },
-        }).then(async res => {
-          const message = await res.text();
-          if(res.status === 200)
-            displayToastTop({type: "success", string: message, delay: 0, title: "Fetch Completed"});
-          else
-            displayToastTop({type: "error", string: message || "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
-        })
-      });
+          displayToastTop({type: "info", string: inProgressMessage, title: inProgressTitle});
+          fetch(form.action, {
+            method: "POST",
+            body: new FormData(form, e.submitter),
+            headers: {
+              "X-GW-Async": "True"
+            },
+          }).then(async res => {
+            const message = await res.text();
+            if(res.status === 200)
+              displayToastTop({type: "success", string: message, delay: 0, title: successTitle});
+            else
+              displayToastTop({type: "error", string: message || "Please contact your administrator or consult the Ghostwriter logs.", title: failureTitle});
+          })
+        });
+      };
+
+      bindBloodHoundAsyncForm(
+        "bh-test-form",
+        "Testing BloodHound Connectivity",
+        "Testing the configured BloodHound connection.",
+        "Connectivity Test Complete",
+        "Connectivity Test Failed",
+      );
+      bindBloodHoundAsyncForm(
+        "bh-fetch-form",
+        "Fetching BloodHound Info",
+        "Please wait. Fetching can take several minutes.",
+        "Fetch Completed",
+        "Fetch Failed",
+      );
     });
   </script>
 
