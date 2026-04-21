@@ -3,6 +3,7 @@
 # Standard Libraries
 import logging
 import os
+import re
 from datetime import datetime
 
 # 3rd Party Libraries
@@ -72,6 +73,19 @@ class Oplog(models.Model):
 
     def get_absolute_url(self):
         return reverse("oplog:oplog_entries", args=[str(self.id)])
+
+    def get_safe_export_name(self) -> str:
+        """
+        Return a filesystem-safe base name for exported files.
+
+        Oplog names are free-form and may contain path separators or traversal
+        segments. Export paths should always remain flat archive members.
+        """
+        export_name = os.path.basename((self.name or "").replace("\\", "/")).strip()
+        export_name = re.sub(r"[\x00-\x1f\x7f]", "_", export_name)
+        if export_name in {"", ".", ".."}:
+            return f"oplog-{self.pk}" if self.pk else "oplog-export"
+        return export_name
 
     @classmethod
     def user_can_create(cls, user, project: Project) -> bool:

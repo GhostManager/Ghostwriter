@@ -4,6 +4,7 @@ from django.test import SimpleTestCase, TestCase
 from ghostwriter.factories import ExtraFieldModelFactory, ExtraFieldSpecFactory, ReportFactory
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import rich_text_template
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.reporting.models import Report
@@ -49,6 +50,30 @@ class RichTextTemplatingTests(SimpleTestCase):
 
 
 class RichTextTemplatingExportTests(TestCase):
+    def test_create_lazy_template_normalizes_none_to_empty_rich_text(self):
+        class DummyExport(ExportBase):
+            @classmethod
+            def generate_lint_data(cls):
+                return {}
+
+            def map_rich_texts(self):
+                return {}
+
+            def run(self):
+                return None
+
+            @classmethod
+            def mime_type(cls) -> str:
+                return "text/plain"
+
+            @classmethod
+            def extension(cls) -> str:
+                return "txt"
+
+        lazy_template = DummyExport({}, is_raw=True).create_lazy_template("test rich text", None, {})
+
+        self.assertEqual(lazy_template.render_html(), "")
+
     def test_report_export_handles_report_extra_field_with_spaced_legacy_reference_and_caption_tags(self):
         report_extra_field = ExtraFieldModelFactory(
             model_internal_name=Report._meta.label,

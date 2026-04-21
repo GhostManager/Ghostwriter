@@ -138,6 +138,31 @@ class ClientContactFormSetTests(TestCase):
         self.assertTrue(form.is_valid())
         self.assertTrue(form.forms[0].cleaned_data["primary"])
 
+    def test_single_existing_contact_auto_sets_primary_on_save(self):
+        self.contact_1.primary = False
+        self.contact_1.save(update_fields=["primary"])
+        prefix = ClientContactFormSet().prefix
+        form = ClientContactFormSet(
+            data={
+                f"{prefix}-TOTAL_FORMS": 1,
+                f"{prefix}-INITIAL_FORMS": 1,
+                f"{prefix}-0-id": self.contact_1.pk,
+                f"{prefix}-0-name": self.contact_1.name,
+                f"{prefix}-0-email": self.contact_1.email,
+                f"{prefix}-0-job_title": self.contact_1.job_title,
+                f"{prefix}-0-phone": self.contact_1.phone,
+                f"{prefix}-0-description": self.contact_1.description,
+                f"{prefix}-0-timezone": self.contact_1.timezone,
+                f"{prefix}-0-primary": False,
+            },
+            instance=self.org,
+        )
+
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.contact_1.refresh_from_db()
+        self.assertTrue(self.contact_1.primary)
+
     def test_multiple_contacts_no_primary(self):
         contact_1 = self.contact_1.__dict__.copy()
         contact_2 = self.contact_2.__dict__.copy()
@@ -545,6 +570,9 @@ class ProjectFormTests(TestCase):
         slack_channel=None,
         description=None,
         timezone=None,
+        bloodhound_api_root_url=None,
+        bloodhound_api_key_id=None,
+        bloodhound_api_key_token=None,
         **kwargs,
     ):
         return ProjectForm(
@@ -558,6 +586,9 @@ class ProjectFormTests(TestCase):
                 "slack_channel": slack_channel,
                 "description": description,
                 "timezone": timezone,
+                "bloodhound_api_root_url": bloodhound_api_root_url,
+                "bloodhound_api_key_id": bloodhound_api_key_id,
+                "bloodhound_api_key_token": bloodhound_api_key_token,
             },
         )
 
@@ -593,6 +624,26 @@ class ProjectFormTests(TestCase):
         form = self.form_data(**project)
         self.assertTrue(form.is_valid())
 
+    def test_blank_bloodhound_configuration_is_valid(self):
+        project = self.project_dict.copy()
+        project["bloodhound_api_root_url"] = ""
+        project["bloodhound_api_key_id"] = ""
+        project["bloodhound_api_key_token"] = ""
+
+        form = self.form_data(**project)
+        self.assertTrue(form.is_valid())
+
+    def test_partial_bloodhound_configuration_is_invalid(self):
+        project = self.project_dict.copy()
+        project["bloodhound_api_root_url"] = "https://bloodhound.example"
+        project["bloodhound_api_key_id"] = ""
+        project["bloodhound_api_key_token"] = ""
+
+        form = self.form_data(**project)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["bloodhound_api_key_id"].as_data()[0].code, "incomplete")
+        self.assertEqual(form.errors["bloodhound_api_key_token"].as_data()[0].code, "incomplete")
+
 
 class ProjectAssignmentFormSetTests(TestCase):
     """Collection of tests for :form:`rolodex.ProjectAssignmentFormSet`."""
@@ -609,20 +660,38 @@ class ProjectAssignmentFormSetTests(TestCase):
     def form_data(self, data, **kwargs):
         return instantiate_formset(ProjectAssignmentFormSet, data=data, instance=self.project)
 
-    def test_valid_data(self):
-        to_be_deleted = self.to_be_deleted.__dict__
-        to_be_deleted["operator"] = None
-        to_be_deleted["DELETE"] = True
+    def assignment_form_data(self, assignment, **overrides):
+        data = {
+            "id": assignment.id,
+            "project": self.project.id,
+            "operator": assignment.operator_id,
+            "role": assignment.role_id,
+            "start_date": assignment.start_date,
+            "end_date": assignment.end_date,
+            "description": assignment.description,
+            "DELETE": False,
+        }
+        data.update(overrides)
+        return data
 
-        data = [self.assignment_1.__dict__, self.assignment_2.__dict__, to_be_deleted]
+    def test_valid_data(self):
+        to_be_deleted = self.assignment_form_data(
+            self.to_be_deleted,
+            operator=None,
+            DELETE=True,
+        )
+
+        data = [
+            self.assignment_form_data(self.assignment_1),
+            self.assignment_form_data(self.assignment_2),
+            to_be_deleted,
+        ]
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
 
     def test_duplicate_assignees(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-        assignment_1["operator"] = self.new_assignee
-        assignment_2["operator"] = self.new_assignee
+        assignment_1 = self.assignment_form_data(self.assignment_1, operator=self.new_assignee.id)
+        assignment_2 = self.assignment_form_data(self.assignment_2, operator=self.new_assignee.id)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -631,10 +700,11 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["operator"].as_data()[0].code, "duplicate")
 
     def test_invalid_start_date(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["start_date"] = self.project.start_date - timedelta(days=1)
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            start_date=self.project.start_date - timedelta(days=1),
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -643,10 +713,11 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["start_date"].as_data()[0].code, "invalid_date")
 
     def test_invalid_end_date(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["end_date"] = self.project.end_date + timedelta(days=1)
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            end_date=self.project.end_date + timedelta(days=1),
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -662,12 +733,13 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["end_date"].as_data()[0].code, "invalid_date")
 
     def test_incomplete_form(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["start_date"] = None
-        assignment_1["end_date"] = None
-        assignment_1["role"] = None
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            start_date=None,
+            end_date=None,
+            role=None,
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -678,13 +750,14 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["role"].as_data()[0].code, "incomplete")
 
     def test_blank_form(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["operator"] = None
-        assignment_1["start_date"] = None
-        assignment_1["end_date"] = None
-        assignment_1["role"] = None
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            operator=None,
+            start_date=None,
+            end_date=None,
+            role=None,
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -693,10 +766,8 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["description"].as_data()[0].code, "incomplete")
 
     def test_missing_operator(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["operator"] = None
+        assignment_1 = self.assignment_form_data(self.assignment_1, operator=None)
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -705,18 +776,18 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["operator"].as_data()[0].code, "incomplete")
 
     def test_overlapping_assignments(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["start_date"] = self.project.start_date
-        assignment_1["end_date"] = self.project.end_date - timedelta(days=1)
-        assignment_1["operator"] = self.new_assignee
-        assignment_1["operator_id"] = self.new_assignee.id
-
-        assignment_2["start_date"] = self.project.end_date - timedelta(days=2)
-        assignment_2["end_date"] = self.project.end_date
-        assignment_2["operator"] = self.new_assignee
-        assignment_2["operator_id"] = self.new_assignee.id
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            start_date=self.project.start_date,
+            end_date=self.project.end_date - timedelta(days=1),
+            operator=self.new_assignee.id,
+        )
+        assignment_2 = self.assignment_form_data(
+            self.assignment_2,
+            start_date=self.project.end_date - timedelta(days=2),
+            end_date=self.project.end_date,
+            operator=self.new_assignee.id,
+        )
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -1169,6 +1240,31 @@ class ProjectContactFormSetTests(TestCase):
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
         self.assertTrue(form.forms[0].cleaned_data["primary"])
+
+    def test_single_existing_contact_auto_sets_primary_on_save(self):
+        self.contact_1.primary = False
+        self.contact_1.save(update_fields=["primary"])
+        prefix = ProjectContactFormSet().prefix
+        form = ProjectContactFormSet(
+            data={
+                f"{prefix}-TOTAL_FORMS": 1,
+                f"{prefix}-INITIAL_FORMS": 1,
+                f"{prefix}-0-id": self.contact_1.pk,
+                f"{prefix}-0-name": self.contact_1.name,
+                f"{prefix}-0-email": self.contact_1.email,
+                f"{prefix}-0-job_title": self.contact_1.job_title,
+                f"{prefix}-0-phone": self.contact_1.phone,
+                f"{prefix}-0-description": self.contact_1.description,
+                f"{prefix}-0-timezone": self.contact_1.timezone,
+                f"{prefix}-0-primary": False,
+            },
+            instance=self.project,
+        )
+
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.contact_1.refresh_from_db()
+        self.assertTrue(self.contact_1.primary)
 
     def test_multiple_contacts_no_primary(self):
         contact_1 = self.contact_1.__dict__.copy()

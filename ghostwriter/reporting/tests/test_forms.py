@@ -377,8 +377,10 @@ class ReportTemplateFormTests(TestCase):
         doc_type_id=None,
         p_type=None,
         evidence_image_width=None,
-        user=None,
+        evidence_image_alignment=None,
         bloodhound_heading_offset=None,
+        contains_bloodhound_data=None,
+        user=None,
         **kwargs,
     ):
         return ReportTemplateForm(
@@ -392,7 +394,9 @@ class ReportTemplateFormTests(TestCase):
                 "doc_type": doc_type_id,
                 "p_type": p_type,
                 "evidence_image_width": evidence_image_width,
+                "evidence_image_alignment": evidence_image_alignment,
                 "bloodhound_heading_offset": bloodhound_heading_offset,
+                "contains_bloodhound_data": contains_bloodhound_data,
             },
             user=user,
             files={

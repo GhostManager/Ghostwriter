@@ -7,11 +7,13 @@ from datetime import date, timedelta
 import factory
 
 # Django Imports
+from django.contrib.auth.models import Permission
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import BloodHoundConfiguration
 from ghostwriter.factories import (
     AuxServerAddressFactory,
     ClientContactFactory,
@@ -700,6 +702,20 @@ class ClientListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 2)
 
+    def test_tags_are_scoped_to_visible_clients(self):
+        visible_client = ClientFactory(name="Visible Client")
+        hidden_client = ClientFactory(name="Hidden Client")
+        ClientInviteFactory(user=self.user, client=visible_client)
+        visible_client.tags.add("visible-tag")
+        hidden_client.tags.add("hidden-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-tag", tag_names)
+        self.assertNotIn("hidden-tag", tag_names)
+
 
 class ClientDetailViewTest(TestCase):
     @classmethod
@@ -807,6 +823,20 @@ class ProjectListViewTests(TestCase):
         response = self.client_mgr.get(f"{self.uri}?client=SpecterOps")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
+
+    def test_tags_are_scoped_to_visible_projects(self):
+        visible_project = ProjectFactory(codename="VISIBLE")
+        hidden_project = ProjectFactory(codename="HIDDEN")
+        ProjectInviteFactory(user=self.user, project=visible_project)
+        visible_project.tags.add("visible-project-tag")
+        hidden_project.tags.add("hidden-project-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-project-tag", tag_names)
+        self.assertNotIn("hidden-project-tag", tag_names)
 
         response = self.client_mgr.get(f"{self.uri}?client=pops")
         self.assertEqual(response.status_code, 200)
@@ -996,6 +1026,99 @@ class ProjectDetailViewTests(TestCase):
         self.assertLess(content.index("Amy Adams"), content.index("Beth Baker"))
         self.assertLess(content.index("Beth Baker"), content.index("Zed Zebra"))
 
+    def test_shared_global_bloodhound_copy_renders_for_project_viewers(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.allow_project_fallback = True
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Using Shared Global Configuration")
+        self.assertContains(response, "shared global BloodHound configuration and cached results")
+
+    def test_shared_global_bloodhound_tab_hidden_when_fallback_disabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = False
+        bloodhound_config.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Using Shared Global Configuration")
+        self.assertNotContains(response, "This project is using the shared global BloodHound configuration")
+
+
+class BloodhoundApiAccessTests(TestCase):
+    """Collection of tests for BloodHound API access boundaries."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
+        cls.fetch_uri = reverse("rolodex:ajax_bloodhound_fetch")
+        cls.test_uri = reverse("rolodex:ajax_bloodhound_test")
+        cls.admin_permission = Permission.objects.get(codename="change_bloodhoundconfiguration")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.project = ProjectFactory()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
+        self.user_mgr.user_permissions.add(self.admin_permission)
+
+    def test_global_fetch_requires_privileged_user(self):
+        response = self.client_auth.post(self.fetch_uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.fetch_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_global_connectivity_test_requires_privileged_user(self):
+        response = self.client_auth.post(self.test_uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.test_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_project_viewer_cannot_use_global_fallback_when_not_enabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = False
+        bloodhound_config.save()
+
+        response = self.client_auth.post(f"{self.fetch_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_auth.post(f"{self.test_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 403)
+
+    def test_project_viewer_can_use_global_fallback_when_explicitly_enabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = True
+        bloodhound_config.save()
+
+        response = self.client_auth.post(f"{self.fetch_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(f"{self.test_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 302)
+
 class ProjectInviteDeleteTests(TestCase):
     """Collection of tests for :view:`rolodex.ProjectInviteDelete`."""
 
@@ -1154,4 +1277,3 @@ class ClientLogoDownloadTests(TestCase):
         self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
         # CSP is only added for inline responses
         self.assertIsNone(response.get("Content-Security-Policy"))
-

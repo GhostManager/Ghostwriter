@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils.encoding import force_str
@@ -32,6 +32,11 @@ from ghostwriter.factories import (
     UserFactory,
 )
 from ghostwriter.oplog.models import OplogEntryRecording
+from ghostwriter.oplog.utils import (
+    CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
+    get_cast_decompressed_bytes,
+    get_cast_parse_input_bytes,
+)
 
 logging.disable(logging.CRITICAL)
 
@@ -668,6 +673,34 @@ class OplogExportViewTests(TestCase):
         rows = list(reader)
         self.assertEqual(len(rows), 5)
 
+    def test_csv_export_sanitizes_filename(self):
+        self.oplog.name = r"../reports\evil"
+        self.oplog.save()
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('filename="evil.csv"', response.get("Content-Disposition"))
+
+    def test_csv_export_does_not_duplicate_csv_extension(self):
+        self.oplog.name = r"../reports\evil.csv"
+        self.oplog.save()
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('filename="evil.csv"', response.get("Content-Disposition"))
+        self.assertNotIn('filename="evil.csv.csv"', response.get("Content-Disposition"))
+
+    def test_csv_export_escapes_quotes_in_content_disposition_filename(self):
+        self.oplog.name = r'../reports/evil"name'
+        self.oplog.save()
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(r'filename="evil\"name.csv"', response.get("Content-Disposition"))
+
     def test_export_rejects_invalid_include_values(self):
         """GET with an unsupported include value returns HTTP 400."""
         response = self.client_mgr.get(f"{self.uri}?include=recording")
@@ -702,6 +735,28 @@ class OplogExportViewTests(TestCase):
             manifest = json.loads(zf.read("manifest.json"))
             self.assertEqual(manifest["entries"][str(entry.id)]["recordings"], [expected_recording_name])
             self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], [])
+
+    def test_zip_export_sanitizes_csv_member_name(self):
+        self.oplog.name = r"..\nested/evil"
+        self.oplog.save()
+
+        response, zf = self._get_zip_export("recordings")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+
+            self.assertEqual(csv_name, "evil.csv")
+            self.assertNotIn("/", csv_name)
+            self.assertNotIn("\\", csv_name)
+            self.assertIn('filename="evil_attachments.zip"', response.get("Content-Disposition"))
+
+    def test_zip_export_does_not_duplicate_csv_member_extension(self):
+        self.oplog.name = r"..\nested/evil.csv"
+        self.oplog.save()
+
+        _, zf = self._get_zip_export("recordings")
+        with zf:
+            csv_name = self._assert_single_csv_file(zf)
+            self.assertEqual(csv_name, "evil.csv")
 
     def test_export_with_evidence(self):
         """GET with ?include=evidence returns a ZIP whose CSV has an evidence column."""
@@ -1245,6 +1300,36 @@ class OplogRecordingUploadViewTests(TestCase):
         self.assertEqual(data["result"], "success")
         self.assertIn("recording_url", data)
 
+    def test_invalid_cast_gz_rejected(self):
+        """Malformed .cast.gz files are rejected instead of crashing during parsing."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        bad_gz_file = SimpleUploadedFile(
+            "session.cast.gz",
+            b"\x1f\x8b\x08\x00truncated",
+            content_type="application/gzip",
+        )
+        response = self.client_auth.post(self.uri, {"recording_file": bad_gz_file})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["result"], "error")
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=128)
+    def test_gzip_bomb_like_cast_gz_rejected(self):
+        """Compressed recordings that expand beyond the playback safety limit are rejected."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        import gzip
+
+        gz_file = SimpleUploadedFile(
+            "session.cast.gz",
+            gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1)),
+            content_type="application/gzip",
+        )
+        response = self.client_auth.post(self.uri, {"recording_file": gz_file})
+
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["message"], CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE)
+
     def test_upload_success(self):
         """Test that a valid .cast file is accepted, saved, and tags the entry."""
         from ghostwriter.oplog.models import OplogEntryRecording
@@ -1334,6 +1419,22 @@ class OplogRecordingUploadViewTests(TestCase):
         data = response.json()
         self.assertEqual(data["result"], "success")
         self.assertIn("warning", data)
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=16)
+    def test_upload_large_file_rejected(self):
+        """Recordings larger than the configured file-size cap are rejected."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        large_file = SimpleUploadedFile(
+            "large.cast",
+            b"a" * (get_cast_parse_input_bytes() + 1),
+            content_type="application/octet-stream",
+        )
+
+        response = self.client_auth.post(self.uri, {"recording_file": large_file})
+
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["result"], "error")
 
 
 class OplogRecordingDeleteViewTests(TestCase):

@@ -22,5 +22,6 @@ cp -u -p "$TEMPLATE_PATH_PPTX" "$TEMPLATE_DIR"
 
 python /app/manage.py collectstatic --noinput
 python /app/manage.py migrate
+python /app/manage.py migrate_totp_device
 # /usr/local/bin/daphne -b 0.0.0.0 -p 8000 config.asgi:application
 uvicorn config.asgi:application --host 0.0.0.0 --port 8000

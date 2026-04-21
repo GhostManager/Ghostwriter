@@ -1,6 +1,7 @@
 """This contains all the views used by the API application."""
 
 # Standard Libraries
+import io
 import json
 import logging
 import os
@@ -42,7 +43,7 @@ from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence, OplogEntryRecording
-from ghostwriter.oplog.utils import extract_cast_text
+from ghostwriter.oplog.utils import extract_cast_text, validate_cast_gzip_upload
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -173,21 +174,51 @@ class HasuraActionView(HasuraView):
     required_inputs = []
     allow_large_input = False
 
+    def _get_max_upload_size(self) -> int:
+        return getattr(settings, "GHOSTWRITER_MAX_FILE_SIZE", 10 * 1024 * 1024)
+
+    def _get_max_large_input_body_size(self) -> int:
+        """
+        Return the maximum JSON request-body size for base64-wrapped uploads.
+
+        The configured file-size limit applies to decoded file bytes, but large-input
+        actions carry those bytes in base64 inside a JSON envelope. Allow headroom for
+        base64 expansion and surrounding metadata while still bounding request memory.
+        """
+        return self._get_max_upload_size() * 2
+
     def setup(self, request, *args, **kwargs):
+        self._content_too_large = False
         # Load JSON data from request body and look for the Hasura ``input`` key
         try:
             if self.allow_large_input:
-                data = json.load(request)
+                # Read at most max_upload_size+1 bytes so we can distinguish
+                # "fits" from "too large" without consuming unbounded memory.
+                # This protects against both absent and spoofed Content-Length.
+                max_bytes = self._get_max_large_input_body_size()
+                chunk = request.read(max_bytes + 1)
+                if len(chunk) > max_bytes:
+                    self._content_too_large = True
+                else:
+                    data = json.loads(chunk)
+                    self.data = data
+                    if "input" in data:
+                        self.input = data["input"]
             else:
                 data = json.loads(request.body)
-            self.data = data
-            if "input" in data:
-                self.input = data["input"]
+                self.data = data
+                if "input" in data:
+                    self.input = data["input"]
         except JSONDecodeError:
-            logger.exception("Failed to decode JSON data from supposed Hasura Action request: %s", request.body)
+            logger.exception("Failed to decode JSON data from supposed Hasura Action request")
         return super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
+        # Reject oversized payloads before any further processing
+        if self._content_too_large:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Request payload too large", "PayloadTooLarge"), status=413
+            )
         # For actions, only proceed if the requests checks out as a valid request from Hasura, and we have a JWT
         if utils.verify_graphql_request(request.headers):
             # Return 400 if no input was found but some input is required
@@ -584,7 +615,9 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
 
 class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
     """
-    Return a download URL or base64-encoded evidence file for authenticated users with proper permissions.
+    Return a download URL and base64-encoded evidence file for authenticated users with project view access.
+
+    Files larger than ``GHOSTWRITER_MAX_FILE_SIZE`` are rejected with 413.
 
     **Parameters**
 
@@ -604,15 +637,15 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
         except Evidence.DoesNotExist:
             return JsonResponse(
                 utils.generate_hasura_error_payload("Evidence not found", "EvidenceNotFound"),
-                status=HTTPStatus.NOT_FOUND
+                status=HTTPStatus.NOT_FOUND,
             )
 
         # Check if user has permission to view the evidence
         project = evidence.associated_report.project
         if not project.user_can_view(self.user_obj):
             return JsonResponse(
-            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
-            status=HTTPStatus.FORBIDDEN
+                utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+                status=HTTPStatus.FORBIDDEN,
             )
 
         # Get the configured hostname from GeneralConfiguration
@@ -626,30 +659,30 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
         evidence_path = reverse("reporting:evidence_download", kwargs={"pk": evidence.id})
         download_url = f"{base_url}{evidence_path}"
 
-        # Read and encode file content
         try:
+            if evidence.document.size > settings.GHOSTWRITER_MAX_FILE_SIZE:
+                return JsonResponse(
+                    utils.generate_hasura_error_payload(
+                        "File is too large to return inline; use the download URL instead",
+                        "FileTooLargeForInline",
+                    ),
+                    status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                )
             file_data = evidence.document.read()
-            encoded_data = b64encode(file_data).decode('utf-8')
+            encoded_data = b64encode(file_data).decode("utf-8")
         except FileNotFoundError:
             logger.error("Evidence file not found during read: %s", evidence.document.path)
             return JsonResponse(
                 utils.generate_hasura_error_payload("Evidence file not found on server", "EvidenceFileNotFound"),
-                status=HTTPStatus.NOT_FOUND
+                status=HTTPStatus.NOT_FOUND,
             )
         except (IOError, OSError) as e:
             logger.exception("Failed to read evidence file: %s", e)
             return JsonResponse(
                 utils.generate_hasura_error_payload("Failed to read evidence file", "FileReadError"),
-                status=HTTPStatus.INTERNAL_SERVER_ERROR
-            )
-        except Exception as e:
-            logger.exception("Unexpected error encoding evidence file: %s", e)
-            return JsonResponse(
-                utils.generate_hasura_error_payload("Failed to encode evidence file", "FileEncodeError"),
-                status=HTTPStatus.INTERNAL_SERVER_ERROR
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
 
-        # Return both download URL and base64 content
         return JsonResponse({
             "evidenceId": evidence.id,
             "filename": evidence.filename,
@@ -1010,6 +1043,20 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
 
         # Extract searchable text from the cast file before saving
         file_bytes = form.cleaned_data["file_base64"]
+        if len(file_bytes) > settings.GHOSTWRITER_MAX_FILE_SIZE:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Recording file is too large", "PayloadTooLarge"),
+                status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            )
+        if form.cleaned_data["filename"].lower().endswith(".cast.gz"):
+            error_message, error_status = validate_cast_gzip_upload(io.BytesIO(file_bytes))
+            if error_message:
+                status = HTTPStatus.REQUEST_ENTITY_TOO_LARGE if error_status == 413 else HTTPStatus.BAD_REQUEST
+                code = "PayloadTooLarge" if error_status == 413 else "Invalid"
+                return JsonResponse(
+                    utils.generate_hasura_error_payload(error_message, code),
+                    status=status,
+                )
         recording_text, text_warning = extract_cast_text(file_bytes)
 
         recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=self.user_obj)
@@ -1074,6 +1121,14 @@ class GraphqlDownloadRecording(JwtRequiredMixin, HasuraActionView):
         download_url = f"{base_url}{download_path}"
 
         try:
+            if recording.recording_file.size > settings.GHOSTWRITER_MAX_FILE_SIZE:
+                return JsonResponse(
+                    utils.generate_hasura_error_payload(
+                        "File is too large to return inline; use the download URL instead",
+                        "FileTooLargeForInline",
+                    ),
+                    status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                )
             file_data = recording.recording_file.read()
             encoded_data = b64encode(file_data).decode("utf-8")
         except FileNotFoundError:
@@ -1126,7 +1181,6 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
     """Endpoint for creating a user object with the ``createUser`` action."""
 
     def post(self, request, *args, **kwargs):
-        logger.info(self.input)
         if not utils.verify_user_is_privileged(self.user_obj):
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 

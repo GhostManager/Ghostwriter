@@ -62,6 +62,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
+      - GHOSTWRITER_MAX_FILE_SIZE=${GHOSTWRITER_MAX_FILE_SIZE:-10485760}
     healthcheck:
       test: curl --insecure --fail http://django:8000/status/simple/ || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
@@ -180,7 +181,7 @@ services:
       - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
     ports:
       - "8001:8000" # HTTP. Also reverse-proxied through nginx
-      - "9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
+      - "127.0.0.1:9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
 
   graphql_engine:
     build:

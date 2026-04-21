@@ -95,6 +95,46 @@ def mk_test_pptx(name, input, expected_output, add_suffix=True):
 class RichTextToPptxTests(SimpleTestCase):
     maxDiff = None
 
+    def test_safe_links_are_preserved(self):
+        ppt = pptx.Presentation()
+        slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])
+        shape = slide.shapes.placeholders[1]
+        shape.text_frame.clear()
+        HtmlToPptx.run('<p><a href="mailto:test@example.com">Email</a></p>', slide, shape)
+        HtmlToPptx.delete_extra_paragraph(shape)
+
+        out = BytesIO()
+        ppt.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("ppt/slides/slide1.xml") as file:
+                slide_xml = file.read().decode("utf-8")
+            with zip.open("ppt/slides/_rels/slide1.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Email", slide_xml)
+        self.assertIn("mailto:test@example.com", rels_xml)
+
+    def test_unsafe_links_are_removed(self):
+        ppt = pptx.Presentation()
+        slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])
+        shape = slide.shapes.placeholders[1]
+        shape.text_frame.clear()
+        HtmlToPptx.run('<p><a href="data:text/html,boom">Email</a></p>', slide, shape)
+        HtmlToPptx.delete_extra_paragraph(shape)
+
+        out = BytesIO()
+        ppt.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("ppt/slides/slide1.xml") as file:
+                slide_xml = file.read().decode("utf-8")
+            with zip.open("ppt/slides/_rels/slide1.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Email", slide_xml)
+        self.assertNotIn("data:text/html,boom", rels_xml)
+
     test_paragraphs = mk_test_pptx(
         "test_paragraphs",
         "<p>Hello World!</p><p>This is a test!</p>",

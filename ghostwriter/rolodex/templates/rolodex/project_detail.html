@@ -1098,24 +1098,29 @@
       </div>
 
       {% comment %} BloodHound Tab {% endcomment %}
-      {% if bhc_api %}
+      {% if bh_api %}
         <div id="bloodhound" class="tab-pane">
           <h4>BloodHound</h4>
           <hr/>
 
           <p>
             {% if project.has_bloodhound_api %}
-              Using Project Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
+              Using Project-Specific Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
             {% elif global_bloodhound_config.has_bloodhound_api %}
-              Using Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em>
+              Using Shared Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em><br/>
             {% else %}
               Unavailable
             {% endif %}
           </p>
+          {% if global_bloodhound_config.has_bloodhound_api and not project.has_bloodhound_api%}
+            <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
+              This project is using the shared global BloodHound configuration and cached results. Refreshing data here updates the shared cache used by other projects that rely on the same fallback.
+            </div>
+          {% endif %}
 
           <div class="btn-group-equal-height justify-content-center mb-3 row" role="group" aria-label="BloodHound buttons">
             <div class="col-md-4 col-sm-4 px-1 mb-2">
-              <form action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" class="h-100">
+              <form id="bh-test-form" action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" class="h-100">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-secondary w-100 btn-text-wrap h-100" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound">Test BloodHound Connectivity</button>
               </form>
@@ -1134,7 +1139,7 @@
             </div>
           </div>
 
-          {% include "snippets/bloodhound_info.html" with res=bhc_api.bloodhound_results only %}
+          {% include "snippets/bloodhound_info.html" with res=bh_api.bloodhound_results only %}
         </div>
       {% endif %}
 
@@ -2027,26 +2032,47 @@
       prepareTodoList();
     });
 
-    {% comment %} BloodHound fetch {% endcomment %}
+    {% comment %} BloodHound actions {% endcomment %}
     $(document).ready(() => {
-      let bh_form = document.getElementById("bh-fetch-form");
-      bh_form.addEventListener("submit", e => {
-        e.preventDefault();
+      const bindBloodHoundAsyncForm = (formId, inProgressTitle, inProgressMessage, successTitle, failureTitle) => {
+        const form = document.getElementById(formId);
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", e => {
+          e.preventDefault();
 
-        displayToastTop({type: "info", string: "Please wait. Fetching can take several minutes.", title: "Fetching BloodHound Info"});
-        fetch(bh_form.action, {
-          method: "POST",
-          body: new FormData(bh_form, e.submitter),
-          headers: {
-            "X-GW-Async": "True"
-          },
-        }).then(res => {
-          if(res.status === 200)
-            displayToastTop({type: "success", string: "Refresh the page to view updated results.", delay: 0, title: "Fetch Completed"});
-          else
-            displayToastTop({type: "error", string: "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
-        })
-      });
+          displayToastTop({type: "info", string: inProgressMessage, title: inProgressTitle});
+          fetch(form.action, {
+            method: "POST",
+            body: new FormData(form, e.submitter),
+            headers: {
+              "X-GW-Async": "True"
+            },
+          }).then(async res => {
+            const message = await res.text();
+            if(res.status === 200)
+              displayToastTop({type: "success", string: message, delay: 0, title: successTitle});
+            else
+              displayToastTop({type: "error", string: message || "Please contact your administrator or consult the Ghostwriter logs.", title: failureTitle});
+          })
+        });
+      };
+
+      bindBloodHoundAsyncForm(
+        "bh-test-form",
+        "Testing BloodHound Connectivity",
+        "Testing the configured BloodHound connection.",
+        "Connectivity Test Complete",
+        "Connectivity Test Failed",
+      );
+      bindBloodHoundAsyncForm(
+        "bh-fetch-form",
+        "Fetching BloodHound Info",
+        "Please wait. Fetching can take several minutes.",
+        "Fetch Completed",
+        "Fetch Failed",
+      );
     });
   </script>
 

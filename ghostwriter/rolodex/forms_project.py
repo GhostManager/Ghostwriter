@@ -28,7 +28,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ExtraFieldsField
-from ghostwriter.commandcenter.models import GeneralConfiguration
+from ghostwriter.commandcenter.models import BloodHoundConfiguration, GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import (
@@ -455,6 +455,7 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
         if len(active_forms) == 1 and not primary_set:
             active_forms[0].cleaned_data["primary"] = True
             active_forms[0].instance.primary = True
+            active_forms[0]._force_primary_save = True
         # Require a primary when multiple contacts exist
         elif len(active_forms) > 1 and not primary_set:
             active_forms[0].add_error(
@@ -468,6 +469,28 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
                 _("You must designate one contact as the primary point of contact. You may have marked the primary for deletion. If so, please mark a different contact as primary."),
                 code="required",
             )
+
+    def save(self, commit=True):
+        instances = super().save(commit=commit)
+        if commit:
+            for form in self.forms:
+                if (
+                    getattr(form, "_force_primary_save", False)
+                    and form.instance.pk
+                    and not form.has_changed()
+                    and form not in self.deleted_forms
+                ):
+                    form.instance.save(update_fields=["primary"])
+        else:
+            for form in self.forms:
+                if (
+                    getattr(form, "_force_primary_save", False)
+                    and form.instance.pk
+                    and form.instance not in instances
+                    and form not in self.deleted_forms
+                ):
+                    instances.append(form.instance)
+        return instances
 
 
 class ProjectAssignmentForm(forms.ModelForm):
@@ -1001,6 +1024,7 @@ class ProjectContactForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
+        self.bloodhound_config = BloodHoundConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Janine Melnitz"
@@ -1271,6 +1295,7 @@ class ProjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
+        self.bloodhound_config = BloodHoundConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
@@ -1284,6 +1309,9 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
+        self.fields["bloodhound_api_root_url"].required = False
+        self.fields["bloodhound_api_key_id"].required = False
+        self.fields["bloodhound_api_key_token"].required = False
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -1362,7 +1390,13 @@ class ProjectForm(forms.ModelForm):
                 ),
                 CustomTab(
                     "BloodHound Integration",
-                    HTML("<p>Overrides the global configuration (if any)</p>"),
+                    HTML(
+                        (
+                            "<p>Project-specific settings override the shared global BloodHound configuration.</p>"
+                            if self.bloodhound_config.allows_project_fallback()
+                            else "<p>Configure project-specific BloodHound settings here. Shared global fallback is currently disabled.</p>"
+                        )
+                    ),
                     "bloodhound_api_root_url",
                     "bloodhound_api_key_id",
                     "bloodhound_api_key_token",
@@ -1403,6 +1437,27 @@ class ProjectForm(forms.ModelForm):
                     code="invalid_channel",
                 )
         return slack_channel
+
+    def clean(self):
+        cleaned_data = super().clean()
+        bloodhound_fields = {
+            "bloodhound_api_root_url": cleaned_data.get("bloodhound_api_root_url"),
+            "bloodhound_api_key_id": cleaned_data.get("bloodhound_api_key_id"),
+            "bloodhound_api_key_token": cleaned_data.get("bloodhound_api_key_token"),
+        }
+
+        if any(bloodhound_fields.values()) and not all(bloodhound_fields.values()):
+            for field_name, value in bloodhound_fields.items():
+                if not value:
+                    self.add_error(
+                        field_name,
+                        ValidationError(
+                            _("Complete all BloodHound configuration fields or leave them all blank"),
+                            code="incomplete",
+                        ),
+                    )
+
+        return cleaned_data
 
 
 class ProjectNoteForm(forms.ModelForm):

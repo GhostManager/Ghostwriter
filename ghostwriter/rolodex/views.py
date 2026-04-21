@@ -34,7 +34,6 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.db.models import Exists, OuterRef
 
 # 3rd Party Libraries
-from taggit.models import Tag
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -51,6 +50,7 @@ from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.modules.shared import get_tags_for_queryset
 from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
@@ -1235,9 +1235,10 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset(), request=self.request)
+        queryset = self.get_queryset()
+        ctx["filter"] = ClientFilter(self.request.GET, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = Tag.objects.all()
+        ctx["tags"] = get_tags_for_queryset(queryset)
         return ctx
 
 
@@ -1666,14 +1667,15 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
         # Copy the GET request data
         data = self.request.GET.copy()
         # If user has not submitted their own filter, default to showing only active projects
         if len(data) == 0:
             data["complete"] = 0
-        ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset(), request=self.request)
+        ctx["filter"] = ProjectFilter(data, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = Tag.objects.all()
+        ctx["tags"] = get_tags_for_queryset(queryset)
         return ctx
 
 
@@ -1711,11 +1713,11 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["global_bloodhound_config"] = bhc
 
         if object.has_bloodhound_api():
-            ctx["bhc_api"] = object
-        elif bhc.has_bloodhound_api():
-            ctx["bhc_api"] = bhc
+            ctx["bh_api"] = object
+        elif bhc.allows_project_fallback():
+            ctx["bh_api"] = bhc
         else:
-            ctx["bhc_api"] = None
+            ctx["bh_api"] = None
 
         return ctx
 
@@ -2291,29 +2293,37 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
 
 class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
     project: Project | None
-    bh_api: Project | BloodHoundConfiguration
+    bh_api: Project | BloodHoundConfiguration | None
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
+        self.global_bh_api = BloodHoundConfiguration.get_solo()
         if "project" in request.GET:
             try:
                 project_id = int(request.GET["project"])
             except ValueError:
-                return self.render_result(request, messages.constants.ERROR, "Project does not exist.")
+                return self.render_result(messages.constants.ERROR, "Project does not exist.")
             self.project = get_object_or_404(Project, pk=project_id)
-            self.bh_api = self.project if self.project.has_bloodhound_api() else BloodHoundConfiguration.get_solo()
+            if self.project.has_bloodhound_api():
+                self.bh_api = self.project
+            elif self.global_bh_api.allows_project_fallback():
+                self.bh_api = self.global_bh_api
+            else:
+                self.bh_api = None
         else:
             self.project = None
-            self.bh_api = BloodHoundConfiguration.get_solo()
+            self.bh_api = self.global_bh_api
         return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
         if self.project is not None:
-            return self.project.user_can_view(self.request.user)
-        return self.request.user.is_authenticated
+            if self.project.has_bloodhound_api():
+                return self.project.user_can_view(self.request.user)
+            return self.project.user_can_view(self.request.user) and self.global_bh_api.allows_project_fallback()
+        return verify_user_is_privileged(self.request.user)
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        if not self.bh_api.has_bloodhound_api():
-            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured.")
+        if self.bh_api is None or not self.bh_api.has_bloodhound_api():
+            return self.render_result(messages.constants.ERROR, "BloodHound is not configured.")
         bh_url = urlparse(self.bh_api.bloodhound_api_root_url)
         bh_client = BhAPIClient(
             scheme=bh_url.scheme,
@@ -2371,4 +2381,4 @@ class BloodhoundApiFetchView(BloodhoundApiBaseView):
         self.bh_api.bloodhound_results = out
         self.bh_api.save()
 
-        return self.render_result(messages.SUCCESS, "Findings updated from BloodHound successfully.")
+        return self.render_result(messages.SUCCESS, out.get("status_message", "Findings updated from BloodHound successfully."))

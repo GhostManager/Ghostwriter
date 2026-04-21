@@ -69,6 +69,8 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                     "prefix_figure",
                     "label_figure",
                     "figure_caption_location",
+                    "evidence_image_alignment",
+                    "evidence_image_width",
                 )
             },
         ),
@@ -190,6 +192,23 @@ admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
 
 class BloodhoundConfigurationAdmin(SingletonModelAdmin):
     change_form_template = "bloodhound_admin_change_form.html"
+    fieldsets = (
+        (
+            "Shared BloodHound Configuration",
+            {
+                "description": (
+                    "This configuration can be used only from the admin page, or it can be "
+                    "explicitly shared with projects that do not have their own BloodHound API settings."
+                ),
+                "fields": (
+                    "allow_project_fallback",
+                    "bloodhound_api_root_url",
+                    "bloodhound_api_key_id",
+                    "bloodhound_api_key_token",
+                ),
+            },
+        ),
+    )
 
 admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 

@@ -15,7 +15,7 @@ import hmac
 import json
 import logging
 from datetime import datetime
-from typing import Counter, Literal, Optional, NamedTuple, Dict, Any, List
+from typing import Literal, Optional, NamedTuple, Dict, Any, List
 
 # Django Imports
 from django.conf import settings
@@ -182,10 +182,117 @@ class APIClient:
     def get_all(self) -> dict:
         findings = self.get_enterprise_findings()
         domains = self.get_community_domains()
+        is_empty = not findings and not domains
         return {
             "findings": findings,
             "domains": domains,
+            "empty": is_empty,
+            "status_message": (
+                "BloodHound fetch completed, but this instance has no domains or findings yet. It may still be processing data."
+                if is_empty
+                else "Findings updated from BloodHound successfully."
+            ),
         }
+
+    @staticmethod
+    def _escape_cypher_string(value: str) -> str:
+        """Escape a string value for safe interpolation into a cypher query."""
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
+    def _run_cypher_literal_query(self, query: str, alias: str) -> list[Any]:
+        """Execute a cypher query and return literal values for the requested alias."""
+        response = self._request(
+            "POST",
+            "/api/v2/graphs/cypher",
+            body=json.dumps({
+                "query": query,
+                "include_properties": False,
+            }).encode("utf-8"),
+        ).json()["data"]
+
+        literals = response.get("literals", [])
+        matching_values = [entry["value"] for entry in literals if entry.get("key") == alias]
+        if matching_values:
+            return matching_values
+        return [entry["value"] for entry in literals]
+
+    def _run_cypher_count_query(self, query: str) -> int:
+        """Execute a cypher count query and normalize the first returned value to an integer."""
+        values = self._run_cypher_literal_query(query, "count")
+        if not values:
+            return 0
+        try:
+            return int(values[0])
+        except (TypeError, ValueError):
+            return 0
+
+    def _run_cypher_grouped_count_query(self, query: str, group_alias: str, count_alias: str = "count") -> dict[str, int]:
+        """Execute a grouped cypher query and return a mapping of group value to count."""
+        response = self._request(
+            "POST",
+            "/api/v2/graphs/cypher",
+            body=json.dumps({
+                "query": query,
+                "include_properties": False,
+            }).encode("utf-8"),
+        ).json()["data"]
+
+        grouped_counts: dict[str, int] = {}
+        current_group = None
+        for entry in response.get("literals", []):
+            key = entry.get("key")
+            value = entry.get("value")
+            if key == group_alias:
+                current_group = None if value is None else str(value)
+            elif key == count_alias and current_group is not None:
+                try:
+                    grouped_counts[current_group] = int(value)
+                except (TypeError, ValueError):
+                    grouped_counts[current_group] = 0
+                current_group = None
+
+        return grouped_counts
+
+    @staticmethod
+    def _is_pwdlastset_text_type_error(err: "APIException") -> bool:
+        """Return True when BloodHound rejects numeric pwdlastset comparisons against a text property."""
+        if not isinstance(err.err_response, ErrorResponse):
+            return False
+        return any(
+            "text" in error.message.lower() and "integer" in error.message.lower()
+            for error in err.err_response.errors
+        )
+
+    def _count_users_with_old_passwords(self, domain_name: str, pw_cutoff: int) -> int:
+        """
+        Count users with old passwords, preferring numeric comparisons and falling back for text-backed schemas.
+
+        The `pwdlastset` property is numeric in Active Directory and BHCE, but we must use strings for BHE.
+        """
+        numeric_query = (
+            f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
+            "AND u.enabled = true "
+            "AND u.pwdlastset IS NOT NULL "
+            "AND NOT u.pwdlastset IN [-1, 0] "
+            f"AND u.pwdlastset <= {pw_cutoff} "
+            "RETURN count(u) AS count"
+        )
+        try:
+            return self._run_cypher_count_query(numeric_query)
+        except APIException as err:
+            logger.warning(f"Numeric pwdlastset query failed for domain {domain_name}, attempting text-based fallback. Error: {err}")
+            if not self._is_pwdlastset_text_type_error(err):
+                raise
+
+        string_query = (
+            f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
+            "AND u.enabled = true "
+            "AND u.pwdlastset IS NOT NULL "
+            'AND NOT u.pwdlastset IN ["-1", "0"] '
+            f'AND u.pwdlastset <= "{pw_cutoff}" '
+            "RETURN count(u) AS count"
+        )
+        return self._run_cypher_count_query(string_query)
 
     def _apply_exposures(self, domain: dict, domain_out: dict) -> None:
         """
@@ -411,7 +518,24 @@ class APIClient:
         response = self._request("GET", "/api/v2/{idp_subdir}/{domain_id}/data-quality-stats?limit=1"
                                  .format(domain_id = domain["id"],
                                          idp_subdir = "ad-domains" if domain["type"] == "active-directory" else "azure-tenants"))
-        payload = response.json()['data'][0]
+        payload_list = response.json()["data"]
+        # If someone attempts to fetch data at just the right moment during initial ingestion, the domain may exist in the list of available domains
+        # but not have any data quality stats yet, so we return default values in this case to avoid errors
+        if not payload_list:
+            logger.info("No data quality stats available yet for domain %s", domain["name"])
+            if domain["type"] == "active-directory":
+                return {
+                    "groups": 0,
+                    "sessions": 0,
+                    "gpos": 0,
+                    "acls": 0,
+                    "relationships": 0,
+                    "session_completeness": 0,
+                    "local_group_completeness": 0,
+                }
+            return {}
+
+        payload = payload_list[0]
 
         if domain["type"] == "active-directory":
             payload["session_completeness"] *= 100
@@ -425,8 +549,10 @@ class APIClient:
         """
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
+        pw_cutoff = int(datetime.now().timestamp() - 90 * 86400)
         for domain in available_domains:
             logger.debug(f"Processing domain {domain['name']}")
+            domain_name = self._escape_cypher_string(domain["name"])
             # A domain lookup may 404 if the domain is an Azure tenant without AD data collected
             try:
                 domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}?counts=false").json()["data"]
@@ -448,25 +574,25 @@ class APIClient:
                 } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts?skip=0&limit=128").json()["data"]]
 
                 try:
-                    domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                        "query": 'MATCH (n:Computer) WHERE n.domain = "{}" RETURN n'.format(domain['name']),
-                        "include_properties": True,
-                    }).encode("utf-8")).json()["data"]
+                    computer_count = self._run_cypher_count_query(
+                        f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" RETURN count(n) AS count'
+                    )
+                    operating_systems = self._run_cypher_grouped_count_query(
+                        f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" '
+                        "AND n.operatingsystem IS NOT NULL "
+                        "RETURN n.operatingsystem AS operating_system, count(n) AS count",
+                        "operating_system",
+                    )
                 except APIException as err:
                     if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
-                        # No results
                         logger.info(f"No computers found for domain {domain['name']}")
-                        domain_computers = {"nodes": {}}
+                        computer_count = 0
+                        operating_systems = {}
                     else:
                         raise
-                domain_oses = Counter(
-                    value["properties"]["operatingsystem"]
-                    for value in domain_computers["nodes"].values()
-                    if "properties" in value and "operatingsystem" in value["properties"]
-                )
                 domain_out["computers"] = {
-                    "count": len(domain_computers["nodes"]),
-                    "operating_systems": domain_oses,
+                    "count": computer_count,
+                    "operating_systems": operating_systems,
                 }
 
             except APIException as err:
@@ -474,31 +600,20 @@ class APIClient:
                 continue
 
             try:
-                domain_users = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                    "query": 'MATCH (u:User) WHERE u.domain = "{}" RETURN u'.format(domain['name']),
-                    "include_properties": True,
-                }).encode("utf-8")).json()["data"]
+                user_count = self._run_cypher_count_query(
+                    f'MATCH (u:User) WHERE u.domain = "{domain_name}" RETURN count(u) AS count'
+                )
+                pw_old_count = self._count_users_with_old_passwords(domain_name, pw_cutoff)
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
-                    # No results
                     logger.info(f"No users found for domain {domain['name']}")
-                    domain_users = {"nodes": {}}
+                    user_count = 0
+                    pw_old_count = 0
                 else:
                     raise
 
-            pw_cutoff = datetime.now().timestamp() - 90*86400
-            pw_old_count = 0
-            for node in domain_users["nodes"].values():
-                if "pwdlastset" not in node["properties"]:
-                    continue
-                last_set = node["properties"]["pwdlastset"]
-                if last_set in (0, -1):
-                    continue
-                if last_set <= pw_cutoff:
-                    pw_old_count += 1
-
             domain_out["users"] = {
-                "count": len(domain_users["nodes"]),
+                "count": user_count,
                 "with_old_pw": pw_old_count
             }
 

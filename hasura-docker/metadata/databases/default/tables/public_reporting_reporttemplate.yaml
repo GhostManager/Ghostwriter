@@ -3,23 +3,38 @@ table:
   schema: public
 configuration:
   column_config:
+    bloodhound_heading_offset:
+      custom_name: bloodhoundHeadingOffset
     client_id:
       custom_name: clientId
+    contains_bloodhound_data:
+      custom_name: containsBloodhoundData
     doc_type_id:
       custom_name: docTypeId
+    evidence_image_alignment:
+      custom_name: evidenceImageAlignment
+    evidence_image_width:
+      custom_name: evidenceImageWidth
     last_update:
       custom_name: lastUpdate
     lint_result:
       custom_name: lintResult
+    p_style:
+      custom_name: pStyle
     upload_date:
       custom_name: uploadDate
     uploaded_by_id:
       custom_name: uploadedById
   custom_column_names:
+    bloodhound_heading_offset: bloodhoundHeadingOffset
     client_id: clientId
+    contains_bloodhound_data: containsBloodhoundData
     doc_type_id: docTypeId
+    evidence_image_alignment: evidenceImageAlignment
+    evidence_image_width: evidenceImageWidth
     last_update: lastUpdate
     lint_result: lintResult
+    p_style: pStyle
     upload_date: uploadDate
     uploaded_by_id: uploadedById
   custom_name: template

@@ -10,7 +10,7 @@ from http import HTTPStatus
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -51,6 +51,7 @@ from ghostwriter.factories import (
     StaticServerFactory,
     UserFactory,
 )
+from ghostwriter.oplog.utils import CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE, get_cast_decompressed_bytes
 from ghostwriter.reporting.models import Evidence
 
 logging.disable(logging.CRITICAL)
@@ -1281,6 +1282,48 @@ class GraphqlUploadEvidenceViewTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertNotEqual(response.status_code, 201, response.content)
+
+    def test_upload_evidence_oversized_payload_rejected(self):
+        """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
+        _, token = utils.generate_jwt(self.user)
+        # Build a body one byte over the transport envelope cap for large-input uploads
+        oversized_body = b"x" * ((settings.GHOSTWRITER_MAX_FILE_SIZE * 2) + 1)
+        response = self.client.post(
+            self.uri,
+            data=oversized_body,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
+
+    def test_upload_evidence_accepts_valid_file_when_encoded_body_exceeds_file_limit(self):
+        """Base64+JSON overhead should not cause a valid sub-limit file upload to be rejected."""
+        _, token = utils.generate_jwt(self.user)
+        file_bytes = b"x" * 90
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(file_bytes).decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+            "report": str(self.report.pk),
+        }
+        request_body = json.dumps({"input": data}).encode("utf-8")
+        max_file_size = (len(file_bytes) + len(request_body)) // 2
+
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=max_file_size):
+            self.assertGreater(len(request_body), settings.GHOSTWRITER_MAX_FILE_SIZE)
+            self.assertLessEqual(len(file_bytes), settings.GHOSTWRITER_MAX_FILE_SIZE)
+
+            response = self.client.post(
+                self.uri,
+                data=request_body,
+                content_type="application/json",
+                **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            )
+        self.assertEqual(response.status_code, 201, response.content)
 
 
 class GraphqlGenerateCodenameActionTests(TestCase):
@@ -3050,6 +3093,28 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         }
         self.assertJSONEqual(force_str(response.content), result)
 
+    def test_download_evidence_oversized_file_rejected(self):
+        """Test that evidence files exceeding GHOSTWRITER_MAX_FILE_SIZE are rejected with 413."""
+        from django.test import override_settings
+
+        evidence = EvidenceOnFindingFactory(finding=self.finding)
+        evidence.document.save("oversize_evidence.txt", ContentFile(b"some content"), save=True)
+
+        data = {"input": {"evidenceId": evidence.id}}
+
+        # Set the limit to 1 byte so any real file exceeds it
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=1):
+            response = self.client.post(
+                self.uri,
+                json.dumps(data),
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+                HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+            )
+
+        self.assertEqual(response.status_code, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+        self.assertEqual(response.json()["extensions"]["code"], "FileTooLargeForInline")
+
     def test_download_evidence_with_forwarded_ip(self):
         """Test that request with forwarded IP header is handled correctly."""
         test_content = b"Forwarded IP test content"
@@ -3363,6 +3428,34 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         response = self._post(data, self.user_token)
         self.assertEqual(response.status_code, 201)
 
+    def test_upload_recording_invalid_cast_gz_rejected(self):
+        """Malformed .cast.gz files are rejected instead of crashing during parsing."""
+        from base64 import b64encode
+
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": b64encode(b"\x1f\x8b\x08\x00truncated").decode("utf-8"),
+            "filename": "session.cast.gz",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["extensions"]["code"], "Invalid")
+
+    @override_settings(GHOSTWRITER_MAX_FILE_SIZE=128)
+    def test_upload_recording_gzip_bomb_like_cast_gz_rejected(self):
+        """Compressed recordings that expand beyond the playback safety limit are rejected."""
+        import gzip
+        from base64 import b64encode
+
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": b64encode(gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1))).decode("utf-8"),
+            "filename": "session.cast.gz",
+        }
+        response = self._post(data, self.user_token)
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["message"], CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE)
+
     def test_upload_recording_invalid_base64(self):
         """Test that invalid base64 content is rejected."""
         data = {
@@ -3372,6 +3465,46 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         }
         response = self._post(data, self.user_token)
         self.assertEqual(response.status_code, 400)
+
+    def test_upload_recording_oversized_payload_rejected(self):
+        """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
+        oversized_body = b"x" * ((settings.GHOSTWRITER_MAX_FILE_SIZE * 2) + 1)
+        response = self.client.post(
+            self.uri,
+            oversized_body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
+
+    def test_upload_recording_accepts_valid_file_when_encoded_body_exceeds_file_limit(self):
+        """Base64+JSON overhead should not cause a valid sub-limit recording upload to be rejected."""
+        cast_bytes = (
+            b'{"version": 2, "width": 80, "height": 24}\n'
+            + b'[0.5, "o", "' + (b"x" * 30) + b'"]\n'
+        )
+        data = {
+            "oplogEntryId": self.oplog_entry.id,
+            "file_base64": base64.b64encode(cast_bytes).decode("utf-8"),
+            "filename": "session.cast",
+        }
+        request_body = json.dumps({"input": data}).encode("utf-8")
+        max_file_size = (len(cast_bytes) + len(request_body)) // 2
+
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=max_file_size):
+            self.assertGreater(len(request_body), settings.GHOSTWRITER_MAX_FILE_SIZE)
+            self.assertLessEqual(len(cast_bytes), settings.GHOSTWRITER_MAX_FILE_SIZE)
+
+            response = self.client.post(
+                self.uri,
+                request_body,
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
+                HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+            )
+        self.assertEqual(response.status_code, 201, response.content)
 
     def test_upload_recording_no_secret(self):
         """Test that request without action secret is rejected."""
@@ -3588,3 +3721,14 @@ class GraphqlDownloadRecordingTests(TestCase):
             HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
         )
         self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+
+    def test_download_recording_oversized_file_rejected(self):
+        """Test that recording files exceeding GHOSTWRITER_MAX_FILE_SIZE are rejected with 413."""
+        from django.test import override_settings
+
+        # Set the limit to 1 byte so any real file exceeds it
+        with override_settings(GHOSTWRITER_MAX_FILE_SIZE=1):
+            response = self._post({"oplogEntryId": self.oplog_entry.id}, self.user_token)
+
+        self.assertEqual(response.status_code, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+        self.assertEqual(response.json()["extensions"]["code"], "FileTooLargeForInline")

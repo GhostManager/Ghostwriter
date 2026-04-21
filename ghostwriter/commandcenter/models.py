@@ -11,14 +11,15 @@ from django.db.models import F, Max, Q
 from django.db.transaction import atomic
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, URLValidator
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
+from ghostwriter.reporting.models import EvidenceImageAlignment
 from ghostwriter.singleton.models import SingletonModel
 
 def sanitize(sensitive_thing):
@@ -61,6 +62,12 @@ class BloodHoundConfiguration(SingletonModel):
     BloodHoundConfiguration represents a global BloodHound API integration that can be used to
     access the BloodHound API of the configured instance.
     """
+    allow_project_fallback = models.BooleanField(
+        default=False,
+        verbose_name="Allow Projects to Use Shared Configuration",
+        help_text="Allow projects without their own BloodHound settings to use this shared configuration and its cached results",
+    )
+
     bloodhound_api_root_url = models.CharField(
         max_length=255,
         verbose_name="BloodHound API URL",
@@ -94,6 +101,9 @@ class BloodHoundConfiguration(SingletonModel):
 
     def has_bloodhound_api(self) -> bool:
         return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
+
+    def allows_project_fallback(self) -> bool:
+        return self.allow_project_fallback and self.has_bloodhound_api()
 
     def __str__(self):
         return "BloodHound API Configuration"
@@ -185,6 +195,21 @@ class ReportConfiguration(SingletonModel):
         choices=[("top", "Top"), ("bottom", "Bottom")],
         default="bottom",
         help_text="Where to place figure captions relative to the figure",
+    )
+    evidence_image_alignment = models.CharField(
+        "Default Image Evidence Alignment",
+        max_length=16,
+        choices=EvidenceImageAlignment.choices,
+        default=EvidenceImageAlignment.CENTER,
+        help_text="Default alignment for inserted image evidence in Word reports.",
+    )
+    evidence_image_width = models.FloatField(
+        "Default Evidence Image Width",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0)],
+        help_text='Default width for inserted image evidence in Word reports. If left blank, 6.5" is used.',
     )
     prefix_table = models.CharField(
         "Character Before Table Titles",
@@ -551,11 +576,12 @@ class BannerConfiguration(SingletonModel):
         help_text="Message to display in the banner",
         blank=True,
     )
-    banner_link = models.CharField(
+    banner_link = models.URLField(
         max_length=255,
         default="",
         help_text="URL to link the banner to (leave blank for no link)",
         blank=True,
+        validators=[URLValidator(schemes=["http", "https"])],
     )
     public_banner = models.BooleanField(
         default=False,

@@ -2467,6 +2467,14 @@ th.icon {
   padding: 0;
 }
 
+.align-icon:before {
+  content: '\f036';
+}
+
+.width-icon:before {
+  content: '\f035';
+}
+
 .custom-field-icon:before {
   content: '\f0d0';
 }
@@ -3499,6 +3507,11 @@ ol {
   background-color: var(--blocked-color);
 }
 
+.alert-info {
+  color: var(--secondary-color-med);
+  background-color: var(--secondary-color-light);
+  border-color: var(--secondary-color-med);
+}
 
 /* ---------------------------------------------------
     MEDIAQUERIES

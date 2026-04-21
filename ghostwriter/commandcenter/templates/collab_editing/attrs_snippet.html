@@ -1,5 +1,6 @@
 {% load static %}
 
+<meta name="csrf-token" content="{{ csrf_token }}">
 <script type="text/plain" id="yjs-url">/ws-collab</script>
 <script type="text/plain" id="yjs-object-id">{{collab_model_id}}</script>
 <script type="text/plain" id="yjs-username">{{collab_user.get_username}}</script>
