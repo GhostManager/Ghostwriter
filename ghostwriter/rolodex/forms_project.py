@@ -1309,6 +1309,9 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
+        self.fields["bloodhound_api_root_url"].required = False
+        self.fields["bloodhound_api_key_id"].required = False
+        self.fields["bloodhound_api_key_token"].required = False
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
