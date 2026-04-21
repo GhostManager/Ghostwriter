@@ -182,9 +182,16 @@ class APIClient:
     def get_all(self) -> dict:
         findings = self.get_enterprise_findings()
         domains = self.get_community_domains()
+        is_empty = not findings and not domains
         return {
             "findings": findings,
             "domains": domains,
+            "empty": is_empty,
+            "status_message": (
+                "BloodHound fetch completed, but this instance has no domains or findings yet. It may still be processing data."
+                if is_empty
+                else "Findings updated from BloodHound successfully."
+            ),
         }
 
     @staticmethod
@@ -511,7 +518,24 @@ class APIClient:
         response = self._request("GET", "/api/v2/{idp_subdir}/{domain_id}/data-quality-stats?limit=1"
                                  .format(domain_id = domain["id"],
                                          idp_subdir = "ad-domains" if domain["type"] == "active-directory" else "azure-tenants"))
-        payload = response.json()['data'][0]
+        payload_list = response.json()["data"]
+        # If someone attempts to fetch data at just the right moment during initial ingestion, the domain may exist in the list of available domains
+        # but not have any data quality stats yet, so we return default values in this case to avoid errors
+        if not payload_list:
+            logger.info("No data quality stats available yet for domain %s", domain["name"])
+            if domain["type"] == "active-directory":
+                return {
+                    "groups": 0,
+                    "sessions": 0,
+                    "gpos": 0,
+                    "acls": 0,
+                    "relationships": 0,
+                    "session_completeness": 0,
+                    "local_group_completeness": 0,
+                }
+            return {}
+
+        payload = payload_list[0]
 
         if domain["type"] == "active-directory":
             payload["session_completeness"] *= 100
