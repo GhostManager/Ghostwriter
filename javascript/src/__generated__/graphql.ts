@@ -15596,6 +15596,8 @@ export type Mutation_RootUploadReportTemplateArgs = {
   client?: InputMaybe<Scalars['Int']['input']>;
   description: Scalars['String']['input'];
   doc_type: Scalars['Int']['input'];
+  evidence_image_alignment?: InputMaybe<Scalars['String']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['Float']['input']>;
   file_base64: Scalars['String']['input'];
   filename: Scalars['String']['input'];
   filename_override?: InputMaybe<Scalars['String']['input']>;
@@ -23902,6 +23904,8 @@ export type ReportConfiguration = {
   docxTemplate?: Maybe<Template>;
   docxTemplateId?: Maybe<Scalars['bigint']['output']>;
   enableBorders: Scalars['Boolean']['output'];
+  evidence_image_alignment: Scalars['String']['output'];
+  evidence_image_width?: Maybe<Scalars['float8']['output']>;
   figure_caption_location: Scalars['String']['output'];
   id: Scalars['bigint']['output'];
   labelFigure: Scalars['String']['output'];
@@ -23928,9 +23932,24 @@ export type ReportConfiguration_Aggregate = {
 };
 
 export type ReportConfiguration_Aggregate_Bool_Exp = {
+  avg?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Avg>;
   bool_and?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Bool_And>;
   bool_or?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Bool_Or>;
+  corr?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Corr>;
   count?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Count>;
+  covar_samp?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Covar_Samp>;
+  max?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Max>;
+  min?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Min>;
+  stddev_samp?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Stddev_Samp>;
+  sum?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Sum>;
+  var_samp?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp_Var_Samp>;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Avg = {
+  arguments: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Avg_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
 };
 
 export type ReportConfiguration_Aggregate_Bool_Exp_Bool_And = {
@@ -23947,11 +23966,70 @@ export type ReportConfiguration_Aggregate_Bool_Exp_Bool_Or = {
   predicate: Boolean_Comparison_Exp;
 };
 
+export type ReportConfiguration_Aggregate_Bool_Exp_Corr = {
+  arguments: ReportConfiguration_Aggregate_Bool_Exp_Corr_Arguments;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Corr_Arguments = {
+  X: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Corr_Arguments_Columns;
+  Y: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Corr_Arguments_Columns;
+};
+
 export type ReportConfiguration_Aggregate_Bool_Exp_Count = {
   arguments?: InputMaybe<Array<ReportConfiguration_Select_Column>>;
   distinct?: InputMaybe<Scalars['Boolean']['input']>;
   filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
   predicate: Int_Comparison_Exp;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Covar_Samp = {
+  arguments: ReportConfiguration_Aggregate_Bool_Exp_Covar_Samp_Arguments;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Covar_Samp_Arguments = {
+  X: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Covar_Samp_Arguments_Columns;
+  Y: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Covar_Samp_Arguments_Columns;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Max = {
+  arguments: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Max_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Min = {
+  arguments: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Min_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Stddev_Samp = {
+  arguments: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Stddev_Samp_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Sum = {
+  arguments: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Sum_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
+};
+
+export type ReportConfiguration_Aggregate_Bool_Exp_Var_Samp = {
+  arguments: ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Var_Samp_Arguments_Columns;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ReportConfiguration_Bool_Exp>;
+  predicate: Float8_Comparison_Exp;
 };
 
 /** aggregate fields of "commandcenter_reportconfiguration" */
@@ -24004,6 +24082,7 @@ export type ReportConfiguration_Avg_Fields = {
   __typename?: 'reportConfiguration_avg_fields';
   borderWeight?: Maybe<Scalars['Float']['output']>;
   docxTemplateId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   pptxTemplateId?: Maybe<Scalars['Float']['output']>;
   target_delivery_date?: Maybe<Scalars['Float']['output']>;
@@ -24013,6 +24092,7 @@ export type ReportConfiguration_Avg_Fields = {
 export type ReportConfiguration_Avg_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -24029,6 +24109,8 @@ export type ReportConfiguration_Bool_Exp = {
   docxTemplate?: InputMaybe<Template_Bool_Exp>;
   docxTemplateId?: InputMaybe<Bigint_Comparison_Exp>;
   enableBorders?: InputMaybe<Boolean_Comparison_Exp>;
+  evidence_image_alignment?: InputMaybe<String_Comparison_Exp>;
+  evidence_image_width?: InputMaybe<Float8_Comparison_Exp>;
   figure_caption_location?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   labelFigure?: InputMaybe<String_Comparison_Exp>;
@@ -24056,6 +24138,7 @@ export enum ReportConfiguration_Constraint {
 export type ReportConfiguration_Inc_Input = {
   borderWeight?: InputMaybe<Scalars['Int']['input']>;
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   pptxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   target_delivery_date?: InputMaybe<Scalars['Int']['input']>;
@@ -24069,6 +24152,8 @@ export type ReportConfiguration_Insert_Input = {
   docxTemplate?: InputMaybe<Template_Obj_Rel_Insert_Input>;
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   enableBorders?: InputMaybe<Scalars['Boolean']['input']>;
+  evidence_image_alignment?: InputMaybe<Scalars['String']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   figure_caption_location?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   labelFigure?: InputMaybe<Scalars['String']['input']>;
@@ -24093,6 +24178,8 @@ export type ReportConfiguration_Max_Fields = {
   borderWeight?: Maybe<Scalars['Int']['output']>;
   default_cvss_version?: Maybe<Scalars['String']['output']>;
   docxTemplateId?: Maybe<Scalars['bigint']['output']>;
+  evidence_image_alignment?: Maybe<Scalars['String']['output']>;
+  evidence_image_width?: Maybe<Scalars['float8']['output']>;
   figure_caption_location?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   labelFigure?: Maybe<Scalars['String']['output']>;
@@ -24114,6 +24201,8 @@ export type ReportConfiguration_Max_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   default_cvss_version?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_alignment?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   figure_caption_location?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   labelFigure?: InputMaybe<Order_By>;
@@ -24136,6 +24225,8 @@ export type ReportConfiguration_Min_Fields = {
   borderWeight?: Maybe<Scalars['Int']['output']>;
   default_cvss_version?: Maybe<Scalars['String']['output']>;
   docxTemplateId?: Maybe<Scalars['bigint']['output']>;
+  evidence_image_alignment?: Maybe<Scalars['String']['output']>;
+  evidence_image_width?: Maybe<Scalars['float8']['output']>;
   figure_caption_location?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   labelFigure?: Maybe<Scalars['String']['output']>;
@@ -24157,6 +24248,8 @@ export type ReportConfiguration_Min_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   default_cvss_version?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_alignment?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   figure_caption_location?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   labelFigure?: InputMaybe<Order_By>;
@@ -24196,6 +24289,8 @@ export type ReportConfiguration_Order_By = {
   docxTemplate?: InputMaybe<Template_Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
   enableBorders?: InputMaybe<Order_By>;
+  evidence_image_alignment?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   figure_caption_location?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   labelFigure?: InputMaybe<Order_By>;
@@ -24231,6 +24326,10 @@ export enum ReportConfiguration_Select_Column {
   /** column name */
   EnableBorders = 'enableBorders',
   /** column name */
+  EvidenceImageAlignment = 'evidence_image_alignment',
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width',
+  /** column name */
   FigureCaptionLocation = 'figure_caption_location',
   /** column name */
   Id = 'id',
@@ -24260,6 +24359,12 @@ export enum ReportConfiguration_Select_Column {
   TitleCaseExceptions = 'title_case_exceptions'
 }
 
+/** select "reportConfiguration_aggregate_bool_exp_avg_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Avg_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
 /** select "reportConfiguration_aggregate_bool_exp_bool_and_arguments_columns" columns of table "commandcenter_reportconfiguration" */
 export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
   /** column name */
@@ -24276,6 +24381,48 @@ export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool
   TitleCaseCaptions = 'title_case_captions'
 }
 
+/** select "reportConfiguration_aggregate_bool_exp_corr_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Corr_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "reportConfiguration_aggregate_bool_exp_covar_samp_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Covar_Samp_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "reportConfiguration_aggregate_bool_exp_max_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Max_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "reportConfiguration_aggregate_bool_exp_min_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Min_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "reportConfiguration_aggregate_bool_exp_stddev_samp_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Stddev_Samp_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "reportConfiguration_aggregate_bool_exp_sum_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Sum_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
+/** select "reportConfiguration_aggregate_bool_exp_var_samp_arguments_columns" columns of table "commandcenter_reportconfiguration" */
+export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Var_Samp_Arguments_Columns {
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width'
+}
+
 /** input type for updating data in table "commandcenter_reportconfiguration" */
 export type ReportConfiguration_Set_Input = {
   borderColor?: InputMaybe<Scalars['String']['input']>;
@@ -24283,6 +24430,8 @@ export type ReportConfiguration_Set_Input = {
   default_cvss_version?: InputMaybe<Scalars['String']['input']>;
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   enableBorders?: InputMaybe<Scalars['Boolean']['input']>;
+  evidence_image_alignment?: InputMaybe<Scalars['String']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   figure_caption_location?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   labelFigure?: InputMaybe<Scalars['String']['input']>;
@@ -24304,6 +24453,7 @@ export type ReportConfiguration_Stddev_Fields = {
   __typename?: 'reportConfiguration_stddev_fields';
   borderWeight?: Maybe<Scalars['Float']['output']>;
   docxTemplateId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   pptxTemplateId?: Maybe<Scalars['Float']['output']>;
   target_delivery_date?: Maybe<Scalars['Float']['output']>;
@@ -24313,6 +24463,7 @@ export type ReportConfiguration_Stddev_Fields = {
 export type ReportConfiguration_Stddev_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -24323,6 +24474,7 @@ export type ReportConfiguration_Stddev_Pop_Fields = {
   __typename?: 'reportConfiguration_stddev_pop_fields';
   borderWeight?: Maybe<Scalars['Float']['output']>;
   docxTemplateId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   pptxTemplateId?: Maybe<Scalars['Float']['output']>;
   target_delivery_date?: Maybe<Scalars['Float']['output']>;
@@ -24332,6 +24484,7 @@ export type ReportConfiguration_Stddev_Pop_Fields = {
 export type ReportConfiguration_Stddev_Pop_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -24342,6 +24495,7 @@ export type ReportConfiguration_Stddev_Samp_Fields = {
   __typename?: 'reportConfiguration_stddev_samp_fields';
   borderWeight?: Maybe<Scalars['Float']['output']>;
   docxTemplateId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   pptxTemplateId?: Maybe<Scalars['Float']['output']>;
   target_delivery_date?: Maybe<Scalars['Float']['output']>;
@@ -24351,6 +24505,7 @@ export type ReportConfiguration_Stddev_Samp_Fields = {
 export type ReportConfiguration_Stddev_Samp_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -24371,6 +24526,8 @@ export type ReportConfiguration_Stream_Cursor_Value_Input = {
   default_cvss_version?: InputMaybe<Scalars['String']['input']>;
   docxTemplateId?: InputMaybe<Scalars['bigint']['input']>;
   enableBorders?: InputMaybe<Scalars['Boolean']['input']>;
+  evidence_image_alignment?: InputMaybe<Scalars['String']['input']>;
+  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
   figure_caption_location?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   labelFigure?: InputMaybe<Scalars['String']['input']>;
@@ -24392,6 +24549,7 @@ export type ReportConfiguration_Sum_Fields = {
   __typename?: 'reportConfiguration_sum_fields';
   borderWeight?: Maybe<Scalars['Int']['output']>;
   docxTemplateId?: Maybe<Scalars['bigint']['output']>;
+  evidence_image_width?: Maybe<Scalars['float8']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   pptxTemplateId?: Maybe<Scalars['bigint']['output']>;
   target_delivery_date?: Maybe<Scalars['Int']['output']>;
@@ -24401,6 +24559,7 @@ export type ReportConfiguration_Sum_Fields = {
 export type ReportConfiguration_Sum_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -24418,6 +24577,10 @@ export enum ReportConfiguration_Update_Column {
   DocxTemplateId = 'docxTemplateId',
   /** column name */
   EnableBorders = 'enableBorders',
+  /** column name */
+  EvidenceImageAlignment = 'evidence_image_alignment',
+  /** column name */
+  EvidenceImageWidth = 'evidence_image_width',
   /** column name */
   FigureCaptionLocation = 'figure_caption_location',
   /** column name */
@@ -24462,6 +24625,7 @@ export type ReportConfiguration_Var_Pop_Fields = {
   __typename?: 'reportConfiguration_var_pop_fields';
   borderWeight?: Maybe<Scalars['Float']['output']>;
   docxTemplateId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   pptxTemplateId?: Maybe<Scalars['Float']['output']>;
   target_delivery_date?: Maybe<Scalars['Float']['output']>;
@@ -24471,6 +24635,7 @@ export type ReportConfiguration_Var_Pop_Fields = {
 export type ReportConfiguration_Var_Pop_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -24481,6 +24646,7 @@ export type ReportConfiguration_Var_Samp_Fields = {
   __typename?: 'reportConfiguration_var_samp_fields';
   borderWeight?: Maybe<Scalars['Float']['output']>;
   docxTemplateId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   pptxTemplateId?: Maybe<Scalars['Float']['output']>;
   target_delivery_date?: Maybe<Scalars['Float']['output']>;
@@ -24490,6 +24656,7 @@ export type ReportConfiguration_Var_Samp_Fields = {
 export type ReportConfiguration_Var_Samp_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -24500,6 +24667,7 @@ export type ReportConfiguration_Variance_Fields = {
   __typename?: 'reportConfiguration_variance_fields';
   borderWeight?: Maybe<Scalars['Float']['output']>;
   docxTemplateId?: Maybe<Scalars['Float']['output']>;
+  evidence_image_width?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   pptxTemplateId?: Maybe<Scalars['Float']['output']>;
   target_delivery_date?: Maybe<Scalars['Float']['output']>;
@@ -24509,6 +24677,7 @@ export type ReportConfiguration_Variance_Fields = {
 export type ReportConfiguration_Variance_Order_By = {
   borderWeight?: InputMaybe<Order_By>;
   docxTemplateId?: InputMaybe<Order_By>;
+  evidence_image_width?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   pptxTemplateId?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
@@ -33716,7 +33885,7 @@ export type Task_Variance_Fields = {
 /** columns and relationships of "reporting_reporttemplate" */
 export type Template = {
   __typename?: 'template';
-  bloodhound_heading_offset: Scalars['smallint']['output'];
+  bloodhoundHeadingOffset: Scalars['smallint']['output'];
   changelog: Scalars['String']['output'];
   /** An object relationship */
   client?: Maybe<Client>;
@@ -33729,7 +33898,7 @@ export type Template = {
   commandcenter_reportconfigurations: Array<ReportConfiguration>;
   /** An aggregate relationship */
   commandcenter_reportconfigurations_aggregate: ReportConfiguration_Aggregate;
-  contains_bloodhound_data: Scalars['Boolean']['output'];
+  containsBloodhoundData: Scalars['Boolean']['output'];
   description: Scalars['String']['output'];
   docTypeId?: Maybe<Scalars['bigint']['output']>;
   document: Scalars['String']['output'];
@@ -33737,14 +33906,15 @@ export type Template = {
   docxTemplates: Array<Report>;
   /** An aggregate relationship */
   docxTemplates_aggregate: Report_Aggregate;
-  evidence_image_width: Scalars['float8']['output'];
+  evidenceImageAlignment: Scalars['String']['output'];
+  evidenceImageWidth?: Maybe<Scalars['float8']['output']>;
   filename_override: Scalars['String']['output'];
   id: Scalars['bigint']['output'];
   landscape: Scalars['Boolean']['output'];
   lastUpdate: Scalars['date']['output'];
   lintResult?: Maybe<Scalars['jsonb']['output']>;
   name: Scalars['String']['output'];
-  p_style: Scalars['String']['output'];
+  pStyle: Scalars['String']['output'];
   /** An array relationship */
   pptxTemplates: Array<Report>;
   /** An aggregate relationship */
@@ -34005,20 +34175,20 @@ export type Template_Arr_Rel_Insert_Input = {
 /** aggregate avg on columns */
 export type Template_Avg_Fields = {
   __typename?: 'template_avg_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
-  evidence_image_width?: Maybe<Scalars['Float']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by avg() on columns of table "reporting_reporttemplate" */
 export type Template_Avg_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34028,7 +34198,7 @@ export type Template_Bool_Exp = {
   _and?: InputMaybe<Array<Template_Bool_Exp>>;
   _not?: InputMaybe<Template_Bool_Exp>;
   _or?: InputMaybe<Array<Template_Bool_Exp>>;
-  bloodhound_heading_offset?: InputMaybe<Smallint_Comparison_Exp>;
+  bloodhoundHeadingOffset?: InputMaybe<Smallint_Comparison_Exp>;
   changelog?: InputMaybe<String_Comparison_Exp>;
   client?: InputMaybe<Client_Bool_Exp>;
   clientId?: InputMaybe<Bigint_Comparison_Exp>;
@@ -34036,20 +34206,21 @@ export type Template_Bool_Exp = {
   commandcenterReportconfigurationsByDefaultPptxTemplateId_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp>;
   commandcenter_reportconfigurations?: InputMaybe<ReportConfiguration_Bool_Exp>;
   commandcenter_reportconfigurations_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Bool_Exp>;
-  contains_bloodhound_data?: InputMaybe<Boolean_Comparison_Exp>;
+  containsBloodhoundData?: InputMaybe<Boolean_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   docTypeId?: InputMaybe<Bigint_Comparison_Exp>;
   document?: InputMaybe<String_Comparison_Exp>;
   docxTemplates?: InputMaybe<Report_Bool_Exp>;
   docxTemplates_aggregate?: InputMaybe<Report_Aggregate_Bool_Exp>;
-  evidence_image_width?: InputMaybe<Float8_Comparison_Exp>;
+  evidenceImageAlignment?: InputMaybe<String_Comparison_Exp>;
+  evidenceImageWidth?: InputMaybe<Float8_Comparison_Exp>;
   filename_override?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   landscape?: InputMaybe<Boolean_Comparison_Exp>;
   lastUpdate?: InputMaybe<Date_Comparison_Exp>;
   lintResult?: InputMaybe<Jsonb_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
-  p_style?: InputMaybe<String_Comparison_Exp>;
+  pStyle?: InputMaybe<String_Comparison_Exp>;
   pptxTemplates?: InputMaybe<Report_Bool_Exp>;
   pptxTemplates_aggregate?: InputMaybe<Report_Aggregate_Bool_Exp>;
   protected?: InputMaybe<Boolean_Comparison_Exp>;
@@ -34082,35 +34253,36 @@ export type Template_Delete_Key_Input = {
 
 /** input type for incrementing numeric columns in table "reporting_reporttemplate" */
 export type Template_Inc_Input = {
-  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
+  bloodhoundHeadingOffset?: InputMaybe<Scalars['smallint']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
-  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
+  evidenceImageWidth?: InputMaybe<Scalars['float8']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
 };
 
 /** input type for inserting data into table "reporting_reporttemplate" */
 export type Template_Insert_Input = {
-  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
+  bloodhoundHeadingOffset?: InputMaybe<Scalars['smallint']['input']>;
   changelog?: InputMaybe<Scalars['String']['input']>;
   client?: InputMaybe<Client_Obj_Rel_Insert_Input>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
   commandcenterReportconfigurationsByDefaultPptxTemplateId?: InputMaybe<ReportConfiguration_Arr_Rel_Insert_Input>;
   commandcenter_reportconfigurations?: InputMaybe<ReportConfiguration_Arr_Rel_Insert_Input>;
-  contains_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
+  containsBloodhoundData?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
   docxTemplates?: InputMaybe<Report_Arr_Rel_Insert_Input>;
-  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
+  evidenceImageAlignment?: InputMaybe<Scalars['String']['input']>;
+  evidenceImageWidth?: InputMaybe<Scalars['float8']['input']>;
   filename_override?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   landscape?: InputMaybe<Scalars['Boolean']['input']>;
   lastUpdate?: InputMaybe<Scalars['date']['input']>;
   lintResult?: InputMaybe<Scalars['jsonb']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  p_style?: InputMaybe<Scalars['String']['input']>;
+  pStyle?: InputMaybe<Scalars['String']['input']>;
   pptxTemplates?: InputMaybe<Report_Arr_Rel_Insert_Input>;
   protected?: InputMaybe<Scalars['Boolean']['input']>;
   reporting_doctype?: InputMaybe<DocType_Obj_Rel_Insert_Input>;
@@ -34122,36 +34294,38 @@ export type Template_Insert_Input = {
 /** aggregate max on columns */
 export type Template_Max_Fields = {
   __typename?: 'template_max_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['smallint']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['smallint']['output']>;
   changelog?: Maybe<Scalars['String']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   docTypeId?: Maybe<Scalars['bigint']['output']>;
   document?: Maybe<Scalars['String']['output']>;
-  evidence_image_width?: Maybe<Scalars['float8']['output']>;
+  evidenceImageAlignment?: Maybe<Scalars['String']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['float8']['output']>;
   filename_override?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   lastUpdate?: Maybe<Scalars['date']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  p_style?: Maybe<Scalars['String']['output']>;
+  pStyle?: Maybe<Scalars['String']['output']>;
   uploadDate?: Maybe<Scalars['date']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by max() on columns of table "reporting_reporttemplate" */
 export type Template_Max_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   changelog?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageAlignment?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   filename_override?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   lastUpdate?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  p_style?: InputMaybe<Order_By>;
+  pStyle?: InputMaybe<Order_By>;
   uploadDate?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34159,36 +34333,38 @@ export type Template_Max_Order_By = {
 /** aggregate min on columns */
 export type Template_Min_Fields = {
   __typename?: 'template_min_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['smallint']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['smallint']['output']>;
   changelog?: Maybe<Scalars['String']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   docTypeId?: Maybe<Scalars['bigint']['output']>;
   document?: Maybe<Scalars['String']['output']>;
-  evidence_image_width?: Maybe<Scalars['float8']['output']>;
+  evidenceImageAlignment?: Maybe<Scalars['String']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['float8']['output']>;
   filename_override?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   lastUpdate?: Maybe<Scalars['date']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-  p_style?: Maybe<Scalars['String']['output']>;
+  pStyle?: Maybe<Scalars['String']['output']>;
   uploadDate?: Maybe<Scalars['date']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by min() on columns of table "reporting_reporttemplate" */
 export type Template_Min_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   changelog?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageAlignment?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   filename_override?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   lastUpdate?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  p_style?: InputMaybe<Order_By>;
+  pStyle?: InputMaybe<Order_By>;
   uploadDate?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34218,25 +34394,26 @@ export type Template_On_Conflict = {
 
 /** Ordering options when selecting data from "reporting_reporttemplate". */
 export type Template_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   changelog?: InputMaybe<Order_By>;
   client?: InputMaybe<Client_Order_By>;
   clientId?: InputMaybe<Order_By>;
   commandcenterReportconfigurationsByDefaultPptxTemplateId_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Order_By>;
   commandcenter_reportconfigurations_aggregate?: InputMaybe<ReportConfiguration_Aggregate_Order_By>;
-  contains_bloodhound_data?: InputMaybe<Order_By>;
+  containsBloodhoundData?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
   docxTemplates_aggregate?: InputMaybe<Report_Aggregate_Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageAlignment?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   filename_override?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   landscape?: InputMaybe<Order_By>;
   lastUpdate?: InputMaybe<Order_By>;
   lintResult?: InputMaybe<Order_By>;
   name?: InputMaybe<Order_By>;
-  p_style?: InputMaybe<Order_By>;
+  pStyle?: InputMaybe<Order_By>;
   pptxTemplates_aggregate?: InputMaybe<Report_Aggregate_Order_By>;
   protected?: InputMaybe<Order_By>;
   reporting_doctype?: InputMaybe<DocType_Order_By>;
@@ -34258,13 +34435,13 @@ export type Template_Prepend_Input = {
 /** select columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column {
   /** column name */
-  BloodhoundHeadingOffset = 'bloodhound_heading_offset',
+  BloodhoundHeadingOffset = 'bloodhoundHeadingOffset',
   /** column name */
   Changelog = 'changelog',
   /** column name */
   ClientId = 'clientId',
   /** column name */
-  ContainsBloodhoundData = 'contains_bloodhound_data',
+  ContainsBloodhoundData = 'containsBloodhoundData',
   /** column name */
   Description = 'description',
   /** column name */
@@ -34272,7 +34449,9 @@ export enum Template_Select_Column {
   /** column name */
   Document = 'document',
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width',
+  EvidenceImageAlignment = 'evidenceImageAlignment',
+  /** column name */
+  EvidenceImageWidth = 'evidenceImageWidth',
   /** column name */
   FilenameOverride = 'filename_override',
   /** column name */
@@ -34286,7 +34465,7 @@ export enum Template_Select_Column {
   /** column name */
   Name = 'name',
   /** column name */
-  PStyle = 'p_style',
+  PStyle = 'pStyle',
   /** column name */
   Protected = 'protected',
   /** column name */
@@ -34298,13 +34477,13 @@ export enum Template_Select_Column {
 /** select "template_aggregate_bool_exp_avg_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Avg_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** select "template_aggregate_bool_exp_bool_and_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_And_Arguments_Columns {
   /** column name */
-  ContainsBloodhoundData = 'contains_bloodhound_data',
+  ContainsBloodhoundData = 'containsBloodhoundData',
   /** column name */
   Landscape = 'landscape',
   /** column name */
@@ -34314,7 +34493,7 @@ export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_And_Argument
 /** select "template_aggregate_bool_exp_bool_or_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
   /** column name */
-  ContainsBloodhoundData = 'contains_bloodhound_data',
+  ContainsBloodhoundData = 'containsBloodhoundData',
   /** column name */
   Landscape = 'landscape',
   /** column name */
@@ -34324,62 +34503,63 @@ export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Bool_Or_Arguments
 /** select "template_aggregate_bool_exp_corr_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Corr_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** select "template_aggregate_bool_exp_covar_samp_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Covar_Samp_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** select "template_aggregate_bool_exp_max_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Max_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** select "template_aggregate_bool_exp_min_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Min_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** select "template_aggregate_bool_exp_stddev_samp_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Stddev_Samp_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** select "template_aggregate_bool_exp_sum_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Sum_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** select "template_aggregate_bool_exp_var_samp_arguments_columns" columns of table "reporting_reporttemplate" */
 export enum Template_Select_Column_Template_Aggregate_Bool_Exp_Var_Samp_Arguments_Columns {
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width'
+  EvidenceImageWidth = 'evidenceImageWidth'
 }
 
 /** input type for updating data in table "reporting_reporttemplate" */
 export type Template_Set_Input = {
-  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
+  bloodhoundHeadingOffset?: InputMaybe<Scalars['smallint']['input']>;
   changelog?: InputMaybe<Scalars['String']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
-  contains_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
+  containsBloodhoundData?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
-  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
+  evidenceImageAlignment?: InputMaybe<Scalars['String']['input']>;
+  evidenceImageWidth?: InputMaybe<Scalars['float8']['input']>;
   filename_override?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   landscape?: InputMaybe<Scalars['Boolean']['input']>;
   lastUpdate?: InputMaybe<Scalars['date']['input']>;
   lintResult?: InputMaybe<Scalars['jsonb']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  p_style?: InputMaybe<Scalars['String']['input']>;
+  pStyle?: InputMaybe<Scalars['String']['input']>;
   protected?: InputMaybe<Scalars['Boolean']['input']>;
   uploadDate?: InputMaybe<Scalars['date']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
@@ -34388,20 +34568,20 @@ export type Template_Set_Input = {
 /** aggregate stddev on columns */
 export type Template_Stddev_Fields = {
   __typename?: 'template_stddev_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
-  evidence_image_width?: Maybe<Scalars['Float']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev() on columns of table "reporting_reporttemplate" */
 export type Template_Stddev_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34409,20 +34589,20 @@ export type Template_Stddev_Order_By = {
 /** aggregate stddev_pop on columns */
 export type Template_Stddev_Pop_Fields = {
   __typename?: 'template_stddev_pop_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
-  evidence_image_width?: Maybe<Scalars['Float']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_pop() on columns of table "reporting_reporttemplate" */
 export type Template_Stddev_Pop_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34430,20 +34610,20 @@ export type Template_Stddev_Pop_Order_By = {
 /** aggregate stddev_samp on columns */
 export type Template_Stddev_Samp_Fields = {
   __typename?: 'template_stddev_samp_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
-  evidence_image_width?: Maybe<Scalars['Float']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_samp() on columns of table "reporting_reporttemplate" */
 export type Template_Stddev_Samp_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34458,21 +34638,22 @@ export type Template_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Template_Stream_Cursor_Value_Input = {
-  bloodhound_heading_offset?: InputMaybe<Scalars['smallint']['input']>;
+  bloodhoundHeadingOffset?: InputMaybe<Scalars['smallint']['input']>;
   changelog?: InputMaybe<Scalars['String']['input']>;
   clientId?: InputMaybe<Scalars['bigint']['input']>;
-  contains_bloodhound_data?: InputMaybe<Scalars['Boolean']['input']>;
+  containsBloodhoundData?: InputMaybe<Scalars['Boolean']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   docTypeId?: InputMaybe<Scalars['bigint']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
-  evidence_image_width?: InputMaybe<Scalars['float8']['input']>;
+  evidenceImageAlignment?: InputMaybe<Scalars['String']['input']>;
+  evidenceImageWidth?: InputMaybe<Scalars['float8']['input']>;
   filename_override?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   landscape?: InputMaybe<Scalars['Boolean']['input']>;
   lastUpdate?: InputMaybe<Scalars['date']['input']>;
   lintResult?: InputMaybe<Scalars['jsonb']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  p_style?: InputMaybe<Scalars['String']['input']>;
+  pStyle?: InputMaybe<Scalars['String']['input']>;
   protected?: InputMaybe<Scalars['Boolean']['input']>;
   uploadDate?: InputMaybe<Scalars['date']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
@@ -34481,20 +34662,20 @@ export type Template_Stream_Cursor_Value_Input = {
 /** aggregate sum on columns */
 export type Template_Sum_Fields = {
   __typename?: 'template_sum_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['smallint']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['smallint']['output']>;
   clientId?: Maybe<Scalars['bigint']['output']>;
   docTypeId?: Maybe<Scalars['bigint']['output']>;
-  evidence_image_width?: Maybe<Scalars['float8']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['float8']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by sum() on columns of table "reporting_reporttemplate" */
 export type Template_Sum_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34502,13 +34683,13 @@ export type Template_Sum_Order_By = {
 /** update columns of table "reporting_reporttemplate" */
 export enum Template_Update_Column {
   /** column name */
-  BloodhoundHeadingOffset = 'bloodhound_heading_offset',
+  BloodhoundHeadingOffset = 'bloodhoundHeadingOffset',
   /** column name */
   Changelog = 'changelog',
   /** column name */
   ClientId = 'clientId',
   /** column name */
-  ContainsBloodhoundData = 'contains_bloodhound_data',
+  ContainsBloodhoundData = 'containsBloodhoundData',
   /** column name */
   Description = 'description',
   /** column name */
@@ -34516,7 +34697,9 @@ export enum Template_Update_Column {
   /** column name */
   Document = 'document',
   /** column name */
-  EvidenceImageWidth = 'evidence_image_width',
+  EvidenceImageAlignment = 'evidenceImageAlignment',
+  /** column name */
+  EvidenceImageWidth = 'evidenceImageWidth',
   /** column name */
   FilenameOverride = 'filename_override',
   /** column name */
@@ -34530,7 +34713,7 @@ export enum Template_Update_Column {
   /** column name */
   Name = 'name',
   /** column name */
-  PStyle = 'p_style',
+  PStyle = 'pStyle',
   /** column name */
   Protected = 'protected',
   /** column name */
@@ -34561,20 +34744,20 @@ export type Template_Updates = {
 /** aggregate var_pop on columns */
 export type Template_Var_Pop_Fields = {
   __typename?: 'template_var_pop_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
-  evidence_image_width?: Maybe<Scalars['Float']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_pop() on columns of table "reporting_reporttemplate" */
 export type Template_Var_Pop_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34582,20 +34765,20 @@ export type Template_Var_Pop_Order_By = {
 /** aggregate var_samp on columns */
 export type Template_Var_Samp_Fields = {
   __typename?: 'template_var_samp_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
-  evidence_image_width?: Maybe<Scalars['Float']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_samp() on columns of table "reporting_reporttemplate" */
 export type Template_Var_Samp_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
@@ -34603,20 +34786,20 @@ export type Template_Var_Samp_Order_By = {
 /** aggregate variance on columns */
 export type Template_Variance_Fields = {
   __typename?: 'template_variance_fields';
-  bloodhound_heading_offset?: Maybe<Scalars['Float']['output']>;
+  bloodhoundHeadingOffset?: Maybe<Scalars['Float']['output']>;
   clientId?: Maybe<Scalars['Float']['output']>;
   docTypeId?: Maybe<Scalars['Float']['output']>;
-  evidence_image_width?: Maybe<Scalars['Float']['output']>;
+  evidenceImageWidth?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by variance() on columns of table "reporting_reporttemplate" */
 export type Template_Variance_Order_By = {
-  bloodhound_heading_offset?: InputMaybe<Order_By>;
+  bloodhoundHeadingOffset?: InputMaybe<Order_By>;
   clientId?: InputMaybe<Order_By>;
   docTypeId?: InputMaybe<Order_By>;
-  evidence_image_width?: InputMaybe<Order_By>;
+  evidenceImageWidth?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
 };
