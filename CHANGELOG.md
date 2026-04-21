@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Pinned base images for containers to specific versions for reliability (e.g., `node:25` to `node:25.9.0`)
 * Adjusted the collection of users with `pwdlastset` older than 90 days to only include enabled users
 
+### Fixed
+
+* Fixed the BloodHound API fields being required when trying to create a project via the GraphQL API (Fixes #877)
+
 ## [6.3.1] - 17 April 2026
 
 ### Added
