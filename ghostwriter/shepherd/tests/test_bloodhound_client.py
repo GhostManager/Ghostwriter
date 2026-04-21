@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from ghostwriter.shepherd.external.bloodhound.client import APIClient, Credentials
+from ghostwriter.shepherd.external.bloodhound.client import APIClient, Credentials, APIException, ErrorDetails, ErrorResponse
 
 
 class MockResponse:
@@ -82,23 +82,19 @@ class BloodHoundClientTests(TestCase):
                 query = json.loads(body.decode("utf-8"))["query"]
                 queries.append(query)
 
-                if "RETURN DISTINCT n.operatingsystem AS operating_system" in query:
+                if "RETURN n.operatingsystem AS operating_system, count(n) AS count" in query:
                     return MockResponse(
                         {
                             "data": {
                                 "literals": [
                                     {"key": "operating_system", "value": "Windows 11"},
+                                    {"key": "count", "value": 10},
                                     {"key": "operating_system", "value": "Windows Server 2022"},
+                                    {"key": "count", "value": 32},
                                 ]
                             }
                         }
                     )
-
-                if 'n.operatingsystem = "Windows 11"' in query:
-                    return MockResponse({"data": {"literals": [{"key": "count", "value": 10}]}})
-
-                if 'n.operatingsystem = "Windows Server 2022"' in query:
-                    return MockResponse({"data": {"literals": [{"key": "count", "value": 32}]}})
 
                 if "RETURN count(n) AS count" in query and "Computer" in query:
                     return MockResponse({"data": {"literals": [{"key": "count", "value": 42}]}})
@@ -106,7 +102,7 @@ class BloodHoundClientTests(TestCase):
                 if "RETURN count(u) AS count" in query and "pwdlastset" not in query:
                     return MockResponse({"data": {"literals": [{"key": "count", "value": 100}]}})
 
-                if 'u.pwdlastset <= "' in query:
+                if "u.pwdlastset <= " in query:
                     return MockResponse({"data": {"literals": [{"key": "count", "value": 2}]}})
 
             raise AssertionError(f"Unexpected request: {method} {uri} {body!r}")
@@ -122,8 +118,14 @@ class BloodHoundClientTests(TestCase):
         )
         self.assertEqual(result[0]["users"]["count"], 100)
         self.assertEqual(result[0]["users"]["with_old_pw"], 2)
-        self.assertTrue(all("RETURN n" not in query for query in queries))
+        self.assertTrue(all("RETURN n" != query[-8:] for query in queries))
+        self.assertTrue(all("RETURN u" != query[-8:] for query in queries))
+        self.assertTrue(all("RETURN n " not in query for query in queries))
         self.assertTrue(all("RETURN u " not in query for query in queries))
+        self.assertEqual(
+            sum("RETURN n.operatingsystem AS operating_system, count(n) AS count" in query for query in queries),
+            1,
+        )
 
     def test_escape_cypher_string_escapes_quotes_and_backslashes(self):
         escaped = self.client._escape_cypher_string('EXAMPLE\\"LOCAL')
@@ -169,3 +171,47 @@ class BloodHoundClientTests(TestCase):
                         "MATCH (n) RETURN count(n) AS count"
                     )
                 self.assertEqual(result, 0)
+
+    def test_count_users_with_old_passwords_uses_numeric_query_first(self):
+        captured_queries = []
+
+        def fake_run(query):
+            captured_queries.append(query)
+            return 5
+
+        with patch.object(self.client, "_run_cypher_count_query", side_effect=fake_run):
+            result = self.client._count_users_with_old_passwords("EXAMPLE.LOCAL", 12345)
+
+        self.assertEqual(result, 5)
+        self.assertEqual(len(captured_queries), 1)
+        self.assertIn("u.pwdlastset <> 0", captured_queries[0])
+        self.assertIn("u.pwdlastset <> -1", captured_queries[0])
+        self.assertIn("u.pwdlastset <= 12345", captured_queries[0])
+        self.assertNotIn('"12345"', captured_queries[0])
+
+    def test_count_users_with_old_passwords_falls_back_to_string_query_for_text_schema(self):
+        captured_queries = []
+        type_error = APIException(
+            "API request failed with status code 500",
+            err_response=ErrorResponse(
+                status=None,
+                timestamp="2026-04-20T20:31:08.815875974Z",
+                request_id="req-id",
+                errors=[ErrorDetails(context="", message="ERROR: operator does not exist: text <> integer (SQLSTATE 42883)")],
+            ),
+            http_code=500,
+        )
+
+        def fake_run(query):
+            captured_queries.append(query)
+            if len(captured_queries) == 1:
+                raise type_error
+            return 2
+
+        with patch.object(self.client, "_run_cypher_count_query", side_effect=fake_run):
+            result = self.client._count_users_with_old_passwords("EXAMPLE.LOCAL", 12345)
+
+        self.assertEqual(result, 2)
+        self.assertEqual(len(captured_queries), 2)
+        self.assertIn("u.pwdlastset <= 12345", captured_queries[0])
+        self.assertIn('u.pwdlastset <= "12345"', captured_queries[1])

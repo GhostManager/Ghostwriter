@@ -246,6 +246,47 @@ class APIClient:
 
         return grouped_counts
 
+    @staticmethod
+    def _is_pwdlastset_text_type_error(err: "APIException") -> bool:
+        """Return True when BloodHound rejects numeric pwdlastset comparisons against a text property."""
+        if not isinstance(err.err_response, ErrorResponse):
+            return False
+        return any(
+            "text" in error.message.lower() and "integer" in error.message.lower()
+            for error in err.err_response.errors
+        )
+
+    def _count_users_with_old_passwords(self, domain_name: str, pw_cutoff: int) -> int:
+        """
+        Count users with old passwords, preferring numeric comparisons and falling back for text-backed schemas.
+
+        The `pwdlastset` property is numeric in Active Directory and BHCE, but we must use strings for BHE.
+        """
+        numeric_query = (
+            f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
+            "AND u.enabled = true "
+            "AND u.pwdlastset IS NOT NULL "
+            "AND NOT u.pwdlastset IN ['-1', '0'] "
+            f"AND u.pwdlastset <= {pw_cutoff} "
+            "RETURN count(u) AS count"
+        )
+        try:
+            return self._run_cypher_count_query(numeric_query)
+        except APIException as err:
+            logger.warning(f"Numeric pwdlastset query failed for domain {domain_name}, attempting text-based fallback. Error: {err}")
+            if not self._is_pwdlastset_text_type_error(err):
+                raise
+
+        string_query = (
+            f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
+            "AND u.enabled = true "
+            "AND u.pwdlastset IS NOT NULL "
+            'AND NOT u.pwdlastset IN ["-1", "0"] '
+            f'AND u.pwdlastset <= "{pw_cutoff}" '
+            "RETURN count(u) AS count"
+        )
+        return self._run_cypher_count_query(string_query)
+
     def _apply_exposures(self, domain: dict, domain_out: dict) -> None:
         """
         Applies BHE-specific exposures data from a raw API ``domain`` dict into ``domain_out`` in-place.
@@ -484,7 +525,7 @@ class APIClient:
         """
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
-        pw_cutoff = str(int(datetime.now().timestamp() - 90 * 86400))
+        pw_cutoff = int(datetime.now().timestamp() - 90 * 86400)
         for domain in available_domains:
             logger.debug(f"Processing domain {domain['name']}")
             domain_name = self._escape_cypher_string(domain["name"])
@@ -538,14 +579,7 @@ class APIClient:
                 user_count = self._run_cypher_count_query(
                     f'MATCH (u:User) WHERE u.domain = "{domain_name}" RETURN count(u) AS count'
                 )
-                pw_old_count = self._run_cypher_count_query(
-                    f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
-                    "AND u.pwdlastset IS NOT NULL "
-                    'AND u.pwdlastset <> "0" '
-                    'AND u.pwdlastset <> "-1" '
-                    f'AND u.pwdlastset <= "{pw_cutoff}" '
-                    "RETURN count(u) AS count"
-                )
+                pw_old_count = self._count_users_with_old_passwords(domain_name, pw_cutoff)
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
                     logger.info(f"No users found for domain {domain['name']}")
