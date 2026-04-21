@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Changed from any authenticated user to users with access to a project using the global configuration or privileged users
 * Changed some Cypher queries to use `count()` to avoid potential issues with very large environments
 * Pinned base images for containers to specific versions for reliability (e.g., `node:25` to `node:25.9.0`)
+* Adjusted the collection of users with `pwdlastset` older than 90 days to only include enabled users
 
 ## [6.3.1] - 17 April 2026
 
