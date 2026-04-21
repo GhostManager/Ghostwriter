@@ -224,7 +224,7 @@ class BloodHoundClientTests(TestCase):
         self.assertEqual(result, 5)
         self.assertEqual(len(captured_queries), 1)
         self.assertIn("u.enabled = true", captured_queries[0])
-        self.assertIn("NOT u.pwdlastset IN ['-1', '0']", captured_queries[0])
+        self.assertIn("NOT u.pwdlastset IN [-1, 0]", captured_queries[0])
         self.assertIn("u.pwdlastset <= 12345", captured_queries[0])
         self.assertNotIn('"12345"', captured_queries[0])
 

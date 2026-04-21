@@ -634,20 +634,38 @@ class ProjectAssignmentFormSetTests(TestCase):
     def form_data(self, data, **kwargs):
         return instantiate_formset(ProjectAssignmentFormSet, data=data, instance=self.project)
 
-    def test_valid_data(self):
-        to_be_deleted = self.to_be_deleted.__dict__
-        to_be_deleted["operator"] = None
-        to_be_deleted["DELETE"] = True
+    def assignment_form_data(self, assignment, **overrides):
+        data = {
+            "id": assignment.id,
+            "project": self.project.id,
+            "operator": assignment.operator_id,
+            "role": assignment.role_id,
+            "start_date": assignment.start_date,
+            "end_date": assignment.end_date,
+            "description": assignment.description,
+            "DELETE": False,
+        }
+        data.update(overrides)
+        return data
 
-        data = [self.assignment_1.__dict__, self.assignment_2.__dict__, to_be_deleted]
+    def test_valid_data(self):
+        to_be_deleted = self.assignment_form_data(
+            self.to_be_deleted,
+            operator=None,
+            DELETE=True,
+        )
+
+        data = [
+            self.assignment_form_data(self.assignment_1),
+            self.assignment_form_data(self.assignment_2),
+            to_be_deleted,
+        ]
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
 
     def test_duplicate_assignees(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-        assignment_1["operator"] = self.new_assignee
-        assignment_2["operator"] = self.new_assignee
+        assignment_1 = self.assignment_form_data(self.assignment_1, operator=self.new_assignee.id)
+        assignment_2 = self.assignment_form_data(self.assignment_2, operator=self.new_assignee.id)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -656,10 +674,11 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["operator"].as_data()[0].code, "duplicate")
 
     def test_invalid_start_date(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["start_date"] = self.project.start_date - timedelta(days=1)
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            start_date=self.project.start_date - timedelta(days=1),
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -668,10 +687,11 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["start_date"].as_data()[0].code, "invalid_date")
 
     def test_invalid_end_date(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["end_date"] = self.project.end_date + timedelta(days=1)
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            end_date=self.project.end_date + timedelta(days=1),
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -687,12 +707,13 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["end_date"].as_data()[0].code, "invalid_date")
 
     def test_incomplete_form(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["start_date"] = None
-        assignment_1["end_date"] = None
-        assignment_1["role"] = None
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            start_date=None,
+            end_date=None,
+            role=None,
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -703,13 +724,14 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["role"].as_data()[0].code, "incomplete")
 
     def test_blank_form(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["operator"] = None
-        assignment_1["start_date"] = None
-        assignment_1["end_date"] = None
-        assignment_1["role"] = None
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            operator=None,
+            start_date=None,
+            end_date=None,
+            role=None,
+        )
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -718,10 +740,8 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["description"].as_data()[0].code, "incomplete")
 
     def test_missing_operator(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["operator"] = None
+        assignment_1 = self.assignment_form_data(self.assignment_1, operator=None)
+        assignment_2 = self.assignment_form_data(self.assignment_2)
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
@@ -730,18 +750,18 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(errors["operator"].as_data()[0].code, "incomplete")
 
     def test_overlapping_assignments(self):
-        assignment_1 = self.assignment_1.__dict__.copy()
-        assignment_2 = self.assignment_2.__dict__.copy()
-
-        assignment_1["start_date"] = self.project.start_date
-        assignment_1["end_date"] = self.project.end_date - timedelta(days=1)
-        assignment_1["operator"] = self.new_assignee
-        assignment_1["operator_id"] = self.new_assignee.id
-
-        assignment_2["start_date"] = self.project.end_date - timedelta(days=2)
-        assignment_2["end_date"] = self.project.end_date
-        assignment_2["operator"] = self.new_assignee
-        assignment_2["operator_id"] = self.new_assignee.id
+        assignment_1 = self.assignment_form_data(
+            self.assignment_1,
+            start_date=self.project.start_date,
+            end_date=self.project.end_date - timedelta(days=1),
+            operator=self.new_assignee.id,
+        )
+        assignment_2 = self.assignment_form_data(
+            self.assignment_2,
+            start_date=self.project.end_date - timedelta(days=2),
+            end_date=self.project.end_date,
+            operator=self.new_assignee.id,
+        )
 
         data = [assignment_1, assignment_2]
         form = self.form_data(data)
