@@ -1223,6 +1223,22 @@
     const $editTodoInout = $('.edit-todo-input')
 
     $(document).ready(function() {
+      const url = new URL(window.location.href);
+      const activeTab = url.searchParams.get("tab");
+      $('a[data-toggle="tab"]').on("click", function (event) {
+        event.preventDefault();
+        $(this).tab("show");
+      });
+      if (activeTab) {
+        const $tab = $(`a[data-toggle="tab"][href="#${activeTab}"]`);
+        if ($tab.length) {
+          $tab.tab("show");
+        }
+        url.searchParams.delete("tab");
+        const nextSearch = url.searchParams.toString();
+        window.history.replaceState({}, document.title, `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`);
+      }
+
       const projectExportSelector = $("#projectExportSelector");
       const projectExportButton = $("#projectExportButton");
       projectExportButton.on("click", function() {

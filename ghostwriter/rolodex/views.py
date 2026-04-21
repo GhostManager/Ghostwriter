@@ -2346,7 +2346,7 @@ class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
             return HttpResponse(status=401, content=message)
         messages.add_message(self.request, level, message, extra_tags="error" if level == messages.ERROR else "")
         if self.project is not None:
-            url = self.project.get_absolute_url() + "#bloodhound"
+            url = self.project.get_absolute_url() + "?tab=bloodhound"
         else:
             url = reverse("admin:commandcenter_bloodhoundconfiguration_change")
         return HttpResponseRedirect(url)
