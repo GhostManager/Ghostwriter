@@ -2048,11 +2048,12 @@
           headers: {
             "X-GW-Async": "True"
           },
-        }).then(res => {
+        }).then(async res => {
+          const message = await res.text();
           if(res.status === 200)
-            displayToastTop({type: "success", string: "Refresh the page to view updated results.", delay: 0, title: "Fetch Completed"});
+            displayToastTop({type: "success", string: message, delay: 0, title: "Fetch Completed"});
           else
-            displayToastTop({type: "error", string: "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
+            displayToastTop({type: "error", string: message || "Please contact your administrator or consult the Ghostwriter logs.", title: "Fetch Failed"});
         })
       });
     });

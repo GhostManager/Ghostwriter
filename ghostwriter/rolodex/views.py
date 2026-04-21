@@ -2381,4 +2381,4 @@ class BloodhoundApiFetchView(BloodhoundApiBaseView):
         self.bh_api.bloodhound_results = out
         self.bh_api.save()
 
-        return self.render_result(messages.SUCCESS, "Findings updated from BloodHound successfully.")
+        return self.render_result(messages.SUCCESS, out.get("status_message", "Findings updated from BloodHound successfully."))
