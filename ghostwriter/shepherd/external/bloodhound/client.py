@@ -457,6 +457,7 @@ class APIClient:
                 grouped[unique_key].pop("impact_percentage", None)
 
                 grouped[unique_key].pop("sourceid", None)
+                grouped[unique_key].pop("source_id", None)
                 grouped[unique_key].pop("source_kind", None)
                 grouped[unique_key].pop("source_properties", None)
 
