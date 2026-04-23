@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
+from ghostwriter.reporting.models import Severity
 from ghostwriter.shepherd.external.bloodhound.client import (
     APIClient,
     Credentials,
@@ -27,6 +28,14 @@ class BloodHoundClientTests(TestCase):
             host="bloodhound.example",
             port=443,
             credentials=Credentials(token_id="id", token_key="key"),
+        )
+        Severity.objects.bulk_create(
+            [
+                Severity(severity="Critical", weight=1, color="966FD6"),
+                Severity(severity="High", weight=2, color="FF7E79"),
+                Severity(severity="Moderate", weight=3, color="F4B083"),
+                Severity(severity="Low", weight=4, color="A8D08D"),
+            ]
         )
 
     def test_get_community_domains_uses_aggregate_cypher_queries(self):
@@ -254,3 +263,107 @@ class BloodHoundClientTests(TestCase):
         self.assertEqual(len(captured_queries), 2)
         self.assertIn("u.pwdlastset <= 12345", captured_queries[0])
         self.assertIn('u.pwdlastset <= "12345"', captured_queries[1])
+
+    def test_get_enterprise_findings_uses_exposure_for_relationship_findings_with_source_id_key(self):
+        finding_name = "TierZeroGenericWrite"
+        payload = {
+            "data": {
+                "findings": [
+                    {
+                        "finding_name": finding_name,
+                        "environment_id": "S-1-5-21-1",
+                        "source_id": "SRC-1",
+                        "source_kind": "User",
+                        "target_id": "TGT-1",
+                        "target_kind": "Group",
+                        "impact_percentage": 0.99,
+                        "exposure_percentage": 0.01,
+                        "asset_group": "tier-zero",
+                    }
+                ],
+                "finding_assets": {
+                    finding_name: {
+                        "title.md": "VGl0bGU=",
+                        "type.md": "VHlwZQ==",
+                        "references.md": "",
+                        "short_description.md": "",
+                        "long_description.md": "",
+                        "short_remediation.md": "",
+                        "long_remediation.md": "",
+                    }
+                },
+            }
+        }
+
+        def fake_request(method, uri, body=None):
+            self.assertEqual(method, "GET")
+            self.assertEqual(uri, "/api/v2/attack-paths/details")
+            return MockResponse(payload)
+
+        with patch.object(self.client, "_request", side_effect=fake_request), patch.object(
+            self.client, "get_features", return_value={}
+        ):
+            result = self.client.get_enterprise_findings()
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["severity"], "Low")
+        self.assertEqual(result[0]["principals"][0]["severity"], "Low")
+
+    def test_get_enterprise_findings_keeps_distinct_source_target_pairs(self):
+        finding_name = "TierZeroGenericWrite"
+        payload = {
+            "data": {
+                "findings": [
+                    {
+                        "finding_name": finding_name,
+                        "environment_id": "S-1-5-21-1",
+                        "sourceid": "SRC-1",
+                        "source_kind": "User",
+                        "target_id": "TGT-1",
+                        "target_kind": "Group",
+                        "impact_percentage": 0.2,
+                        "exposure_percentage": 0.2,
+                        "asset_group": "tier-zero",
+                    },
+                    {
+                        "finding_name": finding_name,
+                        "environment_id": "S-1-5-21-1",
+                        "sourceid": "SRC-2",
+                        "source_kind": "User",
+                        "target_id": "TGT-1",
+                        "target_kind": "Group",
+                        "impact_percentage": 0.2,
+                        "exposure_percentage": 0.2,
+                        "asset_group": "tier-zero",
+                    },
+                ],
+                "finding_assets": {
+                    finding_name: {
+                        "title.md": "VGl0bGU=",
+                        "type.md": "VHlwZQ==",
+                        "references.md": "",
+                        "short_description.md": "",
+                        "long_description.md": "",
+                        "short_remediation.md": "",
+                        "long_remediation.md": "",
+                    }
+                },
+            }
+        }
+
+        def fake_request(method, uri, body=None):
+            self.assertEqual(method, "GET")
+            self.assertEqual(uri, "/api/v2/attack-paths/details")
+            return MockResponse(payload)
+
+        with patch.object(self.client, "_request", side_effect=fake_request), patch.object(
+            self.client, "get_features", return_value={}
+        ):
+            result = self.client.get_enterprise_findings()
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result[0]["principals"]), 2)
+        self.assertEqual(
+            {(principal["source_id"], principal["target_id"]) for principal in result[0]["principals"]},
+            {("SRC-1", "TGT-1"), ("SRC-2", "TGT-1")},
+        )
