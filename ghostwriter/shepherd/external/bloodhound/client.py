@@ -320,6 +320,12 @@ class APIClient:
             "Critical": 4,
         }
 
+        def _get_source_id(finding: dict) -> Any:
+            """
+            Return the relationship source principal ID across BHE field-name variants.
+            """
+            return finding.get("sourceid", finding.get("source_id"))
+
         def _calculate_severity(finding: dict) -> str:
             """
             Calculate severity based on ``impact_percentage`` or ``exposure_percentage``.
@@ -335,7 +341,7 @@ class APIClient:
             """
             impact_percentage = finding.get("impact_percentage", 0)
             exposure_percentage = finding.get("exposure_percentage", 0)
-            if finding.get("sourceid") is not None and "LargeDefaultGroups" not in finding.get("finding_name", ""):
+            if _get_source_id(finding) is not None and "LargeDefaultGroups" not in finding.get("finding_name", ""):
                 impact_percentage = exposure_percentage
             # Convert to percentage (0.98473 -> 98.473) for comparison
             impact_pct = impact_percentage * 100
@@ -363,7 +369,7 @@ class APIClient:
                 "impact_percentage": finding.get("impact_percentage", 0),
 
                 # BHE's API has a typo in "sourceid" (missing underscore)
-                "source_id": finding.get("sourceid", None),
+                "source_id": _get_source_id(finding),
                 "source_kind": finding.get("source_kind", None),
                 "source_properties": finding.get("source_properties", {}),
 
@@ -451,6 +457,7 @@ class APIClient:
                 grouped[unique_key].pop("impact_percentage", None)
 
                 grouped[unique_key].pop("sourceid", None)
+                grouped[unique_key].pop("source_id", None)
                 grouped[unique_key].pop("source_kind", None)
                 grouped[unique_key].pop("source_properties", None)
 
@@ -460,10 +467,9 @@ class APIClient:
                 grouped[unique_key].pop("attack_path_edge_id", None)
             else:
                 # Additional finding occurrence - just add the target information if not already present
-                target_id = finding.get("target_id")
-                # Check if this ``target_id`` is already in the list
-                existing_target_ids = [t["target_id"] for t in grouped[unique_key]["principals"]]
-                if target_id not in existing_target_ids:
+                source_target_pair = (_get_source_id(finding), finding.get("target_id"))
+                existing_source_target_pairs = [(t["source_id"], t["target_id"]) for t in grouped[unique_key]["principals"]]
+                if source_target_pair not in existing_source_target_pairs:
                     severity = _calculate_severity(finding)
                     grouped[unique_key]["principals"].append(_build_target_entry(finding, severity))
 
