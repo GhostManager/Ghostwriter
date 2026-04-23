@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed an issue in the BloodHound Enterprise findings parser that could cause an incorrect severity calculation
-* Fixed the `primary` field not being available for client contacts for all users when creating via the GraphQL API
+* Fixed the `primary` field not being available for client contacts for all users when creating via the GraphQL API (Fixes #880)
 
 ## [6.3.2] - 21 April 2026
 
