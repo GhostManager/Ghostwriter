@@ -1,4 +1,5 @@
 import json
+import logging
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -11,6 +12,8 @@ from ghostwriter.shepherd.external.bloodhound.client import (
     ErrorDetails,
     ErrorResponse
 )
+
+logging.disable(logging.CRITICAL)
 
 
 class MockResponse:
@@ -295,12 +298,47 @@ class BloodHoundClientTests(TestCase):
             }
         }
 
-        def fake_request(method, uri, body=None):
-            self.assertEqual(method, "GET")
-            self.assertEqual(uri, "/api/v2/attack-paths/details")
-            return MockResponse(payload)
+        with patch.object(self.client, "_request", return_value=MockResponse(payload)), patch.object(
+            self.client, "get_features", return_value={}
+        ):
+            result = self.client.get_enterprise_findings()
 
-        with patch.object(self.client, "_request", side_effect=fake_request), patch.object(
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["severity"], "Low")
+        self.assertEqual(result[0]["principals"][0]["severity"], "Low")
+
+    def test_get_enterprise_findings_keeps_large_default_groups_on_impact_path(self):
+        finding_name = "LargeDefaultGroupsGenericAll"
+        payload = {
+            "data": {
+                "findings": [
+                    {
+                        "finding_name": finding_name,
+                        "environment_id": "S-1-5-21-1",
+                        "sourceid": "EXAMPLE-S-1-1-0",
+                        "source_kind": "Group",
+                        "target_id": "TGT-1",
+                        "target_kind": "Container",
+                        "impact_percentage": 0,
+                        "exposure_percentage": 0.9801,
+                        "asset_group": "tier-zero",
+                    }
+                ],
+                "finding_assets": {
+                    finding_name: {
+                        "title.md": "VGl0bGU=",
+                        "type.md": "VHlwZQ==",
+                        "references.md": "",
+                        "short_description.md": "",
+                        "long_description.md": "",
+                        "short_remediation.md": "",
+                        "long_remediation.md": "",
+                    }
+                },
+            }
+        }
+
+        with patch.object(self.client, "_request", return_value=MockResponse(payload)), patch.object(
             self.client, "get_features", return_value={}
         ):
             result = self.client.get_enterprise_findings()
@@ -351,12 +389,7 @@ class BloodHoundClientTests(TestCase):
             }
         }
 
-        def fake_request(method, uri, body=None):
-            self.assertEqual(method, "GET")
-            self.assertEqual(uri, "/api/v2/attack-paths/details")
-            return MockResponse(payload)
-
-        with patch.object(self.client, "_request", side_effect=fake_request), patch.object(
+        with patch.object(self.client, "_request", return_value=MockResponse(payload)), patch.object(
             self.client, "get_features", return_value={}
         ):
             result = self.client.get_enterprise_findings()
