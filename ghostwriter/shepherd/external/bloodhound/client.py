@@ -431,7 +431,16 @@ class APIClient:
         # Add assets to each finding based on name and tier
         findings = payload["findings"]
         for finding in findings:
-            if tzgroup is not None and finding.get("asset_group") == tzgroup and finding["finding_name"] in txassets:
+            is_tier_zero_finding = False
+            if isinstance(tzgroup, dict):
+                # BHE returns the configured tier zero tag via ``/asset-group-tags``, so match findings
+                # against that dynamic tag ID instead of assuming a fixed value across instances
+                is_tier_zero_finding = finding.get("asset_group_tag_id") == tzgroup.get("id")
+            elif tzgroup is not None:
+                # As a fallback, compare to the default tier zero group name
+                is_tier_zero_finding = finding.get("asset_group") == tzgroup
+
+            if is_tier_zero_finding and finding["finding_name"] in txassets:
                 finding["assets"] = txassets[finding["finding_name"]]
             else:
                 finding["assets"] = tzassets.get(finding["finding_name"])
@@ -449,6 +458,7 @@ class APIClient:
                 grouped[unique_key] = dict(finding)
                 # Move ``finding_name`` to the top level of the dict
                 grouped[unique_key] = {"finding_name": finding_name, **grouped[unique_key]}
+                grouped[unique_key]["is_tier_zero"] = is_tier_zero_finding
 
                 # Calculate severity and build target entry
                 severity = _calculate_severity(finding)
@@ -472,6 +482,7 @@ class APIClient:
 
                 grouped[unique_key].pop("attack_path_edge_id", None)
             else:
+                grouped[unique_key]["is_tier_zero"] = grouped[unique_key].get("is_tier_zero", False) or is_tier_zero_finding
                 # Additional finding occurrence - just add the target information if not already present
                 source_target_pair = (_get_source_id(finding), finding.get("target_id"))
                 existing_source_target_pairs = [(t["source_id"], t["target_id"]) for t in grouped[unique_key]["principals"]]
@@ -515,7 +526,7 @@ class APIClient:
         # The tier zero tag is the one with type=1 and position=1
         for tag in response.json()["data"]["tags"]:
             if tag["type"] == 1 and tag["position"] == 1:
-                return tag["name"]
+                return tag
         return None
 
     def get_data_quality(self, domain: Domain) -> dict:
