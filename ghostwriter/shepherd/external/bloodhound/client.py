@@ -442,7 +442,7 @@ class APIClient:
                 # First occurrence - create entry with all fields
                 grouped[unique_key] = dict(finding)
                 # Move ``finding_name`` to the top level of the dict
-                grouped[unique_key] = {"finding_name": finding.pop("finding_name"), **grouped[unique_key]}
+                grouped[unique_key] = {"finding_name": finding_name, **grouped[unique_key]}
 
                 # Calculate severity and build target entry
                 severity = _calculate_severity(finding)
