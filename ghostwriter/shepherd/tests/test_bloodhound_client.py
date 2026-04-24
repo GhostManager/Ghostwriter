@@ -298,7 +298,13 @@ class BloodHoundClientTests(TestCase):
             }
         }
 
-        with patch.object(self.client, "_request", return_value=MockResponse(payload)), patch.object(
+        def fake_request(method, uri, body=None):
+            self.assertEqual(method, "GET")
+            self.assertEqual(uri, "/api/v2/attack-paths/details")
+            self.assertIsNone(body)
+            return MockResponse(payload)
+
+        with patch.object(self.client, "_request", side_effect=fake_request), patch.object(
             self.client, "get_features", return_value={}
         ):
             result = self.client.get_enterprise_findings()
@@ -389,7 +395,13 @@ class BloodHoundClientTests(TestCase):
             }
         }
 
-        with patch.object(self.client, "_request", return_value=MockResponse(payload)), patch.object(
+        def fake_request(method, uri, body=None):
+            self.assertEqual(method, "GET")
+            self.assertEqual(uri, "/api/v2/attack-paths/details")
+            self.assertIsNone(body)
+            return MockResponse(payload)
+
+        with patch.object(self.client, "_request", side_effect=fake_request), patch.object(
             self.client, "get_features", return_value={}
         ):
             result = self.client.get_enterprise_findings()
