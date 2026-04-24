@@ -339,8 +339,14 @@ class APIClient:
             ``impact_percentage`` ``LargeDefaultGroups`` means exposure is 100% so impact is more relevant for
             prioritizing the finding.
             """
-            impact_percentage = finding.get("impact_percentage", 0)
-            exposure_percentage = finding.get("exposure_percentage", 0)
+            def _normalize_percentage(value: Any) -> float:
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return 0.0
+
+            impact_percentage = _normalize_percentage(finding.get("impact_percentage", 0))
+            exposure_percentage = _normalize_percentage(finding.get("exposure_percentage", 0))
             if _get_source_id(finding) is not None and "LargeDefaultGroups" not in finding.get("finding_name", ""):
                 impact_percentage = exposure_percentage
             # Convert to percentage (0.98473 -> 98.473) for comparison
