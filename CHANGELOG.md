@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.4] - 24 April 2026
+
+### Added
+
+* Added `is_tier_zero` to BloodHound Enterprise findings for easy tier zero identification
+
+### Fixed
+
+* Fixed an edge case with `LargeDefaultGroup` findings from BloodHound Enterprise that could cause a source/target pairing to have an incorrect severity assigned
+
 ## [6.3.3] - 23 April 2026
 
 ### Fixed
