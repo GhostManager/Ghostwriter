@@ -439,6 +439,43 @@ class BloodHoundClientTests(TestCase):
         self.assertEqual(result[0]["assets"]["title"], "Non-Tier Zero Title")
         self.assertTrue(result[0]["is_tier_zero"])
 
+    def test_get_enterprise_findings_ignores_malformed_tier_zero_tag_without_id(self):
+        finding_name = "TierZeroGenericWrite"
+        payload = {
+            "data": {
+                "findings": [
+                    {
+                        "finding_name": finding_name,
+                        "environment_id": "S-1-5-21-1",
+                        "target_id": "TGT-1",
+                        "target_kind": "Group",
+                        "impact_percentage": 0.2,
+                    }
+                ],
+                "finding_assets": {
+                    finding_name: {
+                        "title.md": "VGllciBaZXJvIFRpdGxl",
+                        "tx-title.md": "Tm9uLVRpZXIgWmVybyBUaXRsZQ==",
+                        "type.md": "VHlwZQ==",
+                        "references.md": "",
+                        "short_description.md": "",
+                        "long_description.md": "",
+                        "short_remediation.md": "",
+                        "long_remediation.md": "",
+                    }
+                },
+            }
+        }
+
+        with patch.object(self.client, "_request", return_value=MockResponse(payload)), patch.object(
+            self.client, "get_features", return_value={"tier_management_engine": True}
+        ), patch.object(self.client, "_get_tier_zero_group", return_value={"name": "custom-tier-zero"}):
+            result = self.client.get_enterprise_findings()
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["assets"]["title"], "Tier Zero Title")
+        self.assertFalse(result[0]["is_tier_zero"])
+
     def test_get_enterprise_findings_treats_invalid_percentages_as_zero(self):
         finding_name = "TierZeroGenericWrite"
         payload = {

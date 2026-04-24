@@ -435,7 +435,9 @@ class APIClient:
             if isinstance(tzgroup, dict):
                 # BHE returns the configured tier zero tag via ``/asset-group-tags``, so match findings
                 # against that dynamic tag ID instead of assuming a fixed value across instances
-                is_tier_zero_finding = finding.get("asset_group_tag_id") == tzgroup.get("id")
+                tzgroup_id = tzgroup.get("id")
+                if tzgroup_id is not None:
+                    is_tier_zero_finding = finding.get("asset_group_tag_id") == tzgroup_id
             elif tzgroup is not None:
                 # As a fallback, compare to the default tier zero group name
                 is_tier_zero_finding = finding.get("asset_group") == tzgroup
