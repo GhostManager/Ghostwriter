@@ -22,187 +22,244 @@
     <img class="avatar" src="{%  url 'users:avatar_download' slug=user.username %}" alt="Avatar">
   {% endif %}
 
+  {% comment %}  Account Information Update {% endcomment %}
+  {% if request.user == user %}
+    <div id="account-actions" class="mt-4 mb-4">
+      <h4 class="icon user-edit-icon">Update Account Details</h4>
+      <div class="btn-group flex-wrap" role="group" aria-label="profile-mgmt">
+        <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
+        <a class="btn btn-secondary" href="{% url 'users:user_update' request.user.username %}">Update Personal
+          Information</a>
+        <a class="btn btn-info" href="{% url 'account_email' %}">Manage Email(s)</a>
+        <a class="btn btn-info btn-extra" href="{% url 'users:userprofile_update' request.user.username %}">Update Avatar</a>
+        <a class="btn btn-primary" href="{% url 'mfa_index' %}">Manage MFA Settings</a>
+      </div>
+    </div>
+  {% endif %}
+
   {% comment %} Users Profile Section {% endcomment %}
-  <div class="container profile-container mt-4">
-    <div class="row align-items-center text-left text-left">
-      <div class="col-sm">
-        <p class="bold icon user-icon">Full Name</p>
-      </div>
-      <div class="col-sm">
-        <p class="text-left">{% if user.name %}{{ user.name }}{% else %}Missing Full Name{% endif %}</p>
-      </div>
+  <div id="profile-overview-card" class="card mt-4 mb-4">
+    <div class="card-header text-left">
+      <h4 class="icon user-icon m-0">Profile Overview</h4>
     </div>
-
-    <div class="row align-items-center text-left">
-      <div class="col-sm">
-        <p class="bold icon user-icon-ninja">Username</p>
-      </div>
-      <div class="col-sm">
-        <p class="text-left">{{ user.username }}</p>
-      </div>
-    </div>
-
-    <div class="row align-items-center text-left">
-      <div class="col-sm">
-        <p class="bold icon email-icon">Email</p>
-      </div>
-      <div class="col-sm">
-        <p class="text-left">{{ user.email }}</p>
-      </div>
-    </div>
-
-    <div class="row align-items-center text-left">
-      <div class="col-sm">
-        <p class="bold icon phone-icon">Phone</p>
-      </div>
-      <div class="col-sm">
-        <p class="text-left">{% if user.phone %}{{ user.phone }}{% else %}Unavailable{% endif %}</p>
-      </div>
-    </div>
-
-    <div class="row align-items-center text-left">
-      <div class="col-sm">
-        <p class="bold icon globe-icon">Timezone</p>
-      </div>
-      <div class="col-sm">
-        <p class="text-left">{{ user.timezone }}</p>
-      </div>
-    </div>
-
-    {% if request.user == user %}
-      <div class="row align-items-center text-left">
-        <div class="col-sm">
-          <p class="bold icon user-role-icon">Role</p>
+    <div class="card-body">
+      <div class="row text-left">
+        <div class="col-md-6 col-xl-4 mb-3">
+          <p class="bold icon user-icon mb-1">Full Name</p>
+          <p class="mb-0">{% if user.name %}{{ user.name }}{% else %}Missing Full Name{% endif %}</p>
         </div>
-        <div class="col-sm">
-          <p class="text-left">
-            {{ user.role|capfirst }}
-          </p>
-        </div>
-      </div>
 
-      <div class="row align-items-center text-left">
-        <div class="col-sm">
-          <p class="bold icon access-icon">Access</p>
+        <div class="col-md-6 col-xl-4 mb-3">
+          <p class="bold icon user-icon-ninja mb-1">Username</p>
+          <p class="mb-0">{{ user.username }}</p>
         </div>
-        <div class="col-sm">
-          <p class="text-left">
-            {% if user.is_superuser %}Superuser{% elif user.is_staff %}Staff{% else %}Normal User{% endif %}
-          </p>
-        </div>
-      </div>
 
-      {% if user|get_groups %}
-        <div class="row align-items-center text-left">
-          <div class="col-sm">
-            <p class="bold icon groups-icon">Groups</p>
+        <div class="col-md-6 col-xl-4 mb-3">
+          <p class="bold icon email-icon mb-1">Email</p>
+          <p class="mb-0">{{ user.email }}</p>
+        </div>
+
+        <div class="col-md-6 col-xl-4 mb-3">
+          <p class="bold icon phone-icon mb-1">Phone</p>
+          <p class="mb-0">{% if user.phone %}{{ user.phone }}{% else %}Unavailable{% endif %}</p>
+        </div>
+
+        <div class="col-md-6 col-xl-4 mb-3">
+          <p class="bold icon globe-icon mb-1">Timezone</p>
+          <p class="mb-0">{{ user.timezone }}</p>
+        </div>
+
+        {% if request.user == user %}
+          <div class="col-md-6 col-xl-4 mb-3">
+            <p class="bold icon user-role-icon mb-1">Role</p>
+            <p class="mb-0">{{ user.role|capfirst }}</p>
           </div>
-          <div class="col-sm">
-            <p class="text-center">
-              {{ user|get_groups }}
-            </p>
+
+          <div class="col-md-6 col-xl-4 mb-3">
+            <p class="bold icon access-icon mb-1">Access</p>
+            <p class="mb-0">{% if user.is_superuser %}Superuser{% elif user.is_staff %}Staff{% else %}Normal User{% endif %}</p>
           </div>
-        </div>
-      {% endif %}
-    {% endif %}
+
+          {% if user|get_groups %}
+            <div class="col-md-6 col-xl-4 mb-3">
+              <p class="bold icon groups-icon mb-1">Groups</p>
+              <p class="mb-0">{{ user|get_groups }}</p>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
   </div>
 
   {% comment %} User Assignments {% endcomment %}
   {%  if user.projectassignment_set.all %}
     {% if request.user|is_privileged or request.user == user %}
-      <h4 class="icon assignment-icon pt-4">Active Project Assignments</h4>
-      <hr>
-
-      <table id="assignmentTable" class="tablesorter table-sm table-hover">
-        <thead>
-        <th class="align-middle text-left">Project</th>
-        <th class="align-middle text-left">Role</th>
-        <th class="align-middle sorter-date-range-dMMMyyyy text-left">Execution Dates</th>
-        </thead>
-        {% for assignment in user.projectassignment_set.all %}
-          {% if not assignment.project.complete %}
-            <tr id="assignment_{{ assignment.id }}">
-              <td class="align-middle text-left"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a>
-              <td class="align-middle text-left">{{ assignment.role }}</td>
-              <td class="align-middle text-left" data-text="{{ assignment.start_date|date:"Y-m-d" }}">{{ assignment.start_date|date:"DATE_FORMAT" }} – {{ assignment.end_date|date:"DATE_FORMAT" }}</td>
-            </tr>
-          {% endif %}
-        {% endfor %}
-      </table>
+      <div id="assignment-card" class="card mt-4 mb-4">
+        <div class="card-header text-left">
+          <h4 class="icon assignment-icon m-0">Active Project Assignments</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="assignmentTable" class="tablesorter table-sm table-hover">
+              <thead>
+              <th class="align-middle text-left">Project</th>
+              <th class="align-middle text-left">Role</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy text-left">Execution Dates</th>
+              </thead>
+              {% for assignment in user.projectassignment_set.all %}
+                {% if not assignment.project.complete %}
+                  <tr id="assignment_{{ assignment.id }}">
+                    <td class="align-middle text-left"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a></td>
+                    <td class="align-middle text-left">{{ assignment.role }}</td>
+                    <td class="align-middle text-left" data-text="{{ assignment.start_date|date:"Y-m-d" }}">{{ assignment.start_date|date:"DATE_FORMAT" }} – {{ assignment.end_date|date:"DATE_FORMAT" }}</td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </table>
+          </div>
+        </div>
+      </div>
     {% endif %}
   {% endif %}
 
-  {% comment %}  Account Information Update {% endcomment %}
   {% if request.user == user %}
-    <h4 class="icon user-edit-icon pt-4">Update Account Details</h4>
-    <hr>
-
-    <div class="btn-group" role="group" aria-label="profile-mgmt">
-      <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
-      <a class="btn btn-secondary" href="{% url 'users:user_update' request.user.username %}">Update Personal
-        Information</a>
-      <a class="btn btn-info" href="{% url 'account_email' %}">Manage Email(s)</a>
-      <a class="btn btn-info btn-extra" href="{% url 'users:userprofile_update' request.user.username %}">Update Avatar</a>
-      <a class="btn btn-primary" href="{% url 'mfa_index' %}">Manage MFA Settings</a>
-    </div>
-
-    <div class="col-md-12 pt-4 d-flex text-center position-relative justify-content-center">
-      <form class="form-inline">
-        <div class="form-group">
-
-          <label class="switch position-absolute start-0">
-            <input id="js-hide-expired" type="checkbox">
-            <span class="slider round hide-expired-slider"></span>
+    <div id="api-token-card" class="card mt-4 mb-4">
+      <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <h4 class="icon user-secret-icon m-0 align-middle">API Tokens</h4>
+        <div class="d-flex align-items-center mt-3 mt-md-0">
+          <label class="d-flex align-items-center mb-0 mr-3">
+            <span class="switch mr-2">
+              <input id="js-hide-expired" class="js-hide-expired-tokens" data-expired-token-selector=".js-expired-api-token" data-storage-key="profileHideExpiredApiTokens" type="checkbox">
+              <span class="slider round"></span>
+            </span>
+            <span>Hide Expired</span>
           </label>
-
-          <h4 class="icon user-secret-icon m-0 align-middle">API Tokens</h4>
-
-          <a class="icon add-icon btn btn-primary float-right col-2 position-absolute end-0"
-             href="{% url 'api:ajax_create_token' %}">Create</a>
+          <a class="icon add-icon btn btn-primary" href="{% url 'api:ajax_create_token' %}">Create</a>
         </div>
-      </form>
-    </div>
-    <hr>
-
-    {% if user.apikey_set.get_usable_keys %}
-      <table id="tokenTable" class="tablesorter table-sm table-hover">
-        <thead>
-        <th class="align-middle text-left">Name</th>
-        <th class="align-middle text-left">Added</th>
-        <th class="align-middle text-left">Expires</th>
-        <th class="align-middle sorter-false">Revoke</th>
-        </thead>
-        {% for key in user.apikey_set.get_usable_keys %}
-          <tr id="token_{{ key.id }}">
-            <td id="key_name_{{ key.id }}" class="align-middle text-left">{{ key.name|bleach }}</td>
-            <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
-            {% if key.has_expired %}
-              <td class="align-middle text-left burned js-expired-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
-            {% else %}
-              <td class="align-middle text-left">
-                {% if key.expiry_date %}
-                  {{ key.expiry_date|date:"d M Y @ H:i:s e" }}
-                {% else %}
-                  Never
-                {% endif %}
-              </td>
-            {% endif %}
-            <td>
-              <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
-                 data-target="#confirm-revoke-modal" href="javascript:void(0);"
-                 revoke-target-csrftoken="{{ csrf_token }}" revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
-                 revoke-target-id="{{ key.id }}">
-                Revoke
-              </a>
-            </td>
-          </tr>
-        {% endfor %}
-      </table>
-    {% else %}
-      <div class="alert alert-secondary mt-3">You have no tokens yet. You can create one with the "Create" button up
-        above.
       </div>
-    {% endif %}
+      <div class="card-body">
+        <p class="card-text text-muted text-left">
+          API tokens authenticate as your user account and inherit your current Ghostwriter permissions. Use them for personal automation tied to your account.
+        </p>
+
+        {% if user.apikey_set.get_usable_keys %}
+          <div class="table-responsive">
+            <table id="tokenTable" class="tablesorter table-sm table-hover">
+              <thead>
+              <th class="align-middle text-left">Name</th>
+              <th class="align-middle text-left">Added</th>
+              <th class="align-middle text-left">Expires</th>
+              <th class="align-middle sorter-false">Revoke</th>
+              </thead>
+              {% for key in user.apikey_set.get_usable_keys %}
+                <tr id="token_{{ key.id }}">
+                  <td id="key_name_{{ key.id }}" class="align-middle text-left">{{ key.name|bleach }}</td>
+                  <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
+                  {% if key.has_expired %}
+                    <td class="align-middle text-left burned js-expired-token js-expired-api-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                  {% elif key.expires_soon %}
+                    <td class="align-middle text-left warning">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                  {% else %}
+                    <td class="align-middle text-left">
+                      {% if key.expiry_date %}
+                        {{ key.expiry_date|date:"d M Y @ H:i:s e" }}
+                      {% else %}
+                        Never
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                  <td>
+                    <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
+                       data-target="#confirm-revoke-modal" href="javascript:void(0);"
+                       data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
+                       data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
+                      Revoke
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+        {% else %}
+          <div class="alert alert-secondary mt-3">You have no tokens yet. You can create one with the "Create" button above.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="service-token-card" class="card mb-4">
+      <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <h4 class="icon user-secret-icon m-0 align-middle">Service Tokens</h4>
+        <div class="d-flex align-items-center mt-3 mt-md-0">
+          <label class="d-flex align-items-center mb-0 mr-3">
+            <span class="switch mr-2">
+              <input id="js-hide-expired-service-tokens" class="js-hide-expired-tokens" data-expired-token-selector=".js-expired-service-token" data-storage-key="profileHideExpiredServiceTokens" type="checkbox">
+              <span class="slider round"></span>
+            </span>
+            <span>Hide Expired</span>
+          </label>
+          <a class="icon add-icon btn btn-primary" href="{% url 'api:ajax_create_service_token' %}">Create</a>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="card-text text-muted text-left">
+          Service tokens authenticate as non-human service principals and use only the permissions assigned to the token.
+        </p>
+
+        {% if user.service_tokens.get_usable_tokens %}
+          <div class="table-responsive">
+            <table id="serviceTokenTable" class="tablesorter table-sm table-hover">
+              <thead>
+              <th class="align-middle text-left">Name</th>
+              <th class="align-middle text-left">Service Principal</th>
+              <th class="align-middle text-left">Scope</th>
+              <th class="align-middle text-left">Added</th>
+              <th class="align-middle text-left">Expires</th>
+              <th class="align-middle text-left">Last Used</th>
+              <th class="align-middle sorter-false">Revoke</th>
+              </thead>
+              {% for key in user.service_tokens.get_usable_tokens %}
+                <tr id="service_token_{{ key.id }}">
+                  <td class="align-middle text-left">{{ key.name|bleach }}</td>
+                  <td class="align-middle text-left">{{ key.service_principal.name|bleach }}</td>
+                  <td class="align-middle text-left">{{ key.get_scope_display }}</td>
+                  <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
+                  {% if key.has_expired %}
+                    <td class="align-middle text-left burned js-expired-token js-expired-service-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                  {% elif key.expires_soon %}
+                    <td class="align-middle text-left warning">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                  {% else %}
+                    <td class="align-middle text-left">
+                      {% if key.expiry_date %}
+                        {{ key.expiry_date|date:"d M Y @ H:i:s e" }}
+                      {% else %}
+                        Never
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                  <td class="align-middle text-left">
+                    {% if key.last_used_at %}
+                      {{ key.last_used_at|date:"d M Y @ H:i:s e" }}
+                    {% else %}
+                      Never
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
+                       data-target="#confirm-revoke-modal" href="javascript:void(0);"
+                       data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_service_token' key.id %}"
+                       data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
+                      Revoke
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+        {% else %}
+          <div class="alert alert-secondary mt-3">You have no service tokens yet.</div>
+        {% endif %}
+      </div>
+    </div>
   {% endif %}
 {% endblock %}
 
@@ -230,21 +287,64 @@
           cssNone: 'none',
         }
       );
+      $("#serviceTokenTable").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+          headers: {
+            3: {sorter: 'shortDate'},
+            4: {sorter: 'shortDate'},
+            5: {sorter: 'shortDate'}
+          },
+        }
+      );
       $('.tablesorter').trigger('update');
     });
 
     {% comment %} Hide and Show Expired Token Table Rows {% endcomment %}
     $(function () {
-      $('#js-hide-expired').change(function () {
-        let hideCheckbox = $('#js-hide-expired');
-        $('.js-expired-token').each(function () {
+      function getStoredHideExpiredPreference(storageKey) {
+        try {
+          return localStorage.getItem(storageKey) === 'true';
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function saveHideExpiredPreference(storageKey, checked) {
+        try {
+          localStorage.setItem(storageKey, checked ? 'true' : 'false');
+        } catch (error) {
+          return;
+        }
+      }
+
+      function applyExpiredTokenVisibility(hideCheckbox, expiredTokenSelector, animate) {
+        $(expiredTokenSelector).each(function () {
+          let tokenRow = $(this).closest('tr');
+
           if (hideCheckbox.prop('checked')) {
-            $(this).closest('tr').fadeOut(500);
+            animate ? tokenRow.fadeOut(500) : tokenRow.hide();
           } else {
-            $(this).closest('tr').fadeIn(500);
+            animate ? tokenRow.fadeIn(500) : tokenRow.show();
           }
         });
-      }).change();
+      }
+
+      $('.js-hide-expired-tokens').each(function () {
+        let hideCheckbox = $(this);
+        let expiredTokenSelector = hideCheckbox.data('expired-token-selector');
+        let storageKey = hideCheckbox.data('storage-key');
+
+        hideCheckbox.prop('checked', getStoredHideExpiredPreference(storageKey));
+        applyExpiredTokenVisibility(hideCheckbox, expiredTokenSelector, false);
+
+        hideCheckbox.change(function () {
+          saveHideExpiredPreference(storageKey, hideCheckbox.prop('checked'));
+          applyExpiredTokenVisibility(hideCheckbox, expiredTokenSelector, true);
+        });
+      });
     });
 
     $(document).ready(function () {
@@ -253,13 +353,13 @@
   </script>
 
   {% for message in messages %}
-    {% if "api-token" in message.tags %}
+    {% if "api-token" in message.tags or "service-token" in message.tags %}
       <div class="modal" id="confirm-token-modal" data-backdrop="static" data-keyboard="false" tabindex="-1"
            caller-id="" role="dialog" aria-labelledby="confirm-token-modal-label" aria-hidden="false">
         <div class="modal-dialog token-modal modal-dialog-centered" role="document">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">Your New Token</h5>
+              <h5 class="modal-title">{% if "service-token" in message.tags %}Your New Service Token{% else %}Your New Token{% endif %}</h5>
             </div>
             <div class="modal-body confirm-token">
               <code>{{ message|linebreaks }}</code>

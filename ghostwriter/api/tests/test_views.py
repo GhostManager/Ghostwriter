@@ -10,32 +10,42 @@ from http import HTTPStatus
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.test import Client, TestCase, override_settings
+from django.http import JsonResponse
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
 
 # 3rd Party Libraries
 import factory
-from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
+from allauth.mfa.totp.internal.auth import TOTP, generate_totp_secret
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
-from ghostwriter.api.models import APIKey
+from ghostwriter.api.models import (
+    APIKey,
+    ServicePrincipal,
+    ServiceToken,
+    ServiceTokenPermission,
+    ServiceTokenPreset,
+    ServiceTokenProjectScope,
+)
+from ghostwriter.api.views import HasuraActionView, JwtRequiredMixin
 from ghostwriter.factories import (
     ActivityTypeFactory,
     BlankReportFindingLinkFactory,
     ClientFactory,
-    EvidenceOnReportFactory,
     DomainFactory,
     DomainStatusFactory,
     EvidenceOnFindingFactory,
+    EvidenceOnReportFactory,
     ExtraFieldModelFactory,
     ExtraFieldSpecFactory,
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
     OplogEntryRecordingFactory,
+    OplogFactory,
     ProjectAssignmentFactory,
     ProjectContactFactory,
     ProjectFactory,
@@ -51,7 +61,10 @@ from ghostwriter.factories import (
     StaticServerFactory,
     UserFactory,
 )
-from ghostwriter.oplog.utils import CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE, get_cast_decompressed_bytes
+from ghostwriter.oplog.utils import (
+    CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
+    get_cast_decompressed_bytes,
+)
 from ghostwriter.reporting.models import Evidence
 
 logging.disable(logging.CRITICAL)
@@ -79,7 +92,9 @@ class HasuraViewTests(TestCase):
         cls.uri = reverse("api:graphql_test")
         # Create valid and invalid JWTs for testing
         yesterday = timezone.now() - timedelta(days=1)
-        cls.user_token_obj, cls.user_token = APIKey.objects.create_token(user=cls.user, name="Valid Token")
+        cls.user_token_obj, cls.user_token = APIKey.objects.create_token(
+            user=cls.user, name="Valid Token"
+        )
         cls.inactive_token_obj, cls.inactive_token = APIKey.objects.create_token(
             user=cls.inactive_user, name="Inactive User Token"
         )
@@ -89,11 +104,33 @@ class HasuraViewTests(TestCase):
         cls.revoked_token_obj, cls.revoked_token = APIKey.objects.create_token(
             user=cls.inactive_user, name="Revoked Token", revoked=True
         )
+        cls.project = ProjectFactory()
+        cls.other_project = ProjectFactory()
+        ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        ProjectAssignmentFactory(project=cls.other_project, operator=cls.user)
+        cls.service_principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=cls.user
+        )
+        cls.service_token_obj, cls.service_token = ServiceToken.objects.create_token(
+            name="Project Read Service Token",
+            created_by=cls.user,
+            service_principal=cls.service_principal,
+            permissions=[
+                {
+                    "resource_type": ServiceTokenPermission.ResourceType.PROJECT,
+                    "resource_id": cls.project.id,
+                    "action": ServiceTokenPermission.Action.READ,
+                }
+            ],
+        )
         # Test data set as required inputs for the test view
-        cls.data = {"input": {"id": 1, "function": "test_func", "args": {"arg1": "test"}}}
+        cls.data = {
+            "input": {"id": 1, "function": "test_func", "args": {"arg1": "test"}}
+        }
 
     def setUp(self):
         self.client = Client()
+        self.request_factory = RequestFactory()
 
     def test_action_with_valid_jwt(self):
         _, token = utils.generate_jwt(self.user)
@@ -101,7 +138,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -111,7 +151,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "wrong", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": "wrong",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 403)
 
@@ -140,7 +183,10 @@ class HasuraViewTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
@@ -159,7 +205,10 @@ class HasuraViewTests(TestCase):
                 }
             },
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
@@ -176,7 +225,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data="Not JSON",
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -206,7 +258,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
         self.user.is_active = True
@@ -218,7 +273,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -227,7 +285,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {self.user_token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.user_token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -236,7 +297,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {self.inactive_token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.inactive_token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -245,7 +309,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {self.expired_token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.expired_token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -254,9 +321,69 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {self.revoked_token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.revoked_token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
+
+    def test_action_with_service_token_is_denied_by_default(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.service_token}",
+            },
+        )
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+        result = {
+            "message": "Service tokens are not authorized for this action",
+            "extensions": {
+                "code": "Unauthorized",
+            },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_service_token_action_authorization_uses_token_permissions(self):
+        class ProjectReadServiceAction(JwtRequiredMixin, HasuraActionView):
+            required_inputs = ["projectId"]
+
+            def get_service_token_permission_requirements(self):
+                return (
+                    {
+                        "resource_type": ServiceTokenPermission.ResourceType.PROJECT,
+                        "resource_id": self.input["projectId"],
+                        "action": ServiceTokenPermission.Action.READ,
+                    },
+                )
+
+            def post(self, request, *args, **kwargs):
+                return JsonResponse({"result": "success"}, status=self.status)
+
+        view = ProjectReadServiceAction.as_view()
+        request = self.request_factory.post(
+            "/project-read-service-action",
+            data=json.dumps({"input": {"projectId": self.project.id}}),
+            content_type="application/json",
+            HTTP_HASURA_ACTION_SECRET=f"{ACTION_SECRET}",
+            HTTP_AUTHORIZATION=f"Bearer {self.service_token}",
+        )
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), {"result": "success"})
+
+        request = self.request_factory.post(
+            "/project-read-service-action",
+            data=json.dumps({"input": {"projectId": self.other_project.id}}),
+            content_type="application/json",
+            HTTP_HASURA_ACTION_SECRET=f"{ACTION_SECRET}",
+            HTTP_AUTHORIZATION=f"Bearer {self.service_token}",
+        )
+        response = view(request)
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
 
     def test_action_with_incomplete_header(self):
         result = {
@@ -270,7 +397,10 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": ""},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": "",
+            },
         )
         self.assertEqual(response.status_code, 400)
         self.assertJSONEqual(force_str(response.content), result)
@@ -396,6 +526,414 @@ class HasuraWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
+    def test_graphql_webhook_with_valid_service_token(self):
+        oplog = OplogFactory()
+        ProjectAssignmentFactory(project=oplog.project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Mythic Sync", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Service Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=[
+                {
+                    "resource_type": "oplog",
+                    "resource_id": oplog.id,
+                    "action": ServiceTokenPermission.Action.READ,
+                },
+                {
+                    "resource_type": "oplog",
+                    "resource_id": oplog.id,
+                    "action": ServiceTokenPermission.Action.CREATE,
+                },
+                {
+                    "resource_type": "oplog",
+                    "resource_id": oplog.id,
+                    "action": ServiceTokenPermission.Action.UPDATE,
+                },
+                {
+                    "resource_type": "oplog",
+                    "resource_id": oplog.id,
+                    "action": ServiceTokenPermission.Action.DELETE,
+                },
+            ],
+        )
+        data = {
+            "X-Hasura-Role": "service",
+            "X-Hasura-User-Name": principal.name,
+            "X-Hasura-Service-Principal-Id": f"{principal.id}",
+            "X-Hasura-Service-Token-Id": f"{token_obj.id}",
+            "X-Hasura-Read-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Create-OplogEntry-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Update-OplogEntry-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Delete-OplogEntry-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Principal-Type": "service",
+            "X-Hasura-Service-Token-Preset": ServiceTokenPreset.OPLOG_RW,
+        }
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_graphql_webhook_with_project_read_service_token(self):
+        project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=[
+                {
+                    "resource_type": "project",
+                    "resource_id": project.id,
+                    "action": ServiceTokenPermission.Action.READ,
+                },
+            ],
+        )
+        data = {
+            "X-Hasura-Role": "service",
+            "X-Hasura-User-Name": principal.name,
+            "X-Hasura-Service-Principal-Id": f"{principal.id}",
+            "X-Hasura-Service-Token-Id": f"{token_obj.id}",
+            "X-Hasura-Read-Oplog-Id": "-1",
+            "X-Hasura-Create-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Update-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Delete-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Principal-Type": "service",
+            "X-Hasura-Service-Token-Preset": ServiceTokenPreset.PROJECT_READ,
+        }
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_graphql_webhook_with_multi_project_read_service_token(self):
+        project = ProjectFactory()
+        other_project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        ProjectAssignmentFactory(project=other_project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        permissions = ServiceToken.build_permissions_for_preset(
+            ServiceTokenPreset.PROJECT_READ,
+            project_ids=[project.id, other_project.id],
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Multi-Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=permissions,
+        )
+        data = {
+            "X-Hasura-Role": "service",
+            "X-Hasura-User-Name": principal.name,
+            "X-Hasura-Service-Principal-Id": f"{principal.id}",
+            "X-Hasura-Service-Token-Id": f"{token_obj.id}",
+            "X-Hasura-Read-Oplog-Id": "-1",
+            "X-Hasura-Create-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Update-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Delete-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Principal-Type": "service",
+            "X-Hasura-Service-Token-Preset": ServiceTokenPreset.PROJECT_READ,
+        }
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_graphql_webhook_with_all_accessible_project_read_service_token(self):
+        project = ProjectFactory()
+        future_project = ProjectFactory()
+        inaccessible_project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="All Accessible Projects Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                all_accessible_projects=True,
+            ),
+        )
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        first_response_data = json.loads(force_str(response.content))
+        self.assertEqual(first_response_data["X-Hasura-Role"], "service")
+        self.assertNotIn("X-Hasura-Read-Project-Ids", first_response_data)
+        self.assertEqual(token_obj.get_current_project_read_ids(), [project.id])
+
+        ProjectAssignmentFactory(project=future_project, operator=self.user)
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        second_response_data = json.loads(force_str(response.content))
+        self.assertNotIn("X-Hasura-Read-Project-Ids", second_response_data)
+        self.assertEqual(
+            token_obj.get_current_project_read_ids(),
+            sorted([project.id, future_project.id]),
+        )
+        self.assertNotIn(
+            inaccessible_project.id,
+            token_obj.get_current_project_read_ids(),
+        )
+
+    def test_graphql_webhook_throttles_service_token_last_used_at(self):
+        project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=[
+                {
+                    "resource_type": "project",
+                    "resource_id": project.id,
+                    "action": ServiceTokenPermission.Action.READ,
+                },
+            ],
+        )
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        token_obj.refresh_from_db()
+        first_used_at = token_obj.last_used_at
+        self.assertIsNotNone(first_used_at)
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        token_obj.refresh_from_db()
+        self.assertEqual(token_obj.last_used_at, first_used_at)
+
+    def test_graphql_webhook_revokes_service_token_for_inactive_creator(self):
+        project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=project.id,
+            ),
+        )
+        self.user.is_active = False
+        self.user.save()
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        token_obj.refresh_from_db()
+        principal.refresh_from_db()
+        self.assertTrue(token_obj.revoked)
+        self.assertFalse(principal.active)
+
+    def test_graphql_webhook_revokes_service_token_for_stale_project_scope(self):
+        project = ProjectFactory()
+        assignment = ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=project.id,
+            ),
+        )
+        assignment.delete()
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        token_obj.refresh_from_db()
+        self.assertTrue(token_obj.revoked)
+
+    def test_graphql_webhook_prunes_stale_project_from_multi_project_scope(self):
+        project = ProjectFactory()
+        stale_project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        stale_assignment = ProjectAssignmentFactory(
+            project=stale_project, operator=self.user
+        )
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Multi-Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[project.id, stale_project.id],
+            ),
+        )
+        stale_assignment.delete()
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        response_data = json.loads(force_str(response.content))
+        self.assertNotIn("X-Hasura-Read-Project-Ids", response_data)
+        token_obj.refresh_from_db()
+        self.assertFalse(token_obj.revoked)
+        self.assertEqual(token_obj.get_allowed_project_ids(), [project.id])
+
+    def test_graphql_webhook_with_oplog_read_service_token_only_emits_read_scope(self):
+        oplog = OplogFactory()
+        ProjectAssignmentFactory(project=oplog.project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Custom Service", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Read-Only Oplog Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=[
+                {
+                    "resource_type": "oplog",
+                    "resource_id": oplog.id,
+                    "action": ServiceTokenPermission.Action.READ,
+                },
+            ],
+        )
+        data = {
+            "X-Hasura-Role": "service",
+            "X-Hasura-User-Name": principal.name,
+            "X-Hasura-Service-Principal-Id": f"{principal.id}",
+            "X-Hasura-Service-Token-Id": f"{token_obj.id}",
+            "X-Hasura-Read-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Create-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Update-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Delete-OplogEntry-Oplog-Id": "-1",
+            "X-Hasura-Principal-Type": "service",
+            "X-Hasura-Service-Token-Preset": ServiceTokenPreset.CUSTOM,
+        }
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_graphql_webhook_with_mixed_service_token_emits_action_specific_scope(self):
+        oplog = OplogFactory()
+        project = ProjectFactory()
+        ProjectAssignmentFactory(project=oplog.project, operator=self.user)
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Mixed Service", created_by=self.user
+        )
+        permissions = ServiceToken.build_permissions_for_preset(
+            ServiceTokenPreset.OPLOG_RW,
+            oplog_id=oplog.id,
+        )
+        permissions.extend(
+            ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=project.id,
+            )
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Mixed Service Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=permissions,
+        )
+        data = {
+            "X-Hasura-Role": "service",
+            "X-Hasura-User-Name": principal.name,
+            "X-Hasura-Service-Principal-Id": f"{principal.id}",
+            "X-Hasura-Service-Token-Id": f"{token_obj.id}",
+            "X-Hasura-Read-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Create-OplogEntry-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Update-OplogEntry-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Delete-OplogEntry-Oplog-Id": f"{oplog.id}",
+            "X-Hasura-Principal-Type": "service",
+            "X-Hasura-Service-Token-Preset": ServiceTokenPreset.CUSTOM,
+        }
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
     def test_graphql_webhook_without_jwt(self):
         response = self.client.get(
             self.uri,
@@ -426,7 +964,9 @@ class HasuraLoginTests(TestCase):
         self.client = Client()
 
     def test_graphql_login(self):
-        data = {"input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}}
+        data = {
+            "input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}
+        }
         response = self.client.post(
             self.uri,
             data=data,
@@ -440,7 +980,12 @@ class HasuraLoginTests(TestCase):
         self.assertTrue(response.json()["token"])
 
     def test_graphql_login_with_invalid_credentials(self):
-        data = {"input": {"username": f"{self.user.username}", "password": "Not the Password"}}
+        data = {
+            "input": {
+                "username": f"{self.user.username}",
+                "password": "Not the Password",
+            }
+        }
         result = {
             "message": "Invalid credentials",
             "extensions": {
@@ -466,7 +1011,12 @@ class HasuraLoginTests(TestCase):
             },
         }
 
-        data = {"input": {"username": f"{self.user_mfa.username}", "password": f"{PASSWORD}"}}
+        data = {
+            "input": {
+                "username": f"{self.user_mfa.username}",
+                "password": f"{PASSWORD}",
+            }
+        }
         response = self.client.post(
             self.uri,
             data=data,
@@ -478,7 +1028,12 @@ class HasuraLoginTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), result)
 
-        data = {"input": {"username": f"{self.user_mfa_required.username}", "password": f"{PASSWORD}"}}
+        data = {
+            "input": {
+                "username": f"{self.user_mfa_required.username}",
+                "password": f"{PASSWORD}",
+            }
+        }
         response = self.client.post(
             self.uri,
             data=data,
@@ -503,25 +1058,35 @@ class HasuraWhoamiTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_graphql_whoami(self):
         _, token = utils.generate_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         # Test bypasses Hasura so the ``["data"]["whoami"]`` keys are not present
         self.assertEqual(response.json()["username"], self.user.username)
 
     def test_graphql_whoami_with_tracked_token(self):
-        user_token_obj, user_token = APIKey.objects.create_token(user=self.user, name="Valid Token")
+        user_token_obj, user_token = APIKey.objects.create_token(
+            user=self.user, name="Valid Token"
+        )
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {user_token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {user_token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         # Test bypasses Hasura so the ``["data"]["whoami"]`` keys are not present
@@ -543,7 +1108,9 @@ class HasuraGenerateReportTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_graphql_generate_report(self):
         _, token = utils.generate_jwt(self.user)
@@ -552,7 +1119,10 @@ class HasuraGenerateReportTests(TestCase):
             self.uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -563,7 +1133,10 @@ class HasuraGenerateReportTests(TestCase):
             self.uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -582,7 +1155,10 @@ class HasuraGenerateReportTests(TestCase):
             self.uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -607,17 +1183,24 @@ class HasuraCheckoutTests(TestCase):
         cls.activity = ActivityTypeFactory()
         cls.project = ProjectFactory()
         cls.other_project = ProjectFactory()
-        cls.assignment = ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+        cls.assignment = ProjectAssignmentFactory(
+            operator=cls.user, project=cls.project
+        )
 
         cls.domain_available = DomainStatusFactory(domain_status="Available")
         cls.domain_unavailable = DomainStatusFactory(domain_status="Unavailable")
         cls.domain = DomainFactory(domain_status=cls.domain_available)
         cls.unavailable_domain = DomainFactory(domain_status=cls.domain_unavailable)
-        cls.expired_domain = DomainFactory(expiration=timezone.now() - timedelta(days=1), domain_status=cls.domain_available)
+        cls.expired_domain = DomainFactory(
+            expiration=timezone.now() - timedelta(days=1),
+            domain_status=cls.domain_available,
+        )
 
         cls.server_unavailable = ServerStatusFactory(server_status="Unavailable")
         cls.server = StaticServerFactory()
-        cls.unavailable_server = StaticServerFactory(server_status=cls.server_unavailable)
+        cls.unavailable_server = StaticServerFactory(
+            server_status=cls.server_unavailable
+        )
         cls.server_role = ServerRoleFactory()
 
         cls.domain_uri = reverse("api:graphql_checkout_domain")
@@ -627,7 +1210,9 @@ class HasuraCheckoutTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def generate_domain_data(
         self,
@@ -673,13 +1258,18 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_domain(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_domain_data(self.project.pk, self.domain.pk, self.activity.pk)
+        data = self.generate_domain_data(
+            self.project.pk, self.domain.pk, self.activity.pk
+        )
         del data["input"]["description"]
         response = self.client.post(
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
@@ -693,13 +1283,18 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_server(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk)
+        data = self.generate_server_data(
+            self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk
+        )
         del data["input"]["description"]
         response = self.client.post(
             self.server_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
@@ -713,12 +1308,21 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_server_with_invalid_role(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, 999, description="Test note")
+        data = self.generate_server_data(
+            self.project.pk,
+            self.server.pk,
+            self.activity.pk,
+            999,
+            description="Test note",
+        )
         response = self.client.post(
             self.server_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
@@ -742,7 +1346,10 @@ class HasuraCheckoutTests(TestCase):
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -765,7 +1372,10 @@ class HasuraCheckoutTests(TestCase):
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -784,7 +1394,10 @@ class HasuraCheckoutTests(TestCase):
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -803,7 +1416,10 @@ class HasuraCheckoutTests(TestCase):
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -822,7 +1438,10 @@ class HasuraCheckoutTests(TestCase):
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -836,12 +1455,17 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_unavailable_domain(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_domain_data(self.project.pk, self.unavailable_domain.pk, self.activity.pk)
+        data = self.generate_domain_data(
+            self.project.pk, self.unavailable_domain.pk, self.activity.pk
+        )
         response = self.client.post(
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -856,13 +1480,19 @@ class HasuraCheckoutTests(TestCase):
     def test_graphql_checkout_unavailable_server(self):
         _, token = utils.generate_jwt(self.user)
         data = self.generate_server_data(
-            self.project.pk, self.unavailable_server.pk, self.activity.pk, self.server_role.pk
+            self.project.pk,
+            self.unavailable_server.pk,
+            self.activity.pk,
+            self.server_role.pk,
         )
         response = self.client.post(
             self.server_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -876,12 +1506,17 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_expired_domain(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_domain_data(self.project.pk, self.expired_domain.pk, self.activity.pk)
+        data = self.generate_domain_data(
+            self.project.pk, self.expired_domain.pk, self.activity.pk
+        )
         response = self.client.post(
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -895,12 +1530,17 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_without_project_access(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_domain_data(self.other_project.pk, self.domain.pk, self.activity.pk)
+        data = self.generate_domain_data(
+            self.other_project.pk, self.domain.pk, self.activity.pk
+        )
         response = self.client.post(
             self.domain_uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -935,18 +1575,24 @@ class CheckoutDeleteViewTests(TestCase):
         cls.domain_checkout = HistoryFactory(domain=cls.domain, project=cls.project)
 
         cls.other_domain = DomainFactory(domain_status=cls.domain_unavailable)
-        cls.other_checkout = HistoryFactory(domain=cls.other_domain, project=cls.other_project)
+        cls.other_checkout = HistoryFactory(
+            domain=cls.other_domain, project=cls.other_project
+        )
 
         cls.server_available = ServerStatusFactory(server_status="Available")
         cls.server_unavailable = ServerStatusFactory(server_status="Unavailable")
         cls.server = StaticServerFactory(server_status=cls.server_unavailable)
-        cls.server_checkout = ServerHistoryFactory(server=cls.server, project=cls.project)
+        cls.server_checkout = ServerHistoryFactory(
+            server=cls.server, project=cls.project
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def generate_data(self, checkout_id):
         return {
@@ -961,7 +1607,10 @@ class CheckoutDeleteViewTests(TestCase):
             self.domain_uri,
             data=self.generate_data(self.domain_checkout.pk),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         self.domain.refresh_from_db()
@@ -973,7 +1622,10 @@ class CheckoutDeleteViewTests(TestCase):
             self.server_uri,
             data=self.generate_data(self.server_checkout.pk),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         self.server.refresh_from_db()
@@ -985,7 +1637,10 @@ class CheckoutDeleteViewTests(TestCase):
             self.domain_uri,
             data=self.generate_data(self.other_checkout.pk),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
         result = {
@@ -1002,7 +1657,10 @@ class CheckoutDeleteViewTests(TestCase):
             self.domain_uri,
             data=self.generate_data(checkout_id=999),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
@@ -1046,10 +1704,15 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.uri,
             data=self.generate_data(self.template.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(self.ReportTemplate.objects.filter(id=self.template.id).exists())
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(id=self.template.id).exists()
+        )
 
     def test_deleting_template_with_invalid_id(self):
         _, token = utils.generate_jwt(self.user)
@@ -1057,7 +1720,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.uri,
             data=self.generate_data(999),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
 
@@ -1067,7 +1733,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.uri,
             data=self.generate_data(self.protected_template.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1077,7 +1746,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.uri,
             data=self.generate_data(self.protected_template.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -1085,7 +1757,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.uri,
             data=self.generate_data(self.client_template.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
@@ -1125,14 +1800,21 @@ class GraphqlAttachFindingAction(TestCase):
             self.uri,
             data=self.generate_data(self.finding.id, self.report.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         new_finding = response.json()["id"]
         self.assertTrue(self.ReportFindingLink.objects.filter(id=new_finding).exists())
         self.assertEqual(len(self.finding.tags.similar_objects()), 1)
         self.assertEqual(
-            len(self.ReportFindingLink.objects.get(id=new_finding).tags.similar_objects()),
+            len(
+                self.ReportFindingLink.objects.get(
+                    id=new_finding
+                ).tags.similar_objects()
+            ),
             len(self.finding.tags.similar_objects()),
         )
         self.assertEqual(list(self.finding.tags.names()), self.tags)
@@ -1143,10 +1825,16 @@ class GraphqlAttachFindingAction(TestCase):
             self.uri,
             data=self.generate_data(self.finding.id, 999),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
-        data = {"message": "Report does not exist", "extensions": {"code": "ReportDoesNotExist"}}
+        data = {
+            "message": "Report does not exist",
+            "extensions": {"code": "ReportDoesNotExist"},
+        }
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_attaching_finding_with_invalid_finding(self):
@@ -1155,10 +1843,16 @@ class GraphqlAttachFindingAction(TestCase):
             self.uri,
             data=self.generate_data(999, self.report.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
-        data = {"message": "Finding does not exist", "extensions": {"code": "FindingDoesNotExist"}}
+        data = {
+            "message": "Finding does not exist",
+            "extensions": {"code": "FindingDoesNotExist"},
+        }
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_attaching_finding_with_mgr_access(self):
@@ -1167,7 +1861,10 @@ class GraphqlAttachFindingAction(TestCase):
             self.uri,
             data=self.generate_data(self.finding.id, self.report.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1177,20 +1874,26 @@ class GraphqlAttachFindingAction(TestCase):
             self.uri,
             data=self.generate_data(self.finding.id, self.report.id),
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
 
 
 class GraphqlUploadEvidenceViewTests(TestCase):
     """Collection of tests for :view:`api:GraphqlUploadEvidenceView`."""
+
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.disallowed_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("api:graphql_upload_evidence")
         cls.project = ProjectFactory()
-        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.assignment = ProjectAssignmentFactory(
+            project=cls.project, operator=cls.user
+        )
         cls.report = ReportFactory(project=cls.project)
         cls.finding = ReportFindingLinkFactory(report=cls.report)
 
@@ -1212,7 +1915,10 @@ class GraphqlUploadEvidenceViewTests(TestCase):
             self.uri,
             data={"input": data},
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 201, response.content)
         id = response.json()["id"]
@@ -1236,7 +1942,10 @@ class GraphqlUploadEvidenceViewTests(TestCase):
             self.uri,
             data={"input": data},
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertNotEqual(response.status_code, 201, response.content)
 
@@ -1255,7 +1964,10 @@ class GraphqlUploadEvidenceViewTests(TestCase):
             self.uri,
             data={"input": data},
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 201, response.content)
         id = response.json()["id"]
@@ -1279,7 +1991,10 @@ class GraphqlUploadEvidenceViewTests(TestCase):
             self.uri,
             data={"input": data},
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertNotEqual(response.status_code, 201, response.content)
 
@@ -1292,12 +2007,17 @@ class GraphqlUploadEvidenceViewTests(TestCase):
             self.uri,
             data=oversized_body,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 413)
         self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
 
-    def test_upload_evidence_accepts_valid_file_when_encoded_body_exceeds_file_limit(self):
+    def test_upload_evidence_accepts_valid_file_when_encoded_body_exceeds_file_limit(
+        self,
+    ):
         """Base64+JSON overhead should not cause a valid sub-limit file upload to be rejected."""
         _, token = utils.generate_jwt(self.user)
         file_bytes = b"x" * 90
@@ -1321,7 +2041,10 @@ class GraphqlUploadEvidenceViewTests(TestCase):
                 self.uri,
                 data=request_body,
                 content_type="application/json",
-                **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+                **{
+                    "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                    "HTTP_AUTHORIZATION": f"Bearer {token}",
+                },
             )
         self.assertEqual(response.status_code, 201, response.content)
 
@@ -1342,7 +2065,10 @@ class GraphqlGenerateCodenameActionTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1362,7 +2088,9 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_graphql_get_extra_field_spec(self):
         _, token = utils.generate_jwt(self.user)
@@ -1370,7 +2098,10 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
             self.uri,
             content_type="application/json",
             data={"input": {"model": "finding"}},
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1378,7 +2109,10 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
             self.uri,
             content_type="application/json",
             data={"input": {"model": "Finding"}},
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1386,7 +2120,10 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
             self.uri,
             content_type="application/json",
             data={"input": {"model": "Reporting.Finding"}},
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1402,16 +2139,25 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
             self.uri,
             content_type="application/json",
             data={"input": {"model": "finding"}},
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["extraFieldSpec"]["test_field"]["internalName"], "test_field")
+        self.assertEqual(
+            response.json()["extraFieldSpec"]["test_field"]["internalName"],
+            "test_field",
+        )
 
         response = self.client.post(
             self.uri,
             content_type="application/json",
             data={"input": {"model": "bad_model_name"}},
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["message"], "Model does not exist")
@@ -1445,7 +2191,10 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
             self.uri,
             content_type="application/json",
             data={"input": {"model": "finding"}},
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
 
         self.assertEqual(response.status_code, 200)
@@ -1468,7 +2217,9 @@ class HasuraCreateUserTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def generate_data(self, name, email, username, role, **kwargs):
         return {
@@ -1478,7 +2229,7 @@ class HasuraCreateUserTests(TestCase):
                 "username": username,
                 "role": role,
                 "password": PASSWORD,
-                **kwargs
+                **kwargs,
             }
         }
 
@@ -1488,7 +2239,10 @@ class HasuraCreateUserTests(TestCase):
             self.uri,
             content_type="application/json",
             data=self.generate_data(
-                "validuser", "validuser@specterops.io", "validuser", "user",
+                "validuser",
+                "validuser@specterops.io",
+                "validuser",
+                "user",
                 requiremfa=True,
                 timezone="America/New_York",
                 enableFindingCreate=False,
@@ -1499,7 +2253,10 @@ class HasuraCreateUserTests(TestCase):
                 enableObservationDelete=False,
                 phone="123-456-7890",
             ),
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1510,8 +2267,13 @@ class HasuraCreateUserTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            data=self.generate_data("validuser", "validuser@specterops.io", "validuser", "user"),
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            data=self.generate_data(
+                "validuser", "validuser@specterops.io", "validuser", "user"
+            ),
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
@@ -1527,8 +2289,17 @@ class HasuraCreateUserTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            data=self.generate_data("badtimezone", "badtimezone@specterops.io", "badtimezone", "user", timezone="PST"),
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            data=self.generate_data(
+                "badtimezone",
+                "badtimezone@specterops.io",
+                "badtimezone",
+                "user",
+                timezone="PST",
+            ),
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
@@ -1544,8 +2315,13 @@ class HasuraCreateUserTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            data=self.generate_data("badrole", "badrole@specterops.io", "badrole", "invalid"),
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            data=self.generate_data(
+                "badrole", "badrole@specterops.io", "badrole", "invalid"
+            ),
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
@@ -1561,8 +2337,13 @@ class HasuraCreateUserTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            data=self.generate_data("mgruser", "mgruser@specterops.io", "mgruser", "manager"),
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            data=self.generate_data(
+                "mgruser", "mgruser@specterops.io", "mgruser", "manager"
+            ),
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
         result = {
@@ -1578,8 +2359,13 @@ class HasuraCreateUserTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            data=self.generate_data("unprivileged", "unprivileged@specterops.io", "unprivileged", "manager"),
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+            data=self.generate_data(
+                "unprivileged", "unprivileged@specterops.io", "unprivileged", "manager"
+            ),
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 401)
         result = {
@@ -1603,7 +2389,9 @@ class GraphqlDomainUpdateEventTests(TestCase):
         cls.uri = reverse("api:graphql_domain_update_event")
         cls.available_status = DomainStatusFactory(domain_status="Available")
         cls.expired_status = DomainStatusFactory(domain_status="Expired")
-        cls.domain = DomainFactory(name="chrismaddalena.com", domain_status=cls.expired_status)
+        cls.domain = DomainFactory(
+            name="chrismaddalena.com", domain_status=cls.expired_status
+        )
         cls.sample_data = {
             "event": {
                 "data": {
@@ -1653,7 +2441,9 @@ class GraphqlDomainUpdateEventTests(TestCase):
         self.domain.domain_status = self.available_status
         self.domain.save()
 
-        self.sample_data["event"]["data"]["new"]["domain_status_id"] = self.available_status.id
+        self.sample_data["event"]["data"]["new"][
+            "domain_status_id"
+        ] = self.available_status.id
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -1804,9 +2594,15 @@ class GraphqlReportFindingEventTests(TestCase):
 
     def test_model_cleaning_position(self):
         self.ReportFindingLink.objects.all().delete()
-        first_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=1)
-        second_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=2)
-        third_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=3)
+        first_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=1
+        )
+        second_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=2
+        )
+        third_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=3
+        )
 
         # Simulate an event changing the position of the first finding to `3`
         first_finding.position = 3
@@ -1886,7 +2682,9 @@ class GraphqlReportFindingEventTests(TestCase):
         self.assertEqual(third_finding.position, 1)
 
         # Repeat for an `INSERT` event
-        new_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity)
+        new_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity
+        )
         sample_data = {
             "event": {
                 "op": "INSERT",
@@ -1916,7 +2714,9 @@ class GraphqlReportFindingEventTests(TestCase):
 
     def test_position_set_to_zero(self):
         self.ReportFindingLink.objects.all().delete()
-        finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=0)
+        finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=0
+        )
 
         # Simulate an event changing the position of the first finding to `0`
         sample_data = {
@@ -1949,7 +2749,9 @@ class GraphqlReportFindingEventTests(TestCase):
 
     def test_position_set_higher_than_count(self):
         self.ReportFindingLink.objects.all().delete()
-        finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=100)
+        finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=100
+        )
 
         # Simulate an event changing the position of the first finding to `100`
         sample_data = {
@@ -1978,15 +2780,23 @@ class GraphqlReportFindingEventTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         finding.refresh_from_db()
-        total_findings = self.ReportFindingLink.objects.filter(report=self.report).count()
+        total_findings = self.ReportFindingLink.objects.filter(
+            report=self.report
+        ).count()
         self.assertEqual(finding.position, total_findings)
 
     def test_position_change_on_delete(self):
         self.ReportFindingLink.objects.all().delete()
 
-        first_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=1)
-        second_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=2)
-        third_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=3)
+        first_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=1
+        )
+        second_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=2
+        )
+        third_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=3
+        )
 
         # Simulate an event deleting the second finding
         second_finding.delete()
@@ -2101,16 +2911,32 @@ class GraphqlProjectObjectiveUpdateEventTests(TestCase):
         cls.complete_data = {
             "event": {
                 "data": {
-                    "new": {"id": cls.objective.id, "complete": False, "deadline": cls.objective.deadline},
-                    "old": {"id": cls.objective.id, "complete": True, "deadline": cls.objective.deadline},
+                    "new": {
+                        "id": cls.objective.id,
+                        "complete": False,
+                        "deadline": cls.objective.deadline,
+                    },
+                    "old": {
+                        "id": cls.objective.id,
+                        "complete": True,
+                        "deadline": cls.objective.deadline,
+                    },
                 },
             }
         }
         cls.incomplete_data = {
             "event": {
                 "data": {
-                    "new": {"id": cls.objective.id, "complete": True, "deadline": cls.objective.deadline},
-                    "old": {"id": cls.objective.id, "complete": False, "deadline": cls.objective.deadline},
+                    "new": {
+                        "id": cls.objective.id,
+                        "complete": True,
+                        "deadline": cls.objective.deadline,
+                    },
+                    "old": {
+                        "id": cls.objective.id,
+                        "complete": False,
+                        "deadline": cls.objective.deadline,
+                    },
                 },
             }
         }
@@ -2178,16 +3004,32 @@ class GraphqlProjectSubTaskUpdateEventTests(TestCase):
         cls.complete_data = {
             "event": {
                 "data": {
-                    "new": {"id": cls.task.id, "complete": False, "deadline": cls.task.deadline},
-                    "old": {"id": cls.task.id, "complete": True, "deadline": cls.task.deadline},
+                    "new": {
+                        "id": cls.task.id,
+                        "complete": False,
+                        "deadline": cls.task.deadline,
+                    },
+                    "old": {
+                        "id": cls.task.id,
+                        "complete": True,
+                        "deadline": cls.task.deadline,
+                    },
                 },
             }
         }
         cls.incomplete_data = {
             "event": {
                 "data": {
-                    "new": {"id": cls.task.id, "complete": True, "deadline": cls.task.deadline},
-                    "old": {"id": cls.task.id, "complete": False, "deadline": cls.task.deadline},
+                    "new": {
+                        "id": cls.task.id,
+                        "complete": True,
+                        "deadline": cls.task.deadline,
+                    },
+                    "old": {
+                        "id": cls.task.id,
+                        "complete": False,
+                        "deadline": cls.task.deadline,
+                    },
                 },
             }
         }
@@ -2252,18 +3094,26 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
             friendly_name="Test Finding Evidence",
             finding=cls.finding,
             report=None,
-            document=factory.django.FileField(filename="finding_evidence.txt", data=b"lorem ipsum"),
+            document=factory.django.FileField(
+                filename="finding_evidence.txt", data=b"lorem ipsum"
+            ),
         )
         cls.report_evidence = EvidenceOnReportFactory(
             friendly_name="Test Report Evidence",
             report=cls.finding.report,
-            document=factory.django.FileField(filename="finding_evidence.txt", data=b"lorem ipsum"),
+            document=factory.django.FileField(
+                filename="finding_evidence.txt", data=b"lorem ipsum"
+            ),
         )
-        cls.deleted_evidence = EvidenceOnFindingFactory(finding=cls.finding, friendly_name="Deleted Evidence")
+        cls.deleted_evidence = EvidenceOnFindingFactory(
+            finding=cls.finding, friendly_name="Deleted Evidence"
+        )
 
         # Add a blank finding to the report for regression testing updates on findings with blank fields
         BlankReportFindingLinkFactory(report=cls.report_evidence.report)
-        EvidenceOnReportFactory(report=cls.report_evidence.report, friendly_name="Blank Test")
+        EvidenceOnReportFactory(
+            report=cls.report_evidence.report, friendly_name="Blank Test"
+        )
 
         # Sample data for an update that changes the friendly name and document on finding evidence
         cls.update_data_finding = {
@@ -2348,7 +3198,8 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         # The friendly name references should be changed
         self.finding.refresh_from_db()
         self.assertEqual(
-            self.finding.description, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
+            self.finding.description,
+            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
         )
 
         # Test updating report evidence
@@ -2363,7 +3214,8 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.finding.refresh_from_db()
         self.assertEqual(
-            self.finding.impact, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
+            self.finding.impact,
+            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
         )
 
     def test_graphql_evidence_delete_event(self):
@@ -2380,7 +3232,9 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(os.path.exists(self.deleted_evidence.document.path))
         self.finding.refresh_from_db()
-        self.assertEqual(self.finding.mitigation, "<p>Here is some evidence:</p><p></p>")
+        self.assertEqual(
+            self.finding.mitigation, "<p>Here is some evidence:</p><p></p>"
+        )
 
 
 # Tests related to CBVs for :model:`api:APIKey`
@@ -2393,18 +3247,24 @@ class ApiKeyRevokeTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
-        cls.token_obj, cls.token = APIKey.objects.create_token(user=cls.user, name="User's Token")
+        cls.token_obj, cls.token = APIKey.objects.create_token(
+            user=cls.user, name="User's Token"
+        )
         cls.other_token_obj, cls.other_token = APIKey.objects.create_token(
             user=cls.other_user, name="Other User's Token"
         )
         cls.uri = reverse("api:ajax_revoke_token", kwargs={"pk": cls.token_obj.pk})
-        cls.other_uri = reverse("api:ajax_revoke_token", kwargs={"pk": cls.other_token_obj.pk})
+        cls.other_uri = reverse(
+            "api:ajax_revoke_token", kwargs={"pk": cls.other_token_obj.pk}
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         data = {"result": "success", "message": "Token successfully revoked!"}
@@ -2431,13 +3291,17 @@ class ApiKeyCreateTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("api:ajax_create_token")
-        cls.redirect_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
+        cls.redirect_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -2459,11 +3323,267 @@ class ApiKeyCreateTests(TestCase):
 
     def test_post_data(self):
         response = self.client_auth.post(
-            self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now() + timedelta(days=1)}
+            self.uri,
+            data={
+                "name": "CreateView Test",
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
         )
         self.assertRedirects(response, self.redirect_uri)
         obj = APIKey.objects.get(name="CreateView Test")
         self.assertEqual(obj.user, self.user)
+
+
+class ServiceTokenRevokeTests(TestCase):
+    """Collection of tests for :view:`api:ServiceTokenRevoke`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.other_user = UserFactory(password=PASSWORD)
+        cls.principal = ServicePrincipal.objects.create(
+            name="Mythic Sync", created_by=cls.user
+        )
+        cls.token_obj, cls.token = ServiceToken.objects.create_token(
+            name="User's Service Token",
+            created_by=cls.user,
+            service_principal=cls.principal,
+        )
+        cls.other_principal = ServicePrincipal.objects.create(
+            name="Other Mythic Sync", created_by=cls.other_user
+        )
+        cls.other_token_obj, cls.other_token = ServiceToken.objects.create_token(
+            name="Other User's Service Token",
+            created_by=cls.other_user,
+            service_principal=cls.other_principal,
+        )
+        cls.uri = reverse(
+            "api:ajax_revoke_service_token", kwargs={"pk": cls.token_obj.pk}
+        )
+        cls.other_uri = reverse(
+            "api:ajax_revoke_service_token", kwargs={"pk": cls.other_token_obj.pk}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        data = {"result": "success", "message": "Service token successfully revoked!"}
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+        self.token_obj.refresh_from_db()
+        self.assertTrue(self.token_obj.revoked)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_revoking_another_users_service_token(self):
+        response = self.client_auth.post(self.other_uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ServiceTokenCreateTests(TestCase):
+    """Collection of tests for :view:`api:ServiceTokenCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.oplog = OplogFactory()
+        cls.second_oplog = OplogFactory()
+        ProjectAssignmentFactory(project=cls.oplog.project, operator=cls.user)
+        ProjectAssignmentFactory(project=cls.second_oplog.project, operator=cls.user)
+        cls.existing_principal = ServicePrincipal.objects.create(
+            name="Mythic Sync", created_by=cls.user
+        )
+        cls.uri = reverse("api:ajax_create_service_token")
+        cls.redirect_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_get_renders_create_form(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "service_token_form.html")
+        self.assertIn("cancel_link", response.context)
+        self.assertEqual(response.context["cancel_link"], self.redirect_uri)
+
+    def test_post_data(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Create Service Token",
+                "new_service_principal_name": "Mythic Sync Prod",
+                "oplog": self.oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="Create Service Token")
+        self.assertEqual(obj.created_by, self.user)
+        self.assertEqual(obj.get_allowed_oplog_id(), self.oplog.id)
+        self.assertEqual(obj.service_principal.name, "Mythic Sync Prod")
+        self.assertEqual(
+            obj.service_principal.service_type, ServicePrincipal.ServiceType.INTEGRATION
+        )
+
+    def test_post_data_with_existing_service_principal(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Acme Assessment",
+                "service_principal": self.existing_principal.id,
+                "oplog": self.second_oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="Acme Assessment")
+        self.assertEqual(obj.created_by, self.user)
+        self.assertEqual(obj.service_principal, self.existing_principal)
+        self.assertEqual(obj.get_allowed_oplog_id(), self.second_oplog.id)
+
+    def test_post_data_reuses_existing_principal_name(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Beta Assessment",
+                "new_service_principal_name": "mythic sync",
+                "oplog": self.second_oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="Beta Assessment")
+        self.assertEqual(obj.service_principal, self.existing_principal)
+
+    def test_post_data_for_project_read_token(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.PROJECT_READ,
+                "name": "Project Reader",
+                "service_principal": self.existing_principal.id,
+                "projects": [self.oplog.project.id],
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="Project Reader")
+        self.assertEqual(obj.service_principal, self.existing_principal)
+        self.assertEqual(obj.get_allowed_project_id(), self.oplog.project.id)
+        self.assertEqual(obj.get_allowed_project_ids(), [self.oplog.project.id])
+        self.assertIsNone(obj.get_allowed_oplog_id())
+        self.assertEqual(obj.get_token_preset(), ServiceTokenPreset.PROJECT_READ)
+
+    def test_post_data_for_multi_project_read_token(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.PROJECT_READ,
+                "name": "Multi-Project Reader",
+                "service_principal": self.existing_principal.id,
+                "projects": [self.oplog.project.id, self.second_oplog.project.id],
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="Multi-Project Reader")
+        self.assertEqual(obj.service_principal, self.existing_principal)
+        self.assertIsNone(obj.get_allowed_project_id())
+        self.assertEqual(
+            obj.get_allowed_project_ids(),
+            sorted([self.oplog.project.id, self.second_oplog.project.id]),
+        )
+        self.assertIsNone(obj.get_allowed_oplog_id())
+        self.assertEqual(obj.get_token_preset(), ServiceTokenPreset.PROJECT_READ)
+
+    def test_post_data_rejects_inaccessible_project_ids(self):
+        inaccessible_project = ProjectFactory()
+
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.PROJECT_READ,
+                "name": "Unauthorized Project Reader",
+                "service_principal": self.existing_principal.id,
+                "projects": [self.oplog.project.id, inaccessible_project.id],
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("projects", response.context["form"].errors)
+        self.assertFalse(
+            ServiceToken.objects.filter(name="Unauthorized Project Reader").exists()
+        )
+
+    def test_post_data_rejects_other_users_service_principal(self):
+        other_user = UserFactory(password=PASSWORD)
+        other_principal = ServicePrincipal.objects.create(
+            name="Other User Principal",
+            created_by=other_user,
+        )
+
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Unauthorized Principal Token",
+                "service_principal": other_principal.id,
+                "oplog": self.oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("service_principal", response.context["form"].errors)
+        self.assertFalse(
+            ServiceToken.objects.filter(name="Unauthorized Principal Token").exists()
+        )
+
+    def test_post_data_for_all_accessible_project_read_token(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.PROJECT_READ,
+                "project_scope": ServiceTokenProjectScope.ALL_ACCESSIBLE,
+                "name": "All Accessible Project Reader",
+                "service_principal": self.existing_principal.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="All Accessible Project Reader")
+        self.assertEqual(obj.service_principal, self.existing_principal)
+        self.assertEqual(obj.get_allowed_project_ids(), [])
+        self.assertTrue(obj.has_all_accessible_project_scope())
+        self.assertIsNone(obj.get_allowed_oplog_id())
+        self.assertEqual(obj.get_token_preset(), ServiceTokenPreset.PROJECT_READ)
+        self.assertEqual(
+            obj.get_scope_display(),
+            "All Accessible Projects (Read-Only)",
+        )
 
 
 class CheckEditPermissionsTests(TestCase):
@@ -2481,22 +3601,29 @@ class CheckEditPermissionsTests(TestCase):
         _, token = utils.generate_jwt(user)
         return {
             "Hasura-Action-Secret": ACTION_SECRET,
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
         }
 
     def data(self, hasura_role="user"):
         return {
             "input": {"model": "finding", "id": self.finding.id},
-            "session_variables": {"x-hasura-role": hasura_role}
+            "session_variables": {"x-hasura-role": hasura_role},
         }
 
     def test_no_access_without_action_secret(self):
         headers = self.headers(self.manager)
         del headers["Hasura-Action-Secret"]
-        response = self.client.post(self.uri, content_type="application/json", headers=headers, data=self.data())
+        response = self.client.post(
+            self.uri, content_type="application/json", headers=headers, data=self.data()
+        )
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.post(self.uri, content_type="application/json", headers=headers, data=self.data("admin"))
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=headers,
+            data=self.data("admin"),
+        )
         self.assertEqual(response.status_code, 403)
 
     def test_access_finding_disallowed(self):
@@ -2553,7 +3680,7 @@ class GetTagsTest(TestCase):
     def data(self, hasura_role="user"):
         return {
             "input": {"model": "report_finding_link", "id": self.report_finding.id},
-            "session_variables": {"x-hasura-role": hasura_role}
+            "session_variables": {"x-hasura-role": hasura_role},
         }
 
     def test_get_report_finding_tags_allowed_manager(self):
@@ -2614,8 +3741,12 @@ class SetTagsTest(TestCase):
 
     def data(self, tags, hasura_role="user"):
         v = {
-            "input": {"model": "report_finding_link", "id": self.report_finding.id, "tags": list(tags)},
-            "session_variables": {"x-hasura-role": hasura_role}
+            "input": {
+                "model": "report_finding_link",
+                "id": self.report_finding.id,
+                "tags": list(tags),
+            },
+            "session_variables": {"x-hasura-role": hasura_role},
         }
         return v
 
@@ -2628,7 +3759,9 @@ class SetTagsTest(TestCase):
         )
         self.assertEquals(response.status_code, 200)
         self.report_finding.refresh_from_db()
-        self.assertEqual(set(self.report_finding.tags.names()), self.tags, response.content)
+        self.assertEqual(
+            set(self.report_finding.tags.names()), self.tags, response.content
+        )
 
     def test_set_report_finding_tags_not_allowed(self):
         response = self.client.post(
@@ -2651,6 +3784,7 @@ class SetTagsTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.report_finding.refresh_from_db()
         self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
 
 class ObjectsByTagTests(TestCase):
     @classmethod
@@ -2681,10 +3815,7 @@ class ObjectsByTagTests(TestCase):
         return headers
 
     def data(self, tag, hasura_role="user"):
-        v = {
-            "input": {"tag": tag},
-            "session_variables": {"x-hasura-role": hasura_role}
-        }
+        v = {"input": {"tag": tag}, "session_variables": {"x-hasura-role": hasura_role}}
         return v
 
     def test_get_anonymous_no_results(self):
@@ -2714,9 +3845,7 @@ class ObjectsByTagTests(TestCase):
             data=self.data("severity:high"),
         )
         self.assertEquals(response.status_code, 200)
-        self.assertJSONEqual(response.content, [
-            {"id": self.report_finding.pk}
-        ])
+        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
 
     def test_get_manager_results(self):
         response = self.client.post(
@@ -2726,9 +3855,7 @@ class ObjectsByTagTests(TestCase):
             data=self.data("severity:high"),
         )
         self.assertEquals(response.status_code, 200)
-        self.assertJSONEqual(response.content, [
-            {"id": self.report_finding.pk}
-        ])
+        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
 
     def test_get_manager_no_results(self):
         response = self.client.post(
@@ -2748,9 +3875,7 @@ class ObjectsByTagTests(TestCase):
             data=self.data("severity:high", hasura_role="admin"),
         )
         self.assertEquals(response.status_code, 200)
-        self.assertJSONEqual(response.content, [
-            {"id": self.report_finding.pk}
-        ])
+        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
 
 
 class GraphqlDownloadEvidenceViewTests(TestCase):
@@ -2773,7 +3898,9 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         cls.evidence_with_report = EvidenceOnReportFactory(report=cls.report)
 
         # Create project assignment for user (not for manager - they don't need it)
-        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.assignment = ProjectAssignmentFactory(
+            project=cls.project, operator=cls.user
+        )
 
         cls.uri = reverse("api:graphql_download_evidence")
 
@@ -2787,11 +3914,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_unauthorized_no_secret(self):
         """Test that request without action secret is rejected."""
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -2811,11 +3934,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_unauthorized_wrong_secret(self):
         """Test that request with wrong action secret is rejected."""
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -2836,11 +3955,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_no_token(self):
         """Test that request without JWT token is rejected."""
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -2860,11 +3975,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_invalid_token(self):
         """Test that request with invalid JWT token is rejected."""
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -2885,9 +3996,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_missing_id(self):
         """Test that request without evidence ID is rejected."""
-        data = {
-            "input": {}
-        }
+        data = {"input": {}}
 
         response = self.client.post(
             self.uri,
@@ -2908,11 +4017,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_not_found(self):
         """Test that request for non-existent evidence returns 404."""
-        data = {
-            "input": {
-                "evidenceId": 99999
-            }
-        }
+        data = {"input": {"evidenceId": 99999}}
 
         response = self.client.post(
             self.uri,
@@ -2933,11 +4038,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_forbidden_no_project_access(self):
         """Test that user without project access cannot download evidence."""
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -2961,16 +4062,10 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         test_content = b"Test evidence content"
 
         self.evidence_with_finding.document.save(
-            'test_evidence.txt',
-            ContentFile(test_content),
-            save=True
+            "test_evidence.txt", ContentFile(test_content), save=True
         )
 
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -2985,7 +4080,9 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         result = response.json()
         self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
         self.assertEqual(result["filename"], self.evidence_with_finding.filename)
-        self.assertEqual(result["friendlyName"], self.evidence_with_finding.friendly_name)
+        self.assertEqual(
+            result["friendlyName"], self.evidence_with_finding.friendly_name
+        )
         self.assertIn("downloadUrl", result)
         self.assertIn(str(self.evidence_with_finding.id), result["downloadUrl"])
         self.assertIn("fileBase64", result)
@@ -2999,16 +4096,10 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         test_content = b"Report evidence content"
 
         self.evidence_with_report.document.save(
-            'report_evidence.txt',
-            ContentFile(test_content),
-            save=True
+            "report_evidence.txt", ContentFile(test_content), save=True
         )
 
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_report.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_report.id}}
 
         response = self.client.post(
             self.uri,
@@ -3030,16 +4121,10 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         test_content = b"Manager test content"
 
         self.evidence_with_finding.document.save(
-            'manager_test.txt',
-            ContentFile(test_content),
-            save=True
+            "manager_test.txt", ContentFile(test_content), save=True
         )
 
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -3060,9 +4145,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         # Create evidence with a file that we'll delete
         evidence = EvidenceOnFindingFactory(finding=self.finding)
         evidence.document.save(
-            'temp_file.txt',
-            ContentFile(b"temporary content"),
-            save=True
+            "temp_file.txt", ContentFile(b"temporary content"), save=True
         )
 
         # Get the file path and delete the physical file (but keep the DB record)
@@ -3070,11 +4153,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        data = {
-            "input": {
-                "evidenceId": evidence.id
-            }
-        }
+        data = {"input": {"evidenceId": evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -3095,10 +4174,13 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_oversized_file_rejected(self):
         """Test that evidence files exceeding GHOSTWRITER_MAX_FILE_SIZE are rejected with 413."""
+        # Django Imports
         from django.test import override_settings
 
         evidence = EvidenceOnFindingFactory(finding=self.finding)
-        evidence.document.save("oversize_evidence.txt", ContentFile(b"some content"), save=True)
+        evidence.document.save(
+            "oversize_evidence.txt", ContentFile(b"some content"), save=True
+        )
 
         data = {"input": {"evidenceId": evidence.id}}
 
@@ -3120,16 +4202,10 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         test_content = b"Forwarded IP test content"
 
         self.evidence_with_finding.document.save(
-            'forwarded_test.txt',
-            ContentFile(test_content),
-            save=True
+            "forwarded_test.txt", ContentFile(test_content), save=True
         )
 
-        data = {
-            "input": {
-                "evidenceId": self.evidence_with_finding.id
-            }
-        }
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
 
         response = self.client.post(
             self.uri,
@@ -3158,7 +4234,9 @@ class GraphqlLinkOplogEvidenceTests(TestCase):
 
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
-        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.assignment = ProjectAssignmentFactory(
+            project=cls.project, operator=cls.user
+        )
 
         cls.oplog_entry = OplogEntryFactory(oplog_id__project=cls.project)
         cls.evidence = EvidenceOnReportFactory(report=cls.report)
@@ -3239,7 +4317,10 @@ class GraphqlLinkOplogEvidenceTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertJSONEqual(
             force_str(response.content),
-            {"message": "Oplog entry does not exist", "extensions": {"code": "OplogEntryDoesNotExist"}},
+            {
+                "message": "Oplog entry does not exist",
+                "extensions": {"code": "OplogEntryDoesNotExist"},
+            },
         )
 
     def test_link_oplog_evidence_invalid_evidence(self):
@@ -3251,7 +4332,10 @@ class GraphqlLinkOplogEvidenceTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertJSONEqual(
             force_str(response.content),
-            {"message": "Evidence does not exist", "extensions": {"code": "EvidenceDoesNotExist"}},
+            {
+                "message": "Evidence does not exist",
+                "extensions": {"code": "EvidenceDoesNotExist"},
+            },
         )
 
     def test_link_oplog_evidence_project_mismatch(self):
@@ -3273,7 +4357,14 @@ class GraphqlLinkOplogEvidenceTests(TestCase):
         """Test that request without action secret is rejected."""
         response = self.client.post(
             self.uri,
-            json.dumps({"input": {"oplogEntryId": self.oplog_entry.id, "evidenceId": self.evidence.id}}),
+            json.dumps(
+                {
+                    "input": {
+                        "oplogEntryId": self.oplog_entry.id,
+                        "evidenceId": self.evidence.id,
+                    }
+                }
+            ),
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Bearer {self.user_token}",
         )
@@ -3301,7 +4392,9 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         cls.other_user = UserFactory(password=PASSWORD, role="user", is_active=True)
 
         cls.project = ProjectFactory()
-        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.assignment = ProjectAssignmentFactory(
+            project=cls.project, operator=cls.user
+        )
         cls.oplog_entry = OplogEntryFactory(oplog_id__project=cls.project)
 
         cls.uri = reverse("api:graphql_upload_oplog_recording")
@@ -3357,9 +4450,12 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         # IDs differ — a new recording object was created
         self.assertNotEqual(first_id, second_id)
         # Only one recording exists for the entry
+        # Ghostwriter Libraries
         from ghostwriter.oplog.models import OplogEntryRecording
 
-        self.assertEqual(OplogEntryRecording.objects.filter(oplog_entry=self.oplog_entry).count(), 1)
+        self.assertEqual(
+            OplogEntryRecording.objects.filter(oplog_entry=self.oplog_entry).count(), 1
+        )
         # Tag survives the delete-and-replace cycle
         self.oplog_entry.refresh_from_db()
         self.assertIn("recording", list(self.oplog_entry.tags.names()))
@@ -3401,7 +4497,10 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertJSONEqual(
             force_str(response.content),
-            {"message": "Oplog entry does not exist", "extensions": {"code": "OplogEntryDoesNotExist"}},
+            {
+                "message": "Oplog entry does not exist",
+                "extensions": {"code": "OplogEntryDoesNotExist"},
+            },
         )
 
     def test_upload_recording_wrong_extension(self):
@@ -3416,9 +4515,13 @@ class GraphqlUploadOplogRecordingTests(TestCase):
 
     def test_upload_recording_cast_gz_accepted(self):
         """Test that .cast.gz files are accepted."""
+        # Standard Libraries
         import gzip
         from base64 import b64encode
-        cast_content = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n'
+
+        cast_content = (
+            b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n'
+        )
         gz_content = gzip.compress(cast_content)
         data = {
             "oplogEntryId": self.oplog_entry.id,
@@ -3430,6 +4533,7 @@ class GraphqlUploadOplogRecordingTests(TestCase):
 
     def test_upload_recording_invalid_cast_gz_rejected(self):
         """Malformed .cast.gz files are rejected instead of crashing during parsing."""
+        # Standard Libraries
         from base64 import b64encode
 
         data = {
@@ -3444,12 +4548,15 @@ class GraphqlUploadOplogRecordingTests(TestCase):
     @override_settings(GHOSTWRITER_MAX_FILE_SIZE=128)
     def test_upload_recording_gzip_bomb_like_cast_gz_rejected(self):
         """Compressed recordings that expand beyond the playback safety limit are rejected."""
+        # Standard Libraries
         import gzip
         from base64 import b64encode
 
         data = {
             "oplogEntryId": self.oplog_entry.id,
-            "file_base64": b64encode(gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1))).decode("utf-8"),
+            "file_base64": b64encode(
+                gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1))
+            ).decode("utf-8"),
             "filename": "session.cast.gz",
         }
         response = self._post(data, self.user_token)
@@ -3479,11 +4586,15 @@ class GraphqlUploadOplogRecordingTests(TestCase):
         self.assertEqual(response.status_code, 413)
         self.assertEqual(response.json()["extensions"]["code"], "PayloadTooLarge")
 
-    def test_upload_recording_accepts_valid_file_when_encoded_body_exceeds_file_limit(self):
+    def test_upload_recording_accepts_valid_file_when_encoded_body_exceeds_file_limit(
+        self,
+    ):
         """Base64+JSON overhead should not cause a valid sub-limit recording upload to be rejected."""
         cast_bytes = (
             b'{"version": 2, "width": 80, "height": 24}\n'
-            + b'[0.5, "o", "' + (b"x" * 30) + b'"]\n'
+            + b'[0.5, "o", "'
+            + (b"x" * 30)
+            + b'"]\n'
         )
         data = {
             "oplogEntryId": self.oplog_entry.id,
@@ -3534,6 +4645,7 @@ class GraphqlUploadOplogRecordingTests(TestCase):
 
     def test_upload_v2_populates_recording_text(self):
         """An asciicast v2 file extracts 'o' event data into recording_text."""
+        # Ghostwriter Libraries
         from ghostwriter.oplog.models import OplogEntryRecording
 
         raw = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "v2 output"]\n'
@@ -3549,6 +4661,7 @@ class GraphqlUploadOplogRecordingTests(TestCase):
 
     def test_upload_v3_populates_recording_text(self):
         """An asciicast v3 file extracts both 'o' and 'i' event data into recording_text."""
+        # Ghostwriter Libraries
         from ghostwriter.oplog.models import OplogEntryRecording
 
         raw = (
@@ -3587,6 +4700,7 @@ class GraphqlUploadOplogRecordingTests(TestCase):
 
     def test_upload_unsupported_version_recording_text_empty(self):
         """When parsing fails the recording still saves, but recording_text is empty."""
+        # Ghostwriter Libraries
         from ghostwriter.oplog.models import OplogEntryRecording
 
         raw = b'{"version": 1, "width": 80, "height": 24, "stdout": [[0.5, "hello"]]}\n'
@@ -3610,7 +4724,9 @@ class GraphqlDownloadRecordingTests(TestCase):
         cls.other_user = UserFactory(password=PASSWORD, role="user", is_active=True)
 
         cls.project = ProjectFactory()
-        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.assignment = ProjectAssignmentFactory(
+            project=cls.project, operator=cls.user
+        )
         cls.oplog_entry = OplogEntryFactory(oplog_id__project=cls.project)
         cls.recording = OplogEntryRecordingFactory(oplog_entry=cls.oplog_entry)
 
@@ -3655,7 +4771,9 @@ class GraphqlDownloadRecordingTests(TestCase):
 
     def test_download_recording_without_access(self):
         """Test that a user without project access is rejected."""
-        response = self._post({"oplogEntryId": self.oplog_entry.id}, self.other_user_token)
+        response = self._post(
+            {"oplogEntryId": self.oplog_entry.id}, self.other_user_token
+        )
         self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
         self.assertJSONEqual(
             force_str(response.content),
@@ -3668,12 +4786,17 @@ class GraphqlDownloadRecordingTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.assertJSONEqual(
             force_str(response.content),
-            {"message": "Oplog entry not found", "extensions": {"code": "OplogEntryNotFound"}},
+            {
+                "message": "Oplog entry not found",
+                "extensions": {"code": "OplogEntryNotFound"},
+            },
         )
 
     def test_download_recording_no_recording(self):
         """Test that an oplog entry without a recording returns 404."""
-        response = self._post({"oplogEntryId": self.entry_no_recording.id}, self.user_token)
+        response = self._post(
+            {"oplogEntryId": self.entry_no_recording.id}, self.user_token
+        )
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.assertJSONEqual(
             force_str(response.content),
@@ -3724,11 +4847,14 @@ class GraphqlDownloadRecordingTests(TestCase):
 
     def test_download_recording_oversized_file_rejected(self):
         """Test that recording files exceeding GHOSTWRITER_MAX_FILE_SIZE are rejected with 413."""
+        # Django Imports
         from django.test import override_settings
 
         # Set the limit to 1 byte so any real file exceeds it
         with override_settings(GHOSTWRITER_MAX_FILE_SIZE=1):
-            response = self._post({"oplogEntryId": self.oplog_entry.id}, self.user_token)
+            response = self._post(
+                {"oplogEntryId": self.oplog_entry.id}, self.user_token
+            )
 
         self.assertEqual(response.status_code, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
         self.assertEqual(response.json()["extensions"]["code"], "FileTooLargeForInline")

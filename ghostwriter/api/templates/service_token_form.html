@@ -1,0 +1,87 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Service Token Creation{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create Service Token</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <p>Create a scoped service token for an integration or automation workflow.</p>
+
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error|escapejs }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
+
+    {% crispy form form.helper %}
+{% endblock %}
+
+{% block morescripts %}
+    <script>
+        $(document).ready(function () {
+            const tokenPresetField = $("#id_token_preset");
+            const existingPrincipalField = $("#id_service_principal");
+            const newPrincipalNameField = $("#id_new_service_principal_name");
+            const oplogRow = $("#service-token-oplog-row");
+            const projectScopeRow = $("#service-token-project-scope-row");
+            const projectsRow = $("#service-token-projects-row");
+            const oplogField = $("#id_oplog");
+            const projectScopeField = $("#id_project_scope");
+            const projectsField = $("#id_projects");
+
+            function toggleScopeFields() {
+                const preset = tokenPresetField.val();
+                const isOplogPreset = preset === "oplog_rw";
+                const isAllAccessibleProjectScope = projectScopeField.val() === "all_accessible";
+
+                oplogRow.toggle(isOplogPreset);
+                projectScopeRow.toggle(!isOplogPreset);
+                projectsRow.toggle(!isOplogPreset && !isAllAccessibleProjectScope);
+
+                oplogField.prop("disabled", !isOplogPreset);
+                projectScopeField.prop("disabled", isOplogPreset);
+                projectsField.prop("disabled", isOplogPreset || isAllAccessibleProjectScope);
+
+                if (isOplogPreset) {
+                    projectScopeField.val("selected");
+                    projectsField.val([]);
+                } else if (isAllAccessibleProjectScope) {
+                    projectsField.val([]);
+                } else {
+                    oplogField.val("");
+                }
+            }
+
+            function toggleNewPrincipalField() {
+                const hasExistingPrincipal = Boolean(existingPrincipalField.val());
+                newPrincipalNameField.prop("disabled", hasExistingPrincipal);
+
+                if (hasExistingPrincipal) {
+                    newPrincipalNameField.val("");
+                }
+            }
+
+            tokenPresetField.on("change", toggleScopeFields);
+            projectScopeField.on("change", toggleScopeFields);
+            existingPrincipalField.on("change", toggleNewPrincipalField);
+            toggleScopeFields();
+            toggleNewPrincipalField();
+        });
+    </script>
+{% endblock %}

@@ -8,6 +8,8 @@ from django.views.decorators.csrf import csrf_exempt
 from ghostwriter.api.views import (
     ApiKeyCreate,
     ApiKeyRevoke,
+    ServiceTokenCreate,
+    ServiceTokenRevoke,
     GraphqlAttachFinding,
     GraphqlAuthenticationWebhook,
     GraphqlCheckoutDomain,
@@ -130,6 +132,8 @@ urlpatterns = [
     ),
     path("ajax/token/revoke/<int:pk>", ApiKeyRevoke.as_view(), name="ajax_revoke_token"),
     path("token/create", ApiKeyCreate.as_view(), name="ajax_create_token"),
+    path("ajax/service-token/revoke/<int:pk>", ServiceTokenRevoke.as_view(), name="ajax_revoke_service_token"),
+    path("service-token/create", ServiceTokenCreate.as_view(), name="ajax_create_service_token"),
     path(
         "check_permissions",
         csrf_exempt(CheckEditPermissions.as_view()),

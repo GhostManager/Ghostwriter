@@ -9,7 +9,7 @@ from django.db import models
 from django.http.request import HttpRequest
 
 # Ghostwriter Libraries
-from ghostwriter.api.models import AbstractAPIKey, APIKey
+from ghostwriter.api.models import AbstractAPIKey, APIKey, ServicePrincipal, ServiceToken, ServiceTokenPermission
 
 
 class APIKeyModelAdmin(admin.ModelAdmin):
@@ -55,3 +55,54 @@ class APIKeyModelAdmin(admin.ModelAdmin):
 
 
 admin.site.register(APIKey, APIKeyModelAdmin)
+
+
+class ServiceTokenPermissionInline(admin.TabularInline):
+    model = ServiceTokenPermission
+    extra = 0
+
+
+@admin.register(ServicePrincipal)
+class ServicePrincipalAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "service_type",
+        "created_by",
+        "active",
+        "created",
+    )
+    list_filter = ("service_type", "active", "created")
+    search_fields = ("name", "created_by__username", "created_by__email")
+
+
+@admin.register(ServiceToken)
+class ServiceTokenAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "service_principal",
+        "created_by",
+        "created",
+        "expiry_date",
+        "has_expired",
+        "revoked",
+        "last_used_at",
+        "scope_display",
+    )
+    list_filter = ("created", "expiry_date", "revoked", "service_principal__service_type")
+    search_fields = ("name", "service_principal__name", "created_by__username", "token_prefix")
+    readonly_fields = ("token_prefix", "secret_hash", "created", "last_used_at")
+    actions = ("revoke_tokens",)
+    inlines = (ServiceTokenPermissionInline,)
+
+    @admin.display(boolean=True, description="Has expired")
+    def has_expired(self, obj: ServiceToken) -> bool:
+        return obj.has_expired
+
+    @admin.display(description="Scope")
+    def scope_display(self, obj: ServiceToken) -> str:
+        return obj.get_scope_display()
+
+    @admin.action(description="Revoke selected service tokens")
+    def revoke_tokens(self, request: HttpRequest, queryset):
+        updated = queryset.filter(revoked=False).update(revoked=True)
+        self.message_user(request, f"Revoked {updated} service token(s).", level=messages.SUCCESS)
