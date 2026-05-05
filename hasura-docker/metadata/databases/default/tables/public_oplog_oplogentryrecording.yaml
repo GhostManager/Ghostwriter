@@ -30,14 +30,21 @@ select_permissions:
       columns:
         - id
         - oplog_entry_id
-        - uploaded_by_id
         - recording_file
+        - recording_text
+        - uploaded_by_id
         - uploaded_date
       filter: {}
     comment: ""
   - role: service
     permission:
-      columns: '*'
+      columns:
+        - id
+        - oplog_entry_id
+        - recording_file
+        - recording_text
+        - uploaded_by_id
+        - uploaded_date
       filter:
         oplogEntry:
           log:
@@ -50,8 +57,9 @@ select_permissions:
       columns:
         - id
         - oplog_entry_id
-        - uploaded_by_id
         - recording_file
+        - recording_text
+        - uploaded_by_id
         - uploaded_date
       filter:
         oplogEntry:

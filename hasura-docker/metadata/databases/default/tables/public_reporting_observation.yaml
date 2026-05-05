@@ -18,7 +18,17 @@ insert_permissions:
         - title
   - role: user
     permission:
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_observation_create:
+                  _eq: true
       columns:
         - description
         - extra_fields
@@ -64,11 +74,31 @@ update_permissions:
         - extra_fields
         - title
       filter: {}
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_observation_edit:
+                  _eq: true
 delete_permissions:
   - role: manager
     permission:
       filter: {}
   - role: user
     permission:
-      filter: {}
+      filter:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_observation_delete:
+                  _eq: true

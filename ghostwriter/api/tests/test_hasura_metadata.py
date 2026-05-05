@@ -19,16 +19,9 @@ SENSITIVE_TABLES_WITHOUT_SERVICE_SELECT = {
     "auth_group",
     "auth_group_permissions",
     "auth_permission",
-    "commandcenter_companyinformation",
-    "commandcenter_extrafieldmodel",
-    "commandcenter_extrafieldspec",
-    "commandcenter_reportconfiguration",
     "django_content_type",
     "django_q_task",
     "home_userprofile",
-    "reporting_finding",
-    "reporting_findingnote",
-    "reporting_observation",
     "rolodex_clientinvite",
     "rolodex_projectinvite",
     "taggit_tag",
@@ -92,9 +85,8 @@ def evidence_project_filter():
 def report_template_project_filter():
     return {
         "_or": [
+            {"client_id": {"_is_null": True}},
             project_scope_filter("client", "projects", "id"),
-            project_scope_filter("docxTemplates", "project_id"),
-            project_scope_filter("pptxTemplates", "project_id"),
         ]
     }
 
@@ -115,7 +107,6 @@ def users_project_filter():
             {
                 "_or": [
                     project_scope_filter("assignments", "project_id"),
-                    project_scope_filter("clientNotes", "client", "projects", "id"),
                     project_scope_filter("cloudServers", "project_id"),
                     project_scope_filter("domainCheckouts", "project_id"),
                     {"domainNotes": {"domain": domain_project_filter()}},
@@ -144,6 +135,10 @@ def users_project_filter():
 
 EXPECTED_SERVICE_SELECT_FILTERS = {
     "api_service_token_project_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
+    "commandcenter_companyinformation": {},
+    "commandcenter_extrafieldmodel": {},
+    "commandcenter_extrafieldspec": {},
+    "commandcenter_reportconfiguration": {},
     "oplog_oplog": {
         "_or": [
             {"id": {"_eq": READ_OPLOG_ID_HEADER}},
@@ -166,80 +161,54 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
         "oplogEntry": project_scope_filter("log", "project_id")
     },
     "reporting_archive": project_scope_filter("project_id"),
-    "reporting_doctype": {"templates": report_template_project_filter()},
+    "reporting_doctype": {},
     "reporting_evidence": evidence_project_filter(),
-    "reporting_findingtype": project_scope_filter(
-        "reportedFindings", "report", "project_id"
-    ),
+    "reporting_finding": {},
+    "reporting_findingnote": {},
+    "reporting_findingtype": {},
     "reporting_localfindingnote": project_scope_filter(
         "finding", "report", "project_id"
     ),
+    "reporting_observation": {},
     "reporting_report": service_token_project_access_filter("project"),
     "reporting_reportfindinglink": project_scope_filter("report", "project_id"),
     "reporting_reportobservationlink": project_scope_filter("report", "project_id"),
     "reporting_reporttemplate": report_template_project_filter(),
-    "reporting_severity": project_scope_filter(
-        "reportedFindings", "report", "project_id"
-    ),
+    "reporting_severity": {},
     "rolodex_client": project_scope_filter("projects", "id"),
     "rolodex_clientcontact": project_scope_filter("client", "projects", "id"),
     "rolodex_clientnote": project_scope_filter("client", "projects", "id"),
     "rolodex_deconfliction": project_scope_filter("project_id"),
-    "rolodex_deconflictionstatus": project_scope_filter("deconflictions", "project_id"),
-    "rolodex_objectivepriority": project_scope_filter("objectives", "project_id"),
-    "rolodex_objectivestatus": {
-        "_or": [
-            project_scope_filter("objectiveSubTasks", "objective", "project_id"),
-            project_scope_filter("objectives", "project_id"),
-        ]
-    },
+    "rolodex_deconflictionstatus": {},
+    "rolodex_objectivepriority": {},
+    "rolodex_objectivestatus": {},
     "rolodex_project": service_token_project_access_filter(),
     "rolodex_projectassignment": project_scope_filter("project_id"),
     "rolodex_projectcontact": project_scope_filter("project_id"),
     "rolodex_projectnote": project_scope_filter("project_id"),
     "rolodex_projectobjective": project_scope_filter("project_id"),
-    "rolodex_projectrole": project_scope_filter("assignments", "project_id"),
+    "rolodex_projectrole": {},
     "rolodex_projectscope": project_scope_filter("project_id"),
     "rolodex_projectsubtask": project_scope_filter("objective", "project_id"),
     "rolodex_projecttarget": project_scope_filter("project_id"),
-    "rolodex_projecttype": project_scope_filter("projects", "id"),
+    "rolodex_projecttype": {},
     "rolodex_whitecard": project_scope_filter("project_id"),
-    "shepherd_activitytype": {
-        "_or": [
-            project_scope_filter("cloudServers", "project_id"),
-            project_scope_filter("domains", "project_id"),
-            project_scope_filter("staticServers", "project_id"),
-        ]
-    },
-    "shepherd_auxserveraddress": project_scope_filter(
-        "server", "checkouts", "project_id"
-    ),
-    "shepherd_domain": domain_project_filter(),
-    "shepherd_domainnote": {"domain": domain_project_filter()},
+    "shepherd_activitytype": {},
+    "shepherd_auxserveraddress": {},
+    "shepherd_domain": {},
+    "shepherd_domainnote": {},
     "shepherd_domainserverconnection": project_scope_filter("project_id"),
-    "shepherd_domainstatus": {"domains": domain_project_filter()},
-    "shepherd_healthstatus": {"domains": domain_project_filter()},
+    "shepherd_domainstatus": {},
+    "shepherd_healthstatus": {},
     "shepherd_history": project_scope_filter("project_id"),
     "shepherd_serverhistory": project_scope_filter("project_id"),
-    "shepherd_servernote": project_scope_filter(
-        "staticServer", "checkouts", "project_id"
-    ),
-    "shepherd_serverprovider": {
-        "_or": [
-            project_scope_filter("cloudServers", "project_id"),
-            project_scope_filter("staticServers", "checkouts", "project_id"),
-        ]
-    },
-    "shepherd_serverrole": {
-        "_or": [
-            project_scope_filter("cloudServers", "project_id"),
-            project_scope_filter("staticServers", "project_id"),
-        ]
-    },
-    "shepherd_serverstatus": project_scope_filter("servers", "checkouts", "project_id"),
-    "shepherd_staticserver": project_scope_filter("checkouts", "project_id"),
+    "shepherd_servernote": {},
+    "shepherd_serverprovider": {},
+    "shepherd_serverrole": {},
+    "shepherd_serverstatus": {},
+    "shepherd_staticserver": {},
     "shepherd_transientserver": project_scope_filter("project_id"),
-    "shepherd_whoisstatus": {"domains": domain_project_filter()},
+    "shepherd_whoisstatus": {},
     "users_user": users_project_filter(),
 }
 
@@ -274,6 +243,17 @@ def get_service_permission(table, permission_type):
             permission
             for permission in table.get(permission_type, [])
             if permission.get("role") == "service"
+        ),
+        None,
+    )
+
+
+def get_role_permission(table, role, permission_type):
+    return next(
+        (
+            permission
+            for permission in table.get(permission_type, [])
+            if permission.get("role") == role
         ),
         None,
     )
@@ -446,6 +426,49 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
             {"oplog_id_id": {"_eq": DELETE_OPLOGENTRY_OPLOG_ID_HEADER}},
         )
 
+    def test_service_checkouts_remain_project_scoped(self):
+        expected_checkout_filters = {
+            "public_shepherd_history.yaml": project_scope_filter("project_id"),
+            "public_shepherd_serverhistory.yaml": project_scope_filter("project_id"),
+            "public_shepherd_domainserverconnection.yaml": project_scope_filter(
+                "project_id"
+            ),
+        }
+
+        for filename, expected_filter in expected_checkout_filters.items():
+            table = load_yaml(HASURA_TABLE_DIR / filename)
+            service_select_permission = get_service_select_permission(table)
+
+            self.assertEqual(
+                service_select_permission["permission"].get("filter"),
+                expected_filter,
+                filename,
+            )
+
+    def test_user_role_cannot_query_background_tasks(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_django_q_task.yaml")
+
+        self.assertIsNone(get_role_permission(table, "user", "select_permissions"))
+
+    def test_recording_text_select_access_is_explicit(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_oplog_oplogentryrecording.yaml")
+        expected_columns = [
+            "id",
+            "oplog_entry_id",
+            "recording_file",
+            "recording_text",
+            "uploaded_by_id",
+            "uploaded_date",
+        ]
+
+        for role in ("manager", "user", "service"):
+            permission = get_role_permission(table, role, "select_permissions")
+            self.assertEqual(
+                permission["permission"].get("columns"),
+                expected_columns,
+                role,
+            )
+
     def test_service_actions_require_explicit_django_authorization(self):
         actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
         service_actions = [
@@ -475,3 +498,14 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
                 actions_missing_authorization.append(action["name"])
 
         self.assertEqual(actions_missing_authorization, [])
+
+    def test_service_user_permission_exposes_only_ids_through_relationships(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_users_user.yaml")
+        service_select_permission = get_service_select_permission(table)["permission"]
+
+        self.assertEqual(service_select_permission.get("columns"), ["id"])
+        self.assertEqual(service_select_permission.get("query_root_fields"), [])
+        self.assertEqual(
+            service_select_permission.get("subscription_root_fields"),
+            [],
+        )
