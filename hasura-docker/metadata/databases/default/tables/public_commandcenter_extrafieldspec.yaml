@@ -26,17 +26,36 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - description
         - display_name
+        - id
         - internal_name
+        - position
         - target_model_id
         - type
         - user_default_value
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - id
+        - display_name
+        - internal_name
+        - target_model_id
+        - type
+        - position
+        - description
+        - user_default_value
+      filter: {}
+    comment: ""
   - role: user
     permission:
       columns:
+        - description
         - display_name
+        - id
         - internal_name
+        - position
         - target_model_id
         - type
         - user_default_value

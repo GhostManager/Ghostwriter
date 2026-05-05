@@ -19,25 +19,42 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - company_address
         - company_email
         - company_name
+        - company_short_name
         - company_twitter
         - id
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - id
+        - company_email
+        - company_name
+        - company_short_name
+        - company_twitter
+        - company_address
+      filter: {}
+    comment: ""
   - role: user
     permission:
       columns:
+        - id
         - company_email
         - company_name
+        - company_short_name
         - company_twitter
-        - id
+        - company_address
       filter: {}
 update_permissions:
   - role: manager
     permission:
       columns:
+        - company_address
         - company_email
         - company_name
+        - company_short_name
         - company_twitter
       filter: {}
       check: null

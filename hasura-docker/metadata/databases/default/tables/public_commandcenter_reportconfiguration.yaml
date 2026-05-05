@@ -44,30 +44,78 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - border_color
-        - border_weight
         - default_docx_template_id
         - default_pptx_template_id
-        - enable_borders
         - id
+        - enable_borders
+        - title_case_captions
+        - border_color
+        - default_cvss_version
+        - evidence_image_alignment
+        - figure_caption_location
         - label_figure
         - label_table
+        - outline_tags
         - prefix_figure
         - prefix_table
+        - project_filename
+        - report_filename
+        - table_caption_location
+        - title_case_exceptions
+        - evidence_image_width
+        - border_weight
+        - target_delivery_date
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - default_docx_template_id
+        - default_pptx_template_id
+        - id
+        - enable_borders
+        - title_case_captions
+        - border_color
+        - default_cvss_version
+        - evidence_image_alignment
+        - figure_caption_location
+        - label_figure
+        - label_table
+        - outline_tags
+        - prefix_figure
+        - prefix_table
+        - project_filename
+        - report_filename
+        - table_caption_location
+        - title_case_exceptions
+        - evidence_image_width
+        - border_weight
+        - target_delivery_date
+      filter: {}
+    comment: ""
   - role: user
     permission:
       columns:
-        - border_color
-        - border_weight
         - default_docx_template_id
         - default_pptx_template_id
-        - enable_borders
         - id
+        - enable_borders
+        - title_case_captions
+        - border_color
+        - default_cvss_version
+        - evidence_image_alignment
+        - figure_caption_location
         - label_figure
         - label_table
+        - outline_tags
         - prefix_figure
         - prefix_table
+        - project_filename
+        - report_filename
+        - table_caption_location
+        - title_case_exceptions
+        - evidence_image_width
+        - border_weight
+        - target_delivery_date
       filter: {}
 update_permissions:
   - role: manager
@@ -75,12 +123,23 @@ update_permissions:
       columns:
         - border_color
         - border_weight
+        - default_cvss_version
         - default_docx_template_id
         - default_pptx_template_id
         - enable_borders
+        - evidence_image_alignment
+        - evidence_image_width
+        - figure_caption_location
         - label_figure
         - label_table
+        - outline_tags
         - prefix_figure
         - prefix_table
+        - project_filename
+        - report_filename
+        - table_caption_location
+        - target_delivery_date
+        - title_case_captions
+        - title_case_exceptions
       filter: {}
       check: {}

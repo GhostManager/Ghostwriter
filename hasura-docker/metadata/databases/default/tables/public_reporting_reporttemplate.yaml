@@ -82,19 +82,25 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - changelog
         - client_id
-        - description
         - doc_type_id
-        - document
         - id
-        - landscape
-        - last_update
-        - lint_result
-        - name
-        - protected
-        - upload_date
         - uploaded_by_id
+        - contains_bloodhound_data
+        - landscape
+        - protected
+        - document
+        - evidence_image_alignment
+        - filename_override
+        - name
+        - p_style
+        - last_update
+        - upload_date
+        - evidence_image_width
+        - lint_result
+        - bloodhound_heading_offset
+        - changelog
+        - description
       filter: {}
   - role: service
     permission:
