@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.4.0] - 5 May 2026
+
+### Added
+
+* **Scoped Service Tokens**: Added service principals and service tokens for non-human automation credentials
+  * Service principals represent durable integrations or automation services
+  * Service tokens are opaque `gwst_` credentials with hashed secrets, expiration, revocation, and last-used tracking
+  * Service token permissions are assigned to the token instead of inheriting the creating user's permissions
+  * Added operation log read/write tokens scoped to one operation log and its entries
+  * Added project read-only tokens scoped to selected projects or all projects the creator can access now and later
+* **Service Token GraphQL Access**: Added a Hasura `service` role for scoped service-token access
+  * Project read access is backed by database views that validate the service token, service principal, creator status, and current project access
+  * Service tokens can read project-related data, project-linked operation logs, evidence, reports, findings, observations, and public libraries
+  * Service tokens can call selected read-oriented GraphQL Actions, including report generation, evidence and recording downloads, tag lookups, and extra field specs
+* Added service-token management to the Django admin
+* Added documentation for API tokens, service tokens, and service-principal concepts
+
+### Changed
+
+* Reworked the user profile page to organize API tokens and service tokens into clearer cards
+  * API tokens are described as user-bound automation credentials
+  * Service tokens are described as scoped non-human credentials
+  * Expired tokens can be hidden, and that preference is remembered in local storage
+  * Token expiry dates now use warning styling when expiring within seven days and expired styling after expiration
+* Added profile controls for editing API token and service token expiry dates
+  * API token expiry edits now generate a replacement token so the JWT expiration claim stays aligned with the displayed expiration
+* Added service-token detail modals that show service principal, project read access, direct operation-log access, stale project grants, and token access summaries
+* Improved dark-mode styling for disabled fields
+* Made the sidebar toggle tab sticky while scrolling
+
+### Fixed
+
+* Fixed observation library create/edit/delete permissions not being checked for the `user` role in the GraphQL API
+
+### Security
+
+* Added service-token authorization helpers for Django-backed Hasura Actions so service tokens are denied by default unless an action explicitly opts in
+* API token validation now verifies the JWT expiration claim in addition to the stored token record
+* Added Hasura metadata validation tests to catch service-role permission drift, legacy service-token headers, and unexpected service mutations
+* Added validation for service-token permission resource, action, and constraint combinations
+
 ## [6.3.4] - 24 April 2026
 
 ### Added
