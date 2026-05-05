@@ -46,12 +46,16 @@ select_permissions:
         - uploaded_by_id
         - uploaded_date
       filter:
-        oplogEntry:
-          log:
-            project:
-              serviceTokenProjectAccesses:
-                token_id:
-                  _eq: X-Hasura-Service-Token-Id
+        _or:
+          - oplogEntry:
+              oplog_id_id:
+                _eq: X-Hasura-Read-Oplog-Id
+          - oplogEntry:
+              log:
+                project:
+                  serviceTokenProjectAccesses:
+                    token_id:
+                      _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:
