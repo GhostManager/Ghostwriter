@@ -17,7 +17,7 @@ from django.utils.encoding import force_str
 from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.models import ExtraFieldModel, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.factories import (
     ClientFactory,
     DocTypeFactory,
@@ -1196,6 +1196,26 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
+
+    def test_rich_text_extra_field_with_list_value_renders(self):
+        report_extra_field_model, _ = ExtraFieldModel.objects.get_or_create(
+            model_internal_name="reporting.Report",
+            defaults={"model_display_name": "Reports"},
+        )
+        ExtraFieldSpecFactory(
+            internal_name="out_of_scope_activities",
+            display_name="Out of Scope Activities",
+            type="rich_text",
+            target_model=report_extra_field_model,
+        )
+        self.report.extra_fields = {"out_of_scope_activities": ["Denial of Service", "Social Engineering"]}
+        self.report.save(update_fields=["extra_fields"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Denial of Service")
+        self.assertContains(response, "Social Engineering")
 
 
 class ReportOplogOutlineGenerateTests(TestCase):
