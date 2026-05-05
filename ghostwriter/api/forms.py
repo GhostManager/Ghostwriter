@@ -607,7 +607,7 @@ class ApiOplogRecordingForm(forms.Form):
             filename_lower.endswith(".cast") or filename_lower.endswith(".cast.gz")
         ):
             raise ValidationError(
-                f"File extension is not allowed. Only .cast and .cast.gz files are accepted.",
+                "File extension is not allowed. Only .cast and .cast.gz files are accepted.",
                 code="invalid",
             )
         return filename
