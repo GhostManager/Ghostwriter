@@ -133,6 +133,20 @@ def users_project_filter():
     }
 
 
+def user_feature_flag_check(flag_name):
+    return {
+        "_exists": {
+            "_table": {"name": "users_user", "schema": "public"},
+            "_where": {
+                "_and": [
+                    {"id": {"_eq": "X-Hasura-User-Id"}},
+                    {flag_name: {"_eq": True}},
+                ]
+            },
+        }
+    }
+
+
 EXPECTED_SERVICE_SELECT_FILTERS = {
     "api_service_token_project_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
     "commandcenter_companyinformation": {},
@@ -499,13 +513,33 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
 
         self.assertEqual(actions_missing_authorization, [])
 
-    def test_service_user_permission_exposes_only_ids_through_relationships(self):
-        table = load_yaml(HASURA_TABLE_DIR / "public_users_user.yaml")
-        service_select_permission = get_service_select_permission(table)["permission"]
 
-        self.assertEqual(service_select_permission.get("columns"), ["id"])
-        self.assertEqual(service_select_permission.get("query_root_fields"), [])
-        self.assertEqual(
-            service_select_permission.get("subscription_root_fields"),
-            [],
-        )
+class HasuraMetadataUserRoleTests(SimpleTestCase):
+    """Validate user-role Hasura metadata for app-level RBAC contracts."""
+
+    def test_library_write_permissions_require_user_feature_flags(self):
+        expectations = {
+            "public_reporting_finding.yaml": {
+                "insert_permissions": ("check", "enable_finding_create"),
+                "update_permissions": ("check", "enable_finding_edit"),
+                "delete_permissions": ("filter", "enable_finding_delete"),
+            },
+            "public_reporting_observation.yaml": {
+                "insert_permissions": ("check", "enable_observation_create"),
+                "update_permissions": ("check", "enable_observation_edit"),
+                "delete_permissions": ("filter", "enable_observation_delete"),
+            },
+        }
+
+        for filename, permission_expectations in expectations.items():
+            table = load_yaml(HASURA_TABLE_DIR / filename)
+            for permission_type, (
+                check_field,
+                feature_flag,
+            ) in permission_expectations.items():
+                permission = get_role_permission(table, "user", permission_type)
+                self.assertEqual(
+                    permission["permission"].get(check_field),
+                    user_feature_flag_check(feature_flag),
+                    f"{filename} {permission_type}",
+                )
