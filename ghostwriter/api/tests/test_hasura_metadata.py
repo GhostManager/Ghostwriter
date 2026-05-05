@@ -187,7 +187,10 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
         ]
     },
     "oplog_oplogentryrecording": {
-        "oplogEntry": project_scope_filter("log", "project_id")
+        "_or": [
+            {"oplogEntry": {"oplog_id_id": {"_eq": READ_OPLOG_ID_HEADER}}},
+            {"oplogEntry": project_scope_filter("log", "project_id")},
+        ]
     },
     "reporting_archive": project_scope_filter("project_id"),
     "reporting_doctype": {},

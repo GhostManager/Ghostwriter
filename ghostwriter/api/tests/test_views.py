@@ -95,6 +95,45 @@ def create_project_read_service_token(user, project):
     return token
 
 
+def create_oplog_read_service_token(user, oplog):
+    ProjectAssignmentFactory(project=oplog.project, operator=user)
+    service_principal = ServicePrincipal.objects.create(
+        name=f"Oplog Reader {oplog.pk}",
+        created_by=user,
+    )
+    _, token = ServiceToken.objects.create_token(
+        name=f"Oplog Read {oplog.pk}",
+        created_by=user,
+        service_principal=service_principal,
+        permissions=[
+            {
+                "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
+                "resource_id": oplog.id,
+                "action": ServiceTokenPermission.Action.READ,
+            }
+        ],
+    )
+    return token
+
+
+def create_oplog_rw_service_token(user, oplog):
+    ProjectAssignmentFactory(project=oplog.project, operator=user)
+    service_principal = ServicePrincipal.objects.create(
+        name=f"Oplog Writer {oplog.pk}",
+        created_by=user,
+    )
+    _, token = ServiceToken.objects.create_token(
+        name=f"Oplog Read/Write {oplog.pk}",
+        created_by=user,
+        service_principal=service_principal,
+        permissions=ServiceToken.build_permissions_for_preset(
+            ServiceTokenPreset.OPLOG_RW,
+            oplog_id=oplog.id,
+        ),
+    )
+    return token
+
+
 # Tests related to authentication in custom CBVs
 
 
@@ -4312,6 +4351,41 @@ class ObjectsByTagTests(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [{"id": finding.pk}])
 
+    def test_get_oplog_service_token_can_query_own_oplog_entries_by_tag(self):
+        oplog = OplogFactory()
+        entry = OplogEntryFactory(oplog_id=oplog, tags=["activity:interesting"])
+        other_entry = OplogEntryFactory(tags=["activity:interesting"])
+        token = create_oplog_read_service_token(self.user, oplog)
+
+        response = self.client.post(
+            reverse("api:graphql_objects_by_tag", args=["oplog_entry"]),
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data("activity:interesting", hasura_role="service"),
+        )
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.json(), [{"id": entry.pk}])
+        self.assertNotIn({"id": other_entry.pk}, response.json())
+
+    def test_get_oplog_service_token_cannot_query_project_objects_by_tag(self):
+        token = create_oplog_read_service_token(self.user, OplogFactory())
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data("severity:high", hasura_role="service"),
+        )
+
+        self.assertEquals(response.status_code, HTTPStatus.FORBIDDEN)
+
     def test_get_manager_results(self):
         response = self.client.post(
             self.uri,
@@ -5257,6 +5331,28 @@ class GraphqlDownloadRecordingTests(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertEqual(response.json()["recordingId"], self.recording.id)
+
+    def test_download_recording_with_oplog_rw_service_token(self):
+        """Test that an oplog-scoped service token can download its oplog's recordings."""
+        token = create_oplog_rw_service_token(self.user, self.oplog_entry.oplog_id)
+        response = self._post({"oplogEntryId": self.oplog_entry.id}, token)
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["recordingId"], self.recording.id)
+
+    def test_download_recording_with_oplog_rw_service_token_rejects_other_oplog(self):
+        """Test that an oplog-scoped service token cannot download other oplog recordings."""
+        other_entry = OplogEntryFactory()
+        OplogEntryRecordingFactory(oplog_entry=other_entry)
+        token = create_oplog_rw_service_token(self.user, self.oplog_entry.oplog_id)
+
+        response = self._post({"oplogEntryId": other_entry.id}, token)
+
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"message": "Unauthorized access", "extensions": {"code": "Unauthorized"}},
+        )
 
     def test_download_recording_manager_access(self):
         """Test that a manager can download a recording without a project assignment."""

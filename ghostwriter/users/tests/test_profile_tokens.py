@@ -1,6 +1,7 @@
 # Standard Libraries
 import logging
 from datetime import timedelta
+from http import HTTPStatus
 
 # Django Imports
 from django.test import Client, TestCase
@@ -153,7 +154,7 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "edit-token-expiry-regeneration-warning")
         self.assertContains(response, "$modal.data('revoke-target', $target)")
 
-    def test_service_token_details_modal_lists_project_and_oplog_access(self):
+    def test_profile_lazy_loads_service_token_details(self):
         project = ProjectFactory(codename="Alpha Project")
         other_project = ProjectFactory(codename="Bravo Project")
         ProjectAssignmentFactory(project=project, operator=self.user)
@@ -190,14 +191,52 @@ class UserProfileTokenDisplayTests(TestCase):
             response, '<th class="align-middle text-left">Scope</th>'
         )
         self.assertContains(
-            response, f'data-target="#service-token-details-modal-{project_token.id}"'
+            response,
+            f'data-details-url="/api/ajax/service-token/details/{project_token.id}"',
         )
         self.assertContains(
+            response,
+            f'data-details-url="/api/ajax/service-token/details/{oplog_token.id}"',
+        )
+        self.assertContains(response, 'id="service-token-details-modal"', count=1)
+        self.assertContains(response, 'id="service-token-details-modal-content"')
+        self.assertContains(response, "$.ajax({")
+        self.assertNotContains(
             response, f'id="service-token-details-modal-{project_token.id}"'
         )
-        self.assertContains(
+        self.assertNotContains(
             response, f'id="service-token-details-modal-{oplog_token.id}"'
         )
+        self.assertNotContains(response, "External Integration")
+        self.assertNotContains(response, "Operator Activity")
+        self.assertNotContains(
+            response, "This token reads only the selected projects listed below."
+        )
+        self.assertNotContains(response, "Read oplog and entries")
+
+    def test_service_token_details_view_lists_project_access(self):
+        project = ProjectFactory(codename="Alpha Project")
+        other_project = ProjectFactory(codename="Bravo Project")
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        ProjectAssignmentFactory(project=other_project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="External Integration", created_by=self.user
+        )
+        project_token, _ = ServiceToken.objects.create_token(
+            name="Project Reader",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[project.id, other_project.id],
+            ),
+        )
+
+        response = self.client_auth.get(
+            reverse("api:ajax_service_token_details", kwargs={"pk": project_token.id})
+        )
+
+        self.assertContains(response, "Project Reader Access Details")
         self.assertContains(response, "Service Principal")
         self.assertContains(response, "External Integration")
         self.assertContains(response, "Access Summary")
@@ -207,10 +246,63 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertNotContains(
             response, "This token does not have oplog-specific access."
         )
-        self.assertContains(response, "Alpha Project")
-        self.assertContains(response, "Bravo Project")
+        self.assertContains(response, "ALPHA PROJECT")
+        self.assertContains(response, "BRAVO PROJECT")
+        self.assertContains(
+            response,
+            "This token has no direct oplog assignment. It can access logs under the above projects.",
+        )
+
+    def test_service_token_details_view_lists_oplog_access(self):
+        project = ProjectFactory(codename="Alpha Project")
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        oplog = OplogFactory(name="Operator Activity", project=project)
+        principal = ServicePrincipal.objects.create(
+            name="External Integration", created_by=self.user
+        )
+        oplog_token, _ = ServiceToken.objects.create_token(
+            name="Oplog Writer",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.OPLOG_RW,
+                oplog_id=oplog.id,
+            ),
+        )
+
+        response = self.client_auth.get(
+            reverse("api:ajax_service_token_details", kwargs={"pk": oplog_token.id})
+        )
+
+        self.assertContains(response, "Oplog Writer Access Details")
+        self.assertContains(response, "Service Principal")
+        self.assertContains(response, "External Integration")
+        self.assertContains(response, "Access Summary")
+        self.assertContains(
+            response, "This token does not have project-wide read access."
+        )
+        self.assertNotContains(
+            response, "This token does not have oplog-specific access."
+        )
         self.assertContains(response, "Operator Activity")
         self.assertContains(response, "Read oplog and entries")
         self.assertContains(response, "Create entries")
         self.assertContains(response, "Update entries")
         self.assertContains(response, "Delete entries")
+
+    def test_service_token_details_view_rejects_tokens_owned_by_other_users(self):
+        other_user = UserFactory(password=PASSWORD)
+        principal = ServicePrincipal.objects.create(
+            name="External Integration", created_by=other_user
+        )
+        token, _ = ServiceToken.objects.create_token(
+            name="Other User Token",
+            created_by=other_user,
+            service_principal=principal,
+        )
+
+        response = self.client_auth.get(
+            reverse("api:ajax_service_token_details", kwargs={"pk": token.id})
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
