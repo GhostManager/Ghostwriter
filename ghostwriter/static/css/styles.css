@@ -713,10 +713,15 @@ input[type='file'] {
 }
 
 #sidebar .sidebar-header-tab {
-  position: absolute;
+  position: fixed;
   top: 15px;
-  right: -35px;
-  z-index: 20;
+  left: 0;
+  z-index: 1020;
+  transition: left .5s ease-in-out;
+}
+
+#sidebar.active .sidebar-header-tab {
+  left: 250px;
 }
 
 .square {
