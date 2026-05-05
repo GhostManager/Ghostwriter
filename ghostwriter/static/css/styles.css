@@ -4455,6 +4455,30 @@ input[type="color"]:focus,
   background-color: #2f2f2f;
 }
 
+[data-theme="dark"] .form-select:disabled,
+[data-theme="dark"] .form-select[aria-disabled=true],
+[data-theme="dark"] .form-control:disabled,
+[data-theme="dark"] .form-control[aria-disabled=true],
+[data-theme="dark"] input[type="text"]:disabled,
+[data-theme="dark"] input[type="email"]:disabled,
+[data-theme="dark"] input[type="password"]:disabled,
+[data-theme="dark"] input[type="number"]:disabled,
+[data-theme="dark"] input[type="search"]:disabled,
+[data-theme="dark"] input[type="datetime-local"]:disabled,
+[data-theme="dark"] textarea:disabled,
+[data-theme="dark"] select:disabled {
+  background-color: #23282e;
+  border-color: #4d5862;
+  color: #9aa5af;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  opacity: 1;
+}
+
+[data-theme="dark"] .form-select:disabled {
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Ctitle%3Edown-arrow%3C%2Ftitle%3E%3Cg%20fill%3D%22%239aa5af%22%3E%3Cpath%20d%3D%22M10.293%2C3.293%2C6%2C7.586%2C1.707%2C3.293A1%2C1%2C0%2C0%2C0%2C.293%2C4.707l5%2C5a1%2C1%2C0%2C0%2C0%2C1.414%2C0l5-5a1%2C1%2C0%2C1%2C0-1.414-1.414Z%22%20fill%3D%22%239aa5af%22%3E%3C%2Fpath%3E%3C%2Fg%3E%3C%2Fsvg%3E'),
+    linear-gradient(to bottom, #23282e 0%, #1d2227 100%);
+}
+
 /* Buttons */
 [data-theme="dark"] .btn-secondary {
   background-color: #3a3a3a;
