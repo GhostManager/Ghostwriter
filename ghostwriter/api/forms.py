@@ -198,7 +198,8 @@ class ServiceTokenForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.user = user
         self.fields["service_principal"].queryset = ServicePrincipal.objects.filter(
-            created_by=user
+            active=True,
+            created_by=user,
         ).order_by("name", "id")
         self.fields["service_principal"].empty_label = "Create a New Service Principal"
         self.fields["oplog"].queryset = Oplog.for_user(user).select_related(
@@ -345,6 +346,7 @@ class ServiceTokenForm(forms.Form):
             self.add_error("new_service_principal_name", msg)
         elif new_service_principal_name:
             existing = ServicePrincipal.objects.filter(
+                active=True,
                 created_by=self.user,
                 name__iexact=new_service_principal_name,
             ).first()
