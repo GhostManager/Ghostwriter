@@ -143,8 +143,14 @@ class UserProfileTokenDisplayTests(TestCase):
             response,
             'data-expiry-target-url="/api/service-token/expiry/',
         )
+        self.assertContains(response, 'data-expiry-regenerates-token="true"', count=3)
+        self.assertContains(response, 'data-expiry-regenerates-token="false"', count=3)
         self.assertContains(response, "Choose a future date and time.")
+        self.assertContains(
+            response, "Changing an API token's expiry generates a replacement token."
+        )
         self.assertContains(response, "$(event.relatedTarget)")
+        self.assertContains(response, "edit-token-expiry-regeneration-warning")
         self.assertContains(response, "$modal.data('revoke-target', $target)")
 
     def test_service_token_details_modal_lists_project_and_oplog_access(self):

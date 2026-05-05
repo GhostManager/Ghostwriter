@@ -9,6 +9,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 # Ghostwriter Libraries
+from ghostwriter.api import utils
 from ghostwriter.api.models import (
     APIKey,
     ServicePrincipal,
@@ -122,6 +123,32 @@ class ApiKeyModelTests(TestCase):
         self.assertFalse(APIKey.objects.is_valid(revoked_token))
         self.assertFalse(APIKey.objects.is_valid(expired_token))
         self.assertFalse(APIKey.objects.is_valid("GARBAGE"))
+
+    def test_is_valid_rejects_expired_jwt_payload_even_if_db_expiry_is_future(self):
+        token_obj, _ = APIKey.objects.create_token(
+            user=self.user,
+            name="Payload Expired Token",
+            expiry_date=timezone.now() + timedelta(days=5),
+        )
+        _, expired_payload_token = utils.generate_jwt(self.user, exp=self.yesterday)
+        token_obj.token = expired_payload_token
+        token_obj.save(update_fields=["token"])
+
+        self.assertFalse(APIKey.objects.is_valid(expired_payload_token))
+
+    def test_is_valid_rejects_expired_db_record_even_if_jwt_payload_is_future(self):
+        token_obj, _ = APIKey.objects.create_token(
+            user=self.user,
+            name="DB Expired Token",
+            expiry_date=self.yesterday,
+        )
+        _, future_payload_token = utils.generate_jwt(
+            self.user, exp=timezone.now() + timedelta(days=5)
+        )
+        token_obj.token = future_payload_token
+        token_obj.save(update_fields=["token"])
+
+        self.assertFalse(APIKey.objects.is_valid(future_payload_token))
 
 
 class ServiceTokenModelTests(TestCase):
@@ -606,7 +633,9 @@ class ServiceTokenModelTests(TestCase):
         self.assertTrue(ServiceToken.objects.is_valid(token))
         self.assertNotIn(future_project.id, token_obj.get_current_project_read_ids())
 
-        assignment = ProjectAssignmentFactory(project=future_project, operator=self.user)
+        assignment = ProjectAssignmentFactory(
+            project=future_project, operator=self.user
+        )
         self.assertTrue(ServiceToken.objects.is_valid(token))
         self.assertIn(future_project.id, token_obj.get_current_project_read_ids())
         self.assertTrue(

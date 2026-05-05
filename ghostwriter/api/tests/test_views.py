@@ -9,6 +9,7 @@ from http import HTTPStatus
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.test import Client, RequestFactory, TestCase, override_settings
@@ -3415,6 +3416,7 @@ class ApiKeyExpiryUpdateTests(TestCase):
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
             microsecond=0
         )
+        old_token = self.token_obj.token
         response = self.client_auth.post(
             self.uri,
             data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
@@ -3428,8 +3430,51 @@ class ApiKeyExpiryUpdateTests(TestCase):
             ),
             future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
         )
+        self.assertNotEqual(self.token_obj.token, old_token)
+        self.assertTrue(APIKey.objects.is_valid(self.token_obj.token))
+        payload = utils.jwt_decode_no_verification(self.token_obj.token)
+        self.assertEqual(
+            timezone.localtime(
+                datetime.fromtimestamp(
+                    payload["exp"], tz=timezone.get_current_timezone()
+                )
+            ).strftime("%Y-%m-%dT%H:%M:%S"),
+            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "api-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 1)
+        self.assertEqual(str(replacement_messages[0]), self.token_obj.token)
+
+    def test_updates_active_token_replaces_current_token(self):
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = APIKey.objects.create_token(
+            user=self.user,
+            name="Active Token",
+            expiry_date=current_expiry,
+        )
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+        response = self.client_auth.post(
+            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        token_obj.refresh_from_db()
+        self.assertNotEqual(token_obj.token, old_token)
+        self.assertFalse(APIKey.objects.filter(token=old_token).exists())
+        self.assertFalse(APIKey.objects.is_valid(old_token))
+        self.assertTrue(APIKey.objects.is_valid(token_obj.token))
 
     def test_rejects_past_expiry(self):
+        old_token = self.token_obj.token
         response = self.client_auth.post(
             self.uri,
             data={"expiry_date": self.expired_at.strftime("%Y-%m-%dT%H:%M:%S")},
@@ -3438,6 +3483,7 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.assertRedirects(response, self.redirect_uri)
         self.token_obj.refresh_from_db()
         self.assertEqual(self.token_obj.expiry_date, self.expired_at)
+        self.assertEqual(self.token_obj.token, old_token)
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
@@ -3457,6 +3503,7 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.other_token_obj.refresh_from_db()
         self.assertEqual(self.other_token_obj.expiry_date, self.expired_at)
+        self.assertEqual(self.other_token_obj.token, self.other_token)
 
     def test_rejects_revoked_token(self):
         response = self.client_auth.post(
@@ -3474,6 +3521,7 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.revoked_token_obj.refresh_from_db()
         self.assertTrue(self.revoked_token_obj.revoked)
         self.assertEqual(self.revoked_token_obj.expiry_date, self.expired_at)
+        self.assertEqual(self.revoked_token_obj.token, self.revoked_token)
 
 
 class ApiKeyCreateTests(TestCase):
@@ -3650,6 +3698,7 @@ class ServiceTokenExpiryUpdateTests(TestCase):
             ),
             future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
         )
+        self.assertTrue(ServiceToken.objects.is_valid(self.token))
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)

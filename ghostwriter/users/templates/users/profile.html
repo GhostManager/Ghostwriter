@@ -174,7 +174,8 @@
                          data-target="#edit-token-expiry-modal" href="javascript:void(0);"
                          data-expiry-target-url="{% url 'api:update_token_expiry' key.id %}"
                          data-expiry-target-preview="{{ key.name }}"
-                         data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}">
+                         data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}"
+                         data-expiry-regenerates-token="true">
                         Edit Expiry
                       </a>
                       <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
@@ -259,7 +260,8 @@
                          data-target="#edit-token-expiry-modal" href="javascript:void(0);"
                          data-expiry-target-url="{% url 'api:update_service_token_expiry' key.id %}"
                          data-expiry-target-preview="{{ key.name }}"
-                         data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}">
+                         data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}"
+                         data-expiry-regenerates-token="false">
                         Edit Expiry
                       </a>
                       <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm js-confirm-revoke" data-toggle="modal"
@@ -382,6 +384,10 @@
         $modal.find('#edit-token-expiry-form').attr('action', $target.data('expiry-target-url'));
         $modal.find('#edit-token-expiry-name').text($target.data('expiry-target-preview') || '');
         $modal.find('#edit-token-expiry-input').val($target.data('expiry-current') || '');
+        $modal.find('#edit-token-expiry-regeneration-warning').toggleClass(
+          'd-none',
+          $target.data('expiry-regenerates-token') !== true
+        );
       });
     });
   </script>
@@ -393,7 +399,7 @@
         <div class="modal-dialog token-modal modal-dialog-centered" role="document">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">{% if "service-token" in message.tags %}Your New Service Token{% else %}Your New Token{% endif %}</h5>
+              <h5 class="modal-title">{% if "service-token" in message.tags %}Your New Service Token{% elif "replacement-token" in message.tags %}Your Replacement Token{% else %}Your New Token{% endif %}</h5>
             </div>
             <div class="modal-body confirm-token">
               <code>{{ message|linebreaks }}</code>
@@ -422,6 +428,9 @@
         </div>
         <div class="modal-body text-left">
           <p class="mb-3">Update the expiry date for <span id="edit-token-expiry-name" class="bold"></span>.</p>
+          <p id="edit-token-expiry-regeneration-warning" class="alert alert-warning d-none">
+            Changing an API token's expiry generates a replacement token. The current token value will stop working after you save, and the new token will be shown once.
+          </p>
           <div class="form-group">
             <label for="edit-token-expiry-input">Expiry Date & Time</label>
             <input id="edit-token-expiry-input" class="form-control" type="datetime-local" name="expiry_date" step="1" required>

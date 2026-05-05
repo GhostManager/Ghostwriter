@@ -13,8 +13,11 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
+# 3rd Party Libraries
+import jwt
+
 # Ghostwriter Libraries
-from ghostwriter.api.utils import generate_jwt, jwt_decode_no_verification
+from ghostwriter.api.utils import generate_jwt, jwt_decode, jwt_decode_no_verification
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -147,7 +150,10 @@ class AbstractAPIKey(models.Model):
         return _expires_within_warning_window(self.expiry_date)
 
     def is_valid(self, key: str) -> bool:
-        payload = jwt_decode_no_verification(key)
+        try:
+            payload = jwt_decode(key)
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError):
+            return False
         if payload:
             return True
         return False

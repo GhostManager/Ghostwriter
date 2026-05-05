@@ -2007,6 +2007,24 @@ class TokenExpiryUpdateMixin(
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def update_token_expiry(self, token, expiry_date):
+        token.expiry_date = expiry_date
+        token.save(update_fields=["expiry_date"])
+        return None
+
+    def add_success_messages(self, replacement_token=None):
+        if replacement_token:
+            messages.info(
+                self.request,
+                replacement_token,
+                extra_tags="api-token replacement-token no-toast",
+            )
+        messages.success(
+            self.request,
+            self.success_message,
+            extra_tags="alert-success",
+        )
+
     def post(self, *args, **kwargs):
         token = self.get_object()
         if token.revoked:
@@ -2024,13 +2042,11 @@ class TokenExpiryUpdateMixin(
             )
             return redirect(self.get_success_url())
 
-        token.expiry_date = form.cleaned_data["expiry_date"]
-        token.save(update_fields=["expiry_date"])
-        messages.success(
-            self.request,
-            self.success_message,
-            extra_tags="alert-success",
+        replacement_token = self.update_token_expiry(
+            token,
+            form.cleaned_data["expiry_date"],
         )
+        self.add_success_messages(replacement_token)
         logger.info(
             "Updated %s %s expiry date by request of %s",
             token.__class__.__name__,
@@ -2044,11 +2060,19 @@ class ApiKeyExpiryUpdate(TokenExpiryUpdateMixin):
     """Update an individual :model:`api.APIKey` expiry date."""
 
     model = APIKey
-    success_message = "API token expiry date updated."
+    success_message = (
+        "API token expiry date updated. Please record your new token value."
+    )
     revoked_message = "Revoked API tokens cannot be updated."
 
     def test_func(self):
         return self.get_object().user_id == self.request.user.id
+
+    def update_token_expiry(self, token, expiry_date):
+        token.expiry_date = expiry_date
+        _, replacement_token = APIKey.objects.generate_token(token)
+        token.save(update_fields=["expiry_date", "token"])
+        return replacement_token
 
 
 class ServiceTokenExpiryUpdate(TokenExpiryUpdateMixin):
