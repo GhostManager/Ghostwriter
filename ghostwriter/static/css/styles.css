@@ -372,14 +372,14 @@ h6 {
 #scroll-button {
   display: inline-block;
   background-color: var(--button-primary-color);
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   text-align: center;
   border-radius: 50%;
   margin: 30px;
   position: fixed;
-  bottom: 15px;
-  right: 15px;
+  bottom: 0;
+  right: 0;
   transition: background-color .3s;
   z-index: 1000;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
@@ -400,8 +400,8 @@ h6 {
   font-weight: 600;
   font-style: normal;
   text-rendering: auto;
-  font-size: 1.75em;
-  line-height: 40px;
+  font-size: 1.25em;
+  line-height: 30px;
   color: #fff;
 }
 
