@@ -403,6 +403,32 @@ class HasuraViewTests(TestCase):
         response = view(request)
         self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
 
+    def test_service_token_any_project_read_requirement_uses_current_access(self):
+        project = ProjectFactory()
+        assignment = ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader Current Access", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Project Read Current Access Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=project.id,
+            ),
+        )
+        view = HasuraActionView()
+        view.service_token_obj = token_obj
+
+        self.assertTrue(view.service_token_has_project_read_grant())
+
+        assignment.delete()
+        view = HasuraActionView()
+        view.service_token_obj = token_obj
+
+        self.assertFalse(view.service_token_has_project_read_grant())
+
     def test_action_with_incomplete_header(self):
         result = {
             "message": "No ``Authorization`` header found",
@@ -3699,6 +3725,19 @@ class ServiceTokenCreateTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(response.context["cancel_link"], self.redirect_uri)
 
+    def test_get_excludes_inactive_service_principals(self):
+        inactive_principal = ServicePrincipal.objects.create(
+            name="Retired Integration",
+            active=False,
+            created_by=self.user,
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        queryset = response.context["form"].fields["service_principal"].queryset
+        self.assertIn(self.existing_principal, queryset)
+        self.assertNotIn(inactive_principal, queryset)
+
     def test_post_data(self):
         response = self.client_auth.post(
             self.uri,
@@ -3750,6 +3789,30 @@ class ServiceTokenCreateTests(TestCase):
         self.assertRedirects(response, self.redirect_uri)
         obj = ServiceToken.objects.get(name="Beta Assessment")
         self.assertEqual(obj.service_principal, self.existing_principal)
+
+    def test_post_data_does_not_reuse_inactive_principal_name(self):
+        inactive_principal = ServicePrincipal.objects.create(
+            name="Retired Integration",
+            active=False,
+            created_by=self.user,
+        )
+
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Retired Integration Token",
+                "new_service_principal_name": "retired integration",
+                "oplog": self.second_oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="Retired Integration Token")
+        self.assertNotEqual(obj.service_principal, inactive_principal)
+        self.assertEqual(obj.service_principal.name, "retired integration")
+        self.assertTrue(obj.service_principal.active)
 
     def test_post_data_for_project_read_token(self):
         response = self.client_auth.post(
@@ -3834,6 +3897,30 @@ class ServiceTokenCreateTests(TestCase):
         self.assertIn("service_principal", response.context["form"].errors)
         self.assertFalse(
             ServiceToken.objects.filter(name="Unauthorized Principal Token").exists()
+        )
+
+    def test_post_data_rejects_inactive_service_principal(self):
+        inactive_principal = ServicePrincipal.objects.create(
+            name="Retired Integration",
+            active=False,
+            created_by=self.user,
+        )
+
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Inactive Principal Token",
+                "service_principal": inactive_principal.id,
+                "oplog": self.oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("service_principal", response.context["form"].errors)
+        self.assertFalse(
+            ServiceToken.objects.filter(name="Inactive Principal Token").exists()
         )
 
     def test_post_data_for_all_accessible_project_read_token(self):

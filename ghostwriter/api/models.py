@@ -540,9 +540,15 @@ class ServiceToken(models.Model):
     def has_permission(
         self, resource_type: str, action: str, resource_id: int | None
     ) -> bool:
-        """Return whether this token has an explicit permission grant."""
+        """Return whether this token is currently authorized for a resource."""
         if resource_id is None:
             return False
+        if (
+            self._choice_value(resource_type)
+            == ServiceTokenPermission.ResourceType.PROJECT
+            and self._choice_value(action) == ServiceTokenPermission.Action.READ
+        ):
+            return resource_id in self.get_current_project_read_ids()
         has_static_permission = self.permissions.filter(
             resource_type=self._choice_value(resource_type),
             action=self._choice_value(action),
@@ -550,13 +556,6 @@ class ServiceToken(models.Model):
         ).exists()
         if has_static_permission:
             return True
-        if (
-            self._choice_value(resource_type)
-            == ServiceTokenPermission.ResourceType.PROJECT
-            and self._choice_value(action) == ServiceTokenPermission.Action.READ
-            and self.has_all_accessible_project_scope()
-        ):
-            return resource_id in self.get_current_project_read_ids()
         return False
 
     def _single_resource_id(
@@ -632,10 +631,10 @@ class ServiceToken(models.Model):
 
     def get_current_project_read_ids(self) -> list[int]:
         """Return project IDs this token can read right now."""
-        project_ids = set(self.get_allowed_project_ids())
+        accessible_project_ids = set(self._creator_accessible_project_ids())
         if self.has_all_accessible_project_scope():
-            project_ids.update(self._creator_accessible_project_ids())
-        return sorted(project_ids)
+            return sorted(accessible_project_ids)
+        return sorted(set(self.get_allowed_project_ids()) & accessible_project_ids)
 
     def get_current_project_read_projects(self):
         """Return project objects this token can read right now."""

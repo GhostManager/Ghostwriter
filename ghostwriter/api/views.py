@@ -267,6 +267,13 @@ class HasuraActionView(HasuraView):
         if self.service_token_obj is None:
             return False
         if scope == SERVICE_TOKEN_SCOPE_ANY:
+            if (
+                ServiceToken._choice_value(resource_type)
+                == ServiceTokenPermission.ResourceType.PROJECT
+                and ServiceToken._choice_value(action)
+                == ServiceTokenPermission.Action.READ
+            ):
+                return bool(self.service_token_project_read_ids())
             return self.service_token_obj.permissions.filter(
                 resource_type=ServiceToken._choice_value(resource_type),
                 action=ServiceToken._choice_value(action),

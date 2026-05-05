@@ -606,9 +606,115 @@ class ServiceTokenModelTests(TestCase):
         self.assertTrue(ServiceToken.objects.is_valid(token))
         self.assertNotIn(future_project.id, token_obj.get_current_project_read_ids())
 
-        ProjectAssignmentFactory(project=future_project, operator=self.user)
+        assignment = ProjectAssignmentFactory(project=future_project, operator=self.user)
         self.assertTrue(ServiceToken.objects.is_valid(token))
         self.assertIn(future_project.id, token_obj.get_current_project_read_ids())
+        self.assertTrue(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                future_project.id,
+            )
+        )
+
+        assignment.delete()
+        self.assertTrue(ServiceToken.objects.is_valid(token))
+        self.assertNotIn(future_project.id, token_obj.get_current_project_read_ids())
+        self.assertFalse(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                future_project.id,
+            )
+        )
+
+    def test_selected_project_helpers_deny_stale_project_without_validation(self):
+        project = ProjectFactory()
+        assignment = ProjectAssignmentFactory(project=project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=project.id,
+            ),
+        )
+
+        self.assertEqual(token_obj.get_current_project_read_ids(), [project.id])
+        self.assertTrue(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                project.id,
+            )
+        )
+
+        assignment.delete()
+
+        self.assertEqual(token_obj.get_allowed_project_ids(), [project.id])
+        self.assertEqual(token_obj.get_current_project_read_ids(), [])
+        self.assertFalse(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                project.id,
+            )
+        )
+        token_obj.refresh_from_db()
+        self.assertFalse(token_obj.revoked)
+
+    def test_multi_project_helpers_deny_only_stale_project_without_validation(self):
+        project = ProjectFactory()
+        stale_project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        stale_assignment = ProjectAssignmentFactory(
+            project=stale_project, operator=self.user
+        )
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Multi-Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[project.id, stale_project.id],
+            ),
+        )
+
+        stale_assignment.delete()
+
+        self.assertEqual(
+            token_obj.get_allowed_project_ids(),
+            sorted([project.id, stale_project.id]),
+        )
+        self.assertEqual(token_obj.get_current_project_read_ids(), [project.id])
+        self.assertTrue(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                project.id,
+            )
+        )
+        self.assertFalse(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                stale_project.id,
+            )
+        )
+        self.assertTrue(
+            token_obj.permissions.filter(
+                resource_type=ServiceTokenPermission.ResourceType.PROJECT,
+                action=ServiceTokenPermission.Action.READ,
+                resource_id=stale_project.id,
+            ).exists()
+        )
 
     def test_service_token_project_access_view_filters_selected_projects_by_current_creator_access(
         self,
