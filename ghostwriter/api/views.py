@@ -1988,6 +1988,40 @@ class ServiceTokenRevoke(utils.RoleBasedAccessControlMixin, SingleObjectMixin, V
         return JsonResponse(data)
 
 
+class ServiceTokenDetails(utils.RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Render access details for an individual :model:`api.ServiceToken`."""
+
+    model = ServiceToken
+    template_name = "users/snippets/service_token_details_modal.html"
+
+    def get_object(self, queryset=None):
+        if not hasattr(self, "_object"):
+            self._object = super().get_object(queryset)
+        return self._object
+
+    def test_func(self):
+        return self.get_object().created_by_id == self.request.user.id
+
+    def handle_no_permission(self):
+        return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+            status=HTTPStatus.FORBIDDEN,
+        )
+
+    def get(self, request, *args, **kwargs):
+        token = self.get_object()
+        return render(
+            request,
+            self.template_name,
+            {
+                "key": token,
+                "project_access": token.get_current_project_read_projects(),
+                "stale_project_ids": token.get_stale_project_read_ids(),
+                "oplog_access": token.get_oplog_access_details(),
+            },
+        )
+
+
 class TokenExpiryUpdateMixin(
     utils.RoleBasedAccessControlMixin, SingleObjectMixin, View
 ):

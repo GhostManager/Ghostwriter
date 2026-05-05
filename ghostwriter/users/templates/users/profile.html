@@ -252,8 +252,8 @@
                   </td>
                   <td>
                     <div class="btn-group" role="group" aria-label="Service token actions">
-                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm" data-toggle="modal"
-                         data-target="#service-token-details-modal-{{ key.id }}" href="javascript:void(0);">
+                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-service-token-details"
+                         data-details-url="{% url 'api:ajax_service_token_details' key.id %}" href="javascript:void(0);">
                         Details
                       </a>
                       <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
@@ -276,9 +276,22 @@
               {% endfor %}
             </table>
           </div>
-          {% for key in service_tokens %}
-            {% include "users/snippets/service_token_details_modal.html" with key=key %}
-          {% endfor %}
+          <div class="modal fade" id="service-token-details-modal" tabindex="-1" role="dialog"
+               aria-labelledby="service-token-details-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+              <div id="service-token-details-modal-content" class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="service-token-details-modal-label">Service Token Access Details</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body text-left">
+                  <div class="text-center text-muted py-4">Loading service token details...</div>
+                </div>
+              </div>
+            </div>
+          </div>
         {% else %}
           <div class="alert alert-secondary mt-3">You have no service tokens yet.</div>
         {% endif %}
@@ -376,6 +389,40 @@
 
     $(document).ready(function () {
       $('#confirm-token-modal').modal('show');
+
+      $('.js-service-token-details').on('click', function () {
+        let detailsUrl = $(this).data('details-url');
+        let $modal = $('#service-token-details-modal');
+        let $content = $('#service-token-details-modal-content');
+        let loadingHtml = '<div class="modal-header">' +
+          '<h5 class="modal-title" id="service-token-details-modal-label">Service Token Access Details</h5>' +
+          '<button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
+          '<span aria-hidden="true">&times;</span></button></div>' +
+          '<div class="modal-body text-left">' +
+          '<div class="text-center text-muted py-4">Loading service token details...</div>' +
+          '</div>';
+        let errorHtml = '<div class="modal-header">' +
+          '<h5 class="modal-title" id="service-token-details-modal-label">Service Token Access Details</h5>' +
+          '<button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
+          '<span aria-hidden="true">&times;</span></button></div>' +
+          '<div class="modal-body text-left">' +
+          '<div class="alert alert-danger mb-0">Could not load service token details.</div>' +
+          '</div><div class="modal-footer">' +
+          '<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>' +
+          '</div>';
+
+        $content.html(loadingHtml);
+        $modal.modal('show');
+
+        $.ajax({
+          url: detailsUrl,
+          method: 'GET'
+        }).done(function (html) {
+          $content.html(html);
+        }).fail(function () {
+          $content.html(errorHtml);
+        });
+      });
 
       $('#edit-token-expiry-modal').on('show.bs.modal', function (event) {
         let $target = $(event.relatedTarget);
