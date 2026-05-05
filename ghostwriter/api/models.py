@@ -17,7 +17,7 @@ from django.utils import timezone
 import jwt
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import generate_jwt, jwt_decode, jwt_decode_no_verification
+from ghostwriter.api.utils import generate_jwt, jwt_decode
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

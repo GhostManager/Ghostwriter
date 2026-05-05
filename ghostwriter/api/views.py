@@ -48,7 +48,6 @@ from ghostwriter.api.models import (
     ServicePrincipal,
     ServiceToken,
     ServiceTokenPermission,
-    ServiceTokenPreset,
     ServiceTokenProjectScope,
 )
 from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
