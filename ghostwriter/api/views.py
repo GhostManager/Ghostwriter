@@ -21,7 +21,7 @@ from django.core.files.base import ContentFile
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
@@ -302,6 +302,31 @@ class HasuraActionView(HasuraView):
             ServiceTokenPermission.ResourceType.PROJECT,
             ServiceTokenPermission.Action.READ,
             scope=SERVICE_TOKEN_SCOPE_ANY,
+        )
+
+    def service_token_oplog_read_ids(self) -> list[int]:
+        if self.service_token_obj is None:
+            return []
+        return list(
+            self.service_token_obj.permissions.filter(
+                resource_type=ServiceTokenPermission.ResourceType.OPLOG,
+                action=ServiceTokenPermission.Action.READ,
+            )
+            .exclude(resource_id__isnull=True)
+            .values_list("resource_id", flat=True)
+            .distinct()
+        )
+
+    def service_token_has_oplog_read_grant(self) -> bool:
+        return bool(self.service_token_oplog_read_ids())
+
+    def service_token_can_read_oplog_id(self, oplog_id: int | None) -> bool:
+        if oplog_id is None:
+            return False
+        return self.service_token_has_permission(
+            ServiceTokenPermission.ResourceType.OPLOG,
+            ServiceTokenPermission.Action.READ,
+            int(oplog_id),
         )
 
     def authorize_service_token_action(self) -> bool:
@@ -1448,6 +1473,17 @@ class GraphqlDownloadRecording(JwtRequiredMixin, HasuraActionView):
         SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,
     )
 
+    def authorize_service_token_action(self) -> bool:
+        return (
+            self.service_token_has_project_read_grant()
+            or self.service_token_has_oplog_read_grant()
+        )
+
+    def service_token_can_read_recording_entry(self, entry: OplogEntry) -> bool:
+        return self.service_token_can_read_project_id(
+            entry.oplog_id.project_id
+        ) or self.service_token_can_read_oplog_id(entry.oplog_id_id)
+
     def post(self, request, *args, **kwargs):
         oplog_entry_id = self.input.get("oplogEntryId")
 
@@ -1463,7 +1499,12 @@ class GraphqlDownloadRecording(JwtRequiredMixin, HasuraActionView):
                 status=HTTPStatus.NOT_FOUND,
             )
 
-        if not self.principal_can_read_project(entry.oplog_id.project):
+        if self.service_token_obj is not None:
+            can_read_recording = self.service_token_can_read_recording_entry(entry)
+        else:
+            can_read_recording = self.principal_can_read_project(entry.oplog_id.project)
+
+        if not can_read_recording:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Unauthorized access", "Unauthorized"
@@ -2299,6 +2340,25 @@ class ServiceTokenTagAccessMixin:
     )
     service_token_global_library_models = {"finding", "observation"}
 
+    def get_service_token_tag_model(self) -> str | None:
+        if hasattr(self, "kwargs"):
+            model = self.kwargs.get("model")
+            if model:
+                return model
+        if isinstance(self.input, dict):
+            model = self.input.get("model")
+            if model:
+                return model.lower()
+        return None
+
+    def authorize_service_token_action(self) -> bool:
+        if self.get_service_token_tag_model() == "oplog_entry":
+            return (
+                self.service_token_has_project_read_grant()
+                or self.service_token_has_oplog_read_grant()
+            )
+        return super().authorize_service_token_action()
+
     def get_service_token_tag_queryset(self, model: str, cls):
         if model in self.service_token_global_library_models:
             if self.service_token_has_project_read_grant():
@@ -2313,7 +2373,15 @@ class ServiceTokenTagAccessMixin:
         if model in {"report_finding_link", "report_observation_link"}:
             return cls.objects.filter(report__project_id__in=project_ids)
         if model == "oplog_entry":
-            return cls.objects.filter(oplog_id__project_id__in=project_ids)
+            oplog_ids = self.service_token_oplog_read_ids()
+            tag_scope = Q()
+            if project_ids:
+                tag_scope |= Q(oplog_id__project_id__in=project_ids)
+            if oplog_ids:
+                tag_scope |= Q(oplog_id_id__in=oplog_ids)
+            if tag_scope:
+                return cls.objects.filter(tag_scope)
+            return cls.objects.none()
         return cls.objects.none()
 
     def service_token_can_view_tag_object(self, model: str, obj) -> bool:
@@ -2326,7 +2394,13 @@ class ServiceTokenTagAccessMixin:
         if model in {"report_finding_link", "report_observation_link"}:
             return self.service_token_can_read_project_id(obj.report.project_id)
         if model == "oplog_entry":
-            return self.service_token_can_read_project_id(obj.oplog_id.project_id)
+            return self.service_token_can_read_project_id(
+                obj.oplog_id.project_id
+            ) or self.service_token_has_permission(
+                ServiceTokenPermission.ResourceType.OPLOG,
+                ServiceTokenPermission.Action.READ,
+                obj.oplog_id_id,
+            )
         return False
 
 
