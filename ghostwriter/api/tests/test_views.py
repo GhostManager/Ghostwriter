@@ -3347,6 +3347,109 @@ class ApiKeyRevokeTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
+class ApiKeyExpiryUpdateTests(TestCase):
+    """Collection of tests for :view:`api:ApiKeyExpiryUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.other_user = UserFactory(password=PASSWORD)
+        cls.expired_at = timezone.now() - timedelta(days=1)
+        cls.token_obj, cls.token = APIKey.objects.create_token(
+            user=cls.user, name="User's Token", expiry_date=cls.expired_at
+        )
+        cls.other_token_obj, cls.other_token = APIKey.objects.create_token(
+            user=cls.other_user, name="Other User's Token", expiry_date=cls.expired_at
+        )
+        cls.revoked_token_obj, cls.revoked_token = APIKey.objects.create_token(
+            user=cls.user,
+            name="Revoked Token",
+            expiry_date=cls.expired_at,
+            revoked=True,
+        )
+        cls.uri = reverse("api:update_token_expiry", kwargs={"pk": cls.token_obj.pk})
+        cls.other_uri = reverse(
+            "api:update_token_expiry", kwargs={"pk": cls.other_token_obj.pk}
+        )
+        cls.revoked_uri = reverse(
+            "api:update_token_expiry", kwargs={"pk": cls.revoked_token_obj.pk}
+        )
+        cls.redirect_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_updates_expired_token_to_future_expiry(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.token_obj.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(self.token_obj.expiry_date).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
+            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+
+    def test_rejects_past_expiry(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": self.expired_at.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.expiry_date, self.expired_at)
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_rejects_another_users_token(self):
+        response = self.client_auth.post(
+            self.other_uri,
+            data={
+                "expiry_date": (
+                    timezone.localtime(timezone.now() + timedelta(days=14)).strftime(
+                        "%Y-%m-%dT%H:%M:%S"
+                    )
+                )
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.other_token_obj.refresh_from_db()
+        self.assertEqual(self.other_token_obj.expiry_date, self.expired_at)
+
+    def test_rejects_revoked_token(self):
+        response = self.client_auth.post(
+            self.revoked_uri,
+            data={
+                "expiry_date": (
+                    timezone.localtime(timezone.now() + timedelta(days=14)).strftime(
+                        "%Y-%m-%dT%H:%M:%S"
+                    )
+                )
+            },
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.revoked_token_obj.refresh_from_db()
+        self.assertTrue(self.revoked_token_obj.revoked)
+        self.assertEqual(self.revoked_token_obj.expiry_date, self.expired_at)
+
+
 class ApiKeyCreateTests(TestCase):
     """Collection of tests for :view:`api:ApiKeyCreate`."""
 
@@ -3449,6 +3552,114 @@ class ServiceTokenRevokeTests(TestCase):
     def test_revoking_another_users_service_token(self):
         response = self.client_auth.post(self.other_uri)
         self.assertEqual(response.status_code, 302)
+
+
+class ServiceTokenExpiryUpdateTests(TestCase):
+    """Collection of tests for :view:`api:ServiceTokenExpiryUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.other_user = UserFactory(password=PASSWORD)
+        cls.expired_at = timezone.now() - timedelta(days=1)
+        cls.principal = ServicePrincipal.objects.create(
+            name="External Integration", created_by=cls.user
+        )
+        cls.token_obj, cls.token = ServiceToken.objects.create_token(
+            name="User's Service Token",
+            created_by=cls.user,
+            service_principal=cls.principal,
+            expiry_date=cls.expired_at,
+        )
+        cls.other_principal = ServicePrincipal.objects.create(
+            name="Other External Integration", created_by=cls.other_user
+        )
+        cls.other_token_obj, cls.other_token = ServiceToken.objects.create_token(
+            name="Other User's Service Token",
+            created_by=cls.other_user,
+            service_principal=cls.other_principal,
+            expiry_date=cls.expired_at,
+        )
+        cls.revoked_token_obj, cls.revoked_token = ServiceToken.objects.create_token(
+            name="Revoked Service Token",
+            created_by=cls.user,
+            service_principal=cls.principal,
+            expiry_date=cls.expired_at,
+            revoked=True,
+        )
+        cls.uri = reverse(
+            "api:update_service_token_expiry", kwargs={"pk": cls.token_obj.pk}
+        )
+        cls.other_uri = reverse(
+            "api:update_service_token_expiry", kwargs={"pk": cls.other_token_obj.pk}
+        )
+        cls.revoked_uri = reverse(
+            "api:update_service_token_expiry", kwargs={"pk": cls.revoked_token_obj.pk}
+        )
+        cls.redirect_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_updates_expired_service_token_to_future_expiry(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.token_obj.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(self.token_obj.expiry_date).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
+            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_rejects_another_users_service_token(self):
+        response = self.client_auth.post(
+            self.other_uri,
+            data={
+                "expiry_date": (
+                    timezone.localtime(timezone.now() + timedelta(days=14)).strftime(
+                        "%Y-%m-%dT%H:%M:%S"
+                    )
+                )
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.other_token_obj.refresh_from_db()
+        self.assertEqual(self.other_token_obj.expiry_date, self.expired_at)
+
+    def test_rejects_revoked_service_token(self):
+        response = self.client_auth.post(
+            self.revoked_uri,
+            data={
+                "expiry_date": (
+                    timezone.localtime(timezone.now() + timedelta(days=14)).strftime(
+                        "%Y-%m-%dT%H:%M:%S"
+                    )
+                )
+            },
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.revoked_token_obj.refresh_from_db()
+        self.assertTrue(self.revoked_token_obj.revoked)
+        self.assertEqual(self.revoked_token_obj.expiry_date, self.expired_at)
 
 
 class ServiceTokenCreateTests(TestCase):

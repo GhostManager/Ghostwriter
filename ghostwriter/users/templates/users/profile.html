@@ -149,7 +149,7 @@
               <th class="align-middle text-left">Name</th>
               <th class="align-middle text-left">Added</th>
               <th class="align-middle text-left">Expires</th>
-              <th class="align-middle sorter-false">Revoke</th>
+              <th class="align-middle sorter-false">Actions</th>
               </thead>
               {% for key in user.apikey_set.get_usable_keys %}
                 <tr id="token_{{ key.id }}">
@@ -169,12 +169,21 @@
                     </td>
                   {% endif %}
                   <td>
-                    <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
-                       data-target="#confirm-revoke-modal" href="javascript:void(0);"
-                       data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
-                       data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
-                      Revoke
-                    </a>
+                    <div class="btn-group" role="group" aria-label="API token actions">
+                      <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary js-edit-token-expiry" data-toggle="modal"
+                         data-target="#edit-token-expiry-modal" href="javascript:void(0);"
+                         data-expiry-target-url="{% url 'api:update_token_expiry' key.id %}"
+                         data-expiry-target-preview="{{ key.name }}"
+                         data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}">
+                        Edit Expiry
+                      </a>
+                      <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
+                         data-target="#confirm-revoke-modal" href="javascript:void(0);"
+                         data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
+                         data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
+                        Revoke
+                      </a>
+                    </div>
                   </td>
                 </tr>
               {% endfor %}
@@ -205,23 +214,20 @@
           Service tokens authenticate as non-human service principals and use only the permissions assigned to the token.
         </p>
 
-        {% if user.service_tokens.get_usable_tokens %}
+        {% with service_tokens=user.service_tokens.get_usable_tokens %}
+        {% if service_tokens %}
           <div class="table-responsive">
             <table id="serviceTokenTable" class="tablesorter table-sm table-hover">
               <thead>
               <th class="align-middle text-left">Name</th>
-              <th class="align-middle text-left">Service Principal</th>
-              <th class="align-middle text-left">Scope</th>
               <th class="align-middle text-left">Added</th>
               <th class="align-middle text-left">Expires</th>
               <th class="align-middle text-left">Last Used</th>
-              <th class="align-middle sorter-false">Revoke</th>
+              <th class="align-middle sorter-false">Actions</th>
               </thead>
-              {% for key in user.service_tokens.get_usable_tokens %}
+              {% for key in service_tokens %}
                 <tr id="service_token_{{ key.id }}">
                   <td class="align-middle text-left">{{ key.name|bleach }}</td>
-                  <td class="align-middle text-left">{{ key.service_principal.name|bleach }}</td>
-                  <td class="align-middle text-left">{{ key.get_scope_display }}</td>
                   <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
                   {% if key.has_expired %}
                     <td class="align-middle text-left burned js-expired-token js-expired-service-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
@@ -244,26 +250,45 @@
                     {% endif %}
                   </td>
                   <td>
-                    <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
-                       data-target="#confirm-revoke-modal" href="javascript:void(0);"
-                       data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_service_token' key.id %}"
-                       data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
-                      Revoke
-                    </a>
+                    <div class="btn-group" role="group" aria-label="Service token actions">
+                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm" data-toggle="modal"
+                         data-target="#service-token-details-modal-{{ key.id }}" href="javascript:void(0);">
+                        Details
+                      </a>
+                      <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
+                         data-target="#edit-token-expiry-modal" href="javascript:void(0);"
+                         data-expiry-target-url="{% url 'api:update_service_token_expiry' key.id %}"
+                         data-expiry-target-preview="{{ key.name }}"
+                         data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}">
+                        Edit Expiry
+                      </a>
+                      <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm js-confirm-revoke" data-toggle="modal"
+                         data-target="#confirm-revoke-modal" href="javascript:void(0);"
+                         data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_service_token' key.id %}"
+                         data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
+                        Revoke
+                      </a>
+                    </div>
                   </td>
                 </tr>
               {% endfor %}
             </table>
           </div>
+          {% for key in service_tokens %}
+            {% include "users/snippets/service_token_details_modal.html" with key=key %}
+          {% endfor %}
         {% else %}
           <div class="alert alert-secondary mt-3">You have no service tokens yet.</div>
         {% endif %}
+        {% endwith %}
       </div>
     </div>
   {% endif %}
 {% endblock %}
 
 {% block morescripts %}
+  {% settings_value "TIME_ZONE" as server_time_zone %}
+
   <script>
     {% comment %} Set up jQuery Tablesorter {% endcomment %}
     $(document).ready(function () {
@@ -293,9 +318,9 @@
           cssDesc: 'up',
           cssNone: 'none',
           headers: {
-            3: {sorter: 'shortDate'},
-            4: {sorter: 'shortDate'},
-            5: {sorter: 'shortDate'}
+            1: {sorter: 'shortDate'},
+            2: {sorter: 'shortDate'},
+            3: {sorter: 'shortDate'}
           },
         }
       );
@@ -349,6 +374,15 @@
 
     $(document).ready(function () {
       $('#confirm-token-modal').modal('show');
+
+      $('#edit-token-expiry-modal').on('show.bs.modal', function (event) {
+        let $target = $(event.relatedTarget);
+        let $modal = $(this);
+
+        $modal.find('#edit-token-expiry-form').attr('action', $target.data('expiry-target-url'));
+        $modal.find('#edit-token-expiry-name').text($target.data('expiry-target-preview') || '');
+        $modal.find('#edit-token-expiry-input').val($target.data('expiry-current') || '');
+      });
     });
   </script>
 
@@ -374,6 +408,33 @@
       </div>
     {% endif %}
   {% endfor %}
+
+  <div class="modal fade" id="edit-token-expiry-modal" tabindex="-1" role="dialog"
+       aria-labelledby="edit-token-expiry-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <form id="edit-token-expiry-form" class="modal-content" method="post" action="">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="edit-token-expiry-modal-label">Edit Token Expiry</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body text-left">
+          <p class="mb-3">Update the expiry date for <span id="edit-token-expiry-name" class="bold"></span>.</p>
+          <div class="form-group">
+            <label for="edit-token-expiry-input">Expiry Date & Time</label>
+            <input id="edit-token-expiry-input" class="form-control" type="datetime-local" name="expiry_date" step="1" required>
+            <small class="form-text text-muted">Choose a future date and time. This uses the server time zone ({{ server_time_zone }}).</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Expiry</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   {% comment %} Include the reusable revoke confirmation modal and related scripts {% endcomment %}
   {% include "confirm_revoke_modal.html" %}

@@ -637,6 +637,73 @@ class ServiceToken(models.Model):
             project_ids.update(self._creator_accessible_project_ids())
         return sorted(project_ids)
 
+    def get_current_project_read_projects(self):
+        """Return project objects this token can read right now."""
+        # Ghostwriter Libraries
+        from ghostwriter.rolodex.models import Project
+
+        if not self.created_by_id or not self.created_by.is_active:
+            return Project.objects.none()
+
+        accessible_project_ids = set(self._creator_accessible_project_ids())
+        if self.has_all_accessible_project_scope():
+            project_ids = accessible_project_ids
+        else:
+            project_ids = set(self.get_allowed_project_ids()) & accessible_project_ids
+
+        return (
+            Project.objects.filter(id__in=project_ids)
+            .select_related("client", "project_type")
+            .order_by("complete", "client__name", "codename", "id")
+        )
+
+    def get_stale_project_read_ids(self) -> list[int]:
+        """Return selected project grants the token creator can no longer access."""
+        selected_project_ids = set(self.get_allowed_project_ids())
+        if not selected_project_ids:
+            return []
+        accessible_project_ids = set(self._creator_accessible_project_ids())
+        return sorted(selected_project_ids - accessible_project_ids)
+
+    def get_oplog_access_details(self) -> list[dict[str, typing.Any]]:
+        """Return oplog access grouped by oplog with user-facing action labels."""
+        # Ghostwriter Libraries
+        from ghostwriter.oplog.models import Oplog
+
+        action_labels = {
+            ServiceTokenPermission.Action.READ.value: "Read oplog and entries",
+            ServiceTokenPermission.Action.CREATE.value: "Create entries",
+            ServiceTokenPermission.Action.UPDATE.value: "Update entries",
+            ServiceTokenPermission.Action.DELETE.value: "Delete entries",
+        }
+        action_order = list(action_labels)
+        actions_by_oplog_id: dict[int, set[str]] = {}
+        for permission in self.permissions.filter(
+            resource_type=ServiceTokenPermission.ResourceType.OPLOG
+        ).exclude(resource_id__isnull=True):
+            actions_by_oplog_id.setdefault(permission.resource_id, set()).add(
+                permission.action
+            )
+        if not actions_by_oplog_id:
+            return []
+
+        oplogs = (
+            Oplog.objects.filter(id__in=actions_by_oplog_id)
+            .select_related("project", "project__client")
+            .order_by("project__client__name", "project__codename", "name", "id")
+        )
+        return [
+            {
+                "oplog": oplog,
+                "actions": [
+                    action_labels[action]
+                    for action in action_order
+                    if action in actions_by_oplog_id[oplog.id]
+                ],
+            }
+            for oplog in oplogs
+        ]
+
     def _creator_accessible_project_ids(self) -> list[int]:
         # Ghostwriter Libraries
         from ghostwriter.rolodex.models import Project

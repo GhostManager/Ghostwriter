@@ -8,8 +8,18 @@ from django.urls import reverse
 from django.utils import timezone
 
 # Ghostwriter Libraries
-from ghostwriter.api.models import APIKey, ServicePrincipal, ServiceToken
-from ghostwriter.factories import UserFactory
+from ghostwriter.api.models import (
+    APIKey,
+    ServicePrincipal,
+    ServiceToken,
+    ServiceTokenPreset,
+)
+from ghostwriter.factories import (
+    OplogFactory,
+    ProjectAssignmentFactory,
+    ProjectFactory,
+    UserFactory,
+)
 
 logging.disable(logging.CRITICAL)
 
@@ -126,5 +136,75 @@ class UserProfileTokenDisplayTests(TestCase):
             response,
             'data-revoke-target-url="/api/ajax/service-token/revoke/',
         )
+        self.assertContains(response, "Edit Expiry", count=6)
+        self.assertContains(response, 'id="edit-token-expiry-modal"')
+        self.assertContains(response, 'data-expiry-target-url="/api/token/expiry/')
+        self.assertContains(
+            response,
+            'data-expiry-target-url="/api/service-token/expiry/',
+        )
+        self.assertContains(response, "Choose a future date and time.")
         self.assertContains(response, "$(event.relatedTarget)")
         self.assertContains(response, "$modal.data('revoke-target', $target)")
+
+    def test_service_token_details_modal_lists_project_and_oplog_access(self):
+        project = ProjectFactory(codename="Alpha Project")
+        other_project = ProjectFactory(codename="Bravo Project")
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        ProjectAssignmentFactory(project=other_project, operator=self.user)
+        oplog = OplogFactory(name="Operator Activity", project=project)
+        principal = ServicePrincipal.objects.create(
+            name="External Integration", created_by=self.user
+        )
+        project_token, _ = ServiceToken.objects.create_token(
+            name="Project Reader",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[project.id, other_project.id],
+            ),
+        )
+        oplog_token, _ = ServiceToken.objects.create_token(
+            name="Oplog Writer",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.OPLOG_RW,
+                oplog_id=oplog.id,
+            ),
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertNotContains(
+            response, '<th class="align-middle text-left">Service Principal</th>'
+        )
+        self.assertNotContains(
+            response, '<th class="align-middle text-left">Scope</th>'
+        )
+        self.assertContains(
+            response, f'data-target="#service-token-details-modal-{project_token.id}"'
+        )
+        self.assertContains(
+            response, f'id="service-token-details-modal-{project_token.id}"'
+        )
+        self.assertContains(
+            response, f'id="service-token-details-modal-{oplog_token.id}"'
+        )
+        self.assertContains(response, "Service Principal")
+        self.assertContains(response, "External Integration")
+        self.assertContains(response, "Access Summary")
+        self.assertContains(
+            response, "This token reads only the selected projects listed below."
+        )
+        self.assertNotContains(
+            response, "This token does not have oplog-specific access."
+        )
+        self.assertContains(response, "Alpha Project")
+        self.assertContains(response, "Bravo Project")
+        self.assertContains(response, "Operator Activity")
+        self.assertContains(response, "Read oplog and entries")
+        self.assertContains(response, "Create entries")
+        self.assertContains(response, "Update entries")
+        self.assertContains(response, "Delete entries")

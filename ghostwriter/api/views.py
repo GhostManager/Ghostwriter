@@ -41,6 +41,7 @@ from ghostwriter.api.forms import (
     ApiOplogRecordingForm,
     ApiReportTemplateForm,
     ServiceTokenForm,
+    TokenExpiryForm,
 )
 from ghostwriter.api.models import (
     APIKey,
@@ -1979,6 +1980,79 @@ class ServiceTokenRevoke(utils.RoleBasedAccessControlMixin, SingleObjectMixin, V
             "Revoked ServiceToken %s by request of %s", token.id, self.request.user
         )
         return JsonResponse(data)
+
+
+class TokenExpiryUpdateMixin(
+    utils.RoleBasedAccessControlMixin, SingleObjectMixin, View
+):
+    """Update a token expiry date without changing token scope or revocation state."""
+
+    form_class = TokenExpiryForm
+    success_message = "Token expiry date updated."
+    revoked_message = "Revoked tokens cannot be updated."
+
+    def get_success_url(self):
+        return reverse(
+            "users:user_detail", kwargs={"username": self.request.user.username}
+        )
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def post(self, *args, **kwargs):
+        token = self.get_object()
+        if token.revoked:
+            messages.error(
+                self.request, self.revoked_message, extra_tags="alert-danger"
+            )
+            return redirect(self.get_success_url())
+
+        form = self.form_class(self.request.POST)
+        if not form.is_valid():
+            messages.error(
+                self.request,
+                "Choose a future expiry date for this token.",
+                extra_tags="alert-danger",
+            )
+            return redirect(self.get_success_url())
+
+        token.expiry_date = form.cleaned_data["expiry_date"]
+        token.save(update_fields=["expiry_date"])
+        messages.success(
+            self.request,
+            self.success_message,
+            extra_tags="alert-success",
+        )
+        logger.info(
+            "Updated %s %s expiry date by request of %s",
+            token.__class__.__name__,
+            token.id,
+            self.request.user,
+        )
+        return redirect(self.get_success_url())
+
+
+class ApiKeyExpiryUpdate(TokenExpiryUpdateMixin):
+    """Update an individual :model:`api.APIKey` expiry date."""
+
+    model = APIKey
+    success_message = "API token expiry date updated."
+    revoked_message = "Revoked API tokens cannot be updated."
+
+    def test_func(self):
+        return self.get_object().user_id == self.request.user.id
+
+
+class ServiceTokenExpiryUpdate(TokenExpiryUpdateMixin):
+    """Update an individual :model:`api.ServiceToken` expiry date."""
+
+    model = ServiceToken
+    success_message = "Service token expiry date updated."
+    revoked_message = "Revoked service tokens cannot be updated."
+
+    def test_func(self):
+        return self.get_object().created_by_id == self.request.user.id
 
 
 ##################

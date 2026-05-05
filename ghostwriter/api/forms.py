@@ -114,6 +114,28 @@ class ApiKeyForm(forms.Form):
         return expiry_date
 
 
+class TokenExpiryForm(forms.Form):
+    """Update an existing token's expiry date."""
+
+    expiry_date = forms.DateTimeField(
+        input_formats=[
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M",
+        ],
+    )
+
+    def clean_expiry_date(self):
+        expiry_date = self.cleaned_data["expiry_date"]
+        if expiry_date and expiry_date < timezone.now():
+            raise ValidationError(
+                "The token expiration date cannot be in the past",
+                code="invalid_expiry_date",
+            )
+        return expiry_date
+
+
 class ServiceTokenForm(forms.Form):
     """Create a scoped service token."""
 
