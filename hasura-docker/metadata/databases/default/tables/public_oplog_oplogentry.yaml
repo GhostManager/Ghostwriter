@@ -56,6 +56,26 @@ insert_permissions:
         - start_date
         - tool
         - user_context
+  - role: service
+    permission:
+      check:
+        oplog_id_id:
+          _eq: X-Hasura-Create-OplogEntry-Oplog-Id
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - entry_identifier
+        - extra_fields
+        - operator_name
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
   - role: user
     permission:
       check:
@@ -107,6 +127,18 @@ select_permissions:
         - tool
         - user_context
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - oplog_id_id:
+              _eq: X-Hasura-Read-Oplog-Id
+          - log:
+              project:
+                serviceTokenProjectAccesses:
+                  token_id:
+                    _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -144,6 +176,29 @@ update_permissions:
         - user_context
       filter: {}
       check: {}
+  - role: service
+    permission:
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - entry_identifier
+        - extra_fields
+        - operator_name
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+      filter:
+        oplog_id_id:
+          _eq: X-Hasura-Update-OplogEntry-Oplog-Id
+      check:
+        oplog_id_id:
+          _eq: X-Hasura-Update-OplogEntry-Oplog-Id
   - role: user
     permission:
       columns:
@@ -193,6 +248,11 @@ delete_permissions:
   - role: manager
     permission:
       filter: {}
+  - role: service
+    permission:
+      filter:
+        oplog_id_id:
+          _eq: X-Hasura-Delete-OplogEntry-Oplog-Id
   - role: user
     permission:
       filter:

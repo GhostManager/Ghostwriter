@@ -96,6 +96,18 @@ select_permissions:
         - upload_date
         - uploaded_by_id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - client_id:
+              _is_null: true
+          - client:
+              projects:
+                serviceTokenProjectAccesses:
+                  token_id:
+                    _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'

@@ -31,6 +31,10 @@ select_permissions:
         - finding_type
         - id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter: {}
   - role: user
     permission:
       columns: '*'

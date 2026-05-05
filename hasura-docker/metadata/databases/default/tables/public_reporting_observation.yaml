@@ -32,6 +32,14 @@ select_permissions:
         - extra_fields
         - description
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - id
+        - title
+        - extra_fields
+        - description
+      filter: {}
   - role: user
     permission:
       columns:

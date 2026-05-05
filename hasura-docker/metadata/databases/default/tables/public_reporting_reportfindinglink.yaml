@@ -164,6 +164,36 @@ select_permissions:
         - severity_id
         - title
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - added_as_blank
+        - affected_entities
+        - assigned_to_id
+        - complete
+        - cvss_score
+        - cvss_vector
+        - description
+        - extra_fields
+        - finding_guidance
+        - finding_type_id
+        - host_detection_techniques
+        - id
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - position
+        - references
+        - replication_steps
+        - report_id
+        - severity_id
+        - title
+      filter:
+        report:
+          project:
+            serviceTokenProjectAccesses:
+              token_id:
+                _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:

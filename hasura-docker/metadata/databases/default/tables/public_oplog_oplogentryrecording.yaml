@@ -35,6 +35,16 @@ select_permissions:
         - uploaded_date
       filter: {}
     comment: ""
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        oplogEntry:
+          log:
+            project:
+              serviceTokenProjectAccesses:
+                token_id:
+                  _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:

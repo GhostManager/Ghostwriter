@@ -30,6 +30,10 @@ select_permissions:
         - weight
         - color
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter: {}
   - role: user
     permission:
       columns: '*'

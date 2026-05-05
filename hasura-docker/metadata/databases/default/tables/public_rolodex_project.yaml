@@ -135,6 +135,15 @@ array_relationships:
         table:
           name: rolodex_projectscope
           schema: public
+  - name: serviceTokenProjectAccesses
+    using:
+      manual_configuration:
+        column_mapping:
+          id: project_id
+        insertion_order: null
+        remote_table:
+          name: api_service_token_project_access
+          schema: public
   - name: staticServers
     using:
       foreign_key_constraint_on:
@@ -179,6 +188,8 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - bloodhound_api_root_url
+        - bloodhound_results
         - client_id
         - codename
         - collab_note
@@ -195,9 +206,35 @@ select_permissions:
         - start_time
         - timezone
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - bloodhound_api_root_url
+        - bloodhound_results
+        - client_id
+        - codename
+        - collab_note
+        - complete
+        - description
+        - end_date
+        - end_time
+        - extra_fields
+        - id
+        - operator_id
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      filter:
+        serviceTokenProjectAccesses:
+          token_id:
+            _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:
+        - bloodhound_api_root_url
+        - bloodhound_results
         - client_id
         - codename
         - collab_note
@@ -229,6 +266,9 @@ update_permissions:
   - role: manager
     permission:
       columns:
+        - bloodhound_api_key_id
+        - bloodhound_api_key_token
+        - bloodhound_api_root_url
         - client_id
         - codename
         - collab_note

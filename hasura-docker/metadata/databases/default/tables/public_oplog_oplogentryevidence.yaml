@@ -33,6 +33,30 @@ select_permissions:
         - oplog_entry_id
       filter: {}
     comment: ""
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        _and:
+          - evidence:
+              _or:
+                - finding:
+                    report:
+                      project:
+                        serviceTokenProjectAccesses:
+                          token_id:
+                            _eq: X-Hasura-Service-Token-Id
+                - report:
+                    project:
+                      serviceTokenProjectAccesses:
+                        token_id:
+                          _eq: X-Hasura-Service-Token-Id
+          - oplogEntry:
+              log:
+                project:
+                  serviceTokenProjectAccesses:
+                    token_id:
+                      _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:

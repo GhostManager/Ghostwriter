@@ -98,6 +98,31 @@ select_permissions:
         - upload_date
         - uploaded_by_id
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - caption
+        - description
+        - document
+        - finding_id
+        - friendly_name
+        - id
+        - report_id
+        - upload_date
+        - uploaded_by_id
+      filter:
+        _or:
+          - finding:
+              report:
+                project:
+                  serviceTokenProjectAccesses:
+                    token_id:
+                      _eq: X-Hasura-Service-Token-Id
+          - report:
+              project:
+                serviceTokenProjectAccesses:
+                  token_id:
+                    _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
