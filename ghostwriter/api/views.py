@@ -46,6 +46,7 @@ from ghostwriter.api.models import (
     APIKey,
     ServicePrincipal,
     ServiceToken,
+    ServiceTokenPermission,
     ServiceTokenPreset,
     ServiceTokenProjectScope,
 )
@@ -87,6 +88,13 @@ from ghostwriter.shepherd.models import (
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+SERVICE_TOKEN_SCOPE_ANY = "any"
+SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT = {
+    "resource_type": ServiceTokenPermission.ResourceType.PROJECT,
+    "action": ServiceTokenPermission.Action.READ,
+    "scope": SERVICE_TOKEN_SCOPE_ANY,
+}
 
 
 ########################
@@ -249,11 +257,45 @@ class HasuraActionView(HasuraView):
         return self.service_token_permission_requirements
 
     def service_token_has_permission(
-        self, resource_type: str, action: str, resource_id: int | None
+        self,
+        resource_type: str,
+        action: str,
+        resource_id: int | None = None,
+        scope: str | None = None,
     ) -> bool:
         if self.service_token_obj is None:
             return False
+        if scope == SERVICE_TOKEN_SCOPE_ANY:
+            return self.service_token_obj.permissions.filter(
+                resource_type=ServiceToken._choice_value(resource_type),
+                action=ServiceToken._choice_value(action),
+            ).exists()
         return self.service_token_obj.has_permission(resource_type, action, resource_id)
+
+    def service_token_can_read_project_id(self, project_id: int | None) -> bool:
+        if project_id is None:
+            return False
+        return self.service_token_has_permission(
+            ServiceTokenPermission.ResourceType.PROJECT,
+            ServiceTokenPermission.Action.READ,
+            int(project_id),
+        )
+
+    def service_token_project_read_ids(self) -> list[int]:
+        if self.service_token_obj is None:
+            return []
+        if not hasattr(self, "_service_token_project_read_ids"):
+            self._service_token_project_read_ids = (
+                self.service_token_obj.get_current_project_read_ids()
+            )
+        return self._service_token_project_read_ids
+
+    def service_token_has_project_read_grant(self) -> bool:
+        return self.service_token_has_permission(
+            ServiceTokenPermission.ResourceType.PROJECT,
+            ServiceTokenPermission.Action.READ,
+            scope=SERVICE_TOKEN_SCOPE_ANY,
+        )
 
     def authorize_service_token_action(self) -> bool:
         requirements = self.get_service_token_permission_requirements()
@@ -264,9 +306,15 @@ class HasuraActionView(HasuraView):
                 requirement["resource_type"],
                 requirement["action"],
                 requirement.get("resource_id"),
+                requirement.get("scope"),
             )
             for requirement in requirements
         )
+
+    def principal_can_read_project(self, project: Project) -> bool:
+        if self.service_token_obj is not None:
+            return self.service_token_can_read_project_id(project.id)
+        return project.user_can_view(self.user_obj)
 
     def post_authentication(self, request, *args, **kwargs):
         if self.service_token_obj is None:
@@ -714,6 +762,9 @@ class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
 class GraphqlGetExtraFieldSpecAction(JwtRequiredMixin, HasuraActionView):
     """Endpoint for retrieving a model's field specification with the ``getFieldSpec`` action."""
 
+    service_token_permission_requirements = (
+        SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,
+    )
     required_inputs = [
         "model",
     ]
@@ -780,6 +831,9 @@ class GraphqlGetExtraFieldSpecAction(JwtRequiredMixin, HasuraActionView):
 class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
     """Endpoint for generating a JSON report with the ``generateReport`` action."""
 
+    service_token_permission_requirements = (
+        SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,
+    )
     required_inputs = [
         "id",
     ]
@@ -796,7 +850,7 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
                 status=401,
             )
 
-        if report.user_can_view(self.user_obj):
+        if self.principal_can_read_project(report.project):
             report_bytes = ExportReportJson(report).run().getvalue()
             base64_bytes = b64encode(report_bytes)
             base64_string = base64_bytes.decode("utf-8")
@@ -829,6 +883,9 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
     required_inputs = [
         "evidenceId",
     ]
+    service_token_permission_requirements = (
+        SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,
+    )
 
     def post(self, request, *args, **kwargs):
         evidence_id = self.input.get("evidenceId")
@@ -845,7 +902,7 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
 
         # Check if user has permission to view the evidence
         project = evidence.associated_report.project
-        if not project.user_can_view(self.user_obj):
+        if not self.principal_can_read_project(project):
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Unauthorized access", "Unauthorized"
@@ -1380,6 +1437,9 @@ class GraphqlDownloadRecording(JwtRequiredMixin, HasuraActionView):
     required_inputs = [
         "oplogEntryId",
     ]
+    service_token_permission_requirements = (
+        SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,
+    )
 
     def post(self, request, *args, **kwargs):
         oplog_entry_id = self.input.get("oplogEntryId")
@@ -1396,7 +1456,7 @@ class GraphqlDownloadRecording(JwtRequiredMixin, HasuraActionView):
                 status=HTTPStatus.NOT_FOUND,
             )
 
-        if not entry.user_can_view(self.user_obj):
+        if not self.principal_can_read_project(entry.oplog_id.project):
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Unauthorized access", "Unauthorized"
@@ -2095,7 +2155,44 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
         return JsonResponse(self.user_obj.username, status=200, safe=False)
 
 
-class GetTags(HasuraActionView):
+class ServiceTokenTagAccessMixin:
+    service_token_permission_requirements = (
+        SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,
+    )
+    service_token_global_library_models = {"finding", "observation"}
+
+    def get_service_token_tag_queryset(self, model: str, cls):
+        if model in self.service_token_global_library_models:
+            if self.service_token_has_project_read_grant():
+                return cls.objects.all()
+            return cls.objects.none()
+
+        project_ids = self.service_token_project_read_ids()
+        if model == "project":
+            return cls.objects.filter(id__in=project_ids)
+        if model == "report":
+            return cls.objects.filter(project_id__in=project_ids)
+        if model in {"report_finding_link", "report_observation_link"}:
+            return cls.objects.filter(report__project_id__in=project_ids)
+        if model == "oplog_entry":
+            return cls.objects.filter(oplog_id__project_id__in=project_ids)
+        return cls.objects.none()
+
+    def service_token_can_view_tag_object(self, model: str, obj) -> bool:
+        if model in self.service_token_global_library_models:
+            return self.service_token_has_project_read_grant()
+        if model == "project":
+            return self.service_token_can_read_project_id(obj.id)
+        if model == "report":
+            return self.service_token_can_read_project_id(obj.project_id)
+        if model in {"report_finding_link", "report_observation_link"}:
+            return self.service_token_can_read_project_id(obj.report.project_id)
+        if model == "oplog_entry":
+            return self.service_token_can_read_project_id(obj.oplog_id.project_id)
+        return False
+
+
+class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
     required_inputs = ["model", "id"]
     available_models = {
         # Models here need to have a `tags` field, and optionally a `user_can_view(user)` method.
@@ -2118,7 +2215,8 @@ class GetTags(HasuraActionView):
                 status=400,
             )
 
-        cls = self.available_models.get(self.input["model"].lower())
+        model = self.input["model"].lower()
+        cls = self.available_models.get(model)
         if cls is None:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
@@ -2136,7 +2234,19 @@ class GetTags(HasuraActionView):
             )
 
         if (
-            not is_admin
+            self.service_token_obj is not None
+            and not self.service_token_can_view_tag_object(model, obj)
+        ):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Not allowed to view", "Unauthorized"
+                ),
+                status=403,
+            )
+
+        if (
+            self.service_token_obj is None
+            and not is_admin
             and hasattr(obj, "user_can_view")
             and not obj.user_can_view(self.user_obj)
         ):
@@ -2202,7 +2312,7 @@ class SetTags(HasuraActionView):
         return JsonResponse({"tags": self.input["tags"]})
 
 
-class ObjectsByTag(HasuraActionView):
+class ObjectsByTag(ServiceTokenTagAccessMixin, HasuraActionView):
     required_inputs = ["tag"]
     available_models = {
         # Models here need to have a `tags` field and a `user_viewable(user)` class method
@@ -2234,7 +2344,10 @@ class ObjectsByTag(HasuraActionView):
                 status=401,
             )
 
-        objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
+        if self.service_token_obj is not None:
+            objs = self.get_service_token_tag_queryset(model, cls)
+        else:
+            objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
         objs = objs.filter(tags__name=self.input["tag"])
         return JsonResponse([{"id": obj.pk} for obj in objs], safe=False)
 

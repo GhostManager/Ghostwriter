@@ -76,6 +76,24 @@ ACTION_SECRET = settings.HASURA_ACTION_SECRET
 User = get_user_model()
 
 
+def create_project_read_service_token(user, project):
+    ProjectAssignmentFactory(project=project, operator=user)
+    service_principal = ServicePrincipal.objects.create(
+        name=f"Project Reader {project.pk}",
+        created_by=user,
+    )
+    _, token = ServiceToken.objects.create_token(
+        name=f"Project Read {project.pk}",
+        created_by=user,
+        service_principal=service_principal,
+        permissions=ServiceToken.build_permissions_for_preset(
+            ServiceTokenPreset.PROJECT_READ,
+            project_id=project.id,
+        ),
+    )
+    return token
+
+
 # Tests related to authentication in custom CBVs
 
 
@@ -1125,6 +1143,36 @@ class HasuraGenerateReportTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_graphql_generate_report_with_project_service_token(self):
+        token = create_project_read_service_token(self.user, self.report.project)
+        data = {"input": {"id": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_graphql_generate_report_with_project_service_token_without_scope(self):
+        token = create_project_read_service_token(self.user, self.report.project)
+        data = {"input": {"id": self.other_report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 401)
 
     def test_graphql_generate_report_with_invalid_report(self):
         _, token = utils.generate_jwt(self.user)
@@ -2202,6 +2250,21 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
             list(response.json()["extraFieldSpec"].keys()),
             [first.internal_name, second.internal_name, third.internal_name],
         )
+
+    def test_graphql_get_extra_field_spec_with_project_service_token(self):
+        project = ProjectFactory()
+        token = create_project_read_service_token(self.user, project)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "finding"}},
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
 
 
 class HasuraCreateUserTests(TestCase):
@@ -3717,6 +3780,24 @@ class GetTagsTest(TestCase):
         body = response.json()
         self.assertEqual(set(body["tags"]), self.tags)
 
+    def test_get_report_finding_tags_allowed_project_service_token(self):
+        token = create_project_read_service_token(
+            self.user, self.report_finding.report.project
+        )
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data("service"),
+        )
+
+        self.assertEquals(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
 
 class SetTagsTest(TestCase):
     @classmethod
@@ -3846,6 +3927,43 @@ class ObjectsByTagTests(TestCase):
         )
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
+
+    def test_get_project_service_token_results_are_project_scoped(self):
+        other_report_finding = ReportFindingLinkFactory(tags=["severity:high"])
+        token = create_project_read_service_token(
+            self.user, self.report_finding.report.project
+        )
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data("severity:high", hasura_role="service"),
+        )
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.json(), [{"id": self.report_finding.pk}])
+        self.assertNotIn({"id": other_report_finding.pk}, response.json())
+
+    def test_get_project_service_token_can_query_library_findings_by_tag(self):
+        finding = FindingFactory(tags=["library:useful"])
+        token = create_project_read_service_token(
+            self.user, self.report_finding.report.project
+        )
+        response = self.client.post(
+            reverse("api:graphql_objects_by_tag", args=["finding"]),
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data("library:useful", hasura_role="service"),
+        )
+
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [{"id": finding.pk}])
 
     def test_get_manager_results(self):
         response = self.client.post(
@@ -4089,6 +4207,27 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
         # Verify base64 content
         decoded_content = base64.b64decode(result["fileBase64"])
+        self.assertEqual(decoded_content, test_content)
+
+    def test_download_evidence_with_project_service_token(self):
+        """Test that a project-scoped service token can download in-scope evidence."""
+        test_content = b"Service token evidence content"
+        self.evidence_with_finding.document.save(
+            "service_token_evidence.txt", ContentFile(test_content), save=True
+        )
+        token = create_project_read_service_token(self.user, self.project)
+        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+
+        response = self.client.post(
+            self.uri,
+            json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        decoded_content = base64.b64decode(response.json()["fileBase64"])
         self.assertEqual(decoded_content, test_content)
 
     def test_download_evidence_success_with_report(self):
@@ -4763,6 +4902,14 @@ class GraphqlDownloadRecordingTests(TestCase):
         decoded = base64.b64decode(result["fileBase64"])
         self.recording.recording_file.seek(0)
         self.assertEqual(decoded, self.recording.recording_file.read())
+
+    def test_download_recording_with_project_service_token(self):
+        """Test that a project-scoped service token can download in-scope recordings."""
+        token = create_project_read_service_token(self.user, self.project)
+        response = self._post({"oplogEntryId": self.oplog_entry.id}, token)
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["recordingId"], self.recording.id)
 
     def test_download_recording_manager_access(self):
         """Test that a manager can download a recording without a project assignment."""

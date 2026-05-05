@@ -89,6 +89,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Request the specified evidence file to receive a download URL or base64-encoded blob
@@ -101,6 +102,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Request the specified oplog entry's terminal recording to receive a download URL or base64-encoded blob
@@ -113,6 +115,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: manager
       - role: user
     comment: FindingsByTag
@@ -137,6 +140,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Generate a JSON report for the given report ID
@@ -149,6 +153,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Fetch the extra field spec for a model
@@ -183,6 +188,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: ObservationsByTag
@@ -195,6 +201,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
   - name: project_by_tag
@@ -206,6 +213,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: public
       - role: user
       - role: manager
@@ -219,6 +227,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: ReportByTag
@@ -231,6 +240,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
   - name: reportedObservation_by_tag
@@ -242,6 +252,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: ReportObservationsByTag
@@ -266,6 +277,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Get Tags

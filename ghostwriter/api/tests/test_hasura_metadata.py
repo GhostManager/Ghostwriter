@@ -46,6 +46,21 @@ DISALLOWED_SERVICE_HEADERS = {
     "X-Hasura-Create-Oplog-Id",
 }
 
+EXPECTED_SERVICE_ACTIONS = {
+    "downloadEvidence",
+    "downloadOplogRecording",
+    "finding_by_tag",
+    "generateReport",
+    "getExtraFieldSpec",
+    "observation_by_tag",
+    "oplogEntry_by_tag",
+    "project_by_tag",
+    "report_by_tag",
+    "reportedFinding_by_tag",
+    "reportedObservation_by_tag",
+    "tags",
+}
+
 
 def project_scope_filter(*path):
     """
@@ -512,6 +527,19 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
                 actions_missing_authorization.append(action["name"])
 
         self.assertEqual(actions_missing_authorization, [])
+
+    def test_service_action_metadata_matches_project_read_contract(self):
+        actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
+        service_actions = {
+            action["name"]
+            for action in actions_metadata["actions"]
+            if any(
+                permission.get("role") == "service"
+                for permission in action.get("permissions", [])
+            )
+        }
+
+        self.assertSetEqual(service_actions, EXPECTED_SERVICE_ACTIONS)
 
 
 class HasuraMetadataUserRoleTests(SimpleTestCase):
