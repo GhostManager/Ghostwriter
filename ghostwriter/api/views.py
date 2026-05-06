@@ -136,7 +136,7 @@ class HasuraView(View):
     def invalid_token_response(self):
         return JsonResponse(
             utils.generate_hasura_error_payload(
-                "Received invalid authentication token", "JWTInvalid"
+                "Received invalid authentication token", "AuthenticationInvalid"
             ),
             status=401,
         )
@@ -152,19 +152,19 @@ class HasuraView(View):
             return None
 
     def setup(self, request, *args, **kwargs):
-        # Try to pull the JWT from the request header
+        # Try to pull the bearer credential from the request header
         self.user_obj = None
         self.api_key_obj = None
         self.service_principal_obj = None
         self.service_token_obj = None
-        self.encoded_token = utils.get_jwt_from_request(request)
+        self.encoded_token = utils.get_bearer_token_from_request(request)
         self.jwt_token_type = None
         super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
-        # Only proceed with final dispatch steps if a JWT was acquired
+        # Only proceed with final dispatch steps if a bearer credential was acquired
         if self.encoded_token:
-            # Decode the JWT, store the decoded payload, and resolve the user object
+            # Resolve the credential and store the authenticated principal
             token_type = utils.get_jwt_type(self.encoded_token)
             self.jwt_token_type = token_type
             if self.encoded_token.startswith(f"{ServiceToken.objects.token_prefix}_"):
@@ -220,12 +220,12 @@ class HasuraView(View):
             )
             if post_authentication_response is not None:
                 return post_authentication_response
-        # JWT may be legitimately missing for actions like ``login``, so we proceed with dispatch either way
+        # Authentication may be legitimately missing for actions like ``login``, so proceed either way
         return super().dispatch(request, *args, **kwargs)
 
 
 class JwtRequiredMixin:
-    """Mixin for ``HasuraView`` to require a JWT to be present in the request header."""
+    """Mixin for ``HasuraView`` to require a bearer credential in the request header."""
 
     def __init__(self):
         pass
@@ -237,7 +237,7 @@ class JwtRequiredMixin:
 
         return JsonResponse(
             utils.generate_hasura_error_payload(
-                "No ``Authorization`` header found", "JWTMissing"
+                "No ``Authorization`` header found", "AuthenticationMissing"
             ),
             status=400,
         )
@@ -248,7 +248,7 @@ class HasuraActionView(HasuraView):
     Custom view class for Hasura Action endpoints. This class adds the following functionality:
     - Validates the request headers contain the Hasura Action secret
     - Validates the JSON data from the request body
-    - Ensures a JWT is present
+    - Ensures an authentication credential is present
     """
 
     input = None
@@ -2447,7 +2447,7 @@ class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
         if not self.encoded_token and not is_admin:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
-                    "No ``Authorization`` header found", "JWTMissing"
+                    "No ``Authorization`` header found", "AuthenticationMissing"
                 ),
                 status=400,
             )
@@ -2515,7 +2515,7 @@ class SetTags(HasuraActionView):
         if not self.encoded_token and not is_admin:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
-                    "No ``Authorization`` header found", "JWTMissing"
+                    "No ``Authorization`` header found", "AuthenticationMissing"
                 ),
                 status=400,
             )
@@ -2567,7 +2567,7 @@ class ObjectsByTag(ServiceTokenTagAccessMixin, HasuraActionView):
         if not self.encoded_token and not is_admin:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
-                    "No ``Authorization`` header found", "JWTMissing"
+                    "No ``Authorization`` header found", "AuthenticationMissing"
                 ),
                 status=400,
             )

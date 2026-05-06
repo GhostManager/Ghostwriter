@@ -426,7 +426,7 @@ class HasuraViewTests(TestCase):
         result = {
             "message": "No ``Authorization`` header found",
             "extensions": {
-                "code": "JWTMissing",
+                "code": "AuthenticationMissing",
             },
         }
         self.assertJSONEqual(force_str(response.content), result)
@@ -596,7 +596,7 @@ class HasuraViewTests(TestCase):
         result = {
             "message": "No ``Authorization`` header found",
             "extensions": {
-                "code": "JWTMissing",
+                "code": "AuthenticationMissing",
             },
         }
 
@@ -4741,7 +4741,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         result = {
             "message": "No ``Authorization`` header found",
             "extensions": {
-                "code": "JWTMissing",
+                "code": "AuthenticationMissing",
             },
         }
         self.assertJSONEqual(force_str(response.content), result)
@@ -4762,7 +4762,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         result = {
             "message": "Received invalid authentication token",
             "extensions": {
-                "code": "JWTInvalid",
+                "code": "AuthenticationInvalid",
             },
         }
         self.assertJSONEqual(force_str(response.content), result)

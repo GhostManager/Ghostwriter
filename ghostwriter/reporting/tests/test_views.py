@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 # Django Imports
 from django.contrib.messages import get_messages
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.test import override_settings
 from django.urls import reverse
@@ -64,7 +65,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     strip_html,
     translate_domain_sid,
 )
-from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
+from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportObservationLink
 from ghostwriter.reporting.templatetags import report_tags
 
 logging.disable(logging.CRITICAL)
@@ -2132,6 +2133,34 @@ class BaseEvidenceCreateViewTests:
             response.context["cancel_link"],
             f"{reverse('reporting:report_detail', kwargs={'pk': self.evidence.associated_report.pk})}#evidence",
         )
+
+    def test_json_upload_creates_evidence_for_editor_modal(self):
+        ProjectAssignmentFactory(project=self.evidence.associated_report.project, operator=self.user)
+        upload = SimpleUploadedFile("collab-evidence.txt", b"evidence body", content_type="text/plain")
+
+        response = self.client_auth.post(
+            self.modal_uri,
+            data={
+                "friendly_name": "Collab Evidence",
+                "document": upload,
+                "description": "",
+                "caption": "Collab evidence caption",
+                "tags": "",
+            },
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        created = Evidence.objects.get(pk=response.json()["pk"])
+        self.assertEqual(created.uploaded_by, self.user)
+        self.assertEqual(created.friendly_name, "Collab Evidence")
+        self.assertEqual(created.caption, "Collab evidence caption")
+        if self.PARENT_TYPE == "finding":
+            self.assertEqual(created.finding_id, self.parent_pk)
+            self.assertIsNone(created.report_id)
+        else:
+            self.assertEqual(created.report_id, self.parent_pk)
+            self.assertIsNone(created.finding_id)
 
     # Testing modal success view
     def test_view_modal_success_uri_exists_at_desired_location(self):

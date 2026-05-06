@@ -74,25 +74,25 @@ def user_has_valid_webauthn_device(user):
     return authenticators.exists()
 
 
-def get_jwt_from_request(request):
+def get_bearer_token_from_request(request):
     """
-    Fetch the JSON Web Token from a ``request`` object's ``META`` attribute. The
-    token is in the ``Authorization`` header with the ``Bearer `` prefix.
+    Fetch the bearer credential from a ``request`` object's ``META`` attribute.
 
     **Parameters**
 
     ``request``
         Django ``request`` object
     """
-    if "HTTP_AUTHORIZATION" not in request.META:
-        logger.error("No HTTP_AUTHORIZATION header found in request")
+    auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+    if not auth_header:
         return None
 
-    if not request.META.get("HTTP_AUTHORIZATION", "").split(" ")[1:]:
-        logger.error("HTTP_AUTHORIZATION header is empty or malformed")
+    parts = auth_header.split(" ", 1)
+    if len(parts) != 2 or not parts[1].strip():
+        logger.warning("HTTP_AUTHORIZATION header is malformed")
         return None
 
-    return request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
+    return parts[1].strip()
 
 
 def jwt_encode(payload, token_type=None):
