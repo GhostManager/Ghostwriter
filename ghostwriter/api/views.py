@@ -125,10 +125,30 @@ class HasuraView(View):
     service_principal_obj = None
     service_token_obj = None
     encoded_token = None
+    allow_login_jwt = True
+    allow_collab_jwt = False
 
     def post_authentication(self, request, *args, **kwargs):
         """Hook for subclasses that need principal-specific authorization."""
         return None
+
+    def invalid_token_response(self):
+        return JsonResponse(
+            utils.generate_hasura_error_payload(
+                "Received invalid API token", "JWTInvalid"
+            ),
+            status=401,
+        )
+
+    def resolve_jwt_user(self, payload):
+        try:
+            return User.objects.get(id=payload["sub"])
+        except User.DoesNotExist:
+            logger.warning(
+                "Received JWT for a user that does not exist: %s",
+                payload,
+            )
+            return None
 
     def setup(self, request, *args, **kwargs):
         # Try to pull the JWT from the request header
@@ -178,45 +198,24 @@ class HasuraView(View):
             else:
                 payload = utils.get_jwt_payload(self.encoded_token)
                 if payload and "sub" in payload:
-                    if not utils.is_user_jwt_type(token_type, payload):
-                        return JsonResponse(
-                            utils.generate_hasura_error_payload(
-                                "Received invalid API token", "JWTInvalid"
-                            ),
-                            status=401,
-                        )
                     if token_type == utils.USER_JWT_TYPE:
+                        if not self.allow_login_jwt:
+                            return self.invalid_token_response()
                         try:
                             session = UserSession.objects.get_valid_from_payload(payload)
                         except UserSession.DoesNotExist:
-                            return JsonResponse(
-                                utils.generate_hasura_error_payload(
-                                    "Received invalid API token", "JWTInvalid"
-                                ),
-                                status=401,
-                            )
+                            return self.invalid_token_response()
                         self.user_obj = session.user
+                    elif token_type == utils.COLLAB_JWT_TYPE:
+                        if not self.allow_collab_jwt:
+                            return self.invalid_token_response()
+                        self.user_obj = self.resolve_jwt_user(payload)
+                        if self.user_obj is None:
+                            return self.invalid_token_response()
                     else:
-                        try:
-                            self.user_obj = User.objects.get(id=payload["sub"])
-                        except User.DoesNotExist:  # pragma: no cover
-                            logger.warning(
-                                "Received JWT for a user that does not exist: %s",
-                                payload,
-                            )
-                            return JsonResponse(
-                                utils.generate_hasura_error_payload(
-                                    "Received invalid API token", "JWTInvalid"
-                                ),
-                                status=401,
-                            )
+                        return self.invalid_token_response()
                 else:
-                    return JsonResponse(
-                        utils.generate_hasura_error_payload(
-                            "Received invalid API token", "JWTInvalid"
-                        ),
-                        status=401,
-                    )
+                    return self.invalid_token_response()
             # Only proceed if user is still active
             if self.user_obj and not self.user_obj.is_active:
                 logger.warning(
@@ -2327,6 +2326,8 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
     Used by the collab editing server for authentication. Not used by Hasura.
     """
 
+    allow_login_jwt = False
+    allow_collab_jwt = True
     required_inputs = ["model", "id"]
     available_models = {
         # Models here need to have a `user_can_edit(user)` method.
