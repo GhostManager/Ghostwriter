@@ -52,6 +52,11 @@ The tokens follow the JWT open standard ([RFC7519](https://datatracker.ietf.org/
 User JWTs are generated with the `login` action. The resulting JWT holds the same privileges as the authenticated user.
 User JWTs are valid for 15 minutes and include a tracked session identifier so administrators can revoke active sessions.
 
+<Info>
+The collaborative editor use JWTs with the `ghostwriter-collab+jwt` type and are only accepted by the collaborative editor
+permission-check endpoint. They are not accepted by the Hasura authentication webhook or general GraphQL Actions.
+</Info>
+
 ```json
 mutation Login {
   login(password: "password", username: "username") {
