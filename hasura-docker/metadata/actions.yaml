@@ -214,7 +214,6 @@ actions:
           value_from_env: HASURA_ACTION_SECRET
     permissions:
       - role: service
-      - role: public
       - role: user
       - role: manager
     comment: project_by_tag
