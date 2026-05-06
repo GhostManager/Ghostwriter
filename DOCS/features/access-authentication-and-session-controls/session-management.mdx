@@ -35,11 +35,14 @@ You can manage these values via the Ghostwriter command-line interface (CLI) too
 
 Finally, administrators can view sessions in the admin panel under the *Sessions* section. This section records every session currently known to Ghostwriter, including expired sessions. If a user does not log out (e.g., lets their session expire) their session will remain logged in the database.
 
-It is recommended you clear these expired sessions on a regular basis to keep the sessions table tidy. You can do this with a scheduled task. The task should call `django.core.management.call_command` and pass `"clearsessions"` as its only argument. Set up a task like this one that runs daily with the cron scheduler. For example, `0 5 * * *` will run it every day at 5:00 AM.
+Ghostwriter also tracks JWT sessions created by the GraphQL `login` mutation. These rows allow administrators to revoke login JWTs before their `exp` timestamp, but expired rows should still be cleaned up periodically.
+
+It is recommended you clear expired sessions on a regular basis to keep the session tables tidy. Use the `clear_expired_sessions` management command for this cleanup. The command wraps Django's built-in `clearsessions` command and also deletes expired GraphQL login sessions from Ghostwriter's `UserSession` table.
+
+For a scheduled task, call `django.core.management.call_command` and pass `"clear_expired_sessions"` as its only argument. Set up a task like this one that runs daily with the cron scheduler. For example, `0 5 * * *` will run it every day at 5:00 AM.
 
 <Frame>
   <img src="/images/features/image-3.avif" alt=""/>
 </Frame>
 
 <CardGroup cols={1}> <Card title="Scheduling Tasks" icon="calendar" iconType="solid" href="/features/background-tasks/scheduled-tasks" /> </CardGroup>
-

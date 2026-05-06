@@ -23,10 +23,15 @@ The **Profile Overview** card presents user details in a condensed grid so they 
 
 The **API Tokens** card is for user-bound automation tokens. API tokens authenticate as your user account and inherit your current Ghostwriter permissions. Use API tokens when automation should do exactly what your user account can do.
 
+API tokens are opaque `gwat_` credentials. They are not JWTs, and Ghostwriter stores only a hash of the token secret. The full token value is shown once when you create a token or save an expiry update.
+
+API tokens are different from GraphQL `login` mutation sessions. The `login` mutation returns a short-lived JWT with a tracked session identifier so administrators can revoke active login sessions. See [Session Management](/features/access-authentication-and-session-controls/session-management) for login-session cleanup guidance.
+
 The API token card lets you:
 
 * create a new API token with an expiration date
 * review existing tokens
+* edit a token's expiration date and receive a replacement token
 * revoke tokens you no longer need
 * hide expired tokens from the table
 
