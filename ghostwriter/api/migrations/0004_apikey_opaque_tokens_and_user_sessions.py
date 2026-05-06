@@ -14,6 +14,11 @@ def populate_api_key_identifiers(apps, schema_editor):
         api_key.save(update_fields=["identifier"])
 
 
+def blank_legacy_api_key_tokens(apps, schema_editor):
+    APIKey = apps.get_model("api", "APIKey")
+    APIKey.objects.exclude(token="").update(token="")
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("api", "0003_service_token_project_access_views"),
@@ -49,6 +54,10 @@ class Migration(migrations.Migration):
             model_name="apikey",
             name="token",
             field=models.TextField(blank=True, default="", editable=False),
+        ),
+        migrations.RunPython(
+            blank_legacy_api_key_tokens,
+            reverse_code=migrations.RunPython.noop,
         ),
         migrations.RunPython(
             populate_api_key_identifiers,
