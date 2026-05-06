@@ -77,7 +77,7 @@ class ApiKeyForm(forms.Form):
         ].help_text = f"Pick a date / time and then select AM or PM (uses server's time zone–{settings.TIME_ZONE})"
         self.fields[
             "name"
-        ].help_text = "Enter a name to help you identify this API key later"
+        ].help_text = "Enter a name to help you identify this API token later"
         self.fields["name"].widget.attrs[
             "placeholder"
         ] = "API Token – Automation Script"
@@ -108,7 +108,7 @@ class ApiKeyForm(forms.Form):
         if expiry_date:
             if expiry_date < timezone.now():
                 raise ValidationError(
-                    "The API key expiration date cannot be in the past",
+                    "The API token expiration date cannot be in the past",
                     code="invalid_expiry_date",
                 )
         return expiry_date
