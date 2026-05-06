@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Use service principals and service tokens for non-human integrations
   * Admin-created user-bound API tokens should be replaced with user-created API tokens or scoped service tokens, depending on whether the credential should act as a user or as a non-human service
 * Login and collaborative editor JWTs now use explicit JWT typing and are accepted only by their intended authentication paths
-  * General GraphQL authentication rejects collaborative editor JWTs
+  * Collaborative editor JWTs authenticate to Hasura only as a restricted `collab` role for the editor's required read-only queries
   * Login JWTs require a tracked, unrevoked user session bound by the `jti` claim
 * Service-token GraphQL access now uses the new `service` role and scoped service-token permissions instead of inheriting a creating user's permissions
 
@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Editing an API token expiry rotates the token prefix, secret hash, and UUID identifier
 * Login and collaborative editor JWTs now use explicit JWT typing
   * Login JWTs bind their `jti` claim to a tracked user-session identifier
-  * Collaborative editor JWTs use a dedicated token type
+  * Collaborative editor JWTs use a dedicated token type and restricted Hasura role
 
 ### Fixed
 
@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Added service-token authorization helpers for Django-backed Hasura Actions so service tokens are denied by default unless an action explicitly opts in
 * Login JWT validation now checks the tracked user session after verifying the JWT signature and expiration so sessions can be revoked on demand
-* Collaborative editor JWTs are now rejected by general GraphQL authentication and accepted only by the collaborative editor permission-check endpoint
+* Collaborative editor JWTs are restricted to a dedicated Hasura role and accepted by the collaborative editor permission-check endpoint
 * API token validation now verifies the opaque token secret against a stored hash and rejects revoked, expired, or inactive-user tokens
 * API token expiry edits now invalidate the previous credential and show the replacement token once
 * Service-token validation now uses explicit secret-checking terminology internally and keeps full lifecycle validation on the manager path
