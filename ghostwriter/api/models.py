@@ -20,6 +20,7 @@ from ghostwriter.api.utils import (
     USER_JWT_TYPE,
     generate_jwt,
 )
+from ghostwriter.oplog.models import Oplog
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -811,7 +812,6 @@ class ServiceToken(models.Model):
     def get_oplog_access_details(self) -> list[dict[str, typing.Any]]:
         """Return oplog access grouped by oplog with user-facing action labels."""
         # Ghostwriter Libraries
-        from ghostwriter.oplog.models import Oplog
 
         action_labels = {
             ServiceTokenPermission.Action.READ.value: "Read oplog and entries",
