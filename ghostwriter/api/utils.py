@@ -141,8 +141,8 @@ def jwt_decode(token):
 
 def jwt_decode_no_verification(token):
     """
-    Decode a JWT token without verifying anything. Used for logs and trusted
-    :model:`api:APIKey` entries.
+    Decode a JWT token without verifying signature, audience, or expiration.
+    Use only for non-authoritative inspection such as logging and tests.
 
     **Parameters**
 
