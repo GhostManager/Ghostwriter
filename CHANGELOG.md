@@ -5,11 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.4.0] - 5 May 2026
+## [7.0.0] - 8 May 2026
+
+### Breaking Changes
+
+* User-managed API tokens are now opaque `gwat_` credentials instead of JWTs
+  * Existing user-managed JWT API tokens must be rotated to receive an opaque API token
+  * API token expiry edits rotate the token prefix, secret hash, and UUID identifier, which immediately invalidates the previous credential
+* Django admin can no longer create user-bound API tokens
+  * Use service principals and service tokens for non-human integrations
+  * Admin-created user-bound API tokens should be replaced with user-created API tokens or scoped service tokens, depending on whether the credential should act as a user or as a non-human service
+* Login and collaborative editor JWTs now use explicit JWT typing and are accepted only by their intended authentication paths
+  * General GraphQL authentication rejects collaborative editor JWTs
+  * Login JWTs require a tracked, unrevoked user session bound by the `jti` claim
+* Service-token GraphQL access now uses the new `service` role and scoped service-token permissions instead of inheriting a creating user's permissions
 
 ### Added
 
-* **Scoped Service Tokens**: Added service principals and service tokens for non-human automation credentials
+* **Scoped Service Tokens**: Added service principals and service tokens for non-human automation credentials (Closes #881)
   * Service principals represent durable integrations or automation services
   * Service tokens are opaque `gwst_` credentials with hashed secrets, expiration, revocation, and last-used tracking
   * Service token permissions are assigned to the token instead of inheriting the creating user's permissions
@@ -21,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Service tokens can call selected read-oriented GraphQL Actions, including report generation, evidence and recording downloads, tag lookups, and extra field specs
 * Added service-token management to the Django admin
 * Added documentation for API tokens, service tokens, and service-principal concepts
+* Added user-session tracking for login JWTs so administrators can revoke active GraphQL sessions
+* Added a management command to clean up expired Django sessions and tracked GraphQL login sessions
 
 ### Changed
 
@@ -30,10 +45,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Expired tokens can be hidden, and that preference is remembered in local storage
   * Token expiry dates now use warning styling when expiring within seven days and expired styling after expiration
 * Added profile controls for editing API token and service token expiry dates
-  * API token expiry edits now generate a replacement token so the JWT expiration claim stays aligned with the displayed expiration
+  * API token expiry edits now generate a replacement opaque token so the previous credential stops working immediately
 * Added service-token detail modals that show service principal, project read access, direct operation-log access, stale project grants, and token access summaries
 * Improved dark-mode styling for disabled fields
 * Made the sidebar toggle tab sticky while scrolling
+* API tokens are now opaque `gwat_` credentials with hashed secrets instead of user-managed JWTs
+  * Editing an API token expiry rotates the token prefix, secret hash, and UUID identifier
+* Login and collaborative editor JWTs now use explicit JWT typing
+  * Login JWTs bind their `jti` claim to a tracked user-session identifier
+  * Collaborative editor JWTs use a dedicated token type
 
 ### Fixed
 
@@ -42,7 +62,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 * Added service-token authorization helpers for Django-backed Hasura Actions so service tokens are denied by default unless an action explicitly opts in
-* API token validation now verifies the JWT expiration claim in addition to the stored token record
+* Login JWT validation now checks the tracked user session after verifying the JWT signature and expiration so sessions can be revoked on demand
+* Collaborative editor JWTs are now rejected by general GraphQL authentication and accepted only by the collaborative editor permission-check endpoint
+* API token validation now verifies the opaque token secret against a stored hash and rejects revoked, expired, or inactive-user tokens
+* API token expiry edits now invalidate the previous credential and show the replacement token once
+* Service-token validation now uses explicit secret-checking terminology internally and keeps full lifecycle validation on the manager path
 * Added Hasura metadata validation tests to catch service-role permission drift, legacy service-token headers, and unexpected service mutations
 * Added validation for service-token permission resource, action, and constraint combinations
 
