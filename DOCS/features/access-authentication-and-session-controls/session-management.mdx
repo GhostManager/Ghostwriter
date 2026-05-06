@@ -3,17 +3,17 @@ title: "Session Management"
 description: "Managing user web sessions"
 ---
 
-Ghostwriter v4+ provide options for managing user sessions. The previous Ghostwriter releases used Django’s defaults for session management and while these defaults aren’t inherently bad, they permissive for applications storing sensitive information.
+Ghostwriter v4+ provides options for managing user sessions. Previous Ghostwriter releases used Django’s defaults for session management. While these defaults are not inherently bad, they are permissive for applications storing sensitive information.
 
 There are several options an administrator can change to secure user sessions to their liking.
 
 ## Managing Session Expiry & Cookies
 
-The default Django sessions expire after two weeks. To tighten up session management, administrators have control over three essential values:
+The default Django sessions expire after two weeks. Ghostwriter tightens this by default, and administrators have control over three essential values:
 
 * `DJANGO_SESSION_COOKIE_AGE`
 
-  * Sets the number of seconds a session cookie will last before expiring (default: *32400* seconds or nine hours)
+  * Sets the number of seconds a session cookie will last before expiring. The Ghostwriter CLI writes *32400* seconds, or nine hours, to the generated `.env` file. If the environment variable is missing, Django falls back to *7200* seconds, or two hours.
 
 * `DJANGO_SESSION_SAVE_EVERY_REQUEST`
 
@@ -23,7 +23,7 @@ The default Django sessions expire after two weeks. To tighten up session manage
 
   * Sets whether the session cookie will expire when the browser is closed (default: *true*)
 
-These defaults are a good starting point. Still, you should consider how your team uses Ghostwriter and adjust accordingly. Ghostwriter uses nine hours for the default expiration so a login session can last an entire workday — just in case someone is in the middle of something and has to walk away for an extended period. You may want to reduce this value to one or two hours.
+These defaults are a good starting point. Still, you should consider how your team uses Ghostwriter and adjust accordingly. The CLI-provisioned nine-hour value allows a login session to last an entire workday, while the application fallback keeps stale browser sessions shorter if the environment variable is not set. You may want to reduce this value to one or two hours for stricter session handling.
 
 With `DJANGO_SESSION_SAVE_EVERY_REQUEST` set to `true`, the server will update the session with each request. Updates reset the expiration, so a short expiry period won’t log out anyone actively using Ghostwriter but will allow inactive sessions to expire.
 

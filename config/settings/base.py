@@ -343,9 +343,10 @@ MFA_FORMS = {
 
 MFA_REVEAL_TOKENS = env.bool("DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS", False)
 
-# override the default django-allauth reauthentication timeout settings
-# Set to 9 hours (32400 seconds) to align with SESSION_COOKIE_AGE and avoid session timeout conflicts.
-# this is necessary to avoid conflicts with the SESSION_COOKIE_AGE setting
+# Override the default django-allauth reauthentication timeout setting.
+# This controls how long allauth considers recent authentication fresh enough
+# for sensitive account-management actions. It is intentionally configurable
+# separately from SESSION_COOKIE_AGE.
 # https://docs.allauth.org/en/dev/account/configuration.html
 ACCOUNT_REAUTHENTICATION_TIMEOUT = env.int("DJANGO_ACCOUNT_REAUTHENTICATION_TIMEOUT", 32400)  # 9 hours
 

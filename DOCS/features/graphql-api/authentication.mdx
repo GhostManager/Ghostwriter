@@ -114,8 +114,13 @@ gwst_32fabb637697aad2_OPWZ2iI9fkPYdbtkHOxBucdPfVG0NDaWDmMu5icCkLM
 
 Requests authenticate with the `Authorization` header: `Authorization: Bearer TOKEN`
 
-Hasura will connect to an authentication webhook before a request. For login JWTs, the webhook takes several steps to
-examine the JWT before allowing a request to proceed:
+Hasura connects to an authentication webhook before a request. The webhook accepts three credential families:
+
+* login JWTs returned by the `login` action
+* opaque user API tokens with the `gwat_` prefix
+* opaque service tokens with the `gwst_` prefix
+
+For login JWTs, the webhook takes several steps to examine the JWT before allowing a request to proceed:
 
 1. Check the JWT is present
 
@@ -136,7 +141,12 @@ For service tokens, the webhook validates the opaque token, verifies the service
 service-scoped session variables to Hasura. Service tokens do not become users and do not receive the permissions of
 the user who created them.
 
-If the token is not accepted, the authorization webhook will return a `401 Unauthorized` response with an error like this:
+If a request does not include an `Authorization` header, the webhook returns the `public` role with the username
+`anonymous`. This is not a real user or role and is only used to manage access to resources designed to be accessed
+without authentication. The only action available for this `anonymous` role is the `Login` action.
+
+If a request includes an invalid, expired, revoked, or otherwise unacceptable token, the authorization webhook will return
+a `401 Unauthorized` response with an error like this:
 
 ```json
 {
@@ -152,11 +162,6 @@ If the token is not accepted, the authorization webhook will return a `401 Unaut
 }
 ```
 
-Any unauthorized request will be treated as having the `public` role with the username `anonymous`. This is not a real
-user or role and is only used to manage access to resources designed to be accessed without authentication.
-
-The only action available for this `anonymous` user is the `Login` action.
-
 ### Authentication & Authorization Flow
 
 This is a MermaidJS diagram showing the general flow for authentication and authorization:
@@ -170,19 +175,27 @@ sequenceDiagram
         GraphQL->>Webhook: Username & Password
         Webhook->>Back End: Who is this user?
         Back End->>Webhook: 'User' Object
-        Webhook->>Webhook: Generate JSON Token
-        Webhook->>GraphQL: JSON Token
+        Webhook->>Back End: Create UserSession
+        Webhook->>Webhook: Generate typed login JWT
+        Webhook->>GraphQL: Login JWT
     end
-    GraphQL->>User: Authentication Error || Pass JSON Web Token to User
-    User->>GraphQL: GraphQL Request
+    GraphQL->>User: Authentication Error || Pass login JWT to User
+    User->>GraphQL: GraphQL Request with login JWT, gwat_ API token, or gwst_ service token
     loop Authorization
-        GraphQL->>Webhook: Request Data
-        Webhook->>Back End: Validate JSON Token
-        Back End->>Back End: JWT Validation
-        Back End->>Webhook: 'User' Object
-        Webhook->>Webhook: Is this user's role authorized for this request?
+        GraphQL->>Webhook: Authorization Header
+        alt Login JWT
+            Webhook->>Webhook: Verify signature, audience, type, and exp
+            Webhook->>Back End: Validate UserSession jti and active user
+            Back End->>Webhook: User role session variables
+        else API token
+            Webhook->>Back End: Validate opaque gwat_ token record
+            Back End->>Webhook: User role session variables
+        else Service token
+            Webhook->>Back End: Validate opaque gwst_ token, principal, and scope
+            Back End->>Webhook: Service role session variables
+        end
         Webhook->>GraphQL: Authentication Result
     end
-    Note right of GraphQL: Check 'Authentication' header
+    Note right of GraphQL: Check 'Authorization' header
     GraphQL->>User: Authorization Error || GraphQL Result
-  ```
+```
