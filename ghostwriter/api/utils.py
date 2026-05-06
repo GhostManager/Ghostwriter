@@ -27,8 +27,41 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-def user_has_valid_totp_device(user):
+USER_JWT_TYPE = "ghostwriter-user+jwt"
+COLLAB_JWT_TYPE = "ghostwriter-collab+jwt"
+LEGACY_JWT_TYPE = "JWT"
 
+
+def get_jwt_type(token):
+    """Return the unverified JWT ``typ`` header value."""
+    try:
+        return jwt.get_unverified_header(token).get("typ")
+    except (jwt.DecodeError, jwt.InvalidTokenError):
+        return None
+
+
+def is_legacy_short_lived_user_jwt(payload) -> bool:
+    """Return whether a legacy untyped JWT looks like a normal user session token."""
+    try:
+        issued_at = float(payload["iat"])
+        expires_at = float(payload["exp"])
+    except (KeyError, TypeError, ValueError):
+        return False
+
+    allowed_lifetime = settings.GRAPHQL_JWT["JWT_EXPIRATION_DELTA"].total_seconds() + 10
+    return expires_at - issued_at <= allowed_lifetime
+
+
+def is_user_jwt_type(token_type, payload) -> bool:
+    """Return whether a JWT type is acceptable for user-session authentication."""
+    if token_type in (USER_JWT_TYPE, COLLAB_JWT_TYPE):
+        return True
+    if token_type in (None, LEGACY_JWT_TYPE):
+        return is_legacy_short_lived_user_jwt(payload)
+    return False
+
+
+def user_has_valid_totp_device(user):
     """
     Check if the user has a valid TOTP device.
 
@@ -83,7 +116,7 @@ def get_jwt_from_request(request):
     return request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
 
 
-def jwt_encode(payload):
+def jwt_encode(payload, token_type=USER_JWT_TYPE):
     """
     Encode a JWT token.
 
@@ -92,10 +125,12 @@ def jwt_encode(payload):
     ``payload``
         Plaintext JWT payload to be signed
     """
+    headers = {"typ": token_type} if token_type else None
     return jwt.encode(
         payload,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
         settings.GRAPHQL_JWT["JWT_ALGORITHM"],
+        headers=headers,
     )
 
 
@@ -169,10 +204,14 @@ def get_jwt_payload(token):
     return payload
 
 
-def generate_jwt(user, exp=None):
+def generate_jwt(user, exp=None, token_type=USER_JWT_TYPE, jti=None):
     """
-    Generate a JWT token for the user. The token will expire after the
-    ``JWT_EXPIRATION_DELTA`` setting unless the ``exp`` parameter is set.
+    Generate a signed JWT payload for the user without persisting any state.
+
+    Login/session JWTs that need revocation tracking should be issued through
+    ``UserSession.objects.create_token()`` so the backing session row is created
+    explicitly. The token will expire after the ``JWT_EXPIRATION_DELTA`` setting
+    unless the ``exp`` parameter is set.
 
     **Parameters**
 
@@ -180,6 +219,10 @@ def generate_jwt(user, exp=None):
         The :model:`users.User` object for the token
     ``exp``
         The expiration timestamp for the token
+    ``token_type``
+        The JWT ``typ`` header value
+    ``jti``
+        Optional JWT ID for callers with external/session tracking
     """
     jwt_iat = datetime.utcnow()
     if exp:
@@ -196,8 +239,10 @@ def generate_jwt(user, exp=None):
         "iat": jwt_iat.timestamp(),
         "exp": jwt_expires,
     }
+    if jti is not None:
+        payload["jti"] = str(jti)
 
-    return payload, jwt_encode(payload)
+    return payload, jwt_encode(payload, token_type=token_type)
 
 
 def generate_hasura_error_payload(error_message, error_code):

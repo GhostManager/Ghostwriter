@@ -4,20 +4,22 @@
 import logging
 import secrets
 import typing
+import uuid
 from datetime import timedelta
 
 # Django Imports
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
-# 3rd Party Libraries
-import jwt
-
 # Ghostwriter Libraries
-from ghostwriter.api.utils import generate_jwt, jwt_decode
+from ghostwriter.api.utils import (
+    USER_JWT_TYPE,
+    generate_jwt,
+)
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -49,11 +51,19 @@ class BaseAPIKeyManager(models.Manager):
     Code is adapted from the ``djangorestframework-api-key`` package by florimondmanca.
     """
 
-    def generate_token(self, obj: "AbstractAPIKey") -> str:
-        # Generate JWT with requested expiration date instead of default of +15m
-        payload, token = generate_jwt(obj.user, exp=obj.expiry_date)
-        obj.token = token
-        return payload, token
+    token_prefix = "gwat"
+
+    def _build_token(self) -> tuple[str, str, str]:
+        prefix = secrets.token_hex(8)
+        secret = secrets.token_urlsafe(32)
+        return prefix, secret, f"{self.token_prefix}_{prefix}_{secret}"
+
+    def generate_token(self, obj: "AbstractAPIKey") -> tuple[None, str]:
+        prefix, secret, token = self._build_token()
+        obj.token_prefix = prefix
+        obj.secret_hash = make_password(secret)
+        obj.token = ""
+        return None, token
 
     def create_token(self, **kwargs: typing.Any) -> typing.Tuple["AbstractAPIKey", str]:
         # Prevent from manually setting the primary key.
@@ -66,32 +76,48 @@ class BaseAPIKeyManager(models.Manager):
     def get_usable_keys(self) -> models.QuerySet:
         return self.filter(revoked=False)
 
-    def get_from_token(self, token: str) -> "AbstractAPIKey":
-        queryset = self.get_usable_keys()
-
+    def _split_token(self, token: str) -> tuple[str, str]:
+        if not token.startswith(f"{self.token_prefix}_"):
+            raise self.model.DoesNotExist("Token prefix is invalid")
         try:
-            entry = queryset.get(token=token)
+            _, prefix, secret = token.split("_", 2)
+        except ValueError as exc:
+            raise self.model.DoesNotExist("Token format is invalid") from exc
+        return prefix, secret
+
+    def get_from_token(self, token: str) -> "AbstractAPIKey":
+        prefix, secret = self._split_token(token)
+        try:
+            entry = (
+                self.get_usable_keys()
+                .select_related("user")
+                .get(token_prefix=prefix)
+            )
         except self.model.DoesNotExist:
             raise
 
-        if not entry.is_valid(token):
+        if not entry.check_secret(secret):
             raise self.model.DoesNotExist("Key is not valid")
-        else:
-            return entry
+        return entry
 
     def is_valid(self, token: str) -> bool:
         try:
-            entry = self.get_from_token(token)
+            self.get_valid_from_token(token)
         except self.model.DoesNotExist:
             return False
 
+        return True
+
+    def get_valid_from_token(self, token: str) -> "AbstractAPIKey":
+        entry = self.get_from_token(token)
+
         if entry.has_expired:
-            return False
+            raise self.model.DoesNotExist("Key has expired")
 
         if not entry.user.is_active:
-            return False
+            raise self.model.DoesNotExist("Key user is inactive")
 
-        return True
+        return entry
 
 
 class APIKeyManager(BaseAPIKeyManager):
@@ -99,7 +125,7 @@ class APIKeyManager(BaseAPIKeyManager):
 
 
 class AbstractAPIKey(models.Model):
-    """Stores a specialized JSON Web Token associated with an individual :model:`users.User`."""
+    """Stores an opaque API token associated with an individual :model:`users.User`."""
 
     objects = APIKeyManager()
 
@@ -109,7 +135,17 @@ class AbstractAPIKey(models.Model):
         default=None,
         help_text="A name to identify this API key",
     )
-    token = models.TextField(editable=False)
+    identifier = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    token_prefix = models.CharField(
+        max_length=24,
+        unique=True,
+        editable=False,
+        db_index=True,
+        null=True,
+        blank=True,
+    )
+    secret_hash = models.CharField(max_length=255, editable=False, null=True, blank=True)
+    token = models.TextField(editable=False, blank=True, default="")
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     expiry_date = models.DateTimeField(
         blank=True,
@@ -149,14 +185,20 @@ class AbstractAPIKey(models.Model):
     def expires_soon(self) -> bool:
         return _expires_within_warning_window(self.expiry_date)
 
-    def is_valid(self, key: str) -> bool:
-        try:
-            payload = jwt_decode(key)
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError):
+    def check_secret(self, secret: str) -> bool:
+        if not self.secret_hash:
             return False
-        if payload:
-            return True
-        return False
+        return check_password(secret, self.secret_hash)
+
+    def is_valid(self, key: str) -> bool:
+        if self.revoked or self.has_expired or not self.user.is_active:
+            return False
+
+        try:
+            prefix, secret = self.__class__.objects._split_token(key)
+        except self.__class__.DoesNotExist:
+            return False
+        return prefix == self.token_prefix and self.check_secret(secret)
 
     def clean(self) -> None:
         self._validate_revoked()
@@ -177,7 +219,103 @@ class AbstractAPIKey(models.Model):
 
 
 class APIKey(AbstractAPIKey):
-    """Stores a specialized JSON Web Token associated with an individual :model:`users.User`."""
+    """Stores an opaque API token associated with an individual :model:`users.User`."""
+
+
+class UserSessionManager(models.Manager):
+    """Issue and validate revocable JWT-backed user sessions."""
+
+    def create_token(
+        self, user: User, expires_at=None
+    ) -> tuple["UserSession", dict[str, typing.Any], str]:
+        if expires_at is None:
+            expires_at = timezone.now() + settings.GRAPHQL_JWT["JWT_EXPIRATION_DELTA"]
+        session = self.model(user=user, expires_at=expires_at)
+        session.save()
+        payload, token = generate_jwt(
+            user,
+            exp=int(expires_at.timestamp()),
+            token_type=USER_JWT_TYPE,
+            jti=session.identifier,
+        )
+        return session, payload, token
+
+    def get_valid_from_payload(self, payload: dict[str, typing.Any]) -> "UserSession":
+        identifier = payload.get("jti")
+        if not identifier:
+            raise self.model.DoesNotExist("Session identifier is missing")
+
+        try:
+            session = self.select_related("user").get(identifier=identifier)
+        except (self.model.DoesNotExist, ValidationError, ValueError):
+            raise self.model.DoesNotExist("Session is not valid")
+
+        if str(session.user_id) != str(payload.get("sub")):
+            raise self.model.DoesNotExist("Session subject does not match")
+
+        if not session.is_valid:
+            raise self.model.DoesNotExist("Session is not valid")
+        return session
+
+
+class UserSession(models.Model):
+    """Tracks login JWTs so administrators can revoke active sessions."""
+
+    objects = UserSessionManager()
+
+    identifier = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="graphql_sessions"
+    )
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    expires_at = models.DateTimeField(db_index=True)
+    revoked_at = models.DateTimeField(blank=True, null=True, db_index=True)
+    revoked_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="revoked_graphql_sessions",
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        ordering = ("-created",)
+
+    def __init__(self, *args: typing.Any, **kwargs: typing.Any):
+        super().__init__(*args, **kwargs)
+        self._initial_revoked_at = self.revoked_at
+
+    @property
+    def has_expired(self) -> bool:
+        return self.expires_at < timezone.now()
+
+    @property
+    def is_valid(self) -> bool:
+        return (
+            self.revoked_at is None
+            and not self.has_expired
+            and self.user.is_active
+        )
+
+    def revoke(self, revoked_by: User | None = None) -> None:
+        if self.revoked_at is None:
+            self.revoked_at = timezone.now()
+            self.revoked_by = revoked_by
+            self.save(update_fields=["revoked_at", "revoked_by"])
+
+    def clean(self) -> None:
+        if self._initial_revoked_at and not self.revoked_at:
+            raise ValidationError(
+                "A revoked user session cannot be restored",
+                code="revoked",
+            )
+
+    def save(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.user} session {self.identifier}"
 
 
 class ServicePrincipal(models.Model):

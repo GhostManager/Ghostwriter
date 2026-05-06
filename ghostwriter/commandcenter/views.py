@@ -10,7 +10,7 @@ from django.db.models import Model
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import requires_csrf_token
 
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, generate_jwt
+from ghostwriter.api.utils import COLLAB_JWT_TYPE, RoleBasedAccessControlMixin, generate_jwt
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 
@@ -50,7 +50,8 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
             "collab_user": user,
             "collab_jwt": generate_jwt(
                 user,
-                exp=datetime.now(timezone.utc) + timedelta(hours=24)
+                exp=datetime.now(timezone.utc) + timedelta(hours=24),
+                token_type=COLLAB_JWT_TYPE,
             )[1],
             "collab_model_id": obj_id,
             "collab_media_url": settings.MEDIA_URL,

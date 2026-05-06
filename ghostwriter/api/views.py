@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import os
+import uuid
 from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
@@ -49,6 +50,7 @@ from ghostwriter.api.models import (
     ServiceToken,
     ServiceTokenPermission,
     ServiceTokenProjectScope,
+    UserSession,
 )
 from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
@@ -119,6 +121,7 @@ class HasuraView(View):
     ]
     # Initialize default class attributes
     user_obj = None
+    api_key_obj = None
     service_principal_obj = None
     service_token_obj = None
     encoded_token = None
@@ -130,6 +133,7 @@ class HasuraView(View):
     def setup(self, request, *args, **kwargs):
         # Try to pull the JWT from the request header
         self.user_obj = None
+        self.api_key_obj = None
         self.service_principal_obj = None
         self.service_token_obj = None
         self.encoded_token = utils.get_jwt_from_request(request)
@@ -139,22 +143,8 @@ class HasuraView(View):
         # Only proceed with final dispatch steps if a JWT was acquired
         if self.encoded_token:
             # Decode the JWT, store the decoded payload, and resolve the user object
-            if APIKey.objects.filter(token=self.encoded_token).exists():
-                if APIKey.objects.is_valid(self.encoded_token):
-                    token_entry = APIKey.objects.get(token=self.encoded_token)
-                    self.user_obj = User.objects.get(id=token_entry.user.id)
-                else:
-                    logger.warning(
-                        "Received an invalid or revoked API token: %s",
-                        utils.jwt_decode_no_verification(self.encoded_token),
-                    )
-                    return JsonResponse(
-                        utils.generate_hasura_error_payload(
-                            "Received invalid API token", "JWTInvalid"
-                        ),
-                        status=401,
-                    )
-            elif self.encoded_token.startswith(f"{ServiceToken.objects.token_prefix}_"):
+            token_type = utils.get_jwt_type(self.encoded_token)
+            if self.encoded_token.startswith(f"{ServiceToken.objects.token_prefix}_"):
                 try:
                     token_entry = ServiceToken.objects.get_valid_from_token(
                         self.encoded_token
@@ -170,21 +160,56 @@ class HasuraView(View):
                 self.service_token_obj = token_entry
                 self.service_principal_obj = token_entry.service_principal
                 ServiceToken.objects.record_usage(token_entry)
+            elif self.encoded_token.startswith(f"{APIKey.objects.token_prefix}_"):
+                try:
+                    token_entry = APIKey.objects.get_valid_from_token(
+                        self.encoded_token
+                    )
+                except APIKey.DoesNotExist:
+                    logger.warning("Received an invalid or revoked API token")
+                    return JsonResponse(
+                        utils.generate_hasura_error_payload(
+                            "Received invalid API token", "JWTInvalid"
+                        ),
+                        status=401,
+                    )
+                self.user_obj = User.objects.get(id=token_entry.user.id)
+                self.api_key_obj = token_entry
             else:
                 payload = utils.get_jwt_payload(self.encoded_token)
                 if payload and "sub" in payload:
-                    try:
-                        self.user_obj = User.objects.get(id=payload["sub"])
-                    except User.DoesNotExist:  # pragma: no cover
-                        logger.warning(
-                            "Received JWT for a user that does not exist: %s", payload
-                        )
+                    if not utils.is_user_jwt_type(token_type, payload):
                         return JsonResponse(
                             utils.generate_hasura_error_payload(
                                 "Received invalid API token", "JWTInvalid"
                             ),
                             status=401,
                         )
+                    if token_type == utils.USER_JWT_TYPE:
+                        try:
+                            session = UserSession.objects.get_valid_from_payload(payload)
+                        except UserSession.DoesNotExist:
+                            return JsonResponse(
+                                utils.generate_hasura_error_payload(
+                                    "Received invalid API token", "JWTInvalid"
+                                ),
+                                status=401,
+                            )
+                        self.user_obj = session.user
+                    else:
+                        try:
+                            self.user_obj = User.objects.get(id=payload["sub"])
+                        except User.DoesNotExist:  # pragma: no cover
+                            logger.warning(
+                                "Received JWT for a user that does not exist: %s",
+                                payload,
+                            )
+                            return JsonResponse(
+                                utils.generate_hasura_error_payload(
+                                    "Received invalid API token", "JWTInvalid"
+                                ),
+                                status=401,
+                            )
                 else:
                     return JsonResponse(
                         utils.generate_hasura_error_payload(
@@ -753,7 +778,7 @@ class GraphqlLoginAction(HasuraActionView):
                     "Login and generate a token from your user profile", "MFARequired"
                 )
             else:
-                payload, jwt_token = utils.generate_jwt(user)
+                _, payload, jwt_token = UserSession.objects.create_token(user)
                 data = {"token": f"{jwt_token}", "expires": payload["exp"]}
         else:
             self.status = 401
@@ -768,10 +793,8 @@ class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
     """Endpoint for retrieving user data with the ``whoami`` action."""
 
     def post(self, request, *args, **kwargs):
-        # Use :model:`api:APIKey` object if the token is an API key
-        if APIKey.objects.filter(token=self.encoded_token):
-            # Token has already been verified by webhook, so we can trust it exists and is valid
-            entry = APIKey.objects.get(token=self.encoded_token)
+        if self.api_key_obj:
+            entry = self.api_key_obj
             expiration = entry.expiry_date
             if expiration is None:
                 expiration = "Never"
@@ -2144,8 +2167,17 @@ class ApiKeyExpiryUpdate(TokenExpiryUpdateMixin):
 
     def update_token_expiry(self, token, expiry_date):
         token.expiry_date = expiry_date
+        token.identifier = uuid.uuid4()
         _, replacement_token = APIKey.objects.generate_token(token)
-        token.save(update_fields=["expiry_date", "token"])
+        token.save(
+            update_fields=[
+                "expiry_date",
+                "identifier",
+                "token_prefix",
+                "secret_hash",
+                "token",
+            ]
+        )
         return replacement_token
 
 

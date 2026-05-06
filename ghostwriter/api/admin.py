@@ -9,7 +9,14 @@ from django.db import models
 from django.http.request import HttpRequest
 
 # Ghostwriter Libraries
-from ghostwriter.api.models import AbstractAPIKey, APIKey, ServicePrincipal, ServiceToken, ServiceTokenPermission
+from ghostwriter.api.models import (
+    AbstractAPIKey,
+    APIKey,
+    ServicePrincipal,
+    ServiceToken,
+    ServiceTokenPermission,
+    UserSession,
+)
 
 
 class APIKeyModelAdmin(admin.ModelAdmin):
@@ -23,13 +30,16 @@ class APIKeyModelAdmin(admin.ModelAdmin):
         "revoked",
     )
     list_filter = ("created",)
-    search_fields = ("name",)
+    readonly_fields = ("identifier", "token_prefix", "secret_hash", "token")
+    search_fields = ("name", "token_prefix", "user__username", "user__email")
 
-    def get_readonly_fields(self, request: HttpRequest, obj: models.Model = None) -> typing.Tuple[str, ...]:
+    def get_readonly_fields(
+        self, request: HttpRequest, obj: models.Model = None
+    ) -> typing.Tuple[str, ...]:
         obj = typing.cast(AbstractAPIKey, obj)
         fields: typing.Tuple[str, ...]
 
-        fields = ()
+        fields = self.readonly_fields
         if obj is not None and obj.revoked:
             fields = fields + ("name", "revoked", "expiry_date")
 
@@ -46,7 +56,6 @@ class APIKeyModelAdmin(admin.ModelAdmin):
 
         if created:
             _, token = self.model.objects.generate_token(obj)
-            obj.token = token
             obj.save()
             message = f"The API key for {obj.name} is: " f"{token}"
             messages.add_message(request, messages.WARNING, message)
@@ -55,6 +64,27 @@ class APIKeyModelAdmin(admin.ModelAdmin):
 
 
 admin.site.register(APIKey, APIKeyModelAdmin)
+
+
+@admin.register(UserSession)
+class UserSessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "identifier",
+        "created",
+        "expires_at",
+        "revoked_at",
+        "is_valid",
+    )
+    list_filter = ("created", "expires_at", "revoked_at")
+    readonly_fields = ("identifier", "created")
+    search_fields = ("identifier", "user__username", "user__email")
+    actions = ("revoke_sessions",)
+
+    @admin.action(description="Revoke selected user sessions")
+    def revoke_sessions(self, request, queryset):
+        for session in queryset:
+            session.revoke(revoked_by=request.user)
 
 
 class ServiceTokenPermissionInline(admin.TabularInline):
