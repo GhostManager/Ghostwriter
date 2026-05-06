@@ -13,7 +13,7 @@ User login is handled with JSON Web Tokens (JWT). User-managed API tokens and se
 
 * Create a service token from your profile and receive an opaque `gwst_` token for scoped non-human automation
 
-The JWT secret key is defined in the environment variables, `GRAPHQL_JWT_SECRET_KEY`. If you plug a Ghostwriter JWT into a
+The JWT secret key is defined in the environment variables, `DJANGO_JWT_SECRET_KEY`. If you plug a Ghostwriter JWT into a
 debugger like the one at [https://jwt.io/](https://jwt.io/), you will see something similar to the following:
 
 <CodeGroup>
@@ -53,8 +53,9 @@ User JWTs are generated with the `login` action. The resulting JWT holds the sam
 User JWTs are valid for 15 minutes and include a tracked session identifier so administrators can revoke active sessions.
 
 <Info>
-The collaborative editor use JWTs with the `ghostwriter-collab+jwt` type and are only accepted by the collaborative editor
-permission-check endpoint. They are not accepted by the Hasura authentication webhook or general GraphQL Actions.
+The collaborative editor uses JWTs with the `ghostwriter-collab+jwt` type. Hasura accepts these tokens only as the
+restricted `collab` role for the editor's required read-only GraphQL queries. General GraphQL Actions reject them except
+for the collaborative editor permission-check endpoint.
 </Info>
 
 ```json
