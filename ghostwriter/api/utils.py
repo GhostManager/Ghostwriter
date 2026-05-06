@@ -95,7 +95,7 @@ def get_jwt_from_request(request):
     return request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
 
 
-def jwt_encode(payload, token_type=USER_JWT_TYPE):
+def jwt_encode(payload, token_type=None):
     """
     Encode a JWT token.
 
@@ -104,6 +104,8 @@ def jwt_encode(payload, token_type=USER_JWT_TYPE):
     ``payload``
         Plaintext JWT payload to be signed
     """
+    if token_type is None:
+        raise ValueError("jwt_encode() requires an explicit token_type")
     headers = {"typ": token_type} if token_type else None
     return jwt.encode(
         payload,
@@ -183,14 +185,15 @@ def get_jwt_payload(token):
     return payload
 
 
-def generate_jwt(user, exp=None, token_type=USER_JWT_TYPE, jti=None):
+def generate_jwt(user, exp=None, token_type=None, jti=None):
     """
     Generate a signed JWT payload for the user without persisting any state.
 
     Login/session JWTs that need revocation tracking should be issued through
     ``UserSession.objects.create_token()`` so the backing session row is created
-    explicitly. The token will expire after the ``JWT_EXPIRATION_DELTA`` setting
-    unless the ``exp`` parameter is set.
+    explicitly. Callers must pass a JWT ``typ`` header value so the token's
+    purpose is intentional. The token will expire after the
+    ``JWT_EXPIRATION_DELTA`` setting unless the ``exp`` parameter is set.
 
     **Parameters**
 
@@ -203,6 +206,13 @@ def generate_jwt(user, exp=None, token_type=USER_JWT_TYPE, jti=None):
     ``jti``
         Optional JWT ID for callers with external/session tracking
     """
+    if token_type is None:
+        raise ValueError("generate_jwt() requires an explicit token_type")
+    if token_type == USER_JWT_TYPE and jti is None:
+        raise ValueError(
+            "User login JWTs require a tracked session identifier; use UserSession.objects.create_token()"
+        )
+
     jwt_iat = datetime.utcnow()
     if exp:
         jwt_expires = exp
