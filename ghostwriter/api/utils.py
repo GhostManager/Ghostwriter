@@ -129,7 +129,7 @@ def jwt_decode(token):
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
         options={
             "verify_exp": settings.GRAPHQL_JWT["JWT_VERIFY_EXPIRATION"],
-            "verify_aud": settings.GRAPHQL_JWT["JWT_AUDIENCE"],
+            "verify_aud": bool(settings.GRAPHQL_JWT["JWT_AUDIENCE"]),
             "verify_signature": settings.GRAPHQL_JWT["JWT_VERIFY"],
         },
         leeway=10,
