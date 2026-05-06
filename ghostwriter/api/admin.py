@@ -30,8 +30,11 @@ class APIKeyModelAdmin(admin.ModelAdmin):
         "revoked",
     )
     list_filter = ("created",)
-    readonly_fields = ("identifier", "token_prefix", "secret_hash", "token")
+    readonly_fields = ("identifier", "token_prefix", "secret_hash")
     search_fields = ("name", "token_prefix", "user__username", "user__email")
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
 
     def get_readonly_fields(
         self, request: HttpRequest, obj: models.Model = None
@@ -44,23 +47,6 @@ class APIKeyModelAdmin(admin.ModelAdmin):
             fields = fields + ("name", "revoked", "expiry_date")
 
         return fields
-
-    def save_model(
-        self,
-        request: HttpRequest,
-        obj: AbstractAPIKey,
-        form: typing.Any = None,
-        change: bool = False,
-    ) -> None:
-        created = not obj.pk
-
-        if created:
-            _, token = self.model.objects.generate_token(obj)
-            obj.save()
-            message = f"The API key for {obj.name} is: " f"{token}"
-            messages.add_message(request, messages.WARNING, message)
-        else:
-            obj.save()
 
 
 admin.site.register(APIKey, APIKeyModelAdmin)
