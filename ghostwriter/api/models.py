@@ -407,7 +407,7 @@ class ServiceTokenManager(models.Manager):
         except self.model.DoesNotExist:
             raise
 
-        if not entry.is_valid(secret):
+        if not entry.check_secret(secret):
             raise self.model.DoesNotExist("Token is not valid")
         return entry
 
@@ -577,7 +577,7 @@ class ServiceToken(models.Model):
     def expires_soon(self) -> bool:
         return _expires_within_warning_window(self.expiry_date)
 
-    def is_valid(self, secret: str) -> bool:
+    def check_secret(self, secret: str) -> bool:
         return check_password(secret, self.secret_hash)
 
     def clean(self) -> None:
