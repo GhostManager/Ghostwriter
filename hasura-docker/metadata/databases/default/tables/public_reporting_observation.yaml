@@ -7,6 +7,7 @@ configuration:
       custom_name: extraFields
   custom_column_names:
     extra_fields: extraFields
+  custom_name: observation
   custom_root_fields: {}
 insert_permissions:
   - role: manager
