@@ -30,6 +30,7 @@ from ghostwriter.api.models import (
     ServiceTokenPermission,
     ServiceTokenPreset,
     ServiceTokenProjectScope,
+    UserSession,
 )
 from ghostwriter.api.views import HasuraActionView, JwtRequiredMixin
 from ghostwriter.factories import (
@@ -75,6 +76,10 @@ PASSWORD = "SuperNaturalReporting!"
 ACTION_SECRET = settings.HASURA_ACTION_SECRET
 
 User = get_user_model()
+
+
+def generate_user_jwt(user):
+    return UserSession.objects.create_token(user)[1:]
 
 
 def create_project_read_service_token(user, project):
@@ -191,7 +196,7 @@ class HasuraViewTests(TestCase):
         self.request_factory = RequestFactory()
 
     def test_action_with_valid_jwt(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.data,
@@ -203,8 +208,126 @@ class HasuraViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    def test_action_rejects_revoked_user_session_jwt(self):
+        session, _, token = UserSession.objects.create_token(self.user)
+        session.revoke(revoked_by=self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_rejects_legacy_short_lived_user_jwt(self):
+        _, token = utils.generate_jwt(self.user, token_type=utils.LEGACY_JWT_TYPE)
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_rejects_collab_jwt(self):
+        _, token = utils.generate_jwt(self.user, token_type=utils.COLLAB_JWT_TYPE)
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_rejects_untracked_long_lived_legacy_jwt(self):
+        _, token = utils.generate_jwt(
+            self.user,
+            exp=timezone.now() + timedelta(days=7),
+            token_type=utils.LEGACY_JWT_TYPE,
+        )
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_rejects_legacy_stored_api_token(self):
+        token_obj, _ = APIKey.objects.create_token(
+            user=self.user,
+            name="Legacy API Token",
+            expiry_date=timezone.now() + timedelta(days=7),
+        )
+        _, token = utils.generate_jwt(
+            self.user,
+            exp=timezone.now() + timedelta(days=7),
+            token_type=utils.LEGACY_JWT_TYPE,
+        )
+        token_obj.token = token
+        token_obj.save(update_fields=["token"])
+
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_with_expired_api_token(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.expired_token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_with_revoked_api_token(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.revoked_token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_with_inactive_user_api_token(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {self.inactive_token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
     def test_action_requires_correct_secret(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.data,
@@ -217,7 +340,7 @@ class HasuraViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_action_requires_secret(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.data,
@@ -236,7 +359,7 @@ class HasuraViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_action_requires_all_input(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         # Test with no data
         response = self.client.post(
             self.uri,
@@ -278,7 +401,7 @@ class HasuraViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_action_with_invalid_json_input(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data="Not JSON",
@@ -309,7 +432,7 @@ class HasuraViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_action_with_valid_jwt_and_inactive_user(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         self.user.is_active = False
         self.user.save()
         response = self.client.post(
@@ -594,7 +717,7 @@ class HasuraWebhookTests(TestCase):
         self.client = Client()
 
     def test_graphql_webhook_with_valid_jwt(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = {
             "X-Hasura-Role": f"{self.user.role}",
             "X-Hasura-User-Id": f"{self.user.id}",
@@ -609,6 +732,17 @@ class HasuraWebhookTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_graphql_webhook_rejects_collab_jwt(self):
+        _, token = utils.generate_jwt(self.user, token_type=utils.COLLAB_JWT_TYPE)
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
 
     def test_graphql_webhook_with_valid_service_token(self):
         oplog = OplogFactory()
@@ -1061,7 +1195,12 @@ class HasuraLoginTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         # Test bypasses Hasura so the ``["data"]["login"]`` keys are not present
-        self.assertTrue(response.json()["token"])
+        token = response.json()["token"]
+        payload = utils.jwt_decode_no_verification(token)
+        self.assertTrue(token)
+        self.assertEqual(utils.get_jwt_type(token), utils.USER_JWT_TYPE)
+        self.assertIsInstance(response.json()["expires"], int)
+        self.assertTrue(UserSession.objects.filter(identifier=payload["jti"]).exists())
 
     def test_graphql_login_with_invalid_credentials(self):
         data = {
@@ -1147,7 +1286,7 @@ class HasuraWhoamiTests(TestCase):
         )
 
     def test_graphql_whoami(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -1197,7 +1336,7 @@ class HasuraGenerateReportTests(TestCase):
         )
 
     def test_graphql_generate_report(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = {"input": {"id": self.report.pk}}
         response = self.client.post(
             self.uri,
@@ -1241,7 +1380,7 @@ class HasuraGenerateReportTests(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_graphql_generate_report_with_invalid_report(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = {"input": {"id": 999}}
         response = self.client.post(
             self.uri,
@@ -1263,7 +1402,7 @@ class HasuraGenerateReportTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_generate_report_without_access(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = {"input": {"id": self.other_report.pk}}
         response = self.client.post(
             self.uri,
@@ -1371,7 +1510,7 @@ class HasuraCheckoutTests(TestCase):
         }
 
     def test_graphql_checkout_domain(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(
             self.project.pk, self.domain.pk, self.activity.pk
         )
@@ -1396,7 +1535,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertEqual(self.domain.domain_status, self.domain_unavailable)
 
     def test_graphql_checkout_server(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_server_data(
             self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk
         )
@@ -1421,7 +1560,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertEqual(self.server.server_status, self.server_unavailable)
 
     def test_graphql_checkout_server_with_invalid_role(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_server_data(
             self.project.pk,
             self.server.pk,
@@ -1448,7 +1587,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_object_with_invalid_dates(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(
             self.project.pk,
             self.domain.pk,
@@ -1502,7 +1641,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_invalid_object(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(self.project.pk, 999, self.activity.pk)
         response = self.client.post(
             self.domain_uri,
@@ -1524,7 +1663,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_invalid_activity(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(self.project.pk, self.domain.pk, 999)
         response = self.client.post(
             self.domain_uri,
@@ -1546,7 +1685,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_invalid_project(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(999, self.domain.pk, self.activity.pk)
         response = self.client.post(
             self.domain_uri,
@@ -1568,7 +1707,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_unavailable_domain(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(
             self.project.pk, self.unavailable_domain.pk, self.activity.pk
         )
@@ -1592,7 +1731,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_unavailable_server(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_server_data(
             self.project.pk,
             self.unavailable_server.pk,
@@ -1619,7 +1758,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_expired_domain(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(
             self.project.pk, self.expired_domain.pk, self.activity.pk
         )
@@ -1643,7 +1782,7 @@ class HasuraCheckoutTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_without_project_access(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = self.generate_domain_data(
             self.other_project.pk, self.domain.pk, self.activity.pk
         )
@@ -1716,7 +1855,7 @@ class CheckoutDeleteViewTests(TestCase):
         }
 
     def test_deleting_domain_checkout(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.domain_uri,
             data=self.generate_data(self.domain_checkout.pk),
@@ -1731,7 +1870,7 @@ class CheckoutDeleteViewTests(TestCase):
         self.assertEqual(self.domain.domain_status, self.domain_available)
 
     def test_deleting_server_checkout(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.server_uri,
             data=self.generate_data(self.server_checkout.pk),
@@ -1746,7 +1885,7 @@ class CheckoutDeleteViewTests(TestCase):
         self.assertEqual(self.server.server_status, self.server_available)
 
     def test_deleting_domain_checkout_without_access(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.domain_uri,
             data=self.generate_data(self.other_checkout.pk),
@@ -1766,7 +1905,7 @@ class CheckoutDeleteViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_deleting_invalid_checkout(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.domain_uri,
             data=self.generate_data(checkout_id=999),
@@ -1813,7 +1952,7 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         }
 
     def test_deleting_template(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.template.id),
@@ -1829,7 +1968,7 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         )
 
     def test_deleting_template_with_invalid_id(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(999),
@@ -1842,7 +1981,7 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_deleting_protected_template_with_access(self):
-        _, token = utils.generate_jwt(self.mgr_user)
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.protected_template.id),
@@ -1855,7 +1994,7 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_deleting_protected_template_without_access(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.protected_template.id),
@@ -1909,7 +2048,7 @@ class GraphqlAttachFindingAction(TestCase):
         }
 
     def test_attaching_finding(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.finding.id, self.report.id),
@@ -1934,7 +2073,7 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertEqual(list(self.finding.tags.names()), self.tags)
 
     def test_attaching_finding_with_invalid_report(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.finding.id, 999),
@@ -1952,7 +2091,7 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_attaching_finding_with_invalid_finding(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(999, self.report.id),
@@ -1970,7 +2109,7 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_attaching_finding_with_mgr_access(self):
-        _, token = utils.generate_jwt(self.mgr_user)
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.finding.id, self.report.id),
@@ -1983,7 +2122,7 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_attaching_finding_without_access(self):
-        _, token = utils.generate_jwt(self.other_user)
+        _, token = generate_user_jwt(self.other_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.finding.id, self.report.id),
@@ -2015,7 +2154,7 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.client = Client()
 
     def test_upload_report(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = {
             "filename": "test.txt",
             "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
@@ -2042,7 +2181,7 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.pk, self.report.evidence_set.all().get().pk)
 
     def test_upload_report_forbidden(self):
-        _, token = utils.generate_jwt(self.disallowed_user)
+        _, token = generate_user_jwt(self.disallowed_user)
         data = {
             "filename": "test.txt",
             "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
@@ -2064,7 +2203,7 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertNotEqual(response.status_code, 201, response.content)
 
     def test_upload_finding(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         data = {
             "filename": "test.txt",
             "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
@@ -2091,7 +2230,7 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.pk, self.finding.evidence_set.all().get().pk)
 
     def test_upload_finding_forbidden(self):
-        _, token = utils.generate_jwt(self.disallowed_user)
+        _, token = generate_user_jwt(self.disallowed_user)
         data = {
             "filename": "test.txt",
             "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
@@ -2114,7 +2253,7 @@ class GraphqlUploadEvidenceViewTests(TestCase):
 
     def test_upload_evidence_oversized_payload_rejected(self):
         """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         # Build a body one byte over the transport envelope cap for large-input uploads
         oversized_body = b"x" * ((settings.GHOSTWRITER_MAX_FILE_SIZE * 2) + 1)
         response = self.client.post(
@@ -2133,7 +2272,7 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self,
     ):
         """Base64+JSON overhead should not cause a valid sub-limit file upload to be rejected."""
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         file_bytes = b"x" * 90
         data = {
             "filename": "test.txt",
@@ -2175,7 +2314,7 @@ class GraphqlGenerateCodenameActionTests(TestCase):
         self.client = Client()
 
     def test_generating_codename(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -2207,7 +2346,7 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
         )
 
     def test_graphql_get_extra_field_spec(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -2277,7 +2416,7 @@ class GraphqlGetExtraFieldSpecActionTests(TestCase):
         self.assertEqual(response.json()["message"], "Model does not exist")
 
     def test_graphql_get_extra_field_spec_preserves_position_order(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         extra_field_model = self.ExtraFieldModel.objects.get(pk="reporting.Finding")
         third = ExtraFieldSpecFactory(
             internal_name="third_field",
@@ -2363,7 +2502,7 @@ class HasuraCreateUserTests(TestCase):
         }
 
     def test_graphql_create_user(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -2414,7 +2553,7 @@ class HasuraCreateUserTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_create_user_with_bad_timezone(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -2440,7 +2579,7 @@ class HasuraCreateUserTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_create_user_with_bad_role(self):
-        _, token = utils.generate_jwt(self.user)
+        _, token = generate_user_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -2462,7 +2601,7 @@ class HasuraCreateUserTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_create_user_with_manager_user(self):
-        _, token = utils.generate_jwt(self.mgr_user)
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -2484,7 +2623,7 @@ class HasuraCreateUserTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_create_user_with_unprivileged_user(self):
-        _, token = utils.generate_jwt(self.unprivileged_user)
+        _, token = generate_user_jwt(self.unprivileged_user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -3455,7 +3594,9 @@ class ApiKeyExpiryUpdateTests(TestCase):
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
             microsecond=0
         )
-        old_token = self.token_obj.token
+        old_token = self.token
+        old_identifier = self.token_obj.identifier
+        old_prefix = self.token_obj.token_prefix
         response = self.client_auth.post(
             self.uri,
             data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
@@ -3469,24 +3610,18 @@ class ApiKeyExpiryUpdateTests(TestCase):
             ),
             future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
         )
-        self.assertNotEqual(self.token_obj.token, old_token)
-        self.assertTrue(APIKey.objects.is_valid(self.token_obj.token))
-        payload = utils.jwt_decode_no_verification(self.token_obj.token)
-        self.assertEqual(
-            timezone.localtime(
-                datetime.fromtimestamp(
-                    payload["exp"], tz=timezone.get_current_timezone()
-                )
-            ).strftime("%Y-%m-%dT%H:%M:%S"),
-            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
-        )
+        self.assertNotEqual(self.token_obj.identifier, old_identifier)
+        self.assertNotEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertFalse(APIKey.objects.is_valid(old_token))
         replacement_messages = [
             message
             for message in get_messages(response.wsgi_request)
             if "api-token" in message.tags and "replacement-token" in message.tags
         ]
         self.assertEqual(len(replacement_messages), 1)
-        self.assertEqual(str(replacement_messages[0]), self.token_obj.token)
+        replacement_token = str(replacement_messages[0])
+        self.assertTrue(replacement_token.startswith(f"{APIKey.objects.token_prefix}_"))
+        self.assertTrue(APIKey.objects.is_valid(replacement_token))
 
     def test_updates_active_token_replaces_current_token(self):
         current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
@@ -3497,6 +3632,8 @@ class ApiKeyExpiryUpdateTests(TestCase):
             name="Active Token",
             expiry_date=current_expiry,
         )
+        old_identifier = token_obj.identifier
+        old_prefix = token_obj.token_prefix
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
             microsecond=0
         )
@@ -3507,13 +3644,60 @@ class ApiKeyExpiryUpdateTests(TestCase):
 
         self.assertRedirects(response, self.redirect_uri)
         token_obj.refresh_from_db()
-        self.assertNotEqual(token_obj.token, old_token)
-        self.assertFalse(APIKey.objects.filter(token=old_token).exists())
+        self.assertNotEqual(token_obj.identifier, old_identifier)
+        self.assertNotEqual(token_obj.token_prefix, old_prefix)
         self.assertFalse(APIKey.objects.is_valid(old_token))
-        self.assertTrue(APIKey.objects.is_valid(token_obj.token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "api-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 1)
+        self.assertTrue(APIKey.objects.is_valid(str(replacement_messages[0])))
+
+    def test_updates_active_token_rejects_previous_token_for_authentication(self):
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = APIKey.objects.create_token(
+            user=self.user,
+            name="Active Token",
+            expiry_date=current_expiry,
+        )
+        old_identifier = token_obj.identifier
+        old_prefix = token_obj.token_prefix
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+
+        self.client_auth.post(
+            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+        response = self.client.post(
+            reverse("api:graphql_test"),
+            data={
+                "input": {
+                    "id": 1,
+                    "function": "test_func",
+                    "args": {},
+                }
+            },
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {old_token}",
+            },
+        )
+        token_obj.refresh_from_db()
+
+        self.assertNotEqual(token_obj.identifier, old_identifier)
+        self.assertNotEqual(token_obj.token_prefix, old_prefix)
+        self.assertEqual(response.status_code, 401)
 
     def test_rejects_past_expiry(self):
-        old_token = self.token_obj.token
+        old_prefix = self.token_obj.token_prefix
+        old_secret_hash = self.token_obj.secret_hash
         response = self.client_auth.post(
             self.uri,
             data={"expiry_date": self.expired_at.strftime("%Y-%m-%dT%H:%M:%S")},
@@ -3522,7 +3706,8 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.assertRedirects(response, self.redirect_uri)
         self.token_obj.refresh_from_db()
         self.assertEqual(self.token_obj.expiry_date, self.expired_at)
-        self.assertEqual(self.token_obj.token, old_token)
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
@@ -3542,7 +3727,7 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.other_token_obj.refresh_from_db()
         self.assertEqual(self.other_token_obj.expiry_date, self.expired_at)
-        self.assertEqual(self.other_token_obj.token, self.other_token)
+        self.assertEqual(self.other_token_obj.token_prefix, self.other_token.split("_", 2)[1])
 
     def test_rejects_revoked_token(self):
         response = self.client_auth.post(
@@ -3560,7 +3745,7 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.revoked_token_obj.refresh_from_db()
         self.assertTrue(self.revoked_token_obj.revoked)
         self.assertEqual(self.revoked_token_obj.expiry_date, self.expired_at)
-        self.assertEqual(self.revoked_token_obj.token, self.revoked_token)
+        self.assertEqual(self.revoked_token_obj.token_prefix, self.revoked_token.split("_", 2)[1])
 
 
 class ApiKeyCreateTests(TestCase):
@@ -4046,8 +4231,15 @@ class CheckEditPermissionsTests(TestCase):
     def setUp(self):
         self.client = Client()
 
-    def headers(self, user):
-        _, token = utils.generate_jwt(user)
+    def headers(self, user, *, token_type=utils.COLLAB_JWT_TYPE, exp=None):
+        _, token = utils.generate_jwt(user, exp=exp, token_type=token_type)
+        return {
+            "Hasura-Action-Secret": ACTION_SECRET,
+            "Authorization": f"Bearer {token}",
+        }
+
+    def login_headers(self, user):
+        _, token = generate_user_jwt(user)
         return {
             "Hasura-Action-Secret": ACTION_SECRET,
             "Authorization": f"Bearer {token}",
@@ -4093,6 +4285,42 @@ class CheckEditPermissionsTests(TestCase):
         )
         self.assertEquals(response.status_code, 200, response.content)
 
+    def test_rejects_login_jwt(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.login_headers(self.manager),
+            data=self.data(),
+        )
+        self.assertEqual(response.status_code, 401, response.content)
+
+    def test_rejects_expired_collab_jwt(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(
+                self.manager,
+                exp=timezone.now() - timedelta(hours=1),
+            ),
+            data=self.data(),
+        )
+        self.assertEqual(response.status_code, 401, response.content)
+
+    def test_rejects_inactive_collab_jwt_user(self):
+        self.manager.is_active = False
+        self.manager.save(update_fields=["is_active"])
+        try:
+            response = self.client.post(
+                self.uri,
+                content_type="application/json",
+                headers=self.headers(self.manager),
+                data=self.data(),
+            )
+        finally:
+            self.manager.is_active = True
+            self.manager.save(update_fields=["is_active"])
+        self.assertEqual(response.status_code, 401, response.content)
+
     def test_access_finding_not_found(self):
         data = self.data()
         data["input"]["id"] += 1024
@@ -4122,7 +4350,7 @@ class GetTagsTest(TestCase):
             "Hasura-Action-Secret": ACTION_SECRET,
         }
         if user is not None:
-            _, token = utils.generate_jwt(user)
+            _, token = generate_user_jwt(user)
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
@@ -4202,7 +4430,7 @@ class SetTagsTest(TestCase):
             "Hasura-Action-Secret": ACTION_SECRET,
         }
         if user is not None:
-            _, token = utils.generate_jwt(user)
+            _, token = generate_user_jwt(user)
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
@@ -4277,7 +4505,7 @@ class ObjectsByTagTests(TestCase):
             "Hasura-Action-Secret": ACTION_SECRET,
         }
         if user is not None:
-            _, token = utils.generate_jwt(user)
+            _, token = generate_user_jwt(user)
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
@@ -4447,9 +4675,9 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         self.client = Client()
 
         # Generate JWT tokens using utils.generate_jwt
-        _, self.user_token = utils.generate_jwt(self.user)
-        _, self.manager_token = utils.generate_jwt(self.manager)
-        _, self.other_user_token = utils.generate_jwt(self.other_user)
+        _, self.user_token = generate_user_jwt(self.user)
+        _, self.manager_token = generate_user_jwt(self.manager)
+        _, self.other_user_token = generate_user_jwt(self.other_user)
 
     def test_download_evidence_unauthorized_no_secret(self):
         """Test that request without action secret is rejected."""
@@ -4809,9 +5037,9 @@ class GraphqlLinkOplogEvidenceTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        _, self.user_token = utils.generate_jwt(self.user)
-        _, self.manager_token = utils.generate_jwt(self.manager)
-        _, self.other_user_token = utils.generate_jwt(self.other_user)
+        _, self.user_token = generate_user_jwt(self.user)
+        _, self.manager_token = generate_user_jwt(self.manager)
+        _, self.other_user_token = generate_user_jwt(self.other_user)
 
     def _post(self, data, token):
         return self.client.post(
@@ -4961,9 +5189,9 @@ class GraphqlUploadOplogRecordingTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        _, self.user_token = utils.generate_jwt(self.user)
-        _, self.manager_token = utils.generate_jwt(self.manager)
-        _, self.other_user_token = utils.generate_jwt(self.other_user)
+        _, self.user_token = generate_user_jwt(self.user)
+        _, self.manager_token = generate_user_jwt(self.manager)
+        _, self.other_user_token = generate_user_jwt(self.other_user)
 
     def _cast_b64(self):
         raw = b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n'
@@ -5296,9 +5524,9 @@ class GraphqlDownloadRecordingTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        _, self.user_token = utils.generate_jwt(self.user)
-        _, self.manager_token = utils.generate_jwt(self.manager)
-        _, self.other_user_token = utils.generate_jwt(self.other_user)
+        _, self.user_token = generate_user_jwt(self.user)
+        _, self.manager_token = generate_user_jwt(self.manager)
+        _, self.other_user_token = generate_user_jwt(self.other_user)
 
     def _post(self, data, token):
         return self.client.post(

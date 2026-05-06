@@ -8,6 +8,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
+from ghostwriter.api.models import UserSession
 from ghostwriter.factories import UserFactory
 
 # 3rd Party Libraries
@@ -29,15 +30,39 @@ class JwtUtilsTests(TestCase):
         pass
 
     def test_generate_jwt(self):
+        session_count = UserSession.objects.count()
         try:
             payload, encoded_payload = utils.generate_jwt(self.user)
         except AttributeError:
             self.fail("generate_jwt() raised an AttributeError unexpectedly!")
+        self.assertEqual(utils.get_jwt_type(encoded_payload), utils.USER_JWT_TYPE)
+        self.assertNotIn("jti", payload)
+        self.assertEqual(UserSession.objects.count(), session_count)
 
     def test_generate_jwt_with_expiration(self):
         expiration = datetime(2099, 1, 1).timestamp()
         payload, encoded_payload = utils.generate_jwt(self.user, exp=expiration)
-        self.assertTrue(payload["exp"], expiration)
+        self.assertEqual(payload["exp"], expiration)
+
+    def test_generate_jwt_with_type_and_jti(self):
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            token_type=utils.USER_JWT_TYPE,
+            jti="session-id",
+        )
+
+        self.assertEqual(utils.get_jwt_type(encoded_payload), utils.USER_JWT_TYPE)
+        self.assertEqual(payload["jti"], "session-id")
+        self.assertEqual(utils.get_jwt_payload(encoded_payload)["jti"], "session-id")
+
+    def test_generate_jwt_with_collab_type(self):
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            token_type=utils.COLLAB_JWT_TYPE,
+        )
+
+        self.assertEqual(utils.get_jwt_type(encoded_payload), utils.COLLAB_JWT_TYPE)
+        self.assertEqual(payload["sub"], str(self.user.id))
 
     def test_get_jwt_payload(self):
         payload, encoded_payload = utils.generate_jwt(self.user)

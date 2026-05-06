@@ -16,6 +16,7 @@ from ghostwriter.api.models import (
     ServiceToken,
     ServiceTokenPermission,
     ServiceTokenPreset,
+    UserSession,
 )
 from ghostwriter.factories import (
     OplogFactory,
@@ -45,15 +46,22 @@ class ApiKeyModelTests(TestCase):
             user=self.user, name="Valid Token"
         )
         self.assertTrue(token_obj)
+        self.assertTrue(token_obj.identifier)
+        self.assertTrue(token.startswith(f"{APIKey.objects.token_prefix}_"))
+        self.assertEqual(token_obj.token, "")
+        self.assertTrue(token_obj.token_prefix)
+        self.assertTrue(token_obj.secret_hash)
+        self.assertNotIn(token.split("_", 2)[2], token_obj.secret_hash)
+        self.assertTrue(token_obj.is_valid(token))
 
         # Read
         read = APIKey.objects.get_from_token(token)
-        self.assertEqual(read.token, token)
+        self.assertEqual(read, token_obj)
 
         # Update
         token_obj.name = "Updated Token"
         token_obj.save()
-        updated = APIKey.objects.get(token=token)
+        updated = APIKey.objects.get(id=token_obj.id)
         self.assertEqual(updated.name, "Updated Token")
 
         # Delete
@@ -104,17 +112,19 @@ class ApiKeyModelTests(TestCase):
         self.assertFalse(valid_obj.expires_soon)
 
     def test_is_valid(self):
-        _, valid_token = APIKey.objects.create_token(user=self.user, name="Valid Token")
-        _, inactive_token = APIKey.objects.create_token(
+        valid_obj, valid_token = APIKey.objects.create_token(
+            user=self.user, name="Valid Token"
+        )
+        inactive_obj, inactive_token = APIKey.objects.create_token(
             user=self.inactive_user, name="Inactive Token"
         )
-        _, revoked_token = APIKey.objects.create_token(
+        revoked_obj, revoked_token = APIKey.objects.create_token(
             user=self.user,
             name="Revoked Token",
             revoked=True,
             expiry_date=timezone.now() + timedelta(days=5),
         )
-        _, expired_token = APIKey.objects.create_token(
+        expired_obj, expired_token = APIKey.objects.create_token(
             user=self.user, name="Expired Token", expiry_date=self.yesterday
         )
 
@@ -123,32 +133,53 @@ class ApiKeyModelTests(TestCase):
         self.assertFalse(APIKey.objects.is_valid(revoked_token))
         self.assertFalse(APIKey.objects.is_valid(expired_token))
         self.assertFalse(APIKey.objects.is_valid("GARBAGE"))
+        self.assertTrue(valid_obj.is_valid(valid_token))
+        self.assertFalse(inactive_obj.is_valid(inactive_token))
+        self.assertFalse(revoked_obj.is_valid(revoked_token))
+        self.assertFalse(expired_obj.is_valid(expired_token))
 
-    def test_is_valid_rejects_expired_jwt_payload_even_if_db_expiry_is_future(self):
+    def test_is_valid_rejects_legacy_jwt_even_if_stored_on_token_field(self):
         token_obj, _ = APIKey.objects.create_token(
             user=self.user,
-            name="Payload Expired Token",
+            name="Legacy Token",
             expiry_date=timezone.now() + timedelta(days=5),
         )
-        _, expired_payload_token = utils.generate_jwt(self.user, exp=self.yesterday)
-        token_obj.token = expired_payload_token
+        _, legacy_token = utils.generate_jwt(
+            self.user,
+            exp=timezone.now() + timedelta(days=5),
+            token_type=utils.LEGACY_JWT_TYPE,
+        )
+        token_obj.token = legacy_token
         token_obj.save(update_fields=["token"])
 
-        self.assertFalse(APIKey.objects.is_valid(expired_payload_token))
+        self.assertEqual(utils.get_jwt_type(legacy_token), utils.LEGACY_JWT_TYPE)
+        self.assertFalse(APIKey.objects.is_valid(legacy_token))
 
-    def test_is_valid_rejects_expired_db_record_even_if_jwt_payload_is_future(self):
-        token_obj, _ = APIKey.objects.create_token(
-            user=self.user,
-            name="DB Expired Token",
-            expiry_date=self.yesterday,
-        )
-        _, future_payload_token = utils.generate_jwt(
-            self.user, exp=timezone.now() + timedelta(days=5)
-        )
-        token_obj.token = future_payload_token
-        token_obj.save(update_fields=["token"])
+    def test_is_valid_rejects_unknown_opaque_token(self):
+        self.assertFalse(APIKey.objects.is_valid("gwat_unknown_secret"))
 
-        self.assertFalse(APIKey.objects.is_valid(future_payload_token))
+
+class UserSessionModelTests(TestCase):
+    """Collection of tests for revocable login sessions."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+
+    def test_create_token_tracks_session_identifier(self):
+        session, payload, token = UserSession.objects.create_token(self.user)
+
+        self.assertEqual(payload["jti"], str(session.identifier))
+        self.assertEqual(utils.get_jwt_type(token), utils.USER_JWT_TYPE)
+        self.assertTrue(UserSession.objects.get_valid_from_payload(payload))
+
+    def test_revoked_session_is_not_valid(self):
+        session, payload, _ = UserSession.objects.create_token(self.user)
+
+        session.revoke(revoked_by=self.user)
+
+        with self.assertRaises(UserSession.DoesNotExist):
+            UserSession.objects.get_valid_from_payload(payload)
 
 
 class ServiceTokenModelTests(TestCase):
@@ -213,6 +244,8 @@ class ServiceTokenModelTests(TestCase):
         self.assertEqual(token_obj.permissions.count(), 4)
         self.assertEqual(token_obj.get_token_preset(), ServiceTokenPreset.OPLOG_RW)
         self.assertTrue(ServiceToken.objects.is_valid(token))
+        self.assertTrue(token_obj.check_secret(token.split("_", 2)[2]))
+        self.assertFalse(token_obj.check_secret("incorrect-secret"))
 
     def test_oplog_rw_preset_emits_hasura_oplog_scope(self):
         principal = ServicePrincipal.objects.create(
