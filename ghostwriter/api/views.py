@@ -136,7 +136,7 @@ class HasuraView(View):
     def invalid_token_response(self):
         return JsonResponse(
             utils.generate_hasura_error_payload(
-                "Received invalid API token", "JWTInvalid"
+                "Received invalid authentication token", "JWTInvalid"
             ),
             status=401,
         )
@@ -174,12 +174,7 @@ class HasuraView(View):
                     )
                 except ServiceToken.DoesNotExist:
                     logger.warning("Received an invalid or revoked service token")
-                    return JsonResponse(
-                        utils.generate_hasura_error_payload(
-                            "Received invalid API token", "JWTInvalid"
-                        ),
-                        status=401,
-                    )
+                    return self.invalid_token_response()
                 self.service_token_obj = token_entry
                 self.service_principal_obj = token_entry.service_principal
                 ServiceToken.objects.record_usage(token_entry)
@@ -190,12 +185,7 @@ class HasuraView(View):
                     )
                 except APIKey.DoesNotExist:
                     logger.warning("Received an invalid or revoked API token")
-                    return JsonResponse(
-                        utils.generate_hasura_error_payload(
-                            "Received invalid API token", "JWTInvalid"
-                        ),
-                        status=401,
-                    )
+                    return self.invalid_token_response()
                 self.user_obj = User.objects.get(id=token_entry.user.id)
                 self.api_key_obj = token_entry
             else:
@@ -224,12 +214,7 @@ class HasuraView(View):
                 logger.warning(
                     "Received JWT for inactive user: %s", self.user_obj.username
                 )
-                return JsonResponse(
-                    utils.generate_hasura_error_payload(
-                        "Received invalid API token", "JWTInvalid"
-                    ),
-                    status=401,
-                )
+                return self.invalid_token_response()
             post_authentication_response = self.post_authentication(
                 request, *args, **kwargs
             )

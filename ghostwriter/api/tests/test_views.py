@@ -4760,7 +4760,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
         result = {
-            "message": "Received invalid API token",
+            "message": "Received invalid authentication token",
             "extensions": {
                 "code": "JWTInvalid",
             },
