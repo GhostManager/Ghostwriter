@@ -733,8 +733,13 @@ class HasuraWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
-    def test_graphql_webhook_rejects_collab_jwt(self):
+    def test_graphql_webhook_with_collab_jwt_uses_collab_role(self):
         _, token = utils.generate_jwt(self.user, token_type=utils.COLLAB_JWT_TYPE)
+        data = {
+            "X-Hasura-Role": "collab",
+            "X-Hasura-User-Id": f"{self.user.id}",
+            "X-Hasura-User-Name": f"{self.user.username}",
+        }
         response = self.client.get(
             self.uri,
             content_type="application/json",
@@ -742,7 +747,8 @@ class HasuraWebhookTests(TestCase):
                 "HTTP_AUTHORIZATION": f"Bearer {token}",
             },
         )
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
 
     def test_graphql_webhook_with_valid_service_token(self):
         oplog = OplogFactory()

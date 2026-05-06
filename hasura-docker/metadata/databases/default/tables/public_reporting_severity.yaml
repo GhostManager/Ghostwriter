@@ -22,6 +22,12 @@ array_relationships:
           name: reporting_reportfindinglink
           schema: public
 select_permissions:
+  - role: collab
+    permission:
+      columns:
+        - id
+        - severity
+      filter: {}
   - role: manager
     permission:
       columns:

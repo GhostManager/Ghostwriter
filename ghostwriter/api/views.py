@@ -125,6 +125,7 @@ class HasuraView(View):
     service_principal_obj = None
     service_token_obj = None
     encoded_token = None
+    jwt_token_type = None
     allow_login_jwt = True
     allow_collab_jwt = False
 
@@ -157,6 +158,7 @@ class HasuraView(View):
         self.service_principal_obj = None
         self.service_token_obj = None
         self.encoded_token = utils.get_jwt_from_request(request)
+        self.jwt_token_type = None
         super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
@@ -164,6 +166,7 @@ class HasuraView(View):
         if self.encoded_token:
             # Decode the JWT, store the decoded payload, and resolve the user object
             token_type = utils.get_jwt_type(self.encoded_token)
+            self.jwt_token_type = token_type
             if self.encoded_token.startswith(f"{ServiceToken.objects.token_prefix}_"):
                 try:
                     token_entry = ServiceToken.objects.get_valid_from_token(
@@ -712,6 +715,7 @@ class GraphqlAuthenticationWebhook(HasuraView):
     http_method_names = [
         "get",
     ]
+    allow_collab_jwt = True
 
     def get(self, request, *args, **kwargs):
         # Default response data for an unauthenticated/anonymous request
@@ -722,7 +726,10 @@ class GraphqlAuthenticationWebhook(HasuraView):
         # A non-null user object means the user has been authenticated in ``HasuraView``
         if self.user_obj:
             user_id = self.user_obj.id
-            role = self.user_obj.role
+            if self.jwt_token_type == utils.COLLAB_JWT_TYPE:
+                role = "collab"
+            else:
+                role = self.user_obj.role
             username = self.user_obj.username
         elif self.service_token_obj and self.service_principal_obj:
             role = "service"

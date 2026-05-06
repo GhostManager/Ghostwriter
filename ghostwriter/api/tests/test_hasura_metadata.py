@@ -36,6 +36,7 @@ CREATE_OPLOGENTRY_OPLOG_ID_HEADER = "X-Hasura-Create-OplogEntry-Oplog-Id"
 UPDATE_OPLOGENTRY_OPLOG_ID_HEADER = "X-Hasura-Update-OplogEntry-Oplog-Id"
 DELETE_OPLOGENTRY_OPLOG_ID_HEADER = "X-Hasura-Delete-OplogEntry-Oplog-Id"
 SERVICE_TOKEN_ID_HEADER = "X-Hasura-Service-Token-Id"
+USER_ID_HEADER = "X-Hasura-User-Id"
 
 DISALLOWED_SERVICE_HEADERS = {
     "X-Hasura-User-Id",
@@ -82,6 +83,19 @@ def project_scope_filter(*path):
 def service_token_project_access_filter(*path):
     expression = {
         "serviceTokenProjectAccesses": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}}
+    }
+    for segment in reversed(path):
+        expression = {segment: expression}
+    return expression
+
+
+def user_project_access_filter(*path):
+    expression = {
+        "_or": [
+            {"invites": {"user_id": {"_eq": USER_ID_HEADER}}},
+            {"assignments": {"operator_id": {"_eq": USER_ID_HEADER}}},
+            {"client": {"invites": {"user_id": {"_eq": USER_ID_HEADER}}}},
+        ]
     }
     for segment in reversed(path):
         expression = {segment: expression}
@@ -161,6 +175,38 @@ def user_feature_flag_check(flag_name):
         }
     }
 
+
+def collab_evidence_filter():
+    return {
+        "_or": [
+            user_project_access_filter("finding", "report", "project"),
+            user_project_access_filter("report", "project"),
+        ]
+    }
+
+
+EXPECTED_COLLAB_SELECT_PERMISSIONS = {
+    "reporting_evidence": {
+        "columns": [
+            "caption",
+            "description",
+            "document",
+            "finding_id",
+            "friendly_name",
+            "id",
+            "report_id",
+        ],
+        "filter": collab_evidence_filter(),
+    },
+    "reporting_findingtype": {
+        "columns": ["finding_type", "id"],
+        "filter": {},
+    },
+    "reporting_severity": {
+        "columns": ["id", "severity"],
+        "filter": {},
+    },
+}
 
 EXPECTED_SERVICE_SELECT_FILTERS = {
     "api_service_token_project_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
@@ -543,6 +589,71 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
         }
 
         self.assertSetEqual(service_actions, EXPECTED_SERVICE_ACTIONS)
+
+
+class HasuraMetadataCollabRoleTests(SimpleTestCase):
+    """Validate collaborative editor JWTs have only the required Hasura access."""
+
+    def test_collab_select_tables_match_editor_contract(self):
+        collab_select_tables = {
+            table["table"]["name"]
+            for _, table in table_metadata()
+            if get_role_permission(table, "collab", "select_permissions")
+        }
+
+        self.assertSetEqual(
+            collab_select_tables,
+            set(EXPECTED_COLLAB_SELECT_PERMISSIONS),
+        )
+
+    def test_collab_select_permissions_match_expected_filters(self):
+        mismatched_tables = {}
+        for _, table in table_metadata():
+            table_name = table["table"]["name"]
+            collab_select_permission = get_role_permission(
+                table,
+                "collab",
+                "select_permissions",
+            )
+            if not collab_select_permission:
+                continue
+
+            expected_permission = EXPECTED_COLLAB_SELECT_PERMISSIONS[table_name]
+            actual_permission = collab_select_permission["permission"]
+            if (
+                actual_permission.get("columns") != expected_permission["columns"]
+                or actual_permission.get("filter") != expected_permission["filter"]
+            ):
+                mismatched_tables[table_name] = {
+                    "expected": expected_permission,
+                    "actual": actual_permission,
+                }
+
+        self.assertEqual(mismatched_tables, {})
+
+    def test_collab_role_has_no_actions_or_mutations(self):
+        actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
+        collab_actions = [
+            action["name"]
+            for action in actions_metadata["actions"]
+            if any(
+                permission.get("role") == "collab"
+                for permission in action.get("permissions", [])
+            )
+        ]
+        collab_mutations = []
+        for _, table in table_metadata():
+            table_name = table["table"]["name"]
+            for permission_type in (
+                "insert_permissions",
+                "update_permissions",
+                "delete_permissions",
+            ):
+                if get_role_permission(table, "collab", permission_type):
+                    collab_mutations.append((table_name, permission_type))
+
+        self.assertEqual(collab_actions, [])
+        self.assertEqual(collab_mutations, [])
 
 
 class HasuraMetadataUserRoleTests(SimpleTestCase):
