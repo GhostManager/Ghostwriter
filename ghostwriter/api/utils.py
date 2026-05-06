@@ -40,27 +40,6 @@ def get_jwt_type(token):
         return None
 
 
-def is_legacy_short_lived_user_jwt(payload) -> bool:
-    """Return whether a legacy untyped JWT looks like a normal user session token."""
-    try:
-        issued_at = float(payload["iat"])
-        expires_at = float(payload["exp"])
-    except (KeyError, TypeError, ValueError):
-        return False
-
-    allowed_lifetime = settings.GRAPHQL_JWT["JWT_EXPIRATION_DELTA"].total_seconds() + 10
-    return expires_at - issued_at <= allowed_lifetime
-
-
-def is_user_jwt_type(token_type, payload) -> bool:
-    """Return whether a JWT type is acceptable for user-session authentication."""
-    if token_type in (USER_JWT_TYPE, COLLAB_JWT_TYPE):
-        return True
-    if token_type in (None, LEGACY_JWT_TYPE):
-        return is_legacy_short_lived_user_jwt(payload)
-    return False
-
-
 def user_has_valid_totp_device(user):
     """
     Check if the user has a valid TOTP device.
