@@ -26,6 +26,27 @@ from ghostwriter.reporting.validators import validate_evidence_extension
 logger = logging.getLogger(__name__)
 
 
+def _text_choice_from_stored_value(text_choices, value):
+    """Resolve a Django TextChoices member from a stored value, label, or case variant.
+
+    This keeps report generation tolerant of development or legacy rows that
+    stored display labels like ``Center`` instead of canonical values like
+    ``CENTER``.
+    """
+    try:
+        return text_choices(value)
+    except ValueError:
+        normalized_value = str(value).strip().casefold()
+        for choice in text_choices:
+            if normalized_value in (
+                str(choice.value).casefold(),
+                str(choice.label).casefold(),
+                str(choice.name).casefold(),
+            ):
+                return choice
+        raise
+
+
 class EvidenceImageAlignment(models.TextChoices):
     LEFT = "LEFT", "Left"
     CENTER = "CENTER", "Center"
@@ -424,9 +445,16 @@ class ReportTemplate(models.Model):
         return f"{self.name}"
 
     def get_effective_evidence_image_alignment(self, report_config):
-        if self.evidence_image_alignment == EvidenceImageAlignmentOverride.USE_GLOBAL:
-            return EvidenceImageAlignment(report_config.evidence_image_alignment)
-        return EvidenceImageAlignment(self.evidence_image_alignment)
+        template_alignment = _text_choice_from_stored_value(
+            EvidenceImageAlignmentOverride, self.evidence_image_alignment
+        )
+        if template_alignment == EvidenceImageAlignmentOverride.USE_GLOBAL:
+            return _text_choice_from_stored_value(
+                EvidenceImageAlignment, report_config.evidence_image_alignment
+            )
+        return _text_choice_from_stored_value(
+            EvidenceImageAlignment, template_alignment.value
+        )
 
     def get_effective_evidence_image_width(self, report_config):
         if self.evidence_image_width is not None:

@@ -361,6 +361,30 @@ class ReportTemplateModelTests(TestCase):
 
         self.assertEqual(alignment, EvidenceImageAlignment.LEFT)
 
+    def test_get_effective_evidence_image_alignment_accepts_case_variant_template_value(self):
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+
+        for alignment_value in ("CENTER", "Center", "center"):
+            with self.subTest(alignment_value=alignment_value):
+                template = ReportTemplateFactory(evidence_image_alignment=alignment_value)
+                alignment = template.get_effective_evidence_image_alignment(report_config)
+
+                self.assertEqual(alignment, EvidenceImageAlignment.CENTER)
+
+    def test_get_effective_evidence_image_alignment_accepts_case_variant_global_value(self):
+        template = ReportTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
+        report_config = ReportConfiguration.get_solo()
+
+        for alignment_value in ("RIGHT", "Right", "right"):
+            with self.subTest(alignment_value=alignment_value):
+                report_config.evidence_image_alignment = alignment_value
+                alignment = template.get_effective_evidence_image_alignment(report_config)
+
+                self.assertEqual(alignment, EvidenceImageAlignment.RIGHT)
+
     def test_get_effective_evidence_image_width_uses_template_override(self):
         template = ReportTemplateFactory(evidence_image_width=4.25)
         report_config = ReportConfiguration.get_solo()
