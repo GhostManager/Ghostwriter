@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed "Safety" incorrectly appearing as an option for some fields int he CVSS v4 calculator
+* Fixed "Safety" incorrectly appearing as an option for some fields in the CVSS v4 calculator
 * Fixed invalid CVSS vectors preventing report generation
 
 ## [6.3.4] - 24 April 2026
