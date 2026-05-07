@@ -15,6 +15,7 @@ from django.urls import reverse
 
 # 3rd Party Libraries
 from cvss import CVSS3, CVSS4
+from cvss.exceptions import CVSS3MalformedError, CVSS4MalformedError
 from taggit.managers import TaggableManager
 
 # Ghostwriter Libraries
@@ -828,17 +829,28 @@ class ReportFindingLink(models.Model):
 
     @property
     def cvss_data(self):
-        if "3.1" in self.cvss_vector:
-            cvss_version = "3.1"
-            cvss_obj = CVSS3(self.cvss_vector)
-            cvss_scores = cvss_obj.scores()
-            cvss_severities = cvss_obj.severities()
-        elif "4.0" in self.cvss_vector:
-            cvss_version = "4.0"
-            cvss_obj = CVSS4(self.cvss_vector)
-            cvss_scores = cvss_obj.base_score
-            cvss_severities = cvss_obj.severity
-        else:
+        try:
+            if "3.1" in self.cvss_vector:
+                cvss_version = "3.1"
+                cvss_obj = CVSS3(self.cvss_vector)
+                cvss_scores = cvss_obj.scores()
+                cvss_severities = cvss_obj.severities()
+            elif "4.0" in self.cvss_vector:
+                cvss_version = "4.0"
+                cvss_obj = CVSS4(self.cvss_vector)
+                cvss_scores = cvss_obj.base_score
+                cvss_severities = cvss_obj.severity
+            else:
+                cvss_version = "Unknown"
+                cvss_scores = ""
+                cvss_severities = ""
+        except (CVSS3MalformedError, CVSS4MalformedError) as error:
+            logger.warning(
+                'Ignoring malformed CVSS vector "%s" for report finding %s: %s',
+                self.cvss_vector,
+                self.pk,
+                error,
+            )
             cvss_version = "Unknown"
             cvss_scores = ""
             cvss_severities = ""
