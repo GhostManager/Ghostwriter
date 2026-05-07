@@ -71,6 +71,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added Hasura metadata validation tests to catch service-role permission drift, legacy service-token headers, and unexpected service mutations
 * Added validation for service-token permission resource, action, and constraint combinations
 
+## [6.3.5] - 7 May 2026
+
+### Fixed
+
+* Fixed "Safety" incorrectly appearing as an option for some fields in the CVSS v4 calculator
+* Fixed invalid CVSS vectors preventing report generation
+
 ## [6.3.4] - 24 April 2026
 
 ### Added
