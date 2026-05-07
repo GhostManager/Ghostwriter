@@ -47,6 +47,46 @@ const SEVERITY_TO_ID: {
 const CVSS_VERSION_STORAGE_KEY = "ghostwriter.cvssCalculatorVersion";
 
 /**
+ * Keep the UI aligned with the backend cvss parser and FIRST CVSS v4.0 metric values.
+ * The ae-cvss-calculator metadata currently allows Safety on base SC/SI/SA,
+ * so this table is the local source of truth for values the backend will accept.
+ */
+const CVSS4_BACKEND_METRIC_VALUES: Record<string, ReadonlySet<string>> = {
+    AV: new Set(["N", "A", "L", "P"]),
+    AC: new Set(["L", "H"]),
+    AT: new Set(["N", "P"]),
+    PR: new Set(["N", "L", "H"]),
+    UI: new Set(["N", "P", "A"]),
+    VC: new Set(["H", "L", "N"]),
+    VI: new Set(["H", "L", "N"]),
+    VA: new Set(["H", "L", "N"]),
+    SC: new Set(["H", "L", "N"]),
+    SI: new Set(["H", "L", "N"]),
+    SA: new Set(["H", "L", "N"]),
+    E: new Set(["X", "A", "P", "U"]),
+    CR: new Set(["X", "H", "M", "L"]),
+    IR: new Set(["X", "H", "M", "L"]),
+    AR: new Set(["X", "H", "M", "L"]),
+    MAV: new Set(["X", "N", "A", "L", "P"]),
+    MAC: new Set(["X", "L", "H"]),
+    MAT: new Set(["X", "N", "P"]),
+    MPR: new Set(["X", "N", "L", "H"]),
+    MUI: new Set(["X", "N", "P", "A"]),
+    MVC: new Set(["X", "H", "L", "N"]),
+    MVI: new Set(["X", "H", "L", "N"]),
+    MVA: new Set(["X", "H", "L", "N"]),
+    MSC: new Set(["X", "H", "L", "N"]),
+    MSI: new Set(["X", "S", "H", "L", "N"]),
+    MSA: new Set(["X", "S", "H", "L", "N"]),
+    S: new Set(["X", "N", "P"]),
+    AU: new Set(["X", "N", "Y"]),
+    R: new Set(["X", "A", "U", "I"]),
+    V: new Set(["X", "D", "C"]),
+    RE: new Set(["X", "L", "M", "H"]),
+    U: new Set(["X", "Clear", "Green", "Amber", "Red"]),
+};
+
+/**
  * Get the default CVSS version from the backend configuration or local storage.
  * Priority: local storage > backend config > fallback to 3.1
  */
@@ -206,7 +246,10 @@ export default function CvssCalculator(props: {
 function stringToVector(s: string): Vector | null {
     try {
         if (s.startsWith("CVSS:3.1/")) return new Cvss3P1(s);
-        else if (s.startsWith("CVSS:4.0/")) return new Cvss4P0(s);
+        else if (s.startsWith("CVSS:4.0/")) {
+            if (!isBackendCompatibleCvss4Vector(s)) return null;
+            return new Cvss4P0(s);
+        }
         return null;
     } catch (e) {
         console.error(
@@ -215,6 +258,35 @@ function stringToVector(s: string): Vector | null {
         );
         return null;
     }
+}
+
+/**
+ * Reject malformed or backend-incompatible v4 vectors before passing them to
+ * ae-cvss-calculator, which may accept values the Python cvss parser rejects.
+ */
+function isBackendCompatibleCvss4Vector(s: string): boolean {
+    if (!s.startsWith("CVSS:4.0/")) return false;
+
+    const seenMetrics = new Set<string>();
+    for (const field of s.split("/").slice(1)) {
+        const parts = field.split(":");
+        if (parts.length !== 2) return false;
+
+        const [metric, value] = parts;
+        const allowedValues = CVSS4_BACKEND_METRIC_VALUES[metric];
+        if (
+            !metric ||
+            !value ||
+            seenMetrics.has(metric) ||
+            !allowedValues ||
+            !allowedValues.has(value)
+        ) {
+            return false;
+        }
+        seenMetrics.add(metric);
+    }
+
+    return true;
 }
 
 function CvssV3Form(props: {
@@ -443,7 +515,7 @@ function CvssRowButtons(props: {
             >
                 {props.component.name}
             </h5>
-            {props.component.values
+            {getBackendCompatibleValues(props.vector, props.component)
                 .filter(
                     (value) =>
                         props.category.name !== "base" ||
@@ -460,6 +532,25 @@ function CvssRowButtons(props: {
                     />
                 ))}
         </>
+    );
+}
+
+/**
+ * Filter CVSS v4 buttons to values the report export parser accepts.
+ * CVSS v3 components are returned unchanged because the frontend and backend
+ * already agree on those metric value sets.
+ */
+function getBackendCompatibleValues(
+    vector: Vector,
+    component: VectorComponent<VectorComponentValue>
+): VectorComponentValue[] {
+    if (!(vector instanceof Cvss4P0)) return component.values;
+
+    const allowedValues = CVSS4_BACKEND_METRIC_VALUES[component.shortName];
+    if (!allowedValues) return component.values;
+
+    return component.values.filter((value) =>
+        allowedValues.has(value.shortName)
     );
 }
 
