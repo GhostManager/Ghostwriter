@@ -19,6 +19,7 @@ from ghostwriter.api.models import (
     UserSession,
 )
 from ghostwriter.factories import (
+    ClientInviteFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
@@ -823,6 +824,48 @@ class ServiceTokenModelTests(TestCase):
         ProjectAssignmentFactory(project=future_project, operator=self.user)
         self.assertIn(
             future_project.id,
+            self._service_token_project_access_ids(token_obj),
+        )
+
+    def test_service_token_project_access_view_tracks_client_invite_access(self):
+        invited_project = ProjectFactory()
+        ClientInviteFactory(client=invited_project.client, user=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Client Invite Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=invited_project.id,
+            ),
+        )
+
+        self.assertEqual(
+            self._service_token_project_access_ids(token_obj),
+            [invited_project.id],
+        )
+
+    def test_service_token_project_access_view_tracks_privileged_user_access(self):
+        manager = UserFactory(password=PASSWORD, role="manager")
+        visible_project = ProjectFactory()
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=manager
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Privileged Project Read Token",
+            created_by=manager,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                all_accessible_projects=True,
+            ),
+        )
+
+        self.assertIn(
+            visible_project.id,
             self._service_token_project_access_ids(token_obj),
         )
 
