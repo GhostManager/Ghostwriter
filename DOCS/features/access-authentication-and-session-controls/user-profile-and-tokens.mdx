@@ -54,6 +54,11 @@ Current service-token use cases include:
 * operation-log read/write tokens scoped to one operation log and its entries
 * project read-only tokens scoped to selected project data
 
+Service tokens use a shared GraphQL `service` role. The GraphQL schema can show queries, mutations, and Actions that are
+usable by other service-token presets, but the token's own grants still determine whether protected rows are returned and
+whether Django-backed Actions are allowed. An operation-log read/write token can therefore see project-read operations in
+the schema, but it cannot use them without a project-read grant.
+
 The service token card lets you:
 
 * create a new service token

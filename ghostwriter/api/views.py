@@ -374,7 +374,7 @@ class HasuraActionView(HasuraView):
         )
         return JsonResponse(
             utils.generate_hasura_error_payload(
-                "Service tokens are not authorized for this action", "Unauthorized"
+                "This service token is not authorized for this action", "Unauthorized"
             ),
             status=HTTPStatus.FORBIDDEN,
         )

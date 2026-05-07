@@ -29,9 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Added operation log read/write tokens scoped to one operation log and its entries
   * Added project read-only tokens scoped to selected projects or all projects the creator can access now and later
 * **Service Token GraphQL Access**: Added a Hasura `service` role for scoped service-token access
+  * The shared `service` role exposes a combined service-token schema; each token's grants still determine which protected rows and Actions it can use
   * Project read access is backed by database views that validate the service token, service principal, creator status, and current project access
   * Service tokens can read project-related data, project-linked operation logs, evidence, reports, findings, observations, and public libraries
-  * Service tokens can call selected read-oriented GraphQL Actions, including report generation, evidence and recording downloads, tag lookups, and extra field specs
+  * Service tokens can call selected read-oriented GraphQL Actions when their token grants allow the target resource, including report generation, evidence and recording downloads, tag lookups, and extra field specs
 * Added service-token management to the Django admin
 * Added documentation for API tokens, service tokens, and service-principal concepts
 * Added user-session tracking for login JWTs so administrators can revoke active GraphQL sessions

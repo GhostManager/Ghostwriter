@@ -521,7 +521,7 @@ class HasuraViewTests(TestCase):
         )
         self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
         result = {
-            "message": "Service tokens are not authorized for this action",
+            "message": "This service token is not authorized for this action",
             "extensions": {
                 "code": "Unauthorized",
             },

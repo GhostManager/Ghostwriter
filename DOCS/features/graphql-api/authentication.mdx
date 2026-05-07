@@ -98,6 +98,12 @@ Use service tokens when automation should have a fixed, limited permission set, 
 * Read/write access to one operation log and its entries
 * Read-only access to project data
 
+Service tokens share one Hasura `service` role. Hasura exposes queries, mutations, and Actions at the role level, so a
+service token might see GraphQL fields that are intended for another service-token preset. Token-specific permissions are
+still enforced by Hasura row filters and Django Action authorization. For example, an operation-log read/write token can
+see project-read Actions in the schema, but those Actions return an authorization error unless that specific token has the
+required project-read grant.
+
 These tokens are not JWTs. They are opaque tokens with a `gwst_` prefix for easy identification. Opaque tokens do not include
 a payload that describes a user or permission set. Rather, they are backed by a database entry that controls their permission
 set.
@@ -139,7 +145,8 @@ authenticates the request as the token's user.
 
 For service tokens, the webhook validates the opaque token, verifies the service principal is active, and returns
 service-scoped session variables to Hasura. Service tokens do not become users and do not receive the permissions of
-the user who created them.
+the user who created them. The shared `service` role controls which schema fields are visible, while each token's
+`ServiceTokenPermission` rows control which protected rows and Django-backed Actions the token can use.
 
 If a request does not include an `Authorization` header, the webhook returns the `public` role with the username
 `anonymous`. This is not a real user or role and is only used to manage access to resources designed to be accessed
