@@ -686,6 +686,10 @@ class ReportFindingLinkModelTests(TestCase):
             severity=self.high_severity,
             cvss_vector="CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:S/SI:S/SA:S/S:P",
         )
+        incomplete_v4_finding = ReportFindingLinkFactory(
+            severity=self.high_severity,
+            cvss_vector="CVSS:4.0/AV:N",
+        )
 
         critical_data = ("4.0", 9.1, "Critical", "966FD6")
         medium_data = ("3.1", (8.0, 7.6, 5.4), ("High", "High", "Medium"), ["FF7E79", "FF7E79", "F4B083"])
@@ -695,6 +699,7 @@ class ReportFindingLinkModelTests(TestCase):
         self.assertEqual(medium_finding.cvss_data, medium_data)
         self.assertEqual(unknown_finding.cvss_data, unknown_data)
         self.assertEqual(invalid_v4_finding.cvss_data, unknown_data)
+        self.assertEqual(incomplete_v4_finding.cvss_data, unknown_data)
 
     def test_exists_in_finding_library(self):
         attached_finding = ReportFindingLinkFactory(added_as_blank=False)

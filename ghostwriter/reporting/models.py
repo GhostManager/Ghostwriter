@@ -15,7 +15,7 @@ from django.urls import reverse
 
 # 3rd Party Libraries
 from cvss import CVSS3, CVSS4
-from cvss.exceptions import CVSS3MalformedError, CVSS4MalformedError
+from cvss.exceptions import CVSSError
 from taggit.managers import TaggableManager
 
 # Ghostwriter Libraries
@@ -872,9 +872,9 @@ class ReportFindingLink(models.Model):
                 cvss_version = "Unknown"
                 cvss_scores = ""
                 cvss_severities = ""
-        except (CVSS3MalformedError, CVSS4MalformedError) as error:
+        except CVSSError as error:
             logger.warning(
-                'Ignoring malformed CVSS vector "%s" for report finding %s: %s',
+                'Ignoring invalid CVSS vector "%s" for report finding %s: %s',
                 self.cvss_vector,
                 self.pk,
                 error,
