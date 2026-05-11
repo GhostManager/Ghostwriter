@@ -763,7 +763,11 @@ class GraphqlLoginAction(HasuraActionView):
         # A successful auth will return a ``User`` object
         if user:
             # User's required to use MFA or with MFA enabled will not be able to log in via the mutation
-            if utils.user_has_valid_totp_device(user) or user.require_mfa:
+            if (
+                utils.user_has_valid_totp_device(user)
+                or utils.user_has_valid_webauthn_device(user)
+                or user.require_mfa
+            ):
                 self.status = 401
                 data = utils.generate_hasura_error_payload(
                     "Login and generate a token from your user profile", "MFARequired"
