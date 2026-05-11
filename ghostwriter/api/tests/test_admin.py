@@ -98,6 +98,24 @@ class ServiceTokenAdminTests(TestCase):
         self.token_obj.refresh_from_db()
         self.assertTrue(self.token_obj.revoked)
 
+    def test_admin_cannot_create_service_principals(self):
+        model_admin = admin.site._registry[ServicePrincipal]
+
+        self.assertFalse(model_admin.has_add_permission(None))
+
+        response = self.client.get(reverse("admin:api_serviceprincipal_add"))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_cannot_create_service_tokens(self):
+        model_admin = admin.site._registry[ServiceToken]
+
+        self.assertFalse(model_admin.has_add_permission(None))
+
+        response = self.client.get(reverse("admin:api_servicetoken_add"))
+
+        self.assertEqual(response.status_code, 403)
+
 
 class UserSessionAdminTests(TestCase):
     @classmethod

@@ -90,6 +90,9 @@ class ServicePrincipalAdmin(admin.ModelAdmin):
     list_filter = ("service_type", "active", "created")
     search_fields = ("name", "created_by__username", "created_by__email")
 
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
 
 @admin.register(ServiceToken)
 class ServiceTokenAdmin(admin.ModelAdmin):
@@ -109,6 +112,9 @@ class ServiceTokenAdmin(admin.ModelAdmin):
     readonly_fields = ("token_prefix", "secret_hash", "created", "last_used_at")
     actions = ("revoke_tokens",)
     inlines = (ServiceTokenPermissionInline,)
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
 
     @admin.display(boolean=True, description="Has expired")
     def has_expired(self, obj: ServiceToken) -> bool:
