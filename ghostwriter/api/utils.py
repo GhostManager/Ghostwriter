@@ -30,6 +30,11 @@ User = get_user_model()
 USER_JWT_TYPE = "ghostwriter-user+jwt"
 COLLAB_JWT_TYPE = "ghostwriter-collab+jwt"
 LEGACY_JWT_TYPE = "JWT"
+COLLAB_NO_ID = -1
+COLLAB_MODEL_CLAIM = "gw_collab_model"
+COLLAB_OBJECT_ID_CLAIM = "gw_collab_object_id"
+COLLAB_REPORT_ID_CLAIM = "gw_collab_report_id"
+COLLAB_FINDING_ID_CLAIM = "gw_collab_finding_id"
 
 
 def get_jwt_type(token):
@@ -88,7 +93,7 @@ def get_bearer_token_from_request(request):
         return None
 
     parts = auth_header.split(" ", 1)
-    if len(parts) != 2 or not parts[1].strip():
+    if len(parts) != 2 or parts[0].strip() != "Bearer" or not parts[1].strip():
         logger.warning("HTTP_AUTHORIZATION header is malformed")
         return None
 
@@ -185,7 +190,7 @@ def get_jwt_payload(token):
     return payload
 
 
-def generate_jwt(user, exp=None, token_type=None, jti=None):
+def generate_jwt(user, exp=None, token_type=None, jti=None, extra_claims=None):
     """
     Generate a signed JWT payload for the user without persisting any state.
 
@@ -205,6 +210,8 @@ def generate_jwt(user, exp=None, token_type=None, jti=None):
         The JWT ``typ`` header value
     ``jti``
         Optional JWT ID for callers with external/session tracking
+    ``extra_claims``
+        Optional additional JWT payload claims
     """
     if token_type is None:
         raise ValueError("generate_jwt() requires an explicit token_type")
@@ -230,6 +237,15 @@ def generate_jwt(user, exp=None, token_type=None, jti=None):
     }
     if jti is not None:
         payload["jti"] = str(jti)
+    if extra_claims:
+        reserved_claims = payload.keys() | {"jti"}
+        overlapping_claims = reserved_claims & extra_claims.keys()
+        if overlapping_claims:
+            raise ValueError(
+                "extra_claims cannot replace standard JWT claims: "
+                + ", ".join(sorted(overlapping_claims))
+            )
+        payload.update(extra_claims)
 
     return payload, jwt_encode(payload, token_type=token_type)
 

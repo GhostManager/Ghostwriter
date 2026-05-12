@@ -19,6 +19,7 @@ from django.utils.encoding import force_str
 
 # 3rd Party Libraries
 import factory
+from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.internal.auth import TOTP, generate_totp_secret
 
 # Ghostwriter Libraries
@@ -734,11 +735,45 @@ class HasuraWebhookTests(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_graphql_webhook_with_collab_jwt_uses_collab_role(self):
+        _, token = utils.generate_jwt(
+            self.user,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims={
+                utils.COLLAB_MODEL_CLAIM: "report_finding_link",
+                utils.COLLAB_OBJECT_ID_CLAIM: 101,
+                utils.COLLAB_REPORT_ID_CLAIM: 202,
+                utils.COLLAB_FINDING_ID_CLAIM: 101,
+            },
+        )
+        data = {
+            "X-Hasura-Role": "collab",
+            "X-Hasura-User-Id": f"{self.user.id}",
+            "X-Hasura-User-Name": f"{self.user.username}",
+            "X-Hasura-Collab-Model": "report_finding_link",
+            "X-Hasura-Collab-Object-Id": "101",
+            "X-Hasura-Collab-Report-Id": "202",
+            "X-Hasura-Collab-Finding-Id": "101",
+        }
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_graphql_webhook_defaults_missing_collab_ids_to_negative_one(self):
         _, token = utils.generate_jwt(self.user, token_type=utils.COLLAB_JWT_TYPE)
         data = {
             "X-Hasura-Role": "collab",
             "X-Hasura-User-Id": f"{self.user.id}",
             "X-Hasura-User-Name": f"{self.user.username}",
+            "X-Hasura-Collab-Model": "",
+            "X-Hasura-Collab-Object-Id": "-1",
+            "X-Hasura-Collab-Report-Id": "-1",
+            "X-Hasura-Collab-Finding-Id": "-1",
         }
         response = self.client.get(
             self.uri,
@@ -1178,9 +1213,15 @@ class HasuraLoginTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
 
         cls.user_mfa = UserFactory(password=PASSWORD)
+        cls.user_webauthn = UserFactory(password=PASSWORD)
         cls.user_mfa_required = UserFactory(password=PASSWORD, require_mfa=True)
         secret = generate_totp_secret()
         TOTP.activate(cls.user_mfa, secret)
+        Authenticator.objects.create(
+            user=cls.user_webauthn,
+            type=Authenticator.Type.WEBAUTHN,
+            data={"credential_id": "test_credential_id"},
+        )
 
         cls.uri = reverse("api:graphql_login")
 
@@ -1243,6 +1284,23 @@ class HasuraLoginTests(TestCase):
         data = {
             "input": {
                 "username": f"{self.user_mfa.username}",
+                "password": f"{PASSWORD}",
+            }
+        }
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(force_str(response.content), result)
+
+        data = {
+            "input": {
+                "username": f"{self.user_webauthn.username}",
                 "password": f"{PASSWORD}",
             }
         }
@@ -4237,8 +4295,31 @@ class CheckEditPermissionsTests(TestCase):
     def setUp(self):
         self.client = Client()
 
-    def headers(self, user, *, token_type=utils.COLLAB_JWT_TYPE, exp=None):
-        _, token = utils.generate_jwt(user, exp=exp, token_type=token_type)
+    def collab_claims(self, *, model="finding", object_id=None):
+        return {
+            utils.COLLAB_MODEL_CLAIM: model,
+            utils.COLLAB_OBJECT_ID_CLAIM: object_id or self.finding.id,
+            utils.COLLAB_REPORT_ID_CLAIM: utils.COLLAB_NO_ID,
+            utils.COLLAB_FINDING_ID_CLAIM: utils.COLLAB_NO_ID,
+        }
+
+    def headers(
+        self,
+        user,
+        *,
+        token_type=utils.COLLAB_JWT_TYPE,
+        exp=None,
+        collab_claims=None,
+    ):
+        extra_claims = collab_claims if token_type == utils.COLLAB_JWT_TYPE else None
+        if extra_claims is None and token_type == utils.COLLAB_JWT_TYPE:
+            extra_claims = self.collab_claims()
+        _, token = utils.generate_jwt(
+            user,
+            exp=exp,
+            token_type=token_type,
+            extra_claims=extra_claims,
+        )
         return {
             "Hasura-Action-Secret": ACTION_SECRET,
             "Authorization": f"Bearer {token}",
@@ -4291,6 +4372,27 @@ class CheckEditPermissionsTests(TestCase):
         )
         self.assertEquals(response.status_code, 200, response.content)
 
+    def test_rejects_collab_jwt_for_different_object_scope(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(
+                self.manager,
+                collab_claims=self.collab_claims(object_id=self.finding.id + 1),
+            ),
+            data=self.data(),
+        )
+        self.assertEqual(response.status_code, 403, response.content)
+
+    def test_rejects_collab_jwt_without_object_scope(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.manager, collab_claims={}),
+            data=self.data(),
+        )
+        self.assertEqual(response.status_code, 403, response.content)
+
     def test_rejects_login_jwt(self):
         response = self.client.post(
             self.uri,
@@ -4333,7 +4435,10 @@ class CheckEditPermissionsTests(TestCase):
         response = self.client.post(
             self.uri,
             content_type="application/json",
-            headers=self.headers(self.manager),
+            headers=self.headers(
+                self.manager,
+                collab_claims=self.collab_claims(object_id=data["input"]["id"]),
+            ),
             data=data,
         )
         self.assertEquals(response.status_code, 404, response.content)

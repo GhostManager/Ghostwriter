@@ -126,6 +126,7 @@ class HasuraView(View):
     service_token_obj = None
     encoded_token = None
     jwt_token_type = None
+    jwt_payload = None
     allow_login_jwt = True
     allow_collab_jwt = False
 
@@ -159,6 +160,7 @@ class HasuraView(View):
         self.service_token_obj = None
         self.encoded_token = utils.get_bearer_token_from_request(request)
         self.jwt_token_type = None
+        self.jwt_payload = None
         super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
@@ -190,6 +192,7 @@ class HasuraView(View):
                 self.api_key_obj = token_entry
             else:
                 payload = utils.get_jwt_payload(self.encoded_token)
+                self.jwt_payload = payload
                 if payload and "sub" in payload:
                     if token_type == utils.USER_JWT_TYPE:
                         if not self.allow_login_jwt:
@@ -702,6 +705,14 @@ class GraphqlAuthenticationWebhook(HasuraView):
     ]
     allow_collab_jwt = True
 
+    def get_collab_claim(self, claim, default=utils.COLLAB_NO_ID):
+        if not self.jwt_payload:
+            return default
+        value = self.jwt_payload.get(claim, default)
+        if value in (None, ""):
+            return default
+        return value
+
     def get(self, request, *args, **kwargs):
         # Default response data for an unauthenticated/anonymous request
         role = "public"
@@ -727,6 +738,25 @@ class GraphqlAuthenticationWebhook(HasuraView):
         }
         if self.user_obj:
             data["X-Hasura-User-Id"] = f"{user_id}"
+            if self.jwt_token_type == utils.COLLAB_JWT_TYPE:
+                collab_model = self.get_collab_claim(utils.COLLAB_MODEL_CLAIM, "")
+                collab_object_id = self.get_collab_claim(
+                    utils.COLLAB_OBJECT_ID_CLAIM
+                )
+                collab_report_id = self.get_collab_claim(
+                    utils.COLLAB_REPORT_ID_CLAIM
+                )
+                collab_finding_id = self.get_collab_claim(
+                    utils.COLLAB_FINDING_ID_CLAIM
+                )
+                data.update(
+                    {
+                        "X-Hasura-Collab-Model": f"{collab_model}",
+                        "X-Hasura-Collab-Object-Id": f"{collab_object_id}",
+                        "X-Hasura-Collab-Report-Id": f"{collab_report_id}",
+                        "X-Hasura-Collab-Finding-Id": f"{collab_finding_id}",
+                    }
+                )
         elif self.service_token_obj and self.service_principal_obj:
             token_scope = self.service_token_obj.get_hasura_scope()
             data["X-Hasura-Service-Principal-Id"] = f"{self.service_principal_obj.id}"
@@ -2335,6 +2365,29 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
         "project": Project,
     }
 
+    def get_collab_object_scope_id(self) -> int:
+        if not self.jwt_payload:
+            return utils.COLLAB_NO_ID
+        try:
+            return int(
+                self.jwt_payload.get(
+                    utils.COLLAB_OBJECT_ID_CLAIM,
+                    utils.COLLAB_NO_ID,
+                )
+            )
+        except (TypeError, ValueError):
+            return utils.COLLAB_NO_ID
+
+    def collab_scope_matches(self, obj) -> bool:
+        if self.jwt_token_type != utils.COLLAB_JWT_TYPE:
+            return True
+        if not self.jwt_payload:
+            return False
+        return (
+            self.jwt_payload.get(utils.COLLAB_MODEL_CLAIM) == self.input["model"]
+            and self.get_collab_object_scope_id() == obj.pk
+        )
+
     def post(self, request):
         cls = self.available_models.get(self.input["model"])
         if cls is None:
@@ -2351,6 +2404,14 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
             return JsonResponse(
                 utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"),
                 status=404,
+            )
+
+        if not self.collab_scope_matches(obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Collab token is not scoped to this object", "Unauthorized"
+                ),
+                status=403,
             )
 
         if not obj.user_can_edit(self.user_obj):

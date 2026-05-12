@@ -63,6 +63,30 @@ class JwtUtilsTests(TestCase):
         self.assertNotIn("jti", payload)
         self.assertEqual(UserSession.objects.count(), session_count)
 
+    def test_generate_jwt_adds_extra_claims(self):
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims={utils.COLLAB_MODEL_CLAIM: "report"},
+        )
+
+        self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "report")
+        self.assertEqual(
+            utils.get_jwt_payload(encoded_payload)[utils.COLLAB_MODEL_CLAIM],
+            "report",
+        )
+
+    def test_generate_jwt_rejects_extra_claims_overwriting_standard_claims(self):
+        with self.assertRaisesMessage(
+            ValueError,
+            "extra_claims cannot replace standard JWT claims: sub",
+        ):
+            utils.generate_jwt(
+                self.user,
+                token_type=utils.COLLAB_JWT_TYPE,
+                extra_claims={"sub": "other"},
+            )
+
     def test_generate_jwt_with_expiration(self):
         expiration = datetime(2099, 1, 1).timestamp()
         payload, encoded_payload = utils.generate_jwt(

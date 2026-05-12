@@ -37,6 +37,8 @@ UPDATE_OPLOGENTRY_OPLOG_ID_HEADER = "X-Hasura-Update-OplogEntry-Oplog-Id"
 DELETE_OPLOGENTRY_OPLOG_ID_HEADER = "X-Hasura-Delete-OplogEntry-Oplog-Id"
 SERVICE_TOKEN_ID_HEADER = "X-Hasura-Service-Token-Id"
 USER_ID_HEADER = "X-Hasura-User-Id"
+COLLAB_REPORT_ID_HEADER = "X-Hasura-Collab-Report-Id"
+COLLAB_FINDING_ID_HEADER = "X-Hasura-Collab-Finding-Id"
 
 DISALLOWED_SERVICE_HEADERS = {
     "X-Hasura-User-Id",
@@ -178,9 +180,19 @@ def user_feature_flag_check(flag_name):
 
 def collab_evidence_filter():
     return {
-        "_or": [
-            user_project_access_filter("finding", "report", "project"),
-            user_project_access_filter("report", "project"),
+        "_and": [
+            {
+                "_or": [
+                    user_project_access_filter("finding", "report", "project"),
+                    user_project_access_filter("report", "project"),
+                ]
+            },
+            {
+                "_or": [
+                    {"report_id": {"_eq": COLLAB_REPORT_ID_HEADER}},
+                    {"finding_id": {"_eq": COLLAB_FINDING_ID_HEADER}},
+                ]
+            },
         ]
     }
 
@@ -658,6 +670,23 @@ class HasuraMetadataCollabRoleTests(SimpleTestCase):
 
 class HasuraMetadataUserRoleTests(SimpleTestCase):
     """Validate user-role Hasura metadata for app-level RBAC contracts."""
+
+    def test_reporting_library_graphql_names_match_editor_contract(self):
+        expected_names = {
+            "public_reporting_finding.yaml": "finding",
+            "public_reporting_observation.yaml": "observation",
+            "public_reporting_reportfindinglink.yaml": "reportedFinding",
+            "public_reporting_reportobservationlink.yaml": "reportedObservation",
+        }
+
+        for filename, custom_name in expected_names.items():
+            table = load_yaml(HASURA_TABLE_DIR / filename)
+
+            self.assertEqual(
+                table["configuration"].get("custom_name"),
+                custom_name,
+                filename,
+            )
 
     def test_library_write_permissions_require_user_feature_flags(self):
         expectations = {

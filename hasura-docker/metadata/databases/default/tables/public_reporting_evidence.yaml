@@ -96,34 +96,40 @@ select_permissions:
         - id
         - report_id
       filter:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
-                    - client:
-                        invites:
+        _and:
+          - _or:
+              - finding:
+                  report:
+                    project:
+                      _or:
+                        - invites:
+                            user_id:
+                              _eq: X-Hasura-User-Id
+                        - assignments:
+                            operator_id:
+                              _eq: X-Hasura-User-Id
+                        - client:
+                            invites:
+                              user_id:
+                                _eq: X-Hasura-User-Id
+              - report:
+                  project:
+                    _or:
+                      - invites:
                           user_id:
                             _eq: X-Hasura-User-Id
-          - report:
-              project:
-                _or:
-                  - invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-                  - assignments:
-                      operator_id:
-                        _eq: X-Hasura-User-Id
-                  - client:
-                      invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
+                      - assignments:
+                          operator_id:
+                            _eq: X-Hasura-User-Id
+                      - client:
+                          invites:
+                            user_id:
+                              _eq: X-Hasura-User-Id
+          - _or:
+              - report_id:
+                  _eq: X-Hasura-Collab-Report-Id
+              - finding_id:
+                  _eq: X-Hasura-Collab-Finding-Id
   - role: manager
     permission:
       columns:

@@ -55,7 +55,10 @@ User JWTs are valid for 15 minutes and include a tracked session identifier so a
 <Info>
 The collaborative editor uses JWTs with the `ghostwriter-collab+jwt` type. Hasura accepts these tokens only as the
 restricted `collab` role for the editor's required read-only GraphQL queries. General GraphQL Actions reject them except
-for the collaborative editor permission-check endpoint.
+for the collaborative editor permission-check endpoint. Collab JWTs include scope claims for the editor model, object,
+report, and finding. The webhook exposes these claims as Hasura session variables so the `collab` role can read only the
+evidence rows needed by that editor page. Missing numeric IDs are represented as `-1`. Collab JWTs are not tracked in
+`UserSession`; that table is only for JWTs returned by the `login` action.
 </Info>
 
 ```json
@@ -139,6 +142,11 @@ For login JWTs, the webhook takes several steps to examine the JWT before allowi
 5. Finally, verify the user details are correct and that the account is still active
 
 If the token passes the above checks and your user's role is authorized (see [Authorization](/features/access-authentication-and-session-controls/role-based-access-controls)) to perform the query or mutation, you will receive a `200 OK` response with your requested data.
+
+For collaborative editor JWTs, the webhook verifies the JWT signature, audience, expiration, `ghostwriter-collab+jwt`
+type, and active user. It then returns the restricted `collab` role with the token's collab-scope session variables.
+The collaborative editor permission-check endpoint also requires the requested model and object ID to match the token's
+collab scope.
 
 For API tokens, the webhook validates the opaque token prefix and secret, checks the API token database record, and then
 authenticates the request as the token's user.
