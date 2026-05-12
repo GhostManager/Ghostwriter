@@ -24,7 +24,7 @@
         <div class="d-flex justify-content-center">
             <div class="col-5">
                 <div class="card mb-3">
-                    <div class="card-body">
+                    <div class="card-body pb-0">
                         <h5 class="card-title mb-2">{% translate "Authenticator App" %}</h5>
                         {% if authenticators.totp %}
                             <p>{% translate "Authentication using an authenticator app is active." %}</p>
@@ -32,7 +32,7 @@
                             <p>{% translate "An authenticator app is not active." %}</p>
                         {% endif %}
                     </div>
-                    <div class="card-footer">
+                    <div class="card-footer pt-0">
                         {% if authenticators.totp %}
                             <a href="{% url 'mfa_deactivate_totp' %}" class="btn btn-danger col-3">
                                 {% translate "Deactivate" %}
@@ -52,7 +52,7 @@
         <div class="d-flex justify-content-center">
             <div class="col-5">
                 <div class="card mb-3">
-                    <div class="card-body">
+                    <div class="card-body pb-0">
                         <h5 class="card-title mb-2">{% translate "Security Keys" %}</h5>
                         {% if authenticators.webauthn|length %}
                             <p>
@@ -66,7 +66,7 @@
                             <p>{% translate "No security keys have been added." %}</p>
                         {% endif %}
                     </div>
-                    <div class="card-footer">
+                    <div class="card-footer pt-0">
                         {% if authenticators.webauthn|length %}
                             <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-primary col-3">
                                 {% translate "Manage" %}
@@ -87,7 +87,7 @@
             <div class="d-flex justify-content-center">
                 <div class="col-5">
                     <div class="card mb-3">
-                        <div class="card-body">
+                        <div class="card-body pb-0">
                             <h5 class="card-title mb-2">{% translate "Recovery Codes" %}</h5>
                             {% if authenticators.recovery_codes %}
                                 <p>
@@ -102,7 +102,7 @@
                             {% endif %}
                         </div>
                         {% if is_mfa_enabled %}
-                            <div class="card-footer">
+                            <div class="card-footer pt-0">
                                 {% if authenticators.recovery_codes and unused_count > 0 %}
                                     <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-primary me-2 col-3">
                                         {% translate "View" %}
