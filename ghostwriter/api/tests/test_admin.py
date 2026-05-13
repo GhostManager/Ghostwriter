@@ -144,3 +144,12 @@ class UserSessionAdminTests(TestCase):
         self.session.refresh_from_db()
         self.assertTrue(self.session.revoked_at)
         self.assertEqual(self.session.revoked_by, self.admin_user)
+
+    def test_admin_cannot_create_user_sessions(self):
+        model_admin = admin.site._registry[UserSession]
+
+        self.assertFalse(model_admin.has_add_permission(None))
+
+        response = self.client.get(reverse("admin:api_usersession_add"))
+
+        self.assertEqual(response.status_code, 403)

@@ -67,6 +67,9 @@ class UserSessionAdmin(admin.ModelAdmin):
     search_fields = ("identifier", "user__username", "user__email")
     actions = ("revoke_sessions",)
 
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
     @admin.action(description="Revoke selected user sessions")
     def revoke_sessions(self, request, queryset):
         for session in queryset:
