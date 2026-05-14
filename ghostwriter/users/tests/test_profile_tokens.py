@@ -131,7 +131,11 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "localStorage.getItem(storageKey)")
         self.assertContains(response, "localStorage.setItem(storageKey")
         self.assertContains(response, "expiredRows.length === totalRows")
-        self.assertContains(response, "toggleElement($tableWrapper, !allRowsHidden")
+        self.assertContains(response, "replaceTokenTableState(")
+        self.assertContains(response, "$currentElement.fadeOut(200")
+        self.assertContains(
+            response, "$nextElement.removeClass('d-none').hide().fadeIn(200)"
+        )
         self.assertContains(
             response,
             'class="align-middle text-left warning"',
