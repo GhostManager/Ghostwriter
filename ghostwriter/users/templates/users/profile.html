@@ -178,7 +178,18 @@
                   </td>
                   <td>
                     <div class="btn-group" role="group" aria-label="API token actions">
-                      <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary js-edit-token-expiry" data-toggle="modal"
+                      <a id="token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-api-token-details js-token-details"
+                         data-details-url="{% url 'api:ajax_token_details' key.id %}"
+                         data-modal-selector="#api-token-details-modal"
+                         data-content-selector="#api-token-details-modal-content"
+                         data-modal-label-id="api-token-details-modal-label"
+                         data-modal-title="API Token Access Details"
+                         data-loading-message="Loading API token details..."
+                         data-error-message="Could not load API token details."
+                         href="javascript:void(0);">
+                        Details
+                      </a>
+                      <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
                          data-target="#edit-token-expiry-modal" href="javascript:void(0);"
                          data-expiry-target-url="{% url 'api:update_token_expiry' key.id %}"
                          data-expiry-target-preview="{{ key.name }}"
@@ -186,7 +197,7 @@
                          data-expiry-regenerates-token="true">
                         Edit Expiry
                       </a>
-                      <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal"
+                      <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm js-confirm-revoke" data-toggle="modal"
                          data-target="#confirm-revoke-modal" href="javascript:void(0);"
                          data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
                          data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
@@ -199,6 +210,22 @@
             </table>
           </div>
           <div class="alert alert-secondary mt-2 mb-2 js-all-tokens-hidden-alert d-none">All API tokens are expired and hidden. Disable Hide Expired to show them.</div>
+          <div class="modal fade" id="api-token-details-modal" tabindex="-1" role="dialog"
+               aria-labelledby="api-token-details-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+              <div id="api-token-details-modal-content" class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="api-token-details-modal-label">API Token Access Details</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body text-left">
+                  <div class="text-center text-muted py-4">Loading API token details...</div>
+                </div>
+              </div>
+            </div>
+          </div>
         {% else %}
           <div class="alert alert-secondary mt-2 mb-2">You have no tokens yet. You can create one with the "Create" button above.</div>
         {% endif %}
@@ -261,8 +288,15 @@
                   </td>
                   <td>
                     <div class="btn-group" role="group" aria-label="Service token actions">
-                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-service-token-details"
-                         data-details-url="{% url 'api:ajax_service_token_details' key.id %}" href="javascript:void(0);">
+                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-service-token-details js-token-details"
+                         data-details-url="{% url 'api:ajax_service_token_details' key.id %}"
+                         data-modal-selector="#service-token-details-modal"
+                         data-content-selector="#service-token-details-modal-content"
+                         data-modal-label-id="service-token-details-modal-label"
+                         data-modal-title="Service Token Access Details"
+                         data-loading-message="Loading service token details..."
+                         data-error-message="Could not load service token details."
+                         href="javascript:void(0);">
                         Details
                       </a>
                       <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
@@ -459,26 +493,44 @@
     $(document).ready(function () {
       $('#confirm-token-modal').modal('show');
 
-      $('.js-service-token-details').on('click', function () {
-        let detailsUrl = $(this).data('details-url');
-        let $modal = $('#service-token-details-modal');
-        let $content = $('#service-token-details-modal-content');
-        let loadingHtml = '<div class="modal-header">' +
-          '<h5 class="modal-title" id="service-token-details-modal-label">Service Token Access Details</h5>' +
+      function buildTokenDetailsModalHtml(modalLabelId, modalTitle, bodyHtml, includeFooter) {
+        let modalHtml = '<div class="modal-header">' +
+          '<h5 class="modal-title" id="' + modalLabelId + '">' + modalTitle + '</h5>' +
           '<button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
           '<span aria-hidden="true">&times;</span></button></div>' +
           '<div class="modal-body text-left">' +
-          '<div class="text-center text-muted py-4">Loading service token details...</div>' +
+          bodyHtml +
           '</div>';
-        let errorHtml = '<div class="modal-header">' +
-          '<h5 class="modal-title" id="service-token-details-modal-label">Service Token Access Details</h5>' +
-          '<button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
-          '<span aria-hidden="true">&times;</span></button></div>' +
-          '<div class="modal-body text-left">' +
-          '<div class="alert alert-danger mb-0">Could not load service token details.</div>' +
-          '</div><div class="modal-footer">' +
-          '<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>' +
-          '</div>';
+
+        if (includeFooter) {
+          modalHtml += '<div class="modal-footer">' +
+            '<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>' +
+            '</div>';
+        }
+        return modalHtml;
+      }
+
+      $('.js-token-details').on('click', function () {
+        let $target = $(this);
+        let detailsUrl = $target.data('details-url');
+        let $modal = $($target.data('modal-selector'));
+        let $content = $($target.data('content-selector'));
+        let modalLabelId = $target.data('modal-label-id');
+        let modalTitle = $target.data('modal-title');
+        let loadingMessage = $target.data('loading-message');
+        let errorMessage = $target.data('error-message');
+        let loadingHtml = buildTokenDetailsModalHtml(
+          modalLabelId,
+          modalTitle,
+          '<div class="text-center text-muted py-4">' + loadingMessage + '</div>',
+          false
+        );
+        let errorHtml = buildTokenDetailsModalHtml(
+          modalLabelId,
+          modalTitle,
+          '<div class="alert alert-danger mb-0">' + errorMessage + '</div>',
+          true
+        );
 
         $content.html(loadingHtml);
         $modal.modal('show');

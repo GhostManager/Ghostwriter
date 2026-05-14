@@ -104,7 +104,7 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, 'class="js-token-row"', count=6)
         self.assertContains(
             response,
-            'class="alert alert-secondary mt-3 js-all-tokens-hidden-alert d-none"',
+            'class="alert alert-secondary mt-2 mb-2 js-all-tokens-hidden-alert d-none"',
             count=2,
         )
         self.assertContains(
@@ -180,6 +180,27 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "edit-token-expiry-regeneration-warning")
         self.assertContains(response, "$modal.data('revoke-target', $target)")
 
+    def test_profile_lazy_loads_api_token_details(self):
+        project = ProjectFactory(codename="Alpha Project")
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        token_obj, _ = APIKey.objects.create_token(
+            user=self.user,
+            name="Personal Automation",
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(
+            response, f'data-details-url="/api/ajax/token/details/{token_obj.id}"'
+        )
+        self.assertContains(response, 'id="api-token-details-modal"', count=1)
+        self.assertContains(response, 'id="api-token-details-modal-content"')
+        self.assertContains(response, "$.ajax({")
+        self.assertNotContains(response, f'id="api-token-details-modal-{token_obj.id}"')
+        self.assertNotContains(response, "Personal Automation Access Details")
+        self.assertNotContains(response, "This API token authenticates as")
+        self.assertNotContains(response, "ALPHA PROJECT")
+
     def test_profile_lazy_loads_service_token_details(self):
         project = ProjectFactory(codename="Alpha Project")
         other_project = ProjectFactory(codename="Bravo Project")
@@ -239,6 +260,53 @@ class UserProfileTokenDisplayTests(TestCase):
             response, "This token reads only the selected projects listed below."
         )
         self.assertNotContains(response, "Read oplog and entries")
+
+    def test_api_token_details_view_lists_user_project_access(self):
+        project = ProjectFactory(codename="Alpha Project")
+        other_project = ProjectFactory(codename="Bravo Project")
+        ProjectAssignmentFactory(project=project, operator=self.user)
+        ProjectAssignmentFactory(project=other_project, operator=self.user)
+        token_obj, _ = APIKey.objects.create_token(
+            user=self.user,
+            name="Personal Automation",
+        )
+
+        response = self.client_auth.get(
+            reverse("api:ajax_token_details", kwargs={"pk": token_obj.id})
+        )
+
+        self.assertContains(response, "Personal Automation Access Details")
+        self.assertContains(response, "User")
+        self.assertContains(response, self.user.username)
+        self.assertContains(response, "Access Summary")
+        self.assertContains(response, "User API token")
+        self.assertContains(
+            response,
+            "This API token authenticates as",
+        )
+        self.assertContains(
+            response,
+            "carries all current Ghostwriter permissions for that user",
+        )
+        self.assertContains(
+            response,
+            "The token can currently access every project listed below",
+        )
+        self.assertContains(response, "ALPHA PROJECT")
+        self.assertContains(response, "BRAVO PROJECT")
+
+    def test_api_token_details_view_rejects_tokens_owned_by_other_users(self):
+        other_user = UserFactory(password=PASSWORD)
+        token_obj, _ = APIKey.objects.create_token(
+            user=other_user,
+            name="Other User Token",
+        )
+
+        response = self.client_auth.get(
+            reverse("api:ajax_token_details", kwargs={"pk": token_obj.id})
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
 
     def test_service_token_details_view_lists_project_access(self):
         project = ProjectFactory(codename="Alpha Project")

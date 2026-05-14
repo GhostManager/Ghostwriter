@@ -2108,6 +2108,43 @@ class ServiceTokenDetails(utils.RoleBasedAccessControlMixin, SingleObjectMixin, 
         )
 
 
+class APIKeyDetails(utils.RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Render access details for an individual :model:`api.APIKey`."""
+
+    model = APIKey
+    template_name = "users/snippets/api_token_details_modal.html"
+
+    def get_object(self, queryset=None):
+        if not hasattr(self, "_object"):
+            self._object = super().get_object(queryset)
+        return self._object
+
+    def test_func(self):
+        return self.get_object().user_id == self.request.user.id
+
+    def handle_no_permission(self):
+        return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"),
+            status=HTTPStatus.FORBIDDEN,
+        )
+
+    def get(self, request, *args, **kwargs):
+        token = self.get_object()
+        project_access = (
+            utils.get_project_list(token.user)
+            .select_related("client", "project_type")
+            .distinct()
+        )
+        return render(
+            request,
+            self.template_name,
+            {
+                "key": token,
+                "project_access": project_access,
+            },
+        )
+
+
 class TokenExpiryUpdateMixin(
     utils.RoleBasedAccessControlMixin, SingleObjectMixin, View
 ):
