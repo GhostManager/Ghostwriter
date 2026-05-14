@@ -840,6 +840,34 @@ class HasuraWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
+    def test_graphql_webhook_throttles_api_token_last_used_at(self):
+        token_obj, token = APIKey.objects.create_token(
+            user=self.user, name="Usage Token"
+        )
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        token_obj.refresh_from_db()
+        first_used_at = token_obj.last_used_at
+        self.assertIsNotNone(first_used_at)
+
+        response = self.client.get(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        token_obj.refresh_from_db()
+        self.assertEqual(token_obj.last_used_at, first_used_at)
+
     def test_graphql_webhook_with_project_read_service_token(self):
         project = ProjectFactory()
         ProjectAssignmentFactory(project=project, operator=self.user)
@@ -3696,6 +3724,8 @@ class ApiKeyExpiryUpdateTests(TestCase):
             name="Active Token",
             expiry_date=current_expiry,
         )
+        token_obj.last_used_at = timezone.now() - timedelta(days=1)
+        token_obj.save(update_fields=["last_used_at"])
         old_identifier = token_obj.identifier
         old_prefix = token_obj.token_prefix
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
@@ -3710,6 +3740,7 @@ class ApiKeyExpiryUpdateTests(TestCase):
         token_obj.refresh_from_db()
         self.assertNotEqual(token_obj.identifier, old_identifier)
         self.assertNotEqual(token_obj.token_prefix, old_prefix)
+        self.assertIsNone(token_obj.last_used_at)
         self.assertFalse(APIKey.objects.is_valid(old_token))
         replacement_messages = [
             message
@@ -3791,7 +3822,9 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.other_token_obj.refresh_from_db()
         self.assertEqual(self.other_token_obj.expiry_date, self.expired_at)
-        self.assertEqual(self.other_token_obj.token_prefix, self.other_token.split("_", 2)[1])
+        self.assertEqual(
+            self.other_token_obj.token_prefix, self.other_token.split("_", 2)[1]
+        )
 
     def test_rejects_revoked_token(self):
         response = self.client_auth.post(
@@ -3809,7 +3842,9 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.revoked_token_obj.refresh_from_db()
         self.assertTrue(self.revoked_token_obj.revoked)
         self.assertEqual(self.revoked_token_obj.expiry_date, self.expired_at)
-        self.assertEqual(self.revoked_token_obj.token_prefix, self.revoked_token.split("_", 2)[1])
+        self.assertEqual(
+            self.revoked_token_obj.token_prefix, self.revoked_token.split("_", 2)[1]
+        )
 
 
 class ApiKeyCreateTests(TestCase):

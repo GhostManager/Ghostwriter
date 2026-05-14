@@ -53,6 +53,7 @@ class BaseAPIKeyManager(models.Manager):
     """
 
     token_prefix = "gwat"
+    last_used_update_interval = timedelta(minutes=5)
 
     def _build_token(self) -> tuple[str, str, str]:
         prefix = secrets.token_hex(8)
@@ -64,6 +65,7 @@ class BaseAPIKeyManager(models.Manager):
         obj.token_prefix = prefix
         obj.secret_hash = make_password(secret)
         obj.token = ""
+        obj.last_used_at = None
         return None, token
 
     def create_token(self, **kwargs: typing.Any) -> typing.Tuple["AbstractAPIKey", str]:
@@ -90,9 +92,7 @@ class BaseAPIKeyManager(models.Manager):
         prefix, secret = self._split_token(token)
         try:
             entry = (
-                self.get_usable_keys()
-                .select_related("user")
-                .get(token_prefix=prefix)
+                self.get_usable_keys().select_related("user").get(token_prefix=prefix)
             )
         except self.model.DoesNotExist:
             raise
@@ -120,6 +120,22 @@ class BaseAPIKeyManager(models.Manager):
 
         return entry
 
+    def record_usage(self, token: "AbstractAPIKey", used_at=None) -> bool:
+        """Update last_used_at only when it is missing or stale."""
+        used_at = used_at or timezone.now()
+        stale_before = used_at - self.last_used_update_interval
+        updated = (
+            self.filter(pk=token.pk)
+            .filter(
+                models.Q(last_used_at__isnull=True)
+                | models.Q(last_used_at__lte=stale_before)
+            )
+            .update(last_used_at=used_at)
+        )
+        if updated:
+            token.last_used_at = used_at
+        return bool(updated)
+
 
 class APIKeyManager(BaseAPIKeyManager):
     pass
@@ -145,7 +161,9 @@ class AbstractAPIKey(models.Model):
         null=True,
         blank=True,
     )
-    secret_hash = models.CharField(max_length=255, editable=False, null=True, blank=True)
+    secret_hash = models.CharField(
+        max_length=255, editable=False, null=True, blank=True
+    )
     token = models.TextField(editable=False, blank=True, default="")
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     expiry_date = models.DateTimeField(
@@ -154,6 +172,7 @@ class AbstractAPIKey(models.Model):
         verbose_name="Expires",
         help_text="Once API key expires, clients cannot use it anymore",
     )
+    last_used_at = models.DateTimeField(blank=True, null=True)
     revoked = models.BooleanField(
         blank=True,
         default=False,
@@ -292,11 +311,7 @@ class UserSession(models.Model):
 
     @property
     def is_valid(self) -> bool:
-        return (
-            self.revoked_at is None
-            and not self.has_expired
-            and self.user.is_active
-        )
+        return self.revoked_at is None and not self.has_expired and self.user.is_active
 
     def revoke(self, revoked_by: User | None = None) -> None:
         if self.revoked_at is None:

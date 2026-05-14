@@ -99,6 +99,26 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, 'id="js-hide-expired"')
         self.assertContains(response, 'id="js-hide-expired-service-tokens"')
         self.assertContains(
+            response, 'class="table-responsive js-token-table-wrapper"', count=2
+        )
+        self.assertContains(response, 'class="js-token-row"', count=6)
+        self.assertContains(
+            response,
+            'class="alert alert-secondary mt-3 js-all-tokens-hidden-alert d-none"',
+            count=2,
+        )
+        self.assertContains(
+            response,
+            "All API tokens are expired and hidden. Disable Hide Expired to show them.",
+        )
+        self.assertContains(
+            response,
+            "All service tokens are expired and hidden. Disable Hide Expired to show them.",
+        )
+        self.assertContains(
+            response, '<th class="align-middle text-left">Last Used</th>', count=2
+        )
+        self.assertContains(
             response, 'data-expired-token-selector=".js-expired-api-token"'
         )
         self.assertContains(
@@ -110,6 +130,8 @@ class UserProfileTokenDisplayTests(TestCase):
         )
         self.assertContains(response, "localStorage.getItem(storageKey)")
         self.assertContains(response, "localStorage.setItem(storageKey")
+        self.assertContains(response, "expiredRows.length === totalRows")
+        self.assertContains(response, "toggleElement($tableWrapper, !allRowsHidden")
         self.assertContains(
             response,
             'class="align-middle text-left warning"',

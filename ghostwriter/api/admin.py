@@ -26,11 +26,12 @@ class APIKeyModelAdmin(admin.ModelAdmin):
         "name",
         "created",
         "expiry_date",
+        "last_used_at",
         "_has_expired",
         "revoked",
     )
     list_filter = ("created",)
-    readonly_fields = ("identifier", "token_prefix", "secret_hash")
+    readonly_fields = ("identifier", "token_prefix", "secret_hash", "last_used_at")
     search_fields = ("name", "token_prefix", "user__username", "user__email")
 
     def has_add_permission(self, request: HttpRequest) -> bool:
@@ -110,8 +111,18 @@ class ServiceTokenAdmin(admin.ModelAdmin):
         "last_used_at",
         "scope_display",
     )
-    list_filter = ("created", "expiry_date", "revoked", "service_principal__service_type")
-    search_fields = ("name", "service_principal__name", "created_by__username", "token_prefix")
+    list_filter = (
+        "created",
+        "expiry_date",
+        "revoked",
+        "service_principal__service_type",
+    )
+    search_fields = (
+        "name",
+        "service_principal__name",
+        "created_by__username",
+        "token_prefix",
+    )
     readonly_fields = ("token_prefix", "secret_hash", "created", "last_used_at")
     actions = ("revoke_tokens",)
     inlines = (ServiceTokenPermissionInline,)
@@ -130,4 +141,6 @@ class ServiceTokenAdmin(admin.ModelAdmin):
     @admin.action(description="Revoke selected service tokens")
     def revoke_tokens(self, request: HttpRequest, queryset):
         updated = queryset.filter(revoked=False).update(revoked=True)
-        self.message_user(request, f"Revoked {updated} service token(s).", level=messages.SUCCESS)
+        self.message_user(
+            request, f"Revoked {updated} service token(s).", level=messages.SUCCESS
+        )

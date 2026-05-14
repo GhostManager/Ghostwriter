@@ -159,6 +159,28 @@ class ApiKeyModelTests(TestCase):
     def test_is_valid_rejects_unknown_opaque_token(self):
         self.assertFalse(APIKey.objects.is_valid("gwat_unknown_secret"))
 
+    def test_record_usage_throttles_recent_updates(self):
+        token_obj, _ = APIKey.objects.create_token(user=self.user, name="Usage Token")
+        first_used_at = timezone.now()
+        recent_used_at = first_used_at + timedelta(minutes=1)
+        stale_used_at = (
+            first_used_at
+            + APIKey.objects.last_used_update_interval
+            + timedelta(seconds=1)
+        )
+
+        self.assertTrue(APIKey.objects.record_usage(token_obj, used_at=first_used_at))
+        token_obj.refresh_from_db()
+        self.assertEqual(token_obj.last_used_at, first_used_at)
+
+        self.assertFalse(APIKey.objects.record_usage(token_obj, used_at=recent_used_at))
+        token_obj.refresh_from_db()
+        self.assertEqual(token_obj.last_used_at, first_used_at)
+
+        self.assertTrue(APIKey.objects.record_usage(token_obj, used_at=stale_used_at))
+        token_obj.refresh_from_db()
+        self.assertEqual(token_obj.last_used_at, stale_used_at)
+
 
 class UserSessionModelTests(TestCase):
     """Collection of tests for revocable login sessions."""

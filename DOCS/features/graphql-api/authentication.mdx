@@ -81,6 +81,8 @@ can create new tokens, see all existing tokens, hide expired tokens, and revoke 
 
 API tokens are opaque tokens with a `gwat_` prefix. They are not JWTs and do not contain a readable payload. Ghostwriter
 stores a hash of the token secret and validates the database record on each request so tokens can be revoked immediately.
+Ghostwriter records a last-used timestamp for accepted API tokens, with throttling to avoid updating the database on every
+request.
 
 API tokens have user-defined expiration dates. They are intended for automation tasks that should inherit the current
 permissions of the user who created the token.
@@ -149,7 +151,8 @@ The collaborative editor permission-check endpoint also requires the requested m
 collab scope.
 
 For API tokens, the webhook validates the opaque token prefix and secret, checks the API token database record, and then
-authenticates the request as the token's user.
+authenticates the request as the token's user. Accepted API tokens update their last-used timestamp when it is missing or
+stale.
 
 For service tokens, the webhook validates the opaque token, verifies the service principal is active, and returns
 service-scoped session variables to Hasura. Service tokens do not become users and do not receive the permissions of

@@ -190,6 +190,7 @@ class HasuraView(View):
                     return self.invalid_token_response()
                 self.user_obj = User.objects.get(id=token_entry.user.id)
                 self.api_key_obj = token_entry
+                APIKey.objects.record_usage(token_entry)
             else:
                 payload = utils.get_jwt_payload(self.encoded_token)
                 self.jwt_payload = payload
@@ -198,7 +199,9 @@ class HasuraView(View):
                         if not self.allow_login_jwt:
                             return self.invalid_token_response()
                         try:
-                            session = UserSession.objects.get_valid_from_payload(payload)
+                            session = UserSession.objects.get_valid_from_payload(
+                                payload
+                            )
                         except UserSession.DoesNotExist:
                             return self.invalid_token_response()
                         self.user_obj = session.user
@@ -740,15 +743,9 @@ class GraphqlAuthenticationWebhook(HasuraView):
             data["X-Hasura-User-Id"] = f"{user_id}"
             if self.jwt_token_type == utils.COLLAB_JWT_TYPE:
                 collab_model = self.get_collab_claim(utils.COLLAB_MODEL_CLAIM, "")
-                collab_object_id = self.get_collab_claim(
-                    utils.COLLAB_OBJECT_ID_CLAIM
-                )
-                collab_report_id = self.get_collab_claim(
-                    utils.COLLAB_REPORT_ID_CLAIM
-                )
-                collab_finding_id = self.get_collab_claim(
-                    utils.COLLAB_FINDING_ID_CLAIM
-                )
+                collab_object_id = self.get_collab_claim(utils.COLLAB_OBJECT_ID_CLAIM)
+                collab_report_id = self.get_collab_claim(utils.COLLAB_REPORT_ID_CLAIM)
+                collab_finding_id = self.get_collab_claim(utils.COLLAB_FINDING_ID_CLAIM)
                 data.update(
                     {
                         "X-Hasura-Collab-Model": f"{collab_model}",
@@ -2201,6 +2198,7 @@ class ApiKeyExpiryUpdate(TokenExpiryUpdateMixin):
                 "token_prefix",
                 "secret_hash",
                 "token",
+                "last_used_at",
             ]
         )
         return replacement_token

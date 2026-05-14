@@ -143,16 +143,17 @@
         </p>
 
         {% if user.apikey_set.get_usable_keys %}
-          <div class="table-responsive">
+          <div class="table-responsive js-token-table-wrapper">
             <table id="tokenTable" class="tablesorter table-sm table-hover">
               <thead>
               <th class="align-middle text-left">Name</th>
               <th class="align-middle text-left">Added</th>
               <th class="align-middle text-left">Expires</th>
+              <th class="align-middle text-left">Last Used</th>
               <th class="align-middle sorter-false">Actions</th>
               </thead>
               {% for key in user.apikey_set.get_usable_keys %}
-                <tr id="token_{{ key.id }}">
+                <tr id="token_{{ key.id }}" class="js-token-row">
                   <td id="key_name_{{ key.id }}" class="align-middle text-left">{{ key.name|bleach }}</td>
                   <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
                   {% if key.has_expired %}
@@ -168,6 +169,13 @@
                       {% endif %}
                     </td>
                   {% endif %}
+                  <td class="align-middle text-left">
+                    {% if key.last_used_at %}
+                      {{ key.last_used_at|date:"d M Y @ H:i:s e" }}
+                    {% else %}
+                      Never
+                    {% endif %}
+                  </td>
                   <td>
                     <div class="btn-group" role="group" aria-label="API token actions">
                       <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary js-edit-token-expiry" data-toggle="modal"
@@ -190,6 +198,7 @@
               {% endfor %}
             </table>
           </div>
+          <div class="alert alert-secondary mt-3 js-all-tokens-hidden-alert d-none">All API tokens are expired and hidden. Disable Hide Expired to show them.</div>
         {% else %}
           <div class="alert alert-secondary mt-3">You have no tokens yet. You can create one with the "Create" button above.</div>
         {% endif %}
@@ -217,7 +226,7 @@
 
         {% with service_tokens=user.service_tokens.get_usable_tokens %}
         {% if service_tokens %}
-          <div class="table-responsive">
+          <div class="table-responsive js-token-table-wrapper">
             <table id="serviceTokenTable" class="tablesorter table-sm table-hover">
               <thead>
               <th class="align-middle text-left">Name</th>
@@ -227,7 +236,7 @@
               <th class="align-middle sorter-false">Actions</th>
               </thead>
               {% for key in service_tokens %}
-                <tr id="service_token_{{ key.id }}">
+                <tr id="service_token_{{ key.id }}" class="js-token-row">
                   <td class="align-middle text-left">{{ key.name|bleach }}</td>
                   <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
                   {% if key.has_expired %}
@@ -276,6 +285,7 @@
               {% endfor %}
             </table>
           </div>
+          <div class="alert alert-secondary mt-3 js-all-tokens-hidden-alert d-none">All service tokens are expired and hidden. Disable Hide Expired to show them.</div>
           <div class="modal fade" id="service-token-details-modal" tabindex="-1" role="dialog"
                aria-labelledby="service-token-details-modal-label" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -314,7 +324,8 @@
           cssNone: 'none',
           headers: {
             1: {sorter: 'shortDate'},
-            2: {sorter: 'shortDate'}
+            2: {sorter: 'shortDate'},
+            3: {sorter: 'shortDate'}
           },
         }
       );
@@ -360,16 +371,54 @@
         }
       }
 
-      function applyExpiredTokenVisibility(hideCheckbox, expiredTokenSelector, animate) {
-        $(expiredTokenSelector).each(function () {
-          let tokenRow = $(this).closest('tr');
+      function toggleElement($element, shouldShow, animate) {
+        $element.stop(true, true);
 
-          if (hideCheckbox.prop('checked')) {
-            animate ? tokenRow.fadeOut(500) : tokenRow.hide();
-          } else {
-            animate ? tokenRow.fadeIn(500) : tokenRow.show();
-          }
-        });
+        if (shouldShow) {
+          $element.removeClass('d-none');
+          animate ? $element.fadeIn(500) : $element.show();
+        } else if (animate) {
+          $element.fadeOut(500, function () {
+            $element.addClass('d-none');
+          });
+        } else {
+          $element.hide().addClass('d-none');
+        }
+      }
+
+      function toggleTokenRows($rows, shouldShow, animate) {
+        $rows.stop(true, true);
+
+        if (shouldShow) {
+          animate ? $rows.fadeIn(500) : $rows.show();
+        } else {
+          animate ? $rows.fadeOut(500) : $rows.hide();
+        }
+      }
+
+      function updateTokenTableVisibility(hideCheckbox, expiredTokenSelector, animate) {
+        let $card = hideCheckbox.closest('.card');
+        let $tableWrapper = $card.find('.js-token-table-wrapper');
+        let $hiddenAlert = $card.find('.js-all-tokens-hidden-alert');
+
+        if (!$tableWrapper.length || !$hiddenAlert.length) {
+          return;
+        }
+
+        let totalRows = $tableWrapper.find('.js-token-row').length;
+        let expiredRows = $card.find(expiredTokenSelector).closest('.js-token-row');
+        let allRowsHidden = hideCheckbox.prop('checked') && totalRows > 0 && expiredRows.length === totalRows;
+
+        toggleElement($tableWrapper, !allRowsHidden, animate);
+        toggleElement($hiddenAlert, allRowsHidden, animate);
+      }
+
+      function applyExpiredTokenVisibility(hideCheckbox, expiredTokenSelector, animate) {
+        let $card = hideCheckbox.closest('.card');
+        let expiredRows = $card.find(expiredTokenSelector).closest('.js-token-row');
+
+        toggleTokenRows(expiredRows, !hideCheckbox.prop('checked'), animate);
+        updateTokenTableVisibility(hideCheckbox, expiredTokenSelector, animate);
       }
 
       $('.js-hide-expired-tokens').each(function () {
