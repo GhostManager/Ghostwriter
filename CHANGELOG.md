@@ -45,11 +45,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Service tokens are described as scoped non-human credentials
   * Expired tokens can be hidden, and that preference is remembered in local storage
   * Token expiry dates now use warning styling when expiring within seven days and expired styling after expiration
+  * API tokens now show last-used timestamps alongside service tokens
+  * API tokens now have lazy-loaded details modals showing the token user's current project access
 * Added profile controls for editing API token and service token expiry dates
   * API token expiry edits now generate a replacement opaque token so the previous credential stops working immediately
 * Added service-token detail modals that show service principal, project read access, direct operation-log access, stale project grants, and token access summaries
 * Improved dark-mode styling for disabled fields
 * Made the sidebar toggle tab sticky while scrolling
+* Added the `DJANGO_MFA_PASSKEY_LOGIN_ENABLED` environment variable for controlling passkey login support
 * API tokens are now opaque `gwat_` credentials with hashed secrets instead of user-managed JWTs
   * Editing an API token expiry rotates the token prefix, secret hash, and UUID identifier
 * Login and collaborative editor JWTs now use explicit JWT typing
@@ -59,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed observation library create/edit/delete permissions not being checked for the `user` role in the GraphQL API
+* Fixed token tables showing as empty when **Hide Expired** hides every API token or service token
 
 ### Security
 
