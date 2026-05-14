@@ -42,7 +42,11 @@ It is recommended you clear expired sessions on a regular basis to keep the sess
 For a scheduled task, call `django.core.management.call_command` and pass `"clear_expired_sessions"` as its only argument. Set up a task like this one that runs daily with the cron scheduler. For example, `0 5 * * *` will run it every day at 5:00 AM.
 
 <Frame>
-  <img src="/images/features/image-3.avif" alt=""/>
+  <img src="/images/features/clear_sessions.png" alt=""/>
 </Frame>
+
+<Info>
+This is a custom command that runs Django's built-in `clearsessions` command to clear stale login sessions and also clears stale sessions for the GraphQL API.
+</Info>
 
 <CardGroup cols={1}> <Card title="Scheduling Tasks" icon="calendar" iconType="solid" href="/features/background-tasks/scheduled-tasks" /> </CardGroup>
