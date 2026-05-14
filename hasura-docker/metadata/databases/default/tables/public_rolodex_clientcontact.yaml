@@ -68,6 +68,15 @@ select_permissions:
         - primary
         - timezone
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        client:
+          projects:
+            serviceTokenProjectAccesses:
+              token_id:
+                _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'

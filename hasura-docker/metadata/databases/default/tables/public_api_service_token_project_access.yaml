@@ -1,0 +1,33 @@
+table:
+  name: api_service_token_project_access
+  schema: public
+configuration:
+  column_config:
+    project_id:
+      custom_name: projectId
+    token_id:
+      custom_name: tokenId
+  custom_column_names:
+    project_id: projectId
+    token_id: tokenId
+  custom_name: serviceTokenProjectAccess
+  custom_root_fields: {}
+object_relationships:
+  - name: project
+    using:
+      manual_configuration:
+        column_mapping:
+          project_id: id
+        insertion_order: null
+        remote_table:
+          name: rolodex_project
+          schema: public
+select_permissions:
+  - role: service
+    permission:
+      columns:
+        - project_id
+        - token_id
+      filter:
+        token_id:
+          _eq: X-Hasura-Service-Token-Id

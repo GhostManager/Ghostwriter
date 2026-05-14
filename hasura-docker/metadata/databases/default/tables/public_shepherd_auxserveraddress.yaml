@@ -35,9 +35,14 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - id
         - ip_address
         - primary
         - static_server_id
+      filter: {}
+  - role: service
+    permission:
+      columns: '*'
       filter: {}
   - role: user
     permission:

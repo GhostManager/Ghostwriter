@@ -7,6 +7,7 @@ configuration:
       custom_name: extraFields
   custom_column_names:
     extra_fields: extraFields
+  custom_name: reportedObservation
   custom_root_fields: {}
 object_relationships:
   - name: asssignedTo
@@ -71,6 +72,24 @@ select_permissions:
         - report_id
         - title
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - added_as_blank
+        - assigned_to_id
+        - complete
+        - description
+        - extra_fields
+        - id
+        - position
+        - report_id
+        - title
+      filter:
+        report:
+          project:
+            serviceTokenProjectAccesses:
+              token_id:
+                _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:

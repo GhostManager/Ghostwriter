@@ -87,6 +87,10 @@ select_permissions:
         - server_provider_id
         - server_status_id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter: {}
   - role: user
     permission:
       columns: '*'

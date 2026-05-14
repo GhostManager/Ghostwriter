@@ -1,0 +1,78 @@
+---
+title: "User Profile and Tokens"
+description: "Managing account details, API tokens, and Service Tokens from the user profile"
+---
+
+The user profile page groups account management, profile details, and token management in one place.
+
+## Profile Layout
+
+At the top of the profile page, the user's avatar links to the avatar update form. If you are viewing your own profile, the **Update Account Details** actions appear directly below the avatar.
+
+The account actions include:
+
+* Change Password
+* Update Personal Information
+* Manage Email(s)
+* Update Avatar
+* Manage MFA Settings
+
+The **Profile Overview** card presents user details in a condensed grid so they are easier to scan. Depending on whose profile you are viewing and your permissions, the card may include name, username, email, phone, timezone, role, access level, and groups.
+
+## API Tokens
+
+The **API Tokens** card is for user-bound automation tokens. API tokens authenticate as your user account and inherit your current Ghostwriter permissions. Use API tokens when automation should do exactly what your user account can do.
+
+API tokens are opaque `gwat_` credentials. They are not JWTs, and Ghostwriter stores only a hash of the token secret. The full token value is shown once when you create a token or save an expiry update.
+
+Ghostwriter records an API token's last-used timestamp when the token authenticates. Updates are throttled to avoid writing on every request, so a recently active token may show the latest tracked interval instead of the exact most recent request time.
+
+API tokens are different from GraphQL `login` mutation sessions. The `login` mutation returns a short-lived JWT with a tracked session identifier so administrators can revoke active login sessions. See [Session Management](/features/access-authentication-and-session-controls/session-management) for login-session cleanup guidance.
+
+The API token card lets you:
+
+* create a new API token with an expiration date
+* review existing tokens
+* view token details, including current project access for the token's user
+* edit a token's expiration date and receive a replacement token
+* revoke tokens you no longer need
+* hide expired tokens from the table
+
+Tokens expiring within seven days use the warning color. Expired tokens use the expired color. The **Hide Expired** preference is saved in your browser's local storage so the same browser remembers your choice.
+
+## Service Tokens
+
+The **Service Tokens** card is for non-human automation credentials. Service tokens authenticate as service principals and use only the permissions assigned to the token. They do not inherit the permissions of the user who created them.
+
+This separation is important:
+
+* A **Service Principal** is the durable non-human actor, such as an integration or automation service.
+* A **Service Token** is a credential that belongs to a service principal.
+* Permissions are assigned to the service token, not to the service principal.
+
+Use service tokens when automation should have a scoped set of permissions instead of all permissions held by a user account.
+
+Current service-token use cases include:
+
+* operation-log read/write tokens scoped to one operation log and its entries
+* project read-only tokens scoped to selected project data
+
+Service tokens use a shared GraphQL `service` role. The GraphQL schema can show queries, mutations, and Actions that are
+usable by other service-token presets, but the token's own grants still determine whether protected rows are returned and
+whether Django-backed Actions are allowed. An operation-log read/write token can therefore see project-read operations in
+the schema, but it cannot use them without a project-read grant.
+
+The service token card lets you:
+
+* create a new service token
+* choose or create a reusable service principal
+* select the token scope
+* review existing service tokens
+* revoke tokens you no longer need
+* hide expired tokens from the table
+
+Service-token expiration styling and the **Hide Expired** browser preference work the same way as API tokens.
+
+<Warning>
+Store newly created API tokens and service tokens immediately. Ghostwriter only shows the token value once.
+</Warning>

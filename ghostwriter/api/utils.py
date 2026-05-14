@@ -27,8 +27,25 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-def user_has_valid_totp_device(user):
+USER_JWT_TYPE = "ghostwriter-user+jwt"
+COLLAB_JWT_TYPE = "ghostwriter-collab+jwt"
+LEGACY_JWT_TYPE = "JWT"
+COLLAB_NO_ID = -1
+COLLAB_MODEL_CLAIM = "gw_collab_model"
+COLLAB_OBJECT_ID_CLAIM = "gw_collab_object_id"
+COLLAB_REPORT_ID_CLAIM = "gw_collab_report_id"
+COLLAB_FINDING_ID_CLAIM = "gw_collab_finding_id"
 
+
+def get_jwt_type(token):
+    """Return the unverified JWT ``typ`` header value."""
+    try:
+        return jwt.get_unverified_header(token).get("typ")
+    except (jwt.DecodeError, jwt.InvalidTokenError):
+        return None
+
+
+def user_has_valid_totp_device(user):
     """
     Check if the user has a valid TOTP device.
 
@@ -62,28 +79,28 @@ def user_has_valid_webauthn_device(user):
     return authenticators.exists()
 
 
-def get_jwt_from_request(request):
+def get_bearer_token_from_request(request):
     """
-    Fetch the JSON Web Token from a ``request`` object's ``META`` attribute. The
-    token is in the ``Authorization`` header with the ``Bearer `` prefix.
+    Fetch the bearer credential from a ``request`` object's ``META`` attribute.
 
     **Parameters**
 
     ``request``
         Django ``request`` object
     """
-    if "HTTP_AUTHORIZATION" not in request.META:
-        logger.error("No HTTP_AUTHORIZATION header found in request")
+    auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+    if not auth_header:
         return None
 
-    if not request.META.get("HTTP_AUTHORIZATION", "").split(" ")[1:]:
-        logger.error("HTTP_AUTHORIZATION header is empty or malformed")
+    parts = auth_header.split(" ", 1)
+    if len(parts) != 2 or parts[0].strip() != "Bearer" or not parts[1].strip():
+        logger.warning("HTTP_AUTHORIZATION header is malformed")
         return None
 
-    return request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
+    return parts[1].strip()
 
 
-def jwt_encode(payload):
+def jwt_encode(payload, token_type=None):
     """
     Encode a JWT token.
 
@@ -92,10 +109,14 @@ def jwt_encode(payload):
     ``payload``
         Plaintext JWT payload to be signed
     """
+    if token_type is None:
+        raise ValueError("jwt_encode() requires an explicit token_type")
+    headers = {"typ": token_type}
     return jwt.encode(
         payload,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
         settings.GRAPHQL_JWT["JWT_ALGORITHM"],
+        headers=headers,
     )
 
 
@@ -113,7 +134,7 @@ def jwt_decode(token):
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
         options={
             "verify_exp": settings.GRAPHQL_JWT["JWT_VERIFY_EXPIRATION"],
-            "verify_aud": settings.GRAPHQL_JWT["JWT_AUDIENCE"],
+            "verify_aud": bool(settings.GRAPHQL_JWT["JWT_AUDIENCE"]),
             "verify_signature": settings.GRAPHQL_JWT["JWT_VERIFY"],
         },
         leeway=10,
@@ -125,8 +146,8 @@ def jwt_decode(token):
 
 def jwt_decode_no_verification(token):
     """
-    Decode a JWT token without verifying anything. Used for logs and trusted
-    :model:`api:APIKey` entries.
+    Decode a JWT token without verifying signature, audience, or expiration.
+    Use only for non-authoritative inspection such as logging and tests.
 
     **Parameters**
 
@@ -169,9 +190,14 @@ def get_jwt_payload(token):
     return payload
 
 
-def generate_jwt(user, exp=None):
+def generate_jwt(user, exp=None, token_type=None, jti=None, extra_claims=None):
     """
-    Generate a JWT token for the user. The token will expire after the
+    Generate a signed JWT payload for the user without persisting any state.
+
+    Login/session JWTs that need revocation tracking should be issued through
+    ``UserSession.objects.create_token()`` so the backing session row is created
+    explicitly. Callers must pass a JWT ``typ`` header value so the token's
+    purpose is intentional. The token will expire after the
     ``JWT_EXPIRATION_DELTA`` setting unless the ``exp`` parameter is set.
 
     **Parameters**
@@ -180,7 +206,20 @@ def generate_jwt(user, exp=None):
         The :model:`users.User` object for the token
     ``exp``
         The expiration timestamp for the token
+    ``token_type``
+        The JWT ``typ`` header value
+    ``jti``
+        Optional JWT ID for callers with external/session tracking
+    ``extra_claims``
+        Optional additional JWT payload claims
     """
+    if token_type is None:
+        raise ValueError("generate_jwt() requires an explicit token_type")
+    if token_type == USER_JWT_TYPE and jti is None:
+        raise ValueError(
+            "User login JWTs require a tracked session identifier; use UserSession.objects.create_token()"
+        )
+
     jwt_iat = datetime.utcnow()
     if exp:
         jwt_expires = exp
@@ -196,8 +235,19 @@ def generate_jwt(user, exp=None):
         "iat": jwt_iat.timestamp(),
         "exp": jwt_expires,
     }
+    if jti is not None:
+        payload["jti"] = str(jti)
+    if extra_claims:
+        reserved_claims = payload.keys() | {"jti"}
+        overlapping_claims = reserved_claims & extra_claims.keys()
+        if overlapping_claims:
+            raise ValueError(
+                "extra_claims cannot replace standard JWT claims: "
+                + ", ".join(sorted(overlapping_claims))
+            )
+        payload.update(extra_claims)
 
-    return payload, jwt_encode(payload)
+    return payload, jwt_encode(payload, token_type=token_type)
 
 
 def generate_hasura_error_payload(error_message, error_code):
