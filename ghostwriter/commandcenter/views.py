@@ -87,7 +87,9 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
         if collab_claims is None:
             collab_claims = {
                 COLLAB_MODEL_CLAIM: "",
-                COLLAB_OBJECT_ID_CLAIM: obj_id or COLLAB_NO_ID,
+                COLLAB_OBJECT_ID_CLAIM: (
+                    obj_id if obj_id is not None else COLLAB_NO_ID
+                ),
                 COLLAB_REPORT_ID_CLAIM: COLLAB_NO_ID,
                 COLLAB_FINDING_ID_CLAIM: COLLAB_NO_ID,
             }

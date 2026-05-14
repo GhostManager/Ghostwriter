@@ -40,8 +40,18 @@ class CollabModelUpdateTests(TestCase):
 
         self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "report_finding_link")
         self.assertEqual(payload[utils.COLLAB_OBJECT_ID_CLAIM], report_finding.id)
-        self.assertEqual(payload[utils.COLLAB_REPORT_ID_CLAIM], report_finding.report_id)
+        self.assertEqual(
+            payload[utils.COLLAB_REPORT_ID_CLAIM], report_finding.report_id
+        )
         self.assertEqual(payload[utils.COLLAB_FINDING_ID_CLAIM], report_finding.id)
+
+    def test_context_data_preserves_zero_object_id(self):
+        user = UserFactory()
+
+        context = CollabModelUpdate.context_data(user, obj_id=0)
+        payload = utils.get_jwt_payload(context["collab_jwt"])
+
+        self.assertEqual(payload[utils.COLLAB_OBJECT_ID_CLAIM], 0)
 
     def test_collab_model_name_matches_collab_server_model(self):
         report_finding = ReportFindingLinkFactory()
