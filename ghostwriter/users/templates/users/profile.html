@@ -100,7 +100,7 @@
         </div>
         <div class="card-body">
           <div class="table-responsive">
-            <table id="assignmentTable" class="tablesorter table-sm table-hover">
+            <table id="assignmentTable" class="tablesorter table-sm table-hover mt-2 mb-2">
               <thead>
               <th class="align-middle text-left">Project</th>
               <th class="align-middle text-left">Role</th>
@@ -144,7 +144,7 @@
 
         {% if user.apikey_set.get_usable_keys %}
           <div class="table-responsive js-token-table-wrapper">
-            <table id="tokenTable" class="tablesorter table-sm table-hover">
+            <table id="tokenTable" class="tablesorter table-sm table-hover mt-2 mb-2">
               <thead>
               <th class="align-middle text-left">Name</th>
               <th class="align-middle text-left">Added</th>
@@ -198,9 +198,9 @@
               {% endfor %}
             </table>
           </div>
-          <div class="alert alert-secondary mt-3 js-all-tokens-hidden-alert d-none">All API tokens are expired and hidden. Disable Hide Expired to show them.</div>
+          <div class="alert alert-secondary mt-2 mb-2 js-all-tokens-hidden-alert d-none">All API tokens are expired and hidden. Disable Hide Expired to show them.</div>
         {% else %}
-          <div class="alert alert-secondary mt-3">You have no tokens yet. You can create one with the "Create" button above.</div>
+          <div class="alert alert-secondary mt-2 mb-2">You have no tokens yet. You can create one with the "Create" button above.</div>
         {% endif %}
       </div>
     </div>
@@ -227,7 +227,7 @@
         {% with service_tokens=user.service_tokens.get_usable_tokens %}
         {% if service_tokens %}
           <div class="table-responsive js-token-table-wrapper">
-            <table id="serviceTokenTable" class="tablesorter table-sm table-hover">
+            <table id="serviceTokenTable" class="tablesorter table-sm table-hover mt-2 mb-2">
               <thead>
               <th class="align-middle text-left">Name</th>
               <th class="align-middle text-left">Added</th>
@@ -285,7 +285,7 @@
               {% endfor %}
             </table>
           </div>
-          <div class="alert alert-secondary mt-3 js-all-tokens-hidden-alert d-none">All service tokens are expired and hidden. Disable Hide Expired to show them.</div>
+          <div class="alert alert-secondary mt-2 mb-2 js-all-tokens-hidden-alert d-none">All service tokens are expired and hidden. Disable Hide Expired to show them.</div>
           <div class="modal fade" id="service-token-details-modal" tabindex="-1" role="dialog"
                aria-labelledby="service-token-details-modal-label" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -303,7 +303,7 @@
             </div>
           </div>
         {% else %}
-          <div class="alert alert-secondary mt-3">You have no service tokens yet.</div>
+          <div class="alert alert-secondary mt-2 mb-2">You have no service tokens yet.</div>
         {% endif %}
         {% endwith %}
       </div>
@@ -371,16 +371,11 @@
         }
       }
 
-      function toggleElement($element, shouldShow, animate) {
+      function setElementVisibility($element, shouldShow) {
         $element.stop(true, true);
 
         if (shouldShow) {
-          $element.removeClass('d-none');
-          animate ? $element.fadeIn(500) : $element.show();
-        } else if (animate) {
-          $element.fadeOut(500, function () {
-            $element.addClass('d-none');
-          });
+          $element.removeClass('d-none').show();
         } else {
           $element.hide().addClass('d-none');
         }
@@ -393,6 +388,32 @@
           animate ? $rows.fadeIn(500) : $rows.show();
         } else {
           animate ? $rows.fadeOut(500) : $rows.hide();
+        }
+      }
+
+      function replaceTokenTableState($tableWrapper, $hiddenAlert, allRowsHidden, animate) {
+        let $currentElement = allRowsHidden ? $tableWrapper : $hiddenAlert;
+        let $nextElement = allRowsHidden ? $hiddenAlert : $tableWrapper;
+
+        $currentElement.stop(true, true);
+        $nextElement.stop(true, true);
+
+        let currentVisible = $currentElement.is(':visible') && !$currentElement.hasClass('d-none');
+        let nextVisible = $nextElement.is(':visible') && !$nextElement.hasClass('d-none');
+
+        if (!animate) {
+          setElementVisibility($currentElement, false);
+          setElementVisibility($nextElement, true);
+        } else if (!currentVisible && nextVisible) {
+          setElementVisibility($currentElement, false);
+        } else if (!currentVisible) {
+          setElementVisibility($currentElement, false);
+          $nextElement.removeClass('d-none').hide().fadeIn(250);
+        } else {
+          $currentElement.fadeOut(200, function () {
+            $currentElement.addClass('d-none');
+            $nextElement.removeClass('d-none').hide().fadeIn(200);
+          });
         }
       }
 
@@ -409,8 +430,7 @@
         let expiredRows = $card.find(expiredTokenSelector).closest('.js-token-row');
         let allRowsHidden = hideCheckbox.prop('checked') && totalRows > 0 && expiredRows.length === totalRows;
 
-        toggleElement($tableWrapper, !allRowsHidden, animate);
-        toggleElement($hiddenAlert, allRowsHidden, animate);
+        replaceTokenTableState($tableWrapper, $hiddenAlert, allRowsHidden, animate);
       }
 
       function applyExpiredTokenVisibility(hideCheckbox, expiredTokenSelector, animate) {
