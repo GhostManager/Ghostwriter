@@ -111,7 +111,7 @@ def jwt_encode(payload, token_type=None):
     """
     if token_type is None:
         raise ValueError("jwt_encode() requires an explicit token_type")
-    headers = {"typ": token_type} if token_type else None
+    headers = {"typ": token_type}
     return jwt.encode(
         payload,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
