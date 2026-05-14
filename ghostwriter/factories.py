@@ -692,7 +692,7 @@ class ServiceTokenFactory(factory.django.DjangoModelFactory):
 
     name = Faker("sentence")
     token_prefix = factory.Sequence(lambda n: f"prefix{n}")
-    secret_hash = make_password("service-secret")
+    secret_hash = factory.LazyFunction(lambda: make_password("service-secret"))
     created_by = factory.SubFactory(UserFactory)
     service_principal = factory.SubFactory(ServicePrincipalFactory)
 

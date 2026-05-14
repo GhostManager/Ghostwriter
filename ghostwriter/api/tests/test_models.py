@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 
 # Django Imports
+from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
@@ -24,6 +25,7 @@ from ghostwriter.factories import (
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectInviteFactory,
+    ServiceTokenFactory,
     UserFactory,
 )
 
@@ -269,6 +271,14 @@ class ServiceTokenModelTests(TestCase):
         self.assertTrue(ServiceToken.objects.is_valid(token))
         self.assertTrue(token_obj.check_secret(token.split("_", 2)[2]))
         self.assertFalse(token_obj.check_secret("incorrect-secret"))
+
+    def test_service_token_factory_hashes_secret_per_instance(self):
+        first_token = ServiceTokenFactory()
+        second_token = ServiceTokenFactory()
+
+        self.assertNotEqual(first_token.secret_hash, second_token.secret_hash)
+        self.assertTrue(check_password("service-secret", first_token.secret_hash))
+        self.assertTrue(check_password("service-secret", second_token.secret_hash))
 
     def test_oplog_rw_preset_emits_hasura_oplog_scope(self):
         principal = ServicePrincipal.objects.create(
