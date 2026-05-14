@@ -42,7 +42,7 @@
     <div class="card-header text-left">
       <h4 class="icon user-icon m-0">Profile Overview</h4>
     </div>
-    <div class="card-body">
+    <div class="card-body pt-3 pb-1">
       <div class="row text-left">
         <div class="col-md-6 col-xl-4 mb-3">
           <p class="bold icon user-icon mb-1">Full Name</p>
@@ -98,7 +98,7 @@
         <div class="card-header text-left">
           <h4 class="icon assignment-icon m-0">Active Project Assignments</h4>
         </div>
-        <div class="card-body">
+        <div class="card-body pb-1">
           <div class="table-responsive">
             <table id="assignmentTable" class="tablesorter table-sm table-hover mt-2 mb-2">
               <thead>
@@ -137,8 +137,8 @@
           <a class="icon add-icon btn btn-primary" href="{% url 'api:ajax_create_token' %}">Create</a>
         </div>
       </div>
-      <div class="card-body">
-        <p class="card-text text-muted text-left">
+      <div class="card-body pb-1">
+        <p class="card-text text-left">
           API tokens authenticate as your user account and inherit your current Ghostwriter permissions. Use them for personal automation tied to your account.
         </p>
 
@@ -219,8 +219,8 @@
           <a class="icon add-icon btn btn-primary" href="{% url 'api:ajax_create_service_token' %}">Create</a>
         </div>
       </div>
-      <div class="card-body">
-        <p class="card-text text-muted text-left">
+      <div class="card-body pb-1">
+        <p class="card-text text-left">
           Service tokens authenticate as non-human service principals and use only the permissions assigned to the token.
         </p>
 
