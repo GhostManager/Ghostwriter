@@ -328,7 +328,7 @@ MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
 
 # Enable support for logging in using a (WebAuthn) passkey.
 # https://docs.allauth.org/en/dev/mfa/webauthn.html
-MFA_PASSKEY_LOGIN_ENABLED = False
+MFA_PASSKEY_LOGIN_ENABLED = env.bool("DJANGO_MFA_PASSKEY_LOGIN_ENABLED", True)
 
 # django-allauth-mfa forms
 # https://docs.allauth.org/en/dev/mfa/configuration.html
