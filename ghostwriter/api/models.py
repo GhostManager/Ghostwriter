@@ -21,6 +21,7 @@ from ghostwriter.api.utils import (
     generate_jwt,
 )
 from ghostwriter.oplog.models import Oplog
+from ghostwriter.rolodex.models import Project
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -798,9 +799,6 @@ class ServiceToken(models.Model):
 
     def get_current_project_read_projects(self):
         """Return project objects this token can read right now."""
-        # Ghostwriter Libraries
-        from ghostwriter.rolodex.models import Project
-
         if not self.created_by_id or not self.created_by.is_active:
             return Project.objects.none()
 
@@ -826,8 +824,6 @@ class ServiceToken(models.Model):
 
     def get_oplog_access_details(self) -> list[dict[str, typing.Any]]:
         """Return oplog access grouped by oplog with user-facing action labels."""
-        # Ghostwriter Libraries
-
         action_labels = {
             ServiceTokenPermission.Action.READ.value: "Read oplog and entries",
             ServiceTokenPermission.Action.CREATE.value: "Create entries",
@@ -864,7 +860,6 @@ class ServiceToken(models.Model):
 
     def _creator_accessible_project_ids(self) -> list[int]:
         # Ghostwriter Libraries
-        from ghostwriter.rolodex.models import Project
 
         if not self.created_by_id or not self.created_by.is_active:
             return []
@@ -971,9 +966,6 @@ class ServiceToken(models.Model):
         getattr(self, "_prefetched_objects_cache", {}).pop("permissions", None)
 
     def _validate_current_oplog_grants(self) -> None:
-        # Ghostwriter Libraries
-        from ghostwriter.oplog.models import Oplog
-
         oplog_permissions = list(
             self.permissions.filter(
                 resource_type=ServiceTokenPermission.ResourceType.OPLOG
