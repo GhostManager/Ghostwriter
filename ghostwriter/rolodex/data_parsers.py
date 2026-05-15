@@ -2382,7 +2382,16 @@ def _build_firewall_metrics_payload(
             continue
 
         score_value = _coerce_firewall_score(entry.get("Score"))
-        bucket = _risk_bucket_from_score(score_value)
+        if score_value > 0.0:
+            bucket = _risk_bucket_from_score(score_value)
+        else:
+            raw_risk = (entry.get("Risk") or "").strip().lower()
+            if raw_risk in ("high", "critical"):
+                bucket = "High"
+            elif raw_risk == "medium":
+                bucket = "Medium"
+            else:
+                bucket = "Low"
         if bucket == "High":
             summary_high += 1
         elif bucket == "Medium":
