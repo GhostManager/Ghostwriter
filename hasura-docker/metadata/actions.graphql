@@ -93,6 +93,13 @@ type Mutation {
   ): ReportResponse
 }
 
+type Mutation {
+  generateDocReport(
+    id: Int!
+    templateId: Int!
+  ): DocReportResponse
+}
+
 type Query {
   getExtraFieldSpec(
     model: String!
@@ -204,6 +211,14 @@ type Mutation {
   ): UploadReportTemplateResult!
 }
 
+type Mutation {
+  uploadClientLogo(
+    clientId: Int!
+    file_base64: String!
+    filename: String!
+  ): UploadClientLogoResult!
+}
+
 type Query {
   whoami: WhoamiOutput
 }
@@ -224,6 +239,11 @@ type ReportResponse {
   docxUrl: String!
   xlsxUrl: String!
   pptxUrl: String!
+}
+
+type DocReportResponse {
+  docBase64: String!
+  fileName: String!
 }
 
 type checkoutResponse {
@@ -251,6 +271,10 @@ type UploadEvidenceResult {
 }
 
 type UploadReportTemplateResult {
+  id: Int!
+}
+
+type UploadClientLogoResult {
   id: Int!
 }
 
