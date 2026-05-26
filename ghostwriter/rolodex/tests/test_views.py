@@ -717,6 +717,46 @@ class ClientListViewTests(TestCase):
         self.assertNotIn("hidden-tag", tag_names)
 
 
+class ClientCreateViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("rolodex:client_create")
+
+    def setUp(self):
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_incomplete_contact_formset_rerenders_errors(self):
+        response = self.client_mgr.post(
+            self.uri,
+            {
+                "name": "New Client",
+                "short_name": "New",
+                "codename": "New Client Codename",
+                "timezone": "America/Los_Angeles",
+                "poc-TOTAL_FORMS": "1",
+                "poc-INITIAL_FORMS": "0",
+                "poc-0-name": "Janine Melnitz",
+                "poc-0-job_title": "",
+                "poc-0-email": "",
+                "poc-0-phone": "",
+                "poc-0-timezone": "America/Los_Angeles",
+                "poc-0-description": "",
+                "invite-TOTAL_FORMS": "0",
+                "invite-INITIAL_FORMS": "0",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        contact_form = response.context["contacts"].forms[0]
+        self.assertEqual(contact_form.errors["job_title"].as_data()[0].code, "required")
+        self.assertEqual(contact_form.errors["email"].as_data()[0].code, "required")
+        self.assertFalse(ClientFactory._meta.model.objects.filter(name="New Client").exists())
+
+
 class ClientDetailViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
