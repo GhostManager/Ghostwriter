@@ -1350,6 +1350,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         return ctx
 
     def get(self, request, *args, **kwargs):
+        self.object = None
         self.contacts = ClientContactFormSet(prefix="poc")
         self.contacts.extra = 1
         self.invites = ClientInviteFormSet(prefix="invite")
@@ -1357,6 +1358,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        self.object = None
         form = self.get_form()
         self.contacts = ClientContactFormSet(request.POST, prefix="poc")
         self.invites = ClientInviteFormSet(request.POST, prefix="invite")
