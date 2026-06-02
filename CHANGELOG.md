@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+* Updated Django from 4.2.16 to 4.2.30 to address CVE-2026-3902 in `ASGIRequest` (Fixes #896)
 * Added service-token authorization helpers for Django-backed Hasura Actions so service tokens are denied by default unless an action explicitly opts in
 * Login JWT validation now checks the tracked user session after verifying the JWT signature and expiration so sessions can be revoked on demand
 * Collaborative editor JWTs are restricted to a dedicated Hasura role and accepted by the collaborative editor permission-check endpoint

@@ -9,7 +9,7 @@ setuptools<81  # Pin to <81 to preserve pkg_resources for docxcompose dependency
 
 # Django
 # ------------------------------------------------------------------------------
-django==4.2.16  # https://www.djangoproject.com/
+django==4.2.30  # https://www.djangoproject.com/
 django-environ==0.10.0  # https://github.com/joke2k/django-environ
 django-model-utils==4.5.1  # https://github.com/jazzband/django-model-utils
 django-allauth[mfa]==65.11.2  # https://github.com/pennersr/django-allauth
