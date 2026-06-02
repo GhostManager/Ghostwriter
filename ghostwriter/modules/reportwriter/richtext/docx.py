@@ -57,6 +57,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if par is not None and style.get("hyperlink_url"):
             # For Word, this code is modified from this issue:
             #   https://github.com/python-openxml/python-docx/issues/384
+            # OOXML schema note: <w:hyperlink> is a valid child of <w:p>
+            # (per CT_P / EG_PContent), not of <w:r>. Wrapping it in an outer
+            # <w:r> produces malformed XML that Word silently recovers from
+            # but LibreOffice drops on import, breaking the link.
+
             # Get an ID from the ``document.xml.rels`` file
             part = par.part
             r_id = part.relate_to(
@@ -70,24 +75,41 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 docx.oxml.shared.qn("r:id"),
                 r_id,
             )
-            # Create the ``w:r`` and ``w:rPr`` elements
+            
+            # Create the inner ``w:r`` and ``w:rPr`` that hold the link text.
+            # Styling must be applied to THIS run, not an outer wrapper,
+            # because this is the run that contains the visible text.
             new_run = docx.oxml.shared.OxmlElement("w:r")
             rPr = docx.oxml.shared.OxmlElement("w:rPr")
+
+            # Apply Hyperlink styling. If the template defines a "Hyperlink"
+            # character style, reference it; otherwise emit direct color +
+            # underline as a fallback so the link is visually distinguishable
+            # even without the style definition.
+            if "Hyperlink" in self.doc.styles:
+                rStyle = docx.oxml.shared.OxmlElement("w:rStyle")
+                rStyle.set(docx.oxml.shared.qn("w:val"), "Hyperlink")
+                rPr.append(rStyle)
+            else:
+                color = docx.oxml.shared.OxmlElement("w:color")
+                color.set(docx.oxml.shared.qn("w:val"), "0563C1")
+                rPr.append(color)
+                u = docx.oxml.shared.OxmlElement("w:u")
+                u.set(docx.oxml.shared.qn("w:val"), "single")
+                rPr.append(u)
+
             new_run.append(rPr)
             self.text_tracking.append_text_to_run(new_run, str(el))
             hyperlink.append(new_run)
-            # Create a new Run object and add the hyperlink into it
-            run = par.add_run()
-            run._r.append(hyperlink)
-            # A workaround for the lack of a hyperlink style
-            if "Hyperlink" in self.doc.styles:
-                try:
-                    run.style = "Hyperlink"
-                except KeyError:
-                    pass
-            else:
-                run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
-                run.font.underline = True
+
+            # Trigger run-tracking bookkeeping by calling add_run(), then
+            # replace the empty <w:r> it created with our <w:hyperlink>.
+            # This keeps text_tracking's state machine in sync while still
+            # producing schema-valid XML where <w:hyperlink> is a direct
+            # child of <w:p>.
+            placeholder = par.add_run()
+            placeholder._r.addprevious(hyperlink)
+            placeholder._r.getparent().remove(placeholder._r)
         else:
             super().text(el, par=par, style=style, **kwargs)
 
