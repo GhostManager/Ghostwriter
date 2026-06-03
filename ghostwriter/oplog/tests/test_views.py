@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import os
+import uuid
 import zipfile
 from datetime import datetime
 from unittest.mock import patch
@@ -824,8 +825,10 @@ class OplogExportViewTests(TestCase):
     def test_export_with_duplicate_evidence_filenames_uses_unique_archive_names(self):
         """Evidence files with the same basename should not overwrite each other in the ZIP."""
         entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
-        evidence_one = EvidenceOnReportFactory(document=SimpleUploadedFile("duplicate.txt", b"first"))
-        evidence_two = EvidenceOnReportFactory(document=SimpleUploadedFile("duplicate.txt", b"second"))
+        duplicate_filename = f"duplicate_{uuid.uuid4().hex}.txt"
+        duplicate_stem = os.path.splitext(duplicate_filename)[0]
+        evidence_one = EvidenceOnReportFactory(document=SimpleUploadedFile(duplicate_filename, b"first"))
+        evidence_two = EvidenceOnReportFactory(document=SimpleUploadedFile(duplicate_filename, b"second"))
         OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence_one)
         OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence_two)
 
@@ -835,7 +838,7 @@ class OplogExportViewTests(TestCase):
             evidence_files = sorted(name for name in zf.namelist() if name.startswith("evidence/"))
             self.assertEqual(
                 evidence_files,
-                [f"evidence/{entry.id}_duplicate.txt", f"evidence/{entry.id}_duplicate_1.txt"],
+                [f"evidence/{entry.id}_{duplicate_filename}", f"evidence/{entry.id}_{duplicate_stem}_1.txt"],
             )
 
             fieldnames, rows = self._read_zip_csv(zf, csv_name)

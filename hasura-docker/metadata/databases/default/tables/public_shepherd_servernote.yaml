@@ -46,6 +46,10 @@ select_permissions:
         - server_id
         - timestamp
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter: {}
   - role: user
     permission:
       columns: '*'

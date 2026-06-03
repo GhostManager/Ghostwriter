@@ -16,12 +16,22 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - is_collab_editable
         - model_display_name
         - model_internal_name
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - is_collab_editable
+        - model_display_name
+        - model_internal_name
+      filter: {}
+    comment: ""
   - role: user
     permission:
       columns:
+        - is_collab_editable
         - model_display_name
         - model_internal_name
       filter: {}

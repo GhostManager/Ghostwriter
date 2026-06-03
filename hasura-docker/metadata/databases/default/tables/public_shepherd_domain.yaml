@@ -126,6 +126,10 @@ select_permissions:
         - vt_permalink
         - whois_status_id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter: {}
   - role: user
     permission:
       columns: '*'

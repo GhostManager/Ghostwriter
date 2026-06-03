@@ -56,6 +56,21 @@ select_permissions:
         - name
         - project_id
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - id
+        - mute_notifications
+        - name
+        - project_id
+      filter:
+        _or:
+          - id:
+              _eq: X-Hasura-Read-Oplog-Id
+          - project:
+              serviceTokenProjectAccesses:
+                token_id:
+                  _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'

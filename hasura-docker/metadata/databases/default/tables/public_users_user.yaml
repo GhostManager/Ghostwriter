@@ -192,6 +192,128 @@ select_permissions:
       filter:
         is_active:
           _eq: true
+  - role: service
+    permission:
+      columns:
+        - email
+        - id
+        - name
+        - phone
+        - timezone
+        - username
+      filter:
+        _and:
+          - is_active:
+              _eq: true
+          - _or:
+              - assignments:
+                  project:
+                    serviceTokenProjectAccesses:
+                      token_id:
+                        _eq: X-Hasura-Service-Token-Id
+              - cloudServers:
+                  project:
+                    serviceTokenProjectAccesses:
+                      token_id:
+                        _eq: X-Hasura-Service-Token-Id
+              - domainCheckouts:
+                  project:
+                    serviceTokenProjectAccesses:
+                      token_id:
+                        _eq: X-Hasura-Service-Token-Id
+              - domainNotes:
+                  domain:
+                    _or:
+                      - checkouts:
+                          project:
+                            serviceTokenProjectAccesses:
+                              token_id:
+                                _eq: X-Hasura-Service-Token-Id
+                      - checkouts:
+                          domainServerConnections:
+                            project:
+                              serviceTokenProjectAccesses:
+                                token_id:
+                                  _eq: X-Hasura-Service-Token-Id
+              - domains:
+                  _or:
+                    - checkouts:
+                        project:
+                          serviceTokenProjectAccesses:
+                            token_id:
+                              _eq: X-Hasura-Service-Token-Id
+                    - checkouts:
+                        domainServerConnections:
+                          project:
+                            serviceTokenProjectAccesses:
+                              token_id:
+                                _eq: X-Hasura-Service-Token-Id
+              - evidences:
+                  _or:
+                    - finding:
+                        report:
+                          project:
+                            serviceTokenProjectAccesses:
+                              token_id:
+                                _eq: X-Hasura-Service-Token-Id
+                    - report:
+                        project:
+                          serviceTokenProjectAccesses:
+                            token_id:
+                              _eq: X-Hasura-Service-Token-Id
+              - projectNotes:
+                  project:
+                    serviceTokenProjectAccesses:
+                      token_id:
+                        _eq: X-Hasura-Service-Token-Id
+              - projects:
+                  serviceTokenProjectAccesses:
+                    token_id:
+                      _eq: X-Hasura-Service-Token-Id
+              - reportedFindingNotes:
+                  finding:
+                    report:
+                      project:
+                        serviceTokenProjectAccesses:
+                          token_id:
+                            _eq: X-Hasura-Service-Token-Id
+              - reportedFindings:
+                  report:
+                    project:
+                      serviceTokenProjectAccesses:
+                        token_id:
+                          _eq: X-Hasura-Service-Token-Id
+              - reportedObservations:
+                  report:
+                    project:
+                      serviceTokenProjectAccesses:
+                        token_id:
+                          _eq: X-Hasura-Service-Token-Id
+              - reports:
+                  project:
+                    serviceTokenProjectAccesses:
+                      token_id:
+                        _eq: X-Hasura-Service-Token-Id
+              - serverCheckouts:
+                  project:
+                    serviceTokenProjectAccesses:
+                      token_id:
+                        _eq: X-Hasura-Service-Token-Id
+              - serverNotes:
+                  staticServer:
+                    checkouts:
+                      project:
+                        serviceTokenProjectAccesses:
+                          token_id:
+                            _eq: X-Hasura-Service-Token-Id
+              - servers:
+                  checkouts:
+                    project:
+                      serviceTokenProjectAccesses:
+                        token_id:
+                          _eq: X-Hasura-Service-Token-Id
+      query_root_fields: []
+      subscription_root_fields: []
   - role: user
     permission:
       columns:

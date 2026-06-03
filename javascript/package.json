@@ -1,4 +1,6 @@
 {
+    "name": "ghostwriter-javascript",
+    "private": true,
     "type": "module",
     "scripts": {
         "check": "tsc --noEmit",

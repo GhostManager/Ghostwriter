@@ -4,6 +4,7 @@ from datetime import date, timedelta, timezone
 
 # Django Imports
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.db.models.signals import post_save
 from django.utils import timezone
 
@@ -674,6 +675,37 @@ class OplogEntryRecordingFactory(factory.django.DjangoModelFactory):
         filename="test.cast",
         data=b'{"version": 3, "term": {"cols": 80, "rows": 24}}\n[0.5, "o", "Hello, world!"]\n',
     )
+
+
+class ServicePrincipalFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServicePrincipal"
+
+    name = Faker("sentence")
+    service_type = "integration"
+    created_by = factory.SubFactory(UserFactory)
+
+
+class ServiceTokenFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServiceToken"
+
+    name = Faker("sentence")
+    token_prefix = factory.Sequence(lambda n: f"prefix{n}")
+    secret_hash = factory.LazyFunction(lambda: make_password("service-secret"))
+    created_by = factory.SubFactory(UserFactory)
+    service_principal = factory.SubFactory(ServicePrincipalFactory)
+
+
+class ServiceTokenPermissionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServiceTokenPermission"
+
+    token = factory.SubFactory(ServiceTokenFactory)
+    resource_type = "oplog"
+    resource_id = factory.Sequence(lambda n: n + 1)
+    action = "read"
+    constraints = {}
 
 
 # Shepherd Factories

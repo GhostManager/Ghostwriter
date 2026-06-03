@@ -23,6 +23,12 @@ select_permissions:
       columns:
         - id
         - doc_type
+        - extension
+        - name
+      filter: {}
+  - role: service
+    permission:
+      columns: '*'
       filter: {}
   - role: user
     permission:

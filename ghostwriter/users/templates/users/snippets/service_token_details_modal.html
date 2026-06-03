@@ -1,0 +1,83 @@
+{% load bleach_tags %}
+
+<div class="modal-header">
+  <h5 class="modal-title" id="service-token-details-modal-label">{{ key.name|bleach }} Access Details</h5>
+  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="modal-body text-left">
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <p class="bold mb-1">Service Principal</p>
+      <p class="mb-0">{{ key.service_principal.name|bleach }}</p>
+    </div>
+    <div class="col-md-6 mb-3">
+      <p class="bold mb-1">Access Summary</p>
+      <p class="mb-0">{{ key.get_scope_display }}</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <h6 class="bold">Project Read Access</h6>
+  {% if key.has_all_accessible_project_scope %}
+    <p class="text-muted">This token dynamically reads every project the token creator can access. The list below is its current project access.</p>
+  {% elif project_access %}
+    <p class="text-muted">This token reads only the selected projects listed below.</p>
+  {% else %}
+    <p class="text-muted">This token does not have project-wide read access.</p>
+  {% endif %}
+
+  {% if project_access %}
+    <div class="list-group mb-3">
+      {% for project in project_access %}
+        <div class="list-group-item">
+          {% if project.codename %}
+            <a class="bold" href="{{ project.get_absolute_url }}">{{ project.codename|bleach|upper }}</a>
+          {% elif project.client.short_name %}
+            <a class="bold" href="{{ project.get_absolute_url }}">{{ project.client.short_name|bleach|upper }}</a>
+          {% else %}
+            <a class="bold" href="{{ project.get_absolute_url }}">{{ project.client.name|bleach|upper }}</a>
+          {% endif %}
+          <div class="text-muted small">
+            {{ project.client.name|bleach }} - {{ project.project_type.project_type|bleach }} - {{ project.start_date|date:"DATE_FORMAT" }} to {{ project.end_date|date:"DATE_FORMAT" }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if stale_project_ids %}
+    <div class="alert alert-warning">
+      Configured project grant(s) no longer currently readable:
+      {% for project_id in stale_project_ids %}#{{ project_id }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </div>
+  {% endif %}
+
+  <h6 class="bold mt-4">Oplog Access</h6>
+  {% if oplog_access %}
+    <div class="list-group mb-3">
+      {% for access in oplog_access %}
+        <div class="list-group-item">
+          <a class="bold" href="{{ access.oplog.get_absolute_url }}">{{ access.oplog.name|bleach }}</a>
+          <div class="text-muted small">
+            Project: {{ access.oplog.project.codename|bleach }} ({{ access.oplog.project.client.name|bleach }})
+          </div>
+          <div class="mt-2">
+            {% for action in access.actions %}
+              <span class="badge badge-secondary">{{ action }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% elif project_access %}
+    <p class="text-muted">This token has no direct oplog assignment. It can access logs under the above projects.</p>
+  {% else %}
+    <p class="text-muted">This token has no direct oplog assignment.</p>
+  {% endif %}
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+</div>

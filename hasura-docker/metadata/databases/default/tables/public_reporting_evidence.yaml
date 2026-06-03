@@ -85,6 +85,51 @@ insert_permissions:
         - friendly_name
         - report_id
 select_permissions:
+  - role: collab
+    permission:
+      columns:
+        - caption
+        - description
+        - document
+        - finding_id
+        - friendly_name
+        - id
+        - report_id
+      filter:
+        _and:
+          - _or:
+              - finding:
+                  report:
+                    project:
+                      _or:
+                        - invites:
+                            user_id:
+                              _eq: X-Hasura-User-Id
+                        - assignments:
+                            operator_id:
+                              _eq: X-Hasura-User-Id
+                        - client:
+                            invites:
+                              user_id:
+                                _eq: X-Hasura-User-Id
+              - report:
+                  project:
+                    _or:
+                      - invites:
+                          user_id:
+                            _eq: X-Hasura-User-Id
+                      - assignments:
+                          operator_id:
+                            _eq: X-Hasura-User-Id
+                      - client:
+                          invites:
+                            user_id:
+                              _eq: X-Hasura-User-Id
+          - _or:
+              - report_id:
+                  _eq: X-Hasura-Collab-Report-Id
+              - finding_id:
+                  _eq: X-Hasura-Collab-Finding-Id
   - role: manager
     permission:
       columns:
@@ -98,6 +143,31 @@ select_permissions:
         - upload_date
         - uploaded_by_id
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - caption
+        - description
+        - document
+        - finding_id
+        - friendly_name
+        - id
+        - report_id
+        - upload_date
+        - uploaded_by_id
+      filter:
+        _or:
+          - finding:
+              report:
+                project:
+                  serviceTokenProjectAccesses:
+                    token_id:
+                      _eq: X-Hasura-Service-Token-Id
+          - report:
+              project:
+                serviceTokenProjectAccesses:
+                  token_id:
+                    _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'

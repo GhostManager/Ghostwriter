@@ -7,7 +7,13 @@ from django.views.decorators.csrf import csrf_exempt
 # Ghostwriter Libraries
 from ghostwriter.api.views import (
     ApiKeyCreate,
+    APIKeyDetails,
+    ApiKeyExpiryUpdate,
     ApiKeyRevoke,
+    ServiceTokenCreate,
+    ServiceTokenDetails,
+    ServiceTokenExpiryUpdate,
+    ServiceTokenRevoke,
     GraphqlAttachFinding,
     GraphqlAuthenticationWebhook,
     GraphqlCheckoutDomain,
@@ -129,7 +135,21 @@ urlpatterns = [
         name="graphql_evidence_update_event",
     ),
     path("ajax/token/revoke/<int:pk>", ApiKeyRevoke.as_view(), name="ajax_revoke_token"),
+    path(
+        "ajax/token/details/<int:pk>",
+        APIKeyDetails.as_view(),
+        name="ajax_token_details",
+    ),
+    path("token/expiry/<int:pk>", ApiKeyExpiryUpdate.as_view(), name="update_token_expiry"),
     path("token/create", ApiKeyCreate.as_view(), name="ajax_create_token"),
+    path(
+        "ajax/service-token/details/<int:pk>",
+        ServiceTokenDetails.as_view(),
+        name="ajax_service_token_details",
+    ),
+    path("ajax/service-token/revoke/<int:pk>", ServiceTokenRevoke.as_view(), name="ajax_revoke_service_token"),
+    path("service-token/expiry/<int:pk>", ServiceTokenExpiryUpdate.as_view(), name="update_service_token_expiry"),
+    path("service-token/create", ServiceTokenCreate.as_view(), name="ajax_create_service_token"),
     path(
         "check_permissions",
         csrf_exempt(CheckEditPermissions.as_view()),
