@@ -104,15 +104,34 @@ WHERE
 
 
 APIKEY_IDENTIFIER_CONSTRAINT = "api_apikey_identifier_6e4e2f82_uniq"
+API_KEY_IDENTIFIER_BATCH_SIZE = 1000
 
 
 def ensure_api_key_identifiers_are_unique(apps, schema_editor):
     schema_editor.execute('LOCK TABLE "api_apikey" IN ACCESS EXCLUSIVE MODE')
 
     APIKey = apps.get_model("api", "APIKey")
-    for api_key in APIKey.objects.filter(identifier__isnull=True):
+    api_keys = []
+    queryset = APIKey.objects.filter(identifier__isnull=True).only(
+        "id", "identifier"
+    )
+    for api_key in queryset.iterator(chunk_size=API_KEY_IDENTIFIER_BATCH_SIZE):
         api_key.identifier = uuid.uuid4()
-        api_key.save(update_fields=["identifier"])
+        api_keys.append(api_key)
+        if len(api_keys) >= API_KEY_IDENTIFIER_BATCH_SIZE:
+            APIKey.objects.bulk_update(
+                api_keys,
+                ["identifier"],
+                batch_size=API_KEY_IDENTIFIER_BATCH_SIZE,
+            )
+            api_keys.clear()
+
+    if api_keys:
+        APIKey.objects.bulk_update(
+            api_keys,
+            ["identifier"],
+            batch_size=API_KEY_IDENTIFIER_BATCH_SIZE,
+        )
 
     with schema_editor.connection.cursor() as cursor:
         schema_editor.execute(
