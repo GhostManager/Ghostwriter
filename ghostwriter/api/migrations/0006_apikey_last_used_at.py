@@ -103,18 +103,75 @@ WHERE
 """
 
 
+APIKEY_IDENTIFIER_CONSTRAINT = "api_apikey_identifier_6e4e2f82_uniq"
+
+
+def ensure_api_key_identifiers_are_unique(apps, schema_editor):
+    APIKey = apps.get_model("api", "APIKey")
+    for api_key in APIKey.objects.filter(identifier__isnull=True):
+        api_key.identifier = uuid.uuid4()
+        api_key.save(update_fields=["identifier"])
+
+    with schema_editor.connection.cursor() as cursor:
+        schema_editor.execute(
+            'ALTER TABLE "api_apikey" ALTER COLUMN "identifier" SET NOT NULL'
+        )
+        constraints = schema_editor.connection.introspection.get_constraints(
+            cursor, "api_apikey"
+        )
+        has_unique_identifier = any(
+            constraint["unique"] and constraint["columns"] == ["identifier"]
+            for constraint in constraints.values()
+        )
+        if not has_unique_identifier:
+            schema_editor.execute(
+                'ALTER TABLE "api_apikey" '
+                f'ADD CONSTRAINT "{APIKEY_IDENTIFIER_CONSTRAINT}" '
+                'UNIQUE ("identifier")'
+            )
+
+
+class CreateModelIfTableMissing(migrations.CreateModel):
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        model = to_state.apps.get_model(app_label, self.name)
+        with schema_editor.connection.cursor() as cursor:
+            existing_tables = schema_editor.connection.introspection.table_names(
+                cursor
+            )
+        if model._meta.db_table in existing_tables:
+            return
+        schema_editor.create_model(model)
+
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        # A pre-split 0004 may have created this table. Keep rollback from
+        # dropping a table that can belong to an earlier recorded migration.
+        return
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("api", "0005_optimize_user_project_read_access_view"),
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="apikey",
-            name="identifier",
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(
+                    ensure_api_key_identifiers_are_unique,
+                    reverse_code=migrations.RunPython.noop,
+                )
+            ],
+            state_operations=[
+                migrations.AlterField(
+                    model_name="apikey",
+                    name="identifier",
+                    field=models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    ),
+                )
+            ],
         ),
-        migrations.CreateModel(
+        CreateModelIfTableMissing(
             name="UserSession",
             fields=[
                 (
