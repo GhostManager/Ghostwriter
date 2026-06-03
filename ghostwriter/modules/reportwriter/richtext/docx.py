@@ -9,7 +9,6 @@ from django.conf import settings
 
 # 3rd Party Libraries
 import docx
-from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
 from docx.image.exceptions import UnrecognizedImageError
 from docx.oxml.shared import OxmlElement, qn
@@ -75,7 +74,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 docx.oxml.shared.qn("r:id"),
                 r_id,
             )
-            
+
             # Create the inner ``w:r`` and ``w:rPr`` that hold the link text.
             # Styling must be applied to THIS run, not an outer wrapper,
             # because this is the run that contains the visible text.
