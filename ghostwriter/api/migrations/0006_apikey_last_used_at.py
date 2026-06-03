@@ -107,6 +107,8 @@ APIKEY_IDENTIFIER_CONSTRAINT = "api_apikey_identifier_6e4e2f82_uniq"
 
 
 def ensure_api_key_identifiers_are_unique(apps, schema_editor):
+    schema_editor.execute('LOCK TABLE "api_apikey" IN ACCESS EXCLUSIVE MODE')
+
     APIKey = apps.get_model("api", "APIKey")
     for api_key in APIKey.objects.filter(identifier__isnull=True):
         api_key.identifier = uuid.uuid4()
