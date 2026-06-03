@@ -76,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Service-token validation now uses explicit secret-checking terminology internally and keeps full lifecycle validation on the manager path
 * Added Hasura metadata validation tests to catch service-role permission drift, legacy service-token headers, and unexpected service mutations
 * Added validation for service-token permission resource, action, and constraint combinations
+
 ## [6.3.6] - 26 May 2026
 
 ### Fixed
