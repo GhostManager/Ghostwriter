@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed observation library create/edit/delete permissions not being checked for the `user` role in the GraphQL API
 * Fixed token tables showing as empty when **Hide Expired** hides every API token or service token
+* Fixed hyperlinks not working properly in open Office alternatives like LibreOffice (Fixes #890; Thanks to @wexew-ware)
 
 ### Security
 
@@ -75,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Service-token validation now uses explicit secret-checking terminology internally and keeps full lifecycle validation on the manager path
 * Added Hasura metadata validation tests to catch service-role permission drift, legacy service-token headers, and unexpected service mutations
 * Added validation for service-token permission resource, action, and constraint combinations
+
 ## [6.3.6] - 26 May 2026
 
 ### Fixed
