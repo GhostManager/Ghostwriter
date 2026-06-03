@@ -819,7 +819,7 @@ class FindingsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
         blank_findings = self.ReportFindingLink.objects.filter(added_as_blank=True, report=self.accessibleReport)
-        self.assertQuerysetEqual(response.context["filter"].qs, list(blank_findings))
+        self.assertQuerySetEqual(response.context["filter"].qs, list(blank_findings))
 
 
 class FindingDetailViewTests(TestCase):

@@ -1049,7 +1049,7 @@ class ServiceTokenPermission(models.Model):
                 name="api_stp_unique_dynamic_permission",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(
                         resource_type="oplog",
                         action__in=["read", "create", "update", "delete"],
@@ -1059,7 +1059,7 @@ class ServiceTokenPermission(models.Model):
                 name="api_stp_allowed_resource_action",
             ),
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(resource_id__isnull=False, constraints={})
                     | models.Q(
                         resource_type="project",

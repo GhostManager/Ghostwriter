@@ -4,14 +4,14 @@
 import logging
 
 # Django Imports
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
-from health_check.views import MainView, MediaType
+from health_check.views import HealthCheckView
+from redis.asyncio import Redis as RedisClient
 
 # Ghostwriter Libraries
 from ghostwriter.modules.health_utils import DjangoHealthChecks
@@ -20,6 +20,11 @@ User = get_user_model()
 
 # Using __name__ resolves to ghostwriter.home.views
 logger = logging.getLogger(__name__)
+
+
+def get_redis_client():
+    """Create a Redis client for the health check request."""
+    return RedisClient.from_url(settings.REDIS_URL)
 
 
 ##################
@@ -51,7 +56,7 @@ class HealthCheckSimpleView(View):
         return HttpResponse(status, status=code)
 
 
-class HealthCheckCustomView(MainView):
+class HealthCheckCustomView(HealthCheckView):
     """
     Custom health check view to check Ghostwriter services.
 
@@ -61,30 +66,36 @@ class HealthCheckCustomView(MainView):
     """
 
     template_name = "health_check.html"
+    display_names = {
+        "Cache": "Cache",
+        "Database": "Database",
+        "Disk": "Disk",
+        "HasuraBackend": "Hasura GraphQL Engine",
+        "Memory": "Memory",
+        "Redis": "Redis",
+        "Storage": "Storage",
+    }
+    checks = [
+        "health_check.Cache",
+        "health_check.Database",
+        "health_check.Storage",
+        "health_check.contrib.psutil.Disk",
+        "health_check.contrib.psutil.Memory",
+        ("health_check.contrib.redis.Redis", {"client_factory": get_redis_client}),
+        "ghostwriter.modules.health_utils.HasuraBackend",
+    ]
 
-    @method_decorator(never_cache)
-    def get(self, request, *args, **kwargs):  # pragma: no cover
-        status_code = 500 if self.errors else 200
-
-        format_override = request.GET.get("format")
-
-        if format_override == "json":
-            return self.render_to_response_json(self.plugins, status_code)
-
-        accept_header = request.META.get("HTTP_ACCEPT", "*/*")
-        for media in MediaType.parse_header(accept_header):
-            if media.mime_type in (
-                "text/html",
-                "application/xhtml+xml",
-                "text/*",
-                "*/*",
-            ):
-                context = self.get_context_data(**kwargs)
-                return self.render_to_response(context, status=status_code)
-            if media.mime_type in ("application/json", "application/*"):
-                return self.render_to_response_json(self.plugins, status_code)
-        return HttpResponse(
-            "Not Acceptable: Supported content types: text/html, application/json",
-            status=406,
-            content_type="text/plain",
-        )  # pragma: no cover
+    def get_context_data(self, **kwargs):
+        """Add display-friendly service names for the HTML status page."""
+        context = super().get_context_data(**kwargs)
+        context["status_results"] = [
+            {
+                "display_name": self.display_names.get(
+                    result.check.__class__.__name__,
+                    result.check.__class__.__name__,
+                ),
+                "result": result,
+            }
+            for result in self.results
+        ]
+        return context

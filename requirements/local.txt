@@ -8,25 +8,25 @@ watchfiles==1.1.1  # https://github.com/samuelcolvin/watchfiles
 
 # Testing
 # ------------------------------------------------------------------------------
-mypy==1.2.0  # https://github.com/python/mypy
-django-stubs==1.16.0  # https://github.com/typeddjango/django-stubs
-pytest==7.3.1  # https://github.com/pytest-dev/pytest
+mypy==1.20.2  # https://github.com/python/mypy
+django-stubs==5.2.9  # https://github.com/typeddjango/django-stubs
+pytest==8.4.2  # https://github.com/pytest-dev/pytest
 pytest-sugar==0.9.7  # https://github.com/Frozenball/pytest-sugar
 
 # Code quality
 # ------------------------------------------------------------------------------
 flake8==6.0.0  # https://github.com/PyCQA/flake8
 flake8-isort==6.0.0  # https://github.com/gforcada/flake8-isort
-coverage==7.2.7  # https://github.com/nedbat/coveragepy
+coverage==7.14.1  # https://github.com/nedbat/coveragepy
 black==23.3.0  # https://github.com/ambv/black
-pylint-django==2.5.3  # https://github.com/PyCQA/pylint-django
+pylint-django==2.7.0  # https://github.com/PyCQA/pylint-django
 pre-commit==3.3.2  # https://github.com/pre-commit/pre-commit
 
 # Django
 # ------------------------------------------------------------------------------
 factory-boy==3.2.1  # https://github.com/FactoryBoy/factory_boy
 
-django-debug-toolbar==3.2.4  # https://github.com/jazzband/django-debug-toolbar
+django-debug-toolbar==6.3.0  # https://github.com/jazzband/django-debug-toolbar
 #django-extensions==3.2.1  # https://github.com/django-extensions/django-extensions
-django-coverage-plugin==3.0.0  # https://github.com/nedbat/django_coverage_plugin
-pytest-django==4.5.2  # https://github.com/pytest-dev/pytest-django
+django-coverage-plugin==3.2.2  # https://github.com/nedbat/django_coverage_plugin
+pytest-django==4.12.0  # https://github.com/pytest-dev/pytest-django

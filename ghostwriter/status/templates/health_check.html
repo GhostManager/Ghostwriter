@@ -13,20 +13,26 @@
         <th class="align-middle text-left">Time Taken</th>
       </thead>
       <tbody>
-        {% for plugin in plugins %}
+        {% for status_result in status_results %}
           <tr>
             <td class="icons">
               <span aria-hidden="true">
-                {% if plugin.status %}
-                  &#9989;
-                {% else %}
+                {% if status_result.result.error %}
                   &#10060;
+                {% else %}
+                  &#9989;
                 {% endif %}
               </span>
             </td>
-            <td class="align-middle text-left">{{ plugin.identifier }}</td>
-            <td class="align-middle text-left">{{ plugin.pretty_status | linebreaks }}</td>
-            <td class="align-middle text-left">{{ plugin.time_taken|floatformat:4 }} seconds</td>
+            <td class="align-middle text-left">{{ status_result.display_name }}</td>
+            <td class="align-middle text-left">
+              {% if status_result.result.error %}
+                {{ status_result.result.error | linebreaks }}
+              {% else %}
+                {{ status_result.result.check.pretty_status | linebreaks }}
+              {% endif %}
+            </td>
+            <td class="align-middle text-left">{{ status_result.result.time_taken|floatformat:4 }} seconds</td>
           </tr>
         {% endfor %}
       </tbody>

@@ -39,7 +39,7 @@ class Formset(LayoutObject):
         # crispy_forms/layout.py:302 requires us to have a fields property
         self.fields = []
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
         formset = context.get(self.formset_context_name)
         helper = context.get(self.helper_context_name)
         object_name = self.object_context_name

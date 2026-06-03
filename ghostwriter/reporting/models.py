@@ -968,7 +968,7 @@ class Evidence(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="%(app_label)s_%(class)s_finding_or_report",
-                check=(
+                condition=(
                     models.Q(finding__isnull=True, report__isnull=False)
                     | models.Q(finding__isnull=False, report__isnull=True)
                 ),

@@ -40,8 +40,6 @@ LANGUAGE_CODE = "en-us"
 SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
-# https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = False
 # https://docs.djangoproject.com/en/4.0/ref/settings/#date-format
 DATE_FORMAT = env(
     "DJANGO_DATE_FORMAT",
@@ -89,6 +87,7 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "crispy_forms",
+    "crispy_bootstrap4",
     "allauth",
     "allauth.mfa",
     "allauth.account",
@@ -101,16 +100,9 @@ THIRD_PARTY_APPS = [
     "django_q",
     "django_filters",
     "import_export",
-    "tinymce",
     "django_bleach",
     "timezone_field",
     "health_check",
-    "health_check.db",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.psutil",
-    "health_check.contrib.redis",
     "taggit",
 ]
 
@@ -251,6 +243,7 @@ TEMPLATES = [
     }
 ]
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 # FIXTURES
@@ -274,8 +267,6 @@ SESSION_COOKIE_SECURE = env("DJANGO_SESSION_COOKIE_SECURE", default=False)
 CSRF_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/3.2/ref/settings/#csrf-cookie-secure
 CSRF_COOKIE_SECURE = env("DJANGO_CSRF_COOKIE_SECURE", default=False)
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
-SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
@@ -528,12 +519,6 @@ GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
 # Admins can override via the ``GHOSTWRITER_MAX_FILE_SIZE`` environment variable
 GHOSTWRITER_MAX_FILE_SIZE = env.int("GHOSTWRITER_MAX_FILE_SIZE", default=10 * 1024 * 1024)  # 10 MB
 
-# Health Checks
-# ------------------------------------------------------------------------------
-HEALTH_CHECK = {
-    "DISK_USAGE_MAX": env("HEALTHCHECK_DISK_USAGE_MAX", default=90),
-    "MEMORY_MIN": env("HEALTHCHECK_MEM_MIN", default=100),
-}
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
 
 # Tagging

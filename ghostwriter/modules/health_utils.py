@@ -4,6 +4,7 @@ by `django-health-check.
 """
 
 # Standard Libraries
+import dataclasses
 from datetime import datetime
 import os
 
@@ -14,7 +15,7 @@ import requests
 from django.conf import settings
 from django.core.cache import caches as django_caches
 from django.db import OperationalError, connections
-from health_check.backends import BaseHealthCheckBackend
+from health_check import HealthCheck
 from health_check.exceptions import (
     HealthCheckException,
     ServiceReturnedUnexpectedResult,
@@ -23,11 +24,12 @@ from health_check.exceptions import (
 )
 
 
-class HasuraBackend(BaseHealthCheckBackend):
+@dataclasses.dataclass
+class HasuraBackend(HealthCheck):
     """
     Health check for the Hasura GraphQL Engine. This checks the ``/healthz`` API
-    endpoint. The :view:`status:HealthCheckCustomView` view will include this as
-    long as it is registered in the AppConfig.
+    endpoint. The :view:`status:HealthCheckCustomView` view includes this in its
+    explicit health check list.
 
     Ref: https://hasura.io/docs/latest/api-reference/health/
     """
@@ -40,26 +42,31 @@ class HasuraBackend(BaseHealthCheckBackend):
 
         return os.getenv("GRAPHQL_HOST", "graphql_engine")
 
-    def check_status(self):
+    def run(self):
         """Check the status of the backend service."""
         try:
-            response = requests.get(f"http://{self.graphql_host}:8080/healthz")
+            response = requests.get(
+                f"http://{self.graphql_host}:8080/healthz",
+                timeout=5,
+            )
             if response.ok:
                 content = response.text
                 if "OK" in content:
-                    pass
+                    return
                 elif "WARN" in content:
-                    self.add_error(ServiceWarning(f"Hasura reported a warning: {content}"))
+                    raise ServiceWarning(f"Hasura reported a warning: {content}")
             else:
-                self.add_error(HealthCheckException("Hasura reported an error"))
+                raise HealthCheckException("Hasura reported an error")
         except requests.exceptions.ConnectionError as e:
-            self.add_error(ServiceUnavailable("Hasura GraphQL Engine is not responding"), e)
+            raise ServiceUnavailable("Hasura GraphQL Engine is not responding") from e
         except requests.exceptions.Timeout as e:
-            self.add_error(ServiceUnavailable("Hasura GraphQL Engine request timed out"), e)
-        except (Exception, requests.exceptions.RequestException) as e:
-            self.add_error(ServiceReturnedUnexpectedResult("Exception encountered when connecting to Hasura"), e)
+            raise ServiceUnavailable("Hasura GraphQL Engine request timed out") from e
+        except requests.exceptions.RequestException as e:
+            raise ServiceReturnedUnexpectedResult(
+                "Exception encountered when connecting to Hasura"
+            ) from e
 
-    def identifier(self):
+    def __repr__(self):
         """Return the name of the service being checked."""
         return "Hasura GraphQL Engine"
 
