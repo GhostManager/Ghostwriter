@@ -1,95 +1,45 @@
+# Standard Libraries
+import uuid
+
 # Django Imports
 from django.db import migrations
 
-CREATE_OPTIMIZED_USER_PROJECT_READ_ACCESS_VIEW = """
-CREATE OR REPLACE VIEW api_user_project_read_access AS
-SELECT
-    privileged_users.id AS user_id,
-    rolodex_project.id AS project_id
-FROM (
-    SELECT id
-    FROM users_user
-    WHERE
-        users_user.is_active
-        AND (
-            users_user.role IN ('admin', 'manager')
-            OR users_user.is_staff
-            OR users_user.is_superuser
-        )
-) AS privileged_users
-INNER JOIN rolodex_project
-    ON TRUE
+# This migration intentionally contains only data updates. The following migration
+# adds the unique constraint after PostgreSQL has committed these row changes.
 
-UNION
-
-SELECT
-    rolodex_clientinvite.user_id,
-    rolodex_project.id AS project_id
-FROM rolodex_clientinvite
-INNER JOIN users_user
-    ON users_user.id = rolodex_clientinvite.user_id
-    AND users_user.is_active
-INNER JOIN rolodex_project
-    ON rolodex_project.client_id = rolodex_clientinvite.client_id
-
-UNION
-
-SELECT
-    rolodex_projectinvite.user_id,
-    rolodex_projectinvite.project_id
-FROM rolodex_projectinvite
-INNER JOIN users_user
-    ON users_user.id = rolodex_projectinvite.user_id
-    AND users_user.is_active
-
-UNION
-
-SELECT
-    rolodex_projectassignment.operator_id AS user_id,
-    rolodex_projectassignment.project_id
-FROM rolodex_projectassignment
-INNER JOIN users_user
-    ON users_user.id = rolodex_projectassignment.operator_id
-    AND users_user.is_active
-"""
+API_KEY_IDENTIFIER_BATCH_SIZE = 1000
 
 
-CREATE_ORIGINAL_USER_PROJECT_READ_ACCESS_VIEW = """
-CREATE OR REPLACE VIEW api_user_project_read_access AS
-SELECT DISTINCT
-    users_user.id AS user_id,
-    rolodex_project.id AS project_id
-FROM users_user
-CROSS JOIN rolodex_project
-WHERE
-    users_user.is_active
-    AND (
-        users_user.role IN ('admin', 'manager')
-        OR users_user.is_staff
-        OR users_user.is_superuser
-        OR EXISTS (
-            SELECT 1
-            FROM rolodex_clientinvite
-            WHERE
-                rolodex_clientinvite.user_id = users_user.id
-                AND rolodex_clientinvite.client_id = rolodex_project.client_id
-        )
-        OR EXISTS (
-            SELECT 1
-            FROM rolodex_projectinvite
-            WHERE
-                rolodex_projectinvite.user_id = users_user.id
-                AND rolodex_projectinvite.project_id = rolodex_project.id
-        )
-        OR EXISTS (
-            SELECT 1
-            FROM rolodex_projectassignment
-            WHERE
-                rolodex_projectassignment.operator_id = users_user.id
-                AND rolodex_projectassignment.project_id = rolodex_project.id
-        )
+def populate_api_key_identifiers(apps, schema_editor):
+    APIKey = apps.get_model("api", "APIKey")
+    db_alias = schema_editor.connection.alias
+    api_keys = []
+    queryset = APIKey.objects.using(db_alias).filter(identifier__isnull=True).only(
+        "id", "identifier"
     )
-"""
+    for api_key in queryset.iterator(chunk_size=API_KEY_IDENTIFIER_BATCH_SIZE):
+        api_key.identifier = uuid.uuid4()
+        api_keys.append(api_key)
+        if len(api_keys) >= API_KEY_IDENTIFIER_BATCH_SIZE:
+            APIKey.objects.using(db_alias).bulk_update(
+                api_keys,
+                ["identifier"],
+                batch_size=API_KEY_IDENTIFIER_BATCH_SIZE,
+            )
+            api_keys.clear()
+
+    if api_keys:
+        APIKey.objects.using(db_alias).bulk_update(
+            api_keys,
+            ["identifier"],
+            batch_size=API_KEY_IDENTIFIER_BATCH_SIZE,
+        )
+
+
+def blank_legacy_api_key_tokens(apps, schema_editor):
+    APIKey = apps.get_model("api", "APIKey")
+    db_alias = schema_editor.connection.alias
+    APIKey.objects.using(db_alias).exclude(token="").update(token="")
 
 
 class Migration(migrations.Migration):
@@ -98,8 +48,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql=CREATE_OPTIMIZED_USER_PROJECT_READ_ACCESS_VIEW,
-            reverse_sql=CREATE_ORIGINAL_USER_PROJECT_READ_ACCESS_VIEW,
-        )
+        migrations.RunPython(
+            blank_legacy_api_key_tokens,
+            reverse_code=migrations.RunPython.noop,
+        ),
+        migrations.RunPython(
+            populate_api_key_identifiers,
+            reverse_code=migrations.RunPython.noop,
+        ),
     ]
