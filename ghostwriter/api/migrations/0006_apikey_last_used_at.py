@@ -110,7 +110,10 @@ def ensure_api_key_identifiers_are_unique(apps, schema_editor):
     schema_editor.execute('LOCK TABLE "api_apikey" IN ACCESS EXCLUSIVE MODE')
 
     APIKey = apps.get_model("api", "APIKey")
-    null_identifier_count = APIKey.objects.filter(identifier__isnull=True).count()
+    db_alias = schema_editor.connection.alias
+    null_identifier_count = (
+        APIKey.objects.using(db_alias).filter(identifier__isnull=True).count()
+    )
     if null_identifier_count:
         raise RuntimeError(
             "Cannot add the API key identifier NOT NULL constraint because "

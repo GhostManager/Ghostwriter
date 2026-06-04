@@ -12,15 +12,16 @@ API_KEY_IDENTIFIER_BATCH_SIZE = 1000
 
 def populate_api_key_identifiers(apps, schema_editor):
     APIKey = apps.get_model("api", "APIKey")
+    db_alias = schema_editor.connection.alias
     api_keys = []
-    queryset = APIKey.objects.filter(identifier__isnull=True).only(
+    queryset = APIKey.objects.using(db_alias).filter(identifier__isnull=True).only(
         "id", "identifier"
     )
     for api_key in queryset.iterator(chunk_size=API_KEY_IDENTIFIER_BATCH_SIZE):
         api_key.identifier = uuid.uuid4()
         api_keys.append(api_key)
         if len(api_keys) >= API_KEY_IDENTIFIER_BATCH_SIZE:
-            APIKey.objects.bulk_update(
+            APIKey.objects.using(db_alias).bulk_update(
                 api_keys,
                 ["identifier"],
                 batch_size=API_KEY_IDENTIFIER_BATCH_SIZE,
@@ -28,7 +29,7 @@ def populate_api_key_identifiers(apps, schema_editor):
             api_keys.clear()
 
     if api_keys:
-        APIKey.objects.bulk_update(
+        APIKey.objects.using(db_alias).bulk_update(
             api_keys,
             ["identifier"],
             batch_size=API_KEY_IDENTIFIER_BATCH_SIZE,
@@ -37,7 +38,8 @@ def populate_api_key_identifiers(apps, schema_editor):
 
 def blank_legacy_api_key_tokens(apps, schema_editor):
     APIKey = apps.get_model("api", "APIKey")
-    APIKey.objects.exclude(token="").update(token="")
+    db_alias = schema_editor.connection.alias
+    APIKey.objects.using(db_alias).exclude(token="").update(token="")
 
 
 class Migration(migrations.Migration):
