@@ -122,6 +122,26 @@ def ensure_api_key_identifiers_are_unique(apps, schema_editor):
             "applying api.0006."
         )
 
+    duplicate_identifiers = (
+        APIKey.objects.using(db_alias)
+        .exclude(identifier__isnull=True)
+        .values("identifier")
+        .annotate(identifier_count=models.Count("id"))
+        .filter(identifier_count__gt=1)
+        .order_by("identifier")
+    )
+    duplicate_identifier_count = duplicate_identifiers.count()
+    if duplicate_identifier_count:
+        examples = ", ".join(
+            str(row["identifier"]) for row in duplicate_identifiers[:5]
+        )
+        raise RuntimeError(
+            "Cannot add the API key identifier UNIQUE constraint because "
+            f"{duplicate_identifier_count} duplicate identifier value(s) "
+            "exist. Resolve duplicate API key identifiers before applying "
+            f"api.0006. Example duplicate identifier(s): {examples}."
+        )
+
     with schema_editor.connection.cursor() as cursor:
         schema_editor.execute(
             'ALTER TABLE "api_apikey" ALTER COLUMN "identifier" SET NOT NULL'
