@@ -317,6 +317,10 @@ MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"
 # https://docs.allauth.org/en/dev/mfa/webauthn.html
 MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
 
+# Ghostwriter deployments often cannot rely on email verification, and MFA setup
+# should not be blocked by an unverified email address.
+MFA_ALLOW_UNVERIFIED_EMAIL = env.bool("DJANGO_MFA_ALLOW_UNVERIFIED_EMAIL", True)
+
 # Enable support for logging in using a (WebAuthn) passkey.
 # https://docs.allauth.org/en/dev/mfa/webauthn.html
 MFA_PASSKEY_LOGIN_ENABLED = env.bool("DJANGO_MFA_PASSKEY_LOGIN_ENABLED", True)
