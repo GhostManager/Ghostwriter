@@ -2,13 +2,14 @@
 
 # Standard Libraries
 import logging
+from datetime import timedelta
 
 # Django Imports
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.generic.edit import View
@@ -18,7 +19,7 @@ from django_q.models import Task
 from django_q.tasks import async_task
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, verify_user_is_privileged
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -27,6 +28,77 @@ User = get_user_model()
 
 # Using __name__ resolves to ghostwriter.home.views
 logger = logging.getLogger(__name__)
+
+
+def _format_assignment_operator(assignment):
+    if not assignment.operator:
+        return "Unassigned"
+    operator_name = assignment.operator.name or assignment.operator.username
+    return f"{operator_name} ({assignment.role})"
+
+
+def _calendar_end_date(date_value):
+    return date_value + timedelta(days=1)
+
+
+def _format_project_calendar_title(project):
+    project_label = project.codename or f"Project #{project.pk}"
+    return (
+        f"{project.client} {project.project_type} - {project_label} "
+        f"({project.start_date.isoformat()} to {project.end_date.isoformat()})"
+    )
+
+
+def _format_project_assignments(project):
+    assignments = []
+    seen_assignments = set()
+    for assignment in project.assigned_project_assignments:
+        label = _format_assignment_operator(assignment)
+        if label not in seen_assignments:
+            assignments.append(label)
+            seen_assignments.add(label)
+    return assignments or ["No assigned operators"]
+
+
+def build_dashboard_calendar_events(user):
+    assigned_project_prefetch = Prefetch(
+        "projectassignment_set",
+        queryset=ProjectAssignment.objects.select_related("operator", "role").filter(
+            operator__isnull=False
+        ),
+        to_attr="assigned_project_assignments",
+    )
+    ongoing_projects = (
+        get_project_list(user)
+        .select_related("client", "project_type")
+        .prefetch_related(assigned_project_prefetch)
+        .filter(complete=False)
+        .order_by("start_date", "end_date", "client__name", "project_type__project_type")
+        .distinct()
+    )
+    events = []
+    seen_project_ids = set()
+    for project in ongoing_projects:
+        if project.pk in seen_project_ids:
+            continue
+        seen_project_ids.add(project.pk)
+        events.append(
+            {
+                "title": _format_project_calendar_title(project),
+                "allDay": True,
+                "start": project.start_date.isoformat(),
+                "end": _calendar_end_date(project.end_date).isoformat(),
+                "backgroundColor": "var(--primary-color)",
+                "borderColor": "var(--secondary-color-light)",
+                "classNames": ["calendar-exec-icon"],
+                "url": project.get_absolute_url(),
+                "extendedProps": {
+                    "assignedOperators": _format_project_assignments(project),
+                    "calendarKind": "Project",
+                },
+            }
+        )
+    return events
 
 
 ##################
@@ -78,6 +150,8 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         Incomplete :model:`reporting.ReportFindingLink` for current :model:`users.User`
     ``assigned_observations``
         Incomplete :model:`reporting.ReportObservationLink` for current :model:`users.User`
+    ``calendar_events``
+        FullCalendar event data for all ongoing projects available to the current user
     ``system_health``
         Current system health based on :func:`ghostwriter.modules.health_utils.DjangoHealthChecks`
 
@@ -101,9 +175,12 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             .order_by("report__project__end_date")[:10]
         )
         # Get active :model:`reporting.ProjectAssignment` for current :model:`users.User`
-        user_projects = ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
-            operator=request.user
-        )
+        user_projects = ProjectAssignment.objects.select_related(
+            "operator",
+            "project",
+            "project__client",
+            "role",
+        ).filter(operator=request.user)
         # Get future :model:`reporting.ProjectAssignment` for current :model:`users.User`
         active_project = ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
             Q(operator=request.user) & Q(project__complete=False)
@@ -126,6 +203,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "recent_tasks": recent_tasks,
             "assigned_findings": assigned_findings,
             "assigned_observations": assigned_observations,
+            "calendar_events": build_dashboard_calendar_events(request.user),
             "system_health": system_health,
         }
         # Render the HTML template index.html with the data in the context variable
