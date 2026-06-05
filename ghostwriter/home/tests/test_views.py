@@ -15,9 +15,11 @@ from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    ClientInviteFactory,
     GroupFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ProjectInviteFactory,
     ProjectObjectiveFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -223,6 +225,9 @@ class DashboardTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
+        cls.other_user = UserFactory(password=PASSWORD, name="Other Operator")
 
         cls.Project = ProjectFactory._meta.model
         cls.ProjectAssignment = ProjectAssignmentFactory._meta.model
@@ -230,10 +235,34 @@ class DashboardTests(TestCase):
         cls.ReportObservationLink = ReportObservationLinkFactory._meta.model
 
         cls.current_project = ProjectFactory(
-            start_date=date.today() - timedelta(days=14), end_date=date.today(), complete=True
+            codename="CURRENT",
+            start_date=date.today() - timedelta(days=14),
+            end_date=date.today(),
+            complete=True,
         )
         cls.future_project = ProjectFactory(
-            start_date=date.today() + timedelta(days=14), end_date=date.today() + timedelta(days=28), complete=False
+            codename="FUTURE",
+            start_date=date.today() + timedelta(days=14),
+            end_date=date.today() + timedelta(days=28),
+            complete=False,
+        )
+        cls.other_project = ProjectFactory(
+            codename="OTHER",
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=21),
+            complete=False,
+        )
+        cls.unassigned_project = ProjectFactory(
+            codename="UNASSIGNED",
+            start_date=date.today() + timedelta(days=21),
+            end_date=date.today() + timedelta(days=35),
+            complete=False,
+        )
+        cls.inaccessible_project = ProjectFactory(
+            codename="INACCESSIBLE",
+            start_date=date.today() + timedelta(days=28),
+            end_date=date.today() + timedelta(days=42),
+            complete=False,
         )
         ProjectAssignmentFactory(
             project=cls.current_project,
@@ -247,6 +276,22 @@ class DashboardTests(TestCase):
             start_date=date.today() + timedelta(days=14),
             end_date=date.today() + timedelta(days=28),
         )
+        ProjectAssignmentFactory(
+            project=cls.other_project,
+            operator=cls.other_user,
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=21),
+        )
+        ProjectAssignmentFactory.create_batch(
+            3,
+            project=cls.unassigned_project,
+            operator=None,
+            start_date=date.today() + timedelta(days=21),
+            end_date=date.today() + timedelta(days=35),
+        )
+        ProjectInviteFactory(user=cls.user, project=cls.other_project)
+        ProjectInviteFactory(user=cls.user, project=cls.future_project)
+        ClientInviteFactory(user=cls.user, client=cls.unassigned_project.client)
 
         cls.report = ReportFactory(project=cls.current_project)
         ReportFindingLinkFactory.create_batch(3, report=cls.report, assigned_to=cls.user)
@@ -274,8 +319,12 @@ class DashboardTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_manager = Client()
+        self.client_admin = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_manager.login(username=self.manager.username, password=PASSWORD))
+        self.assertTrue(self.client_admin.login(username=self.admin.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -303,6 +352,68 @@ class DashboardTests(TestCase):
         self.assertEqual(response.context["active_projects"][0], self.active_projects[0])
         self.assertEqual(len(response.context["assigned_findings"]), 3)
         self.assertEqual(len(response.context["assigned_observations"]), 3)
+        self.assertEqual(len(response.context["calendar_events"]), 3)
+        self.assertEqual(
+            {event["extendedProps"]["calendarKind"] for event in response.context["calendar_events"]},
+            {"Project"},
+        )
+        self.assertEqual(
+            {event["url"] for event in response.context["calendar_events"]},
+            {
+                self.future_project.get_absolute_url(),
+                self.other_project.get_absolute_url(),
+                self.unassigned_project.get_absolute_url(),
+            },
+        )
+        future_project_event = next(
+            event
+            for event in response.context["calendar_events"]
+            if event["url"] == self.future_project.get_absolute_url()
+        )
+        self.assertIn(self.future_project.codename, future_project_event["title"])
+        self.assertIn(self.future_project.start_date.isoformat(), future_project_event["title"])
+        self.assertIn(self.future_project.end_date.isoformat(), future_project_event["title"])
+
+    def assert_privileged_calendar_shows_ongoing_projects(self, client):
+        response = client.get(self.uri)
+
+        calendar_events = response.context["calendar_events"]
+
+        self.assertEqual(len(calendar_events), 4)
+        self.assertEqual({event["extendedProps"]["calendarKind"] for event in calendar_events}, {"Project"})
+        self.assertEqual(
+            {event["url"] for event in calendar_events},
+            {
+                self.future_project.get_absolute_url(),
+                self.other_project.get_absolute_url(),
+                self.unassigned_project.get_absolute_url(),
+                self.inaccessible_project.get_absolute_url(),
+            },
+        )
+        other_project_event = next(
+            event for event in calendar_events if event["url"] == self.other_project.get_absolute_url()
+        )
+        self.assertIn(self.other_project.codename, other_project_event["title"])
+        self.assertIn(self.other_project.start_date.isoformat(), other_project_event["title"])
+        self.assertIn(self.other_project.end_date.isoformat(), other_project_event["title"])
+        self.assertEqual(len(other_project_event["extendedProps"]["assignedOperators"]), 1)
+        self.assertIn(self.other_user.name, other_project_event["extendedProps"]["assignedOperators"][0])
+        unassigned_project_events = [
+            event
+            for event in calendar_events
+            if event["url"] == self.unassigned_project.get_absolute_url()
+        ]
+        self.assertEqual(len(unassigned_project_events), 1)
+        self.assertEqual(
+            unassigned_project_events[0]["extendedProps"]["assignedOperators"],
+            ["No assigned operators"],
+        )
+
+    def test_managers_see_all_ongoing_projects_on_calendar(self):
+        self.assert_privileged_calendar_shows_ongoing_projects(self.client_manager)
+
+    def test_admins_see_all_ongoing_projects_on_calendar(self):
+        self.assert_privileged_calendar_shows_ongoing_projects(self.client_admin)
 
 
 class ManagementTests(TestCase):

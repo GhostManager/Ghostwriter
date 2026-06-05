@@ -301,6 +301,13 @@ class ReportTemplateModelTests(TestCase):
         self.assertIsInstance(exporter, ExportReportDocx)
         self.assertEqual(exporter.report_template, report.docx_template)
 
+    def test_docx_lint_initializes_template_document_before_style_checks(self):
+        report_template = ReportDocxTemplateFactory()
+
+        _, errors = ExportReportDocx.lint(report_template)
+
+        self.assertNotIn("Template rendering failed unexpectedly", errors)
+
     def test_update_upload_date_signal(self):
         # Create a template with an initial document
         template = ReportTemplateFactory()

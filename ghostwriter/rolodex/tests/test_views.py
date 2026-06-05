@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 # 3rd Party Libraries
 import factory
+from bs4 import BeautifulSoup
 
 # Django Imports
 from django.contrib.auth.models import Permission
@@ -47,6 +48,21 @@ from ghostwriter.rolodex.templatetags import determine_primary
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+def assert_active_tab(test_case, response, tab_id):
+    soup = BeautifulSoup(response.content, "html.parser")
+    tab_link = soup.select_one(f'a[data-toggle="tab"][data-tab-hash="#{tab_id}"]')
+    tab_pane = soup.select_one(f"#tab-pane-{tab_id}.tab-pane")
+    legacy_anchor = soup.select_one(f"#{tab_id}.tab-pane")
+
+    test_case.assertIsNotNone(tab_link)
+    test_case.assertIsNotNone(tab_pane)
+    test_case.assertIsNone(legacy_anchor)
+    test_case.assertEqual(tab_link.get("href"), f"#{tab_id}")
+    test_case.assertEqual(tab_link.get("data-target"), f"#tab-pane-{tab_id}")
+    test_case.assertIn("active", tab_link.get("class", []))
+    test_case.assertIn("active", tab_pane.get("class", []))
 
 
 class IndexViewTests(TestCase):
@@ -563,6 +579,11 @@ class ProjectCreateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "rolodex/project_form.html")
 
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "project")
+
     def test_custom_context_exists(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -587,6 +608,41 @@ class ProjectCreateTests(TestCase):
         response = self.client_mgr.get(self.no_client_uri)
         self.assertIn("client", response.context["form"].initial)
         self.assertEqual(response.context["client"], "")
+
+
+class ProjectUpdateTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.uri = reverse("rolodex:project_update", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/project_form.html")
+
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "project")
 
 
 class ProjectComponentsUpdateTests(TestCase):
@@ -729,6 +785,11 @@ class ClientCreateViewTests(TestCase):
         self.client_mgr = Client()
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "client")
+
     def test_incomplete_contact_formset_rerenders_errors(self):
         response = self.client_mgr.post(
             self.uri,
@@ -755,6 +816,41 @@ class ClientCreateViewTests(TestCase):
         self.assertEqual(contact_form.errors["job_title"].as_data()[0].code, "required")
         self.assertEqual(contact_form.errors["email"].as_data()[0].code, "required")
         self.assertFalse(ClientFactory._meta.model.objects.filter(name="New Client").exists())
+
+
+class ClientUpdateViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.client_obj = ClientFactory()
+        cls.uri = reverse("rolodex:client_update", kwargs={"pk": cls.client_obj.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/client_form.html")
+
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "client")
 
 
 class ClientDetailViewTest(TestCase):
