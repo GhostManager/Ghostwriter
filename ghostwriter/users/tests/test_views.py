@@ -6,10 +6,16 @@ from io import BytesIO
 
 # Django Imports
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+
+# 3rd Party Libraries
+from allauth.account.models import EmailAddress
+from allauth.mfa import app_settings as mfa_app_settings
+from allauth.mfa.internal.flows.add import validate_can_add_authenticator
 
 # Ghostwriter Libraries
 from ghostwriter.factories import UserFactory
@@ -280,6 +286,34 @@ class RequireMFAMiddlewareTests(TestCase):
 
         self.user.require_mfa = False
         self.user.save()
+
+    def test_mfa_setup_allows_unverified_email(self):
+        EmailAddress.objects.filter(user=self.user).delete()
+        EmailAddress.objects.create(
+            user=self.user,
+            email=self.user.email,
+            verified=False,
+            primary=True,
+        )
+
+        try:
+            validate_can_add_authenticator(self.user)
+        except ValidationError as exc:
+            self.fail(f"MFA setup should not require email verification: {exc}")
+
+    @override_settings(MFA_ALLOW_UNVERIFIED_EMAIL=False)
+    def test_allauth_mfa_guard_blocks_unverified_email_when_disabled(self):
+        EmailAddress.objects.filter(user=self.user).delete()
+        EmailAddress.objects.create(
+            user=self.user,
+            email=self.user.email,
+            verified=False,
+            primary=True,
+        )
+
+        self.assertFalse(mfa_app_settings.ALLOW_UNVERIFIED_EMAIL)
+        with self.assertRaises(ValidationError):
+            validate_can_add_authenticator(self.user)
 
 
 class AvatarDownloadTest(TestCase):
