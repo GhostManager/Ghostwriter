@@ -637,10 +637,6 @@
     }
 
     function gwStartInitialTinyMceScrollLock(scrollX, scrollY) {
-        if (window.location.hash) {
-            return function () {};
-        }
-
         const bodyStyle = document.body.style;
         const originalPosition = bodyStyle.position;
         const originalTop = bodyStyle.top;
