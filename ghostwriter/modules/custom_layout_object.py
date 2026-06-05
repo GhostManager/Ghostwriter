@@ -6,6 +6,7 @@ from crispy_forms.layout import TEMPLATE_PACK, Field, LayoutObject
 
 # Django Imports
 from django.template.loader import render_to_string
+from django.utils.text import slugify
 
 
 class Formset(LayoutObject):
@@ -78,6 +79,19 @@ class CustomTab(Container):
         self.name = name
         self.fields = list(fields)
         self.link_css_class = kwargs.get("link_css_class", None)
+        tab_hash_id = self.css_id or slugify(self.name, allow_unicode=True)
+        self.tab_hash = f"#{tab_hash_id}"
+        self.css_id = f"tab-pane-{tab_hash_id}"
+
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        css_classes = self.css_class.split()
+        if self.active:
+            if "active" not in css_classes:
+                css_classes.append("active")
+        else:
+            css_classes = [css_class for css_class in css_classes if css_class != "active"]
+        self.css_class = " ".join(css_classes)
+        return super().render(form, context, template_pack, **kwargs)
 
     def render_link(self, template_pack=TEMPLATE_PACK, **kwargs):
         """
