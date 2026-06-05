@@ -525,14 +525,112 @@
     $('html, body').animate({scrollTop: 0}, '300');
   });
 
+  {% comment %} Persist the active report in browser storage across login sessions {% endcomment %}
+  const activeReportStorageKey = 'ghostwriter-active-report';
+  const activeReportUrlTemplate = '{% url 'reporting:report_detail' 0 %}';
+
+  function getActiveReportUrl(reportId) {
+    return activeReportUrlTemplate.replace('0', reportId);
+  }
+
+  function getActiveReportLink(reportId) {
+    return $('.js-activate-report[activate-report-id="' + reportId + '"]').first();
+  }
+
+  function getStoredActiveReport() {
+    try {
+      return JSON.parse(localStorage.getItem(activeReportStorageKey));
+    } catch (error) {
+      try {
+        localStorage.removeItem(activeReportStorageKey);
+      } catch (storageError) {}
+      return null;
+    }
+  }
+
+  function storeActiveReport(reportId, reportTitle, reportUrl) {
+    try {
+      localStorage.setItem(activeReportStorageKey, JSON.stringify({
+        id: reportId,
+        title: reportTitle || '',
+        url: reportUrl || getActiveReportUrl(reportId)
+      }));
+    } catch (error) {}
+  }
+
+  function clearStoredActiveReport() {
+    try {
+      localStorage.removeItem(activeReportStorageKey);
+    } catch (error) {}
+  }
+
+  function updateActiveReportUi(reportId, reportTitle, reportUrl) {
+    const reportLink = getActiveReportLink(reportId);
+    if (!reportLink.length) {
+      return false;
+    }
+
+    $('.empty-report').addClass('selected-report').toggleClass('empty-report');
+    $('.js-activate-report').removeClass('selected-report toggle-on-icon').addClass('toggle-off-icon');
+    reportLink.addClass('selected-report toggle-on-icon').removeClass('toggle-off-icon');
+    $('.active-report-shortcut')
+      .attr('href', reportUrl || getActiveReportUrl(reportId))
+      .text('Jump to Report')
+      .removeClass('btn-disabled');
+    storeActiveReport(reportId, reportTitle || $.trim(reportLink.text()), reportUrl);
+    return true;
+  }
+
+  function restoreStoredActiveReport() {
+    const selectedReport = $('.js-activate-report.selected-report').first();
+    if (selectedReport.length) {
+      updateActiveReportUi(
+        selectedReport.attr('activate-report-id'),
+        $.trim(selectedReport.text()),
+        getActiveReportUrl(selectedReport.attr('activate-report-id'))
+      );
+      return;
+    }
+
+    const storedReport = getStoredActiveReport();
+    if (!storedReport || !storedReport.id) {
+      return;
+    }
+
+    const reportLink = getActiveReportLink(storedReport.id);
+    if (!reportLink.length) {
+      return;
+    }
+
+    updateActiveReportUi(storedReport.id, storedReport.title, storedReport.url);
+    $.ajax({
+      url: reportLink.attr('activate-report-url'),
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        'report': storedReport.id
+      },
+      beforeSend: function (xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader('X-CSRFToken', reportLink.attr('activate-report-csrftoken'));
+        }
+      },
+      success: function (data) {
+        if (data['result'] === 'success') {
+          updateActiveReportUi(storedReport.id, data['report'], data['report_url']);
+        } else {
+          clearStoredActiveReport();
+        }
+      },
+      error: clearStoredActiveReport
+    });
+  }
+
   {% comment %} Activate a report with AJAX {% endcomment %}
   $('.js-activate-report').click(function (e) {
     let url = $(this).attr('activate-report-url');
     let reportId = $(this).attr('activate-report-id');
     let csrftoken = $(this).attr('activate-report-csrftoken');
-    let shortcut = $('.active-report-shortcut');
-    let shortcut_url = shortcut.attr('href');
-    let url_tpl = '{% url 'reporting:report_detail' 0 %}';
     $.ajaxSetup({
       beforeSend: function (xhr, settings) {
         if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -549,34 +647,7 @@
       },
       success: function (data) {
         if (data['result'] === 'success') {
-          let $emptyReport = $('.empty-report')
-          $emptyReport.addClass('selected-report');
-          $emptyReport.toggleClass('empty-report');
-          $('.selected-report').each(function () {
-            if (reportId !== $(this).attr('activate-report-id')) {
-              $(this).toggleClass('selected-report');
-            }
-          });
-          $('a.js-activate-report').each(function () {
-            if (reportId === $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
-              $(this).toggleClass('selected-report');
-              $(this).addClass('toggle-on-icon');
-              $(this).removeClass('toggle-off-icon');
-            } else {
-              $(this).show(1000);
-              $(this).removeClass('toggle-on-icon');
-              $(this).addClass('toggle-off-icon');
-            }
-          });
-          {% comment %} Update shortcut button {% endcomment %}
-          let current_value = shortcut_url.substring(shortcut_url.lastIndexOf('/') + 1);
-          if (current_value === reportId) {
-            shortcut.attr('href', shortcut_url);
-          } else {
-            shortcut.attr('href', url_tpl.replace('0', reportId));
-            shortcut.text('Jump to Report');
-            shortcut.removeClass('btn-disabled');
-          }
+          updateActiveReportUi(reportId, data['report'], data['report_url']);
         }
         if (data['message']) {
           displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
@@ -584,6 +655,10 @@
       }
     });
     e.stopImmediatePropagation();
+  });
+
+  $(function () {
+    restoreStoredActiveReport();
   });
 
   {% comment %} Open and close the sidebar {% endcomment %}
