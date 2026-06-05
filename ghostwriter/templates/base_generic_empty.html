@@ -445,8 +445,15 @@
 {% block tabs %}
   <script>
     $(function () {
+      function getTabLink(hash) {
+        return $('ul.nav a[data-tab-hash="' + hash + '"], ul.nav a[href="' + hash + '"]').first();
+      }
+
       let hash = window.location.hash.replace(/[^\w-#]/g, '');
-      hash && $('ul.nav a[href="' + hash + '"]').tab('show');
+      let tabLink = hash ? getTabLink(hash) : $();
+      if (tabLink.length) {
+        tabLink.tab('show');
+      }
 
       $('.nav-tabs a').click(function (e) {
         {%  comment %} Prevent the scrolling-to-tab animation {% endcomment %}
@@ -456,7 +463,7 @@
         e.preventDefault();
         e.stopImmediatePropagation();
         $(this).tab('show');
-        window.location.hash = $(this).attr('href');
+        window.location.hash = $(this).data('tab-hash') || $(this).attr('href');
       });
     });
   </script>
@@ -506,7 +513,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -520,7 +527,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -533,7 +540,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;

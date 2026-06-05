@@ -77,11 +77,9 @@
     }
 
     function initTinyMceEditors($container) {
-      $container.find('textarea').not('.no-auto-tinymce, .empty-form').each(function () {
-        if (this.id) {
-          tinymce.execCommand('mceAddEditor', false, this.id);
-        }
-      });
+      if (window.gwInitTinyMceTextareas) {
+        window.gwInitTinyMceTextareas($container[0], {includeInactiveTabs: true});
+      }
     }
 
     {% comment %} Formset Manipulation Buttons {% endcomment %}
