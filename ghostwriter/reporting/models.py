@@ -290,7 +290,7 @@ class Finding(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Finding)"
+        return "Untitled Finding"
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
@@ -836,7 +836,7 @@ class ReportFindingLink(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Finding)"
+        return "Untitled Finding"
 
     @classmethod
     def user_can_create(cls, user, report) -> bool:
@@ -1104,7 +1104,7 @@ class Observation(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Observation)"
+        return "Untitled Observation"
 
     @classmethod
     def user_can_create(cls, user) -> bool:
