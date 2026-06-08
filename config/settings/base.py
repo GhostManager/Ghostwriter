@@ -25,6 +25,14 @@ if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
     env.read_env(str(ROOT_DIR / ".env"))
 
+
+def env_float(name, default):
+    """Read a float env var while treating unset or empty values as default."""
+    value = env(name, default=default)
+    if value == "":
+        value = default
+    return float(value)
+
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
@@ -305,6 +313,18 @@ LOGGING = {
         },
     },
     "root": {"level": "INFO", "handlers": ["console"]},
+}
+
+# django-health-check
+# ------------------------------------------------------------------------------
+# These values are surfaced in Compose files and the Ghostwriter CLI. Keep them
+# in settings so administrators control detailed health-check thresholds rather
+# than falling back to django-health-check library defaults.
+HEALTH_CHECK = {
+    # Percent of disk usage that triggers a warning.
+    "DISK_USAGE_MAX": env_float("HEALTHCHECK_DISK_USAGE_MAX", 90),
+    # Minimum available memory in MB that triggers a warning.
+    "MEMORY_MIN": env_float("HEALTHCHECK_MEM_MIN", 100),
 }
 
 # django-allauth-mfa
