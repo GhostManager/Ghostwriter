@@ -2,10 +2,34 @@
 
 {% block pagetitle %}Health Status{% endblock %}
 
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">System Monitoring</li>
+    </ul>
+  </nav>
+{% endblock %}
 
 {% block content %}
     <h1>System Status</h1>
-    <table>
+    <h2>Monitoring Thresholds</h2>
+    <table class="table table-sm table-borderless">
+      <thead>
+        <th class="align-middle text-left">Check</th>
+        <th class="align-middle text-left">Configured Value</th>
+      </thead>
+      <tbody>
+        {% for threshold in health_check_thresholds %}
+          <tr>
+            <td class="align-middle text-left">{{ threshold.name }}</td>
+            <td class="align-middle text-left">{{ threshold.value }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <h2>Service Checks</h2>
+    <table class="table table-sm table-borderless">
       <thead>
         <th class="align-middle text-left"></th>
         <th class="align-middle text-left">Service</th>
