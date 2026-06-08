@@ -68,6 +68,8 @@ class HealthCheckCustomView(HealthCheckView):
     template_name = "health_check.html"
     display_names = {
         "Cache": "Cache",
+        "ConfiguredDisk": "Disk",
+        "ConfiguredMemory": "Memory",
         "Database": "Database",
         "Disk": "Disk",
         "HasuraBackend": "Hasura GraphQL Engine",
@@ -79,8 +81,8 @@ class HealthCheckCustomView(HealthCheckView):
         "health_check.Cache",
         "health_check.Database",
         "health_check.Storage",
-        "health_check.contrib.psutil.Disk",
-        "health_check.contrib.psutil.Memory",
+        "ghostwriter.modules.health_utils.ConfiguredDisk",
+        "ghostwriter.modules.health_utils.ConfiguredMemory",
         ("health_check.contrib.redis.Redis", {"client_factory": get_redis_client}),
         "ghostwriter.modules.health_utils.HasuraBackend",
     ]
@@ -88,6 +90,16 @@ class HealthCheckCustomView(HealthCheckView):
     def get_context_data(self, **kwargs):
         """Add display-friendly service names for the HTML status page."""
         context = super().get_context_data(**kwargs)
+        context["health_check_thresholds"] = [
+            {
+                "name": "Disk Usage Warning Threshold",
+                "value": f"{settings.HEALTH_CHECK['DISK_USAGE_MAX']:g}%",
+            },
+            {
+                "name": "Minimum Available Memory",
+                "value": f"{settings.HEALTH_CHECK['MEMORY_MIN']:g} MB",
+            },
+        ]
         context["status_results"] = [
             {
                 "display_name": self.display_names.get(

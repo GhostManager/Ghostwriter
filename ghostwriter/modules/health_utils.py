@@ -16,12 +16,29 @@ from django.conf import settings
 from django.core.cache import caches as django_caches
 from django.db import OperationalError, connections
 from health_check import HealthCheck
+from health_check.contrib.psutil import Disk, Memory
 from health_check.exceptions import (
     HealthCheckException,
     ServiceReturnedUnexpectedResult,
     ServiceUnavailable,
     ServiceWarning,
 )
+
+
+class ConfiguredDisk(Disk):
+    """Disk health check that uses Ghostwriter's admin-controlled threshold."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("max_disk_usage_percent", settings.HEALTH_CHECK["DISK_USAGE_MAX"])
+        super().__init__(*args, **kwargs)
+
+
+class ConfiguredMemory(Memory):
+    """Memory health check that uses Ghostwriter's admin-controlled threshold."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("min_gibibytes_available", settings.HEALTH_CHECK["MEMORY_MIN"] / 1024)
+        super().__init__(*args, **kwargs)
 
 
 @dataclasses.dataclass
