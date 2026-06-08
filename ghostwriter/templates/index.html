@@ -202,11 +202,13 @@
         eventDidMount: function (info) {
           let assignedOperators = info.event.extendedProps.assignedOperators || ['No assigned operators'];
           let calendarKind = info.event.extendedProps.calendarKind || 'Assignment';
+          let popoverTitle = $('<div>').text(calendarKind + ': ' + info.event.title).html();
           $(info.el).popover({
-            title: calendarKind + ': ' + info.event.title,
+            title: popoverTitle,
             placement: 'top',
             trigger: 'hover',
             html: true,
+            sanitize: true,
             content: function () {
               return $('<div>')
                 .append($('<p>').text('Assigned: ' + assignedOperators.join(', ')))
