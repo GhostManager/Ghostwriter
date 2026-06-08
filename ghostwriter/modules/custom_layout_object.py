@@ -75,11 +75,11 @@ class CustomTab(Container):
     # link_css_class = ""
 
     def __init__(self, name, *fields, **kwargs):
-        super().__init__(*fields, **kwargs)
-        self.name = name
+        link_css_class = kwargs.pop("link_css_class", None)
+        tab_hash_id = kwargs.get("css_id") or slugify(name, allow_unicode=True)
+        super().__init__(name, *fields, **kwargs)
         self.fields = list(fields)
-        self.link_css_class = kwargs.get("link_css_class", None)
-        tab_hash_id = self.css_id or slugify(self.name, allow_unicode=True)
+        self.link_css_class = link_css_class
         self.tab_hash = f"#{tab_hash_id}"
         self.css_id = f"tab-pane-{tab_hash_id}"
 
