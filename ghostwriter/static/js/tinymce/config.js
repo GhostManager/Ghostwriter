@@ -584,7 +584,7 @@
     function gwShouldAutoInitTinyMce(textarea) {
         return !textarea.classList.contains('empty-form') &&
             !textarea.classList.contains('no-auto-tinymce') &&
-            !textarea.closest('.empty-form');
+            !textarea.closest('[id^="empty-form-"]');
     }
 
     function gwIsInInactiveTab(textarea) {
@@ -661,6 +661,9 @@
     }
 
     window.gwInitTinyMceTextareas = gwInitTinyMceTextareas;
+    window.tinyInit = function (container, options) {
+        return gwInitTinyMceTextareas(container || document, options);
+    };
 
     $(function () {
         const scrollX = window.scrollX;
