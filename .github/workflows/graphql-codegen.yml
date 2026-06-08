@@ -39,6 +39,11 @@ jobs:
           chmod +x ghostwriter-cli-linux
           ./ghostwriter-cli-linux install --mode local-dev
 
+      - name: Wait for application services
+        run: |
+          docker compose -f local.yml up -d --wait --wait-timeout 300 postgres redis frontend django
+          docker compose -f local.yml up -d --force-recreate --wait --wait-timeout 300 graphql_engine
+
       - name: Run GraphQL code generator
         run: docker compose -f local.yml run --rm frontend npm run codegen
 
