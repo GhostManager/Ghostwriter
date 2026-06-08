@@ -70,7 +70,7 @@ class HasuraBackend(HealthCheck):
                 content = response.text
                 if "OK" in content:
                     return
-                elif "WARN" in content:
+                if "WARN" in content:
                     raise ServiceWarning(f"Hasura reported a warning: {content}")
             else:
                 raise HealthCheckException("Hasura reported an error")
