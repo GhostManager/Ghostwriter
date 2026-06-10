@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed API database migrations breaking when the existing databae has many existing API tokens
+* Fixed API database migrations breaking when the existing database has many existing API tokens
 
 ## [7.0.0] - 3 June 2026
 
