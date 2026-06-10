@@ -38,6 +38,7 @@ DELETE_OPLOGENTRY_OPLOG_ID_HEADER = "X-Hasura-Delete-OplogEntry-Oplog-Id"
 SERVICE_TOKEN_ID_HEADER = "X-Hasura-Service-Token-Id"
 USER_ID_HEADER = "X-Hasura-User-Id"
 COLLAB_REPORT_ID_HEADER = "X-Hasura-Collab-Report-Id"
+COLLAB_FINDING_ID_HEADER = "X-Hasura-Collab-Finding-Id"
 
 DISALLOWED_SERVICE_HEADERS = {
     "X-Hasura-User-Id",
@@ -210,7 +211,7 @@ def collab_evidence_filter():
             {
                 "_or": [
                     {"report_id": {"_eq": COLLAB_REPORT_ID_HEADER}},
-                    {"finding": {"report_id": {"_eq": COLLAB_REPORT_ID_HEADER}}},
+                    {"finding_id": {"_eq": COLLAB_FINDING_ID_HEADER}},
                 ]
             },
         ]
