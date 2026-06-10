@@ -178,11 +178,32 @@ def user_feature_flag_check(flag_name):
     }
 
 
+def privileged_user_filter():
+    return {
+        "_exists": {
+            "_table": {"name": "users_user", "schema": "public"},
+            "_where": {
+                "_and": [
+                    {"id": {"_eq": USER_ID_HEADER}},
+                    {"is_active": {"_eq": True}},
+                    {
+                        "_or": [
+                            {"role": {"_in": ["admin", "manager"]}},
+                            {"is_staff": {"_eq": True}},
+                        ]
+                    },
+                ]
+            },
+        }
+    }
+
+
 def collab_evidence_filter():
     return {
         "_and": [
             {
                 "_or": [
+                    privileged_user_filter(),
                     user_project_access_filter("finding", "report", "project"),
                     user_project_access_filter("report", "project"),
                 ]
