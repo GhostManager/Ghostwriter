@@ -330,6 +330,18 @@ class DashboardTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_view_handles_assignment_without_dates(self):
+        ProjectAssignmentFactory(
+            project=self.future_project,
+            operator=self.user,
+            start_date=None,
+            end_date=None,
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)

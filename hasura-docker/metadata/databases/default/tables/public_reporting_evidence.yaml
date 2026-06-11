@@ -98,6 +98,23 @@ select_permissions:
       filter:
         _and:
           - _or:
+              - _exists:
+                  _table:
+                    name: users_user
+                    schema: public
+                  _where:
+                    _and:
+                      - id:
+                          _eq: X-Hasura-User-Id
+                      - is_active:
+                          _eq: true
+                      - _or:
+                          - role:
+                              _in:
+                                - admin
+                                - manager
+                          - is_staff:
+                              _eq: true
               - finding:
                   report:
                     project:
