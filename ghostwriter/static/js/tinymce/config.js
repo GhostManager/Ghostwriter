@@ -636,6 +636,30 @@
         }, []);
     }
 
+    function gwRefreshTinyMceEditors(container, options) {
+        const root = container || document;
+        const scheduleLayoutRefresh = options && options.scheduleLayoutRefresh;
+
+        tinymce.editors.slice().forEach(function (editor) {
+            if (!editor || editor.removed) {
+                return;
+            }
+
+            if (root !== document && editor.targetElm && !root.contains(editor.targetElm)) {
+                return;
+            }
+
+            if (gwEditorNeedsThemeReinit(editor) && (gwIsTinyMceEditorVisible(editor) || editor.hasFocus())) {
+                gwReinitializeTinyMceEditor(editor);
+                return;
+            }
+
+            if (scheduleLayoutRefresh) {
+                gwScheduleTinyMceLayoutRefresh(editor);
+            }
+        });
+    }
+
     function gwStartInitialTinyMceScrollLock(scrollX, scrollY) {
         const bodyStyle = document.body.style;
         const originalPosition = bodyStyle.position;
@@ -698,6 +722,7 @@
             const pane = document.querySelector(selector);
             if (pane) {
                 gwInitTinyMceTextareas(pane, {includeInactiveTabs: true});
+                gwRefreshTinyMceEditors(pane);
             }
         }
     });
@@ -708,13 +733,7 @@
 
     $(document).on('shown.bs.modal shown.bs.collapse', function (event) {
         gwInitTinyMceTextareas(event.target, {includeInactiveTabs: true});
-        tinymce.editors.forEach(function (editor) {
-            if (gwEditorNeedsThemeReinit(editor) && gwIsTinyMceEditorVisible(editor)) {
-                gwReinitializeTinyMceEditor(editor);
-                return;
-            }
-            gwScheduleTinyMceLayoutRefresh(editor);
-        });
+        gwRefreshTinyMceEditors(event.target, {scheduleLayoutRefresh: true});
     });
 
 })($ || django.jQuery);
