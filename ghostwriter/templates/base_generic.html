@@ -1002,6 +1002,53 @@
 {% block tabforms %}
   {% comment %} Handle the Delete and Undo buttons {% endcomment %}
   <script>
+    window.gwHighlightNewFormset = function (formsetElement) {
+      if (!formsetElement) {
+        return;
+      }
+
+      const clearHighlights = function () {
+        document.querySelectorAll('.formset-new-highlight').forEach(function (highlightedFormset) {
+          if (highlightedFormset._gwFormsetHighlightTimeoutId) {
+            window.clearTimeout(highlightedFormset._gwFormsetHighlightTimeoutId);
+            highlightedFormset._gwFormsetHighlightTimeoutId = null;
+          }
+          highlightedFormset.classList.remove('formset-new-highlight');
+        });
+      };
+
+      const applyHighlight = function () {
+        if (window._gwFormsetHighlightRunId !== highlightRunId) {
+          return;
+        }
+
+        clearHighlights();
+        formsetElement.classList.remove('formset-new-highlight');
+        void formsetElement.offsetWidth;
+        formsetElement.classList.add('formset-new-highlight');
+        formsetElement._gwFormsetHighlightTimeoutId = window.setTimeout(function () {
+          formsetElement.classList.remove('formset-new-highlight');
+          formsetElement._gwFormsetHighlightTimeoutId = null;
+        }, 1800);
+      };
+
+      const scheduleHighlight = function () {
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(applyHighlight);
+        });
+      };
+
+      const highlightRunId = (window._gwFormsetHighlightRunId || 0) + 1;
+      window._gwFormsetHighlightRunId = highlightRunId;
+      clearHighlights();
+
+      window.setTimeout(function () {
+        if (window._gwFormsetHighlightRunId === highlightRunId) {
+          scheduleHighlight();
+        }
+      }, 250);
+    };
+
     $(document).on('click', '.formset-del-button', function () {
       // Get the parent divs for this formset instance
       let parent_div = $(this).closest('div.formset-container');

@@ -78,7 +78,7 @@
 
     function initTinyMceEditors($container) {
       if (window.gwInitTinyMceTextareas) {
-        window.gwInitTinyMceTextareas($container[0], {includeInactiveTabs: true});
+        window.gwInitTinyMceTextareas($container[0], {includeInactiveTabs: true, preserveScroll: true});
       }
     }
 
@@ -89,8 +89,8 @@
       $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ objectives.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
       initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     $('.formset-add-{{ assignments.prefix }}').click(function () {
@@ -99,8 +99,8 @@
       $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ assignments.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
       initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     $('.formset-add-{{ invites.prefix }}').click(function () {
@@ -109,8 +109,8 @@
       $('#id_{{ invites.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ invites.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
       initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     $('.formset-add-{{ scopes.prefix }}').click(function () {
@@ -119,8 +119,8 @@
       $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ scopes.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
       initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     $('.formset-add-{{ targets.prefix }}').click(function () {
@@ -129,8 +129,8 @@
       $('#id_{{ targets.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ targets.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
       initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     $('.formset-add-{{ whitecards.prefix }}').click(function () {
@@ -139,8 +139,8 @@
       $('#id_{{ whitecards.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ whitecards.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
       initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     $('.formset-add-{{ contacts.prefix }}').click(function () {
@@ -149,8 +149,8 @@
       $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
       initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     {% comment %} Roll Codename with AJAX {% endcomment %}

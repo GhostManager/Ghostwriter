@@ -602,6 +602,19 @@
         });
     }
 
+    function gwRestoreWindowScroll(scrollX, scrollY) {
+        const restore = function () {
+            window.scrollTo(scrollX, scrollY);
+        };
+
+        restore();
+        window.requestAnimationFrame(function () {
+            restore();
+            window.setTimeout(restore, 100);
+            window.setTimeout(restore, 300);
+        });
+    }
+
     function gwInitTinyMceTextarea(textarea) {
         const sourceConfig = textarea.classList.contains('enable-evidence-upload')
             ? GW_TINYMCE_FINDING_CONFIG
@@ -619,11 +632,14 @@
         const root = container || document;
         const includeInactiveTabs = options && options.includeInactiveTabs;
         const skipTabPanes = options && options.skipTabPanes;
+        const preserveScroll = options && options.preserveScroll;
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
         const textareas = root.matches && root.matches('textarea')
             ? [root]
             : Array.from(root.querySelectorAll('textarea'));
 
-        return textareas.reduce(function (initPromises, textarea) {
+        const initPromises = textareas.reduce(function (initPromises, textarea) {
             if (
                 gwShouldAutoInitTinyMce(textarea) &&
                 !gwHasTinyMceEditor(textarea) &&
@@ -634,6 +650,14 @@
             }
             return initPromises;
         }, []);
+
+        if (preserveScroll && initPromises.length) {
+            Promise.all(initPromises).finally(function () {
+                gwRestoreWindowScroll(scrollX, scrollY);
+            });
+        }
+
+        return initPromises;
     }
 
     function gwRefreshTinyMceEditors(container, options) {
@@ -721,8 +745,11 @@
         if (selector) {
             const pane = document.querySelector(selector);
             if (pane) {
-                gwInitTinyMceTextareas(pane, {includeInactiveTabs: true});
+                const scrollX = window.scrollX;
+                const scrollY = window.scrollY;
+                gwInitTinyMceTextareas(pane, {includeInactiveTabs: true, preserveScroll: true});
                 gwRefreshTinyMceEditors(pane);
+                gwRestoreWindowScroll(scrollX, scrollY);
             }
         }
     });

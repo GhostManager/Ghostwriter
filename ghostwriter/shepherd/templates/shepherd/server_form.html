@@ -47,14 +47,13 @@
     <!-- Formset Manipulation Buttons -->
     <script>
         $('.formset-add-{{ addresses.prefix }}').click(function() {
-            tinymce.remove();
             var form_idx = $('#id_{{ addresses.prefix }}-TOTAL_FORMS').val();
             $('#formset-{{ addresses.prefix }}').append($('#empty-form-{{ addresses.prefix }}').html().replace(/__prefix__/g, form_idx));
             $('#id_{{ addresses.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
             var new_form = $('#formset-{{ addresses.prefix }}').find('div.formset-container').last()
-            window.gwInitTinyMceTextareas(new_form[0], {includeInactiveTabs: true});
+            window.gwInitTinyMceTextareas(new_form[0], {includeInactiveTabs: true, preserveScroll: true});
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
-            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+            window.gwHighlightNewFormset(new_form[0]);
         });
     </script>
 

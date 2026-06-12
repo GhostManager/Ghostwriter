@@ -45,6 +45,12 @@
 
 {% block morescripts %}
   <script>
+    function initTinyMceEditors($container) {
+      if (window.gwInitTinyMceTextareas) {
+        window.gwInitTinyMceTextareas($container[0], {includeInactiveTabs: true, preserveScroll: true});
+      }
+    }
+
     {% comment %} Formset manipulation buttons {% endcomment %}
     $('.formset-add-{{ contacts.prefix }}').click(function () {
       let form_idx = $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val();
@@ -52,9 +58,8 @@
       $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-      let target = 'id_{{ contacts.prefix }}-' + parseInt(form_idx) + '-description'
-      tinymce.execCommand('mceAddEditor', false, target);
+      initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     $('.formset-add-{{ invites.prefix }}').click(function () {
@@ -63,9 +68,8 @@
       $('#id_{{ invites.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ invites.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-      let target = 'id_{{ invites.prefix }}-' + parseInt(form_idx) + '-comment'
-      tinymce.execCommand('mceAddEditor', false, target);
+      initTinyMceEditors(new_form);
+      window.gwHighlightNewFormset(new_form[0]);
     });
 
     {% comment %} Roll Codename with AJAX {% endcomment %}
