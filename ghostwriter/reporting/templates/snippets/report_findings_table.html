@@ -231,72 +231,75 @@
   });
 
   {% comment %} Configure table sorting by severity groups {% endcomment %}
-  {% if report.reportfindinglink_set %}
+  {% if report.reportfindinglink_set.all %}
     var update_url = $('#findings-table').attr('findings-update-url');
     {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
     {% for group, values in severity_groups.items %}
-      var {{ values.tpl_name }}_sortable = Sortable.create({{ values.tpl_name }}_severity, {
-        items: 'tbody > tr',
-        group: 'severity.{{values.tpl_name}}',
-        animation: 150,
-        filter: '.severity-row-placeholder',
-        ghostClass: 'sortable-ghost',
-        handle: '.holdme',
+      var {{ values.tpl_name }}_severity = document.getElementById('{{ values.tpl_name }}_severity');
+      if ({{ values.tpl_name }}_severity) {
+        var {{ values.tpl_name }}_sortable = Sortable.create({{ values.tpl_name }}_severity, {
+          items: 'tbody > tr',
+          group: 'severity.{{values.tpl_name}}',
+          animation: 150,
+          filter: '.severity-row-placeholder',
+          ghostClass: 'sortable-ghost',
+          handle: '.holdme',
 
-        // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
-        setData: function (dataTransfer, dragEl) {
-          dataTransfer.setData('text/plain', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
-        },
+          // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
+          setData: function (dataTransfer, dragEl) {
+            dataTransfer.setData('text/plain', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+          },
 
-        // Element is chosen
-        onChoose: function (event) {
-          event.oldIndex;
-        },
+          // Element is chosen
+          onChoose: function (event) {
+            event.oldIndex;
+          },
 
-        // Element is unchosen
-        onUnchoose: function (event) {
-        },
+          // Element is unchosen
+          onUnchoose: function (event) {
+          },
 
-        // Element dragging started
-        onStart: function (event) {
-          event.oldIndex;
-        },
+          // Element dragging started
+          onStart: function (event) {
+            event.oldIndex;
+          },
 
-        // Called by any change to the list (add / update / remove)
-        onSort: function (event) {
-          // Code here triggers twice for the element if dragged to another group (two sorts)
-          [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, _) {
-            let cell = el.getElementsByClassName('holdme')[0];
-          });
-        },
+          // Called by any change to the list (add / update / remove)
+          onSort: function (event) {
+            // Code here triggers twice for the element if dragged to another group (two sorts)
+            [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, _) {
+              let cell = el.getElementsByClassName('holdme')[0];
+            });
+          },
 
-        // Changed sorting within list
-        onUpdate: function (event) {
-          let weight = event.item.parentNode.getAttribute('severity-weight')
-          let positions = {{ values.tpl_name }}_sortable.toArray();
-          // Prep AJAX request with CSRF token
-          $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          // Changed sorting within list
+          onUpdate: function (event) {
+            let weight = event.item.parentNode.getAttribute('severity-weight')
+            let positions = {{ values.tpl_name }}_sortable.toArray();
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+              beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
               }
-            }
-          });
-          // Send AJAX POST request
-          $.ajax(update_url, {
-            type: 'POST',
-            data: {
-              'report': report_id,
-              'severity': event.item.parentNode.id,
-              'positions': JSON.stringify(positions),
-              'weight': weight
-            },
-            success: function (data) {
-              console.log(data);
-            }
-          });
-        },
-      });
+            });
+            // Send AJAX POST request
+            $.ajax(update_url, {
+              type: 'POST',
+              data: {
+                'report': report_id,
+                'severity': event.item.parentNode.id,
+                'positions': JSON.stringify(positions),
+                'weight': weight
+              },
+              success: function (data) {
+                console.log(data);
+              }
+            });
+          },
+        });
+      }
     {% endfor %}
   {% endif %}
 
