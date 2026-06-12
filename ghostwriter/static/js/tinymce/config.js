@@ -739,6 +739,12 @@
 })($ || django.jQuery);
 
 function tinymceLogInit() {
+    const modalContent = document.querySelector('.modal-content');
+    if (window.gwInitTinyMceTextareas) {
+        window.gwInitTinyMceTextareas(modalContent || document, {includeInactiveTabs: true});
+        return;
+    }
+
     let logConfig = { ...GW_TINYMCE_BASIC_CONFIG };
     logConfig.selector = '.modal-content textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)';
     tinymce.init(gwGetTinyMceThemeConfig(logConfig));
