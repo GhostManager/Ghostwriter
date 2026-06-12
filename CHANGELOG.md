@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The dashboard calendar will now show all projects accessible to the user (Closes #871)
   * For most users, the calendar will not appear to have changed, except for now including more details
   * For managers and others with access to more projects, they will now be able to see how all their projects relate to each other in the calendar
+* Improved operation log narrative outline insertion for report fields
+  * Preserves formatted comments, inserts operation log output as code blocks, and keeps linked evidence with matching `{{.ref ...}}` lines
+  * Formats commands as inline code and user context as italic text in inserted narrative lines
+  * Uses only the operation log output field for output blocks, not attached terminal recording text
 
 ### Fixed
 
