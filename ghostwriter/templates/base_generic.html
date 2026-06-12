@@ -1037,10 +1037,34 @@
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
         const topOffset = 175;
         const bottomOffset = 32;
+        const prefersReducedMotion = window.matchMedia &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const targetScrollY = Math.max(window.scrollY + rect.top - topOffset, 0);
 
         if (rect.top < topOffset || rect.bottom > viewportHeight - bottomOffset) {
-          window.scrollTo({
-            top: Math.max(window.scrollY + rect.top - topOffset, 0),
+          const $scrollContainer = $('html, body');
+
+          if (
+            $scrollContainer.is(':animated') &&
+            Math.abs(window._gwFormsetScrollTargetY - targetScrollY) < 4
+          ) {
+            return;
+          }
+
+          if (prefersReducedMotion) {
+            $scrollContainer.stop(true, false);
+            window._gwFormsetScrollTargetY = null;
+            window.scrollTo(0, targetScrollY);
+            return;
+          }
+
+          window._gwFormsetScrollTargetY = targetScrollY;
+          $scrollContainer.stop(true, false).animate({
+            scrollTop: targetScrollY,
+          }, 550, 'swing').promise().always(function () {
+            if (Math.abs(window._gwFormsetScrollTargetY - targetScrollY) < 4) {
+              window._gwFormsetScrollTargetY = null;
+            }
           });
         }
       };
