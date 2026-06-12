@@ -166,7 +166,7 @@ class Migration(migrations.Migration):
                         name="api_stp_unique_dynamic_permission",
                     ),
                     models.CheckConstraint(
-                        check=(
+                        condition=(
                             models.Q(
                                 ("action__in", ["read", "create", "update", "delete"]),
                                 ("resource_type", "oplog"),
@@ -176,7 +176,7 @@ class Migration(migrations.Migration):
                         name="api_stp_allowed_resource_action",
                     ),
                     models.CheckConstraint(
-                        check=(
+                        condition=(
                             models.Q(
                                 ("constraints", {}), ("resource_id__isnull", False)
                             )
