@@ -1199,6 +1199,24 @@ class ReportDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
 
+    def test_view_without_findings_does_not_initialize_severity_sortables(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No findings have been added to this report yet.")
+        self.assertNotContains(response, "Sortable.create(severity_")
+        self.assertNotContains(response, "findings-update-url")
+
+    def test_view_with_findings_initializes_guarded_severity_sortables(self):
+        ReportFindingLinkFactory(report=self.report)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="findings-table"')
+        self.assertContains(response, "document.getElementById('severity_")
+        self.assertContains(response, "Sortable.create(severity_")
+
     def test_rich_text_extra_field_with_list_value_renders(self):
         report_extra_field_model, _ = ExtraFieldModel.objects.get_or_create(
             model_internal_name="reporting.Report",
