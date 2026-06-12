@@ -1032,9 +1032,25 @@
         }, 1800);
       };
 
+      const scrollFormsetIntoView = function () {
+        const rect = formsetElement.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const topOffset = 175;
+        const bottomOffset = 32;
+
+        if (rect.top < topOffset || rect.bottom > viewportHeight - bottomOffset) {
+          window.scrollTo({
+            top: Math.max(window.scrollY + rect.top - topOffset, 0),
+          });
+        }
+      };
+
       const scheduleHighlight = function () {
         window.requestAnimationFrame(function () {
-          window.requestAnimationFrame(applyHighlight);
+          window.requestAnimationFrame(function () {
+            scrollFormsetIntoView();
+            applyHighlight();
+          });
         });
       };
 
@@ -1042,11 +1058,17 @@
       window._gwFormsetHighlightRunId = highlightRunId;
       clearHighlights();
 
-      window.setTimeout(function () {
-        if (window._gwFormsetHighlightRunId === highlightRunId) {
-          scheduleHighlight();
-        }
-      }, 250);
+      [400, 700, 1000].forEach(function (delay, index) {
+        window.setTimeout(function () {
+          if (window._gwFormsetHighlightRunId === highlightRunId) {
+            if (index === 0) {
+              scheduleHighlight();
+            } else {
+              window.requestAnimationFrame(scrollFormsetIntoView);
+            }
+          }
+        }, delay);
+      });
     };
 
     $(document).on('click', '.formset-del-button', function () {
