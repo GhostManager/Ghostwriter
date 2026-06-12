@@ -26,7 +26,7 @@ django-health-check[psutil,redis]==4.4.1  # https://github.com/KristianOellegaar
 psycopg2==2.9.6 # https://github.com/psycopg/psycopg2
 boto3==1.35.17
 botocore==1.35.17
-beautifulsoup4==4.12.3
+beautifulsoup4==4.15.0
 django-bleach==3.1.0
 django-filter==25.2
 django-import-export==4.4.1
@@ -41,12 +41,12 @@ jinja2==3.1.6
 python-docx @ git+https://github.com/GhostManager/python-docx.git@4542c1915895b376ef3ed7a149af15147b3509b2
 python-nmap==0.7.1
 python-pptx==1.0.2
-requests==2.33.0
-django-timezone-field==7.2.1
-pyjwt[crypto]==2.12.0
-psutil==7.2.0
+requests==2.34.2
+django-timezone-field==7.2.2
+pyjwt[crypto]==2.13.0
+psutil==7.2.2
 django-taggit==6.1.0
 croniter==3.0.3
-cvss==3.2
-markdown==3.9
+cvss==3.6
+markdown==3.10.2
 spacy==3.8.11  # https://github.com/explosion/spaCy
