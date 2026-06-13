@@ -16,8 +16,10 @@
     <h2>Monitoring Thresholds</h2>
     <table class="table table-sm table-borderless">
       <thead>
-        <th class="align-middle text-left">Check</th>
-        <th class="align-middle text-left">Configured Value</th>
+        <tr>
+          <th class="align-middle text-left">Check</th>
+          <th class="align-middle text-left">Configured Value</th>
+        </tr>
       </thead>
       <tbody>
         {% for threshold in health_check_thresholds %}
@@ -31,10 +33,12 @@
     <h2>Service Checks</h2>
     <table class="table table-sm table-borderless">
       <thead>
-        <th class="align-middle text-left"></th>
-        <th class="align-middle text-left">Service</th>
-        <th class="align-middle text-left">Status</th>
-        <th class="align-middle text-left">Time Taken</th>
+        <tr>
+          <th class="align-middle text-left"></th>
+          <th class="align-middle text-left">Service</th>
+          <th class="align-middle text-left">Status</th>
+          <th class="align-middle text-left">Time Taken</th>
+        </tr>
       </thead>
       <tbody>
         {% for status_result in status_results %}
