@@ -1,11 +1,16 @@
+# Standard Libraries
+from unittest.mock import Mock, patch
+
 # Django Imports
 from django.test import Client, TestCase, override_settings, tag
 from django.urls import reverse
 
 # 3rd Party Libraries
 from health_check.contrib.psutil import Disk, Memory
+from health_check.exceptions import HealthCheckException, ServiceReturnedUnexpectedResult, ServiceWarning
 
 # Ghostwriter Libraries
+from ghostwriter.modules.health_utils import HasuraBackend
 from ghostwriter.status.views import HealthCheckCustomView
 
 
@@ -65,6 +70,39 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
         self.assertContains(response, "100%")
         self.assertContains(response, "Minimum Available Memory")
         self.assertContains(response, "0 MB")
+
+
+class HasuraBackendTests(TestCase):
+    """Collection of tests for :class:`modules.health_utils.HasuraBackend`."""
+
+    @patch("ghostwriter.modules.health_utils.requests.get")
+    def test_run_passes_for_ok_response(self, mock_get):
+        mock_get.return_value = Mock(ok=True, text="OK")
+
+        HasuraBackend().run()
+
+        mock_get.assert_called_once_with("http://graphql_engine:8080/healthz", timeout=5)
+
+    @patch("ghostwriter.modules.health_utils.requests.get")
+    def test_run_raises_warning_for_warn_response(self, mock_get):
+        mock_get.return_value = Mock(ok=True, text="WARN: inconsistent metadata")
+
+        with self.assertRaises(ServiceWarning):
+            HasuraBackend().run()
+
+    @patch("ghostwriter.modules.health_utils.requests.get")
+    def test_run_raises_unexpected_result_for_unrecognized_success_response(self, mock_get):
+        mock_get.return_value = Mock(ok=True, text="STARTING")
+
+        with self.assertRaises(ServiceReturnedUnexpectedResult):
+            HasuraBackend().run()
+
+    @patch("ghostwriter.modules.health_utils.requests.get")
+    def test_run_raises_error_for_non_success_response(self, mock_get):
+        mock_get.return_value = Mock(ok=False, text="ERROR")
+
+        with self.assertRaises(HealthCheckException):
+            HasuraBackend().run()
 
 
 class HealthCheckSimpleViewTests(TestCase):

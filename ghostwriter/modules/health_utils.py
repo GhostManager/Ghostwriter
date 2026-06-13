@@ -72,6 +72,9 @@ class HasuraBackend(HealthCheck):
                     return
                 if "WARN" in content:
                     raise ServiceWarning(f"Hasura reported a warning: {content}")
+                raise ServiceReturnedUnexpectedResult(
+                    f"Hasura returned an unexpected health response: {content}"
+                )
             else:
                 raise HealthCheckException("Hasura reported an error")
         except requests.exceptions.ConnectionError as e:
