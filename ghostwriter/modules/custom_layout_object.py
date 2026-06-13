@@ -76,12 +76,10 @@ class CustomTab(Container):
 
     def __init__(self, name, *fields, **kwargs):
         link_css_class = kwargs.pop("link_css_class", None)
-        tab_hash_id = kwargs.get("css_id") or slugify(name, allow_unicode=True)
-        super().__init__(name, *fields, **kwargs)
-        self.fields = list(fields)
+        tab_hash_id = kwargs.pop("css_id", None) or slugify(name, allow_unicode=True)
+        super().__init__(name, *fields, css_id=f"tab-pane-{tab_hash_id}", **kwargs)
         self.link_css_class = link_css_class
         self.tab_hash = f"#{tab_hash_id}"
-        self.css_id = f"tab-pane-{tab_hash_id}"
 
     def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
         css_classes = self.css_class.split()
