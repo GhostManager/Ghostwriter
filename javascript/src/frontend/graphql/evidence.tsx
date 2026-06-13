@@ -1,7 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { gql } from "../../__generated__/";
-import { Evidence_Bool_Exp } from "../../__generated__/graphql";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { Evidences, EvidencesContext } from "../../tiptap_gw/evidence";
 
 const QUERY_EVIDENCE = gql(`
@@ -13,31 +12,9 @@ const QUERY_EVIDENCE = gql(`
 `);
 
 export function usePageEvidence(): Evidences | null {
-    const filters: Evidence_Bool_Exp["_or"] = useMemo(() => {
-        const reportId = parseInt(
-            document.getElementById("graphql-evidence-report-id")!.innerHTML
-        );
-        const findingIdText = document.getElementById(
-            "graphql-evidence-finding-id"
-        )?.innerHTML;
-        const filters: Evidence_Bool_Exp["_or"] = [
-            {
-                reportId: { _eq: reportId },
-            },
-        ];
-        if (findingIdText !== undefined) {
-            filters.push({
-                findingId: { _eq: +findingIdText },
-            });
-        }
-        return filters;
-    }, []);
-
     const { data, refetch } = useQuery(QUERY_EVIDENCE, {
         variables: {
-            where: {
-                _or: filters,
-            },
+            where: {},
         },
         pollInterval: 10000,
     });

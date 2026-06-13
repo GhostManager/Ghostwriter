@@ -56,6 +56,8 @@ def plus_days(value, days):
     ``days``
         A whole integer to add to the day value of a ``datetime`` value
     """
+    if value is None:
+        return value
     return value + datetime.timedelta(days=days)
 
 
