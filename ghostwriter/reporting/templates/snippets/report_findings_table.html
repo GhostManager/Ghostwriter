@@ -1,6 +1,6 @@
 {% load report_tags %}
 
-{% if report.reportfindinglink_set.all %}
+{% if report.reportfindinglink_set.exists %}
   <table id="findings-table" class="table table-sm table-hover"
          findings-update-url="{% url 'reporting:update_report_findings' %}">
     <tr>
@@ -231,7 +231,7 @@
   });
 
   {% comment %} Configure table sorting by severity groups {% endcomment %}
-  {% if report.reportfindinglink_set.all %}
+  {% if report.reportfindinglink_set.exists %}
     var update_url = $('#findings-table').attr('findings-update-url');
     {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
     {% for group, values in severity_groups.items %}
