@@ -27,12 +27,11 @@
       }
     }
 
-    function storeActiveReport(reportId, reportTitle, reportUrl) {
+    function storeActiveReport(reportId, reportTitle) {
       try {
         localStorage.setItem(settings.storageKey, JSON.stringify({
           id: reportId,
           title: reportTitle || '',
-          url: reportUrl || getActiveReportUrl(reportId),
         }));
       } catch (error) {}
     }
@@ -43,7 +42,7 @@
       } catch (error) {}
     }
 
-    function updateActiveReportUi(reportId, reportTitle, reportUrl) {
+    function updateActiveReportUi(reportId, reportTitle) {
       const reportLink = getActiveReportLink(reportId);
       if (!reportLink.length) {
         return false;
@@ -53,10 +52,10 @@
       $('.js-activate-report').removeClass('selected-report toggle-on-icon').addClass('toggle-off-icon');
       reportLink.addClass('selected-report toggle-on-icon').removeClass('toggle-off-icon');
       $('.active-report-shortcut')
-        .attr('href', reportUrl || getActiveReportUrl(reportId))
+        .attr('href', getActiveReportUrl(reportId))
         .text('Jump to Report')
         .removeClass('btn-disabled');
-      storeActiveReport(reportId, reportTitle || $.trim(reportLink.text()), reportUrl);
+      storeActiveReport(reportId, reportTitle || $.trim(reportLink.text()));
       return true;
     }
 
@@ -65,8 +64,7 @@
       if (selectedReport.length) {
         updateActiveReportUi(
           selectedReport.attr('activate-report-id'),
-          $.trim(selectedReport.text()),
-          getActiveReportUrl(selectedReport.attr('activate-report-id'))
+          $.trim(selectedReport.text())
         );
         return;
       }
@@ -81,7 +79,7 @@
         return;
       }
 
-      updateActiveReportUi(storedReport.id, storedReport.title, storedReport.url);
+      updateActiveReportUi(storedReport.id, storedReport.title);
       $.ajax({
         url: reportLink.attr('activate-report-url'),
         type: 'POST',
@@ -96,7 +94,7 @@
         },
         success: function (data) {
           if (data['result'] === 'success') {
-            updateActiveReportUi(storedReport.id, data['report'], data['report_url']);
+            updateActiveReportUi(storedReport.id, data['report']);
           } else {
             clearStoredActiveReport();
           }
@@ -109,7 +107,7 @@
       let url = $(this).attr('activate-report-url');
       let reportId = $(this).attr('activate-report-id');
       let csrftoken = $(this).attr('activate-report-csrftoken');
-      let shortcutUrl = $('.active-report-shortcut').attr('href');
+      let shortcutUrl = getActiveReportUrl(reportId);
       $.ajaxSetup({
         beforeSend: function (xhr, ajaxSettings) {
           if (!csrfSafeMethod(ajaxSettings.type) && !this.crossDomain) {
@@ -126,7 +124,7 @@
         },
         success: function (data) {
           if (data['result'] === 'success') {
-            updateActiveReportUi(reportId, data['report'], data['report_url']);
+            updateActiveReportUi(reportId, data['report']);
           }
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
