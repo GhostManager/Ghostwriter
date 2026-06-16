@@ -34,6 +34,7 @@ from ghostwriter.factories import (
     ObservationFactory,
     OplogEntryEvidenceFactory,
     OplogEntryFactory,
+    OplogEntryRecordingFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
@@ -819,7 +820,7 @@ class FindingsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
         blank_findings = self.ReportFindingLink.objects.filter(added_as_blank=True, report=self.accessibleReport)
-        self.assertQuerysetEqual(response.context["filter"].qs, list(blank_findings))
+        self.assertQuerySetEqual(response.context["filter"].qs, list(blank_findings), transform=lambda x: x)
 
 
 class FindingDetailViewTests(TestCase):
@@ -1198,6 +1199,24 @@ class ReportDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
 
+    def test_view_without_findings_does_not_initialize_severity_sortables(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No findings have been added to this report yet.")
+        self.assertNotContains(response, "Sortable.create(severity_")
+        self.assertNotContains(response, "findings-update-url")
+
+    def test_view_with_findings_initializes_guarded_severity_sortables(self):
+        ReportFindingLinkFactory(report=self.report)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="findings-table"')
+        self.assertContains(response, "document.getElementById('severity_")
+        self.assertContains(response, "Sortable.create(severity_")
+
     def test_rich_text_extra_field_with_list_value_renders(self):
         report_extra_field_model, _ = ExtraFieldModel.objects.get_or_create(
             model_internal_name="reporting.Report",
@@ -1288,17 +1307,21 @@ class ReportOplogOutlineGenerateTests(TestCase):
             oplog_id=self.oplog,
             start_date=first_start,
             tool="Nmap",
-            source_ip="10.0.0.10",
             dest_ip="10.0.0.20",
-            comments="<p>Initial foothold confirmed.</p>",
+            user_context="NT AUTHORITY\\SYSTEM",
+            command="nmap -sV 10.0.0.20",
+            output="PORT 80/tcp open http",
+            comments="<p><strong>Initial foothold</strong> confirmed.</p>",
             tags=["report"],
         )
         entry_two = OplogEntryFactory(
             oplog_id=self.oplog,
             start_date=second_start,
             tool="",
-            source_ip="",
             dest_ip="",
+            user_context="",
+            command="",
+            output="",
             comments="",
             tags=["evidence"],
         )
@@ -1338,23 +1361,29 @@ class ReportOplogOutlineGenerateTests(TestCase):
             body["blocks"],
             [
                 {
-                    "type": "paragraph",
-                    "text": (
-                        f"On {dateformat(first_start, settings.DATE_FORMAT)} at 14:00:00 UTC, "
-                        "the assessment team used Nmap from 10.0.0.10 against 10.0.0.20. "
-                        "Comments: Initial foothold confirmed."
-                    ),
+                    "type": "narrative",
+                    "timestamp": f"On {dateformat(first_start, settings.DATE_FORMAT)} at 14:00:00 UTC",
+                    "tool": "Nmap",
+                    "command": "nmap -sV 10.0.0.20",
+                    "user_context": "NT AUTHORITY\\SYSTEM",
+                    "dest": "10.0.0.20",
+                    "has_comments": True,
                 },
+                {"type": "html", "html": "<p><strong>Initial foothold</strong> confirmed.</p>"},
+                {"type": "paragraph", "text": "Output:"},
+                {"type": "code", "text": "PORT 80/tcp open http"},
                 {"type": "paragraph", "text": "{{.ref Alpha}}"},
                 {"type": "evidence", "evidence_id": report_evidence.id},
                 {"type": "paragraph", "text": "{{.ref Bravo}}"},
                 {"type": "evidence", "evidence_id": finding_evidence.id},
                 {
-                    "type": "paragraph",
-                    "text": (
-                        "At 15:30:00 UTC, the assessment team used N/A from N/A "
-                        "against N/A. Comments: N/A"
-                    ),
+                    "type": "narrative",
+                    "timestamp": "At 15:30:00 UTC",
+                    "tool": "N/A",
+                    "command": "",
+                    "user_context": "N/A",
+                    "dest": "N/A",
+                    "has_comments": False,
                 },
             ],
         )
@@ -1367,9 +1396,10 @@ class ReportOplogOutlineGenerateTests(TestCase):
             oplog_id=self.oplog,
             start_date=datetime(2024, 5, 1, 18, 45, 0, tzinfo=timezone.utc),
             tool="Seatbelt",
-            source_ip="10.0.0.5",
             dest_ip="10.0.0.25",
-            comments="Collected stored credentials.",
+            command="",
+            output="",
+            comments="",
             tags=["CREDENTIAL"],
         )
 
@@ -1381,7 +1411,43 @@ class ReportOplogOutlineGenerateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["blocks"]), 1)
-        self.assertIn("Seatbelt", response.json()["blocks"][0]["text"])
+        self.assertEqual(response.json()["blocks"][0]["tool"], "Seatbelt")
+
+    def test_view_ignores_recording_text_for_output(self):
+        entry = OplogEntryFactory(
+            oplog_id=self.oplog,
+            start_date=datetime(2024, 5, 1, 18, 45, 0, tzinfo=timezone.utc),
+            tool="Nmap",
+            dest_ip="",
+            command="<p>hashdump</p>",
+            user_context="www-data",
+            output="",
+            comments="",
+            tags=["report"],
+        )
+        OplogEntryRecordingFactory(oplog_entry=entry, recording_text="recorded output")
+
+        response = self.client_mgr.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.oplog.pk}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["blocks"],
+            [
+                {
+                    "type": "narrative",
+                    "timestamp": f"On {dateformat(entry.start_date, settings.DATE_FORMAT)} at 18:45:00 UTC",
+                    "tool": "Nmap",
+                    "command": "hashdump",
+                    "user_context": "www-data",
+                    "dest": "N/A",
+                    "has_comments": False,
+                },
+            ],
+        )
 
     def test_view_includes_entries_matching_configured_prefix_rule(self):
         self.report_config.outline_tags = "cred*,att&ck:"
@@ -1391,18 +1457,20 @@ class ReportOplogOutlineGenerateTests(TestCase):
             oplog_id=self.oplog,
             start_date=datetime(2024, 5, 1, 18, 45, 0, tzinfo=timezone.utc),
             tool="SharpDPAPI",
-            source_ip="10.0.0.5",
             dest_ip="10.0.0.25",
-            comments="Extracted credential material.",
+            command="",
+            output="",
+            comments="",
             tags=["Credentials"],
         )
         OplogEntryFactory(
             oplog_id=self.oplog,
             start_date=datetime(2024, 5, 1, 19, 0, 0, tzinfo=timezone.utc),
             tool="Manual Review",
-            source_ip="10.0.0.5",
             dest_ip="10.0.0.25",
-            comments="Mapped technique.",
+            command="",
+            output="",
+            comments="",
             tags=["ATT&CK:T1555"],
         )
 
@@ -1414,8 +1482,8 @@ class ReportOplogOutlineGenerateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["blocks"]), 2)
-        self.assertIn("SharpDPAPI", response.json()["blocks"][0]["text"])
-        self.assertIn("Manual Review", response.json()["blocks"][1]["text"])
+        self.assertEqual(response.json()["blocks"][0]["tool"], "SharpDPAPI")
+        self.assertEqual(response.json()["blocks"][1]["tool"], "Manual Review")
 
     def test_view_preserves_built_in_outline_tags_when_config_changes(self):
         self.report_config.outline_tags = "credential"
@@ -1425,18 +1493,20 @@ class ReportOplogOutlineGenerateTests(TestCase):
             oplog_id=self.oplog,
             start_date=datetime(2024, 5, 1, 14, 0, 0, tzinfo=timezone.utc),
             tool="Nmap",
-            source_ip="10.0.0.10",
             dest_ip="10.0.0.20",
-            comments="Built-in report tag.",
+            command="",
+            output="",
+            comments="",
             tags=["report"],
         )
         OplogEntryFactory(
             oplog_id=self.oplog,
             start_date=datetime(2024, 5, 1, 15, 0, 0, tzinfo=timezone.utc),
             tool="Mimikatz",
-            source_ip="10.0.0.10",
             dest_ip="10.0.0.20",
-            comments="Built-in evidence tag.",
+            command="",
+            output="",
+            comments="",
             tags=["evidence"],
         )
 
@@ -1448,8 +1518,8 @@ class ReportOplogOutlineGenerateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["blocks"]), 2)
-        self.assertIn("Nmap", response.json()["blocks"][0]["text"])
-        self.assertIn("Mimikatz", response.json()["blocks"][1]["text"])
+        self.assertEqual(response.json()["blocks"][0]["tool"], "Nmap")
+        self.assertEqual(response.json()["blocks"][1]["tool"], "Mimikatz")
 
 
 class ReportCreateViewTests(TestCase):

@@ -694,7 +694,7 @@ class DomainServerConnection(models.Model):
 
         constraints = [
             models.CheckConstraint(
-                check=(Q(static_server__isnull=False) & Q(transient_server__isnull=True))
+                condition=(Q(static_server__isnull=False) & Q(transient_server__isnull=True))
                 | (Q(static_server__isnull=True) & Q(transient_server__isnull=False)),
                 name="only_one_server",
             )

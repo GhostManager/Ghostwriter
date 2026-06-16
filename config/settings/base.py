@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "7.0.2"
+__version__ = "7.1.0"
 VERSION = __version__
-RELEASE_DATE = "10 June 2026"
+RELEASE_DATE = "16 June 2026"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -24,6 +24,14 @@ READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
     env.read_env(str(ROOT_DIR / ".env"))
+
+
+def env_float(name, default):
+    """Read a float env var while treating unset or empty values as default."""
+    value = env(name, default=default)
+    if value == "":
+        value = default
+    return float(value)
 
 # GENERAL
 # ------------------------------------------------------------------------------
@@ -40,8 +48,6 @@ LANGUAGE_CODE = "en-us"
 SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
-# https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = False
 # https://docs.djangoproject.com/en/4.0/ref/settings/#date-format
 DATE_FORMAT = env(
     "DJANGO_DATE_FORMAT",
@@ -89,6 +95,7 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "crispy_forms",
+    "crispy_bootstrap4",
     "allauth",
     "allauth.mfa",
     "allauth.account",
@@ -101,16 +108,9 @@ THIRD_PARTY_APPS = [
     "django_q",
     "django_filters",
     "import_export",
-    "tinymce",
     "django_bleach",
     "timezone_field",
     "health_check",
-    "health_check.db",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.psutil",
-    "health_check.contrib.redis",
     "taggit",
 ]
 
@@ -251,6 +251,7 @@ TEMPLATES = [
     }
 ]
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
+CRISPY_ALLOWED_TEMPLATE_PACKS = ("bootstrap4",)
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 # FIXTURES
@@ -274,8 +275,6 @@ SESSION_COOKIE_SECURE = env("DJANGO_SESSION_COOKIE_SECURE", default=False)
 CSRF_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/3.2/ref/settings/#csrf-cookie-secure
 CSRF_COOKIE_SECURE = env("DJANGO_CSRF_COOKIE_SECURE", default=False)
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
-SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
@@ -316,6 +315,18 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
+# django-health-check
+# ------------------------------------------------------------------------------
+# These values are surfaced in Compose files and the Ghostwriter CLI. Keep them
+# in settings so administrators control detailed health-check thresholds rather
+# than falling back to django-health-check library defaults.
+HEALTH_CHECK = {
+    # Percent of disk usage that triggers a warning.
+    "DISK_USAGE_MAX": env_float("HEALTHCHECK_DISK_USAGE_MAX", 90),
+    # Minimum available memory in MB that triggers a warning.
+    "MEMORY_MIN": env_float("HEALTHCHECK_MEM_MIN", 100),
+}
+
 # django-allauth-mfa
 # ------------------------------------------------------------------------------
 
@@ -325,6 +336,10 @@ MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"
 # Make sure "webauthn" is included.
 # https://docs.allauth.org/en/dev/mfa/webauthn.html
 MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
+
+# Ghostwriter deployments often cannot rely on email verification, and MFA setup
+# should not be blocked by an unverified email address.
+MFA_ALLOW_UNVERIFIED_EMAIL = env.bool("DJANGO_MFA_ALLOW_UNVERIFIED_EMAIL", True)
 
 # Enable support for logging in using a (WebAuthn) passkey.
 # https://docs.allauth.org/en/dev/mfa/webauthn.html
@@ -528,12 +543,6 @@ GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
 # Admins can override via the ``GHOSTWRITER_MAX_FILE_SIZE`` environment variable
 GHOSTWRITER_MAX_FILE_SIZE = env.int("GHOSTWRITER_MAX_FILE_SIZE", default=10 * 1024 * 1024)  # 10 MB
 
-# Health Checks
-# ------------------------------------------------------------------------------
-HEALTH_CHECK = {
-    "DISK_USAGE_MAX": env("HEALTHCHECK_DISK_USAGE_MAX", default=90),
-    "MEMORY_MIN": env("HEALTHCHECK_MEM_MIN", default=100),
-}
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
 
 # Tagging

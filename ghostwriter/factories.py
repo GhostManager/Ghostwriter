@@ -1,6 +1,7 @@
 # Standard Libraries
 import random
-from datetime import date, timedelta, timezone
+from datetime import date, timedelta
+from datetime import timezone as datetime_timezone
 
 # Django Imports
 from django.contrib.auth import get_user_model
@@ -985,7 +986,7 @@ class BannerConfigurationFactory(factory.django.DjangoModelFactory):
     banner_message = Faker("sentence")
     banner_link = Faker("url")
     public_banner = Faker("boolean")
-    expiry_date = Faker("date_time", tzinfo=timezone.utc)
+    expiry_date = Faker("date_time", tzinfo=datetime_timezone.utc)
 
 
 class DeconflictionStatusFactory(factory.django.DjangoModelFactory):
@@ -1000,9 +1001,9 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Deconfliction"
 
-    report_timestamp = Faker("date_time", tzinfo=timezone.utc)
-    alert_timestamp = Faker("date_time", tzinfo=timezone.utc)
-    response_timestamp = Faker("date_time", tzinfo=timezone.utc)
+    report_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
+    alert_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
+    response_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
     title = Faker("sentence")
     description = Faker("rich_text")
     alert_source = Faker("word")
@@ -1014,7 +1015,7 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.WhiteCard"
 
-    issued = Faker("date_time", tzinfo=timezone.utc)
+    issued = Faker("date_time", tzinfo=datetime_timezone.utc)
     title = Faker("user_name")
     description = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)

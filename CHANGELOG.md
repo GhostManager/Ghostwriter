@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.1.0] - 16 June 2026
+
+### Added
+
+* Added a workflow to check the GraphQL codegen whenever models change to ensure there is no drift (Closes #849)
+* Added tracking for the active report in the browser's localstorage along with a mechanism to re-activate the report on user login
+
+### Changed
+
+* Switched from `docxtpl` to a Ghostwriter fork to implement performance improvements (Fixes #585; Closes #822)
+  * Implemented changes in the upstream `docxtpl` development branch
+  * Will consider returning to using the Pypi package when the new maintainers are able to merge the development changes and begin tagging releases
+* Updated Django to v5.2 with groundwork completed for Django v6.x (Closes #824)
+  * Going slow with version upgrades to ensure there are no issues with dependencies
+* The dashboard calendar will now show all projects accessible to the user (Closes #871)
+  * For most users, the calendar will not appear to have changed, except for now including more details
+  * For managers and others with access to more projects, they will now be able to see how all their projects relate to each other in the calendar
+* Improved operation log narrative outline insertion for report fields
+  * Preserves formatted comments, inserts operation log output as code blocks, and keeps linked evidence with matching `{{.ref ...}}` lines
+  * Formats commands as inline code and user context as italic text in inserted narrative lines
+  * Uses only the operation log output field for output blocks, not attached terminal recording text
+
+### Fixed
+
+* Adjusted how the TinyMCE editors load to fix pages sometimes scrolling down to newly initialized TinyMCE fields
+
 ## [7.0.2] - 10 June 2026
 
 ### Fixed
@@ -18,7 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed API database migrations breaking when the existing database has many existing API tokens
-
 ## [7.0.0] - 3 June 2026
 
 ### Breaking Changes

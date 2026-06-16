@@ -102,7 +102,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "start_date",
         "end_date",
         "complete",
-        "tags",
+        "tag_list",
     )
     list_filter = ("client", "complete", "tags")
     list_display_links = ("client", "codename")

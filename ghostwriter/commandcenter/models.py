@@ -885,7 +885,7 @@ class ExtraFieldSpec(models.Model):
                 name="commandcenter_extrafieldspec_unique_position_per_model",
             ),
             models.CheckConstraint(
-                check=Q(position__gte=1) | Q(position__isnull=True),
+                condition=Q(position__gte=1) | Q(position__isnull=True),
                 name="commandcenter_extrafieldspec_position_gte_1",
             ),
         ]

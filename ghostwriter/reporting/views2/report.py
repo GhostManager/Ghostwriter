@@ -40,7 +40,7 @@ from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.modules.shared import get_tags_for_queryset
-from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.models import Oplog, OplogEntry, _sanitize_rich_field
 from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
 from ghostwriter.reporting.forms import ReportForm, ReportTemplateForm, SelectReportTemplateForm
@@ -55,6 +55,23 @@ def _outline_value(value):
     """Return plain text content for outline sentences, defaulting blanks to ``N/A``."""
     text = strip_tags(value or "").strip()
     return text if text else "N/A"
+
+
+def _outline_rich_html(value):
+    """Return sanitized rich HTML content, or an empty string for blanks."""
+    rich_html = _sanitize_rich_field(value or "")
+    if not strip_tags(rich_html).strip():
+        return ""
+
+    if not rich_html.lstrip().lower().startswith(("<p", "<div", "<ul", "<ol", "<table", "<pre", "<blockquote", "<h")):
+        return f"<p>{rich_html}</p>"
+
+    return rich_html
+
+
+def _outline_command_value(command):
+    command_text = _outline_value(command)
+    return command_text if command_text != "N/A" else ""
 
 
 def _entry_start_utc(entry: OplogEntry) -> datetime:
@@ -108,8 +125,9 @@ def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str
     """
     Build Tiptap-ready outline content for a report extra field from an oplog.
 
-    The returned blocks are either paragraph text or evidence node references so the
-    frontend can append real evidence embeds with previews instead of legacy keyword text.
+    The returned blocks are narrative text, paragraph text, formatted HTML, code, or
+    evidence node references so the frontend can append real evidence embeds with
+    previews instead of legacy keyword text.
     """
     report_config = ReportConfiguration.get_solo()
     entries = (
@@ -140,23 +158,29 @@ def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str
         else:
             timestamp = f"At {dt.strftime('%H:%M:%S')} UTC"
 
+        comments = _outline_rich_html(entry.comments)
+        output = entry.output or ""
+        has_comments = bool(comments)
+        has_output = bool(output.strip())
+
         blocks.append(
-            (
-                {
-                    "type": "paragraph",
-                    "text": (
-                        "{timestamp}, the assessment team used {tool} from {source} "
-                        "against {dest}. Comments: {comments}"
-                    ).format(
-                        timestamp=timestamp,
-                        tool=_outline_value(entry.tool),
-                        source=_outline_value(entry.source_ip),
-                        dest=_outline_value(entry.dest_ip),
-                        comments=_outline_value(entry.comments),
-                    ),
-                }
-            )
+            {
+                "type": "narrative",
+                "timestamp": timestamp,
+                "tool": _outline_value(entry.tool),
+                "command": _outline_command_value(entry.command),
+                "user_context": _outline_value(entry.user_context),
+                "dest": _outline_value(entry.dest_ip),
+                "has_comments": has_comments,
+            }
         )
+
+        if has_comments:
+            blocks.append({"type": "html", "html": comments})
+
+        if has_output:
+            blocks.append({"type": "paragraph", "text": "Output:"})
+            blocks.append({"type": "code", "text": output})
 
         for friendly_name, evidence_id in _report_evidence_refs_for_entry(report, entry):
             blocks.append({"type": "paragraph", "text": "{{.ref " + friendly_name + "}}"})

@@ -119,6 +119,14 @@ class OplogEntryFormTests(TestCase):
         form = self.form_data(**to_dict(entry), instance=entry)
         self.assertTrue(form.is_valid())
 
+    def test_command_and_output_are_plaintext_fields(self):
+        form = OplogEntryForm(oplog=self.oplog)
+
+        self.assertIn("no-auto-tinymce", form.fields["command"].widget.attrs["class"])
+        self.assertIn("no-auto-tinymce", form.fields["output"].widget.attrs["class"])
+        self.assertNotIn("no-auto-tinymce", form.fields["description"].widget.attrs.get("class", ""))
+        self.assertNotIn("no-auto-tinymce", form.fields["comments"].widget.attrs.get("class", ""))
+
     def test_invalid_data(self):
         entry = OplogEntryFactory.create()
         start_date = entry.start_date

@@ -1319,7 +1319,7 @@ class TransientServerCreateViewTests(TestCase):
 
     def test_duplicate_server_submission(self):
         dupe_ip = "1.2.3.4"
-        dupe_aux_ip = ["1.2.3.5", "1.2.3.4.6", "1.2.3.4.7"]
+        dupe_aux_ip = ["1.2.3.5", "1.2.3.6", "1.2.3.7"]
 
         # Create a base cloud server
         vps_server = TransientServerFactory(project=self.project)

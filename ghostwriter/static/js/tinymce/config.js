@@ -581,40 +581,197 @@
         },
     };
 
-    /*
-    Initiate TinyMCE targeting ``textarea.enable-evidence-upload`` inputs
-
-    This must be initiated first because the default config will initiate all ``textarea`` inputs
-    */
-
-    $(() => tinymce.init(gwGetTinyMceThemeConfig(GW_TINYMCE_FINDING_CONFIG)));
-
-    /*
-    Initiate TinyMCE targeting all ``textarea`` inputs
-
-    The init is wrapped in a function, so it can be called to reinitialize TinyMCE as needed
-
-    Editors must be reinitialized when an empty formset form is copied and added to a form
-    */
-
-    function tinyInit() {
-        tinymce.init(gwGetTinyMceThemeConfig(GW_TINYMCE_BASIC_CONFIG));
+    function gwShouldAutoInitTinyMce(textarea) {
+        return !textarea.classList.contains('empty-form') &&
+            !textarea.classList.contains('no-auto-tinymce') &&
+            !textarea.closest('[id^="empty-form-"]');
     }
-    $(tinyInit);
 
-    $(document).on('shown.bs.modal shown.bs.collapse', function () {
-        tinymce.editors.forEach(function (editor) {
-            if (gwEditorNeedsThemeReinit(editor) && gwIsTinyMceEditorVisible(editor)) {
+    function gwIsInInactiveTab(textarea) {
+        const tabPane = textarea.closest('.tab-pane');
+        return tabPane && !tabPane.classList.contains('active');
+    }
+
+    function gwIsInTabPane(textarea) {
+        return !!textarea.closest('.tab-pane');
+    }
+
+    function gwHasTinyMceEditor(textarea) {
+        return tinymce.editors.some(function (editor) {
+            return editor.targetElm === textarea || (textarea.id && editor.id === textarea.id);
+        });
+    }
+
+    function gwRestoreWindowScroll(scrollX, scrollY) {
+        const restore = function () {
+            window.scrollTo(scrollX, scrollY);
+        };
+
+        restore();
+        window.requestAnimationFrame(function () {
+            restore();
+            window.setTimeout(restore, 100);
+            window.setTimeout(restore, 300);
+        });
+    }
+
+    function gwInitTinyMceTextarea(textarea) {
+        const sourceConfig = textarea.classList.contains('enable-evidence-upload')
+            ? GW_TINYMCE_FINDING_CONFIG
+            : GW_TINYMCE_BASIC_CONFIG;
+        const config = {
+            ...gwGetTinyMceThemeConfig(sourceConfig),
+            target: textarea,
+        };
+        delete config.selector;
+        const initResult = tinymce.init(config);
+        return initResult && typeof initResult.then === 'function' ? initResult : Promise.resolve(initResult);
+    }
+
+    function gwInitTinyMceTextareas(container, options) {
+        const root = container || document;
+        const includeInactiveTabs = options && options.includeInactiveTabs;
+        const skipTabPanes = options && options.skipTabPanes;
+        const preserveScroll = options && options.preserveScroll;
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        const textareas = root.matches && root.matches('textarea')
+            ? [root]
+            : Array.from(root.querySelectorAll('textarea'));
+
+        const initPromises = textareas.reduce(function (initPromises, textarea) {
+            if (
+                gwShouldAutoInitTinyMce(textarea) &&
+                !gwHasTinyMceEditor(textarea) &&
+                (!skipTabPanes || !gwIsInTabPane(textarea)) &&
+                (includeInactiveTabs || !gwIsInInactiveTab(textarea))
+            ) {
+                initPromises.push(gwInitTinyMceTextarea(textarea));
+            }
+            return initPromises;
+        }, []);
+
+        if (preserveScroll && initPromises.length) {
+            Promise.all(initPromises).finally(function () {
+                gwRestoreWindowScroll(scrollX, scrollY);
+            });
+        }
+
+        return initPromises;
+    }
+
+    function gwRefreshTinyMceEditors(container, options) {
+        const root = container || document;
+        const scheduleLayoutRefresh = options && options.scheduleLayoutRefresh;
+
+        tinymce.editors.slice().forEach(function (editor) {
+            if (!editor || editor.removed) {
+                return;
+            }
+
+            if (root !== document && editor.targetElm && !root.contains(editor.targetElm)) {
+                return;
+            }
+
+            if (gwEditorNeedsThemeReinit(editor) && (gwIsTinyMceEditorVisible(editor) || editor.hasFocus())) {
                 gwReinitializeTinyMceEditor(editor);
                 return;
             }
-            gwScheduleTinyMceLayoutRefresh(editor);
+
+            if (scheduleLayoutRefresh) {
+                gwScheduleTinyMceLayoutRefresh(editor);
+            }
         });
+    }
+
+    function gwStartInitialTinyMceScrollLock(scrollX, scrollY) {
+        const bodyStyle = document.body.style;
+        const originalPosition = bodyStyle.position;
+        const originalTop = bodyStyle.top;
+        const originalLeft = bodyStyle.left;
+        const originalRight = bodyStyle.right;
+        const originalWidth = bodyStyle.width;
+
+        bodyStyle.position = 'fixed';
+        bodyStyle.top = `-${scrollY}px`;
+        bodyStyle.left = '0';
+        bodyStyle.right = '0';
+        bodyStyle.width = '100%';
+
+        return function () {
+            bodyStyle.position = originalPosition;
+            bodyStyle.top = originalTop;
+            bodyStyle.left = originalLeft;
+            bodyStyle.right = originalRight;
+            bodyStyle.width = originalWidth;
+            window.scrollTo(scrollX, scrollY);
+        };
+    }
+
+    window.gwInitTinyMceTextareas = gwInitTinyMceTextareas;
+    window.tinyInit = function (container, options) {
+        return gwInitTinyMceTextareas(container || document, options);
+    };
+
+    $(function () {
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        const stopInitialScrollLock = gwStartInitialTinyMceScrollLock(scrollX, scrollY);
+        const initPromises = gwInitTinyMceTextareas(document);
+        let initialScrollLockFinished = false;
+        const finishInitialScrollLock = function () {
+            if (initialScrollLockFinished) {
+                return;
+            }
+            initialScrollLockFinished = true;
+            stopInitialScrollLock();
+        };
+
+        if (!initPromises.length) {
+            finishInitialScrollLock();
+            return;
+        }
+
+        Promise.all(initPromises).finally(function () {
+            window.requestAnimationFrame(function () {
+                window.setTimeout(finishInitialScrollLock, 1500);
+            });
+        });
+        window.setTimeout(finishInitialScrollLock, 3000);
+    });
+
+    $(document).on('shown.bs.tab', function (event) {
+        const selector = $(event.target).data('target') || $(event.target).attr('href');
+        if (selector) {
+            const pane = document.querySelector(selector);
+            if (pane) {
+                const scrollX = window.scrollX;
+                const scrollY = window.scrollY;
+                gwInitTinyMceTextareas(pane, {includeInactiveTabs: true, preserveScroll: true});
+                gwRefreshTinyMceEditors(pane);
+                gwRestoreWindowScroll(scrollX, scrollY);
+            }
+        }
+    });
+
+    $(document).on('focusin pointerdown', '.tab-pane textarea', function () {
+        gwInitTinyMceTextareas(this, {includeInactiveTabs: true});
+    });
+
+    $(document).on('shown.bs.modal shown.bs.collapse', function (event) {
+        gwInitTinyMceTextareas(event.target, {includeInactiveTabs: true});
+        gwRefreshTinyMceEditors(event.target, {scheduleLayoutRefresh: true});
     });
 
 })($ || django.jQuery);
 
 function tinymceLogInit() {
+    const modalContent = document.querySelector('.modal-content');
+    if (window.gwInitTinyMceTextareas) {
+        window.gwInitTinyMceTextareas(modalContent || document, {includeInactiveTabs: true});
+        return;
+    }
+
     let logConfig = { ...GW_TINYMCE_BASIC_CONFIG };
     logConfig.selector = '.modal-content textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)';
     tinymce.init(gwGetTinyMceThemeConfig(logConfig));

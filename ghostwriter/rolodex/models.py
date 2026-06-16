@@ -422,7 +422,7 @@ class ProjectRole(models.Model):
                 name="rolodex_projectrole_unique_position",
             ),
             models.CheckConstraint(
-                check=Q(position__gte=1),
+                condition=Q(position__gte=1),
                 name="rolodex_projectrole_position_gte_1",
             ),
         ]

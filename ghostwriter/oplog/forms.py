@@ -119,6 +119,11 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["output"].widget.attrs["rows"] = 2
         self.fields["description"].widget.attrs["rows"] = 2
         self.fields["comments"].widget.attrs["rows"] = 2
+        for field_name in ("command", "output"):
+            existing_classes = self.fields[field_name].widget.attrs.get("class", "").split()
+            if "no-auto-tinymce" not in existing_classes:
+                existing_classes.append("no-auto-tinymce")
+            self.fields[field_name].widget.attrs["class"] = " ".join(existing_classes)
 
         self.helper = FormHelper()
         self.helper.form_method = "post"

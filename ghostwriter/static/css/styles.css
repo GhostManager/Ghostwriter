@@ -1109,6 +1109,34 @@ a.btn-sm {
   justify-content: center;
 }
 
+.mfa-card-container {
+  width: 100%;
+  max-width: 36rem;
+}
+
+.mfa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.mfa-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 8.75rem;
+  min-height: 2.375rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .mfa-action-button {
+    flex-basis: 100%;
+  }
+}
+
 /* Button hover effects */
 .button:hover {
   background-color: var(--button-hover-color);
@@ -5516,4 +5544,23 @@ html[data-bs-theme="dark"] .modal .close {
   max-width: 100%;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.9rem;
+}
+
+@keyframes gw-formset-new-highlight {
+  0% {
+    border-color: rgba(80, 176, 113, 0.95);
+    box-shadow: 0 0 0 3px rgba(80, 176, 113, 0.35);
+  }
+
+  100% {
+    border-color: inherit;
+    box-shadow: 0 0 0 0 rgba(80, 176, 113, 0);
+  }
+}
+
+.formset-new-highlight .form-control,
+.formset-new-highlight .custom-select,
+.formset-new-highlight .select2-selection,
+.formset-new-highlight .tox.tox-tinymce {
+  animation: gw-formset-new-highlight 1800ms ease-out;
 }

@@ -1,0 +1,74 @@
+name: Check GraphQL Generated Sources
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/graphql-codegen.yml"
+      - "ghostwriter/**/migrations/**"
+      - "ghostwriter/**/models.py"
+      - "hasura-docker/metadata/**"
+      - "javascript/codegen.ts"
+      - "javascript/package.json"
+      - "javascript/package-lock.json"
+      - "javascript/src/**"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/graphql-codegen.yml"
+      - "ghostwriter/**/migrations/**"
+      - "ghostwriter/**/models.py"
+      - "hasura-docker/metadata/**"
+      - "javascript/codegen.ts"
+      - "javascript/package.json"
+      - "javascript/package-lock.json"
+      - "javascript/src/**"
+
+jobs:
+  check-graphql-codegen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
+
+      - name: Build environment
+        run: |
+          chmod +x ghostwriter-cli-linux
+          ./ghostwriter-cli-linux install --mode local-dev
+
+      - name: Wait for application services
+        run: |
+          docker compose -f local.yml up -d --wait --wait-timeout 300 postgres redis frontend django
+          docker compose -f local.yml up -d --force-recreate --wait --wait-timeout 300 graphql_engine
+
+      - name: Run GraphQL code generator
+        run: docker compose -f local.yml run --rm frontend npm run codegen
+
+      - name: Check generated GraphQL sources
+        run: |
+          if [[ -n "$(git status --porcelain -- javascript/src/__generated__)" ]]; then
+            git status --short -- javascript/src/__generated__
+            git diff -- javascript/src/__generated__
+            echo "::error::GraphQL generated sources are out of date. Run 'docker compose -f local.yml run --rm frontend npm run codegen' and commit the generated changes."
+            exit 1
+          fi
+
+      - name: Get GraphQL service logs
+        if: failure()
+        run: |
+          docker compose -f local.yml logs graphql_engine > graphql-engine-logs.txt
+          docker compose -f local.yml logs django > django-logs.txt
+          docker compose -f local.yml logs frontend > frontend-logs.txt
+
+      - name: Upload service logs artifact
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: graphql-codegen-service-logs
+          path: |
+            graphql-engine-logs.txt
+            django-logs.txt
+            frontend-logs.txt
