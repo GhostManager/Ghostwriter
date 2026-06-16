@@ -32,7 +32,7 @@ FROM python:3.10.20-alpine3.23
 
 RUN \
   --mount=type=cache,target=/var/cache/apk/ \
-  apk add libpq
+  apk add libpq curl
 
 RUN \
   --mount=type=bind,target=/wheels,source=/wheels,from=build \
