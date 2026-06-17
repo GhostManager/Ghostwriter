@@ -664,10 +664,7 @@ class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
     template_name = "reporting/report_template_detail.html"
 
     def test_func(self):
-        client = self.get_object().client
-        if client:
-            return client.user_can_view(self.request.user)
-        return self.request.user.is_active
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -854,8 +851,16 @@ class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
 
     model = ReportTemplate
 
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("reporting:templates")
+
     def get(self, *args, **kwargs):
-        obj = self.get_object()
+        obj = self.object
         file_path = obj.document.path
         if os.path.exists(file_path):
             # Detect the content type

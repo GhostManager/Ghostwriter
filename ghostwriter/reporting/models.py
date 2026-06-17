@@ -444,6 +444,13 @@ class ReportTemplate(models.Model):
     def __str__(self):
         return f"{self.name}"
 
+    def user_can_view(self, user) -> bool:
+        if not user.is_active:
+            return False
+        if user.is_privileged or self.client is None:
+            return True
+        return self.client.user_can_view(user)
+
     def get_effective_evidence_image_alignment(self, report_config):
         template_alignment = _text_choice_from_stored_value(
             EvidenceImageAlignmentOverride, self.evidence_image_alignment

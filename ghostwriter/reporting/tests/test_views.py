@@ -2471,12 +2471,22 @@ class ReportTemplateDownloadTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.assigned_user = UserFactory(password=PASSWORD)
+        cls.template_client = ClientFactory()
+        cls.scoped_template = ReportTemplateFactory(client=cls.template_client, protected=True)
+        ProjectAssignmentFactory(
+            project=ProjectFactory(client=cls.template_client),
+            operator=cls.assigned_user,
+        )
         cls.uri = reverse("reporting:template_download", kwargs={"pk": cls.template.pk})
+        cls.scoped_uri = reverse("reporting:template_download", kwargs={"pk": cls.scoped_template.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_assigned = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_assigned.login(username=self.assigned_user.username, password=PASSWORD))
 
     def test_view_uri_returns_desired_download(self):
         """Test default behavior downloads file (as_attachment=True)."""
@@ -2504,6 +2514,19 @@ class ReportTemplateDownloadTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_view_denies_client_scoped_template_without_access(self):
+        response = self.client_auth.get(self.scoped_uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("reporting:templates"))
+
+    def test_view_allows_client_scoped_template_with_access(self):
+        response = self.client_assigned.get(self.scoped_uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get("Content-Disposition"),
+            f'attachment; filename="{self.scoped_template.filename}"',
+        )
 
 
 class ReportTemplateDetailViewTests(TestCase):
