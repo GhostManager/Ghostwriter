@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
+from ghostwriter.api import utils
 from ghostwriter.commandcenter.models import BloodHoundConfiguration
 from ghostwriter.factories import (
     AuxServerAddressFactory,
@@ -1120,6 +1121,17 @@ class ProjectDetailViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_context_data_scopes_collab_jwt_to_project(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        payload = utils.get_jwt_payload(response.context["collab_jwt"])
+
+        self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "project")
+        self.assertEqual(payload[utils.COLLAB_OBJECT_ID_CLAIM], self.project.id)
+        self.assertEqual(payload[utils.COLLAB_REPORT_ID_CLAIM], utils.COLLAB_NO_ID)
+        self.assertEqual(payload[utils.COLLAB_FINDING_ID_CLAIM], utils.COLLAB_NO_ID)
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)

@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.1.1] - 18 June 2026
+
+### Fixed
+
+* Fixed project collaborative notes failing to load for users with project access (Fixes #913)
+  * The collaborative editor JWT is now scoped to the project so assigned users, project invitees, client invitees, managers, and admins can edit shared project notes
+
 ### Security
 
 * Fixed an authorization bypass that allowed authenticated users to download client-scoped report templates by direct URL
   * Template downloads now use the same client access check as the template detail page
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-hx63-6fvp-4rpv](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-hx63-6fvp-4rpv)
 
 ## [7.1.0] - 16 June 2026
 
