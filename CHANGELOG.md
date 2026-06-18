@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* Fixed project collaborative notes failing to load for users with project access
+  * The collaborative editor JWT is now scoped to the project so assigned users, project invitees, client invitees, managers, and admins can edit shared project notes
+
 ### Security
 
 * Fixed an authorization bypass that allowed authenticated users to download client-scoped report templates by direct URL
