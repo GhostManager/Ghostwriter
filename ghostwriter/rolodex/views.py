@@ -1709,6 +1709,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             self.request.user,
             object.pk,
             None,
+            CollabModelUpdate.collab_jwt_claims("project", object),
         ))
 
         bhc = BloodHoundConfiguration.get_solo()
