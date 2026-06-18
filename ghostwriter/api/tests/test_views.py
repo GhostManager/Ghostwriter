@@ -4371,7 +4371,10 @@ class CheckEditPermissionsTests(TestCase):
 
     def data(self, hasura_role="user", *, model="finding", object_id=None):
         return {
-            "input": {"model": model, "id": object_id or self.finding.id},
+            "input": {
+                "model": model,
+                "id": object_id if object_id is not None else self.finding.id,
+            },
             "session_variables": {"x-hasura-role": hasura_role},
         }
 
