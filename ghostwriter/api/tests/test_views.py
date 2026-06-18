@@ -4326,6 +4326,7 @@ class CheckEditPermissionsTests(TestCase):
         cls.project = ProjectFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:check_permissions")
 
     def setUp(self):
@@ -4414,6 +4415,21 @@ class CheckEditPermissionsTests(TestCase):
             content_type="application/json",
             headers=self.headers(
                 self.manager,
+                collab_claims=self.collab_claims(
+                    model="project",
+                    object_id=self.project.id,
+                ),
+            ),
+            data=self.data(model="project", object_id=self.project.id),
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_access_project_allowed_for_admin_with_matching_collab_scope(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(
+                self.admin,
                 collab_claims=self.collab_claims(
                     model="project",
                     object_id=self.project.id,
