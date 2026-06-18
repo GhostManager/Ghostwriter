@@ -7,7 +7,7 @@ The following versions are supported with security updates. In general, you shou
 | Version | Supported          |
 | ------- | ------------------ |
 | 7.1.x   | :white_check_mark: |
-| < 7.x.x | :x:                |
+| < 7.1.x | :x:                |
 
 ## Reporting a Vulnerability
 
