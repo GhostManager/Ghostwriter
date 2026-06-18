@@ -204,16 +204,10 @@ def collab_evidence_filter():
             {
                 "_or": [
                     privileged_user_filter(),
-                    user_project_access_filter("finding", "report", "project"),
                     user_project_access_filter("report", "project"),
                 ]
             },
-            {
-                "_or": [
-                    {"report_id": {"_eq": COLLAB_REPORT_ID_HEADER}},
-                    {"finding_id": {"_eq": COLLAB_FINDING_ID_HEADER}},
-                ]
-            },
+            {"report_id": {"_eq": COLLAB_REPORT_ID_HEADER}},
         ]
     }
 
@@ -224,7 +218,6 @@ EXPECTED_COLLAB_SELECT_PERMISSIONS = {
             "caption",
             "description",
             "document",
-            "finding_id",
             "friendly_name",
             "id",
             "report_id",
@@ -273,7 +266,7 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
     },
     "reporting_archive": project_scope_filter("project_id"),
     "reporting_doctype": {},
-    "reporting_evidence": evidence_project_filter(),
+    "reporting_evidence": service_token_project_access_filter("report", "project"),
     "reporting_finding": {},
     "reporting_findingnote": {},
     "reporting_findingtype": {},

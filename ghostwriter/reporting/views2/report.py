@@ -91,10 +91,7 @@ def _report_evidence_refs_for_entry(report: Report, entry: OplogEntry) -> list[t
     evidence_by_name: dict[str, int] = {}
     for link in entry.evidence_links.all():
         evidence = link.evidence
-        evidence_report_id = evidence.report_id
-        if evidence_report_id is None and evidence.finding_id is not None:
-            evidence_report_id = evidence.finding.report_id
-        if evidence_report_id != report.id:
+        if evidence.report_id != report.id:
             continue
         friendly_name = evidence.friendly_name.strip()
         if not friendly_name:
@@ -138,7 +135,6 @@ def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str
         .filter(_outline_entry_tag_query(report_config))
         .prefetch_related(
             "evidence_links__evidence__report",
-            "evidence_links__evidence__finding__report",
         )
         .order_by("start_date", "pk")
         .distinct()
@@ -894,7 +890,6 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     queryset = Report.objects.all().prefetch_related(
         "tags",
         "reportfindinglink_set",
-        "reportfindinglink_set__evidence_set",
         "reportobservationlink_set",
         "evidence_set",
         "project__oplog_set",

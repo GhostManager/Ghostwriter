@@ -5,8 +5,7 @@ import logging
 
 from ghostwriter.modules.reportwriter.base.xlsx import ExportXlsxBase
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
-from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
-from ghostwriter.reporting.models import Evidence, Finding
+from ghostwriter.reporting.models import Finding
 
 
 logger = logging.getLogger(__name__)
@@ -192,20 +191,10 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
             )
             col += 1
 
-            # Collect the evidence, if any, from the finding's folder and insert inline with description
-            try:
-                evidence_queryset = Evidence.objects.filter(finding=finding["id"])
-            except Evidence.DoesNotExist:
-                evidence_queryset = []
-            except Exception:
-                logger.exception("Query for evidence failed for finding %s", finding["id"])
-                evidence_queryset = []
-            evidence = [f.filename for f in evidence_queryset if f in TEXT_EXTENSIONS or f in IMAGE_EXTENSIONS]
-            finding_evidence_names = "\r\n".join(map(str, evidence))
             worksheet.write_string(
                 row,
                 col,
-                finding_evidence_names,
+                "",
                 wrap_format,
             )
             col += 1

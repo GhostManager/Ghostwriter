@@ -19,7 +19,7 @@ from django.utils.encoding import force_str
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     AdminFactory,
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     ExtraFieldModelFactory,
     ExtraFieldSpecFactory,
     MgrFactory,
@@ -762,7 +762,7 @@ class OplogExportViewTests(TestCase):
     def test_export_with_evidence(self):
         """GET with ?include=evidence returns a ZIP whose CSV has an evidence column."""
         entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
-        evidence = EvidenceOnReportFactory()
+        evidence = EvidenceFactory()
         OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
 
         _, zf = self._get_zip_export("evidence")
@@ -792,7 +792,7 @@ class OplogExportViewTests(TestCase):
         """GET with ?include=recordings,evidence includes both columns and both file folders."""
         entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
         recording = OplogEntryRecordingFactory(oplog_entry=entry)
-        evidence = EvidenceOnReportFactory()
+        evidence = EvidenceFactory()
         OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
 
         _, zf = self._get_zip_export("recordings,evidence")
@@ -827,8 +827,8 @@ class OplogExportViewTests(TestCase):
         entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
         duplicate_filename = f"duplicate_{uuid.uuid4().hex}.txt"
         duplicate_stem = os.path.splitext(duplicate_filename)[0]
-        evidence_one = EvidenceOnReportFactory(document=SimpleUploadedFile(duplicate_filename, b"first"))
-        evidence_two = EvidenceOnReportFactory(document=SimpleUploadedFile(duplicate_filename, b"second"))
+        evidence_one = EvidenceFactory(document=SimpleUploadedFile(duplicate_filename, b"first"))
+        evidence_two = EvidenceFactory(document=SimpleUploadedFile(duplicate_filename, b"second"))
         OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence_one)
         OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence_two)
 
@@ -1208,7 +1208,7 @@ class OplogEntryEvidenceListViewTests(TestCase):
         self.assertEqual(len(data["evidence"]), 0)
 
     def test_list_with_evidence(self):
-        evidence = EvidenceOnReportFactory(report=self.report)
+        evidence = EvidenceFactory(report=self.report)
         OplogEntryEvidenceFactory(oplog_entry=self.entry, evidence=evidence)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
