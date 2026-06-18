@@ -7,7 +7,12 @@ from django.test import TestCase
 # Ghostwriter Libraries
 from ghostwriter.api import utils
 from ghostwriter.commandcenter.views import CollabModelUpdate
-from ghostwriter.factories import ReportFactory, ReportFindingLinkFactory, UserFactory
+from ghostwriter.factories import (
+    ProjectFactory,
+    ReportFactory,
+    ReportFindingLinkFactory,
+    UserFactory,
+)
 
 logging.disable(logging.CRITICAL)
 
@@ -68,4 +73,14 @@ class CollabModelUpdateTests(TestCase):
         self.assertEqual(claims[utils.COLLAB_MODEL_CLAIM], "report")
         self.assertEqual(claims[utils.COLLAB_OBJECT_ID_CLAIM], report.id)
         self.assertEqual(claims[utils.COLLAB_REPORT_ID_CLAIM], report.id)
+        self.assertEqual(claims[utils.COLLAB_FINDING_ID_CLAIM], utils.COLLAB_NO_ID)
+
+    def test_project_collab_scope_uses_project_object_id(self):
+        project = ProjectFactory()
+
+        claims = CollabModelUpdate.collab_jwt_claims("project", project)
+
+        self.assertEqual(claims[utils.COLLAB_MODEL_CLAIM], "project")
+        self.assertEqual(claims[utils.COLLAB_OBJECT_ID_CLAIM], project.id)
+        self.assertEqual(claims[utils.COLLAB_REPORT_ID_CLAIM], utils.COLLAB_NO_ID)
         self.assertEqual(claims[utils.COLLAB_FINDING_ID_CLAIM], utils.COLLAB_NO_ID)

@@ -4323,8 +4323,10 @@ class CheckEditPermissionsTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.finding = FindingFactory()
+        cls.project = ProjectFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:check_permissions")
 
     def setUp(self):
@@ -4367,9 +4369,12 @@ class CheckEditPermissionsTests(TestCase):
             "Authorization": f"Bearer {token}",
         }
 
-    def data(self, hasura_role="user"):
+    def data(self, hasura_role="user", *, model="finding", object_id=None):
         return {
-            "input": {"model": "finding", "id": self.finding.id},
+            "input": {
+                "model": model,
+                "id": object_id if object_id is not None else self.finding.id,
+            },
             "session_variables": {"x-hasura-role": hasura_role},
         }
 
@@ -4406,6 +4411,70 @@ class CheckEditPermissionsTests(TestCase):
             data=self.data(),
         )
         self.assertEquals(response.status_code, 200, response.content)
+
+    def test_access_project_allowed_with_matching_collab_scope(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(
+                self.manager,
+                collab_claims=self.collab_claims(
+                    model="project",
+                    object_id=self.project.id,
+                ),
+            ),
+            data=self.data(model="project", object_id=self.project.id),
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_access_project_allowed_for_assigned_user_with_matching_collab_scope(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(
+                self.user,
+                collab_claims=self.collab_claims(
+                    model="project",
+                    object_id=self.project.id,
+                ),
+            ),
+            data=self.data(model="project", object_id=self.project.id),
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_access_project_allowed_for_admin_with_matching_collab_scope(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(
+                self.admin,
+                collab_claims=self.collab_claims(
+                    model="project",
+                    object_id=self.project.id,
+                ),
+            ),
+            data=self.data(model="project", object_id=self.project.id),
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_rejects_project_access_with_empty_collab_model_scope(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(
+                self.manager,
+                collab_claims={
+                    utils.COLLAB_MODEL_CLAIM: "",
+                    utils.COLLAB_OBJECT_ID_CLAIM: self.project.id,
+                    utils.COLLAB_REPORT_ID_CLAIM: utils.COLLAB_NO_ID,
+                    utils.COLLAB_FINDING_ID_CLAIM: utils.COLLAB_NO_ID,
+                },
+            ),
+            data=self.data(model="project", object_id=self.project.id),
+        )
+        self.assertEqual(response.status_code, 403, response.content)
 
     def test_rejects_collab_jwt_for_different_object_scope(self):
         response = self.client.post(
