@@ -249,18 +249,11 @@ select_permissions:
                               token_id:
                                 _eq: X-Hasura-Service-Token-Id
               - evidences:
-                  _or:
-                    - finding:
-                        report:
-                          project:
-                            serviceTokenProjectAccesses:
-                              token_id:
-                                _eq: X-Hasura-Service-Token-Id
-                    - report:
-                        project:
-                          serviceTokenProjectAccesses:
-                            token_id:
-                              _eq: X-Hasura-Service-Token-Id
+                  report:
+                    project:
+                      serviceTokenProjectAccesses:
+                        token_id:
+                          _eq: X-Hasura-Service-Token-Id
               - projectNotes:
                   project:
                     serviceTokenProjectAccesses:

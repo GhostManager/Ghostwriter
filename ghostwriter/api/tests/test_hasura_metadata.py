@@ -105,12 +105,7 @@ def user_project_access_filter(*path):
 
 
 def evidence_project_filter():
-    return {
-        "_or": [
-            project_scope_filter("finding", "report", "project_id"),
-            project_scope_filter("report", "project_id"),
-        ]
-    }
+    return project_scope_filter("report", "project_id")
 
 
 def report_template_project_filter():
