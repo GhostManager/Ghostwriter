@@ -203,7 +203,7 @@ class ApiEvidenceFormTests(TestCase):
         self.assertEqual(len(errors), 1)
 
     def test_duplicate_friendly_name(self):
-        evidence = EvidenceFactory(report=self.report, friendly_name="Duplicate Test")
+        EvidenceFactory(report=self.report, friendly_name="Duplicate Test")
         form = self.form_data(
             friendly_name="Duplicate Test",
             description="Test Description",
