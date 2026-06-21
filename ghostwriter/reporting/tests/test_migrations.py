@@ -66,7 +66,9 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
             report=self.report,
             severity=severity,
             finding_type=finding_type,
-            description="<p>{{.Collision}}</p><p>{{.ref Collision}}</p>",
+            description="<p>{{.Collision}}</p><p>{{ .Collision }}</p>",
+            impact="<p>{{.ref Collision}}</p><p>{{ .ref Collision }}</p><p>{{.ref   Collision }}</p>",
+            mitigation="<p>{{ .caption Collision }}</p>",
         )
 
         self.report_evidence = Evidence.objects.create(
@@ -128,7 +130,16 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
         finding = ReportFindingLink.objects.get(pk=self.finding.pk)
         self.assertEqual(
             finding.description,
-            f"<p>{{{{.{expected_name}}}}}</p><p>{{{{.ref {expected_name}}}}}</p>",
+            f"<p>{{{{.{expected_name}}}}}</p><p>{{{{.{expected_name}}}}}</p>",
+        )
+        self.assertEqual(
+            finding.impact,
+            f"<p>{{{{.ref {expected_name}}}}}</p><p>{{{{.ref {expected_name}}}}}</p>"
+            f"<p>{{{{.ref {expected_name}}}}}</p>",
+        )
+        self.assertEqual(
+            finding.mitigation,
+            f"<p>{{{{.caption {expected_name}}}}}</p>",
         )
 
     def test_historical_finding_evidence_in_report_directory_is_preserved(self):

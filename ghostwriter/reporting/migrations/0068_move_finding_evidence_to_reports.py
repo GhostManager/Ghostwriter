@@ -1,3 +1,5 @@
+import re
+
 from django.db import migrations
 
 
@@ -30,11 +32,21 @@ def get_unique_friendly_name(original_name, used_names, evidence_id):
     return new_name
 
 
+LEGACY_EVIDENCE_REFERENCE_RE = re.compile(r"\{\{\s*\.([^\{\}]*?)\s*\}\}")
+
+
+def update_legacy_evidence_reference(match, old_name, new_name):
+    contents = match.group(1).strip()
+    if contents == old_name:
+        return "{{." + new_name + "}}"
+    if re.fullmatch(r"ref\s+" + re.escape(old_name), contents):
+        return "{{.ref " + new_name + "}}"
+    if re.fullmatch(r"caption\s+" + re.escape(old_name), contents):
+        return "{{.caption " + new_name + "}}"
+    return match.group(0)
+
+
 def update_source_finding_references(finding, old_name, new_name):
-    old_token = f"{{{{.{old_name}}}}}"
-    old_ref_token = f"{{{{.ref {old_name}}}}}"
-    new_token = f"{{{{.{new_name}}}}}"
-    new_ref_token = f"{{{{.ref {new_name}}}}}"
     changed = False
 
     for field_name in REFERENCE_FIELDS:
@@ -42,7 +54,10 @@ def update_source_finding_references(finding, old_name, new_name):
         if not current:
             continue
 
-        updated = current.replace(old_token, new_token).replace(old_ref_token, new_ref_token)
+        updated = LEGACY_EVIDENCE_REFERENCE_RE.sub(
+            lambda match: update_legacy_evidence_reference(match, old_name, new_name),
+            current,
+        )
         if updated != current:
             setattr(finding, field_name, updated)
             changed = True
@@ -64,13 +79,20 @@ def move_finding_evidence_to_reports(apps, schema_editor):
     for report_id, friendly_name in report_evidences:
         used_names_by_report.setdefault(report_id, set()).add(friendly_name)
 
-    finding_evidences = Evidence.objects.exclude(finding_id=None).order_by("id")
+    finding_evidences = list(Evidence.objects.exclude(finding_id=None).order_by("id"))
+    finding_ids = {evidence.finding_id for evidence in finding_evidences}
+    findings_by_id = ReportFindingLink.objects.only(
+        "id",
+        "report_id",
+        *REFERENCE_FIELDS,
+    ).in_bulk(finding_ids)
+
     for evidence in finding_evidences:
-        finding = ReportFindingLink.objects.only(
-            "id",
-            "report_id",
-            *REFERENCE_FIELDS,
-        ).get(id=evidence.finding_id)
+        finding = findings_by_id.get(evidence.finding_id)
+        if finding is None:
+            raise ValueError(
+                f"Cannot migrate evidence {evidence.id}: finding {evidence.finding_id} does not exist."
+            )
 
         if finding.report_id is None:
             raise ValueError(
