@@ -416,11 +416,15 @@ class ApiEvidenceForm(forms.ModelForm):
             )
         return self.cleaned_data["filename"]
 
+    def has_legacy_finding_value(self):
+        empty_values = (None, "", [], {}, ())
+        return any(self.data.get(field_name) not in empty_values for field_name in ("finding", "findingId"))
+
     def clean(self):
         cleaned_data = super().clean()
 
         report = None
-        if "finding" in self.data or "findingId" in self.data:
+        if self.has_legacy_finding_value():
             self.add_error(
                 "report",
                 ValidationError(

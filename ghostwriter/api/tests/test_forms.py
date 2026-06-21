@@ -110,6 +110,7 @@ class ApiEvidenceFormTests(TestCase):
         }
         if finding is not None:
             data["finding"] = finding.pk
+        data.update(kwargs)
 
         return ApiEvidenceForm(
             data=data,
@@ -166,6 +167,25 @@ class ApiEvidenceFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors["report"][0].code, "finding_evidence_removed")
+
+    def test_empty_legacy_finding_values_are_ignored(self):
+        for field_name, value in (("finding", None), ("finding", ""), ("findingId", None), ("findingId", "")):
+            with self.subTest(field_name=field_name, value=value):
+                form = ApiEvidenceForm(
+                    data={
+                        "friendly_name": f"Test {field_name} {value!r}",
+                        "description": "Test Description",
+                        "caption": "Test Caption",
+                        "tags": "Test, Tag",
+                        "report": self.report.pk,
+                        "filename": "test.txt",
+                        "file_base64": "dGVzdA==",
+                        field_name: value,
+                    },
+                    user_obj=self.user,
+                    report_queryset=get_reports_list(self.user),
+                )
+                self.assertTrue(form.is_valid(), form.errors.as_data())
 
     def test_invalid_extension(self):
         form = self.form_data(

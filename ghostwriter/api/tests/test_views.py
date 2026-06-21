@@ -2271,6 +2271,34 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
         self.assertEqual(evidence.pk, self.report.evidence_set.all().get().pk)
 
+    def test_upload_report_accepts_empty_legacy_finding_values(self):
+        _, token = generate_user_jwt(self.user)
+        for field_name, value in (("finding", None), ("finding", ""), ("findingId", None), ("findingId", "")):
+            with self.subTest(field_name=field_name, value=value):
+                data = {
+                    "filename": "test.txt",
+                    "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+                    "friendly_name": f"test_evidence_{field_name}_{value!r}",
+                    "description": "This was added via graphql",
+                    "caption": "Graphql Evidence",
+                    "tags": "foo,bar,baz",
+                    "report": str(self.report.pk),
+                    field_name: value,
+                }
+                response = self.client.post(
+                    self.uri,
+                    data={"input": data},
+                    content_type="application/json",
+                    **{
+                        "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                        "HTTP_AUTHORIZATION": f"Bearer {token}",
+                    },
+                )
+                self.assertEqual(response.status_code, 201, response.content)
+                evidence = Evidence.objects.get(pk=response.json()["id"])
+                self.assertEqual(evidence.report_id, self.report.pk)
+                self.assertIsNone(getattr(evidence, "finding_id", None))
+
     def test_upload_report_forbidden(self):
         _, token = generate_user_jwt(self.disallowed_user)
         data = {
