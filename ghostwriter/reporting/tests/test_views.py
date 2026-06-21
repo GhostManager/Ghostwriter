@@ -3104,6 +3104,7 @@ class GenerateReportTests(TestCase):
             description=f"<p>{{{{.{evidence.friendly_name}}}}}</p>",
             impact=f"<p>{{{{.ref {evidence.friendly_name}}}}}</p>",
             mitigation=f"<p>{{{{.caption {evidence.friendly_name}}}}}</p>",
+            replication_steps=f'<div class="richtext-evidence" data-evidence-id="{evidence.pk}"></div>',
         )
         response = self.client_mgr.get(self.xlsx_uri)
         self.assertEqual(response.status_code, 200, response.content)

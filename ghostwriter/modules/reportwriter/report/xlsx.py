@@ -26,9 +26,15 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
         for rich_text in rich_texts:
             html = rich_text.render_html()
             soup = bs4.BeautifulSoup(html, "lxml")
-            for span in soup.find_all("span"):
+            for span in soup.find_all(["div", "span"]):
                 name = None
-                if "data-gw-evidence" in span.attrs:
+                if "data-evidence-id" in span.attrs and "richtext-evidence" in span.attrs.get("class", []):
+                    try:
+                        evidence = self.evidences_by_id[int(span.attrs["data-evidence-id"])]
+                    except (KeyError, ValueError):
+                        continue
+                    name = evidence["friendly_name"]
+                elif "data-gw-evidence" in span.attrs:
                     try:
                         evidence = self.evidences_by_id[int(span.attrs["data-gw-evidence"])]
                     except (KeyError, ValueError):
