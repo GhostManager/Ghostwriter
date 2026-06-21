@@ -7,11 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Breaking Changes
+### Added
 
-* Removed finding-level evidence ownership
-  * Existing finding-owned evidence is migrated to the owning report
-  * The evidence upload API and Hasura metadata no longer accept `finding` or `findingId` evidence associations
+* Added Playwright as a local dev package for end-to-end testing
+  * Added Playwright configuration and evidence metadata parser coverage for collaborative editor evidence loading
+
+### Changed
+
+* **Breaking:** All evidence now attaches to a report object and is available to all findings and other report fields
+* XLSX report exports now populate the "Supporting Evidence" column from report evidence references used by each finding
+  * This includes first-class evidence objects, legacy `{{.Evidence Name}}` tags, `{{.ref Evidence Name}}` references, and `{{.caption Evidence Name}}` captions
+* Collaborative editor evidence loading now validates report metadata before querying evidence and keeps the evidence tool disabled only until report-scoped evidence context is ready
+  * Users can still upload and insert report evidence from finding, observation, and report extra field editors
+
+### Removed
+
+* **Breaking:** Removed finding-level evidence ownership
+  * Existing finding-owned evidence migrates to the owning report
+  * In case of friendly name collisions, the migration adjusts the friendly name as needed to preserve both evidence records
+  * References to renamed migrated evidence update in the source finding's rich-text fields and extra fields
+  * The evidence upload API and Hasura metadata no longer accept non-empty `finding` or `findingId` evidence associations
 
 ## [7.1.1] - 18 June 2026
 
