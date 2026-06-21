@@ -12,21 +12,52 @@ const QUERY_EVIDENCE = gql(`
     }
 `);
 
-export function usePageEvidence(): Evidences | null {
-    const filters: Evidence_Bool_Exp = useMemo(() => {
-        const reportId = parseInt(
-            document.getElementById("graphql-evidence-report-id")!.innerHTML
+function getPageElementText(id: string): string | null {
+    const element = document.getElementById(id);
+    const value = element?.textContent?.trim();
+    if (!value) {
+        console.error(`Missing required page metadata: #${id}`);
+        return null;
+    }
+    return value;
+}
+
+function getPageEvidenceReportId(): number | null {
+    const value = getPageElementText("graphql-evidence-report-id");
+    if (value === null) return null;
+
+    if (!/^\d+$/.test(value)) {
+        console.error(
+            `Invalid #graphql-evidence-report-id value: ${JSON.stringify(value)}`
         );
+        return null;
+    }
+
+    const reportId = Number(value);
+    if (!Number.isSafeInteger(reportId)) {
+        console.error(
+            `Invalid #graphql-evidence-report-id value: ${JSON.stringify(value)}`
+        );
+        return null;
+    }
+    return reportId;
+}
+
+export function usePageEvidence(): Evidences | null {
+    const reportId = useMemo(getPageEvidenceReportId, []);
+    const filters: Evidence_Bool_Exp | null = useMemo(() => {
+        if (reportId === null) return null;
         return {
             reportId: { _eq: reportId },
         };
-    }, []);
+    }, [reportId]);
 
     const { data, refetch } = useQuery(QUERY_EVIDENCE, {
         variables: {
-            where: filters,
+            where: filters ?? {},
         },
         pollInterval: 10000,
+        skip: filters === null,
     });
 
     const poll = useCallback(() => refetch().then(() => {}), [refetch]);
@@ -34,9 +65,10 @@ export function usePageEvidence(): Evidences | null {
     const evidences = data?.evidence;
     if (evidences === null || evidences === undefined) return null;
 
-    const uploadUrl = document.getElementById(
+    const uploadUrl = getPageElementText(
         "graphql-evidence-upload-url"
-    )!.innerHTML;
+    );
+    if (uploadUrl === null) return null;
 
     return {
         evidence: evidences,

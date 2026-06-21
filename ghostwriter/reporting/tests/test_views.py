@@ -1935,6 +1935,14 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_finding_link_update.html")
 
+    def test_view_renders_numeric_evidence_report_id(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'<script type="text/plain" id="graphql-evidence-report-id">{self.report.pk}</script>',
+        )
+
     def test_default_cvss_version_configuration(self):
         """Test that the default CVSS version from ReportConfiguration is passed to the frontend."""
         from ghostwriter.commandcenter.models import ReportConfiguration
@@ -2025,6 +2033,76 @@ class ReportObservationLinkUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_observation_link_update.html")
+
+    def test_view_renders_numeric_evidence_report_id(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'<script type="text/plain" id="graphql-evidence-report-id">{self.report.pk}</script>',
+        )
+
+
+class ReportExtraFieldEditViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportExtraFieldEdit`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Report",
+            model_display_name="Reports",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="narrative",
+            display_name="Narrative",
+            type="rich_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse(
+            "reporting:report_extra_field_edit",
+            kwargs={"pk": cls.report.pk, "extra_field_name": cls.extra_field.internal_name},
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(project=self.report.project, operator=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/report_update_extra_field.html")
+
+    def test_view_renders_numeric_evidence_report_id(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'<script type="text/plain" id="graphql-evidence-report-id">{self.report.pk}</script>',
+        )
 
 
 # Tests related to :model:`reporting.Evidence`
