@@ -3,6 +3,7 @@ import { gql } from "../../__generated__/";
 import { useCallback, useMemo } from "react";
 import { Evidences, EvidencesContext } from "../../tiptap_gw/evidence";
 import { Evidence_Bool_Exp } from "../../__generated__/graphql";
+import { parseEvidenceReportId } from "./evidence_metadata";
 
 const QUERY_EVIDENCE = gql(`
     query QUERY_EVIDENCE($where: evidence_bool_exp!) {
@@ -26,15 +27,8 @@ function getPageEvidenceReportId(): number | null {
     const value = getPageElementText("graphql-evidence-report-id");
     if (value === null) return null;
 
-    if (!/^\d+$/.test(value)) {
-        console.error(
-            `Invalid #graphql-evidence-report-id value: ${JSON.stringify(value)}`
-        );
-        return null;
-    }
-
-    const reportId = Number(value);
-    if (!Number.isSafeInteger(reportId)) {
+    const reportId = parseEvidenceReportId(value);
+    if (reportId === null) {
         console.error(
             `Invalid #graphql-evidence-report-id value: ${JSON.stringify(value)}`
         );
