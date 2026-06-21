@@ -69,6 +69,16 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
             description="<p>{{.Collision}}</p><p>{{ .Collision }}</p>",
             impact="<p>{{.ref Collision}}</p><p>{{ .ref Collision }}</p><p>{{.ref   Collision }}</p>",
             mitigation="<p>{{ .caption Collision }}</p>",
+            extra_fields={
+                "rich_text_direct": "<p>{{.Collision}}</p><p>{{ .Collision }}</p>",
+                "rich_text_ref": "<p>{{ .ref Collision }}</p>",
+                "rich_text_caption": "<p>{{ .caption Collision }}</p>",
+                "nested": {
+                    "rich_text": "<p>{{.ref   Collision }}</p>",
+                    "plain": "No evidence token here",
+                },
+                "list": ["{{.Collision}}", 42, None],
+            },
         )
 
         self.report_evidence = Evidence.objects.create(
@@ -141,6 +151,24 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
             finding.mitigation,
             f"<p>{{{{.caption {expected_name}}}}}</p>",
         )
+        self.assertEqual(
+            finding.extra_fields["rich_text_direct"],
+            f"<p>{{{{.{expected_name}}}}}</p><p>{{{{.{expected_name}}}}}</p>",
+        )
+        self.assertEqual(
+            finding.extra_fields["rich_text_ref"],
+            f"<p>{{{{.ref {expected_name}}}}}</p>",
+        )
+        self.assertEqual(
+            finding.extra_fields["rich_text_caption"],
+            f"<p>{{{{.caption {expected_name}}}}}</p>",
+        )
+        self.assertEqual(
+            finding.extra_fields["nested"]["rich_text"],
+            f"<p>{{{{.ref {expected_name}}}}}</p>",
+        )
+        self.assertEqual(finding.extra_fields["nested"]["plain"], "No evidence token here")
+        self.assertEqual(finding.extra_fields["list"], [f"{{{{.{expected_name}}}}}", 42, None])
 
     def test_historical_finding_evidence_in_report_directory_is_preserved(self):
         report_prefix = f"evidence/{self.report.pk}/"

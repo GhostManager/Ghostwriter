@@ -46,24 +46,48 @@ def update_legacy_evidence_reference(match, old_name, new_name):
     return match.group(0)
 
 
+def update_legacy_evidence_references_text(text, old_name, new_name):
+    return LEGACY_EVIDENCE_REFERENCE_RE.sub(
+        lambda match: update_legacy_evidence_reference(match, old_name, new_name),
+        text,
+    )
+
+
+def update_extra_field_references(value, old_name, new_name):
+    if isinstance(value, str):
+        return update_legacy_evidence_references_text(value, old_name, new_name)
+    if isinstance(value, list):
+        return [update_extra_field_references(item, old_name, new_name) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: update_extra_field_references(item, old_name, new_name)
+            for key, item in value.items()
+        }
+    return value
+
+
 def update_source_finding_references(finding, old_name, new_name):
-    changed = False
+    update_fields = []
 
     for field_name in REFERENCE_FIELDS:
         current = getattr(finding, field_name)
         if not current:
             continue
 
-        updated = LEGACY_EVIDENCE_REFERENCE_RE.sub(
-            lambda match: update_legacy_evidence_reference(match, old_name, new_name),
-            current,
-        )
+        updated = update_legacy_evidence_references_text(current, old_name, new_name)
         if updated != current:
             setattr(finding, field_name, updated)
-            changed = True
+            update_fields.append(field_name)
 
-    if changed:
-        finding.save(update_fields=REFERENCE_FIELDS)
+    extra_fields = getattr(finding, "extra_fields", None)
+    if extra_fields:
+        updated_extra_fields = update_extra_field_references(extra_fields, old_name, new_name)
+        if updated_extra_fields != extra_fields:
+            finding.extra_fields = updated_extra_fields
+            update_fields.append("extra_fields")
+
+    if update_fields:
+        finding.save(update_fields=update_fields)
 
 
 def move_finding_evidence_to_reports(apps, schema_editor):
@@ -84,6 +108,7 @@ def move_finding_evidence_to_reports(apps, schema_editor):
     findings_by_id = ReportFindingLink.objects.only(
         "id",
         "report_id",
+        "extra_fields",
         *REFERENCE_FIELDS,
     ).in_bulk(finding_ids)
 
