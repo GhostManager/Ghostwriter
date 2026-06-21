@@ -1,10 +1,12 @@
 # Standard Libraries
 from datetime import date, timedelta
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 # Django Imports
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 
 
 class FindingEvidenceMigrationTests(TransactionTestCase):
@@ -15,6 +17,10 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
+        self.media_root_context = TemporaryDirectory()
+        self.override = override_settings(MEDIA_ROOT=self.media_root_context.name)
+        self.override.enable()
+
         self.executor = MigrationExecutor(connection)
         self.executor.migrate(self.migrate_from)
         old_apps = self.executor.loader.project_state(self.migrate_from).apps
@@ -23,6 +29,17 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
         self.executor = MigrationExecutor(connection)
         self.executor.migrate(self.migrate_to)
         self.apps = self.executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        self.override.disable()
+        self.media_root_context.cleanup()
+        super().tearDown()
+
+    def create_media_file(self, document_name, content):
+        path = Path(self.media_root_context.name) / document_name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        return str(path)
 
     def setUpBeforeMigration(self, apps):
         Client = apps.get_model("rolodex", "Client")
@@ -67,6 +84,27 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
             friendly_name="Unique",
             document="evidence/unique.txt",
         )
+        self.report_filename_collision = Evidence.objects.create(
+            report=self.report,
+            friendly_name="Report Filename Collision",
+            document=f"evidence/{self.report.pk}/filename-collision.txt",
+        )
+        self.finding_filename_collision = Evidence.objects.create(
+            finding=self.finding,
+            friendly_name="Finding Filename Collision",
+            document=f"evidence/{self.report.pk}/filename-collision_abc123.txt",
+        )
+
+        self.report_filename_collision_document = self.report_filename_collision.document.name
+        self.finding_filename_collision_document = self.finding_filename_collision.document.name
+        self.report_filename_collision_path = self.create_media_file(
+            self.report_filename_collision_document,
+            b"existing report evidence",
+        )
+        self.finding_filename_collision_path = self.create_media_file(
+            self.finding_filename_collision_document,
+            b"finding evidence",
+        )
 
     def test_finding_evidence_moves_to_report_and_removes_finding_field(self):
         Evidence = self.apps.get_model("reporting", "Evidence")
@@ -92,3 +130,27 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
             finding.description,
             f"<p>{{{{.{expected_name}}}}}</p><p>{{{{.ref {expected_name}}}}}</p>",
         )
+
+    def test_historical_finding_evidence_in_report_directory_is_preserved(self):
+        report_prefix = f"evidence/{self.report.pk}/"
+
+        self.assertTrue(self.finding_filename_collision_document.startswith(report_prefix))
+        self.assertTrue(self.report_filename_collision_document.startswith(report_prefix))
+
+    def test_filename_collision_is_already_resolved_by_storage_and_preserved(self):
+        Evidence = self.apps.get_model("reporting", "Evidence")
+
+        report_evidence = Evidence.objects.get(pk=self.report_filename_collision.pk)
+        migrated_evidence = Evidence.objects.get(pk=self.finding_filename_collision.pk)
+
+        self.assertEqual(report_evidence.document.name, self.report_filename_collision_document)
+        self.assertEqual(migrated_evidence.document.name, self.finding_filename_collision_document)
+        self.assertNotEqual(report_evidence.document.name, migrated_evidence.document.name)
+        self.assertEqual(migrated_evidence.report_id, self.report.pk)
+
+        report_path = Path(self.report_filename_collision_path)
+        migrated_path = Path(self.finding_filename_collision_path)
+        self.assertTrue(report_path.exists())
+        self.assertTrue(migrated_path.exists())
+        self.assertEqual(report_path.read_bytes(), b"existing report evidence")
+        self.assertEqual(migrated_path.read_bytes(), b"finding evidence")

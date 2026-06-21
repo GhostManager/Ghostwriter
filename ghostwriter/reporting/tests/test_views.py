@@ -1,8 +1,11 @@
 # Standard Libraries
+import io
 import json
 import logging
 import os
+import zipfile
 from datetime import datetime, timedelta, timezone
+from xml.etree import ElementTree
 
 # Django Imports
 from django.contrib.messages import get_messages
@@ -2958,6 +2961,44 @@ class GenerateReportTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
+    def _xlsx_header_values(self, response):
+        return self._xlsx_rows(response)[0]
+
+    def _xlsx_column_index(self, cell_reference):
+        column_letters = "".join(char for char in cell_reference if char.isalpha())
+        column_index = 0
+        for char in column_letters:
+            column_index = column_index * 26 + ord(char) - ord("A") + 1
+        return column_index - 1
+
+    def _xlsx_rows(self, response):
+        with zipfile.ZipFile(io.BytesIO(response.content)) as workbook:
+            namespace = {"xlsx": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            shared_strings = ElementTree.fromstring(workbook.read("xl/sharedStrings.xml"))
+            strings = [
+                "".join(text.text or "" for text in item.findall(".//xlsx:t", namespace))
+                for item in shared_strings.findall("xlsx:si", namespace)
+            ]
+            sheet = ElementTree.fromstring(workbook.read("xl/worksheets/sheet1.xml"))
+
+            rows = []
+            for row in sheet.findall(".//xlsx:sheetData/xlsx:row", namespace):
+                row_values = []
+                for cell in row.findall("xlsx:c", namespace):
+                    column_index = self._xlsx_column_index(cell.get("r"))
+                    while len(row_values) <= column_index:
+                        row_values.append("")
+
+                    value = cell.find("xlsx:v", namespace)
+                    if value is None:
+                        row_values[column_index] = ""
+                    elif cell.get("t") == "s":
+                        row_values[column_index] = strings[int(value.text)]
+                    else:
+                        row_values[column_index] = value.text
+                rows.append(row_values)
+        return rows
+
     def test_view_json_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.json_uri)
         self.assertEqual(response.status_code, 200)
@@ -2976,6 +3017,41 @@ class GenerateReportTests(TestCase):
             response.get("Content-Type"),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
+    def test_view_xlsx_populates_supporting_evidence_column(self):
+        evidence = EvidenceFactory(report=self.report, friendly_name="XLSX Linked Evidence")
+        finding = ReportFindingLinkFactory(
+            report=self.report,
+            title="Finding with XLSX evidence",
+            description=f"<p>{{{{.{evidence.friendly_name}}}}}</p>",
+            impact=f"<p>{{{{.ref {evidence.friendly_name}}}}}</p>",
+            mitigation=f"<p>{{{{.caption {evidence.friendly_name}}}}}</p>",
+        )
+        response = self.client_mgr.get(self.xlsx_uri)
+        self.assertEqual(response.status_code, 200, response.content)
+
+        expected_headers = [
+            "Finding",
+            "Severity",
+            "CVSS Score",
+            "CVSS Vector",
+            "Affected Entities",
+            "Description",
+            "Impact",
+            "Recommendation",
+            "Replication Steps",
+            "Host Detection Techniques",
+            "Network Detection Techniques",
+            "References",
+            "Supporting Evidence",
+            "Tags",
+        ]
+        rows = self._xlsx_rows(response)
+        headers = rows[0]
+        finding_row = next(row for row in rows[1:] if row[0] == finding.title)
+
+        self.assertEqual(headers[: len(expected_headers)], expected_headers)
+        self.assertEqual(finding_row[headers.index("Supporting Evidence")], evidence.friendly_name)
 
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)

@@ -3,6 +3,9 @@ import io
 import json
 import logging
 
+import bs4
+from xlsxwriter.utility import xl_col_to_name
+
 from ghostwriter.modules.reportwriter.base.xlsx import ExportXlsxBase
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import Finding
@@ -12,6 +15,53 @@ logger = logging.getLogger(__name__)
 
 
 class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
+    def referenced_evidence_names(self, rich_texts) -> list[str]:
+        """
+        Return report evidence friendly names referenced by rendered rich-text sections.
+        """
+        names = []
+        seen = set()
+        valid_names = {evidence["friendly_name"] for evidence in self.evidences_by_id.values()}
+
+        for rich_text in rich_texts:
+            html = rich_text.render_html()
+            soup = bs4.BeautifulSoup(html, "lxml")
+            for span in soup.find_all("span"):
+                name = None
+                if "data-gw-evidence" in span.attrs:
+                    try:
+                        evidence = self.evidences_by_id[int(span.attrs["data-gw-evidence"])]
+                    except (KeyError, ValueError):
+                        continue
+                    name = evidence["friendly_name"]
+                elif "data-gw-caption" in span.attrs:
+                    ref_name = span.attrs["data-gw-caption"]
+                    name = ref_name if ref_name in valid_names else None
+                elif "data-gw-ref" in span.attrs:
+                    ref_name = span.attrs["data-gw-ref"]
+                    name = ref_name if ref_name in valid_names else None
+
+                if name and name not in seen:
+                    seen.add(name)
+                    names.append(name)
+        return names
+
+    def finding_rich_texts(self, finding, findings_extra_field_specs):
+        rich_texts = [
+            finding["affected_entities_rt"],
+            finding["description_rt"],
+            finding["impact_rt"],
+            finding["recommendation_rt"],
+            finding["replication_steps_rt"],
+            finding["host_detection_techniques_rt"],
+            finding["network_detection_techniques_rt"],
+            finding["references_rt"],
+        ]
+        for field_spec in findings_extra_field_specs:
+            if field_spec.type == "rich_text":
+                rich_texts.append(field_spec.value_of(finding["extra_fields"]))
+        return rich_texts
+
     def run(self) -> io.BytesIO:
         context = self.map_rich_texts()
 
@@ -62,6 +112,7 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
         ]
 
         findings_extra_field_specs = self.extra_field_specs_for(Finding)
+        column_count = len(headers) + len(findings_extra_field_specs)
 
         # Create 30 width columns and then shrink severity to 10
         for header in headers:
@@ -70,7 +121,7 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
         for field in findings_extra_field_specs:
             worksheet.write_string(0, col, field.display_name, bold_format)
             col += 1
-        worksheet.set_column(0, 13, 30)
+        worksheet.set_column(0, column_count - 1, 30)
         worksheet.set_column(1, 1, 10)
         worksheet.set_column(2, 2, 10)
         worksheet.set_column(3, 3, 40)
@@ -191,10 +242,13 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
             )
             col += 1
 
+            # Supporting Evidence
             worksheet.write_string(
                 row,
                 col,
-                "",
+                ", ".join(
+                    self.referenced_evidence_names(self.finding_rich_texts(finding, findings_extra_field_specs))
+                ),
                 wrap_format,
             )
             col += 1
@@ -225,6 +279,8 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
             col = 0
 
         # Add a filter to the worksheet
-        worksheet.autofilter("A1:M{}".format(len(self.data["findings"]) + 1))
+        worksheet.autofilter(
+            "A1:{}{}".format(xl_col_to_name(column_count - 1), len(self.data["findings"]) + 1)
+        )
 
         return super().run()
