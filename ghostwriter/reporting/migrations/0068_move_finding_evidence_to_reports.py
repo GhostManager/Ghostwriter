@@ -103,8 +103,8 @@ def move_finding_evidence_to_reports(apps, schema_editor):
     for report_id, friendly_name in report_evidences:
         used_names_by_report.setdefault(report_id, set()).add(friendly_name)
 
-    finding_evidences = list(Evidence.objects.exclude(finding_id=None).order_by("id"))
-    finding_ids = {evidence.finding_id for evidence in finding_evidences}
+    finding_evidences = Evidence.objects.exclude(finding_id=None).order_by("id")
+    finding_ids = finding_evidences.values_list("finding_id", flat=True).distinct()
     findings_by_id = ReportFindingLink.objects.only(
         "id",
         "report_id",
@@ -112,7 +112,7 @@ def move_finding_evidence_to_reports(apps, schema_editor):
         *REFERENCE_FIELDS,
     ).in_bulk(finding_ids)
 
-    for evidence in finding_evidences:
+    for evidence in finding_evidences.iterator():
         finding = findings_by_id.get(evidence.finding_id)
         if finding is None:
             raise ValueError(
