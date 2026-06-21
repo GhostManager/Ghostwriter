@@ -7675,14 +7675,11 @@ export type Evidence = {
   caption: Scalars['String']['output'];
   description: Scalars['String']['output'];
   document: Scalars['String']['output'];
-  /** An object relationship */
-  finding?: Maybe<ReportedFinding>;
-  findingId?: Maybe<Scalars['bigint']['output']>;
   friendlyName: Scalars['String']['output'];
   id: Scalars['bigint']['output'];
   /** An object relationship */
-  report?: Maybe<Report>;
-  reportId?: Maybe<Scalars['bigint']['output']>;
+  report: Report;
+  reportId: Scalars['bigint']['output'];
   uploadDate: Scalars['date']['output'];
   uploadedById?: Maybe<Scalars['bigint']['output']>;
   /** An object relationship */
@@ -7755,7 +7752,6 @@ export type Evidence_Arr_Rel_Insert_Input = {
 /** aggregate avg on columns */
 export type Evidence_Avg_Fields = {
   __typename?: 'evidence_avg_fields';
-  findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
@@ -7763,7 +7759,6 @@ export type Evidence_Avg_Fields = {
 
 /** order by avg() on columns of table "reporting_evidence" */
 export type Evidence_Avg_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -7777,8 +7772,6 @@ export type Evidence_Bool_Exp = {
   caption?: InputMaybe<String_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   document?: InputMaybe<String_Comparison_Exp>;
-  finding?: InputMaybe<ReportedFinding_Bool_Exp>;
-  findingId?: InputMaybe<Bigint_Comparison_Exp>;
   friendlyName?: InputMaybe<String_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
   report?: InputMaybe<Report_Bool_Exp>;
@@ -7796,7 +7789,6 @@ export enum Evidence_Constraint {
 
 /** input type for incrementing numeric columns in table "reporting_evidence" */
 export type Evidence_Inc_Input = {
-  findingId?: InputMaybe<Scalars['bigint']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   reportId?: InputMaybe<Scalars['bigint']['input']>;
   uploadedById?: InputMaybe<Scalars['bigint']['input']>;
@@ -7807,8 +7799,6 @@ export type Evidence_Insert_Input = {
   caption?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
-  finding?: InputMaybe<ReportedFinding_Obj_Rel_Insert_Input>;
-  findingId?: InputMaybe<Scalars['bigint']['input']>;
   friendlyName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   report?: InputMaybe<Report_Obj_Rel_Insert_Input>;
@@ -7824,7 +7814,6 @@ export type Evidence_Max_Fields = {
   caption?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   document?: Maybe<Scalars['String']['output']>;
-  findingId?: Maybe<Scalars['bigint']['output']>;
   friendlyName?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   reportId?: Maybe<Scalars['bigint']['output']>;
@@ -7837,7 +7826,6 @@ export type Evidence_Max_Order_By = {
   caption?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
-  findingId?: InputMaybe<Order_By>;
   friendlyName?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
@@ -7851,7 +7839,6 @@ export type Evidence_Min_Fields = {
   caption?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   document?: Maybe<Scalars['String']['output']>;
-  findingId?: Maybe<Scalars['bigint']['output']>;
   friendlyName?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   reportId?: Maybe<Scalars['bigint']['output']>;
@@ -7864,7 +7851,6 @@ export type Evidence_Min_Order_By = {
   caption?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
-  findingId?: InputMaybe<Order_By>;
   friendlyName?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
@@ -7900,8 +7886,6 @@ export type Evidence_Order_By = {
   caption?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
   document?: InputMaybe<Order_By>;
-  finding?: InputMaybe<ReportedFinding_Order_By>;
-  findingId?: InputMaybe<Order_By>;
   friendlyName?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   report?: InputMaybe<Report_Order_By>;
@@ -7925,8 +7909,6 @@ export enum Evidence_Select_Column {
   /** column name */
   Document = 'document',
   /** column name */
-  FindingId = 'findingId',
-  /** column name */
   FriendlyName = 'friendlyName',
   /** column name */
   Id = 'id',
@@ -7943,7 +7925,6 @@ export type Evidence_Set_Input = {
   caption?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
-  findingId?: InputMaybe<Scalars['bigint']['input']>;
   friendlyName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   reportId?: InputMaybe<Scalars['bigint']['input']>;
@@ -7954,7 +7935,6 @@ export type Evidence_Set_Input = {
 /** aggregate stddev on columns */
 export type Evidence_Stddev_Fields = {
   __typename?: 'evidence_stddev_fields';
-  findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
@@ -7962,7 +7942,6 @@ export type Evidence_Stddev_Fields = {
 
 /** order by stddev() on columns of table "reporting_evidence" */
 export type Evidence_Stddev_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -7971,7 +7950,6 @@ export type Evidence_Stddev_Order_By = {
 /** aggregate stddev_pop on columns */
 export type Evidence_Stddev_Pop_Fields = {
   __typename?: 'evidence_stddev_pop_fields';
-  findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
@@ -7979,7 +7957,6 @@ export type Evidence_Stddev_Pop_Fields = {
 
 /** order by stddev_pop() on columns of table "reporting_evidence" */
 export type Evidence_Stddev_Pop_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -7988,7 +7965,6 @@ export type Evidence_Stddev_Pop_Order_By = {
 /** aggregate stddev_samp on columns */
 export type Evidence_Stddev_Samp_Fields = {
   __typename?: 'evidence_stddev_samp_fields';
-  findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
@@ -7996,7 +7972,6 @@ export type Evidence_Stddev_Samp_Fields = {
 
 /** order by stddev_samp() on columns of table "reporting_evidence" */
 export type Evidence_Stddev_Samp_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -8015,7 +7990,6 @@ export type Evidence_Stream_Cursor_Value_Input = {
   caption?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   document?: InputMaybe<Scalars['String']['input']>;
-  findingId?: InputMaybe<Scalars['bigint']['input']>;
   friendlyName?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   reportId?: InputMaybe<Scalars['bigint']['input']>;
@@ -8026,7 +8000,6 @@ export type Evidence_Stream_Cursor_Value_Input = {
 /** aggregate sum on columns */
 export type Evidence_Sum_Fields = {
   __typename?: 'evidence_sum_fields';
-  findingId?: Maybe<Scalars['bigint']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
   reportId?: Maybe<Scalars['bigint']['output']>;
   uploadedById?: Maybe<Scalars['bigint']['output']>;
@@ -8034,7 +8007,6 @@ export type Evidence_Sum_Fields = {
 
 /** order by sum() on columns of table "reporting_evidence" */
 export type Evidence_Sum_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -8048,8 +8020,6 @@ export enum Evidence_Update_Column {
   Description = 'description',
   /** column name */
   Document = 'document',
-  /** column name */
-  FindingId = 'findingId',
   /** column name */
   FriendlyName = 'friendlyName',
   /** column name */
@@ -8074,7 +8044,6 @@ export type Evidence_Updates = {
 /** aggregate var_pop on columns */
 export type Evidence_Var_Pop_Fields = {
   __typename?: 'evidence_var_pop_fields';
-  findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
@@ -8082,7 +8051,6 @@ export type Evidence_Var_Pop_Fields = {
 
 /** order by var_pop() on columns of table "reporting_evidence" */
 export type Evidence_Var_Pop_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -8091,7 +8059,6 @@ export type Evidence_Var_Pop_Order_By = {
 /** aggregate var_samp on columns */
 export type Evidence_Var_Samp_Fields = {
   __typename?: 'evidence_var_samp_fields';
-  findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
@@ -8099,7 +8066,6 @@ export type Evidence_Var_Samp_Fields = {
 
 /** order by var_samp() on columns of table "reporting_evidence" */
 export type Evidence_Var_Samp_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -8108,7 +8074,6 @@ export type Evidence_Var_Samp_Order_By = {
 /** aggregate variance on columns */
 export type Evidence_Variance_Fields = {
   __typename?: 'evidence_variance_fields';
-  findingId?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
   reportId?: Maybe<Scalars['Float']['output']>;
   uploadedById?: Maybe<Scalars['Float']['output']>;
@@ -8116,7 +8081,6 @@ export type Evidence_Variance_Fields = {
 
 /** order by variance() on columns of table "reporting_evidence" */
 export type Evidence_Variance_Order_By = {
-  findingId?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   reportId?: InputMaybe<Order_By>;
   uploadedById?: InputMaybe<Order_By>;
@@ -15575,7 +15539,6 @@ export type Mutation_RootUploadEvidenceArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
   file_base64: Scalars['String']['input'];
   filename: Scalars['String']['input'];
-  finding?: InputMaybe<Scalars['Int']['input']>;
   friendly_name: Scalars['String']['input'];
   report?: InputMaybe<Scalars['Int']['input']>;
   tags?: InputMaybe<Scalars['String']['input']>;
@@ -25581,10 +25544,6 @@ export type ReportedFinding = {
   cvssScore?: Maybe<Scalars['float8']['output']>;
   cvssVector: Scalars['String']['output'];
   description: Scalars['String']['output'];
-  /** An array relationship */
-  evidences: Array<Evidence>;
-  /** An aggregate relationship */
-  evidences_aggregate: Evidence_Aggregate;
   extraFields: Scalars['jsonb']['output'];
   findingGuidance: Scalars['String']['output'];
   /** An object relationship */
@@ -25625,26 +25584,6 @@ export type ReportedFindingComments_AggregateArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<ReportedFindingNote_Order_By>>;
   where?: InputMaybe<ReportedFindingNote_Bool_Exp>;
-};
-
-
-/** columns and relationships of "reporting_reportfindinglink" */
-export type ReportedFindingEvidencesArgs = {
-  distinct_on?: InputMaybe<Array<Evidence_Select_Column>>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  order_by?: InputMaybe<Array<Evidence_Order_By>>;
-  where?: InputMaybe<Evidence_Bool_Exp>;
-};
-
-
-/** columns and relationships of "reporting_reportfindinglink" */
-export type ReportedFindingEvidences_AggregateArgs = {
-  distinct_on?: InputMaybe<Array<Evidence_Select_Column>>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  order_by?: InputMaybe<Array<Evidence_Order_By>>;
-  where?: InputMaybe<Evidence_Bool_Exp>;
 };
 
 
@@ -26217,8 +26156,6 @@ export type ReportedFinding_Bool_Exp = {
   cvssScore?: InputMaybe<Float8_Comparison_Exp>;
   cvssVector?: InputMaybe<String_Comparison_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
-  evidences?: InputMaybe<Evidence_Bool_Exp>;
-  evidences_aggregate?: InputMaybe<Evidence_Aggregate_Bool_Exp>;
   extraFields?: InputMaybe<Jsonb_Comparison_Exp>;
   findingGuidance?: InputMaybe<String_Comparison_Exp>;
   findingType?: InputMaybe<FindingType_Bool_Exp>;
@@ -26281,7 +26218,6 @@ export type ReportedFinding_Insert_Input = {
   cvssScore?: InputMaybe<Scalars['float8']['input']>;
   cvssVector?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  evidences?: InputMaybe<Evidence_Arr_Rel_Insert_Input>;
   extraFields?: InputMaybe<Scalars['jsonb']['input']>;
   findingGuidance?: InputMaybe<Scalars['String']['input']>;
   findingType?: InputMaybe<FindingType_Obj_Rel_Insert_Input>;
@@ -26425,7 +26361,6 @@ export type ReportedFinding_Order_By = {
   cvssScore?: InputMaybe<Order_By>;
   cvssVector?: InputMaybe<Order_By>;
   description?: InputMaybe<Order_By>;
-  evidences_aggregate?: InputMaybe<Evidence_Aggregate_Order_By>;
   extraFields?: InputMaybe<Order_By>;
   findingGuidance?: InputMaybe<Order_By>;
   findingType?: InputMaybe<FindingType_Order_By>;
