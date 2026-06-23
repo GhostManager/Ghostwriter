@@ -735,3 +735,16 @@ class HasuraMetadataUserRoleTests(SimpleTestCase):
                     user_feature_flag_check(feature_flag),
                     f"{filename} {permission_type}",
                 )
+
+    def test_report_template_assignments_are_not_graphql_writable(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_reporting_report.yaml")
+        template_columns = {"docx_template_id", "pptx_template_id"}
+
+        for role in ("manager", "user"):
+            for permission_type in ("insert_permissions", "update_permissions"):
+                permission = get_role_permission(table, role, permission_type)
+                writable_columns = set(permission["permission"].get("columns", []))
+                self.assertFalse(
+                    template_columns & writable_columns,
+                    f"{role} {permission_type}",
+                )

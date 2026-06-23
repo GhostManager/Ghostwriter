@@ -24,6 +24,10 @@ def archive_report(report: Report):
         raise MissingTemplate()
     if not pptx_template:
         raise MissingTemplate()
+    if not docx_template.can_apply_to_report(report):
+        raise ValueError("The selected Word template is not available for this report.")
+    if not pptx_template.can_apply_to_report(report):
+        raise ValueError("The selected PowerPoint template is not available for this report.")
     filename = "archives/" + "".join(c for c in report.title if c.isalpha() or c.isdigit() or c == ' ') + ".zip"
     evidences = report.all_evidences()
 

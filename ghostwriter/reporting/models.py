@@ -451,10 +451,14 @@ class ReportTemplate(models.Model):
             return True
         return self.client.user_can_view(user)
 
+    def can_apply_to_project(self, project) -> bool:
+        return self.client_id is None or self.client_id == project.client_id
+
+    def can_apply_to_report(self, report) -> bool:
+        return self.can_apply_to_project(report.project)
+
     def user_can_apply_to_report(self, user, report) -> bool:
-        return self.user_can_view(user) and (
-            self.client_id is None or self.client_id == report.project.client_id
-        )
+        return self.user_can_view(user) and self.can_apply_to_report(report)
 
     def get_effective_evidence_image_alignment(self, report_config):
         template_alignment = _text_choice_from_stored_value(

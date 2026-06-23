@@ -6,6 +6,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    ClientFactory,
     EvidenceOnFindingFactory,
     EvidenceOnReportFactory,
     FindingNoteFactory,
@@ -16,6 +17,7 @@ from ghostwriter.factories import (
     ReportFindingLinkFactory,
     ReportObservationLinkFactory,
     ReportDocxTemplateFactory,
+    ReportPptxTemplateFactory,
     SeverityFactory,
     UserFactory,
 )
@@ -103,6 +105,48 @@ class ReportFormTests(TestCase):
         errors = form["pptx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid_choice")
+
+    def test_client_scoped_templates_are_limited_to_selected_project_client(self):
+        ProjectAssignmentFactory(operator=self.user, project=self.project)
+        same_client_docx = ReportDocxTemplateFactory(client=self.project.client)
+        same_client_pptx = ReportPptxTemplateFactory(client=self.project.client)
+        foreign_docx = ReportDocxTemplateFactory(client=ClientFactory())
+        foreign_pptx = ReportPptxTemplateFactory(client=ClientFactory())
+
+        form = self.form_data(
+            user=self.user,
+            title="Scoped Template Report",
+            archived=False,
+            project_id=self.project.pk,
+            docx_template_id=same_client_docx.pk,
+            pptx_template_id=same_client_pptx.pk,
+            delivered=False,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertIn(same_client_docx, form.fields["docx_template"].queryset)
+        self.assertIn(same_client_pptx, form.fields["pptx_template"].queryset)
+        self.assertNotIn(foreign_docx, form.fields["docx_template"].queryset)
+        self.assertNotIn(foreign_pptx, form.fields["pptx_template"].queryset)
+
+    def test_client_scoped_template_for_other_client_is_invalid(self):
+        ProjectAssignmentFactory(operator=self.user, project=self.project)
+        foreign_docx = ReportDocxTemplateFactory(client=ClientFactory())
+        foreign_pptx = ReportPptxTemplateFactory(client=ClientFactory())
+
+        form = self.form_data(
+            user=self.user,
+            title="Foreign Template Report",
+            archived=False,
+            project_id=self.project.pk,
+            docx_template_id=foreign_docx.pk,
+            pptx_template_id=foreign_pptx.pk,
+            delivered=False,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form["docx_template"].errors.as_data()[0].code, "invalid_choice")
+        self.assertEqual(form["pptx_template"].errors.as_data()[0].code, "invalid_choice")
 
 
 class ReportObservationLinkUpdateFormTests(TestCase):
@@ -485,6 +529,32 @@ class SelectReportTemplateFormTests(TestCase):
         errors = form["pptx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid_choice")
+
+    def test_client_scoped_template_for_other_client_is_invalid(self):
+        foreign_docx = ReportDocxTemplateFactory(client=ClientFactory())
+        foreign_pptx = ReportPptxTemplateFactory(client=ClientFactory())
+
+        form = self.form_data(
+            instance=self.report,
+            docx_template=foreign_docx.pk,
+            pptx_template=foreign_pptx.pk,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form["docx_template"].errors.as_data()[0].code, "invalid_choice")
+        self.assertEqual(form["pptx_template"].errors.as_data()[0].code, "invalid_choice")
+
+    def test_client_scoped_template_for_report_client_is_valid(self):
+        docx_template = ReportDocxTemplateFactory(client=self.report.project.client)
+        pptx_template = ReportPptxTemplateFactory(client=self.report.project.client)
+
+        form = self.form_data(
+            instance=self.report,
+            docx_template=docx_template.pk,
+            pptx_template=pptx_template.pk,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
 
 
 class SeverityFormTests(TestCase):

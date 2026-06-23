@@ -17,6 +17,7 @@ from django.utils import timezone
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.commandcenter.models import ReportConfiguration
+from ghostwriter.reporting.archive import archive_report
 from ghostwriter.factories import (
     ArchiveFactory,
     ClientFactory,
@@ -584,6 +585,14 @@ class ReportModelTests(TestCase):
         new_report = self.Report.objects.first()
         self.assertEqual(new_report.project.client, client)
         self.assertIsNone(new_report.pptx_template)
+
+    def test_archive_rejects_client_scoped_template_for_other_client(self):
+        report = ReportFactory()
+        report.docx_template = ReportDocxTemplateFactory(client=ClientFactory())
+        report.save()
+
+        with self.assertRaises(ValueError):
+            archive_report(report)
 
     def test_access(self):
         project: Project = ProjectFactory()

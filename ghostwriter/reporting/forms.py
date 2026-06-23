@@ -45,6 +45,14 @@ from ghostwriter.reporting.models import (
 )
 from ghostwriter.rolodex.models import Project
 
+
+def _report_template_queryset(doc_type, project=None):
+    queryset = ReportTemplate.objects.filter(doc_type__doc_type=doc_type).select_related("doc_type", "client")
+    if project:
+        return queryset.filter(Q(client_id=project.client_id) | Q(client__isnull=True))
+    return queryset.filter(client__isnull=True)
+
+
 class AssignReportFindingForm(forms.ModelForm):
     class Meta:
         model = ReportFindingLink
@@ -100,6 +108,14 @@ class ReportForm(forms.ModelForm):
 
     def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        selected_project = project
+        if selected_project is None and getattr(self.instance, "project_id", None):
+            selected_project = self.instance.project
+        if self.is_bound:
+            project_id = self.data.get(self.add_prefix("project"))
+            if project_id:
+                selected_project = Project.objects.filter(pk=project_id).first()
+
         # Don't allow non-manager users to move a report's project
         instance = getattr(self, "instance", None)
         user_is_privileged = verify_user_is_privileged(user)
@@ -141,8 +157,17 @@ class ReportForm(forms.ModelForm):
         self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
 
         report_config = ReportConfiguration.get_solo()
-        self.fields["docx_template"].initial = report_config.default_docx_template
-        self.fields["pptx_template"].initial = report_config.default_pptx_template
+        template_fields = (
+            ("docx_template", "docx", report_config.default_docx_template),
+            ("pptx_template", "pptx", report_config.default_pptx_template),
+        )
+        for field_name, doc_type, default_template in template_fields:
+            self.fields[field_name].queryset = _report_template_queryset(doc_type, selected_project)
+            if default_template and (
+                default_template.client_id is None
+                or (selected_project and default_template.can_apply_to_project(selected_project))
+            ):
+                self.fields[field_name].initial = default_template
         self.fields["docx_template"].empty_label = "-- Pick a Word Template --"
         self.fields["pptx_template"].empty_label = "-- Pick a PowerPoint Template --"
 
@@ -575,6 +600,8 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.fields["docx_template"].required = False
         self.fields["pptx_template"].help_text = None
         self.fields["pptx_template"].required = False
+        self.fields["docx_template"].queryset = _report_template_queryset("docx", self.instance.project)
+        self.fields["pptx_template"].queryset = _report_template_queryset("pptx", self.instance.project)
         self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"
         self.fields["pptx_template"].empty_label = "-- Select a PPTX Template --"
         self.fields["include_bloodhound_data"].required = False
