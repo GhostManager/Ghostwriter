@@ -80,7 +80,9 @@ def _unavailable_template_response(request, report):
         "The selected report template is not available for this report.",
         extra_tags="alert-danger",
     )
-    return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#generate")
+    return HttpResponseRedirect(
+        reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#generate"
+    )
 
 
 def _entry_start_utc(entry: OplogEntry) -> datetime:
