@@ -108,14 +108,6 @@ class ReportForm(forms.ModelForm):
 
     def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        selected_project = project
-        if selected_project is None and getattr(self.instance, "project_id", None):
-            selected_project = self.instance.project
-        if self.is_bound:
-            project_id = self.data.get(self.add_prefix("project"))
-            if project_id:
-                selected_project = Project.objects.filter(pk=project_id).first()
-
         # Don't allow non-manager users to move a report's project
         instance = getattr(self, "instance", None)
         user_is_privileged = verify_user_is_privileged(user)
@@ -146,6 +138,14 @@ class ReportForm(forms.ModelForm):
             ].label_from_instance = (
                 lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
             )
+
+        selected_project = project
+        if selected_project is None and getattr(self.instance, "project_id", None):
+            selected_project = self.instance.project
+        if self.is_bound and not self.fields["project"].disabled:
+            project_id = self.data.get(self.add_prefix("project"))
+            if project_id:
+                selected_project = self.fields["project"].queryset.filter(pk=project_id).first()
 
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"

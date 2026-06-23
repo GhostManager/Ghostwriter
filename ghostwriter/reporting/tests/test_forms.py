@@ -148,6 +148,31 @@ class ReportFormTests(TestCase):
         self.assertEqual(form["docx_template"].errors.as_data()[0].code, "invalid_choice")
         self.assertEqual(form["pptx_template"].errors.as_data()[0].code, "invalid_choice")
 
+    def test_disabled_project_field_ignores_submitted_project_for_template_choices(self):
+        ProjectAssignmentFactory(operator=self.user, project=self.project)
+        other_project = ProjectFactory()
+        other_docx = ReportDocxTemplateFactory(client=other_project.client)
+        other_pptx = ReportPptxTemplateFactory(client=other_project.client)
+
+        form = ReportForm(
+            user=self.user,
+            project=self.project,
+            instance=self.report,
+            data={
+                "title": "Crafted Report Update",
+                "archived": False,
+                "project": other_project.pk,
+                "docx_template": other_docx.pk,
+                "pptx_template": other_pptx.pk,
+                "delivered": False,
+            },
+        )
+
+        self.assertTrue(form.fields["project"].disabled)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form["docx_template"].errors.as_data()[0].code, "invalid_choice")
+        self.assertEqual(form["pptx_template"].errors.as_data()[0].code, "invalid_choice")
+
 
 class ReportObservationLinkUpdateFormTests(TestCase):
     """Collection of tests for :form:`reporting.ReportObservationLinkForm`."""
