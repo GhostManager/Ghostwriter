@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+* Fixed additional client-scoped report template authorization bypasses in template swapping, report generation, archive generation, linting, and lint result endpoints
+  * Report template selection now only accepts global templates or templates scoped to the report project's client
+  * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to assign report template IDs directly when creating or updating reports
+
 ## [7.1.1] - 18 June 2026
 
 ### Fixed
