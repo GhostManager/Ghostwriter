@@ -173,6 +173,44 @@ class ReportFormTests(TestCase):
         self.assertEqual(form["docx_template"].errors.as_data()[0].code, "invalid_choice")
         self.assertEqual(form["pptx_template"].errors.as_data()[0].code, "invalid_choice")
 
+    def test_template_choices_ignore_inaccessible_submitted_project(self):
+        ProjectAssignmentFactory(operator=self.user, project=self.project)
+        inaccessible_project = ProjectFactory()
+        inaccessible_docx = ReportDocxTemplateFactory(client=inaccessible_project.client)
+        inaccessible_pptx = ReportPptxTemplateFactory(client=inaccessible_project.client)
+
+        form = self.form_data(
+            user=self.user,
+            title="Inaccessible Project Template Report",
+            archived=False,
+            project_id=inaccessible_project.pk,
+            docx_template_id=inaccessible_docx.pk,
+            pptx_template_id=inaccessible_pptx.pk,
+            delivered=False,
+        )
+
+        self.assertFalse(form.fields["project"].disabled)
+        self.assertNotIn(inaccessible_docx, form.fields["docx_template"].queryset)
+        self.assertNotIn(inaccessible_pptx, form.fields["pptx_template"].queryset)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form["project"].errors.as_data()[0].code, "invalid_choice")
+        self.assertEqual(form["docx_template"].errors.as_data()[0].code, "invalid_choice")
+        self.assertEqual(form["pptx_template"].errors.as_data()[0].code, "invalid_choice")
+
+    def test_template_choices_handle_non_integer_submitted_project(self):
+        form = self.form_data(
+            user=self.user,
+            title="Invalid Project Template Report",
+            archived=False,
+            project_id="not-a-project-id",
+            docx_template_id=self.report.docx_template.pk,
+            pptx_template_id=self.report.pptx_template.pk,
+            delivered=False,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form["project"].errors.as_data()[0].code, "invalid_choice")
+
 
 class ReportObservationLinkUpdateFormTests(TestCase):
     """Collection of tests for :form:`reporting.ReportObservationLinkForm`."""

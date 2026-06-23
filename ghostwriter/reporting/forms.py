@@ -145,7 +145,10 @@ class ReportForm(forms.ModelForm):
         if self.is_bound and not self.fields["project"].disabled:
             project_id = self.data.get(self.add_prefix("project"))
             if project_id:
-                selected_project = self.fields["project"].queryset.filter(pk=project_id).first()
+                try:
+                    selected_project = self.fields["project"].queryset.filter(pk=project_id).first()
+                except (TypeError, ValueError):
+                    selected_project = None
 
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
