@@ -74,6 +74,15 @@ def _outline_command_value(command):
     return command_text if command_text != "N/A" else ""
 
 
+def _unavailable_template_response(request, report):
+    messages.error(
+        request,
+        "The selected report template is not available for this report.",
+        extra_tags="alert-danger",
+    )
+    return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#generate")
+
+
 def _entry_start_utc(entry: OplogEntry) -> datetime:
     """Normalize an oplog entry timestamp to an aware UTC ``datetime``."""
     start_date = entry.start_date
@@ -987,6 +996,9 @@ class GenerateReportDOCX(GenerateReportBase):
                 )
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
 
+        if not report_template.user_can_apply_to_report(self.request.user, obj):
+            return _unavailable_template_response(self.request, obj)
+
         # Check template's linting status
         template_status = report_template.get_status()
         if template_status in ("error", "failed"):
@@ -1104,6 +1116,9 @@ class GenerateReportPPTX(GenerateReportBase):
                 if not report_template:
                     raise MissingTemplate
 
+            if not report_template.user_can_apply_to_report(self.request.user, obj):
+                return _unavailable_template_response(self.request, obj)
+
             # Check template's linting status
             template_status = report_template.get_status()
             if template_status in ("error", "failed"):
@@ -1184,6 +1199,11 @@ class GenerateReportAll(GenerateReportBase):
                 pptx_template = report_config.default_pptx_template
                 if not pptx_template:
                     raise MissingTemplate
+
+            if not docx_template.user_can_apply_to_report(self.request.user, obj):
+                return _unavailable_template_response(self.request, obj)
+            if not pptx_template.user_can_apply_to_report(self.request.user, obj):
+                return _unavailable_template_response(self.request, obj)
 
             exporters_and_filename_templates = [
                 (

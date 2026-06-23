@@ -2774,6 +2774,20 @@ class ReportTemplateLintViewTests(TestCase):
         self.docx_template.p_style = "Normal"
         self.docx_template.save()
 
+    def test_view_denies_client_scoped_template_without_access(self):
+        scoped_template = ReportDocxTemplateFactory(client=ClientFactory())
+        uri = reverse("reporting:ajax_lint_report_template", kwargs={"pk": scoped_template.pk})
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 403)
+
+    def test_view_allows_client_scoped_template_with_access(self):
+        scoped_client = ClientFactory()
+        scoped_template = ReportDocxTemplateFactory(client=scoped_client)
+        ProjectAssignmentFactory(project=ProjectFactory(client=scoped_client), operator=self.user)
+        uri = reverse("reporting:ajax_lint_report_template", kwargs={"pk": scoped_template.pk})
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 200)
+
 
 class UpdateTemplateLintResultsViewTests(TestCase):
     """Collection of tests for :view:`reporting.UpdateTemplateLintResults`."""
@@ -2796,6 +2810,20 @@ class UpdateTemplateLintResultsViewTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_view_denies_client_scoped_template_without_access(self):
+        scoped_template = ReportTemplateFactory(client=ClientFactory())
+        uri = reverse("reporting:ajax_update_template_lint_results", kwargs={"pk": scoped_template.pk})
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+    def test_view_allows_client_scoped_template_with_access(self):
+        scoped_client = ClientFactory()
+        scoped_template = ReportTemplateFactory(client=scoped_client)
+        ProjectAssignmentFactory(project=ProjectFactory(client=scoped_client), operator=self.user)
+        uri = reverse("reporting:ajax_update_template_lint_results", kwargs={"pk": scoped_template.pk})
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 200)
 
 
 class ReportTemplateSwapViewTests(TestCase):
@@ -2892,6 +2920,40 @@ class ReportTemplateSwapViewTests(TestCase):
         response = self.client_mgr.post(self.uri, {"docx_template": "", "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_denies_client_scoped_templates_for_other_clients(self):
+        foreign_client = ClientFactory()
+        foreign_docx_template = ReportDocxTemplateFactory(client=foreign_client)
+        foreign_pptx_template = ReportPptxTemplateFactory(client=foreign_client)
+
+        response = self.client_mgr.post(
+            self.uri,
+            {"docx_template": foreign_docx_template.pk, "pptx_template": foreign_pptx_template.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"result": "error", "message": "Submitted template ID does not exist."},
+        )
+        self.report.refresh_from_db()
+        self.assertNotEqual(self.report.docx_template_id, foreign_docx_template.pk)
+        self.assertNotEqual(self.report.pptx_template_id, foreign_pptx_template.pk)
+
+    def test_allows_client_scoped_templates_for_report_client(self):
+        docx_template = ReportDocxTemplateFactory(client=self.report.project.client)
+        pptx_template = ReportPptxTemplateFactory(client=self.report.project.client)
+
+        response = self.client_mgr.post(
+            self.uri,
+            {"docx_template": docx_template.pk, "pptx_template": pptx_template.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["result"], "success")
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.docx_template_id, docx_template.pk)
+        self.assertEqual(self.report.pptx_template_id, pptx_template.pk)
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
@@ -3126,6 +3188,39 @@ class GenerateReportTests(TestCase):
         response = self.client_auth.get(self.all_uri)
         self.assertEqual(response.status_code, 200, str(response.request))
         assignment.delete()
+
+    def test_generation_denies_client_scoped_template_for_other_client(self):
+        original_docx_template = self.report.docx_template
+        original_pptx_template = self.report.pptx_template
+        foreign_client = ClientFactory()
+        foreign_docx_template = ReportDocxTemplateFactory(client=foreign_client)
+        foreign_pptx_template = ReportPptxTemplateFactory(client=foreign_client)
+        denied_redirect = reverse("reporting:report_detail", kwargs={"pk": self.report.pk}) + "#generate"
+
+        try:
+            self.report.docx_template = foreign_docx_template
+            self.report.save()
+            response = self.client_mgr.get(self.docx_uri)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, denied_redirect)
+
+            self.report.docx_template = original_docx_template
+            self.report.pptx_template = foreign_pptx_template
+            self.report.save()
+            response = self.client_mgr.get(self.pptx_uri)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, denied_redirect)
+
+            self.report.docx_template = foreign_docx_template
+            self.report.pptx_template = original_pptx_template
+            self.report.save()
+            response = self.client_mgr.get(self.all_uri)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, denied_redirect)
+        finally:
+            self.report.docx_template = original_docx_template
+            self.report.pptx_template = original_pptx_template
+            self.report.save()
 
     def test_view_docx_with_missing_template(self):
         good_template = self.report.docx_template
