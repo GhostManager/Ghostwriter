@@ -153,7 +153,6 @@ update_permissions:
         - delivered
         - extra_fields
         - include_bloodhound_data
-        - project_id
         - title
       filter: {}
       check: {}
@@ -164,7 +163,6 @@ update_permissions:
         - delivered
         - extra_fields
         - include_bloodhound_data
-        - project_id
         - title
       filter:
         project:
