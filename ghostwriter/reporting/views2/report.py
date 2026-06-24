@@ -331,26 +331,6 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
             instance=self.object,
             has_bloodhound=self.object.project.has_bloodhound_api() or BloodHoundConfiguration.get_solo().has_bloodhound_api(),
         )
-        form.fields["docx_template"].queryset = (
-            ReportTemplate.objects.filter(
-                doc_type__doc_type="docx",
-            )
-            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
-            .select_related(
-                "doc_type",
-                "client",
-            )
-        )
-        form.fields["pptx_template"].queryset = (
-            ReportTemplate.objects.filter(
-                doc_type__doc_type="pptx",
-            )
-            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
-            .select_related(
-                "doc_type",
-                "client",
-            )
-        )
         ctx["form"] = form
 
         # Build autocomplete list
