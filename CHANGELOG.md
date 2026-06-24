@@ -5,13 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [7.1.2] - 24 June 2026
 
 ### Security
 
 * Fixed additional client-scoped report template authorization bypasses in template swapping, report generation, archive generation, linting, and lint result endpoints
   * Report template selection now only accepts global templates or templates scoped to the report project's client
-  * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to assign report template IDs directly when creating or updating reports
+  * This fix includes two temporary breaking changes for the API while we work on a custom endpoint to handle this new business logic:
+    * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to set report template ID columns directly when creating or updating reports
+    * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to update a report's project ID column directly
 
 ## [7.1.1] - 18 June 2026
 
