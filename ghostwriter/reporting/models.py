@@ -458,7 +458,7 @@ class ReportTemplate(models.Model):
     def can_apply_to_report(self, report, doc_type=None) -> bool:
         """Return whether this template's client and optional document type match a report."""
         doc_type_matches = doc_type is None or (
-            self.doc_type_id is not None and self.doc_type.doc_type == doc_type
+            self.doc_type_id is not None and self.doc_type.doc_type.lower() == doc_type.lower()
         )
         return doc_type_matches and self.can_apply_to_project(report.project)
 

@@ -3002,6 +3002,23 @@ class ReportTemplateSwapViewTests(TestCase):
         self.assertEqual(self.report.docx_template_id, docx_template.pk)
         self.assertEqual(self.report.pptx_template_id, pptx_template.pk)
 
+    def test_allows_templates_with_mixed_case_document_types(self):
+        docx_type = DocTypeFactory(doc_type="DoCx", extension="docx", name="DoCx")
+        pptx_type = DocTypeFactory(doc_type="PpTx", extension="pptx", name="PpTx")
+        docx_template = ReportTemplateFactory(doc_type=docx_type)
+        pptx_template = ReportTemplateFactory(doc_type=pptx_type)
+
+        response = self.client_mgr.post(
+            self.uri,
+            {"docx_template": docx_template.pk, "pptx_template": pptx_template.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["result"], "success")
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.docx_template_id, docx_template.pk)
+        self.assertEqual(self.report.pptx_template_id, pptx_template.pk)
+
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)

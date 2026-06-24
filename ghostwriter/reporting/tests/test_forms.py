@@ -7,6 +7,7 @@ from django.test import TestCase
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ClientFactory,
+    DocTypeFactory,
     EvidenceOnFindingFactory,
     EvidenceOnReportFactory,
     FindingNoteFactory,
@@ -617,6 +618,22 @@ class SelectReportTemplateFormTests(TestCase):
             pptx_template=pptx_template.pk,
         )
 
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_mixed_case_document_type_templates_are_valid(self):
+        docx_type = DocTypeFactory(doc_type="DoCx", extension="docx", name="DoCx")
+        pptx_type = DocTypeFactory(doc_type="PpTx", extension="pptx", name="PpTx")
+        docx_template = ReportDocxTemplateFactory(doc_type=docx_type)
+        pptx_template = ReportPptxTemplateFactory(doc_type=pptx_type)
+
+        form = self.form_data(
+            instance=self.report,
+            docx_template=docx_template.pk,
+            pptx_template=pptx_template.pk,
+        )
+
+        self.assertIn(docx_template, form.fields["docx_template"].queryset)
+        self.assertIn(pptx_template, form.fields["pptx_template"].queryset)
         self.assertTrue(form.is_valid(), form.errors)
 
 
