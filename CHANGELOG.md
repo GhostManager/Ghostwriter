@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [7.1.2] - 24 June 2026
 
+### Fixed
+
+* Fixed `datetime-local` rendering for white card and deconfliction edit forms so saved timestamps display reliably in older browsers (Closes #917)
+
 ### Security
 
 * Fixed additional client-scoped report template authorization bypasses in template swapping, report generation, archive generation, linting, and lint result endpoints
