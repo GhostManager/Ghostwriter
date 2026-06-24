@@ -306,13 +306,13 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 if pptx_template_id < 0:
                     report.pptx_template = None
                 if docx_template_id >= 0:
-                    docx_template_query = ReportTemplate.objects.get(pk=docx_template_id)
-                    if not docx_template_query.user_can_apply_to_report(self.request.user, report):
+                    docx_template_query = ReportTemplate.objects.get(pk=docx_template_id, doc_type__doc_type="docx")
+                    if not docx_template_query.user_can_apply_to_report(self.request.user, report, "docx"):
                         raise ReportTemplate.DoesNotExist
                     report.docx_template = docx_template_query
                 if pptx_template_id >= 0:
-                    pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
-                    if not pptx_template_query.user_can_apply_to_report(self.request.user, report):
+                    pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id, doc_type__doc_type="pptx")
+                    if not pptx_template_query.user_can_apply_to_report(self.request.user, report, "pptx"):
                         raise ReportTemplate.DoesNotExist
                     report.pptx_template = pptx_template_query
                 # Only update include_bloodhound_data if it was provided (field may not be present)

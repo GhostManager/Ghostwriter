@@ -998,7 +998,7 @@ class GenerateReportDOCX(GenerateReportBase):
                 )
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
 
-        if not report_template.user_can_apply_to_report(self.request.user, obj):
+        if not report_template.user_can_apply_to_report(self.request.user, obj, "docx"):
             return _unavailable_template_response(self.request, obj)
 
         # Check template's linting status
@@ -1118,7 +1118,7 @@ class GenerateReportPPTX(GenerateReportBase):
                 if not report_template:
                     raise MissingTemplate
 
-            if not report_template.user_can_apply_to_report(self.request.user, obj):
+            if not report_template.user_can_apply_to_report(self.request.user, obj, "pptx"):
                 return _unavailable_template_response(self.request, obj)
 
             # Check template's linting status
@@ -1202,9 +1202,9 @@ class GenerateReportAll(GenerateReportBase):
                 if not pptx_template:
                     raise MissingTemplate
 
-            if not docx_template.user_can_apply_to_report(self.request.user, obj):
+            if not docx_template.user_can_apply_to_report(self.request.user, obj, "docx"):
                 return _unavailable_template_response(self.request, obj)
-            if not pptx_template.user_can_apply_to_report(self.request.user, obj):
+            if not pptx_template.user_can_apply_to_report(self.request.user, obj, "pptx"):
                 return _unavailable_template_response(self.request, obj)
 
             exporters_and_filename_templates = [

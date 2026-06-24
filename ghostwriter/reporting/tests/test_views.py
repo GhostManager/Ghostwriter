@@ -2940,6 +2940,21 @@ class ReportTemplateSwapViewTests(TestCase):
         self.assertNotEqual(self.report.docx_template_id, foreign_docx_template.pk)
         self.assertNotEqual(self.report.pptx_template_id, foreign_pptx_template.pk)
 
+    def test_denies_templates_for_wrong_document_type(self):
+        response = self.client_mgr.post(
+            self.uri,
+            {"docx_template": self.pptx_template.pk, "pptx_template": self.docx_template.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {"result": "error", "message": "Submitted template ID does not exist."},
+        )
+        self.report.refresh_from_db()
+        self.assertNotEqual(self.report.docx_template_id, self.pptx_template.pk)
+        self.assertNotEqual(self.report.pptx_template_id, self.docx_template.pk)
+
     def test_allows_client_scoped_templates_for_report_client(self):
         docx_template = ReportDocxTemplateFactory(client=self.report.project.client)
         pptx_template = ReportPptxTemplateFactory(client=self.report.project.client)
@@ -3212,6 +3227,38 @@ class GenerateReportTests(TestCase):
             self.assertEqual(response.url, denied_redirect)
 
             self.report.docx_template = foreign_docx_template
+            self.report.pptx_template = original_pptx_template
+            self.report.save()
+            response = self.client_mgr.get(self.all_uri)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, denied_redirect)
+        finally:
+            self.report.docx_template = original_docx_template
+            self.report.pptx_template = original_pptx_template
+            self.report.save()
+
+    def test_generation_denies_template_for_wrong_document_type(self):
+        original_docx_template = self.report.docx_template
+        original_pptx_template = self.report.pptx_template
+        wrong_docx_template = ReportPptxTemplateFactory()
+        wrong_pptx_template = ReportDocxTemplateFactory()
+        denied_redirect = reverse("reporting:report_detail", kwargs={"pk": self.report.pk}) + "#generate"
+
+        try:
+            self.report.docx_template = wrong_docx_template
+            self.report.save()
+            response = self.client_mgr.get(self.docx_uri)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, denied_redirect)
+
+            self.report.docx_template = original_docx_template
+            self.report.pptx_template = wrong_pptx_template
+            self.report.save()
+            response = self.client_mgr.get(self.pptx_uri)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, denied_redirect)
+
+            self.report.docx_template = wrong_docx_template
             self.report.pptx_template = original_pptx_template
             self.report.save()
             response = self.client_mgr.get(self.all_uri)

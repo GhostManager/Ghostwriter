@@ -594,6 +594,14 @@ class ReportModelTests(TestCase):
         with self.assertRaises(ValueError):
             archive_report(report)
 
+    def test_archive_rejects_template_for_wrong_document_type(self):
+        report = ReportFactory()
+        report.docx_template = ReportPptxTemplateFactory()
+        report.save()
+
+        with self.assertRaises(ValueError):
+            archive_report(report)
+
     def test_access(self):
         project: Project = ProjectFactory()
         report: Report = ReportFactory(
