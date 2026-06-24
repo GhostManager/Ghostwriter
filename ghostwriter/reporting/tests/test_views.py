@@ -2620,17 +2620,32 @@ class ReportTemplateUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory(protected=True)
+        cls.template_client = ClientFactory()
+        cls.scoped_template = ReportTemplateFactory(client=cls.template_client, protected=False)
+        cls.protected_scoped_template = ReportTemplateFactory(client=cls.template_client, protected=True)
         cls.user = UserFactory(password=PASSWORD)
+        cls.assigned_user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
+        ProjectAssignmentFactory(
+            project=ProjectFactory(client=cls.template_client),
+            operator=cls.assigned_user,
+        )
         cls.uri = reverse("reporting:template_update", kwargs={"pk": cls.template.pk})
+        cls.scoped_uri = reverse("reporting:template_update", kwargs={"pk": cls.scoped_template.pk})
+        cls.protected_scoped_uri = reverse(
+            "reporting:template_update",
+            kwargs={"pk": cls.protected_scoped_template.pk},
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_assigned = Client()
         self.client_mgr = Client()
         self.client_admin = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_assigned.login(username=self.assigned_user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
         self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
 
@@ -2658,6 +2673,23 @@ class ReportTemplateUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         response = self.client_admin.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_denies_client_scoped_template_without_access(self):
+        response = self.client_auth.get(self.scoped_uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("reporting:templates"))
+
+    def test_view_allows_client_scoped_template_with_access(self):
+        response = self.client_assigned.get(self.scoped_uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/report_template_form.html")
+
+    def test_view_protected_client_scoped_template_requires_privileged_user(self):
+        response = self.client_assigned.get(self.protected_scoped_uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_mgr.get(self.protected_scoped_uri)
         self.assertEqual(response.status_code, 200)
 
 

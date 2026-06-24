@@ -757,17 +757,17 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
         obj = self.get_object()
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
-        return self.request.user.is_active
+        return obj.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         obj = self.get_object()
-        messages.error(self.request, "That template is protected – only an admin can edit it.")
-        return HttpResponseRedirect(
-            reverse(
-                "reporting:template_detail",
-                args=(obj.pk,),
-            )
-        )
+        if obj.protected:
+            messages.error(self.request, "That template is protected – only an admin can edit it.")
+        else:
+            messages.error(self.request, "You do not have permission to access that.")
+        if obj.user_can_view(self.request.user):
+            return HttpResponseRedirect(reverse("reporting:template_detail", args=(obj.pk,)))
+        return HttpResponseRedirect(reverse("reporting:templates"))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
