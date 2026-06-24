@@ -47,7 +47,9 @@ from ghostwriter.rolodex.models import Project
 
 
 def _report_template_queryset(doc_type, project=None):
-    queryset = ReportTemplate.objects.filter(doc_type__doc_type=doc_type).select_related("doc_type", "client")
+    queryset = ReportTemplate.objects.filter(
+        doc_type__doc_type=doc_type,
+    ).select_related("doc_type", "client")
     if project:
         return queryset.filter(Q(client_id=project.client_id) | Q(client__isnull=True))
     return queryset.filter(client__isnull=True)
