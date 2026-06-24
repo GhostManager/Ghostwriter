@@ -748,3 +748,11 @@ class HasuraMetadataUserRoleTests(SimpleTestCase):
                     template_columns & writable_columns,
                     f"{role} {permission_type}",
                 )
+
+    def test_report_project_is_not_graphql_updateable(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_reporting_report.yaml")
+
+        for role in ("manager", "user"):
+            permission = get_role_permission(table, role, "update_permissions")
+            writable_columns = set(permission["permission"].get("columns", []))
+            self.assertNotIn("project_id", writable_columns, role)
