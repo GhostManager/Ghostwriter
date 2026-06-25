@@ -9,8 +9,6 @@ from ghostwriter.factories import (
     ClientFactory,
     DocTypeFactory,
     EvidenceFactory,
-    EvidenceOnFindingFactory,
-    EvidenceOnReportFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
     ProjectAssignmentFactory,
