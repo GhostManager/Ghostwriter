@@ -1,4 +1,3 @@
-
 import io
 import json
 import logging
@@ -21,22 +20,31 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
         """
         names = []
         seen = set()
-        valid_names = {evidence["friendly_name"] for evidence in self.evidences_by_id.values()}
+        valid_names = {
+            evidence["friendly_name"] for evidence in self.evidences_by_id.values()
+        }
 
         for rich_text in rich_texts:
             html = rich_text.render_html()
             soup = bs4.BeautifulSoup(html, "lxml")
             for span in soup.find_all(["div", "span"]):
                 name = None
-                if "data-evidence-id" in span.attrs and "richtext-evidence" in span.attrs.get("class", []):
+                if (
+                    "data-evidence-id" in span.attrs
+                    and "richtext-evidence" in span.attrs.get("class", [])
+                ):
                     try:
-                        evidence = self.evidences_by_id[int(span.attrs["data-evidence-id"])]
+                        evidence = self.evidences_by_id[
+                            int(span.attrs["data-evidence-id"])
+                        ]
                     except (KeyError, ValueError):
                         continue
                     name = evidence["friendly_name"]
                 elif "data-gw-evidence" in span.attrs:
                     try:
-                        evidence = self.evidences_by_id[int(span.attrs["data-gw-evidence"])]
+                        evidence = self.evidences_by_id[
+                            int(span.attrs["data-gw-evidence"])
+                        ]
                     except (KeyError, ValueError):
                         continue
                     name = evidence["friendly_name"]
@@ -87,11 +95,17 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
         asset_format.set_align("vcenter")
         asset_format.set_align("center")
 
-        # Formatting for severity cells
-        severity_format = xlsx_doc.add_format({"bold": True})
-        severity_format.set_align("vcenter")
-        severity_format.set_align("center")
-        severity_format.set_font_color("black")
+        severity_formats = {}
+
+        def get_severity_format(color):
+            if color not in severity_formats:
+                severity_format = xlsx_doc.add_format({"bold": True})
+                severity_format.set_align("vcenter")
+                severity_format.set_align("center")
+                severity_format.set_font_color("black")
+                severity_format.set_bg_color(color)
+                severity_formats[color] = severity_format
+            return severity_formats[color]
 
         # Create a format for everything else
         wrap_format = xlsx_doc.add_format()
@@ -136,7 +150,6 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
         col = 0
         row = 1
         for finding in context["findings"]:
-
             # Finding Name
             worksheet.write_string(
                 row,
@@ -146,8 +159,7 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
             )
             col += 1
 
-            # Update severity format bg color with the finding's severity color
-            severity_format.set_bg_color(finding["severity_color"])
+            severity_format = get_severity_format(finding["severity_color"])
 
             # Severity and CVSS information
             worksheet.write_string(
@@ -163,14 +175,18 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
                 worksheet.write_string(
                     row,
                     col,
-                    str(finding["cvss_score"]) if finding["cvss_score"] is not None else "",
+                    str(finding["cvss_score"])
+                    if finding["cvss_score"] is not None
+                    else "",
                     severity_format,
                 )
             col += 1
             worksheet.write_string(
                 row,
                 col,
-                str(finding["cvss_vector"]) if finding["cvss_vector"] is not None else "",
+                str(finding["cvss_vector"])
+                if finding["cvss_vector"] is not None
+                else "",
                 severity_format,
             )
             col += 1
@@ -253,7 +269,9 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
                 row,
                 col,
                 ", ".join(
-                    self.referenced_evidence_names(self.finding_rich_texts(finding, findings_extra_field_specs))
+                    self.referenced_evidence_names(
+                        self.finding_rich_texts(finding, findings_extra_field_specs)
+                    )
                 ),
                 wrap_format,
             )
@@ -286,7 +304,9 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
 
         # Add a filter to the worksheet
         worksheet.autofilter(
-            "A1:{}{}".format(xl_col_to_name(column_count - 1), len(self.data["findings"]) + 1)
+            "A1:{}{}".format(
+                xl_col_to_name(column_count - 1), len(self.data["findings"]) + 1
+            )
         )
 
         return super().run()
