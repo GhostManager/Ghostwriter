@@ -2390,6 +2390,16 @@ class ReportExtraFieldEditViewTests(TestCase):
             type="rich_text",
             target_model=cls.extra_field_model,
         )
+        cls.json_extra_field = ExtraFieldSpecFactory(
+            internal_name="json",
+            display_name="JSON",
+            type="json",
+            target_model=cls.extra_field_model,
+        )
+        cls.report.extra_fields = {
+            "json": {"large": ["value", {"nested": "content"}]},
+        }
+        cls.report.save(update_fields=["extra_fields"])
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse(
@@ -2438,6 +2448,76 @@ class ReportExtraFieldEditViewTests(TestCase):
             response,
             f'<script type="text/plain" id="graphql-evidence-report-id">{self.report.pk}</script>',
         )
+
+    def test_json_extra_field_modal_is_lazy_loaded(self):
+        rendered = render_to_string(
+            "user_extra_fields/extra_field_modal.html",
+            {
+                "extra_fields": self.report.extra_fields,
+                "field_spec": self.json_extra_field,
+                "report": self.report,
+            },
+        )
+
+        self.assertIn(
+            reverse(
+                "reporting:report_extra_field_json",
+                kwargs={
+                    "pk": self.report.pk,
+                    "extra_field_name": self.json_extra_field.internal_name,
+                },
+            ),
+            rendered,
+        )
+        self.assertIn("JSON content will load when this preview opens.", rendered)
+        self.assertNotIn("jsonView", rendered)
+        self.assertNotIn("nested", rendered)
+
+    def test_report_detail_json_lazy_loader_has_loading_spinner(self):
+        response = self.client_mgr.get(reverse("reporting:report_detail", kwargs={"pk": self.report.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "fa-spinner fa-spin")
+        self.assertContains(response, "Loading JSON content...")
+        self.assertContains(response, "shown.bs.modal")
+        self.assertContains(response, "minimumJsonLoadingMs")
+        self.assertContains(response, "hide.bs.modal")
+        self.assertContains(response, "jsonPreviewPlaceholder")
+        self.assertContains(response, "jsonAbortController")
+
+    def test_json_extra_field_endpoint_requires_login_and_permissions(self):
+        uri = reverse(
+            "reporting:report_extra_field_json",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["field"], "JSON")
+        self.assertEqual(
+            response.json()["value"],
+            {"large": ["value", {"nested": "content"}]},
+        )
+
+    def test_json_extra_field_endpoint_rejects_non_json_fields(self):
+        uri = reverse(
+            "reporting:report_extra_field_json",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
 
 
 # Tests related to :model:`reporting.Evidence`

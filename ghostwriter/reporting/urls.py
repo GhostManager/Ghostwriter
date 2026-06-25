@@ -167,6 +167,11 @@ urlpatterns += [
         name="report_extra_field_edit",
     ),
     path(
+        "reports/<int:pk>/extra-field-json/<str:extra_field_name>",
+        ghostwriter.reporting.views2.report.ReportExtraFieldJson.as_view(),
+        name="report_extra_field_json",
+    ),
+    path(
         "reports/<int:pk>/generate-oplog-outline",
         ghostwriter.reporting.views2.report.ReportOplogOutlineGenerate.as_view(),
         name="report_generate_oplog_outline",

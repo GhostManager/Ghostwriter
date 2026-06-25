@@ -565,6 +565,36 @@ class ReportExtraFieldEdit(CollabModelUpdate):
         return ctx
 
 
+class ReportExtraFieldJson(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    model = Report
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse(
+            {
+                "result": "error",
+                "message": "You do not have permission to access that.",
+            },
+            status=403,
+        )
+
+    def get(self, request, *args, **kwargs):
+        report = self.get_object()
+        field = get_object_or_404(
+            ExtraFieldSpec.for_model(self.model),
+            internal_name=kwargs["extra_field_name"],
+            type="json",
+        )
+        return JsonResponse(
+            {
+                "field": field.display_name,
+                "value": field.value_of(report.extra_fields),
+            }
+        )
+
+
 class ReportOplogOutlineGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Generate Tiptap content blocks for an oplog narrative outline.

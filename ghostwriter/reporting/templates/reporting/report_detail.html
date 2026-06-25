@@ -370,51 +370,43 @@
           <h4>Extra Fields</h4>
           <hr/>
 
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
-                  <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <div class="mt-2 col-3 text-md-center align-middle offset-2">
-                  {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+          <div class="extra-fields-grid">
+            {% for field_spec in report_extra_fields_spec %}
+              <section class="extra-field-card">
+                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+                <div class="extra-field-type">
+                  {% if field_spec.type == "rich_text" %}
+                    Rich Text Field
+                  {% else %}
+                    {{ field_spec.get_type_display }} Field
+                  {% endif %}
                 </div>
-              </div>
-            {% endif %}
-          {% endfor %}
-          {% if report_extra_fields_spec|has_non_rt_fields %}
-            <hr>
-          {% endif %}
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type == "rich_text" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
+                <div class="extra-field-value">
+                  {% if field_spec.type == "rich_text" %}
+                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
+                  {% elif field_spec.type == "json" %}
+                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+                  {% else %}
+                    {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+                  {% endif %}
+                </div>
+                <div class="extra-field-actions">
+                  {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    </button>
+                  {% elif field_spec.type == "json" %}
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    </button>
+                  {% endif %}
                   <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-                </button>
-                {% if not forloop.last %}
-                  <hr>{% endif %}
-              </div>
-            {% endif %}
-          {% endfor %}
-
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type == "json" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
-                  <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <button type="button" class="btn btn-primary col-3 offset-2 icon code-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-                </button>
-              </div>
-            {% endif %}
-          {% endfor %}
+                     class="btn btn-outline-primary btn-sm icon edit-icon"
+                     title="Edit {{ field_spec.display_name }}">Edit</a>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
         </div>
       {% endif %}
 
@@ -901,23 +893,86 @@
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
 
-  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% comment %} Insert modals for rich text and JSON extra field previews {% endcomment %}
   {% if report_extra_fields_spec %}
     {% for field_spec in report_extra_fields_spec %}
-      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec %}
-    {% endfor %}
-  {% endif %}
-
-  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
-  {% if report_extra_fields_spec %}
-    {% for field_spec in report_extra_fields_spec %}
-      {% if field_spec == "rich_text" %}
-        {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec report_config=report_config %}
-      {% endif %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec report=report %}
     {% endfor %}
 
     <script>
+      const jsonPreviewPlaceholder = '<p class="text-muted mb-0">JSON content will load when this preview opens.</p>';
+      const jsonPreviewLoading = (
+        '<div class="text-center text-muted py-5" role="status" aria-live="polite">' +
+        '<i class="fas fa-spinner fa-spin fa-2x mb-3" aria-hidden="true"></i>' +
+        '<p class="mb-0">Loading JSON content...</p>' +
+        '</div>'
+      );
+
+      $('.extra-field-modal-content[data-lazy-json-url]').closest('.modal').on('show.bs.modal', function () {
+        const $modal = $(this);
+        const $content = $modal.find('.extra-field-modal-content[data-lazy-json-url]');
+        const jsonUrl = $content.data('lazy-json-url');
+        const minimumJsonLoadingMs = 350;
+        const loadId = `${Date.now()}-${Math.random()}`;
+        const abortController = window.AbortController ? new AbortController() : null;
+
+        $content.data('jsonLoadId', loadId);
+        $content.data('jsonAbortController', abortController);
+        $content.html(jsonPreviewLoading);
+        $modal.one('shown.bs.modal', function () {
+          const loadingStartedAt = performance.now();
+          requestAnimationFrame(function () {
+            fetch(jsonUrl, {
+              method: 'GET',
+              credentials: 'same-origin',
+              signal: abortController ? abortController.signal : undefined,
+            })
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error('Unable to load JSON content.');
+                }
+                return response.json();
+              })
+              .then(data => {
+                const remainingLoadingMs = Math.max(0, minimumJsonLoadingMs - (performance.now() - loadingStartedAt));
+                setTimeout(function () {
+                  if ($content.data('jsonLoadId') !== loadId || !$modal.hasClass('show')) {
+                    return;
+                  }
+                  const fieldName = data.field || $content.data('json-field-name') || 'JSON';
+                  const $code = $('<code></code>');
+                  const $pre = $('<pre></pre>').append($code);
+                  $content.empty().append($pre);
+                  $code.jsonView({[fieldName]: data.value});
+                }, remainingLoadingMs);
+              })
+              .catch(error => {
+                if (error.name === 'AbortError' || $content.data('jsonLoadId') !== loadId) {
+                  return;
+                }
+                console.error(error);
+                $content.html('<p class="burned mb-0">Unable to load JSON content.</p>');
+              });
+          });
+        });
+      });
+
+      $('.extra-field-modal-content[data-lazy-json-url]').closest('.modal').on('hide.bs.modal', function () {
+        const $content = $(this).find('.extra-field-modal-content[data-lazy-json-url]');
+        const abortController = $content.data('jsonAbortController');
+
+        if (abortController) {
+          abortController.abort();
+        }
+        $content.removeData('jsonAbortController');
+        $content.removeData('jsonLoadId');
+        $content.html(jsonPreviewPlaceholder);
+      });
+
       $('.extra-field-modal-content').each(function (e) {
+        if ($(this).data('lazy-json-url')) {
+          return;
+        }
         let text = $(this).html();
         let $previewModal = $(this);
         for (let i = 0; i < evidenceFiles.length; i++) {
