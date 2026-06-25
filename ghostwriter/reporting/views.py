@@ -78,6 +78,12 @@ class UpdateTemplateLintResults(RoleBasedAccessControlMixin, SingleObjectMixin, 
 
     model = ReportTemplate
 
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
     def get(self, *args, **kwargs):
         template = self.get_object()
         html = render_to_string(
@@ -300,10 +306,18 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 if pptx_template_id < 0:
                     report.pptx_template = None
                 if docx_template_id >= 0:
-                    docx_template_query = ReportTemplate.objects.get(pk=docx_template_id)
+                    docx_template_query = ReportTemplate.objects.get(
+                        pk=docx_template_id, doc_type__doc_type__iexact="docx"
+                    )
+                    if not docx_template_query.user_can_apply_to_report(self.request.user, report, "docx"):
+                        raise ReportTemplate.DoesNotExist
                     report.docx_template = docx_template_query
                 if pptx_template_id >= 0:
-                    pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
+                    pptx_template_query = ReportTemplate.objects.get(
+                        pk=pptx_template_id, doc_type__doc_type__iexact="pptx"
+                    )
+                    if not pptx_template_query.user_can_apply_to_report(self.request.user, report, "pptx"):
+                        raise ReportTemplate.DoesNotExist
                     report.pptx_template = pptx_template_query
                 # Only update include_bloodhound_data if it was provided (field may not be present)
                 if include_bloodhound_data is not None:
@@ -447,6 +461,12 @@ class ReportTemplateLint(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
 
     model = ReportTemplate
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         template = self.get_object()

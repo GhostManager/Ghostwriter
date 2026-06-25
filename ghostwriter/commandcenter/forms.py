@@ -37,6 +37,11 @@ class ReportConfigurationForm(forms.ModelForm):
     def clean_default_docx_template(self):
         docx_template = self.cleaned_data["default_docx_template"]
         if docx_template:
+            if docx_template.client_id is not None:
+                raise ValidationError(
+                    _("Global default Word templates cannot be scoped to a client"),
+                    "invalid",
+                )
             docx_template_status = docx_template.get_status()
             if docx_template_status in ("error", "failed"):
                 raise ValidationError(
@@ -48,6 +53,11 @@ class ReportConfigurationForm(forms.ModelForm):
     def clean_default_pptx_template(self):
         pptx_template = self.cleaned_data["default_pptx_template"]
         if pptx_template:
+            if pptx_template.client_id is not None:
+                raise ValidationError(
+                    _("Global default PowerPoint templates cannot be scoped to a client"),
+                    "invalid",
+                )
             pptx_template_status = pptx_template.get_status()
             if pptx_template_status in ("error", "failed"):
                 raise ValidationError(
