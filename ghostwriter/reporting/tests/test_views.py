@@ -11,6 +11,7 @@ from xml.etree import ElementTree
 from django.contrib.messages import get_messages
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.template.loader import render_to_string
 from django.test import Client, TestCase
 from django.test import override_settings
 from django.urls import reverse
@@ -74,6 +75,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
 )
 from ghostwriter.reporting.models import (
     Evidence,
+    EvidenceImageAlignmentOverride,
     ReportFindingLink,
     ReportObservationLink,
 )
@@ -209,6 +211,149 @@ class TemplateTagTests(TestCase):
         )
         field_spec = ExtraFieldSpec.objects.filter(target_model="reporting.Report")
         self.assertTrue(report_tags.has_non_rt_fields(field_spec))
+
+    def test_rich_text_extra_field_renders_report_evidence_previews(self):
+        report_config = ReportConfiguration.get_solo()
+        report_config.enable_borders = True
+        report_config.border_weight = 19050
+        report_config.border_color = "FF0000"
+        report_config.evidence_image_width = 7.0
+        report_config.evidence_image_alignment = "RIGHT"
+        report_config.figure_caption_location = "top"
+        report_config.save()
+        template = ReportDocxTemplateFactory(
+            evidence_image_width=4.25,
+            evidence_image_alignment=EvidenceImageAlignmentOverride.LEFT,
+        )
+        report = ReportFactory(docx_template=template)
+        evidence = EvidenceFactory(
+            img=True,
+            report=report,
+            friendly_name="Preview Image",
+            caption="Preview image caption",
+        )
+        text_evidence = EvidenceFactory(
+            txt=True, report=report, friendly_name="Preview Text"
+        )
+        extra_evidences = [
+            EvidenceFactory(
+                img=True, report=report, friendly_name=f"Preview Image {index}"
+            )
+            for index in range(10)
+        ]
+        field_spec = ExtraFieldSpecFactory(
+            internal_name="narrative",
+            display_name="Narrative",
+            type="rich_text",
+            target_model=ExtraFieldModelFactory(
+                model_internal_name="reporting.Report",
+                model_display_name="Reports",
+            ),
+        )
+        report.extra_fields = {
+            "narrative": (
+                '<script>alert("xss")</script>'
+                '<div class="richtext-evidence" data-evidence-id="{}"></div>'
+                '<div class="richtext-evidence" data-evidence-id="{}"></div>'
+                "{}"
+                "<p>Rendered text</p>"
+            ).format(
+                evidence.pk,
+                text_evidence.pk,
+                "".join(
+                    '<div class="richtext-evidence" data-evidence-id="{}"></div>'.format(
+                        extra_evidence.pk
+                    )
+                    for extra_evidence in extra_evidences
+                ),
+            )
+        }
+
+        rendered = render_to_string(
+            "user_extra_fields/extra_field_modal.html",
+            {
+                "extra_fields": report.extra_fields,
+                "field_spec": field_spec,
+                "report": report,
+            },
+        )
+
+        self.assertIn(
+            "This preview closely approximates report output using the report configuration and selected Word template settings.",
+            rendered,
+        )
+        self.assertIn(
+            'src="/reporting/evidence/download/{}"'.format(evidence.pk), rendered
+        )
+        self.assertIn('alt="Preview Image"', rendered)
+        self.assertIn("text-left", rendered)
+        self.assertIn("text-align: left", rendered)
+        self.assertIn("display: inline-block", rendered)
+        self.assertIn("width: 4.25in", rendered)
+        self.assertIn("border: 2.0px solid #FF0000", rendered)
+        self.assertLess(
+            rendered.index("Preview image caption"),
+            rendered.index('src="/reporting/evidence/download/{}"'.format(evidence.pk)),
+        )
+        self.assertIn(
+            '<pre class="evidence-preview-clickable js-open-lightbox" style="cursor: pointer;"',
+            rendered,
+        )
+        self.assertIn("<code>lorem ipsum</code>", rendered)
+        self.assertNotIn('class="text-evidence', rendered)
+        self.assertIn("Rendered text", rendered)
+        self.assertNotIn("<script>", rendered)
+        self.assertNotIn("GW_EVIDENCE_PREVIEW", rendered)
+        self.assertNotIn("0<p>Rendered text</p>", rendered)
+
+    def test_rich_text_extra_field_image_preview_uses_global_defaults(self):
+        report_config = ReportConfiguration.get_solo()
+        report_config.enable_borders = False
+        report_config.evidence_image_width = 5.5
+        report_config.evidence_image_alignment = "CENTER"
+        report_config.figure_caption_location = "bottom"
+        report_config.save()
+        report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(
+                evidence_image_width=None,
+                evidence_image_alignment=EvidenceImageAlignmentOverride.USE_GLOBAL,
+            )
+        )
+        evidence = EvidenceFactory(
+            img=True, report=report, caption="Global default caption"
+        )
+        field_spec = ExtraFieldSpecFactory(
+            internal_name="narrative",
+            display_name="Narrative",
+            type="rich_text",
+            target_model=ExtraFieldModelFactory(
+                model_internal_name="reporting.Report",
+                model_display_name="Reports",
+            ),
+        )
+        report.extra_fields = {
+            "narrative": '<div class="richtext-evidence" data-evidence-id="{}"></div>'.format(
+                evidence.pk
+            )
+        }
+
+        rendered = render_to_string(
+            "user_extra_fields/field.html",
+            {
+                "extra_fields": report.extra_fields,
+                "field_spec": field_spec,
+                "report": report,
+            },
+        )
+
+        self.assertIn("text-center", rendered)
+        self.assertIn("text-align: center", rendered)
+        self.assertIn("width: 5.5in", rendered)
+        self.assertNotIn("border:", rendered)
+        self.assertLess(
+            rendered.index('src="/reporting/evidence/download/{}"'.format(evidence.pk)),
+            rendered.index("Global default caption"),
+        )
 
     def test_truncate_filename_filter(self):
         filename = "This is a long filename that should be truncated.txt"
