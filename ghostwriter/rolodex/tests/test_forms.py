@@ -42,6 +42,7 @@ from ghostwriter.rolodex.forms_project import (
     ProjectScopeFormSet,
     ProjectTargetForm,
     ProjectTargetFormSet,
+    WhiteCardForm,
     WhiteCardFormSet,
 )
 
@@ -1037,6 +1038,28 @@ class WhiteCardFormSetTests(TestCase):
         form = self.form_data(data)
         self.assertTrue(form.is_valid())
 
+    def test_existing_issued_value_renders_for_datetime_local_input(self):
+        whitecard = WhiteCardFactory(
+            project=self.project,
+            issued=datetime(2026, 6, 22, 14, 30, 15, tzinfo=timezone.utc),
+        )
+        form = WhiteCardForm(instance=whitecard)
+
+        field = form.fields["issued"]
+        self.assertEqual(field.widget.input_type, "datetime-local")
+        self.assertEqual(field.widget.format_value(whitecard.issued), "2026-06-22T14:30:15")
+
+    def test_datetime_local_issued_value_is_valid(self):
+        form = WhiteCardForm(
+            data={
+                "title": "Provided Initial Access",
+                "issued": "2026-06-22T14:30:15",
+                "description": "",
+            }
+        )
+
+        self.assertTrue(form.is_valid())
+
     def test_incomplete_form(self):
         whitecard_1 = self.whitecard_1.__dict__.copy()
         whitecard_2 = self.whitecard_2.__dict__.copy()
@@ -1122,6 +1145,39 @@ class DeconflictionFormTests(TestCase):
         deconfliction.response_timestamp = one_hour_future
 
         form = self.form_data(**deconfliction.__dict__)
+        self.assertTrue(form.is_valid())
+
+    def test_existing_timestamp_values_render_for_datetime_local_inputs(self):
+        deconfliction = DeconflictionFactory(
+            project=self.project,
+            status=self.status,
+            alert_timestamp=datetime(2026, 6, 22, 13, 15, 30, tzinfo=timezone.utc),
+            report_timestamp=datetime(2026, 6, 22, 14, 45, 45, tzinfo=timezone.utc),
+            response_timestamp=datetime(2026, 6, 22, 15, 5, 15, tzinfo=timezone.utc),
+        )
+        form = DeconflictionForm(instance=deconfliction)
+
+        expected_values = {
+            "alert_timestamp": "2026-06-22T13:15:30",
+            "report_timestamp": "2026-06-22T14:45:45",
+            "response_timestamp": "2026-06-22T15:05:15",
+        }
+        for field_name, expected_value in expected_values.items():
+            field = form.fields[field_name]
+            self.assertEqual(field.widget.input_type, "datetime-local")
+            self.assertEqual(field.widget.format_value(getattr(deconfliction, field_name)), expected_value)
+
+    def test_datetime_local_timestamp_values_are_valid(self):
+        form = self.form_data(
+            title="Deconfliction Event",
+            alert_timestamp="2026-06-22T13:15:30",
+            report_timestamp="2026-06-22T14:45",
+            response_timestamp="2026-06-22T15:05:15",
+            description="",
+            alert_source="EDR",
+            status_id=self.status.pk,
+        )
+
         self.assertTrue(form.is_valid())
 
     def test_valid_data_with_only_required_datetime(self):

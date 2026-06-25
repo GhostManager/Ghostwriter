@@ -74,6 +74,17 @@ def _outline_command_value(command):
     return command_text if command_text != "N/A" else ""
 
 
+def _unavailable_template_response(request, report):
+    messages.error(
+        request,
+        "The selected report template is not available for this report.",
+        extra_tags="alert-danger",
+    )
+    return HttpResponseRedirect(
+        reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#generate"
+    )
+
+
 def _entry_start_utc(entry: OplogEntry) -> datetime:
     """Normalize an oplog entry timestamp to an aware UTC ``datetime``."""
     start_date = entry.start_date
@@ -315,26 +326,6 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         form = SelectReportTemplateForm(
             instance=self.object,
             has_bloodhound=self.object.project.has_bloodhound_api() or BloodHoundConfiguration.get_solo().has_bloodhound_api(),
-        )
-        form.fields["docx_template"].queryset = (
-            ReportTemplate.objects.filter(
-                doc_type__doc_type="docx",
-            )
-            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
-            .select_related(
-                "doc_type",
-                "client",
-            )
-        )
-        form.fields["pptx_template"].queryset = (
-            ReportTemplate.objects.filter(
-                doc_type__doc_type="pptx",
-            )
-            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
-            .select_related(
-                "doc_type",
-                "client",
-            )
         )
         ctx["form"] = form
 
@@ -742,17 +733,17 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
         obj = self.get_object()
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
-        return self.request.user.is_active
+        return obj.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         obj = self.get_object()
-        messages.error(self.request, "That template is protected – only an admin can edit it.")
-        return HttpResponseRedirect(
-            reverse(
-                "reporting:template_detail",
-                args=(obj.pk,),
-            )
-        )
+        if obj.protected:
+            messages.error(self.request, "That template is protected – only an admin can edit it.")
+        else:
+            messages.error(self.request, "You do not have permission to access that.")
+        if obj.user_can_view(self.request.user):
+            return HttpResponseRedirect(reverse("reporting:template_detail", args=(obj.pk,)))
+        return HttpResponseRedirect(reverse("reporting:templates"))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -982,6 +973,9 @@ class GenerateReportDOCX(GenerateReportBase):
                 )
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
 
+        if not report_template.user_can_apply_to_report(self.request.user, obj, "docx"):
+            return _unavailable_template_response(self.request, obj)
+
         # Check template's linting status
         template_status = report_template.get_status()
         if template_status in ("error", "failed"):
@@ -1099,6 +1093,9 @@ class GenerateReportPPTX(GenerateReportBase):
                 if not report_template:
                     raise MissingTemplate
 
+            if not report_template.user_can_apply_to_report(self.request.user, obj, "pptx"):
+                return _unavailable_template_response(self.request, obj)
+
             # Check template's linting status
             template_status = report_template.get_status()
             if template_status in ("error", "failed"):
@@ -1179,6 +1176,11 @@ class GenerateReportAll(GenerateReportBase):
                 pptx_template = report_config.default_pptx_template
                 if not pptx_template:
                     raise MissingTemplate
+
+            if not docx_template.user_can_apply_to_report(self.request.user, obj, "docx"):
+                return _unavailable_template_response(self.request, obj)
+            if not pptx_template.user_can_apply_to_report(self.request.user, obj, "pptx"):
+                return _unavailable_template_response(self.request, obj)
 
             exporters_and_filename_templates = [
                 (

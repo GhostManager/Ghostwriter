@@ -11,6 +11,7 @@ from ghostwriter.commandcenter.admin import ExtraFieldSpecInlineFormSet
 from ghostwriter.commandcenter.models import ExtraFieldModel, ExtraFieldSpec
 from ghostwriter.commandcenter.forms import ExtraFieldsField, ExtraFieldsWidget, ReportConfigurationForm
 from ghostwriter.factories import (
+    ClientFactory,
     ExtraFieldSpecFactory,
     ReportConfigurationFactory,
     ReportDocxTemplateFactory,
@@ -127,6 +128,13 @@ class ReportConfigurationFormTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
 
+        config["default_docx_template_id"] = ReportDocxTemplateFactory(client=ClientFactory()).pk
+
+        form = self.form_data(**config)
+        errors = form.errors["default_docx_template"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid_choice")
+
     def test_clean_default_pptx_template(self):
         config = self.config.__dict__.copy()
         form = self.form_data(**config)
@@ -139,6 +147,13 @@ class ReportConfigurationFormTests(TestCase):
         errors = form.errors["default_pptx_template"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+
+        config["default_pptx_template_id"] = ReportPptxTemplateFactory(client=ClientFactory()).pk
+
+        form = self.form_data(**config)
+        errors = form.errors["default_pptx_template"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid_choice")
 
     def test_clean_outline_tags_normalizes_and_deduplicates_rules(self):
         config = self.config.__dict__.copy()

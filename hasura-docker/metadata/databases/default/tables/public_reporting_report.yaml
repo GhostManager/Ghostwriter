@@ -63,10 +63,8 @@ insert_permissions:
       set:
         created_by_id: x-hasura-User-Id
       columns:
-        - docx_template_id
         - extra_fields
         - include_bloodhound_data
-        - pptx_template_id
         - project_id
         - title
   - role: user
@@ -87,10 +85,8 @@ insert_permissions:
       set:
         created_by_id: x-hasura-User-Id
       columns:
-        - docx_template_id
         - extra_fields
         - include_bloodhound_data
-        - pptx_template_id
         - project_id
         - title
 select_permissions:
@@ -155,11 +151,8 @@ update_permissions:
         - archived
         - complete
         - delivered
-        - docx_template_id
         - extra_fields
         - include_bloodhound_data
-        - pptx_template_id
-        - project_id
         - title
       filter: {}
       check: {}
@@ -168,11 +161,8 @@ update_permissions:
       columns:
         - complete
         - delivered
-        - docx_template_id
         - extra_fields
         - include_bloodhound_data
-        - pptx_template_id
-        - project_id
         - title
       filter:
         project:

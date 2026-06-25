@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * References to renamed migrated evidence update in the source finding's rich-text fields and extra fields
   * The evidence upload API and Hasura metadata no longer accept non-empty `finding` or `findingId` evidence associations
 
+## [7.1.2] - 24 June 2026
+
+### Fixed
+
+* Fixed `datetime-local` rendering for white card and deconfliction edit forms so saved timestamps display reliably in older browsers (Closes #917)
+
+### Security
+
+* Fixed additional client-scoped report template authorization bypasses in template swapping, report generation, archive generation, linting, and lint result endpoints
+  * Report template selection now only accepts global templates or templates scoped to the report project's client
+  * This fix includes two temporary breaking changes for the API while we work on a custom endpoint to handle this new business logic:
+    * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to set report template ID columns directly when creating or updating reports
+    * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to update a report's project ID column directly
+
 ## [7.1.1] - 18 June 2026
 
 ### Fixed
