@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added Playwright as a local dev package for end-to-end testing
-  * Added Playwright configuration and evidence metadata parser coverage for collaborative editor evidence loading
+* Added evidence metadata parser coverage for collaborative editor evidence loading
 
 ### Changed
 
@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * This includes first-class evidence objects, legacy `{{.Evidence Name}}` tags, `{{.ref Evidence Name}}` references, and `{{.caption Evidence Name}}` captions
 * Collaborative editor evidence loading now validates report metadata before querying evidence and keeps the evidence tool disabled only until report-scoped evidence context is ready
   * Users can still upload and insert report evidence from finding, observation, and report extra field editors
+* Previews of extra fields now more closely match your report configuration
+  * Image evidence will appear in accordance with your border, image width, and alignment configurations
+  * Captions will appear above or below evidence based on the configured location
+  * Text evidence now matches other code blocks as they typically do in the final reports
+    * They no longer inherit a border based on the border configuration
+    * They are now the full width of the content instead of bound to the evidence width intended for images
+* The extra fields section of the report dashboard now presents fields as cards for easier review and access
+* Loading of JSON extra fields is now "lazy" to defend page performance when these fields contain large JSON blobs
+  * The JSON data is also removed after closing the preview to maintain page performance
+
+### Fixed
+
+* Fixed severity colors appearing incorrect in xlsx reports
 
 ### Removed
 
