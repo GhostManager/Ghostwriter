@@ -3,9 +3,16 @@
 {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
   <div id="field_spec_{{ field_spec.internal_name }}" class="modal fade" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ field_spec.display_name }}</h5>
+        <div class="modal-content">
+          <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ field_spec.display_name }}</h5>
+            {% if field_spec.type == "rich_text" %}
+              <p class="text-muted small mb-0">
+                This preview closely approximates report output using the report configuration and selected Word template settings.
+              </p>
+            {% endif %}
+          </div>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
