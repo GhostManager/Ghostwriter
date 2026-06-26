@@ -232,6 +232,19 @@ class ServiceTokenModelTests(TestCase):
             )
             return [row[0] for row in cursor.fetchall()]
 
+    def _service_token_user_access_ids(self, token: ServiceToken) -> list[int]:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT user_id
+                FROM api_service_token_user_access
+                WHERE token_id = %s
+                ORDER BY user_id
+                """,
+                [token.id],
+            )
+            return [row[0] for row in cursor.fetchall()]
+
     def test_create_token(self):
         principal = ServicePrincipal.objects.create(
             name="Mythic Sync", created_by=self.user
@@ -923,6 +936,69 @@ class ServiceTokenModelTests(TestCase):
         self.user.save()
 
         self.assertEqual(self._service_token_project_access_ids(token_obj), [])
+
+    def test_service_token_user_access_view_tracks_project_read_access(self):
+        assigned_user = UserFactory(password=PASSWORD)
+        invited_user = UserFactory(password=PASSWORD)
+        client_invited_user = UserFactory(password=PASSWORD)
+        inaccessible_user = UserFactory(password=PASSWORD)
+        ProjectAssignmentFactory(project=self.project, operator=assigned_user)
+        ProjectInviteFactory(project=self.project, user=invited_user)
+        ClientInviteFactory(client=self.project.client, user=client_invited_user)
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=self.project.id,
+            ),
+        )
+
+        user_access_ids = self._service_token_user_access_ids(token_obj)
+
+        self.assertIn(self.user.id, user_access_ids)
+        self.assertIn(self.project.operator_id, user_access_ids)
+        self.assertIn(assigned_user.id, user_access_ids)
+        self.assertNotIn(invited_user.id, user_access_ids)
+        self.assertNotIn(client_invited_user.id, user_access_ids)
+        self.assertNotIn(inaccessible_user.id, user_access_ids)
+
+    def test_service_token_user_access_view_does_not_expand_to_privileged_users(self):
+        manager = UserFactory(password=PASSWORD, role="manager")
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=self.project.id,
+            ),
+        )
+
+        self.assertNotIn(manager.id, self._service_token_user_access_ids(token_obj))
+
+    def test_oplog_service_token_has_no_project_user_access(self):
+        principal = ServicePrincipal.objects.create(
+            name="Oplog Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Oplog Service Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.OPLOG_RW,
+                oplog_id=self.oplog.id,
+            ),
+        )
+
+        self.assertEqual(self._service_token_user_access_ids(token_obj), [])
 
     def test_inactive_creator_revokes_service_tokens_and_deactivates_principals(self):
         principal = ServicePrincipal.objects.create(
