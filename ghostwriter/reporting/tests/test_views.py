@@ -2450,25 +2450,24 @@ class ReportExtraFieldEditViewTests(TestCase):
         )
 
     def test_json_extra_field_modal_is_lazy_loaded(self):
+        lazy_json_url = reverse(
+            "reporting:report_extra_field_json",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
         rendered = render_to_string(
             "user_extra_fields/extra_field_modal.html",
             {
                 "extra_fields": self.report.extra_fields,
                 "field_spec": self.json_extra_field,
                 "report": self.report,
+                "lazy_json_url": lazy_json_url,
             },
         )
 
-        self.assertIn(
-            reverse(
-                "reporting:report_extra_field_json",
-                kwargs={
-                    "pk": self.report.pk,
-                    "extra_field_name": self.json_extra_field.internal_name,
-                },
-            ),
-            rendered,
-        )
+        self.assertIn(lazy_json_url, rendered)
         self.assertIn("JSON content will load when this preview opens.", rendered)
         self.assertNotIn("jsonView", rendered)
         self.assertNotIn("nested", rendered)

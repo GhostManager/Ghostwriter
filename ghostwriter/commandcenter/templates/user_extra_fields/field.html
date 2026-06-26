@@ -7,8 +7,8 @@
     {% else %}
       <span class="align-middle burned"><i class="fas fa-times"></i></span>
     {% endif %}
-  {% elif field_spec.type == "rich_text" %}
-    <div class="rich-text-field-preview">{{ field_value|rich_text_preview:report }}</div>
+	  {% elif field_spec.type == "rich_text" %}
+	    <div class="rich-text-field-preview">{{ field_value|rich_text_preview:preview_report }}</div>
   {% elif field_spec.type == "json" %}
     <pre><code id="jsonPreview"></code></pre>
     <script>

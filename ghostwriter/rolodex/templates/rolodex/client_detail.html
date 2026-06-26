@@ -402,11 +402,47 @@
 
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if client_extra_fields_spec %}
-        <div id="extra_fields" class="tab-pane">
+        <div id="extra-fields" class="tab-pane">
           <h4>Extra Fields</h4>
           <hr/>
 
-          {% include "user_extra_fields/field_preview_display.html" with object=client object_extra_fields_spec=client_extra_fields_spec %}
+          <div class="extra-fields-grid">
+            {% for field_spec in client_extra_fields_spec %}
+              <section class="extra-field-card">
+                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+                <div class="extra-field-type">
+                  {% if field_spec.type == "rich_text" %}
+                    Rich Text Field
+                  {% else %}
+                    {{ field_spec.get_type_display }} Field
+                  {% endif %}
+                </div>
+                <div class="extra-field-value">
+                  {% if field_spec.type == "rich_text" %}
+                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
+                  {% elif field_spec.type == "json" %}
+                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+                  {% else %}
+                    {% include "user_extra_fields/field.html" with extra_fields=client.extra_fields field_spec=field_spec preview_report=False %}
+                  {% endif %}
+                </div>
+                <div class="extra-field-actions">
+                  {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    </button>
+                  {% elif field_spec.type == "json" %}
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    </button>
+                  {% endif %}
+                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
+                     href="{% url 'rolodex:client_update' client.id %}#extra-fields"
+                     title="Edit {{ field_spec.display_name }}">Edit</a>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
         </div>
       {% endif %}
 
@@ -525,8 +561,10 @@
   {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
   {% if client_extra_fields_spec %}
     {% for field_spec in client_extra_fields_spec %}
-      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=client.extra_fields field_spec=field_spec %}
+      {% url 'rolodex:client_extra_field_json' client.id field_spec.internal_name as extra_field_json_url %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=client.extra_fields field_spec=field_spec lazy_json_url=extra_field_json_url preview_report=False %}
     {% endfor %}
+    {% include "user_extra_fields/lazy_json_modal_script.html" %}
   {% endif %}
 
   {% comment %} Insert modals for additional domain details {% endcomment %}

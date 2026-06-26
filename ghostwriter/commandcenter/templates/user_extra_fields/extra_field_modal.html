@@ -17,11 +17,11 @@
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="modal-body extra-field-modal-content"{% if field_spec.type == "json" %} data-lazy-json-url="{% url 'reporting:report_extra_field_json' report.id field_spec.internal_name %}" data-json-field-name="{{ field_spec.display_name }}"{% endif %}>
-          {% if field_spec.type == "json" %}
+        <div class="modal-body extra-field-modal-content"{% if field_spec.type == "json" and lazy_json_url %} data-lazy-json-url="{{ lazy_json_url }}" data-json-field-name="{{ field_spec.display_name }}"{% endif %}>
+          {% if field_spec.type == "json" and lazy_json_url %}
             <p class="text-muted mb-0">JSON content will load when this preview opens.</p>
           {% else %}
-            {% include "user_extra_fields/field.html" with extra_fields=extra_fields field_spec=field_spec %}
+            {% include "user_extra_fields/field.html" with extra_fields=extra_fields field_spec=field_spec preview_report=preview_report %}
           {% endif %}
         </div>
         <div class="modal-footer">

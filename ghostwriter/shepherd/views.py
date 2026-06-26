@@ -39,6 +39,7 @@ from ghostwriter.commandcenter.models import (
     NamecheapConfiguration,
     VirusTotalConfiguration,
 )
+from ghostwriter.commandcenter.views import ExtraFieldJsonView
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.filters import DomainFilter, ServerFilter
@@ -1094,6 +1095,10 @@ class DomainDetailView(RoleBasedAccessControlMixin, DetailView):
         return ctx
 
 
+class DomainExtraFieldJson(ExtraFieldJsonView):
+    model = Domain
+
+
 class HistoryCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.History`.
@@ -1367,6 +1372,10 @@ class ServerDetailView(RoleBasedAccessControlMixin, DetailView):
                 ctx["primary_address"] = address.ip_address
         ctx["server_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label)
         return ctx
+
+
+class ServerExtraFieldJson(ExtraFieldJsonView):
+    model = StaticServer
 
 
 class ServerCreate(RoleBasedAccessControlMixin, CreateView):

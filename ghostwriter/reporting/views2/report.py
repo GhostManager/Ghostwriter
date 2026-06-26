@@ -30,7 +30,7 @@ from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -565,34 +565,8 @@ class ReportExtraFieldEdit(CollabModelUpdate):
         return ctx
 
 
-class ReportExtraFieldJson(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+class ReportExtraFieldJson(ExtraFieldJsonView):
     model = Report
-
-    def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
-
-    def handle_no_permission(self):
-        return JsonResponse(
-            {
-                "result": "error",
-                "message": "You do not have permission to access that.",
-            },
-            status=403,
-        )
-
-    def get(self, request, *args, **kwargs):
-        report = self.get_object()
-        field = get_object_or_404(
-            ExtraFieldSpec.for_model(self.model),
-            internal_name=kwargs["extra_field_name"],
-            type="json",
-        )
-        return JsonResponse(
-            {
-                "field": field.display_name,
-                "value": field.value_of(report.extra_fields),
-            }
-        )
 
 
 class ReportOplogOutlineGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):

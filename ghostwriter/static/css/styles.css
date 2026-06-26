@@ -5565,13 +5565,13 @@ html[data-bs-theme="dark"] .modal .close {
   animation: gw-formset-new-highlight 1800ms ease-out;
 }
 
-#extra-fields .extra-fields-grid {
+.extra-fields-grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
 }
 
-#extra-fields .extra-field-card {
+.extra-field-card {
   border: 1px solid var(--secondary-color-fade);
   border-radius: 8px;
   display: flex;
@@ -5580,7 +5580,7 @@ html[data-bs-theme="dark"] .modal .close {
   padding: 1rem;
 }
 
-#extra-fields .extra-field-name {
+.extra-field-name {
   font-size: 1rem;
   font-weight: 500;
   margin-bottom: 0.25rem;
@@ -5588,26 +5588,26 @@ html[data-bs-theme="dark"] .modal .close {
   text-align: left;
 }
 
-#extra-fields .extra-field-type {
+.extra-field-type {
   color: var(--secondary-color);
   font-size: 0.8rem;
   margin-bottom: 0.75rem;
   text-align: left;
 }
 
-#extra-fields .extra-field-value {
+.extra-field-value {
   flex: 1 1 auto;
   overflow-wrap: anywhere;
   text-align: left;
   word-break: break-word;
 }
 
-#extra-fields .extra-field-value pre {
+.extra-field-value pre {
   margin: 0;
   max-width: 100%;
 }
 
-#extra-fields .extra-field-actions {
+.extra-field-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -5615,14 +5615,14 @@ html[data-bs-theme="dark"] .modal .close {
   margin-top: 1rem;
 }
 
-#extra-fields .extra-field-actions .btn {
+.extra-field-actions .btn {
   margin: 0;
   min-width: 8.5rem;
   text-align: center;
   white-space: nowrap;
 }
 
-#extra-fields .extra-field-summary {
+.extra-field-summary {
   color: var(--secondary-color);
   font-style: italic;
 }
