@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Service-token access now resolves related project users through a database-backed access view instead of repeatedly expanding a large Hasura permission tree
   * Project and operation log service-token scopes remain unchanged
 
+### Fixed
+
+* Fixed icons on filter fields not displaying properly
+
 ## [7.1.2] - 24 June 2026
 
 ### Fixed
