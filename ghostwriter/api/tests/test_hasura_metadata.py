@@ -131,29 +131,9 @@ def users_project_filter():
         "_and": [
             {"is_active": {"_eq": True}},
             {
-                "_or": [
-                    project_scope_filter("assignments", "project_id"),
-                    project_scope_filter("cloudServers", "project_id"),
-                    project_scope_filter("domainCheckouts", "project_id"),
-                    {"domainNotes": {"domain": domain_project_filter()}},
-                    {"domains": domain_project_filter()},
-                    {"evidences": evidence_project_filter()},
-                    project_scope_filter("projectNotes", "project_id"),
-                    project_scope_filter("projects", "id"),
-                    project_scope_filter(
-                        "reportedFindingNotes", "finding", "report", "project_id"
-                    ),
-                    project_scope_filter("reportedFindings", "report", "project_id"),
-                    project_scope_filter(
-                        "reportedObservations", "report", "project_id"
-                    ),
-                    project_scope_filter("reports", "project_id"),
-                    project_scope_filter("serverCheckouts", "project_id"),
-                    project_scope_filter(
-                        "serverNotes", "staticServer", "checkouts", "project_id"
-                    ),
-                    project_scope_filter("servers", "checkouts", "project_id"),
-                ]
+                "serviceTokenUserAccesses": {
+                    "token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}
+                }
             },
         ]
     }
@@ -231,6 +211,7 @@ EXPECTED_COLLAB_SELECT_PERMISSIONS = {
 
 EXPECTED_SERVICE_SELECT_FILTERS = {
     "api_service_token_project_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
+    "api_service_token_user_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
     "commandcenter_companyinformation": {},
     "commandcenter_extrafieldmodel": {},
     "commandcenter_extrafieldspec": {},
@@ -443,6 +424,33 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
                             "insertion_order": None,
                             "remote_table": {
                                 "name": "api_service_token_project_access",
+                                "schema": "public",
+                            },
+                        }
+                    },
+                }
+            ],
+        )
+
+    def test_user_metadata_has_service_token_user_access_relationship(self):
+        user_metadata = load_yaml(HASURA_TABLE_DIR / "public_users_user.yaml")
+        service_token_relationships = [
+            relationship
+            for relationship in user_metadata.get("array_relationships", [])
+            if relationship.get("name") == "serviceTokenUserAccesses"
+        ]
+
+        self.assertEqual(
+            service_token_relationships,
+            [
+                {
+                    "name": "serviceTokenUserAccesses",
+                    "using": {
+                        "manual_configuration": {
+                            "column_mapping": {"id": "user_id"},
+                            "insertion_order": None,
+                            "remote_table": {
+                                "name": "api_service_token_user_access",
                                 "schema": "public",
                             },
                         }
