@@ -3,6 +3,7 @@
 # Django Imports
 from django import forms
 from django.forms.widgets import TextInput
+from django.utils.safestring import mark_safe
 
 # 3rd Party Libraries
 import django_filters
@@ -22,6 +23,11 @@ from ghostwriter.reporting.models import (
     ReportTemplate,
     Severity,
 )
+
+FILE_ICON = mark_safe('<i class="fas fa-file-alt"></i>')
+FILTER_ICON = mark_safe('<i class="fas fa-filter"></i>')
+TAG_ICON = mark_safe('<i class="fas fa-tag"></i>')
+TOGGLE_ICON = mark_safe('<i class="fas fa-toggle-on"></i>')
 
 
 class FindingFilter(django_filters.FilterSet):
@@ -111,11 +117,11 @@ class FindingFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("title", '<i class="fas fa-filter"></i>'),
+                                PrependedText("title", FILTER_ICON),
                                 css_class="col-md-4 offset-md-2 mb-0",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="col-md-4 mb-0",
                             ),
                             css_class="form-row",
@@ -221,11 +227,11 @@ class ObservationFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("title", '<i class="fas fa-filter"></i>'),
+                                PrependedText("title", FILTER_ICON),
                                 css_class="col-md-4 offset-md-2 mb-0",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="col-md-4 mb-0",
                             ),
                             css_class="form-row",
@@ -318,17 +324,17 @@ class ReportFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("title", '<i class="fas fa-filter"></i>'),
+                                PrependedText("title", FILTER_ICON),
                                 css_class="col-md-4",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="col-md-4 mb-0",
                             ),
                             Column(
                                 PrependedText(
                                     "complete",
-                                    '<i class="fas fa-toggle-on"></i>',
+                                    TOGGLE_ICON,
                                 ),
                                 css_class="col-md-4 mb-0",
                             ),
@@ -403,7 +409,7 @@ class ArchiveFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("client", '<i class="fas fa-filter"></i>'),
+                                PrependedText("client", FILTER_ICON),
                                 css_class="col-md-4 offset-md-4 mb-0",
                             ),
                         ),
@@ -502,13 +508,13 @@ class ReportTemplateFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("name", '<i class="fas fa-filter"></i>'),
+                                PrependedText("name", FILTER_ICON),
                                 css_class="col-md-6",
                             ),
                             Column(
                                 PrependedText(
                                     "doc_type",
-                                    '<i class="fas fa-file-alt"></i>',
+                                    FILE_ICON,
                                 ),
                                 css_class="col-md-6 mb-0",
                             ),
@@ -516,11 +522,11 @@ class ReportTemplateFilter(django_filters.FilterSet):
                         ),
                         Row(
                             Column(
-                                PrependedText("client", '<i class="fas fa-filter"></i>'),
+                                PrependedText("client", FILTER_ICON),
                                 css_class="col-md-6",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="col-md-6 mb-0",
                             ),
                             css_class="form-row",

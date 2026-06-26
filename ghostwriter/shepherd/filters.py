@@ -7,6 +7,7 @@ from datetime import date
 from django import forms
 from django.db.models import Q
 from django.forms.widgets import TextInput
+from django.utils.safestring import mark_safe
 
 # 3rd Party Libraries
 import django_filters
@@ -23,6 +24,9 @@ from crispy_forms.layout import Div, HTML, ButtonHolder, Column, Layout, Row, Su
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.modules.shared import search_tags
 from ghostwriter.shepherd.models import Domain, DomainStatus, HealthStatus, ServerStatus
+
+FILTER_ICON = mark_safe('<i class="fas fa-filter"></i>')
+TAG_ICON = mark_safe('<i class="fas fa-tag"></i>')
 
 
 class DomainFilter(django_filters.FilterSet):
@@ -99,11 +103,11 @@ class DomainFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("domain", '<i class="fas fa-filter"></i>'),
+                                PrependedText("domain", FILTER_ICON),
                                 css_class="col-md-6",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="form-group col-md-6 mb-0",
                             ),
                             css_class="form-row",
@@ -232,11 +236,11 @@ class ServerFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("server", '<i class="fas fa-filter"></i>'),
+                                PrependedText("server", FILTER_ICON),
                                 css_class="form-group col-md-6 mb-0",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="form-group col-md-6 mb-0",
                             ),
                             css_class="form-row",

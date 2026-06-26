@@ -4,6 +4,7 @@
 from django import forms
 from django.db.models import Q
 from django.forms.widgets import TextInput
+from django.utils.safestring import mark_safe
 
 # 3rd Party Libraries
 import django_filters
@@ -14,6 +15,13 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 # Ghostwriter Libraries
 from ghostwriter.modules.shared import search_tags
 from ghostwriter.rolodex.models import Client, Project, ProjectType
+
+CALENDAR_ICON = mark_safe('<i class="far fa-calendar"></i>')
+FILTER_ICON = mark_safe('<i class="fas fa-filter"></i>')
+HOURGLASS_END_ICON = mark_safe('<i class="fas fa-hourglass-end"></i>')
+HOURGLASS_START_ICON = mark_safe('<i class="fas fa-hourglass-start"></i>')
+TAG_ICON = mark_safe('<i class="fas fa-tag"></i>')
+TOGGLE_ICON = mark_safe('<i class="fas fa-toggle-on"></i>')
 
 
 class ClientFilter(django_filters.FilterSet):
@@ -69,11 +77,11 @@ class ClientFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("name", '<i class="fas fa-filter"></i>'),
+                                PrependedText("name", FILTER_ICON),
                                 css_class="form-group col-md-6 mb-0",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="form-group col-md-6 mb-0",
                             ),
                             css_class="form-row",
@@ -215,11 +223,11 @@ class ProjectFilter(django_filters.FilterSet):
                     Div(
                         Row(
                             Column(
-                                PrependedText("client", '<i class="fas fa-filter"></i>'),
+                                PrependedText("client", FILTER_ICON),
                                 css_class="form-group col-md-6 mb-0",
                             ),
                             Column(
-                                PrependedText("codename", '<i class="fas fa-filter"></i>'),
+                                PrependedText("codename", FILTER_ICON),
                                 css_class="form-group col-md-6 mb-0",
                             ),
                         ),
@@ -227,19 +235,19 @@ class ProjectFilter(django_filters.FilterSet):
                             Column(
                                 PrependedText(
                                     "project_type",
-                                    '<i class="fas fa-filter"></i>',
+                                    FILTER_ICON,
                                 ),
                                 css_class="form-group col-md-4 mb-0",
                             ),
                             Column(
                                 PrependedText(
                                     "complete",
-                                    '<i class="fas fa-toggle-on"></i>',
+                                    TOGGLE_ICON,
                                 ),
                                 css_class="form-group col-md-4 mb-0",
                             ),
                             Column(
-                                PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                                PrependedText("tags", TAG_ICON),
                                 css_class="form-group col-md-4 mb-0",
                             ),
                             css_class="form-row",
@@ -248,18 +256,18 @@ class ProjectFilter(django_filters.FilterSet):
                             Column(
                                 PrependedText(
                                     "start_date_range",
-                                    '<i class="far fa-calendar"></i>',
+                                    CALENDAR_ICON,
                                 ),
                                 css_class="form-group col-md-4 mb-0",
                             ),
                             Column(
-                                PrependedText("start_date", '<i class="fas fa-hourglass-start"></i>'),
+                                PrependedText("start_date", HOURGLASS_START_ICON),
                                 css_class="form-group col-md-4 mb-0",
                             ),
                             Column(
                                 PrependedText(
                                     "end_date",
-                                    '<i class="fas fa-hourglass-end"></i>',
+                                    HOURGLASS_END_ICON,
                                 ),
                                 css_class="form-group col-md-4 mb-0",
                             ),
