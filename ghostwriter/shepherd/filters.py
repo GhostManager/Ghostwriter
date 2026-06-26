@@ -7,7 +7,7 @@ from datetime import date
 from django import forms
 from django.db.models import Q
 from django.forms.widgets import TextInput
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 # 3rd Party Libraries
 import django_filters
@@ -25,8 +25,8 @@ from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.modules.shared import search_tags
 from ghostwriter.shepherd.models import Domain, DomainStatus, HealthStatus, ServerStatus
 
-FILTER_ICON = mark_safe('<i class="fas fa-filter"></i>')
-TAG_ICON = mark_safe('<i class="fas fa-tag"></i>')
+FILTER_ICON = format_html('<i class="fas fa-filter"></i>')
+TAG_ICON = format_html('<i class="fas fa-tag"></i>')
 
 
 class DomainFilter(django_filters.FilterSet):

@@ -3,7 +3,7 @@
 # Django Imports
 from django import forms
 from django.forms.widgets import TextInput
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 # 3rd Party Libraries
 import django_filters
@@ -24,10 +24,10 @@ from ghostwriter.reporting.models import (
     Severity,
 )
 
-FILE_ICON = mark_safe('<i class="fas fa-file-alt"></i>')
-FILTER_ICON = mark_safe('<i class="fas fa-filter"></i>')
-TAG_ICON = mark_safe('<i class="fas fa-tag"></i>')
-TOGGLE_ICON = mark_safe('<i class="fas fa-toggle-on"></i>')
+FILE_ICON = format_html('<i class="fas fa-file-alt"></i>')
+FILTER_ICON = format_html('<i class="fas fa-filter"></i>')
+TAG_ICON = format_html('<i class="fas fa-tag"></i>')
+TOGGLE_ICON = format_html('<i class="fas fa-toggle-on"></i>')
 
 
 class FindingFilter(django_filters.FilterSet):

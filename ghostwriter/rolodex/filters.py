@@ -4,7 +4,7 @@
 from django import forms
 from django.db.models import Q
 from django.forms.widgets import TextInput
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 # 3rd Party Libraries
 import django_filters
@@ -16,12 +16,12 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 from ghostwriter.modules.shared import search_tags
 from ghostwriter.rolodex.models import Client, Project, ProjectType
 
-CALENDAR_ICON = mark_safe('<i class="far fa-calendar"></i>')
-FILTER_ICON = mark_safe('<i class="fas fa-filter"></i>')
-HOURGLASS_END_ICON = mark_safe('<i class="fas fa-hourglass-end"></i>')
-HOURGLASS_START_ICON = mark_safe('<i class="fas fa-hourglass-start"></i>')
-TAG_ICON = mark_safe('<i class="fas fa-tag"></i>')
-TOGGLE_ICON = mark_safe('<i class="fas fa-toggle-on"></i>')
+CALENDAR_ICON = format_html('<i class="far fa-calendar"></i>')
+FILTER_ICON = format_html('<i class="fas fa-filter"></i>')
+HOURGLASS_END_ICON = format_html('<i class="fas fa-hourglass-end"></i>')
+HOURGLASS_START_ICON = format_html('<i class="fas fa-hourglass-start"></i>')
+TAG_ICON = format_html('<i class="fas fa-tag"></i>')
+TOGGLE_ICON = format_html('<i class="fas fa-toggle-on"></i>')
 
 
 class ClientFilter(django_filters.FilterSet):
