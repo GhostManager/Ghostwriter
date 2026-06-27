@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 # Django Imports
-from django.db import connection
+from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase, override_settings
 
@@ -193,3 +193,86 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
         self.assertTrue(migrated_path.exists())
         self.assertEqual(report_path.read_bytes(), b"existing report evidence")
         self.assertEqual(migrated_path.read_bytes(), b"finding evidence")
+
+
+class EvidenceFriendlyNameConstraintMigrationTests(TransactionTestCase):
+    """Verify report evidence friendly names are unique at the database level."""
+
+    migrate_from = [("reporting", "0069_remove_finding_evidence")]
+    migrate_to = [("reporting", "0070_evidence_unique_report_friendly_name")]
+
+    def setUp(self):
+        super().setUp()
+
+        self.executor = MigrationExecutor(connection)
+        self.executor.migrate(self.migrate_from)
+        old_apps = self.executor.loader.project_state(self.migrate_from).apps
+        self.setUpBeforeMigration(old_apps)
+
+        self.executor = MigrationExecutor(connection)
+        self.executor.migrate(self.migrate_to)
+        self.apps = self.executor.loader.project_state(self.migrate_to).apps
+
+    def setUpBeforeMigration(self, apps):
+        Client = apps.get_model("rolodex", "Client")
+        Project = apps.get_model("rolodex", "Project")
+        ProjectType = apps.get_model("rolodex", "ProjectType")
+        Report = apps.get_model("reporting", "Report")
+        Evidence = apps.get_model("reporting", "Evidence")
+
+        client = Client.objects.create(name="Unique Constraint Client")
+        project_type = ProjectType.objects.create(project_type="Unique Constraint Test")
+        project = Project.objects.create(
+            client=client,
+            project_type=project_type,
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=1),
+        )
+        self.report = Report.objects.create(project=project, title="Constraint Report")
+        self.other_report = Report.objects.create(project=project, title="Other Constraint Report")
+        self.first_duplicate = Evidence.objects.create(
+            report=self.report,
+            friendly_name="Duplicate",
+            document="evidence/duplicate-one.txt",
+        )
+        self.second_duplicate = Evidence.objects.create(
+            report=self.report,
+            friendly_name="Duplicate",
+            document="evidence/duplicate-two.txt",
+        )
+        self.other_report_duplicate = Evidence.objects.create(
+            report=self.other_report,
+            friendly_name="Duplicate",
+            document="evidence/other-report-duplicate.txt",
+        )
+
+    def test_duplicate_friendly_names_are_deconflicted_before_constraint(self):
+        Evidence = self.apps.get_model("reporting", "Evidence")
+
+        first_duplicate = Evidence.objects.get(pk=self.first_duplicate.pk)
+        second_duplicate = Evidence.objects.get(pk=self.second_duplicate.pk)
+        other_report_duplicate = Evidence.objects.get(pk=self.other_report_duplicate.pk)
+
+        self.assertEqual(first_duplicate.friendly_name, "Duplicate")
+        self.assertEqual(
+            second_duplicate.friendly_name,
+            f"Duplicate (evidence {self.second_duplicate.pk})",
+        )
+        self.assertEqual(other_report_duplicate.friendly_name, "Duplicate")
+
+    def test_database_rejects_duplicate_friendly_name_for_same_report(self):
+        Evidence = self.apps.get_model("reporting", "Evidence")
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Evidence.objects.create(
+                    report_id=self.report.pk,
+                    friendly_name="Duplicate",
+                    document="evidence/new-duplicate.txt",
+                )
+
+        Evidence.objects.create(
+            report_id=self.other_report.pk,
+            friendly_name=f"Duplicate (evidence {self.second_duplicate.pk})",
+            document="evidence/new-other-report-duplicate.txt",
+        )

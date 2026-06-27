@@ -978,6 +978,12 @@ class Evidence(models.Model):
         ordering = ["report", "document"]
         verbose_name = "Evidence"
         verbose_name_plural = "Evidence"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["report", "friendly_name"],
+                name="reporting_evidence_unique_report_friendly_name",
+            )
+        ]
 
     def get_absolute_url(self):
         return reverse("reporting:evidence_detail", args=[str(self.id)])
