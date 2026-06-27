@@ -7784,7 +7784,9 @@ export type Evidence_Bool_Exp = {
 /** unique or primary key constraints on table "reporting_evidence" */
 export enum Evidence_Constraint {
   /** unique or primary key constraint on columns "id" */
-  ReportingEvidencePkey = 'reporting_evidence_pkey'
+  ReportingEvidencePkey = 'reporting_evidence_pkey',
+  /** unique or primary key constraint on columns "report_id", "friendly_name" */
+  ReportingEvidenceUniqueReportFriendlyName = 'reporting_evidence_unique_report_friendly_name'
 }
 
 /** input type for incrementing numeric columns in table "reporting_evidence" */

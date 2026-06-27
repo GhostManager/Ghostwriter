@@ -24,18 +24,24 @@ def get_unique_friendly_name(original_name, used_names, evidence_id):
 def deconflict_report_evidence_friendly_names(apps, schema_editor):
     Evidence = apps.get_model("reporting", "Evidence")
 
-    used_names_by_report = {}
-    evidences = Evidence.objects.order_by("report_id", "id").only("id", "report_id", "friendly_name")
-    for evidence in evidences.iterator():
-        used_names = used_names_by_report.setdefault(evidence.report_id, set())
-        friendly_name = evidence.friendly_name
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("ALTER TABLE reporting_evidence DISABLE TRIGGER USER;")
+    try:
+        used_names_by_report = {}
+        evidences = Evidence.objects.order_by("report_id", "id").only("id", "report_id", "friendly_name")
+        for evidence in evidences.iterator():
+            used_names = used_names_by_report.setdefault(evidence.report_id, set())
+            friendly_name = evidence.friendly_name
 
-        if friendly_name in used_names:
-            friendly_name = get_unique_friendly_name(friendly_name, used_names, evidence.id)
-            evidence.friendly_name = friendly_name
-            evidence.save(update_fields=["friendly_name"])
+            if friendly_name in used_names:
+                friendly_name = get_unique_friendly_name(friendly_name, used_names, evidence.id)
+                evidence.friendly_name = friendly_name
+                evidence.save(update_fields=["friendly_name"])
 
-        used_names.add(friendly_name)
+            used_names.add(friendly_name)
+    finally:
+        with schema_editor.connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE reporting_evidence ENABLE TRIGGER USER;")
 
 
 class Migration(migrations.Migration):
