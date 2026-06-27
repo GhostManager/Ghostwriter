@@ -314,6 +314,24 @@ class ExtraFieldFormTest(TestCase):
         data = field.clean(field_data)
         self.assertTrue(data["test_field_bool"])
 
+    def test_checkbox_widget_uses_custom_switch_markup(self):
+        ExtraFieldSpec.objects.create(
+            target_model=self.model,
+            internal_name="test_field_bool",
+            display_name="Test Field 4",
+            type="checkbox",
+        )
+        widget = ExtraFieldsWidget("test.TestModel")
+
+        rendered = widget.render("testform", {"test_field_bool": True}, attrs={"id": "id_testform"})
+
+        self.assertIn('class="mb-3 custom-control custom-switch"', rendered)
+        self.assertIn('class="custom-control-input"', rendered)
+        self.assertIn("checked", rendered)
+        self.assertIn('for="id_testform_test_field_bool"', rendered)
+        self.assertIn('class="custom-control-label form-check-label"', rendered)
+        self.assertIn("Test Field 4", rendered)
+
     def test_checkbox_false(self):
         ExtraFieldSpec.objects.create(
             target_model=self.model,
