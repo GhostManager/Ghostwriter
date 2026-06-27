@@ -99,6 +99,20 @@ UNION
 
 SELECT DISTINCT
     api_service_token_project_access.token_id,
+    reporting_evidence.uploaded_by_id AS user_id
+FROM api_service_token_project_access
+INNER JOIN reporting_report
+    ON reporting_report.project_id = api_service_token_project_access.project_id
+INNER JOIN reporting_reportfindinglink
+    ON reporting_reportfindinglink.report_id = reporting_report.id
+INNER JOIN reporting_evidence
+    ON reporting_evidence.finding_id = reporting_reportfindinglink.id
+WHERE reporting_evidence.uploaded_by_id IS NOT NULL
+
+UNION
+
+SELECT DISTINCT
+    api_service_token_project_access.token_id,
     rolodex_projectnote.operator_id AS user_id
 FROM api_service_token_project_access
 INNER JOIN rolodex_projectnote
