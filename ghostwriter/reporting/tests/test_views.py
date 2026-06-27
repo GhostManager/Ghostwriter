@@ -274,7 +274,7 @@ class TemplateTagTests(TestCase):
             {
                 "extra_fields": report.extra_fields,
                 "field_spec": field_spec,
-                "report": report,
+                "preview_report": report,
             },
         )
 
@@ -342,7 +342,7 @@ class TemplateTagTests(TestCase):
             {
                 "extra_fields": report.extra_fields,
                 "field_spec": field_spec,
-                "report": report,
+                "preview_report": report,
             },
         )
 
