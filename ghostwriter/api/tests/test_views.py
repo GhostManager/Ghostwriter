@@ -2321,6 +2321,30 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         )
         self.assertNotEqual(response.status_code, 201, response.content)
 
+    def test_upload_report_required(self):
+        _, token = generate_user_jwt(self.user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401, response.content)
+        self.assertEqual(response.json()["extensions"]["code"], "Invalid")
+        self.assertIn("report:", response.json()["message"])
+        self.assertFalse(Evidence.objects.filter(friendly_name=data["friendly_name"]).exists())
+
     def test_upload_finding_rejected(self):
         _, token = generate_user_jwt(self.user)
         data = {

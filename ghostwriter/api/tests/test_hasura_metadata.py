@@ -1,4 +1,5 @@
 # Standard Libraries
+import re
 from pathlib import Path
 
 # Django Imports
@@ -300,6 +301,26 @@ def load_yaml(path):
         return yaml.safe_load(handle)
 
 
+def action_arguments(action_name):
+    actions_graphql = (HASURA_METADATA_DIR / "actions.graphql").read_text()
+    match = re.search(
+        rf"\b{re.escape(action_name)}\s*\((?P<args>.*?)\)\s*:",
+        actions_graphql,
+        flags=re.DOTALL,
+    )
+    if not match:
+        return {}
+
+    arguments = {}
+    for line in match.group("args").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        name, type_name = line.split(":", 1)
+        arguments[name.strip()] = type_name.strip()
+    return arguments
+
+
 def table_metadata():
     for path in sorted(HASURA_TABLE_DIR.glob("public_*.yaml")):
         data = load_yaml(path)
@@ -361,6 +382,17 @@ def view_class_for_action_path(path):
             callback = urlpattern.callback
             return getattr(callback, "view_class", None)
     return None
+
+
+class HasuraMetadataActionSchemaTests(SimpleTestCase):
+    """Validate Hasura action schemas match Django action contracts."""
+
+    def test_upload_evidence_requires_report_and_removes_finding_arguments(self):
+        arguments = action_arguments("uploadEvidence")
+
+        self.assertEqual(arguments["report"], "Int!")
+        self.assertNotIn("finding", arguments)
+        self.assertNotIn("findingId", arguments)
 
 
 class HasuraMetadataServiceRoleTests(SimpleTestCase):
