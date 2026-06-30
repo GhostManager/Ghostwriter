@@ -40,8 +40,7 @@ from ghostwriter.factories import (
     ClientFactory,
     DomainFactory,
     DomainStatusFactory,
-    EvidenceOnFindingFactory,
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     ExtraFieldModelFactory,
     ExtraFieldSpecFactory,
     FindingFactory,
@@ -2272,6 +2271,34 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
         self.assertEqual(evidence.pk, self.report.evidence_set.all().get().pk)
 
+    def test_upload_report_accepts_empty_legacy_finding_values(self):
+        _, token = generate_user_jwt(self.user)
+        for field_name, value in (("finding", None), ("finding", ""), ("findingId", None), ("findingId", "")):
+            with self.subTest(field_name=field_name, value=value):
+                data = {
+                    "filename": "test.txt",
+                    "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+                    "friendly_name": f"test_evidence_{field_name}_{value!r}",
+                    "description": "This was added via graphql",
+                    "caption": "Graphql Evidence",
+                    "tags": "foo,bar,baz",
+                    "report": str(self.report.pk),
+                    field_name: value,
+                }
+                response = self.client.post(
+                    self.uri,
+                    data={"input": data},
+                    content_type="application/json",
+                    **{
+                        "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                        "HTTP_AUTHORIZATION": f"Bearer {token}",
+                    },
+                )
+                self.assertEqual(response.status_code, 201, response.content)
+                evidence = Evidence.objects.get(pk=response.json()["id"])
+                self.assertEqual(evidence.report_id, self.report.pk)
+                self.assertIsNone(getattr(evidence, "finding_id", None))
+
     def test_upload_report_forbidden(self):
         _, token = generate_user_jwt(self.disallowed_user)
         data = {
@@ -2294,7 +2321,31 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         )
         self.assertNotEqual(response.status_code, 201, response.content)
 
-    def test_upload_finding(self):
+    def test_upload_report_required(self):
+        _, token = generate_user_jwt(self.user)
+        data = {
+            "filename": "test.txt",
+            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
+            "friendly_name": "test_evidence",
+            "description": "This was added via graphql",
+            "caption": "Graphql Evidence",
+            "tags": "foo,bar,baz",
+        }
+        response = self.client.post(
+            self.uri,
+            data={"input": data},
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401, response.content)
+        self.assertEqual(response.json()["extensions"]["code"], "Invalid")
+        self.assertIn("report:", response.json()["message"])
+        self.assertFalse(Evidence.objects.filter(friendly_name=data["friendly_name"]).exists())
+
+    def test_upload_finding_rejected(self):
         _, token = generate_user_jwt(self.user)
         data = {
             "filename": "test.txt",
@@ -2314,34 +2365,8 @@ class GraphqlUploadEvidenceViewTests(TestCase):
                 "HTTP_AUTHORIZATION": f"Bearer {token}",
             },
         )
-        self.assertEqual(response.status_code, 201, response.content)
-        id = response.json()["id"]
-        evidence = Evidence.objects.get(pk=id)
-        self.assertEqual(evidence.caption, data["caption"])
-        self.assertEqual(evidence.document.read(), "Hello, world!".encode("utf-8"))
-        self.assertEqual(evidence.pk, self.finding.evidence_set.all().get().pk)
-
-    def test_upload_finding_forbidden(self):
-        _, token = generate_user_jwt(self.disallowed_user)
-        data = {
-            "filename": "test.txt",
-            "file_base64": base64.b64encode(b"Hello, world!").decode("ascii"),
-            "friendly_name": "test_evidence",
-            "description": "This was added via graphql",
-            "caption": "Graphql Evidence",
-            "tags": "foo,bar,baz",
-            "finding": str(self.finding.pk),
-        }
-        response = self.client.post(
-            self.uri,
-            data={"input": data},
-            content_type="application/json",
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
-                "HTTP_AUTHORIZATION": f"Bearer {token}",
-            },
-        )
-        self.assertNotEqual(response.status_code, 201, response.content)
+        self.assertEqual(response.status_code, 401, response.content)
+        self.assertFalse(Evidence.objects.filter(friendly_name=data["friendly_name"]).exists())
 
     def test_upload_evidence_oversized_payload_rejected(self):
         """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
@@ -3446,57 +3471,27 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         cls.uri = reverse("api:graphql_evidence_update_event")
 
         cls.finding = ReportFindingLinkFactory(
-            description="<p>Here is some evidence:</p><p>{{.Test Finding Evidence}}</p><p>{{.ref Test Finding Evidence}}</p>",
+            description="<p>Here is some evidence:</p><p>{{.Test Report Evidence}}</p><p>{{.ref Test Report Evidence}}</p>",
             impact="<p>Here is some evidence:</p><p>{{.Test Report Evidence}}</p><p>{{.ref Test Report Evidence}}</p>",
             mitigation="<p>Here is some evidence:</p><p>{{.Deleted Evidence}}</p><p>{{.ref Deleted Evidence}}</p>",
         )
-        cls.finding_evidence = EvidenceOnFindingFactory(
-            friendly_name="Test Finding Evidence",
-            finding=cls.finding,
-            report=None,
-            document=factory.django.FileField(
-                filename="finding_evidence.txt", data=b"lorem ipsum"
-            ),
-        )
-        cls.report_evidence = EvidenceOnReportFactory(
+        cls.report_evidence = EvidenceFactory(
             friendly_name="Test Report Evidence",
             report=cls.finding.report,
             document=factory.django.FileField(
                 filename="finding_evidence.txt", data=b"lorem ipsum"
             ),
         )
-        cls.deleted_evidence = EvidenceOnFindingFactory(
-            finding=cls.finding, friendly_name="Deleted Evidence"
+        cls.deleted_evidence = EvidenceFactory(
+            report=cls.finding.report, friendly_name="Deleted Evidence"
         )
 
         # Add a blank finding to the report for regression testing updates on findings with blank fields
         BlankReportFindingLinkFactory(report=cls.report_evidence.report)
-        EvidenceOnReportFactory(
+        EvidenceFactory(
             report=cls.report_evidence.report, friendly_name="Blank Test"
         )
 
-        # Sample data for an update that changes the friendly name and document on finding evidence
-        cls.update_data_finding = {
-            "event": {
-                "op": "UPDATE",
-                "data": {
-                    "new": {
-                        "id": cls.finding_evidence.id,
-                        "document": "evidence/some_new_file.txt",
-                        "friendly_name": "New Name",
-                        "finding_id": cls.finding.id,
-                        "report_id": "",
-                    },
-                    "old": {
-                        "id": cls.finding_evidence.id,
-                        "document": str(cls.finding_evidence.document),
-                        "friendly_name": cls.finding_evidence.friendly_name,
-                        "finding_id": cls.finding.id,
-                        "report_id": "",
-                    },
-                },
-            }
-        }
         # Sample data for an update that changes the friendly name and document on report evidence
         cls.update_data_report = {
             "event": {
@@ -3506,14 +3501,12 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
                         "id": cls.report_evidence.id,
                         "document": str(cls.report_evidence.document),
                         "friendly_name": "New Name",
-                        "finding_id": "",
                         "report_id": cls.report_evidence.report.id,
                     },
                     "old": {
                         "id": cls.report_evidence.id,
                         "document": str(cls.report_evidence.document),
                         "friendly_name": cls.report_evidence.friendly_name,
-                        "finding_id": "",
                         "report_id": cls.report_evidence.report.id,
                     },
                 },
@@ -3529,8 +3522,7 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
                         "id": cls.deleted_evidence.id,
                         "document": str(cls.deleted_evidence.document),
                         "friendly_name": cls.deleted_evidence.friendly_name,
-                        "finding_id": cls.finding.id,
-                        "report_id": "",
+                        "report_id": cls.deleted_evidence.report.id,
                     },
                 },
             }
@@ -3540,29 +3532,6 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         self.client = Client()
 
     def test_graphql_evidence_update_event(self):
-        # Test updating finding evidence
-        self.assertTrue(os.path.exists(self.finding_evidence.document.path))
-        response = self.client.post(
-            self.uri,
-            content_type="application/json",
-            data=self.update_data_finding,
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
-            },
-        )
-
-        # The document should no longer exist
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(os.path.exists(self.finding_evidence.document.path))
-
-        # The friendly name references should be changed
-        self.finding.refresh_from_db()
-        self.assertEqual(
-            self.finding.description,
-            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
-        )
-
-        # Test updating report evidence
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -3573,6 +3542,10 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.finding.refresh_from_db()
+        self.assertEqual(
+            self.finding.description,
+            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
+        )
         self.assertEqual(
             self.finding.impact,
             "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
@@ -4874,10 +4847,10 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         cls.finding = ReportFindingLinkFactory(report=cls.report)
 
         # Create evidence with finding
-        cls.evidence_with_finding = EvidenceOnFindingFactory(finding=cls.finding)
+        cls.evidence = EvidenceFactory(report=cls.report)
 
         # Create evidence without finding but with report
-        cls.evidence_with_report = EvidenceOnReportFactory(report=cls.report)
+        cls.evidence_with_report = EvidenceFactory(report=cls.report)
 
         # Create project assignment for user (not for manager - they don't need it)
         cls.assignment = ProjectAssignmentFactory(
@@ -4896,7 +4869,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_unauthorized_no_secret(self):
         """Test that request without action secret is rejected."""
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -4916,7 +4889,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_unauthorized_wrong_secret(self):
         """Test that request with wrong action secret is rejected."""
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -4937,7 +4910,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_no_token(self):
         """Test that request without JWT token is rejected."""
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -4957,7 +4930,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_invalid_token(self):
         """Test that request with invalid JWT token is rejected."""
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -5020,7 +4993,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
     def test_download_evidence_forbidden_no_project_access(self):
         """Test that user without project access cannot download evidence."""
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -5043,11 +5016,11 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         """Test successful evidence download returns both URL and base64."""
         test_content = b"Test evidence content"
 
-        self.evidence_with_finding.document.save(
+        self.evidence.document.save(
             "test_evidence.txt", ContentFile(test_content), save=True
         )
 
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -5060,13 +5033,13 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
         result = response.json()
-        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
-        self.assertEqual(result["filename"], self.evidence_with_finding.filename)
+        self.assertEqual(result["evidenceId"], self.evidence.id)
+        self.assertEqual(result["filename"], self.evidence.filename)
         self.assertEqual(
-            result["friendlyName"], self.evidence_with_finding.friendly_name
+            result["friendlyName"], self.evidence.friendly_name
         )
         self.assertIn("downloadUrl", result)
-        self.assertIn(str(self.evidence_with_finding.id), result["downloadUrl"])
+        self.assertIn(str(self.evidence.id), result["downloadUrl"])
         self.assertIn("fileBase64", result)
 
         # Verify base64 content
@@ -5076,11 +5049,11 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
     def test_download_evidence_with_project_service_token(self):
         """Test that a project-scoped service token can download in-scope evidence."""
         test_content = b"Service token evidence content"
-        self.evidence_with_finding.document.save(
+        self.evidence.document.save(
             "service_token_evidence.txt", ContentFile(test_content), save=True
         )
         token = create_project_read_service_token(self.user, self.project)
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -5123,11 +5096,11 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         """Test that manager can download evidence from any project."""
         test_content = b"Manager test content"
 
-        self.evidence_with_finding.document.save(
+        self.evidence.document.save(
             "manager_test.txt", ContentFile(test_content), save=True
         )
 
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -5139,14 +5112,14 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         result = response.json()
-        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
+        self.assertEqual(result["evidenceId"], self.evidence.id)
         self.assertIn("downloadUrl", result)
         self.assertIn("fileBase64", result)
 
     def test_download_evidence_file_not_found(self):
         """Test that missing file returns 404."""
         # Create evidence with a file that we'll delete
-        evidence = EvidenceOnFindingFactory(finding=self.finding)
+        evidence = EvidenceFactory(report=self.report)
         evidence.document.save(
             "temp_file.txt", ContentFile(b"temporary content"), save=True
         )
@@ -5180,7 +5153,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         # Django Imports
         from django.test import override_settings
 
-        evidence = EvidenceOnFindingFactory(finding=self.finding)
+        evidence = EvidenceFactory(report=self.report)
         evidence.document.save(
             "oversize_evidence.txt", ContentFile(b"some content"), save=True
         )
@@ -5204,11 +5177,11 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         """Test that request with forwarded IP header is handled correctly."""
         test_content = b"Forwarded IP test content"
 
-        self.evidence_with_finding.document.save(
+        self.evidence.document.save(
             "forwarded_test.txt", ContentFile(test_content), save=True
         )
 
-        data = {"input": {"evidenceId": self.evidence_with_finding.id}}
+        data = {"input": {"evidenceId": self.evidence.id}}
 
         response = self.client.post(
             self.uri,
@@ -5221,7 +5194,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         result = response.json()
-        self.assertEqual(result["evidenceId"], self.evidence_with_finding.id)
+        self.assertEqual(result["evidenceId"], self.evidence.id)
         self.assertIn("downloadUrl", result)
         self.assertIn("fileBase64", result)
 
@@ -5242,11 +5215,11 @@ class GraphqlLinkOplogEvidenceTests(TestCase):
         )
 
         cls.oplog_entry = OplogEntryFactory(oplog_id__project=cls.project)
-        cls.evidence = EvidenceOnReportFactory(report=cls.report)
+        cls.evidence = EvidenceFactory(report=cls.report)
 
         cls.other_project = ProjectFactory()
         cls.other_report = ReportFactory(project=cls.other_project)
-        cls.other_evidence = EvidenceOnReportFactory(report=cls.other_report)
+        cls.other_evidence = EvidenceFactory(report=cls.other_report)
 
         cls.uri = reverse("api:graphql_link_oplog_evidence")
 

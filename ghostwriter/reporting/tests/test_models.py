@@ -23,7 +23,7 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     DocTypeFactory,
-    EvidenceOnFindingFactory,
+    EvidenceFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
@@ -741,11 +741,11 @@ class EvidenceModelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.Evidence = EvidenceOnFindingFactory._meta.model
+        cls.Evidence = EvidenceFactory._meta.model
 
     def test_crud_evidence(self):
         # Create
-        evidence = EvidenceOnFindingFactory(friendly_name="Test Evidence")
+        evidence = EvidenceFactory(friendly_name="Test Evidence")
 
         # Read
         self.assertEqual(evidence.friendly_name, "Test Evidence")
@@ -765,7 +765,7 @@ class EvidenceModelTests(TestCase):
         assert not self.Evidence.objects.all().exists()
 
     def test_get_absolute_url(self):
-        evidence = EvidenceOnFindingFactory()
+        evidence = EvidenceFactory()
         try:
             evidence.get_absolute_url()
         except:
@@ -773,14 +773,14 @@ class EvidenceModelTests(TestCase):
         evidence.delete()
 
     def test_file_extension_validator(self):
-        evidence = EvidenceOnFindingFactory(
+        evidence = EvidenceFactory(
             document=factory.django.FileField(filename="ext_test.PnG", data=b"lorem ipsum")
         )
         self.assertRegexpMatches(evidence.filename, r"^ext_test[_0-9a-zA-Z]*\.PnG$")
         evidence.delete()
 
     def test_prop_filename(self):
-        evidence = EvidenceOnFindingFactory()
+        evidence = EvidenceFactory()
         try:
             evidence.filename
         except Exception:
@@ -791,7 +791,7 @@ class EvidenceModelTests(TestCase):
             "In-mi-nisi-dignissim-nec-eleifend-sed-porta-eu-lacus-Sed-nunc-nisl-tristique-at-enim-bibendum-rutrum-sodales-ligula-Aliquam-quis-pharetra-sem-Morbi-nec-vestibulum-nunc-Nullam-urna-tortor-venenatis-et-nisi-ac-"
             + "fringilla-sodales-sed"
         )
-        evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename=name+".txt", data=b"lorem ipsum"))
+        evidence = EvidenceFactory(document=factory.django.FileField(filename=name+".txt", data=b"lorem ipsum"))
         self.assertRegexpMatches(evidence.filename, name + r"[_0-9a-zA-Z]*\.txt")
         try:
             evidence.get_absolute_url()
@@ -801,7 +801,7 @@ class EvidenceModelTests(TestCase):
 
     def test_uploaded_by_user_property(self):
         user = UserFactory()
-        evidence = EvidenceOnFindingFactory(uploaded_by=user)
+        evidence = EvidenceFactory(uploaded_by=user)
         self.assertEqual(evidence.uploaded_by_user, user.username)
         evidence.delete()
 

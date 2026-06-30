@@ -12,7 +12,7 @@ from taggit.models import Tag
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
 from ghostwriter.reporting.filters import ObservationFilter
 from ghostwriter.reporting.models import Observation
 
@@ -75,7 +75,12 @@ class ObservationDetail(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["observation_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Observation._meta.label)
         return ctx
+
+
+class ObservationExtraFieldJson(ExtraFieldJsonView):
+    model = Observation
 
 
 class ObservationCreate(RoleBasedAccessControlMixin, View):

@@ -8,8 +8,7 @@ from django.test import TestCase
 from ghostwriter.factories import (
     ClientFactory,
     DocTypeFactory,
-    EvidenceOnFindingFactory,
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
     ProjectAssignmentFactory,
@@ -263,18 +262,14 @@ class BaseEvidenceFormTests:
         cls.evidence_dict = cls.evidence.__dict__
         cls.evidence_queryset = cls.querySet(cls.evidence)
 
-        cls.other_finding = ReportFindingLinkFactory()
-        cls.other_finding.report = cls.evidence.associated_report
-        cls.other_finding.save()
-
-        cls.other_finding_evidence = EvidenceOnFindingFactory()
+        cls.other_finding_evidence = EvidenceFactory()
         cls.other_finding_evidence.friendly_name = "EvidenceOnFinding"
-        cls.other_finding_evidence.finding = cls.other_finding
+        cls.other_finding_evidence.report = cls.evidence.report
         cls.other_finding_evidence.save()
 
-        cls.other_report_finding = EvidenceOnReportFactory()
+        cls.other_report_finding = EvidenceFactory()
         cls.other_report_finding.friendly_name = "EvidenceOnReport"
-        cls.other_report_finding.report = cls.evidence.associated_report
+        cls.other_report_finding.report = cls.evidence.report
         cls.other_report_finding.save()
 
     def setUp(self):
@@ -365,24 +360,14 @@ class BaseEvidenceFormTests:
         self.assertTrue(form.is_valid())
 
 
-class EvidenceFormForFindingTests(BaseEvidenceFormTests, TestCase):
-    @classmethod
-    def factory(cls):
-        return EvidenceOnFindingFactory
-
-    @classmethod
-    def querySet(cls, evidence):
-        return evidence.finding.report.all_evidences()
-
-
 class EvidenceFormForReportTests(BaseEvidenceFormTests, TestCase):
     @classmethod
     def factory(cls):
-        return EvidenceOnReportFactory
+        return EvidenceFactory
 
     @classmethod
     def querySet(cls, evidence):
-        return evidence.report.all_evidences()
+        return evidence.report.evidence_set.all()
 
 
 class FindingNoteFormTests(TestCase):

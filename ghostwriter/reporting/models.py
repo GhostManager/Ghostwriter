@@ -692,12 +692,6 @@ class Report(models.Model):
         cls.objects.filter(filter_docx).update(docx_template=None)
         cls.objects.filter(filter_pptx).update(pptx_template=None)
 
-    def all_evidences(self):
-        """
-        Returns a queryset of all evidences attached to the report - both directly attached and through the findings.
-        """
-        return Evidence.objects.filter(Q(report__id=self.pk) | Q(finding__report__id=self.pk))
-
     def __str__(self):
         return f"{self.title}"
 
@@ -939,14 +933,13 @@ class ReportFindingLink(models.Model):
 
 
 def set_evidence_upload_destination(this, filename):
-    """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
-    return os.path.join("evidence", str(this.associated_report.id), filename)
+    """Sets the `upload_to` destination to the evidence folder for the report ID."""
+    return os.path.join("evidence", str(this.report_id), filename)
 
 
 class Evidence(models.Model):
     """
-    Stores an individual evidence file, related to :model:`reporting.ReportFindingLink`
-    and :model:`users.User`.
+    Stores an individual evidence file, related to :model:`reporting.Report` and :model:`users.User`.
     """
 
     document = models.FileField(
@@ -978,37 +971,22 @@ class Evidence(models.Model):
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
-    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=True, blank=True)
-    report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True, blank=True)
+    report = models.ForeignKey("Report", on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
-        ordering = ["finding", "report", "document"]
+        ordering = ["report", "document"]
         verbose_name = "Evidence"
         verbose_name_plural = "Evidence"
-
         constraints = [
-            models.CheckConstraint(
-                name="%(app_label)s_%(class)s_finding_or_report",
-                condition=(
-                    models.Q(finding__isnull=True, report__isnull=False)
-                    | models.Q(finding__isnull=False, report__isnull=True)
-                ),
+            models.UniqueConstraint(
+                fields=["report", "friendly_name"],
+                name="reporting_evidence_unique_report_friendly_name",
             )
         ]
 
     def get_absolute_url(self):
         return reverse("reporting:evidence_detail", args=[str(self.id)])
-
-    @property
-    def associated_report(self):
-        """
-        The report associated with this evidence, either directly through `self.report` or indirectly through
-        `self.finding.report`.
-        """
-        if self.finding:
-            return self.finding.report
-        return self.report
 
     def __str__(self):
         return f"{self.friendly_name} @ {self.document.name}"

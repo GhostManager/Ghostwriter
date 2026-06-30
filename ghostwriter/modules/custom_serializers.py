@@ -251,16 +251,6 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
     # Include a copy of the ``mitigation`` field as ``recommendation`` to match legacy JSON output
     recommendation = serializers.CharField(source="mitigation")
 
-    evidence = EvidenceSerializer(
-        source="evidence_set",
-        many=True,
-        exclude=[
-            "report",
-            "finding",
-            "uploaded_by",
-        ],
-    )
-
     class Meta:
         model = ReportFindingLink
         fields = "__all__"
@@ -891,7 +881,7 @@ class ReportDataSerializer(CustomModelSerializer):
     deconflictions = DeconflictionSerializer(source="project.deconfliction_set", many=True, exclude=["id", "project"])
     whitecards = WhiteCardSerializer(source="project.whitecard_set", many=True, exclude=["id", "project"])
     infrastructure = ProjectInfrastructureSerializer(source="project")
-    evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["report", "finding"])
+    evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["report"])
     severities = SerializerMethodField("get_severities")
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",

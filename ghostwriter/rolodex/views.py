@@ -44,7 +44,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -1307,6 +1307,10 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         return ctx
 
 
+class ClientExtraFieldJson(ExtraFieldJsonView):
+    model = Client
+
+
 class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`rolodex.Client`.
@@ -1723,6 +1727,10 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             ctx["bh_api"] = None
 
         return ctx
+
+
+class ProjectExtraFieldJson(ExtraFieldJsonView):
+    model = Project
 
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):

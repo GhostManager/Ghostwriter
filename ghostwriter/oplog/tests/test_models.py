@@ -8,7 +8,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     OplogEntryEvidenceFactory,
     OplogEntryFactory,
     OplogEntryRecordingFactory,
@@ -178,7 +178,7 @@ class OplogEntryEvidenceModelTests(TestCase):
         """Deleting one evidence link keeps the 'evidence' tag when other links remain."""
         link1 = OplogEntryEvidenceFactory()
         entry = link1.oplog_entry
-        evidence2 = EvidenceOnReportFactory()
+        evidence2 = EvidenceFactory()
         _ = self.OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence2)
         # Now delete only one link; the tag should remain because the second link still exists
         link1.delete()

@@ -13,7 +13,7 @@ from django.db.models import Q
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
 from ghostwriter.reporting.filters import FindingFilter
 from ghostwriter.reporting.forms import FindingNoteForm
 from ghostwriter.reporting.models import Finding, FindingNote, ReportFindingLink
@@ -97,6 +97,10 @@ class FindingDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["finding_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Finding._meta.label)
         return ctx
+
+
+class FindingExtraFieldJson(ExtraFieldJsonView):
+    model = Finding
 
 
 class FindingCreate(RoleBasedAccessControlMixin, View):

@@ -32,7 +32,6 @@ from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import (
     Evidence,
     EvidenceImageAlignmentOverride,
-    ReportFindingLink,
     ReportTemplate,
 )
 from ghostwriter.reporting.validators import (
@@ -397,17 +396,14 @@ class ApiEvidenceForm(forms.ModelForm):
             "description",
             "caption",
             "tags",
-            "finding",
             "report",
         )
 
     def __init__(self, *args, **kwargs):
         self.user_obj = kwargs.pop("user_obj")
         report_queryset = kwargs.pop("report_queryset")
-        finding_queryset = ReportFindingLink.objects.filter(report__in=report_queryset)
         super().__init__(*args, **kwargs)
         self.fields["report"].queryset = report_queryset
-        self.fields["finding"].queryset = finding_queryset
 
     def clean_filename(self):
         _, ext = splitext(self.cleaned_data["filename"])
@@ -420,26 +416,30 @@ class ApiEvidenceForm(forms.ModelForm):
             )
         return self.cleaned_data["filename"]
 
+    def has_legacy_finding_value(self):
+        empty_values = (None, "", [], {}, ())
+        return any(self.data.get(field_name) not in empty_values for field_name in ("finding", "findingId"))
+
     def clean(self):
         cleaned_data = super().clean()
 
         report = None
-        if "finding" in cleaned_data and "report" in cleaned_data:
-            # Ensure only one of `finding` or `report` is specified
-            finding = cleaned_data["finding"]
+        if self.has_legacy_finding_value():
+            self.add_error(
+                "report",
+                ValidationError(
+                    _("Evidence can only be associated with a report."),
+                    "finding_evidence_removed",
+                ),
+            )
+
+        if "report" in cleaned_data:
             report = cleaned_data["report"]
-            if (finding is None) == (report is None):
-                # Above is effectively XOR.
-                msg = _("Must specify only one of either 'finding' or 'report'")
-                self.add_error("finding", msg)
-                self.add_error("report", msg)
-            elif finding is not None:
-                report = finding.report
 
         if report is not None and "friendly_name" in cleaned_data:
             # Validate that evidence name is unique
             name = cleaned_data["friendly_name"]
-            if report.all_evidences().filter(friendly_name=name).exists():
+            if report.evidence_set.filter(friendly_name=name).exists():
                 self.add_error(
                     "friendly_name",
                     ValidationError(

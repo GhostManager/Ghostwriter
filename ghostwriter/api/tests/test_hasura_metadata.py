@@ -1,4 +1,5 @@
 # Standard Libraries
+import re
 from pathlib import Path
 
 # Django Imports
@@ -105,12 +106,7 @@ def user_project_access_filter(*path):
 
 
 def evidence_project_filter():
-    return {
-        "_or": [
-            project_scope_filter("finding", "report", "project_id"),
-            project_scope_filter("report", "project_id"),
-        ]
-    }
+    return project_scope_filter("report", "project_id")
 
 
 def report_template_project_filter():
@@ -184,16 +180,10 @@ def collab_evidence_filter():
             {
                 "_or": [
                     privileged_user_filter(),
-                    user_project_access_filter("finding", "report", "project"),
                     user_project_access_filter("report", "project"),
                 ]
             },
-            {
-                "_or": [
-                    {"report_id": {"_eq": COLLAB_REPORT_ID_HEADER}},
-                    {"finding_id": {"_eq": COLLAB_FINDING_ID_HEADER}},
-                ]
-            },
+            {"report_id": {"_eq": COLLAB_REPORT_ID_HEADER}},
         ]
     }
 
@@ -204,7 +194,6 @@ EXPECTED_COLLAB_SELECT_PERMISSIONS = {
             "caption",
             "description",
             "document",
-            "finding_id",
             "friendly_name",
             "id",
             "report_id",
@@ -254,7 +243,7 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
     },
     "reporting_archive": project_scope_filter("project_id"),
     "reporting_doctype": {},
-    "reporting_evidence": evidence_project_filter(),
+    "reporting_evidence": service_token_project_access_filter("report", "project"),
     "reporting_finding": {},
     "reporting_findingnote": {},
     "reporting_findingtype": {},
@@ -310,6 +299,26 @@ EXPECTED_SERVICE_SELECT_TABLES = set(EXPECTED_SERVICE_SELECT_FILTERS)
 def load_yaml(path):
     with path.open() as handle:
         return yaml.safe_load(handle)
+
+
+def action_arguments(action_name):
+    actions_graphql = (HASURA_METADATA_DIR / "actions.graphql").read_text()
+    match = re.search(
+        rf"\b{re.escape(action_name)}\s*\((?P<args>.*?)\)\s*:",
+        actions_graphql,
+        flags=re.DOTALL,
+    )
+    if not match:
+        return {}
+
+    arguments = {}
+    for line in match.group("args").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        name, type_name = line.split(":", 1)
+        arguments[name.strip()] = type_name.strip()
+    return arguments
 
 
 def table_metadata():
@@ -373,6 +382,17 @@ def view_class_for_action_path(path):
             callback = urlpattern.callback
             return getattr(callback, "view_class", None)
     return None
+
+
+class HasuraMetadataActionSchemaTests(SimpleTestCase):
+    """Validate Hasura action schemas match Django action contracts."""
+
+    def test_upload_evidence_requires_report_and_removes_finding_arguments(self):
+        arguments = action_arguments("uploadEvidence")
+
+        self.assertEqual(arguments["report"], "Int!")
+        self.assertNotIn("finding", arguments)
+        self.assertNotIn("findingId", arguments)
 
 
 class HasuraMetadataServiceRoleTests(SimpleTestCase):

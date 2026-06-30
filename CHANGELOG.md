@@ -5,7 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.2.0] - 30 June 2026
+
+### Added
+
+* Added Playwright as a local dev package for end-to-end testing
+* Added evidence metadata parser coverage for collaborative editor evidence loading
+
+### Changed
+
+* **Breaking:** All evidence now attaches to a report object and is available to all findings and other report fields
+* XLSX report exports now populate the "Supporting Evidence" column from report evidence references used by each finding
+  * This includes first-class evidence objects, legacy `{{.Evidence Name}}` tags, `{{.ref Evidence Name}}` references, and `{{.caption Evidence Name}}` captions
+* Collaborative editor evidence loading now validates report metadata before querying evidence and keeps the evidence tool disabled only until report-scoped evidence context is ready
+  * Users can still upload and insert report evidence from finding, observation, and report extra field editors
+* Previews of extra fields now more closely match your report configuration
+  * Image evidence will appear in accordance with your border, image width, and alignment configurations
+  * Captions will appear above or below evidence based on the configured location
+  * Text evidence now matches other code blocks as they typically do in the final reports
+    * They no longer inherit a border based on the border configuration
+    * They are now the full width of the content instead of bound to the evidence width intended for images
+* The extra fields section of the report dashboard now presents fields as cards for easier review and access
+* Loading of JSON extra fields is now "lazy" to defend page performance when these fields contain large JSON blobs
+  * The JSON data is also removed after closing the preview to maintain page performance
+
+### Fixed
+
+* Fixed severity colors appearing incorrect in xlsx reports
+
+### Removed
+
+* **Breaking:** Removed finding-level evidence ownership
+  * Existing finding-owned evidence migrates to the owning report
+  * In case of friendly name collisions, the migration adjusts the friendly name as needed to preserve both evidence records
+  * References to renamed migrated evidence update in the source finding's rich-text fields and extra fields
+  * The evidence upload API and Hasura metadata no longer accept non-empty `finding` or `findingId` evidence associations
 
 ## [7.1.3] - 26 June 2026
 
@@ -39,7 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed project collaborative notes failing to load for users with project access (Fixes #913)
   * The collaborative editor JWT is now scoped to the project so assigned users, project invitees, client invitees, managers, and admins can edit shared project notes
-
 ### Security
 
 * Fixed an authorization bypass that allowed authenticated users to download client-scoped report templates by direct URL

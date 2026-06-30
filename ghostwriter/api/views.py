@@ -978,7 +978,7 @@ class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
             )
 
         # Check if user has permission to view the evidence
-        project = evidence.associated_report.project
+        project = evidence.report.project
         if not self.principal_can_read_project(project):
             return JsonResponse(
                 utils.generate_hasura_error_payload(
@@ -1387,9 +1387,7 @@ class GraphqlLinkOplogEvidence(JwtRequiredMixin, HasuraActionView):
                 status=401,
             )
 
-        # Verify evidence belongs to the same project via its directly associated
-        # report or the report linked through its finding.
-        if evidence.associated_report.project != entry.oplog_id.project:
+        if evidence.report.project != entry.oplog_id.project:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Evidence does not belong to the same project", "ProjectMismatch"
@@ -1984,16 +1982,9 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
             )
 
             update_instances = []
-            if self.old_data["finding_id"]:
-                finding_instance = ReportFindingLink.objects.select_related(
-                    "report"
-                ).get(id=self.old_data["finding_id"])
-                update_instances.append(finding_instance)
-
             if self.old_data["report_id"]:
                 report_instance = Report.objects.get(id=self.old_data["report_id"])
-                for finding in report_instance.reportfindinglink_set.all():
-                    update_instances.append(finding)
+                update_instances.extend(report_instance.reportfindinglink_set.all())
 
             for instance in update_instances:
                 try:

@@ -172,8 +172,7 @@ type Mutation {
     caption: String!
     description: String
     tags: String
-    report: Int
-    finding: Int
+    report: Int!
   ): UploadEvidenceResult!
 }
 
@@ -327,4 +326,3 @@ type uploadOplogRecordingResult {
   id: Int!
   oplogEntryId: Int
 }
-

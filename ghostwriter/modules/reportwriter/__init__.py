@@ -74,7 +74,6 @@ def report_generation_queryset():
     return Report.objects.all().prefetch_related(
         "tags",
         "reportfindinglink_set",
-        "reportfindinglink_set__evidence_set",
         "reportobservationlink_set",
         "evidence_set",
         "project__oplog_set",

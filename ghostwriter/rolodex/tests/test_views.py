@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 
 # Django Imports
 from django.contrib.auth.models import Permission
+from django.template.loader import render_to_string
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.encoding import force_str
@@ -22,6 +23,8 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     ClientNoteFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
     HistoryFactory,
     ObjectiveStatusFactory,
     ProjectContactFactory,
@@ -1109,6 +1112,27 @@ class ProjectDetailViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
         cls.project = ProjectFactory()
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="rolodex.Project",
+            model_display_name="Projects",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="summary",
+            display_name="Summary",
+            type="single_line_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.json_extra_field = ExtraFieldSpecFactory(
+            internal_name="testJSON",
+            display_name="Test JSON",
+            type="json",
+            target_model=cls.extra_field_model,
+        )
+        cls.project.extra_fields = {
+            "summary": "Project summary",
+            "testJSON": {"large": ["value", {"nested": "content"}]},
+        }
+        cls.project.save(update_fields=["extra_fields"])
         cls.uri = reverse("rolodex:project_detail", kwargs={"pk": cls.project.pk})
 
     def setUp(self):
@@ -1145,6 +1169,75 @@ class ProjectDetailViewTests(TestCase):
         ProjectAssignmentFactory(project=self.project, operator=self.user)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_json_extra_field_modal_is_lazy_loaded(self):
+        lazy_json_url = reverse(
+            "rolodex:project_extra_field_json",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+        rendered = render_to_string(
+            "user_extra_fields/extra_field_modal.html",
+            {
+                "extra_fields": self.project.extra_fields,
+                "field_spec": self.json_extra_field,
+                "lazy_json_url": lazy_json_url,
+            },
+        )
+
+        self.assertIn(lazy_json_url, rendered)
+        self.assertIn("JSON content will load when this preview opens.", rendered)
+        self.assertNotIn("jsonView", rendered)
+        self.assertNotIn("nested", rendered)
+
+    def test_project_detail_json_lazy_loader_has_cleanup_handlers(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "fa-spinner fa-spin")
+        self.assertContains(response, "Loading JSON content...")
+        self.assertContains(response, "shown.bs.modal")
+        self.assertContains(response, "minimumJsonLoadingMs")
+        self.assertContains(response, "hide.bs.modal")
+        self.assertContains(response, "jsonPreviewPlaceholder")
+        self.assertContains(response, "jsonAbortController")
+        self.assertNotContains(response, "nested")
+
+    def test_json_extra_field_endpoint_requires_login_and_permissions(self):
+        uri = reverse(
+            "rolodex:project_extra_field_json",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["field"], "Test JSON")
+        self.assertEqual(
+            response.json()["value"],
+            {"large": ["value", {"nested": "content"}]},
+        )
+
+    def test_json_extra_field_endpoint_rejects_non_json_fields(self):
+        uri = reverse(
+            "rolodex:project_extra_field_json",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
 
     def test_project_assignments_render_in_role_order(self):
         lead_role = ProjectRoleFactory(project_role="Lead", position=1)

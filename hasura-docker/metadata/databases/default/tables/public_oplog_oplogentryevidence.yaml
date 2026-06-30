@@ -39,18 +39,11 @@ select_permissions:
       filter:
         _and:
           - evidence:
-              _or:
-                - finding:
-                    report:
-                      project:
-                        serviceTokenProjectAccesses:
-                          token_id:
-                            _eq: X-Hasura-Service-Token-Id
-                - report:
-                    project:
-                      serviceTokenProjectAccesses:
-                        token_id:
-                          _eq: X-Hasura-Service-Token-Id
+              report:
+                project:
+                  serviceTokenProjectAccesses:
+                    token_id:
+                      _eq: X-Hasura-Service-Token-Id
           - oplogEntry:
               log:
                 project:

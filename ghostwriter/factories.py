@@ -550,11 +550,7 @@ class BaseEvidenceFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
-class EvidenceOnFindingFactory(BaseEvidenceFactory):
-    finding = factory.SubFactory(ReportFindingLinkFactory)
-
-
-class EvidenceOnReportFactory(BaseEvidenceFactory):
+class EvidenceFactory(BaseEvidenceFactory):
     report = factory.SubFactory(ReportFactory)
 
 
@@ -664,7 +660,7 @@ class OplogEntryEvidenceFactory(factory.django.DjangoModelFactory):
         model = "oplog.OplogEntryEvidence"
 
     oplog_entry = factory.SubFactory(OplogEntryFactory)
-    evidence = factory.SubFactory(EvidenceOnReportFactory)
+    evidence = factory.SubFactory(EvidenceFactory)
 
 
 class OplogEntryRecordingFactory(factory.django.DjangoModelFactory):

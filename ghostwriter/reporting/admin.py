@@ -64,7 +64,7 @@ class EvidenceAdmin(admin.ModelAdmin):
             "Report Information",
             {
                 "fields": (
-                    "finding",
+                    "report",
                     "uploaded_by",
                 )
             },

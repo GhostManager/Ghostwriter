@@ -21,10 +21,15 @@ from ghostwriter.api.models import (
 )
 from ghostwriter.factories import (
     ClientInviteFactory,
+    EvidenceFactory,
+    LocalFindingNoteFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectInviteFactory,
+    ReportFactory,
+    ReportFindingLinkFactory,
+    ReportObservationLinkFactory,
     ServiceTokenFactory,
     UserFactory,
 )
@@ -965,6 +970,46 @@ class ServiceTokenModelTests(TestCase):
         self.assertIn(assigned_user.id, user_access_ids)
         self.assertNotIn(invited_user.id, user_access_ids)
         self.assertNotIn(client_invited_user.id, user_access_ids)
+        self.assertNotIn(inaccessible_user.id, user_access_ids)
+
+    def test_service_token_user_access_view_tracks_report_user_relationships(self):
+        report_creator = UserFactory(password=PASSWORD)
+        evidence_uploader = UserFactory(password=PASSWORD)
+        finding_assignee = UserFactory(password=PASSWORD)
+        finding_note_operator = UserFactory(password=PASSWORD)
+        observation_assignee = UserFactory(password=PASSWORD)
+        inaccessible_user = UserFactory(password=PASSWORD)
+        report = ReportFactory(project=self.project, created_by=report_creator)
+        EvidenceFactory(report=report, uploaded_by=evidence_uploader)
+        finding = ReportFindingLinkFactory(
+            report=report,
+            assigned_to=finding_assignee,
+        )
+        LocalFindingNoteFactory(finding=finding, operator=finding_note_operator)
+        ReportObservationLinkFactory(
+            report=report,
+            assigned_to=observation_assignee,
+        )
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_id=self.project.id,
+            ),
+        )
+
+        user_access_ids = self._service_token_user_access_ids(token_obj)
+
+        self.assertIn(report_creator.id, user_access_ids)
+        self.assertIn(evidence_uploader.id, user_access_ids)
+        self.assertIn(finding_assignee.id, user_access_ids)
+        self.assertIn(finding_note_operator.id, user_access_ids)
+        self.assertIn(observation_assignee.id, user_access_ids)
         self.assertNotIn(inaccessible_user.id, user_access_ids)
 
     def test_service_token_user_access_view_does_not_expand_to_privileged_users(self):

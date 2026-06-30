@@ -53,50 +53,57 @@
     <h4 class="icon custom-field-icon">Extra Fields</h4>
     <hr>
 
-    {% for field_spec in observation_extra_fields_spec %}
-      {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
-        <div class="row justify-content-md-center">
-          <h6 class="col-3 text-left">
-            {{ field_spec.display_name }}
-          </h6>
-          <div class="mt-2 col-3 text-md-center align-middle offset-2">
-            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
+    <div class="extra-fields-grid">
+      {% for field_spec in observation_extra_fields_spec %}
+        <section class="extra-field-card">
+          <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+          <div class="extra-field-type">
+            {% if field_spec.type == "rich_text" %}
+              Rich Text Field
+            {% else %}
+              {{ field_spec.get_type_display }} Field
+            {% endif %}
           </div>
-        </div>
-      {% endif %}
-    {% endfor %}
-
-    {% for field_spec in observation_extra_fields_spec %}
-      {% if field_spec.type == "rich_text" %}
-        <div id="extraFieldCard_{{ field_spec.internal_name }}" class="card mb-3">
-          <div class="card-header finding-header icon custom-field-icon">
-            {{ field_spec.display_name }}
+          <div class="extra-field-value">
+            {% if field_spec.type == "rich_text" %}
+              <span class="extra-field-summary">Use Preview to view formatted content.</span>
+            {% elif field_spec.type == "json" %}
+              <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+            {% else %}
+              {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec preview_report=False %}
+            {% endif %}
           </div>
-          <div class="card-body finding-content">
-            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
+          <div class="extra-field-actions">
+            {% if field_spec.type == "rich_text" %}
+              <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                      data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+              </button>
+            {% elif field_spec.type == "json" %}
+              <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                      data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+              </button>
+            {% endif %}
+            <a class="btn btn-outline-primary btn-sm icon edit-icon"
+               href="{% url 'reporting:observation_update' observation.id %}"
+               title="Edit {{ field_spec.display_name }}">Edit</a>
           </div>
-        </div>
-      {% endif %}
-    {% endfor %}
-
-    {% for field_spec in observation_extra_fields_spec %}
-      {% if field_spec.type == "json" %}
-        <div id="extraFieldCard_{{ field_spec.internal_name }}" class="card mb-3">
-          <div class="card-header finding-header icon custom-field-icon">
-            {{ field_spec.display_name }}
-          </div>
-          <div class="card-body finding-content">
-            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
-          </div>
-        </div>
-      {% endif %}
-    {% endfor %}
+        </section>
+      {% endfor %}
+    </div>
   {% endif %}
 {% endblock %}
 
 {% block morescripts %}
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+
+  {% if observation_extra_fields_spec %}
+    {% for field_spec in observation_extra_fields_spec %}
+      {% url 'reporting:observation_extra_field_json' observation.id field_spec.internal_name as extra_field_json_url %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=observation.extra_fields field_spec=field_spec lazy_json_url=extra_field_json_url preview_report=False %}
+    {% endfor %}
+    {% include "user_extra_fields/lazy_json_modal_script.html" %}
+  {% endif %}
 
   <script>
     $('.js-assign-observation').click(function () {

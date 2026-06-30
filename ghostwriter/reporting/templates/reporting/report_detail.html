@@ -313,7 +313,7 @@
         <p>Upload evidence here to make it accessible to all findings and report sections.</p>
 
         <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
-                           href="{% url 'reporting:upload_evidence' 'report' report.id %}" data-toggle="tooltip"
+                           href="{% url 'reporting:upload_evidence' report.id %}" data-toggle="tooltip"
                            data-placement="top" title="Upload evidence, attaching to a report">Upload Evidence</a></p>
 
         {% if report.evidence_set.all %}
@@ -370,51 +370,43 @@
           <h4>Extra Fields</h4>
           <hr/>
 
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
-                  <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <div class="mt-2 col-3 text-md-center align-middle offset-2">
-                  {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+          <div class="extra-fields-grid">
+            {% for field_spec in report_extra_fields_spec %}
+              <section class="extra-field-card">
+                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+                <div class="extra-field-type">
+                  {% if field_spec.type == "rich_text" %}
+                    Rich Text Field
+                  {% else %}
+                    {{ field_spec.get_type_display }} Field
+                  {% endif %}
                 </div>
-              </div>
-            {% endif %}
-          {% endfor %}
-          {% if report_extra_fields_spec|has_non_rt_fields %}
-            <hr>
-          {% endif %}
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type == "rich_text" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
+                <div class="extra-field-value">
+                  {% if field_spec.type == "rich_text" %}
+                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
+                  {% elif field_spec.type == "json" %}
+                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+                  {% else %}
+                    {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report %}
+                  {% endif %}
+                </div>
+                <div class="extra-field-actions">
+                  {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    </button>
+                  {% elif field_spec.type == "json" %}
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    </button>
+                  {% endif %}
                   <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-                </button>
-                {% if not forloop.last %}
-                  <hr>{% endif %}
-              </div>
-            {% endif %}
-          {% endfor %}
-
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type == "json" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
-                  <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <button type="button" class="btn btn-primary col-3 offset-2 icon code-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-                </button>
-              </div>
-            {% endif %}
-          {% endfor %}
+                     class="btn btn-outline-primary btn-sm icon edit-icon"
+                     title="Edit {{ field_spec.display_name }}">Edit</a>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
         </div>
       {% endif %}
 
@@ -901,23 +893,19 @@
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
 
-  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% comment %} Insert modals for rich text and JSON extra field previews {% endcomment %}
   {% if report_extra_fields_spec %}
     {% for field_spec in report_extra_fields_spec %}
-      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec %}
-    {% endfor %}
-  {% endif %}
-
-  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
-  {% if report_extra_fields_spec %}
-    {% for field_spec in report_extra_fields_spec %}
-      {% if field_spec == "rich_text" %}
-        {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec report_config=report_config %}
-      {% endif %}
+      {% url 'reporting:report_extra_field_json' report.id field_spec.internal_name as extra_field_json_url %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report lazy_json_url=extra_field_json_url %}
     {% endfor %}
 
+    {% include "user_extra_fields/lazy_json_modal_script.html" %}
     <script>
       $('.extra-field-modal-content').each(function (e) {
+        if ($(this).data('lazy-json-url')) {
+          return;
+        }
         let text = $(this).html();
         let $previewModal = $(this);
         for (let i = 0; i < evidenceFiles.length; i++) {

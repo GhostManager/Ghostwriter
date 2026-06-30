@@ -2,9 +2,11 @@
 from typing import Any
 from datetime import datetime, timezone, timedelta
 
-from django.views.generic.detail import DetailView
+from django.views import View
+from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
 from django.db.models import Model
 from django.utils.decorators import method_decorator
@@ -126,3 +128,41 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
         context["model_name"] = self.model._meta.model_name
         context["collab_editing_script_path"] = self.collab_editing_script_path
         return context
+
+
+class ExtraFieldJsonView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Return one JSON extra field value for a model instance.
+
+    Subclasses must set ``model`` and route with ``pk`` and ``extra_field_name``.
+    """
+
+    def test_func(self):
+        obj = self.get_object()
+        can_view = getattr(obj, "user_can_view", None)
+        if callable(can_view):
+            return can_view(self.request.user)
+        return self.request.user.is_active
+
+    def handle_no_permission(self):
+        return JsonResponse(
+            {
+                "result": "error",
+                "message": "You do not have permission to access that.",
+            },
+            status=403,
+        )
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        field = get_object_or_404(
+            ExtraFieldSpec.for_model(self.model),
+            internal_name=kwargs["extra_field_name"],
+            type="json",
+        )
+        return JsonResponse(
+            {
+                "field": field.display_name,
+                "value": field.value_of(obj.extra_fields),
+            }
+        )
