@@ -172,7 +172,7 @@ type Mutation {
     caption: String!
     description: String
     tags: String
-    report: Int
+    report: Int!
   ): UploadEvidenceResult!
 }
 

@@ -15542,7 +15542,7 @@ export type Mutation_RootUploadEvidenceArgs = {
   file_base64: Scalars['String']['input'];
   filename: Scalars['String']['input'];
   friendly_name: Scalars['String']['input'];
-  report?: InputMaybe<Scalars['Int']['input']>;
+  report: Scalars['Int']['input'];
   tags?: InputMaybe<Scalars['String']['input']>;
 };
 
