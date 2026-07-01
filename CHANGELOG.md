@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+* Added support for a new `--required-only` for loading seed data
+  * Fixtures can now be flagged with `"required": false`
+  * The `loaddata` command will not load fixtures marked as such when the flag is set
+
+### Changed
+
+* **Updated Ghostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.1
+* Marked the starter templates as non-required so they will not re-appear during updates and container builds if deleted
+
 ## [7.2.0] - 30 June 2026
 
 ### Added
