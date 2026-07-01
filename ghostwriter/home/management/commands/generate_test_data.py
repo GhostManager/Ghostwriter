@@ -1,49 +1,70 @@
+"""Seed a realistic local Ghostwriter demo database."""
+
 # Standard Libraries
+import json
+import os
 import random
+from collections import Counter
+from contextlib import contextmanager, nullcontext
+from datetime import date, datetime, time, timedelta
+from pathlib import Path
 
 # Django Imports
-from django.core.management.base import BaseCommand
+from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.core.management import call_command
+from django.core.management.base import BaseCommand, CommandError
+from django.db import connection
 from django.db import transaction
+from django.utils import timezone
 
 # Ghostwriter Libraries
-from ghostwriter.factories import (
-    ClientContactFactory,
-    ClientFactory,
-    DomainFactory,
-    DomainServerConnectionFactory,
-    EvidenceFactory,
-    FindingFactory,
-    HistoryFactory,
-    OplogEntryFactory,
-    OplogFactory,
-    ProjectAssignmentFactory,
-    ProjectFactory,
-    ProjectObjectiveFactory,
-    ProjectScopeFactory,
-    ProjectSubtaskFactory,
-    ProjectTargetFactory,
-    ReportFactory,
-    ReportFindingLinkFactory,
-    ServerHistoryFactory,
-    StaticServerFactory,
-    TransientServerFactory,
-    UserFactory,
+from ghostwriter.commandcenter.models import (
+    BloodHoundConfiguration,
+    CompanyInformation,
+    ExtraFieldModel,
+    ExtraFieldSpec,
+    ReportConfiguration,
 )
-from ghostwriter.reporting.models import Finding, FindingType, Severity
+from ghostwriter.home.models import UserProfile
+from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.reporting.models import (
+    Evidence,
+    Finding,
+    FindingType,
+    Observation,
+    Report,
+    ReportFindingLink,
+    ReportObservationLink,
+    Severity,
+)
 from ghostwriter.rolodex.models import (
     Client,
     ClientContact,
+    Deconfliction,
+    DeconflictionStatus,
     ObjectivePriority,
     ObjectiveStatus,
     Project,
+    ProjectAssignment,
+    ProjectContact,
+    ProjectObjective,
     ProjectRole,
+    ProjectScope,
+    ProjectSubTask,
+    ProjectTarget,
     ProjectType,
+    WhiteCard,
 )
 from ghostwriter.shepherd.models import (
     ActivityType,
     Domain,
+    DomainServerConnection,
     DomainStatus,
     HealthStatus,
+    History,
+    ServerHistory,
     ServerProvider,
     ServerRole,
     ServerStatus,
@@ -51,231 +72,1787 @@ from ghostwriter.shepherd.models import (
     TransientServer,
     WhoisStatus,
 )
-from ghostwriter.users.models import User
 
-# Mock user data
-NUM_USERS = 10
+DEMO_MARKER_KEY = "demo_seed"
+DEMO_MARKER_VALUE = "ghostbusters"
+DEMO_TAG = "demo-seed"
+DEMO_PASSWORD = "SuperNaturalReporting!"
+DEMO_BLOODHOUND_RESULTS_PATH = (
+    Path(__file__).resolve().parents[2] / "fixtures" / "demo_bloodhound_results.json"
+)
 
-# Mock domain data
-NUM_DOMAINS = 10
-REGISTRARS = ["Hover", "Namecheap", "GoDaddy", "Google", "Dynadot"]
+INITIAL_FIXTURES = [
+    "ghostwriter/commandcenter/fixtures/initial.json",
+    "ghostwriter/reporting/fixtures/initial.json",
+    "ghostwriter/rolodex/fixtures/initial.json",
+    "ghostwriter/shepherd/fixtures/initial.json",
+]
 
-# Mock server data
-NUM_SERVERS = 10
-ACTIVITY_TYPES = ActivityType.objects.all()
-SERVER_ROLES = ServerRole.objects.all()
+COMPANY_INFORMATION = {
+    "company_name": "SpecterOps",
+    "company_short_name": "SO",
+    "company_address": "14 N Moore St, New York, NY 10013",
+    "company_twitter": "@specterops",
+    "company_email": "info@specterops.io",
+}
 
-# Mock finding data
-NUM_FINDINGS = 15
+REPORT_CONFIGURATION = {
+    "enable_borders": True,
+    "border_weight": 12700,
+    "border_color": "2D2B6B",
+    "prefix_figure": " \u2013 ",
+    "label_figure": "Figure ",
+    "figure_caption_location": "bottom",
+    "evidence_image_alignment": "CENTER",
+    "evidence_image_width": 6.5,
+    "prefix_table": " \u2013 ",
+    "label_table": "Table",
+    "table_caption_location": "top",
+    "report_filename": '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report',
+    "project_filename": '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report',
+    "title_case_captions": True,
+    "title_case_exceptions": "a,as,at,an,and,of,the,is,to,by,for,in,on,but,or",
+    "target_delivery_date": 5,
+    "default_cvss_version": "4.0",
+    "outline_tags": "report,evidence,cred*,detect*",
+    "default_docx_template": None,
+    "default_pptx_template": None,
+}
 
-# Mock client data
-NUM_CLIENTS = 5
-NUM_POCS = 3
+EXTRA_FIELD_MODELS = [
+    Client,
+    Project,
+    Domain,
+    StaticServer,
+    Finding,
+    Report,
+    ReportFindingLink,
+    Observation,
+    ReportObservationLink,
+    OplogEntry,
+]
 
-# Mock project data
-NUM_PROJECTS = 10
-USERS_PER_PROJECT = 3
-ASSETS_PER_PROJECT = 3
-OBJS_PER_PROJECT = 5
-TASKS_PER_OBJ = 3
-SCOPES_PER_PROJECT = 3
-TARGETS_PER_PROJECT = 10
-OPLOGS_PER_PROJECT = 1
-ENTRIES_PER_OPLOG = 20
-REPORTS_PER_PROJECT = 1
-FINDINGS_PER_REPORT = 5
+EXTRA_FIELD_SPECS = [
+    {
+        "internal_name": "demo_json",
+        "display_name": "Demo JSON",
+        "description": "Structured demo metadata for validating JSON extra-field rendering.",
+        "type": "json",
+        "user_default_value": '{"source": "demo", "status": "ready"}',
+    },
+    {
+        "internal_name": "demo_summary",
+        "display_name": "Demo Summary",
+        "description": "Short single-line demo value for list and form testing.",
+        "type": "single_line_text",
+        "user_default_value": "Seeded demo value",
+    },
+    {
+        "internal_name": "demo_reviewed",
+        "display_name": "Demo Reviewed",
+        "description": "Checkbox used to validate boolean extra-field behavior.",
+        "type": "checkbox",
+        "user_default_value": "",
+    },
+    {
+        "internal_name": "demo_confidence",
+        "display_name": "Demo Confidence",
+        "description": "Numeric demo value for validating number inputs and report rendering.",
+        "type": "float",
+        "user_default_value": "7.5",
+    },
+    {
+        "internal_name": "demo_count",
+        "display_name": "Demo Count",
+        "description": "Integer demo value for validating whole-number inputs and report rendering.",
+        "type": "integer",
+        "user_default_value": "3",
+    },
+    {
+        "internal_name": "demo_notes",
+        "display_name": "Demo Notes",
+        "description": "Formatted text used to validate rich text extra-field editing and exports.",
+        "type": "rich_text",
+        "user_default_value": "<p>Seeded rich text demo note.</p>",
+    },
+]
 
-# Pull seeded and existing data from the database
-WHOIS_STATUS = WhoisStatus.objects.all()
-HEALTH_STATUS = HealthStatus.objects.all()
-DOMAIN_STATUS = DomainStatus.objects.all()
-SERVER_STATUS = ServerStatus.objects.all()
-PROVIDERS = ServerProvider.objects.all()
-PROJECT_ROLES = ProjectRole.objects.all()
-PROJECT_TYPES = ProjectType.objects.all()
-SEVERITIES = Severity.objects.all()
-FINDING_TYPES = FindingType.objects.all()
-OBJ_PRIORITIES = ObjectivePriority.objects.all()
-OBJ_STATUS = ObjectiveStatus.objects.all()
-USERS = User.objects.all()
+USERS = [
+    {
+        "username": "cmaddalena",
+        "name": "Christopher Maddalena",
+        "email": "cmaddalena@getghostwriter.io",
+        "phone": "+1 202 555 0101",
+        "role": "admin",
+        "timezone": "America/Los_Angeles",
+    },
+    {
+        "username": "pstanz",
+        "name": "Peter Venkman",
+        "email": "pvenkman@ghostbusters.example",
+        "phone": "+1 212 555 0102",
+        "role": "manager",
+        "timezone": "America/New_York",
+    },
+    {
+        "username": "rstantz",
+        "name": "Ray Stantz",
+        "email": "rstantz@ghostbusters.example",
+        "phone": "+1 212 555 0103",
+        "role": "user",
+        "timezone": "America/New_York",
+        "enable_finding_create": True,
+        "enable_finding_edit": True,
+    },
+    {
+        "username": "espengler",
+        "name": "Egon Spengler",
+        "email": "espengler@ghostbusters.example",
+        "phone": "+1 212 555 0104",
+        "role": "user",
+        "timezone": "America/New_York",
+        "enable_finding_create": True,
+        "enable_observation_create": True,
+    },
+    {
+        "username": "wzeddemore",
+        "name": "Winston Zeddemore",
+        "email": "wzeddemore@ghostbusters.example",
+        "phone": "+1 212 555 0105",
+        "role": "user",
+        "timezone": "America/New_York",
+    },
+    {
+        "username": "jmelnitz",
+        "name": "Janine Melnitz",
+        "email": "jmelnitz@ghostbusters.example",
+        "phone": "+1 212 555 0106",
+        "role": "manager",
+        "timezone": "America/New_York",
+    },
+]
+
+CLIENTS = [
+    {
+        "name": "Ghostbusters International",
+        "short_name": "GBI",
+        "codename": "FIREHOUSE",
+        "timezone": "America/New_York",
+        "address": "14 North Moore Street\nNew York, NY 10013",
+        "description": "<p>Global incident response and containment provider preparing for a coordinated adversary emulation exercise.</p>",
+        "contacts": [
+            (
+                "Dana Barrett",
+                "Chief Risk Officer",
+                "dana.barrett@gbi.example",
+                "+1 212 555 0180",
+                True,
+            ),
+            (
+                "Louis Tully",
+                "Director of Compliance",
+                "louis.tully@gbi.example",
+                "+1 212 555 0181",
+                False,
+            ),
+            (
+                "Walter Peck",
+                "Regulatory Liaison",
+                "walter.peck@gbi.example",
+                "+1 212 555 0182",
+                False,
+            ),
+        ],
+        "projects": [
+            {
+                "codename": "ECTO-SHIELD",
+                "type": "Red Team",
+                "description": "<p>Enterprise red team engagement focused on identity abuse, remote access paths, and executive reporting workflows.</p>",
+                "slack": "#ecto-shield",
+                "complete": False,
+                "objectives": [
+                    "Validate external exposure and identify initial access paths",
+                    "Assess Active Directory privilege escalation opportunities",
+                    "Exercise detection and response handoffs with the blue team",
+                ],
+                "scope": [
+                    "vpn.gbi.example",
+                    "mail.gbi.example",
+                    "10.40.10.0/24",
+                    "10.40.20.0/24",
+                ],
+                "targets": [
+                    (
+                        "10.40.10.12",
+                        "dc01.gbi.local",
+                        "Primary domain controller",
+                        True,
+                    ),
+                    ("10.40.10.35", "fs01.gbi.local", "Finance file server", False),
+                    ("10.40.20.20", "portal.gbi.example", "Customer portal", False),
+                ],
+            },
+            {
+                "codename": "PROTON-DRILL",
+                "type": "Red Team",
+                "description": "<p>Collaborative validation of endpoint detections for credential access and lateral movement.</p>",
+                "slack": "#proton-drill",
+                "complete": True,
+                "objectives": [
+                    "Replay credential access techniques in a monitored lab segment",
+                    "Document detection gaps and tuning recommendations",
+                    "Produce a prioritized remediation plan",
+                ],
+                "scope": ["10.41.30.0/24", "edr-lab.gbi.local"],
+                "targets": [
+                    (
+                        "10.41.30.14",
+                        "lab-wks-014.gbi.local",
+                        "Workstation with EDR test policy",
+                        True,
+                    ),
+                    (
+                        "10.41.30.40",
+                        "lab-srv-040.gbi.local",
+                        "Application server",
+                        False,
+                    ),
+                ],
+            },
+        ],
+    },
+    {
+        "name": "Stay Puft Holdings",
+        "short_name": "Stay Puft",
+        "codename": "MARSHMALLOW",
+        "timezone": "America/Chicago",
+        "address": "100 Sugary Way\nChicago, IL 60601",
+        "description": "<p>Consumer goods company requesting a realistic external and cloud security assessment ahead of a new product launch.</p>",
+        "contacts": [
+            (
+                "Ivo Shandor",
+                "VP of Technology",
+                "ivo.shandor@staypuft.example",
+                "+1 312 555 0110",
+                True,
+            ),
+            (
+                "Gozer Gozerian",
+                "Cloud Platform Owner",
+                "gozer@staypuft.example",
+                "+1 312 555 0111",
+                False,
+            ),
+            (
+                "Zuul Vinz",
+                "Security Operations Manager",
+                "zuul.vinz@staypuft.example",
+                "+1 312 555 0112",
+                False,
+            ),
+        ],
+        "projects": [
+            {
+                "codename": "PINK-SLIP",
+                "type": "Penetration Test",
+                "description": "<p>External network and web application assessment for the public ecommerce and partner access perimeter.</p>",
+                "slack": "#pink-slip",
+                "complete": False,
+                "objectives": [
+                    "Enumerate public attack surface and prioritize exploitable services",
+                    "Assess partner portal authentication and session controls",
+                    "Deliver actionable remediation evidence for launch readiness",
+                ],
+                "scope": [
+                    "www.staypuft.example",
+                    "partners.staypuft.example",
+                    "198.51.100.0/28",
+                ],
+                "targets": [
+                    ("198.51.100.24", "www.staypuft.example", "Marketing site", False),
+                    (
+                        "198.51.100.31",
+                        "partners.staypuft.example",
+                        "Partner portal",
+                        True,
+                    ),
+                    (
+                        "198.51.100.40",
+                        "vpn.staypuft.example",
+                        "Remote access gateway",
+                        False,
+                    ),
+                ],
+            }
+        ],
+    },
+    {
+        "name": "Spectral Research Labs",
+        "short_name": "SRL",
+        "codename": "TOBIN",
+        "timezone": "America/Denver",
+        "address": "550 Occult Reference Road\nBoulder, CO 80301",
+        "description": "<p>Research organization with a mixed cloud and lab environment used for threat emulation development.</p>",
+        "contacts": [
+            (
+                "Jillian Holtzmann",
+                "Principal Engineer",
+                "jillian.holtzmann@srl.example",
+                "+1 720 555 0170",
+                True,
+            ),
+            (
+                "Erin Gilbert",
+                "Program Sponsor",
+                "erin.gilbert@srl.example",
+                "+1 720 555 0171",
+                False,
+            ),
+            (
+                "Abby Yates",
+                "Security Architect",
+                "abby.yates@srl.example",
+                "+1 720 555 0172",
+                False,
+            ),
+        ],
+        "projects": [
+            {
+                "codename": "PKE-METER",
+                "type": "Red Team",
+                "description": "<p>Threat-informed emulation mapped to likely intrusion paths against the research enclave.</p>",
+                "slack": "#pke-meter",
+                "complete": False,
+                "objectives": [
+                    "Simulate initial access through developer SaaS and VPN workflows",
+                    "Evaluate cloud control-plane permissions and logging",
+                    "Confirm report evidence supports executive and technical audiences",
+                ],
+                "scope": [
+                    "research.srl.example",
+                    "10.55.0.0/22",
+                    "srl-lab.azure.example",
+                ],
+                "targets": [
+                    ("10.55.1.20", "gitlab.srl.local", "Source control server", False),
+                    (
+                        "10.55.2.44",
+                        "jump01.srl.local",
+                        "Administrative jump host",
+                        True,
+                    ),
+                    ("10.55.3.10", "sql01.srl.local", "Research database", False),
+                ],
+            }
+        ],
+    },
+]
+
+DOMAINS = [
+    ("ghostwriter.wiki", "Namecheap", "Reserved", "Healthy", "Enabled"),
+    ("getghostwriter.io", "Hover", "Reserved", "Healthy", "Enabled"),
+    ("specterops.io", "Gandi", "Reserved", "Healthy", "Enabled"),
+    ("docs.mythic-c2.net", "Cloudflare", "Reserved", "Healthy", "Enabled"),
+    ("ecto-analytics.com", "Namecheap", "Available", "Questionable", "Enabled"),
+    ("containment-review.net", "Dynadot", "Available", "Healthy", "Enabled"),
+    ("partner-validation.io", "Porkbun", "Reserved", "Healthy", "Enabled"),
+    ("research-gateway.cloud", "Cloudflare", "Available", "Questionable", "Enabled"),
+]
+
+STATIC_SERVERS = [
+    ("203.0.113.10", "ecto-rdr-01", "Amazon Web Services", "Reserved"),
+    ("203.0.113.11", "ecto-c2-01", "Digital Ocean", "Reserved"),
+    ("198.51.100.52", "puft-web-redirector", "Microsoft Azure", "Reserved"),
+    ("192.0.2.33", "spectral-payloads", "Linode", "Available"),
+]
+
+FINDINGS = [
+    {
+        "title": "Weak Multi-Factor Authentication Enforcement on Remote Access",
+        "severity": "High",
+        "type": "Network",
+        "cvss_score": 8.1,
+        "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+        "tags": ["identity", "remote-access", "mfa"],
+        "description": "<p>Remote access workflows allowed authenticated users to reach sensitive applications without a consistent step-up challenge.</p>",
+        "impact": "<p>An attacker with valid credentials could access internal services from an untrusted network and bypass expected identity assurance controls.</p>",
+        "mitigation": "<p>Require phishing-resistant MFA for all remote access paths, enforce conditional access policies, and alert on legacy authentication attempts.</p>",
+        "replication_steps": "<ol><li>Authenticate to the VPN portal with a test user.</li><li>Observe that access is granted without a second factor.</li><li>Browse to internal applications using the established session.</li></ol>",
+        "host_detection_techniques": "<p>Review identity provider sign-in logs for remote sessions missing an MFA claim.</p>",
+        "network_detection_techniques": "<p>Alert when VPN sessions originate from new geographies or unmanaged devices without an MFA event.</p>",
+        "references": "<p>https://attack.mitre.org/techniques/T1078/</p>",
+        "finding_guidance": "<p>Use this finding when the engagement demonstrates access from valid credentials without adequate second-factor enforcement.</p>",
+    },
+    {
+        "title": "Kerberoastable Service Accounts with Excessive Privileges",
+        "severity": "High",
+        "type": "Host",
+        "cvss_score": 8.8,
+        "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+        "tags": ["active-directory", "kerberos", "credential-access"],
+        "description": "<p>Several service accounts exposed service principal names and held privileges beyond their operational requirements.</p>",
+        "impact": "<p>Offline password cracking could lead to privileged domain access and lateral movement across critical systems.</p>",
+        "mitigation": "<p>Rotate service account passwords to long random values, move services to managed service accounts, and remove unnecessary group membership.</p>",
+        "replication_steps": "<ol><li>Request Kerberos service tickets for SPN-enabled accounts.</li><li>Export the ticket material.</li><li>Attempt offline cracking with approved engagement tooling.</li></ol>",
+        "host_detection_techniques": "<p>Monitor domain controllers for unusual TGS request volumes and service ticket requests from workstations.</p>",
+        "network_detection_techniques": "<p>Correlate Kerberos ticket activity with systems that do not normally perform service account administration.</p>",
+        "references": "<p>https://attack.mitre.org/techniques/T1558/003/</p>",
+        "finding_guidance": "<p>Include cracked password evidence only in the restricted appendix or evidence vault.</p>",
+    },
+    {
+        "title": "Over-Permissive Cloud Storage Bucket Policy",
+        "severity": "Medium",
+        "type": "Cloud",
+        "cvss_score": 6.5,
+        "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "tags": ["cloud", "storage", "data-exposure"],
+        "description": "<p>A cloud storage bucket allowed broad read access to internal artifacts that were not intended for public distribution.</p>",
+        "impact": "<p>Sensitive build outputs, configuration files, or customer data could be accessed by unauthorized users.</p>",
+        "mitigation": "<p>Restrict bucket policies to explicit principals, enable public access blocks, and add continuous monitoring for policy drift.</p>",
+        "replication_steps": "<ol><li>Enumerate the bucket URL from public application responses.</li><li>Request object listings or known object paths without credentials.</li><li>Confirm access to non-public artifacts.</li></ol>",
+        "host_detection_techniques": "<p>Review cloud audit logs for anonymous or cross-account object access.</p>",
+        "network_detection_techniques": "<p>Inspect CDN and object storage logs for access patterns from unexpected autonomous systems.</p>",
+        "references": "<p>https://attack.mitre.org/techniques/T1530/</p>",
+        "finding_guidance": "<p>Capture only benign proof files unless the client approves controlled access to sensitive objects.</p>",
+    },
+    {
+        "title": "Stored Cross-Site Scripting in Partner Portal Notes",
+        "severity": "Medium",
+        "type": "Web",
+        "cvss_score": 6.1,
+        "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N",
+        "tags": ["web", "xss", "partner-portal"],
+        "description": "<p>The partner portal rendered user-controlled notes without sufficient output encoding.</p>",
+        "impact": "<p>An attacker could execute JavaScript in another user's browser and perform actions in that user's session.</p>",
+        "mitigation": "<p>Apply context-aware output encoding, sanitize rich text input, and add regression tests for stored user content.</p>",
+        "replication_steps": "<ol><li>Create a partner note containing a harmless script payload.</li><li>Open the account details as another user.</li><li>Observe script execution in the browser context.</li></ol>",
+        "host_detection_techniques": "<p>Review application logs for suspicious HTML or script tags in note fields.</p>",
+        "network_detection_techniques": "<p>Monitor browser telemetry and proxy logs for unexpected callbacks from portal pages.</p>",
+        "references": "<p>https://owasp.org/www-community/attacks/xss/</p>",
+        "finding_guidance": "<p>Use a non-destructive payload such as a visible marker or console message in demo evidence.</p>",
+    },
+    {
+        "title": "Insufficient EDR Alerting for Credential Dumping Simulation",
+        "severity": "Low",
+        "type": "Host",
+        "cvss_score": 3.7,
+        "cvss_vector": "CVSS:3.1/AV:L/AC:H/PR:H/UI:N/S:U/C:L/I:N/A:N",
+        "tags": ["detection", "edr", "credential-access"],
+        "description": "<p>Credential access simulation generated limited endpoint telemetry and did not produce a high-confidence alert.</p>",
+        "impact": "<p>Operators may have a longer dwell time before defenders identify credential theft behavior.</p>",
+        "mitigation": "<p>Tune endpoint detections for LSASS access, suspicious handle requests, and post-exploitation tooling patterns.</p>",
+        "replication_steps": "<ol><li>Execute the approved credential access simulator on a monitored test host.</li><li>Collect endpoint and SIEM telemetry.</li><li>Compare observed alerts to the expected detection catalog.</li></ol>",
+        "host_detection_techniques": "<p>Alert on non-standard processes requesting sensitive process handles or dumping protected memory.</p>",
+        "network_detection_techniques": "<p>Correlate endpoint activity with outbound staging or command-and-control sessions.</p>",
+        "references": "<p>https://attack.mitre.org/techniques/T1003/</p>",
+        "finding_guidance": "<p>This finding is useful in purple team reports where the primary issue is detection coverage.</p>",
+    },
+]
+
+OBSERVATIONS = [
+    {
+        "title": "Effective Security Team Coordination During Testing",
+        "description": (
+            "<p>The client security team maintained clear escalation paths, provided timely deconfliction, "
+            "and used Ghostwriter evidence to track defensive observations during the engagement.</p>"
+        ),
+        "tags": ["positive", "process", "purple-team"],
+    },
+    {
+        "title": "Centralized Logging Improved Investigation Speed",
+        "description": (
+            "<p>Authentication, endpoint, and network telemetry were available in a central platform, "
+            "which reduced the time required to validate simulated adversary activity.</p>"
+        ),
+        "tags": ["positive", "logging", "detection"],
+    },
+]
+
+OPLOG_STEPS = [
+    (
+        "nmap",
+        "nmap -Pn -sV {target}",
+        "Enumerated exposed services for the scoped host.",
+    ),
+    (
+        "httpx",
+        "httpx -title -tech-detect -u https://{host}",
+        "Captured web technology and title information.",
+    ),
+    ("Mythic", "jobs", "Reviewed active agent jobs and task status."),
+    (
+        "SharpHound",
+        "Invoke-BloodHound -CollectionMethod Session,Trusts,ACL",
+        "Collected Active Directory relationship data.",
+    ),
+    (
+        "Rubeus",
+        "Rubeus.exe kerberoast /nowrap",
+        "Requested service tickets for approved Kerberoast validation.",
+    ),
+    (
+        "PowerView",
+        "Get-DomainGroupMember 'Domain Admins'",
+        "Enumerated privileged group membership.",
+    ),
+    ("curl", "curl -I https://{host}", "Validated redirect and response headers."),
+    (
+        "Ghostwriter",
+        "uploaded evidence artifact",
+        "Attached sanitized evidence to the working report.",
+    ),
+]
 
 
 class Command(BaseCommand):
-    help = "Generates a test database"
+    help = "Seed a realistic Ghostwriter demo database for local testing, demos, and videos."
 
-    @transaction.atomic
-    def handle(self, *args, **kwargs):
-        self.stdout.write(self.style.SUCCESS("Clearing out old data..."))
-        models = [Domain, StaticServer, TransientServer, Project, Client, ClientContact, Finding]
-        for m in models:
-            m.objects.all().delete()
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--reset",
+            action="store_true",
+            help="In append mode, remove prior demo seed data before seeding.",
+        )
+        parser.add_argument(
+            "--append",
+            action="store_true",
+            help="Append or update demo seed data without wiping the database or reloading fixtures.",
+        )
+        parser.add_argument(
+            "--quick",
+            action="store_true",
+            help="Create a smaller but complete demo dataset.",
+        )
+        parser.add_argument(
+            "--clients",
+            type=int,
+            default=None,
+            help="Number of demo clients to create.",
+        )
+        parser.add_argument(
+            "--projects-per-client",
+            type=int,
+            default=None,
+            help="Maximum number of projects to create for each selected client.",
+        )
+        parser.add_argument(
+            "--seed",
+            type=int,
+            default=1337,
+            help="Deterministic random seed for date and assignment choices.",
+        )
 
-        self.stdout.write(self.style.SUCCESS("Creating users..."))
-        # Create all the users
-        people = []
-        for _ in range(NUM_USERS):
-            person = UserFactory()
-            people.append(person)
+    def handle(self, *args, **options):
+        self.random = random.Random(options["seed"])
+        self.stats = Counter()
+        client_limit = self._bounded_count(
+            options["clients"], 1 if options["quick"] else len(CLIENTS), 1, len(CLIENTS)
+        )
+        project_limit = self._bounded_count(
+            options["projects_per_client"], 1 if options["quick"] else 10, 1, 10
+        )
 
-        # Populate domain library
-        self.stdout.write(self.style.SUCCESS("Creating domains..."))
-        domains = []
-        for _ in range(NUM_DOMAINS):
-            d = DomainFactory(
-                registrar=random.choice(REGISTRARS),
-                whois_status=random.choice(WHOIS_STATUS),
-                health_status=random.choice(HEALTH_STATUS),
-                domain_status=random.choice(DOMAIN_STATUS),
-                last_used_by=random.choice(USERS),
-            )
-            domains.append(d)
+        trigger_context = (
+            self._disabled_evidence_user_triggers()
+            if not self._evidence_has_finding_column()
+            else nullcontext()
+        )
 
-        # Populate server library
-        self.stdout.write(self.style.SUCCESS("Creating servers..."))
-        servers = []
-        for _ in range(NUM_SERVERS):
-            s = StaticServerFactory(
-                server_provider=random.choice(PROVIDERS),
-                server_status=random.choice(SERVER_STATUS),
-                last_used_by=random.choice(USERS),
-            )
-            servers.append(s)
+        try:
+            if not options["append"]:
+                self._reinstall_database()
 
-        # Populate findings library
-        self.stdout.write(self.style.SUCCESS("Creating findings..."))
-        findings = []
-        for _ in range(NUM_FINDINGS):
-            f = FindingFactory.create_batch(
-                NUM_FINDINGS,
-                finding_type=random.choice(FINDING_TYPES),
-                severity=random.choice(SEVERITIES),
-            )
-            findings.append(f)
+            with trigger_context:
+                with transaction.atomic():
+                    if options["reset"]:
+                        self._reset_demo_data()
 
-        # Populate client list + client POCs
-        self.stdout.write(self.style.SUCCESS("Creating clients and contacts..."))
-        clients = ClientFactory.create_batch(NUM_CLIENTS)
-
-        for c in clients:
-            ClientContactFactory.create_batch(NUM_POCS, client=c)
-
-        # Populate project list + project members
-        self.stdout.write(self.style.SUCCESS("Creating projects and assignments..."))
-        projects = []
-        for _ in range(NUM_PROJECTS):
-            p = ProjectFactory(
-                client=random.choice(clients),
-                project_type=random.choice(PROJECT_TYPES),
-                operator=random.choice(USERS),
-            )
-            projects.append(p)
-
-        # Populate projects with activities
-        self.stdout.write(self.style.SUCCESS("[+] Populating %s projects with data..." % NUM_PROJECTS))
-        for p in projects:
-            assignments = []
-            objectives = []
-            reports = []
-            project_domains = []
-            project_servers = []
-            project_cloud = []
-            targets = []
-            oplogs = []
-
-            for _ in range(USERS_PER_PROJECT):
-                a = ProjectAssignmentFactory(
-                    project=p, operator=random.choice(USERS), role=random.choice(PROJECT_ROLES)
-                )
-                assignments.append(a)
-
-            # Populate project infrastructure
-            for _ in range(ASSETS_PER_PROJECT):
-                d = HistoryFactory(
-                    client=p.client,
-                    project=p,
-                    operator=random.choice(assignments).operator,
-                    activity_type=random.choice(ACTIVITY_TYPES),
-                    domain=random.choice(domains),
-                )
-                project_domains.append(d)
-                s = ServerHistoryFactory(
-                    client=p.client,
-                    project=p,
-                    operator=random.choice(assignments).operator,
-                    activity_type=random.choice(ACTIVITY_TYPES),
-                    server_role=random.choice(SERVER_ROLES),
-                    server=random.choice(servers),
-                )
-                project_servers.append(s)
-                c = TransientServerFactory(
-                    project=p,
-                    operator=random.choice(assignments).operator,
-                    activity_type=random.choice(ACTIVITY_TYPES),
-                    server_role=random.choice(SERVER_ROLES),
-                    server_provider=random.choice(PROVIDERS),
-                )
-                project_cloud.append(c)
-
-            # Randomly assign domains to servers
-            for index, d in enumerate(project_domains):
-                if index % 2 == 0:
-                    DomainServerConnectionFactory(
-                        domain=d,
-                        static_server=random.choice(project_servers),
-                        transient_server=None,
-                        project=p,
+                    self._seed_extra_field_specs()
+                    lookups = self._load_lookups()
+                    users = self._seed_users()
+                    domains = self._seed_domains(lookups, users)
+                    servers = self._seed_static_servers(lookups, users)
+                    findings = self._seed_findings(lookups)
+                    observations = self._seed_observations()
+                    clients, projects = self._seed_clients_and_projects(
+                        lookups=lookups,
+                        users=users,
+                        domains=domains,
+                        servers=servers,
+                        findings=findings,
+                        observations=observations,
+                        client_limit=client_limit,
+                        project_limit=project_limit,
                     )
+                    self._assign_install_admin_to_active_project(lookups)
+        except Exception as exc:
+            raise CommandError(f"Demo data seed failed: {exc}") from exc
+
+        self._print_summary(clients, projects)
+
+    def _bounded_count(self, requested, default, minimum, maximum):
+        value = default if requested is None else requested
+        if value < minimum or value > maximum:
+            raise CommandError(
+                f"Requested count {value} is outside the supported range {minimum}-{maximum}."
+            )
+        return value
+
+    def _demo_extra(self, model=None, label="", **extra):
+        data = {
+            DEMO_MARKER_KEY: DEMO_MARKER_VALUE,
+            "demo_json": {
+                "source": "generate_test_data",
+                "model": model._meta.label if model else "demo",
+                "label": label,
+            },
+            "demo_summary": f"Demo data for {label or (model._meta.verbose_name if model else 'Ghostwriter')}",
+            "demo_reviewed": True,
+            "demo_confidence": 8.5,
+            "demo_count": 3,
+            "demo_notes": f"<p>{label or 'This row'} was seeded for Ghostwriter demos and UI validation.</p>",
+        }
+        data.update(extra)
+        return data
+
+    def _reinstall_database(self):
+        call_command("flush", interactive=False, verbosity=0)
+        self.stats["flushed"] += 1
+        for fixture in INITIAL_FIXTURES:
+            call_command("loaddata", fixture, verbosity=0)
+            self.stats["fixtures"] += 1
+        self._configure_install_admin()
+        self._configure_company_information()
+        self._configure_report_configuration()
+        self._configure_bloodhound_configuration()
+
+    def _env_value(self, *names, default=""):
+        for name in names:
+            value = os.environ.get(name)
+            if value:
+                return value
+        return default
+
+    def _install_admin_username(self):
+        return self._env_value("DJANGO_SUPERUSER_USERNAME", default="admin")
+
+    def _get_install_admin(self):
+        try:
+            return get_user_model().objects.get(username=self._install_admin_username())
+        except get_user_model().DoesNotExist:
+            return None
+
+    def _configure_install_admin(self):
+        User = get_user_model()
+        username = self._install_admin_username()
+        email = self._env_value(
+            "DJANGO_SUPERUSER_EMAIL", default="admin@ghostwriter.local"
+        )
+        password = self._env_value(
+            "DJANGO_SUPERUSER_PASSWORD", "ADMIN_PASSWORD", default=DEMO_PASSWORD
+        )
+        admin, created = User.objects.get_or_create(
+            username=username,
+            defaults={
+                "email": email,
+                "name": "Ghostwriter Administrator",
+                "role": "admin",
+                "is_active": True,
+            },
+        )
+        if created:
+            self.stats["created"] += 1
+        else:
+            self._update_object(
+                admin,
+                {
+                    "email": email,
+                    "role": "admin",
+                    "is_active": True,
+                    "require_mfa": False,
+                },
+            )
+        admin.set_password(password)
+        admin.save()
+        self._ensure_user_profile(admin)
+
+    def _ensure_user_profile(self, user):
+        _, created = UserProfile.objects.get_or_create(user=user)
+        if created:
+            self.stats["created"] += 1
+
+    def _assign_install_admin_to_active_project(self, lookups):
+        admin = self._get_install_admin()
+        if admin is None:
+            return
+
+        today = date.today()
+        project = (
+            Project.objects.filter(
+                start_date__lte=today,
+                end_date__gte=today,
+                complete=False,
+                extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE},
+            )
+            .order_by("start_date", "codename")
+            .first()
+        )
+        if project is None:
+            return
+
+        assignment, created = ProjectAssignment.objects.get_or_create(
+            project=project,
+            operator=admin,
+            defaults={
+                "role": lookups["project_roles"]["Assessment Oversight"],
+                "start_date": project.start_date,
+                "end_date": project.end_date,
+                "description": f"<p>{admin.get_display_name()} assigned to {project.codename} for demo login visibility.</p>",
+            },
+        )
+        if created:
+            self.stats["created"] += 1
+        else:
+            self._update_object(
+                assignment,
+                {
+                    "role": lookups["project_roles"]["Assessment Oversight"],
+                    "start_date": project.start_date,
+                    "end_date": project.end_date,
+                    "description": f"<p>{admin.get_display_name()} assigned to {project.codename} for demo login visibility.</p>",
+                },
+            )
+
+    def _configure_company_information(self):
+        self._update_object(CompanyInformation.get_solo(), COMPANY_INFORMATION)
+
+    def _configure_report_configuration(self):
+        self._update_object(ReportConfiguration.get_solo(), REPORT_CONFIGURATION)
+
+    def _configure_bloodhound_configuration(self):
+        if not DEMO_BLOODHOUND_RESULTS_PATH.exists():
+            raise CommandError(
+                f"Demo BloodHound results fixture is missing: {DEMO_BLOODHOUND_RESULTS_PATH}"
+            )
+        with DEMO_BLOODHOUND_RESULTS_PATH.open() as results_file:
+            bloodhound_results = json.load(results_file)
+        self._update_object(
+            BloodHoundConfiguration.get_solo(),
+            {
+                "allow_project_fallback": True,
+                "bloodhound_api_root_url": "https://bloodhound.demo.local",
+                "bloodhound_api_key_id": "demo-api-key-id",
+                "bloodhound_api_key_token": "demo-api-key-token",
+                "bloodhound_results": bloodhound_results,
+            },
+        )
+
+    def _set_tags(self, obj, tags):
+        if hasattr(obj, "tags"):
+            obj.tags.set([DEMO_TAG, *tags])
+
+    def _update_object(self, obj, defaults):
+        changed = False
+        for field, value in defaults.items():
+            if getattr(obj, field) != value:
+                setattr(obj, field, value)
+                changed = True
+        if changed:
+            obj.save()
+            self.stats["updated"] += 1
+        else:
+            self.stats["reused"] += 1
+        return obj
+
+    def _get_or_update(self, model, lookup, defaults):
+        obj, created = model.objects.get_or_create(**lookup, defaults=defaults)
+        if created:
+            self.stats["created"] += 1
+            return obj
+        return self._update_object(obj, defaults)
+
+    def _table_has_column(self, table_name, column_name):
+        cache_key = f"_has_column_{table_name}_{column_name}"
+        cached = getattr(self, cache_key, None)
+        if cached is not None:
+            return cached
+        with connection.cursor() as cursor:
+            columns = {
+                column.name
+                for column in connection.introspection.get_table_description(
+                    cursor, table_name
+                )
+            }
+        has_column = column_name in columns
+        setattr(self, cache_key, has_column)
+        return has_column
+
+    def _evidence_has_finding_column(self):
+        return self._table_has_column("reporting_evidence", "finding_id")
+
+    @contextmanager
+    def _disabled_evidence_user_triggers(self):
+        with connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE reporting_evidence DISABLE TRIGGER USER")
+        try:
+            yield
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute("ALTER TABLE reporting_evidence ENABLE TRIGGER USER")
+
+    def _seed_extra_field_specs(self):
+        for model in EXTRA_FIELD_MODELS:
+            extra_field_model, created = ExtraFieldModel.objects.get_or_create(
+                model_internal_name=model._meta.label,
+                defaults={
+                    "model_display_name": model._meta.verbose_name.title(),
+                    "is_collab_editable": model
+                    in (Report, ReportFindingLink, ReportObservationLink, OplogEntry),
+                },
+            )
+            if created:
+                self.stats["created"] += 1
+            else:
+                self._update_object(
+                    extra_field_model,
+                    {
+                        "model_display_name": model._meta.verbose_name.title(),
+                        "is_collab_editable": model
+                        in (
+                            Report,
+                            ReportFindingLink,
+                            ReportObservationLink,
+                            OplogEntry,
+                        ),
+                    },
+                )
+
+            for position, spec_data in enumerate(EXTRA_FIELD_SPECS, start=1):
+                spec, created = ExtraFieldSpec.objects.get_or_create(
+                    target_model=extra_field_model,
+                    internal_name=spec_data["internal_name"],
+                    defaults={
+                        "display_name": spec_data["display_name"],
+                        "description": spec_data["description"],
+                        "type": spec_data["type"],
+                        "user_default_value": spec_data["user_default_value"],
+                        "position": position,
+                    },
+                )
+                if created:
+                    self.stats["created"] += 1
                 else:
-                    DomainServerConnectionFactory(
-                        domain=d,
-                        transient_server=random.choice(project_cloud),
-                        static_server=None,
-                        project=p,
+                    self._update_object(
+                        spec,
+                        {
+                            "display_name": spec_data["display_name"],
+                            "description": spec_data["description"],
+                            "type": spec_data["type"],
+                            "user_default_value": spec_data["user_default_value"],
+                            "position": position,
+                        },
                     )
 
-            # Populate project scope lists
-            ProjectScopeFactory.create_batch(SCOPES_PER_PROJECT, project=p)
+    def _load_lookup_map(self, model, field_name, values):
+        lookup = {}
+        for value in values:
+            try:
+                lookup[value] = model.objects.get(**{field_name: value})
+            except model.DoesNotExist as exc:
+                raise CommandError(
+                    f"Required fixture lookup {model._meta.label}.{field_name}={value!r} is missing. "
+                    "Load the initial fixture files before running this command."
+                ) from exc
+        return lookup
 
-            # Populate project targets
-            targets = ProjectTargetFactory.create_batch(TARGETS_PER_PROJECT, project=p)
+    def _load_lookups(self):
+        return {
+            "severities": self._load_lookup_map(
+                Severity,
+                "severity",
+                ["Critical", "High", "Medium", "Low", "Informational"],
+            ),
+            "finding_types": self._load_lookup_map(
+                FindingType,
+                "finding_type",
+                ["Network", "Web", "Cloud", "Host"],
+            ),
+            "project_types": self._load_lookup_map(
+                ProjectType,
+                "project_type",
+                ["Red Team", "Penetration Test"],
+            ),
+            "project_roles": self._load_lookup_map(
+                ProjectRole,
+                "project_role",
+                ["Assessment Lead", "Assessment Oversight", "Operator"],
+            ),
+            "objective_statuses": self._load_lookup_map(
+                ObjectiveStatus,
+                "objective_status",
+                ["Active", "In Progress", "On Hold"],
+            ),
+            "objective_priorities": self._load_lookup_map(
+                ObjectivePriority,
+                "priority",
+                ["Primary", "Secondary", "Tertiary"],
+            ),
+            "deconfliction_statuses": self._load_lookup_map(
+                DeconflictionStatus,
+                "status",
+                ["Undetermined", "Confirmed", "Unrelated"],
+            ),
+            "whois_statuses": self._load_lookup_map(
+                WhoisStatus,
+                "whois_status",
+                ["Enabled", "Disabled", "Unknown"],
+            ),
+            "health_statuses": self._load_lookup_map(
+                HealthStatus,
+                "health_status",
+                ["Healthy", "Burned", "Questionable"],
+            ),
+            "domain_statuses": self._load_lookup_map(
+                DomainStatus,
+                "domain_status",
+                ["Available", "Reserved"],
+            ),
+            "activity_types": self._load_lookup_map(
+                ActivityType,
+                "activity",
+                ["Command and Control", "Phishing"],
+            ),
+            "server_statuses": self._load_lookup_map(
+                ServerStatus,
+                "server_status",
+                ["Available", "Reserved"],
+            ),
+            "server_providers": self._load_lookup_map(
+                ServerProvider,
+                "server_provider",
+                ["Amazon Web Services", "Microsoft Azure", "Digital Ocean", "Linode"],
+            ),
+            "server_roles": self._load_lookup_map(
+                ServerRole,
+                "server_role",
+                ["Team Server / C2 Server", "Redirector", "Payload Hosting"],
+            ),
+        }
 
-            # Populate project objectives + subtasks
-            for _ in range(OBJS_PER_PROJECT):
-                o = ProjectObjectiveFactory(
-                    project=p, status=random.choice(OBJ_STATUS), priority=random.choice(OBJ_PRIORITIES)
+    def _seed_users(self):
+        User = get_user_model()
+        users = {}
+        for data in USERS:
+            defaults = {
+                "name": data["name"],
+                "email": data["email"],
+                "phone": data["phone"],
+                "role": data["role"],
+                "timezone": data["timezone"],
+                "is_active": True,
+                "enable_finding_create": data.get("enable_finding_create", False),
+                "enable_finding_edit": data.get("enable_finding_edit", False),
+                "enable_finding_delete": False,
+                "enable_observation_create": data.get(
+                    "enable_observation_create", False
+                ),
+                "enable_observation_edit": False,
+                "enable_observation_delete": False,
+                "require_mfa": False,
+            }
+            user, created = User.objects.get_or_create(
+                username=data["username"], defaults=defaults
+            )
+            if created:
+                self.stats["created"] += 1
+            else:
+                self._update_object(user, defaults)
+            user.set_password(DEMO_PASSWORD)
+            user.save()
+            self._ensure_user_profile(user)
+            users[user.username] = user
+        return users
+
+    def _seed_domains(self, lookups, users):
+        today = date.today()
+        domains = {}
+        operator = users["cmaddalena"]
+        for index, (name, registrar, status, health, whois) in enumerate(
+            DOMAINS, start=1
+        ):
+            defaults = {
+                "registrar": registrar,
+                "dns": {
+                    "a": [f"203.0.113.{20 + index}"],
+                    "mx": [f"mail.{name}"],
+                    "txt": ["v=spf1 include:_spf.google.com ~all"],
+                },
+                "creation": today - timedelta(days=420 + (index * 31)),
+                "expiration": today + timedelta(days=210 + (index * 17)),
+                "last_health_check": today - timedelta(days=index),
+                "categorization": {
+                    "source": "demo",
+                    "categories": ["business", "technology"],
+                },
+                "description": f"Demo domain reserved for realistic Ghostwriter walkthroughs and project infrastructure: {name}.",
+                "burned_explanation": "",
+                "auto_renew": True,
+                "expired": False,
+                "reset_dns": True,
+                "whois_status": lookups["whois_statuses"][whois],
+                "health_status": lookups["health_statuses"][health],
+                "domain_status": lookups["domain_statuses"][status],
+                "last_used_by": operator,
+                "extra_fields": self._demo_extra(Domain, name, seed_index=index),
+            }
+            domain = self._get_or_update(Domain, {"name": name}, defaults)
+            self._set_tags(domain, ["infrastructure", status.lower().replace(" ", "-")])
+            domains[name] = domain
+        return domains
+
+    def _seed_static_servers(self, lookups, users):
+        servers = {}
+        operator = users["cmaddalena"]
+        for index, (ip_address, name, provider, status) in enumerate(
+            STATIC_SERVERS, start=1
+        ):
+            defaults = {
+                "name": name,
+                "description": f"Demo {name} server used for redirector, payload, and command-and-control walkthroughs.",
+                "server_provider": lookups["server_providers"][provider],
+                "server_status": lookups["server_statuses"][status],
+                "last_used_by": operator,
+                "extra_fields": self._demo_extra(StaticServer, name, seed_index=index),
+            }
+            server = self._get_or_update(
+                StaticServer, {"ip_address": ip_address}, defaults
+            )
+            self._set_tags(server, ["infrastructure", provider.lower()])
+            servers[ip_address] = server
+        return servers
+
+    def _seed_findings(self, lookups):
+        findings = {}
+        for data in FINDINGS:
+            defaults = {
+                "severity": lookups["severities"][data["severity"]],
+                "finding_type": lookups["finding_types"][data["type"]],
+                "cvss_score": data["cvss_score"],
+                "cvss_vector": data["cvss_vector"],
+                "description": data["description"],
+                "impact": data["impact"],
+                "mitigation": data["mitigation"],
+                "replication_steps": data["replication_steps"],
+                "host_detection_techniques": data["host_detection_techniques"],
+                "network_detection_techniques": data["network_detection_techniques"],
+                "references": data["references"],
+                "finding_guidance": data["finding_guidance"],
+                "extra_fields": self._demo_extra(Finding, data["title"]),
+            }
+            finding = self._get_or_update(Finding, {"title": data["title"]}, defaults)
+            self._set_tags(finding, data["tags"])
+            findings[data["title"]] = finding
+        return findings
+
+    def _seed_observations(self):
+        observations = {}
+        for data in OBSERVATIONS:
+            observation = self._get_or_update(
+                Observation,
+                {"title": data["title"]},
+                {
+                    "description": data["description"],
+                    "extra_fields": self._demo_extra(Observation, data["title"]),
+                },
+            )
+            self._set_tags(observation, data["tags"])
+            observations[data["title"]] = observation
+        return observations
+
+    def _seed_clients_and_projects(
+        self,
+        lookups,
+        users,
+        domains,
+        servers,
+        findings,
+        observations,
+        client_limit,
+        project_limit,
+    ):
+        clients = []
+        projects = []
+        selected_clients = CLIENTS[:client_limit]
+        for client_index, data in enumerate(selected_clients, start=1):
+            client = self._seed_client(data, client_index)
+            clients.append(client)
+            self._replace_client_contacts(client, data)
+            for project_index, project_data in enumerate(
+                data["projects"][:project_limit], start=1
+            ):
+                project = self._seed_project(
+                    client, project_data, client_index, project_index, lookups, users
                 )
-                objectives.append(o)
+                projects.append(project)
+                self._replace_project_children(
+                    project,
+                    project_data,
+                    lookups,
+                    users,
+                    domains,
+                    servers,
+                    findings,
+                    observations,
+                )
+        return clients, projects
 
-            for obj in objectives:
-                for _ in range(TASKS_PER_OBJ):
-                    ProjectSubtaskFactory(parent=obj, status=random.choice(OBJ_STATUS))
+    def _seed_client(self, data, index):
+        defaults = {
+            "short_name": data["short_name"],
+            "codename": data["codename"],
+            "description": data["description"],
+            "timezone": data["timezone"],
+            "address": data["address"],
+            "extra_fields": self._demo_extra(Client, data["name"], seed_index=index),
+        }
+        client = self._get_or_update(Client, {"name": data["name"]}, defaults)
+        self._set_tags(client, ["client", data["codename"].lower()])
+        return client
 
-            # Create some reports
-            reports = ReportFactory.create_batch(REPORTS_PER_PROJECT, project=p)
+    def _replace_client_contacts(self, client, data):
+        ClientContact.objects.filter(client=client).delete()
+        for name, title, email, phone, primary in data["contacts"]:
+            ClientContact.objects.create(
+                client=client,
+                name=name,
+                job_title=title,
+                email=email,
+                phone=phone,
+                timezone=data["timezone"],
+                description=f"<p>{name} is a demo stakeholder for {client.name}.</p>",
+                primary=primary,
+            )
+            self.stats["created"] += 1
 
-            # Assign some findings to reports
-            for r in reports:
-                for _ in range(FINDINGS_PER_REPORT):
-                    ReportFindingLinkFactory(
-                        report=r,
-                        severity=random.choice(SEVERITIES),
-                        finding_type=random.choice(FINDING_TYPES),
-                        assigned_to=random.choice(assignments).operator,
-                    )
+    def _seed_project(self, client, data, client_index, project_index, lookups, users):
+        today = date.today()
+        if data["complete"]:
+            end_date = today - timedelta(days=20 + (client_index * 4) + project_index)
+            start_date = end_date - timedelta(days=21 + (project_index * 7))
+        else:
+            start_date = today - timedelta(days=8 + (client_index * 3) + project_index)
+            end_date = today + timedelta(days=18 + (client_index * 4) + project_index)
+        operator = users["cmaddalena"] if project_index == 1 else users["pstanz"]
+        defaults = {
+            "client": client,
+            "project_type": lookups["project_types"][data["type"]],
+            "operator": operator,
+            "start_date": start_date,
+            "end_date": end_date,
+            "description": data["description"],
+            "slack_channel": data["slack"],
+            "complete": data["complete"],
+            "timezone": client.timezone,
+            "start_time": time(9, 0),
+            "end_time": time(17, 0),
+            "collab_note": "<p>Demo notes: daily sync at 10:00 local, report QA every Friday.</p>",
+            "bloodhound_api_root_url": "",
+            "bloodhound_api_key_id": "",
+            "bloodhound_api_key_token": "",
+            "bloodhound_results": None,
+            "extra_fields": self._demo_extra(
+                Project, data["codename"], seed_index=f"{client_index}-{project_index}"
+            ),
+        }
+        project = self._get_or_update(Project, {"codename": data["codename"]}, defaults)
+        self._set_tags(project, ["project", data["type"].lower().replace(" ", "-")])
+        return project
 
-                # Create fake evidence
-                for _ in range(FINDINGS_PER_REPORT):
-                    EvidenceFactory(report=r, uploaded_by=random.choice(assignments).operator)
+    def _replace_project_children(
+        self, project, data, lookups, users, domains, servers, findings, observations
+    ):
+        self._delete_project_children(project)
+        assignments = self._create_assignments(project, lookups, users)
+        self._create_project_contacts(project)
+        self._create_scope_and_targets(project, data)
+        self._create_objectives(project, data, lookups)
+        self._create_deconflictions_and_whitecards(project, lookups)
+        histories, server_histories, transient_servers = self._create_infrastructure(
+            project, lookups, users, domains, servers, assignments
+        )
+        self._create_domain_connections(
+            project, histories, server_histories, transient_servers
+        )
+        report = self._create_report(project, users)
+        report_findings = self._create_report_findings(
+            report, data, lookups, users, findings
+        )
+        self._create_report_observations(report, users, observations)
+        self._create_evidence(report_findings, users)
+        self._create_oplog(project, data, assignments)
 
-            # Create oplogs
-            oplogs = OplogFactory.create_batch(OPLOGS_PER_PROJECT, project=p)
+    def _delete_project_children(self, project):
+        self._delete_project_evidence(project)
+        self._delete_project_reports(project)
+        Oplog.objects.filter(project=project).delete()
+        DomainServerConnection.objects.filter(project=project).delete()
+        History.objects.filter(project=project).delete()
+        ServerHistory.objects.filter(project=project).delete()
+        TransientServer.objects.filter(project=project).delete()
+        Deconfliction.objects.filter(project=project).delete()
+        WhiteCard.objects.filter(project=project).delete()
+        ProjectContact.objects.filter(project=project).delete()
+        ProjectAssignment.objects.filter(project=project).delete()
+        ProjectScope.objects.filter(project=project).delete()
+        ProjectTarget.objects.filter(project=project).delete()
+        ProjectObjective.objects.filter(project=project).delete()
 
-            # Populate oplogs with entries
-            for log in oplogs:
-                for _ in range(ENTRIES_PER_OPLOG):
-                    OplogEntryFactory(
-                        oplog_id=log,
-                        operator_name=random.choice(assignments).operator.username,
-                        source_ip=random.choice(targets).ip_address,
-                        dest_ip=random.choice(targets).ip_address,
-                    )
+    def _delete_project_evidence(self, project):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM reporting_evidence
+                WHERE report_id IN (
+                    SELECT id FROM reporting_report WHERE project_id = %s
+                )
+                """,
+                [project.pk],
+            )
+
+    def _delete_project_reports(self, project):
+        if self._evidence_has_finding_column():
+            Report.objects.filter(project=project).delete()
+            return
+
+        using = connection.alias
+        ReportFindingLink.objects.filter(report__project=project)._raw_delete(using)
+        ReportObservationLink.objects.filter(report__project=project)._raw_delete(using)
+        Report.objects.filter(project=project)._raw_delete(using)
+
+    def _create_assignments(self, project, lookups, users):
+        assignment_data = [
+            ("cmaddalena", "Assessment Lead"),
+            ("pstanz", "Operator"),
+            ("rstantz", "Operator"),
+            ("espengler", "Assessment Oversight"),
+            ("wzeddemore", "Assessment Oversight"),
+        ]
+        assignments = []
+        for username, role in assignment_data:
+            assignment = ProjectAssignment.objects.create(
+                project=project,
+                operator=users[username],
+                role=lookups["project_roles"][role],
+                start_date=project.start_date,
+                end_date=project.end_date,
+                description=f"<p>{users[username].name} assigned as {role.lower()} for {project.codename}.</p>",
+            )
+            assignments.append(assignment)
+            self.stats["created"] += 1
+        return assignments
+
+    def _create_project_contacts(self, project):
+        primary = ClientContact.objects.filter(
+            client=project.client, primary=True
+        ).first()
+        contacts = ClientContact.objects.filter(client=project.client).order_by("id")[
+            :2
+        ]
+        for contact in contacts:
+            ProjectContact.objects.create(
+                project=project,
+                name=contact.name,
+                job_title=contact.job_title,
+                email=contact.email,
+                phone=contact.phone,
+                timezone=contact.timezone,
+                description=contact.description,
+                primary=primary and contact.pk == primary.pk,
+            )
+            self.stats["created"] += 1
+
+    def _create_scope_and_targets(self, project, data):
+        ProjectScope.objects.create(
+            project=project,
+            name="Approved Assessment Scope",
+            scope="\n".join(data["scope"]),
+            description="Systems and hostnames approved for the demo engagement.",
+            disallowed=False,
+            requires_caution=False,
+        )
+        ProjectScope.objects.create(
+            project=project,
+            name="Restricted Systems",
+            scope="payment-processing.internal\nexecutive-workstations.local",
+            description="Demo examples of restricted systems requiring explicit approval.",
+            disallowed=True,
+            requires_caution=True,
+        )
+        self.stats["created"] += 2
+        for ip_address, hostname, description, compromised in data["targets"]:
+            ProjectTarget.objects.create(
+                project=project,
+                ip_address=ip_address,
+                hostname=hostname,
+                description=description,
+                compromised=compromised,
+            )
+            self.stats["created"] += 1
+
+    def _create_objectives(self, project, data, lookups):
+        for index, objective_text in enumerate(data["objectives"], start=1):
+            complete = project.complete and index < len(data["objectives"])
+            objective = ProjectObjective.objects.create(
+                project=project,
+                objective=objective_text,
+                description=f"<p>{objective_text}. Evidence and status are maintained in Ghostwriter for demo reporting.</p>",
+                complete=complete,
+                marked_complete=project.end_date if complete else None,
+                deadline=project.start_date + timedelta(days=index * 5),
+                position=index,
+                result="<p>Completed with evidence captured.</p>" if complete else "",
+                status=lookups["objective_statuses"][
+                    "In Progress" if complete else "Active"
+                ],
+                priority=lookups["objective_priorities"][
+                    "Primary" if index == 1 else "Secondary"
+                ],
+            )
+            self.stats["created"] += 1
+            for task_index, task in enumerate(
+                [
+                    "Prepare test plan",
+                    "Execute approved activity",
+                    "Attach evidence and notes",
+                ],
+                start=1,
+            ):
+                ProjectSubTask.objects.create(
+                    parent=objective,
+                    task=f"{task} for {objective_text.lower()}",
+                    complete=complete or task_index == 1,
+                    marked_complete=project.start_date + timedelta(days=task_index)
+                    if complete
+                    else None,
+                    deadline=project.start_date
+                    + timedelta(days=(index * 5) - 1 + task_index),
+                    status=lookups["objective_statuses"][
+                        "In Progress" if complete or task_index == 1 else "Active"
+                    ],
+                )
+                self.stats["created"] += 1
+
+    def _create_deconflictions_and_whitecards(self, project, lookups):
+        base_time = timezone.make_aware(
+            datetime.combine(project.start_date + timedelta(days=3), time(14, 30))
+        )
+        deconflictions = [
+            (
+                "EDR alert for PowerShell reconnaissance",
+                "Client SOC reported PowerShell discovery activity from an approved test workstation.",
+                "SentinelOne",
+                "Confirmed",
+                base_time,
+                base_time + timedelta(minutes=12),
+                base_time + timedelta(minutes=31),
+            ),
+            (
+                "VPN login from test operator address",
+                "Help desk requested confirmation for an unusual VPN login during the scheduled access window.",
+                "Help Desk",
+                "Unrelated",
+                base_time + timedelta(days=2, hours=1),
+                base_time + timedelta(days=2, hours=1, minutes=8),
+                base_time + timedelta(days=2, hours=1, minutes=23),
+            ),
+        ]
+        for (
+            title,
+            description,
+            source,
+            status,
+            report_time,
+            alert_time,
+            response_time,
+        ) in deconflictions:
+            Deconfliction.objects.create(
+                project=project,
+                report_timestamp=report_time,
+                alert_timestamp=alert_time,
+                response_timestamp=response_time,
+                title=title,
+                description=description,
+                alert_source=source,
+                status=lookups["deconfliction_statuses"][status],
+            )
+            self.stats["created"] += 1
+
+        whitecards = [
+            (
+                project.start_date + timedelta(days=2),
+                "Client-provided VPN account enabled",
+                "The client provisioned the assessment team account gbi-redteam-vpn and confirmed MFA enrollment for initial access testing.",
+            ),
+            (
+                project.start_date + timedelta(days=6),
+                "Client executed payload for initial access",
+                "The project sponsor launched the approved launcher on a victim workstation to bootstrap the assumed-breach scenario.",
+            ),
+            (
+                project.start_date + timedelta(days=10),
+                "Test account unlocked by help desk",
+                "Client help desk unlocked the delegated finance test account and confirmed the password reset window for continued validation.",
+            ),
+        ]
+        for issued_date, title, description in whitecards:
+            WhiteCard.objects.create(
+                project=project,
+                issued=timezone.make_aware(datetime.combine(issued_date, time(11, 15))),
+                title=title,
+                description=description,
+            )
+            self.stats["created"] += 1
+
+    def _create_infrastructure(
+        self, project, lookups, users, domains, servers, assignments
+    ):
+        activity_cycle = [
+            lookups["activity_types"]["Command and Control"],
+            lookups["activity_types"]["Phishing"],
+        ]
+        server_role_cycle = [
+            lookups["server_roles"]["Team Server / C2 Server"],
+            lookups["server_roles"]["Payload Hosting"],
+            lookups["server_roles"]["Redirector"],
+        ]
+        selected_domains = list(domains.values())[:3]
+        selected_servers = list(servers.values())[:3]
+        histories = []
+        server_histories = []
+        transient_servers = []
+        for index, domain in enumerate(selected_domains):
+            operator = assignments[index % len(assignments)].operator
+            history = History.objects.create(
+                domain=domain,
+                client=project.client,
+                project=project,
+                operator=operator,
+                activity_type=activity_cycle[index % len(activity_cycle)],
+                start_date=project.start_date,
+                end_date=project.end_date,
+                description=f"Demo checkout for {project.codename} infrastructure.",
+            )
+            histories.append(history)
+            self.stats["created"] += 1
+
+        for index, server in enumerate(selected_servers):
+            operator = assignments[index % len(assignments)].operator
+            server_history = ServerHistory.objects.create(
+                server=server,
+                client=project.client,
+                project=project,
+                operator=operator,
+                server_role=server_role_cycle[index % len(server_role_cycle)],
+                activity_type=activity_cycle[index % len(activity_cycle)],
+                start_date=project.start_date,
+                end_date=project.end_date,
+                description=f"Demo static server checkout for {project.codename}.",
+            )
+            server_histories.append(server_history)
+            self.stats["created"] += 1
+
+        for index in range(2):
+            transient = TransientServer.objects.create(
+                project=project,
+                operator=assignments[index].operator,
+                server_provider=lookups["server_providers"][
+                    "Amazon Web Services" if index == 0 else "Microsoft Azure"
+                ],
+                server_role=server_role_cycle[index],
+                activity_type=activity_cycle[index],
+                ip_address=f"10.{70 + index}.{project.pk % 250}.10",
+                aux_address=[f"10.{70 + index}.{project.pk % 250}.11"],
+                name=f"{project.codename.lower()}-vps-{index + 1}",
+                description="Ephemeral demo VPS used for project activity.",
+            )
+            transient_servers.append(transient)
+            self.stats["created"] += 1
+        return histories, server_histories, transient_servers
+
+    def _create_domain_connections(
+        self, project, histories, server_histories, transient_servers
+    ):
+        for index, history in enumerate(histories):
+            if index % 2 == 0:
+                DomainServerConnection.objects.create(
+                    project=project,
+                    domain=history,
+                    static_server=server_histories[index % len(server_histories)],
+                    transient_server=None,
+                    subdomain="cdn" if index else "*",
+                    endpoint=f"{project.codename.lower()}-edge.cloudfront.example",
+                )
+            else:
+                DomainServerConnection.objects.create(
+                    project=project,
+                    domain=history,
+                    static_server=None,
+                    transient_server=transient_servers[index % len(transient_servers)],
+                    subdomain="login",
+                    endpoint="",
+                )
+            self.stats["created"] += 1
+
+    def _create_report(self, project, users):
+        report = Report.objects.create(
+            project=project,
+            title=f"{project.client.short_name} {project.codename} Security Assessment Report",
+            complete=project.complete,
+            archived=False,
+            created_by=users["cmaddalena"],
+            delivered=project.complete,
+            include_bloodhound_data=True,
+            extra_fields=self._demo_extra(Report, project.codename),
+        )
+        self._set_tags(report, ["report", project.codename.lower()])
+        self.stats["created"] += 1
+        return report
+
+    def _create_report_findings(self, report, data, lookups, users, findings):
+        selected_findings = list(findings.values())[:3]
+        if "Partner" in data["description"]:
+            selected_findings = list(findings.values())[1:4]
+        report_findings = []
+        targets = ProjectTarget.objects.filter(project=report.project).order_by(
+            "hostname"
+        )
+        affected_entities = "\n".join(
+            [target.hostname or target.ip_address for target in targets[:3]]
+        )
+        for position, finding in enumerate(selected_findings, start=1):
+            report_finding = ReportFindingLink.objects.create(
+                report=report,
+                title=finding.title,
+                position=position,
+                affected_entities=affected_entities,
+                description=finding.description,
+                impact=finding.impact,
+                mitigation=finding.mitigation,
+                replication_steps=finding.replication_steps,
+                host_detection_techniques=finding.host_detection_techniques,
+                network_detection_techniques=finding.network_detection_techniques,
+                references=finding.references,
+                finding_guidance=finding.finding_guidance,
+                complete=report.complete,
+                added_as_blank=False,
+                severity=finding.severity,
+                finding_type=finding.finding_type,
+                assigned_to=users["espengler"],
+                cvss_score=finding.cvss_score,
+                cvss_vector=finding.cvss_vector,
+                extra_fields=self._demo_extra(
+                    ReportFindingLink,
+                    finding.title,
+                    library_finding_id=finding.pk,
+                ),
+            )
+            self._set_tags(report_finding, list(finding.tags.names()))
+            report_findings.append(report_finding)
+            self.stats["created"] += 1
+        return report_findings
+
+    def _create_report_observations(self, report, users, observations):
+        for position, observation in enumerate(list(observations.values()), start=1):
+            report_observation = ReportObservationLink.objects.create(
+                report=report,
+                title=observation.title,
+                position=position,
+                description=observation.description,
+                added_as_blank=False,
+                complete=report.complete,
+                assigned_to=users["rstantz"],
+                extra_fields=self._demo_extra(ReportObservationLink, observation.title),
+            )
+            self._set_tags(report_observation, list(observation.tags.names()))
+            self.stats["created"] += 1
+
+    def _create_evidence(self, report_findings, users):
+        for index, report_finding in enumerate(report_findings, start=1):
+            content = (
+                f"Demo evidence for {report_finding.title}\n"
+                f"Project: {report_finding.report.project.codename}\n"
+                "This placeholder is safe for demos and screenshots.\n"
+            ).encode()
+            filename = f"demo-evidence-{report_finding.pk}.txt"
+            if self._evidence_has_finding_column():
+                evidence = Evidence(
+                    report=report_finding.report,
+                    friendly_name=f"Evidence {index}: {report_finding.title[:60]}",
+                    caption=f"Sanitized validation evidence for {report_finding.title}.",
+                    description="Demo evidence file generated by the Ghostwriter seed command.",
+                    uploaded_by=users["cmaddalena"],
+                )
+                evidence.document.save(filename, ContentFile(content), save=True)
+                self._set_tags(evidence, ["evidence"])
+            else:
+                document_path = default_storage.save(
+                    f"evidence/{report_finding.report_id}/{filename}",
+                    ContentFile(content),
+                )
+                self._create_report_evidence_without_finding_column(
+                    report=report_finding.report,
+                    document_path=document_path,
+                    friendly_name=f"Evidence {index}: {report_finding.title[:60]}",
+                    caption=f"Sanitized validation evidence for {report_finding.title}.",
+                    description="Demo evidence file generated by the Ghostwriter seed command.",
+                    uploaded_by=users["cmaddalena"],
+                )
+            self.stats["created"] += 1
+
+    def _create_report_evidence_without_finding_column(
+        self, report, document_path, friendly_name, caption, description, uploaded_by
+    ):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO reporting_evidence (
+                    document,
+                    friendly_name,
+                    upload_date,
+                    caption,
+                    description,
+                    report_id,
+                    uploaded_by_id
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                [
+                    document_path,
+                    friendly_name,
+                    date.today(),
+                    caption,
+                    description,
+                    report.pk,
+                    uploaded_by.pk,
+                ],
+            )
+
+    def _create_oplog(self, project, data, assignments):
+        log = Oplog.objects.create(
+            project=project, name=f"{project.codename} Daily Activity Log"
+        )
+        self.stats["created"] += 1
+        base_time = timezone.make_aware(
+            datetime.combine(project.start_date, time(10, 0))
+        )
+        targets = list(
+            ProjectTarget.objects.filter(project=project).order_by("hostname")
+        )
+        hosts = [target.hostname or target.ip_address for target in targets] or [
+            "demo.local"
+        ]
+        for index, (tool, command, description) in enumerate(OPLOG_STEPS, start=1):
+            target = targets[index % len(targets)] if targets else None
+            host = hosts[index % len(hosts)]
+            start_date = base_time + timedelta(hours=index * 3)
+            entry = OplogEntry.objects.create(
+                oplog_id=log,
+                entry_identifier=f"{project.codename}-{index:03d}",
+                start_date=start_date,
+                end_date=start_date + timedelta(minutes=18 + index),
+                source_ip=f"10.99.{project.pk % 250}.{20 + index}",
+                dest_ip=(target.ip_address if target else host),
+                tool=tool,
+                user_context=r"DEMO\operator",
+                operator_name=assignments[index % len(assignments)].operator.username,
+                command=command.format(
+                    target=target.ip_address if target else host, host=host
+                ),
+                description=description,
+                output=f"Completed demo step {index} for {project.codename}; evidence reviewed.",
+                comments="Reviewed during daily sync; no client-impacting issues observed.",
+                extra_fields=self._demo_extra(
+                    OplogEntry, f"{project.codename}-{index:03d}"
+                ),
+            )
+            entry.tags.add(DEMO_TAG, "oplog", tool.lower().replace(" ", "-"))
+            self.stats["created"] += 1
+
+    def _reset_demo_data(self):
+        demo_projects = Project.objects.filter(
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}
+        )
+        for project in demo_projects:
+            self._delete_project_children(project)
+        deleted_projects, _ = demo_projects.delete()
+
+        deleted_clients, _ = Client.objects.filter(
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}
+        ).delete()
+        deleted_findings, _ = Finding.objects.filter(
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}
+        ).delete()
+        deleted_observations, _ = Observation.objects.filter(
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}
+        ).delete()
+        deleted_domains, _ = Domain.objects.filter(
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}
+        ).delete()
+        deleted_servers, _ = StaticServer.objects.filter(
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}
+        ).delete()
+        self.stats["deleted"] += (
+            deleted_projects
+            + deleted_clients
+            + deleted_findings
+            + deleted_observations
+            + deleted_domains
+            + deleted_servers
+        )
+
+    def _print_summary(self, clients, projects):
+        self.stdout.write(self.style.SUCCESS("Demo data seed complete."))
+        self.stdout.write(
+            f"  Users: {get_user_model().objects.filter(username__in=[user['username'] for user in USERS]).count()}"
+        )
+        self.stdout.write(f"  Clients: {len(clients)}")
+        self.stdout.write(f"  Projects: {len(projects)}")
+        self.stdout.write(
+            f"  Domains: {Domain.objects.filter(extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}).count()}"
+        )
+        self.stdout.write(
+            f"  Findings: {Finding.objects.filter(extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}).count()}"
+        )
+        self.stdout.write(
+            f"  Reports: {Report.objects.filter(extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}).count()}"
+        )
+        self.stdout.write(f"  Evidence: {self._count_demo_evidence()}")
+        self.stdout.write(
+            f"  Oplog Entries: {OplogEntry.objects.filter(extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}).count()}"
+        )
+        self.stdout.write(
+            "  Row operations: "
+            f"created={self.stats['created']} "
+            f"updated={self.stats['updated']} "
+            f"reused={self.stats['reused']} "
+            f"deleted={self.stats['deleted']} "
+            f"fixtures={self.stats['fixtures']}"
+        )
+
+    def _count_demo_evidence(self):
+        if self._evidence_has_finding_column():
+            return Evidence.objects.filter(
+                report__extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE}
+            ).count()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM reporting_evidence evidence
+                INNER JOIN reporting_report report ON evidence.report_id = report.id
+                WHERE report.extra_fields @> %s::jsonb
+                """,
+                [f'{{"{DEMO_MARKER_KEY}": "{DEMO_MARKER_VALUE}"}}'],
+            )
+            return cursor.fetchone()[0]

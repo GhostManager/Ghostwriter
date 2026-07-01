@@ -1,0 +1,99 @@
+---
+title: "Populating a Demo Database"
+description: "How to rebuild a local Ghostwriter database with realistic demo data"
+---
+
+Ghostwriter includes a management command that rebuilds a development or demo database with realistic sample data. Use it when
+you need a fresh environment for demos, training, screenshots, testing workflows, or validating report exports.
+
+<Warning>
+The default command **wipes the database** before loading demo data. Do not run it against a production database or any environment
+with data you need to keep.
+</Warning>
+
+## What the Command Creates
+
+The demo data command performs the same baseline setup as a fresh install and then adds realistic Ghostwriter content:
+
+* Reloads Ghostwriter's initial fixture data
+* Creates or updates the admin user using the username, email, and password from the DotEnv configuration
+* Assigns the admin user to an active project so the dashboard looks realistic immediately after login
+* Creates demo users with names, emails, passwords, and user profiles
+* Creates clients, contacts, projects, assignments, scopes, targets, objectives, deconflictions, white cards, operation logs, findings, observations, reports, and evidence
+* Creates one of each extra field type for every model that supports extra fields
+* Applies demo company information and report configuration
+* Enables the global BloodHound API configuration with placeholder values and loads cached demo BloodHound results
+
+Project dates are generated relative to the day you run the command. Several projects overlap the current date and appear in progress,
+while past projects are marked completed.
+
+## Run the Command
+
+For a local development checkout, run the command in the Django container:
+
+```bash
+docker compose -f local.yml run --rm django python manage.py generate_test_data
+```
+
+After it finishes, log in as the configured admin user. If you used the Ghostwriter CLI installer, retrieve the admin password from
+the DotEnv configuration:
+
+<CodeGroup>
+  ```bash Linux
+  ./ghostwriter-cli config get ADMIN_PASSWORD
+  ```
+
+  ```powershell Windows PowerShell
+  .\ghostwriter-cli config get ADMIN_PASSWORD
+  ```
+
+  ```bash Mac
+  ./ghostwriter-cli config get ADMIN_PASSWORD
+  ```
+</CodeGroup>
+
+## Create a Smaller Dataset
+
+Use `--quick` when you want enough data for a complete walkthrough without filling every demo client and project:
+
+```bash
+docker compose -f local.yml run --rm django python manage.py generate_test_data --quick
+```
+
+By default, the command creates all three available demo clients. The `--quick` option creates one client. The `--clients` flag is capped at the three built-in demo clients, so its useful middle setting is `--clients 2`:
+
+```bash
+docker compose -f local.yml run --rm django python manage.py generate_test_data --clients 2
+```
+
+Use `--projects-per-client` when you want to limit how many projects are created for each selected client:
+
+```bash
+docker compose -f local.yml run --rm django python manage.py generate_test_data --clients 2 --projects-per-client 1
+```
+
+## Append Instead of Wiping
+
+If you want to keep existing data and only add or update demo rows, use `--append`:
+
+```bash
+docker compose -f local.yml run --rm django python manage.py generate_test_data --append
+```
+
+Append mode is idempotent for the seeded demo rows. To remove previous demo rows before appending fresh demo data, add `--reset`:
+
+```bash
+docker compose -f local.yml run --rm django python manage.py generate_test_data --append --reset
+```
+
+<Note>
+`--reset` only removes rows marked as demo seed data. It does not wipe unrelated rows unless you omit `--append`, in which case the default database rebuild behavior applies.
+</Note>
+
+## Reproducible Dates and Assignments
+
+The command uses a deterministic random seed for repeatable demo data. Provide `--seed` to change the generated date and assignment choices while keeping the output reproducible:
+
+```bash
+docker compose -f local.yml run --rm django python manage.py generate_test_data --seed 2026
+```
