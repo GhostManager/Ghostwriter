@@ -4,6 +4,7 @@ import os
 
 # Django Imports
 from django.apps import apps
+from django.core.management.base import CommandError
 from django.core.management.commands import loaddata
 
 
@@ -59,6 +60,9 @@ class Command(loaddata.Command):
         """
         self.force_apply = options["force"]
         self.required_only = options["required_only"]
+        if self.force_apply and self.required_only:
+            raise CommandError("--force and --required-only cannot be used together.")
+
         args = list(args)
 
         # Read the original JSON file
