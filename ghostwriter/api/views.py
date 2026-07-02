@@ -2092,8 +2092,10 @@ class ServiceTokenDetails(utils.RoleBasedAccessControlMixin, SingleObjectMixin, 
             self.template_name,
             {
                 "key": token,
+                "client_access": token.get_current_client_read_clients(),
                 "project_access": token.get_current_project_read_projects(),
                 "stale_project_ids": token.get_stale_project_read_ids(),
+                "stale_client_ids": token.get_stale_client_project_scope_ids(),
                 "oplog_access": token.get_oplog_access_details(),
             },
         )
@@ -2329,6 +2331,7 @@ class ServiceTokenCreate(utils.RoleBasedAccessControlMixin, FormView):
         expiry = form.cleaned_data["expiry_date"]
         oplog = form.cleaned_data["oplog"]
         project_scope = form.cleaned_data["project_scope"]
+        clients = form.cleaned_data["clients"]
         projects = form.cleaned_data["projects"]
         service_principal = form.cleaned_data["service_principal"]
         new_service_principal_name = form.cleaned_data["new_service_principal_name"]
@@ -2344,7 +2347,12 @@ class ServiceTokenCreate(utils.RoleBasedAccessControlMixin, FormView):
                 token_preset,
                 oplog_id=oplog.id if oplog else None,
                 project_ids=projects.values_list("id", flat=True)
-                if projects is not None
+                if project_scope == ServiceTokenProjectScope.SELECTED
+                and projects is not None
+                else None,
+                client_ids=clients.values_list("id", flat=True)
+                if project_scope == ServiceTokenProjectScope.SELECTED_CLIENTS
+                and clients is not None
                 else None,
                 all_accessible_projects=project_scope
                 == ServiceTokenProjectScope.ALL_ACCESSIBLE,

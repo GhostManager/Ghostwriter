@@ -20,6 +20,7 @@ from ghostwriter.api.models import (
     UserSession,
 )
 from ghostwriter.factories import (
+    ClientFactory,
     ClientInviteFactory,
     EvidenceFactory,
     LocalFindingNoteFactory,
@@ -33,6 +34,7 @@ from ghostwriter.factories import (
     ServiceTokenFactory,
     UserFactory,
 )
+from ghostwriter.rolodex.models import Client, Project
 
 logging.disable(logging.CRITICAL)
 
@@ -699,6 +701,58 @@ class ServiceTokenModelTests(TestCase):
             },
         )
 
+    def test_create_client_project_read_token(self):
+        client = ClientFactory()
+        assigned_project = ProjectFactory(client=client)
+        inaccessible_project = ProjectFactory(client=client)
+        other_client_project = ProjectFactory()
+        ProjectAssignmentFactory(project=assigned_project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Client Project Reader", created_by=self.user
+        )
+        permissions = ServiceToken.build_permissions_for_preset(
+            ServiceTokenPreset.PROJECT_READ,
+            client_ids=[client.id],
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Client Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=permissions,
+        )
+
+        self.assertTrue(token.startswith("gwst_"))
+        self.assertEqual(token_obj.get_allowed_project_ids(), [])
+        self.assertEqual(token_obj.get_allowed_client_ids(), [client.id])
+        self.assertEqual(token_obj.get_token_preset(), ServiceTokenPreset.PROJECT_READ)
+        self.assertEqual(
+            token_obj.get_scope_display(), "1 Client's Projects (Read-Only)"
+        )
+        self.assertEqual(
+            token_obj.get_current_project_read_ids(), [assigned_project.id]
+        )
+        self.assertTrue(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                assigned_project.id,
+            )
+        )
+        self.assertFalse(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                inaccessible_project.id,
+            )
+        )
+        self.assertFalse(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                other_client_project.id,
+            )
+        )
+
     def test_all_accessible_projects_read_token_tracks_future_assignments(self):
         future_project = ProjectFactory()
         principal = ServicePrincipal.objects.create(
@@ -740,6 +794,289 @@ class ServiceTokenModelTests(TestCase):
                 future_project.id,
             )
         )
+
+    def test_client_project_read_token_tracks_future_client_invite_projects(self):
+        client = ClientFactory()
+        current_project = ProjectFactory(client=client)
+        outside_project = ProjectFactory()
+        ClientInviteFactory(client=client, user=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Client Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Client Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                client_ids=[client.id],
+            ),
+        )
+
+        self.assertTrue(ServiceToken.objects.is_valid(token))
+        self.assertEqual(token_obj.get_current_project_read_ids(), [current_project.id])
+        self.assertNotIn(outside_project.id, token_obj.get_current_project_read_ids())
+
+        future_project = ProjectFactory(client=client)
+        self.assertTrue(ServiceToken.objects.is_valid(token))
+        self.assertEqual(
+            token_obj.get_current_project_read_ids(),
+            sorted([current_project.id, future_project.id]),
+        )
+
+    def test_client_project_read_token_does_not_escalate_project_assignment_to_client(
+        self,
+    ):
+        client = ClientFactory()
+        assigned_project = ProjectFactory(client=client)
+        unassigned_project = ProjectFactory(client=client)
+        ProjectAssignmentFactory(project=assigned_project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Client Project Reader", created_by=self.user
+        )
+        token_obj, token = ServiceToken.objects.create_token(
+            name="Client Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                client_ids=[client.id],
+            ),
+        )
+
+        self.assertTrue(ServiceToken.objects.is_valid(token))
+        self.assertEqual(
+            token_obj.get_current_project_read_ids(), [assigned_project.id]
+        )
+        self.assertFalse(
+            token_obj.has_permission(
+                ServiceTokenPermission.ResourceType.PROJECT,
+                ServiceTokenPermission.Action.READ,
+                unassigned_project.id,
+            )
+        )
+
+        ProjectInviteFactory(project=unassigned_project, user=self.user)
+        self.assertTrue(ServiceToken.objects.is_valid(token))
+        self.assertEqual(
+            token_obj.get_current_project_read_ids(),
+            sorted([assigned_project.id, unassigned_project.id]),
+        )
+
+    def test_selected_client_scope_access_matrix(self):
+        client = ClientFactory(name="ClientA")
+        projects = [
+            ProjectFactory(client=client, codename=f"ClientA Project{index}")
+            for index in range(1, 6)
+        ]
+
+        def create_client_scope_token(user, name):
+            principal = ServicePrincipal.objects.create(name=name, created_by=user)
+            return ServiceToken.objects.create_token(
+                name=name,
+                created_by=user,
+                service_principal=principal,
+                permissions=ServiceToken.build_permissions_for_preset(
+                    ServiceTokenPreset.PROJECT_READ,
+                    client_ids=[client.id],
+                ),
+            )
+
+        assigned_user = UserFactory(password=PASSWORD)
+        ProjectAssignmentFactory(project=projects[1], operator=assigned_user)
+        assigned_token, _ = create_client_scope_token(
+            assigned_user, "Assigned User Client Token"
+        )
+        self.assertIn(client, Client.for_user(assigned_user))
+        self.assertEqual(
+            list(Project.for_user(assigned_user)),
+            [projects[1]],
+        )
+        self.assertEqual(
+            self._service_token_project_access_ids(assigned_token),
+            [projects[1].id],
+        )
+
+        client_invited_user = UserFactory(password=PASSWORD)
+        ClientInviteFactory(client=client, user=client_invited_user)
+        client_invited_token, _ = create_client_scope_token(
+            client_invited_user, "Client Invited User Client Token"
+        )
+        self.assertIn(client, Client.for_user(client_invited_user))
+        self.assertEqual(
+            self._service_token_project_access_ids(client_invited_token),
+            sorted(project.id for project in projects),
+        )
+
+        project_invited_user = UserFactory(password=PASSWORD)
+        project_invite = ProjectInviteFactory(
+            project=projects[1], user=project_invited_user
+        )
+        project_invited_token, project_invited_token_value = create_client_scope_token(
+            project_invited_user, "Project Invited User Client Token"
+        )
+        self.assertIn(client, Client.for_user(project_invited_user))
+        self.assertEqual(
+            list(Project.for_user(project_invited_user)),
+            [projects[1]],
+        )
+        self.assertEqual(
+            self._service_token_project_access_ids(project_invited_token),
+            [projects[1].id],
+        )
+
+        project_invite.delete()
+        self.assertEqual(
+            list(Client.for_user(project_invited_user)),
+            [],
+        )
+        self.assertEqual(
+            self._service_token_project_access_ids(project_invited_token),
+            [],
+        )
+        self.assertFalse(ServiceToken.objects.is_valid(project_invited_token_value))
+        project_invited_token.refresh_from_db()
+        self.assertTrue(project_invited_token.revoked)
+
+    def test_project_read_scope_types_follow_user_project_access_matrix(self):
+        client = ClientFactory(name="ClientA")
+        projects = [
+            ProjectFactory(client=client, codename=f"ClientA Project{index}")
+            for index in range(1, 6)
+        ]
+        project_ids = [project.id for project in projects]
+        project_two = projects[1]
+
+        def create_token(user, name, permissions):
+            principal = ServicePrincipal.objects.create(name=name, created_by=user)
+            token_obj, token = ServiceToken.objects.create_token(
+                name=name,
+                created_by=user,
+                service_principal=principal,
+                permissions=permissions,
+            )
+            return token_obj, token
+
+        def create_selected_projects_token(user, name):
+            return create_token(
+                user,
+                name,
+                ServiceToken.build_permissions_for_preset(
+                    ServiceTokenPreset.PROJECT_READ,
+                    project_ids=project_ids,
+                ),
+            )
+
+        def create_selected_client_token(user, name):
+            return create_token(
+                user,
+                name,
+                ServiceToken.build_permissions_for_preset(
+                    ServiceTokenPreset.PROJECT_READ,
+                    client_ids=[client.id],
+                ),
+            )
+
+        def create_all_accessible_token(user, name):
+            return create_token(
+                user,
+                name,
+                ServiceToken.build_permissions_for_preset(
+                    ServiceTokenPreset.PROJECT_READ,
+                    all_accessible_projects=True,
+                ),
+            )
+
+        scenarios = []
+
+        assigned_user = UserFactory(password=PASSWORD)
+        ProjectAssignmentFactory(project=project_two, operator=assigned_user)
+        scenarios.append((assigned_user, [project_two.id], "assigned"))
+
+        project_invited_user = UserFactory(password=PASSWORD)
+        project_invite = ProjectInviteFactory(
+            project=project_two, user=project_invited_user
+        )
+        scenarios.append((project_invited_user, [project_two.id], "project-invited"))
+
+        client_invited_user = UserFactory(password=PASSWORD)
+        ClientInviteFactory(client=client, user=client_invited_user)
+        scenarios.append((client_invited_user, sorted(project_ids), "client-invited"))
+
+        for user, expected_project_ids, label in scenarios:
+            with self.subTest(access=label):
+                selected_projects_token, _ = create_selected_projects_token(
+                    user, f"{label} Selected Projects"
+                )
+                selected_client_token, _ = create_selected_client_token(
+                    user, f"{label} Selected Client"
+                )
+                all_accessible_token, _ = create_all_accessible_token(
+                    user, f"{label} All Accessible"
+                )
+
+                self.assertEqual(
+                    self._service_token_project_access_ids(selected_projects_token),
+                    expected_project_ids,
+                )
+                self.assertEqual(
+                    self._service_token_project_access_ids(selected_client_token),
+                    expected_project_ids,
+                )
+                self.assertEqual(
+                    self._service_token_project_access_ids(all_accessible_token),
+                    expected_project_ids,
+                )
+                self.assertEqual(
+                    selected_projects_token.get_current_project_read_ids(),
+                    expected_project_ids,
+                )
+                self.assertEqual(
+                    selected_client_token.get_current_project_read_ids(),
+                    expected_project_ids,
+                )
+                self.assertEqual(
+                    all_accessible_token.get_current_project_read_ids(),
+                    expected_project_ids,
+                )
+
+        project_invite.delete()
+        (
+            no_access_selected_projects_token,
+            no_access_selected_projects_value,
+        ) = create_selected_projects_token(
+            project_invited_user, "No Access Selected Projects"
+        )
+        (
+            no_access_selected_client_token,
+            no_access_selected_client_value,
+        ) = create_selected_client_token(
+            project_invited_user, "No Access Selected Client"
+        )
+        (
+            no_access_all_accessible_token,
+            no_access_all_accessible_value,
+        ) = create_all_accessible_token(
+            project_invited_user, "No Access All Accessible"
+        )
+
+        self.assertEqual(
+            self._service_token_project_access_ids(no_access_selected_projects_token),
+            [],
+        )
+        self.assertEqual(
+            self._service_token_project_access_ids(no_access_selected_client_token),
+            [],
+        )
+        self.assertEqual(
+            self._service_token_project_access_ids(no_access_all_accessible_token),
+            [],
+        )
+        self.assertFalse(
+            ServiceToken.objects.is_valid(no_access_selected_projects_value)
+        )
+        self.assertFalse(ServiceToken.objects.is_valid(no_access_selected_client_value))
+        self.assertTrue(ServiceToken.objects.is_valid(no_access_all_accessible_value))
 
     def test_selected_project_helpers_deny_stale_project_without_validation(self):
         project = ProjectFactory()
@@ -875,6 +1212,68 @@ class ServiceTokenModelTests(TestCase):
         self.assertIn(
             future_project.id,
             self._service_token_project_access_ids(token_obj),
+        )
+
+    def test_service_token_project_access_view_tracks_selected_clients(self):
+        client = ClientFactory()
+        assigned_project = ProjectFactory(client=client)
+        unassigned_project = ProjectFactory(client=client)
+        other_client_project = ProjectFactory()
+        ProjectAssignmentFactory(project=assigned_project, operator=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Client Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Selected Client Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                client_ids=[client.id],
+            ),
+        )
+
+        self.assertEqual(
+            self._service_token_project_access_ids(token_obj),
+            [assigned_project.id],
+        )
+        self.assertNotIn(
+            unassigned_project.id,
+            self._service_token_project_access_ids(token_obj),
+        )
+        self.assertNotIn(
+            other_client_project.id,
+            self._service_token_project_access_ids(token_obj),
+        )
+
+    def test_service_token_project_access_view_tracks_selected_client_future_access(
+        self,
+    ):
+        client = ClientFactory()
+        current_project = ProjectFactory(client=client)
+        ClientInviteFactory(client=client, user=self.user)
+        principal = ServicePrincipal.objects.create(
+            name="Client Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Selected Client Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                client_ids=[client.id],
+            ),
+        )
+
+        self.assertEqual(
+            self._service_token_project_access_ids(token_obj),
+            [current_project.id],
+        )
+
+        future_project = ProjectFactory(client=client)
+        self.assertEqual(
+            self._service_token_project_access_ids(token_obj),
+            sorted([current_project.id, future_project.id]),
         )
 
     def test_service_token_project_access_view_tracks_client_invite_access(self):

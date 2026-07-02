@@ -4083,6 +4083,16 @@ class ServiceTokenCreateTests(TestCase):
         self.assertIn(self.existing_principal, queryset)
         self.assertNotIn(inactive_principal, queryset)
 
+    def test_get_client_bulk_selector_excludes_inaccessible_clients(self):
+        inaccessible_client = ClientFactory()
+
+        response = self.client_auth.get(self.uri)
+
+        queryset = response.context["form"].fields["clients"].queryset
+        self.assertIn(self.oplog.project.client, queryset)
+        self.assertIn(self.second_oplog.project.client, queryset)
+        self.assertNotIn(inaccessible_client, queryset)
+
     def test_post_data(self):
         response = self.client_auth.post(
             self.uri,
@@ -4198,6 +4208,43 @@ class ServiceTokenCreateTests(TestCase):
             sorted([self.oplog.project.id, self.second_oplog.project.id]),
         )
         self.assertIsNone(obj.get_allowed_oplog_id())
+        self.assertEqual(obj.get_token_preset(), ServiceTokenPreset.PROJECT_READ)
+
+    def test_post_data_for_client_project_read_token(self):
+        first_client = ClientFactory(name="Bulk Client One")
+        second_client = ClientFactory(name="Bulk Client Two")
+        first_project = ProjectFactory(client=first_client)
+        second_project = ProjectFactory(client=first_client)
+        third_project = ProjectFactory(client=second_client)
+        inaccessible_project = ProjectFactory(client=first_client)
+        ProjectAssignmentFactory(project=first_project, operator=self.user)
+        ProjectAssignmentFactory(project=second_project, operator=self.user)
+        ProjectAssignmentFactory(project=third_project, operator=self.user)
+
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.PROJECT_READ,
+                "project_scope": ServiceTokenProjectScope.SELECTED_CLIENTS,
+                "name": "Client Project Reader",
+                "service_principal": self.existing_principal.id,
+                "clients": [first_client.id, second_client.id],
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        obj = ServiceToken.objects.get(name="Client Project Reader")
+        self.assertEqual(
+            obj.get_allowed_client_ids(),
+            sorted([first_client.id, second_client.id]),
+        )
+        self.assertEqual(obj.get_allowed_project_ids(), [])
+        self.assertEqual(
+            obj.get_current_project_read_ids(),
+            sorted([first_project.id, second_project.id, third_project.id]),
+        )
+        self.assertNotIn(inaccessible_project.id, obj.get_current_project_read_ids())
         self.assertEqual(obj.get_token_preset(), ServiceTokenPreset.PROJECT_READ)
 
     def test_post_data_rejects_inaccessible_project_ids(self):

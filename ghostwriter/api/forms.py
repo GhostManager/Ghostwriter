@@ -40,7 +40,7 @@ from ghostwriter.reporting.validators import (
     PPTX_ALLOWED_EXTENSIONS,
     TEMPLATE_ALLOWED_EXTENSIONS,
 )
-from ghostwriter.rolodex.models import Project
+from ghostwriter.rolodex.models import Client, Project
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,10 @@ class ServiceTokenForm(forms.Form):
                 ServiceTokenProjectScope.SELECTED.label,
             ),
             (
+                ServiceTokenProjectScope.SELECTED_CLIENTS,
+                ServiceTokenProjectScope.SELECTED_CLIENTS.label,
+            ),
+            (
                 ServiceTokenProjectScope.ALL_ACCESSIBLE,
                 ServiceTokenProjectScope.ALL_ACCESSIBLE.label,
             ),
@@ -171,6 +175,11 @@ class ServiceTokenForm(forms.Form):
         required=False,
         widget=forms.SelectMultiple(attrs={"size": 10}),
     )
+    clients = forms.ModelMultipleChoiceField(
+        queryset=Client.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"size": 6}),
+    )
     expiry_date = forms.DateTimeField(
         input_formats=[
             "%Y-%m-%dT%H:%M:%S",
@@ -188,6 +197,7 @@ class ServiceTokenForm(forms.Form):
             "new_service_principal_name",
             "oplog",
             "project_scope",
+            "clients",
             "projects",
             "expiry_date",
         ]
@@ -207,6 +217,7 @@ class ServiceTokenForm(forms.Form):
         self.fields["projects"].queryset = Project.for_user(user).select_related(
             "client"
         )
+        self.fields["clients"].queryset = Client.for_user(user)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["token_preset"].label = "Token Type"
@@ -244,7 +255,11 @@ class ServiceTokenForm(forms.Form):
         self.fields["project_scope"].label = "Project Scope"
         self.fields[
             "project_scope"
-        ].help_text = "Choose selected projects, or dynamically track all projects this user can access now and later"
+        ].help_text = "Choose selected projects, selected clients, or dynamically track all projects this user can access now and later"
+        self.fields["clients"].label = "Select Projects by Client"
+        self.fields[
+            "clients"
+        ].help_text = "Select one or more clients. Tokens dynamically read accessible projects for these clients, including future projects."
         self.fields["projects"].help_text = (
             "Select one or more projects this token can read. "
             "Use Ctrl/Cmd-click to select multiple."
@@ -276,6 +291,11 @@ class ServiceTokenForm(forms.Form):
                 Column("project_scope", css_class="form-group col-12 mb-0"),
                 css_class="form-group",
                 css_id="service-token-project-scope-row",
+            ),
+            Row(
+                Column("clients", css_class="form-group col-12 mb-0"),
+                css_class="form-group",
+                css_id="service-token-clients-row",
             ),
             Row(
                 Column("projects", css_class="form-group col-12 mb-0"),
@@ -322,6 +342,17 @@ class ServiceTokenForm(forms.Form):
                 )
         return projects
 
+    def clean_clients(self):
+        clients = self.cleaned_data.get("clients")
+        if clients is None:
+            return clients
+        for client in clients:
+            if not client.user_can_view(self.user):
+                raise ValidationError(
+                    "You do not have permission to create a service token for this client"
+                )
+        return clients
+
     def clean(self):
         cleaned_data = super().clean()
         token_preset = cleaned_data.get("token_preset")
@@ -333,7 +364,9 @@ class ServiceTokenForm(forms.Form):
         project_scope = (
             cleaned_data.get("project_scope") or ServiceTokenProjectScope.SELECTED
         )
+        cleaned_data["project_scope"] = project_scope
         projects = cleaned_data.get("projects")
+        clients = cleaned_data.get("clients")
 
         if service_principal and new_service_principal_name:
             msg = "Select an existing service principal or enter a new one, not both"
@@ -359,15 +392,26 @@ class ServiceTokenForm(forms.Form):
             if oplog is None:
                 self.add_error("oplog", "Select an oplog for an oplog read/write token")
             cleaned_data["project_scope"] = ServiceTokenProjectScope.SELECTED
+            cleaned_data["clients"] = Client.objects.none()
             cleaned_data["projects"] = Project.objects.none()
         elif token_preset == ServiceTokenPreset.PROJECT_READ:
-            if project_scope == ServiceTokenProjectScope.SELECTED and not projects:
+            if project_scope == ServiceTokenProjectScope.SELECTED_CLIENTS:
+                if not clients:
+                    self.add_error(
+                        "clients",
+                        "Select at least one client for a client-scoped project read-only token",
+                    )
+                cleaned_data["projects"] = Project.objects.none()
+            elif project_scope == ServiceTokenProjectScope.SELECTED and not projects:
                 self.add_error(
                     "projects",
                     "Select at least one project for a project read-only token",
                 )
-            if project_scope == ServiceTokenProjectScope.ALL_ACCESSIBLE:
+            elif project_scope == ServiceTokenProjectScope.ALL_ACCESSIBLE:
+                cleaned_data["clients"] = Client.objects.none()
                 cleaned_data["projects"] = Project.objects.none()
+            elif project_scope == ServiceTokenProjectScope.SELECTED:
+                cleaned_data["clients"] = Client.objects.none()
             cleaned_data["oplog"] = None
 
         return cleaned_data
