@@ -149,6 +149,7 @@ class FindingAdmin(ImportExportMixin, CollabAdminBase):
                 )
             },
         ),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -184,6 +185,7 @@ class ReportAdmin(admin.ModelAdmin):
         ("Report Details", {"fields": ("project", "title", "created_by", "tags")}),
         ("Current Status", {"fields": ("complete", "delivered", "archived")}),
         ("Templates", {"fields": ("docx_template", "pptx_template", "include_bloodhound_data")}),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -237,6 +239,7 @@ class ReportFindingLinkAdmin(CollabAdminBase):
                 )
             },
         ),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
