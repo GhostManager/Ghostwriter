@@ -2977,6 +2977,41 @@ class GraphqlReportFindingEventTests(TestCase):
     def setUp(self):
         self.client = Client()
 
+    def assert_position_sequence(self, severity, expected_findings):
+        """Assert a severity group has deterministic contiguous positions."""
+        for expected_position, finding in enumerate(expected_findings, start=1):
+            finding.refresh_from_db()
+            self.assertEqual(finding.severity_id, severity.id)
+            self.assertEqual(finding.position, expected_position)
+
+        actual_positions = list(
+            self.ReportFindingLink.objects.filter(
+                report=self.report,
+                severity=severity,
+            )
+            .order_by("position", "id")
+            .values_list("position", flat=True)
+        )
+        self.assertEqual(actual_positions, list(range(1, len(actual_positions) + 1)))
+
+    def post_change_event(self, op, old, new):
+        return self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data={
+                "event": {
+                    "op": op,
+                    "data": {
+                        "old": old,
+                        "new": new,
+                    },
+                },
+            },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
     def test_model_cleaning_position(self):
         self.ReportFindingLink.objects.all().delete()
         first_finding = ReportFindingLinkFactory(
@@ -2990,112 +3025,182 @@ class GraphqlReportFindingEventTests(TestCase):
         )
 
         # Simulate an event changing the position of the first finding to `3`
+        old_position = first_finding.position
         first_finding.position = 3
         first_finding.save()
-        sample_data = {
-            "event": {
-                "op": "UPDATE",
-                "data": {
-                    "old": {
-                        "id": first_finding.id,
-                        "position": 1,
-                        "severity_id": first_finding.severity.id,
-                    },
-                    "new": {
-                        "id": first_finding.id,
-                        "position": 3,
-                        "severity_id": first_finding.severity.id,
-                    },
-                },
+        response = self.post_change_event(
+            "UPDATE",
+            {
+                "id": first_finding.id,
+                "position": old_position,
+                "severity_id": first_finding.severity.id,
             },
-        }
-
-        # Submit the POST request to the event webhook
-        response = self.client.post(
-            self.change_uri,
-            content_type="application/json",
-            data=sample_data,
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            {
+                "id": first_finding.id,
+                "position": first_finding.position,
+                "severity_id": first_finding.severity.id,
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        first_finding.refresh_from_db()
-        self.assertEqual(first_finding.position, 3)
-        second_finding.refresh_from_db()
-        self.assertEqual(second_finding.position, 1)
-        third_finding.refresh_from_db()
-        self.assertEqual(third_finding.position, 2)
+        self.assert_position_sequence(
+            self.critical_severity,
+            [second_finding, third_finding, first_finding],
+        )
 
         # Repeat for an `UPDATE` event with a severity change
+        old_position = second_finding.position
         second_finding.severity = self.high_severity
         second_finding.save()
-        sample_data = {
-            "event": {
-                "op": "UPDATE",
-                "data": {
-                    "old": {
-                        "id": second_finding.id,
-                        "position": second_finding.position,
-                        "severity_id": self.critical_severity.id,
-                    },
-                    "new": {
-                        "id": second_finding.id,
-                        "position": second_finding.position,
-                        "severity_id": self.high_severity.id,
-                    },
-                },
+        response = self.post_change_event(
+            "UPDATE",
+            {
+                "id": second_finding.id,
+                "position": old_position,
+                "severity_id": self.critical_severity.id,
             },
-        }
-
-        response = self.client.post(
-            self.change_uri,
-            content_type="application/json",
-            data=sample_data,
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            {
+                "id": second_finding.id,
+                "position": old_position,
+                "severity_id": self.high_severity.id,
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        first_finding.refresh_from_db()
-        second_finding.refresh_from_db()
-        third_finding.refresh_from_db()
-        self.assertEqual(second_finding.position, 1)
-        self.assertEqual(first_finding.position, 2)
-        self.assertEqual(third_finding.position, 1)
+        self.assert_position_sequence(
+            self.critical_severity,
+            [third_finding, first_finding],
+        )
+        self.assert_position_sequence(self.high_severity, [second_finding])
 
         # Repeat for an `INSERT` event
         new_finding = ReportFindingLinkFactory(
             report=self.report, severity=self.critical_severity
         )
-        sample_data = {
-            "event": {
-                "op": "INSERT",
-                "data": {
-                    "old": None,
-                    "new": {
-                        "id": new_finding.id,
-                        "position": 1,
-                        "severity_id": new_finding.severity.id,
-                    },
-                },
-            },
-        }
-
-        response = self.client.post(
-            self.change_uri,
-            content_type="application/json",
-            data=sample_data,
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+        response = self.post_change_event(
+            "INSERT",
+            None,
+            {
+                "id": new_finding.id,
+                "position": new_finding.position,
+                "severity_id": new_finding.severity.id,
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        new_finding.refresh_from_db()
-        self.assertEqual(new_finding.position, 3)
+        self.assert_position_sequence(
+            self.critical_severity,
+            [third_finding, first_finding, new_finding],
+        )
+
+    def test_duplicate_insert_positions_converge_and_follow_up_events_noop(self):
+        self.ReportFindingLink.objects.all().delete()
+        first_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=1
+        )
+        second_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=1
+        )
+        third_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=1
+        )
+
+        response = self.post_change_event(
+            "INSERT",
+            None,
+            {
+                "id": third_finding.id,
+                "position": third_finding.position,
+                "severity_id": third_finding.severity.id,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assert_position_sequence(
+            self.critical_severity,
+            [first_finding, second_finding, third_finding],
+        )
+
+        positions_before_follow_up = list(
+            self.ReportFindingLink.objects.filter(report=self.report)
+            .order_by("id")
+            .values_list("id", "position")
+        )
+        response = self.post_change_event(
+            "UPDATE",
+            {
+                "id": second_finding.id,
+                "position": 1,
+                "severity_id": second_finding.severity.id,
+            },
+            {
+                "id": second_finding.id,
+                "position": 2,
+                "severity_id": second_finding.severity.id,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        positions_after_follow_up = list(
+            self.ReportFindingLink.objects.filter(report=self.report)
+            .order_by("id")
+            .values_list("id", "position")
+        )
+        self.assertEqual(positions_after_follow_up, positions_before_follow_up)
+
+        response = self.post_change_event(
+            "UPDATE",
+            {
+                "id": first_finding.id,
+                "position": 1,
+                "severity_id": first_finding.severity.id,
+            },
+            {
+                "id": first_finding.id,
+                "position": 3,
+                "severity_id": first_finding.severity.id,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        positions_after_stale_follow_up = list(
+            self.ReportFindingLink.objects.filter(report=self.report)
+            .order_by("id")
+            .values_list("id", "position")
+        )
+        self.assertEqual(positions_after_stale_follow_up, positions_before_follow_up)
+
+    def test_duplicate_position_update_honors_requested_target(self):
+        self.ReportFindingLink.objects.all().delete()
+        first_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=1
+        )
+        second_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=2
+        )
+        third_finding = ReportFindingLinkFactory(
+            report=self.report, severity=self.critical_severity, position=2
+        )
+
+        response = self.post_change_event(
+            "UPDATE",
+            {
+                "id": third_finding.id,
+                "position": 1,
+                "severity_id": third_finding.severity.id,
+            },
+            {
+                "id": third_finding.id,
+                "position": 2,
+                "severity_id": third_finding.severity.id,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assert_position_sequence(
+            self.critical_severity,
+            [first_finding, third_finding, second_finding],
+        )
 
     def test_position_set_to_zero(self):
         self.ReportFindingLink.objects.all().delete()
@@ -3104,33 +3209,18 @@ class GraphqlReportFindingEventTests(TestCase):
         )
 
         # Simulate an event changing the position of the first finding to `0`
-        sample_data = {
-            "event": {
-                "op": "INSERT",
-                "data": {
-                    "old": None,
-                    "new": {
-                        "id": finding.id,
-                        "position": 0,
-                        "severity_id": finding.severity.id,
-                    },
-                },
-            },
-        }
-
-        # Submit the POST request to the event webhook
-        response = self.client.post(
-            self.change_uri,
-            content_type="application/json",
-            data=sample_data,
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+        response = self.post_change_event(
+            "INSERT",
+            None,
+            {
+                "id": finding.id,
+                "position": 0,
+                "severity_id": finding.severity.id,
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        finding.refresh_from_db()
-        self.assertEqual(finding.position, 1)
+        self.assert_position_sequence(self.critical_severity, [finding])
 
     def test_position_set_higher_than_count(self):
         self.ReportFindingLink.objects.all().delete()
@@ -3139,36 +3229,18 @@ class GraphqlReportFindingEventTests(TestCase):
         )
 
         # Simulate an event changing the position of the first finding to `100`
-        sample_data = {
-            "event": {
-                "op": "INSERT",
-                "data": {
-                    "old": None,
-                    "new": {
-                        "id": finding.id,
-                        "position": 100,
-                        "severity_id": finding.severity.id,
-                    },
-                },
-            },
-        }
-
-        # Submit the POST request to the event webhook
-        response = self.client.post(
-            self.change_uri,
-            content_type="application/json",
-            data=sample_data,
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+        response = self.post_change_event(
+            "INSERT",
+            None,
+            {
+                "id": finding.id,
+                "position": 100,
+                "severity_id": finding.severity.id,
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        finding.refresh_from_db()
-        total_findings = self.ReportFindingLink.objects.filter(
-            report=self.report
-        ).count()
-        self.assertEqual(finding.position, total_findings)
+        self.assert_position_sequence(self.critical_severity, [finding])
 
     def test_position_change_on_delete(self):
         self.ReportFindingLink.objects.all().delete()
@@ -3211,10 +3283,10 @@ class GraphqlReportFindingEventTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        first_finding.refresh_from_db()
-        third_finding.refresh_from_db()
-        self.assertEqual(first_finding.position, 1)
-        self.assertEqual(third_finding.position, 2)
+        self.assert_position_sequence(
+            self.critical_severity,
+            [first_finding, third_finding],
+        )
 
 
 class GraphqlProjectContactUpdateEventTests(TestCase):
