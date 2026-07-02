@@ -12,11 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added support for a new `--required-only` for loading seed data
   * Fixtures can now be flagged with `"required": false`
   * The `loaddata` command will not load fixtures marked as such when the flag is set
+* Added option to scope a service token by client
+  * This works similarly to _All Accessible Projects_ but filters the access by one or more clients
+  * The token will have access to all current and future user-accessible projects under the selected client(s)
 
 ### Changed
 
 * **Updated Ghostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.1
 * Marked the starter templates as non-required so they will not re-appear during updates and container builds if deleted
+* Adjusted the Docker service configurations to cap log file size to 30MB (maximum of 3 files * 10MB each)
+  * This caps the size of all logs to ~240MB
 
 ## [7.2.0] - 30 June 2026
 
