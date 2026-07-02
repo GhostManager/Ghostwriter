@@ -933,8 +933,6 @@ class ServiceToken(models.Model):
         ]
 
     def _creator_accessible_project_ids(self) -> list[int]:
-        # Ghostwriter Libraries
-
         if not self.created_by_id or not self.created_by.is_active:
             return []
         return list(
@@ -942,9 +940,6 @@ class ServiceToken(models.Model):
         )
 
     def _creator_accessible_client_ids(self) -> list[int]:
-        # Ghostwriter Libraries
-        from ghostwriter.rolodex.models import Client
-
         if not self.created_by_id or not self.created_by.is_active:
             return []
         return list(Client.for_user(self.created_by).values_list("id", flat=True))
