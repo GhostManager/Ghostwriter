@@ -64,6 +64,11 @@ services:
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
       - GHOSTWRITER_MAX_FILE_SIZE=${GHOSTWRITER_MAX_FILE_SIZE:-10485760}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     healthcheck:
       test: curl --insecure --fail http://django:8000/status/simple/ || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
@@ -89,6 +94,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     healthcheck:
       test: pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER
       interval: ${HEALTHCHECK_INTERVAL}
@@ -111,6 +121,11 @@ services:
     volumes:
       - ./compose/local/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_nginx
     ports:
@@ -123,6 +138,11 @@ services:
       context: .
       dockerfile: ./compose/production/redis/Dockerfile
     image: ghostwriter_local_redis
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_redis
     healthcheck:
@@ -155,6 +175,11 @@ services:
       - local_node_modules:/app/node_modules
     working_dir: /app
     command: sh -c 'npm install && exec npm run watch-frontend-dev'
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_frontend
     environment:
@@ -174,6 +199,11 @@ services:
       - local_node_modules:/app/node_modules
     working_dir: /app
     command: sh -c 'npm install && npm run build-collab-server-dev && exec npm run run-collab-server-dev'
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_collab
     environment:
@@ -202,7 +232,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-file: "1"
+        max-file: "3"
         max-size: "10m"
     labels:
       name: ghostwriter_graphql
