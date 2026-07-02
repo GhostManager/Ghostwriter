@@ -480,15 +480,22 @@ $(document).ready(function () {
             oplog_entry_extra_fields_spec.forEach(spec => {
                 let val = entry.extra_fields[spec.internal_name];
                 if (val === undefined || val === null || val.toString().trim() === '') return;
+                if ((spec.type === 'integer' || spec.type === 'float') && val === 0) return;
 
                 html += `<div class="oplog-detail-section">`;
                 html += `<div class="oplog-detail-label">${jsEscape(spec.display_name)}</div>`;
 
                 if (spec.type === 'checkbox') {
-                    html += val ? '<i class="fas fa-check text-success"></i> Yes' : '<i class="fas fa-times text-danger"></i> No';
+                    let checkHtml = val ? '<i class="fas fa-check text-success"></i> Yes' : '<i class="fas fa-times text-danger"></i> No';
+                    html += `<div style="text-align: left;">${checkHtml}</div>`;
                 } else if (spec.type === 'rich_text') {
                     let safeVal = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(val) : jsEscape(val);
                     html += `<div class="oplog-rich-content">${safeVal}</div>`;
+                } else if (spec.type === 'integer') {
+                    html += `<div class="oplog-rich-content">${val}</div>`;
+                } else if (spec.type === 'float') {
+                    let display = Number.isInteger(val) ? val.toFixed(1) : String(val);
+                    html += `<div class="oplog-rich-content">${display}</div>`;
                 } else {
                     html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
                 }

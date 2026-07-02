@@ -20,9 +20,35 @@
 
   <hr>
 
+  {% if client_access %}
+    <h6 class="bold">Client Read Access</h6>
+    <p class="text-muted">This token dynamically reads accessible projects for the selected clients below.</p>
+    <div class="list-group mb-3">
+      {% for client in client_access %}
+        <div class="list-group-item">
+          {% if client.short_name %}
+            <a class="bold" href="{{ client.get_absolute_url }}">{{ client.short_name|bleach|upper }}</a>
+          {% else %}
+            <a class="bold" href="{{ client.get_absolute_url }}">{{ client.name|bleach|upper }}</a>
+          {% endif %}
+          <div class="text-muted small">{{ client.name|bleach }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if stale_client_ids %}
+    <div class="alert alert-warning">
+      Configured client grant(s) no longer currently accessible:
+      {% for client_id in stale_client_ids %}#{{ client_id }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </div>
+  {% endif %}
+
   <h6 class="bold">Project Read Access</h6>
   {% if key.has_all_accessible_project_scope %}
     <p class="text-muted">This token dynamically reads every project the token creator can access. The list below is its current project access.</p>
+  {% elif key.has_client_project_scope %}
+    <p class="text-muted">The projects below are the current accessible projects for the selected clients.</p>
   {% elif project_access %}
     <p class="text-muted">This token reads only the selected projects listed below.</p>
   {% else %}
