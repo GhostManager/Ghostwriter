@@ -23,7 +23,7 @@ import ReportHandler from "./handlers/report";
 import ProjectHandler from "./handlers/project";
 
 // Extend this with your model handlers. See how-to-collab.md.
-const HANDLERS_ARR: [string, ModelHandler<any>][] = [
+const HANDLERS_ARR: [string, ModelHandler<any, any>][] = [
     ["observation", ObservationHandler],
     ["report_observation_link", ReportObservationLinkHandler],
     ["finding", FindingHandler],
@@ -31,14 +31,15 @@ const HANDLERS_ARR: [string, ModelHandler<any>][] = [
     ["report", ReportHandler],
     ["project", ProjectHandler],
 ];
-const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
+const HANDLERS: Map<string, ModelHandler<any, any>> = new Map(HANDLERS_ARR);
 
 // Graphql Client
 
-const graphql_engine_hostname: string = env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
+const graphql_engine_hostname: string =
+    env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
 
 const httpLink = createHttpLink({
-    uri: "http://" + graphql_engine_hostname + ":8080/v1/graphql"
+    uri: "http://" + graphql_engine_hostname + ":8080/v1/graphql",
 });
 
 const authLink = setContext((_, { headers }) => {
@@ -86,6 +87,45 @@ class AuthError extends Error {
 
 const BASE_LOGGER = pino({});
 const documentData = new Map<string, unknown>();
+const lastSavedSignatures = new Map<string, string>();
+const lastFailedSignatures = new Map<string, string>();
+
+function stableStringify(value: unknown): string {
+    return JSON.stringify(normalizeForSignature(value));
+}
+
+function normalizeForSignature(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(normalizeForSignature);
+    }
+
+    if (value !== null && typeof value === "object") {
+        return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>)
+                .filter(([, entryValue]) => entryValue !== undefined)
+                .sort(([leftKey], [rightKey]) =>
+                    leftKey.localeCompare(rightKey)
+                )
+                .map(([entryKey, entryValue]) => [
+                    entryKey,
+                    normalizeForSignature(entryValue),
+                ])
+        );
+    }
+
+    return value;
+}
+
+function setSaveError(doc: Y.Doc, value: boolean) {
+    const serverInfo = doc.get("serverInfo", Y.Map);
+    if (serverInfo.get("saveError") === value) {
+        return;
+    }
+
+    doc.transact(() => {
+        serverInfo.set("saveError", value);
+    });
+}
 
 const server = new Server({
     port: 8000,
@@ -227,6 +267,15 @@ const server = new Server({
                 serverInfo.set("saveError", false);
             });
             documentData.set(data.documentName, docData);
+            const initialPayload = handler.getSavePayload(
+                context.id,
+                doc,
+                docData
+            );
+            lastSavedSignatures.set(
+                data.documentName,
+                stableStringify(initialPayload)
+            );
             return doc;
         } catch (e) {
             context.log.error({ msg: "Could not load document", err: e });
@@ -236,21 +285,47 @@ const server = new Server({
 
     async onStoreDocument(data) {
         const context = data.context as Context;
-        try {
-            const docData = documentData.get(data.documentName);
-            context.log.info("Saving document");
-            const handler = HANDLERS.get(context.model)!;
-            await handler.save(gqlClient, context.id, data.document, docData);
-        } catch (e) {
-            context.log.error({ msg: "Could not save document", err: e });
-            data.document.transact((tx) => {
-                tx.doc.get("serverInfo", Y.Map).set("saveError", true);
-            });
+        const docData = documentData.get(data.documentName);
+        const handler = HANDLERS.get(context.model)!;
+        const payload = handler.getSavePayload(
+            context.id,
+            data.document,
+            docData
+        );
+        const signature = stableStringify(payload);
+
+        if (lastSavedSignatures.get(data.documentName) === signature) {
+            context.log.info("Skipping unchanged document save");
+            setSaveError(data.document, false);
             return;
         }
-        data.document.transact((tx) => {
-            tx.doc.get("serverInfo", Y.Map).set("saveError", false);
-        });
+
+        if (lastFailedSignatures.get(data.documentName) === signature) {
+            context.log.warn(
+                "Skipping retry for unchanged failed document save"
+            );
+            setSaveError(data.document, true);
+            return;
+        }
+
+        try {
+            context.log.info("Saving document");
+            await handler.save(gqlClient, payload, docData);
+            handler.markSaved?.(payload, docData);
+            lastSavedSignatures.set(
+                data.documentName,
+                stableStringify(
+                    handler.getSavePayload(context.id, data.document, docData)
+                )
+            );
+            lastFailedSignatures.delete(data.documentName);
+        } catch (e) {
+            context.log.error({ msg: "Could not save document", err: e });
+            lastFailedSignatures.set(data.documentName, signature);
+            setSaveError(data.document, true);
+            return;
+        }
+        setSaveError(data.document, false);
     },
 
     async onDisconnect(data) {
@@ -259,6 +334,8 @@ const server = new Server({
 
     async afterUnloadDocument(data) {
         documentData.delete(data.documentName);
+        lastSavedSignatures.delete(data.documentName);
+        lastFailedSignatures.delete(data.documentName);
     },
 });
 

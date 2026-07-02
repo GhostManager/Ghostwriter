@@ -4,6 +4,11 @@ import * as Y from "yjs";
 import { htmlToYjs, tagsToYjs, yjsToHtml, yjsToTags } from "../yjs_converters";
 import { extraFieldsFromYdoc, extraFieldsToYdoc } from "../extra_fields";
 
+type ReportFindingLinkData = {
+    extraFieldSpec: { internalName: string; type: string }[];
+    savedSeverityId: number | null;
+};
+
 const GET = gql(`
     query GET_REPORT_FINDING_LINK($id: bigint!) {
         reportedFinding_by_pk(id: $id) {
@@ -86,43 +91,61 @@ const ReportFindingLinkHandler = simpleModelHandler(
         );
         tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
         extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
-        return res.extraFieldSpec;
+        return {
+            extraFieldSpec: res.extraFieldSpec,
+            savedSeverityId: obj.severity.id,
+        } satisfies ReportFindingLinkData;
     },
-    (doc, id, extraFieldSpec) => {
+    (doc, id, data) => {
         const plainFields = doc.get("plain_fields", Y.Map<any>);
-        const extraFields = extraFieldsFromYdoc(extraFieldSpec, doc);
+        const extraFields = extraFieldsFromYdoc(data.extraFieldSpec, doc);
+        const severityId = plainFields.get("severityId") ?? null;
+        const set: Record<string, unknown> = {
+            title: plainFields.get("title") ?? "",
+            cvssScore: plainFields.get("cvssScore") ?? null,
+            cvssVector: plainFields.get("cvssVector") ?? "",
+            findingTypeId: plainFields.get("findingTypeId"),
+
+            description: yjsToHtml(doc.get("description", Y.XmlFragment)),
+            impact: yjsToHtml(doc.get("impact", Y.XmlFragment)),
+            mitigation: yjsToHtml(doc.get("mitigation", Y.XmlFragment)),
+            replication_steps: yjsToHtml(
+                doc.get("replicationSteps", Y.XmlFragment)
+            ),
+            hostDetectionTechniques: yjsToHtml(
+                doc.get("hostDetectionTechniques", Y.XmlFragment)
+            ),
+            networkDetectionTechniques: yjsToHtml(
+                doc.get("networkDetectionTechniques", Y.XmlFragment)
+            ),
+            references: yjsToHtml(doc.get("references", Y.XmlFragment)),
+            findingGuidance: yjsToHtml(
+                doc.get("findingGuidance", Y.XmlFragment)
+            ),
+            affectedEntities: yjsToHtml(
+                doc.get("affectedEntities", Y.XmlFragment)
+            ),
+            extraFields,
+        };
+
+        if (severityId !== data.savedSeverityId) {
+            set.severityId = severityId;
+        }
+
         return {
             id,
-            set: {
-                title: plainFields.get("title") ?? "",
-                cvssScore: plainFields.get("cvssScore") ?? null,
-                cvssVector: plainFields.get("cvssVector") ?? "",
-                findingTypeId: plainFields.get("findingTypeId"),
-                severityId: plainFields.get("severityId"),
-
-                description: yjsToHtml(doc.get("description", Y.XmlFragment)),
-                impact: yjsToHtml(doc.get("impact", Y.XmlFragment)),
-                mitigation: yjsToHtml(doc.get("mitigation", Y.XmlFragment)),
-                replication_steps: yjsToHtml(
-                    doc.get("replicationSteps", Y.XmlFragment)
-                ),
-                hostDetectionTechniques: yjsToHtml(
-                    doc.get("hostDetectionTechniques", Y.XmlFragment)
-                ),
-                networkDetectionTechniques: yjsToHtml(
-                    doc.get("networkDetectionTechniques", Y.XmlFragment)
-                ),
-                references: yjsToHtml(doc.get("references", Y.XmlFragment)),
-                findingGuidance: yjsToHtml(
-                    doc.get("findingGuidance", Y.XmlFragment)
-                ),
-                affectedEntities: yjsToHtml(
-                    doc.get("affectedEntities", Y.XmlFragment)
-                ),
-                extraFields,
-            },
+            set,
             tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
         };
     }
 );
+ReportFindingLinkHandler.markSaved = (payload, data) => {
+    const variables = payload as { set?: { severityId?: number | null } };
+    if (
+        variables.set &&
+        Object.prototype.hasOwnProperty.call(variables.set, "severityId")
+    ) {
+        data.savedSeverityId = variables.set.severityId ?? null;
+    }
+};
 export default ReportFindingLinkHandler;
