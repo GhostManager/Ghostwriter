@@ -7,9 +7,13 @@ DROP_SERVICE_TOKEN_USER_ACCESS_VIEW = """
 DROP VIEW IF EXISTS api_service_token_user_access;
 """
 
+DROP_SERVICE_TOKEN_PROJECT_ACCESS_VIEW = """
+DROP VIEW IF EXISTS api_service_token_project_access;
+"""
+
 
 CREATE_SERVICE_TOKEN_PROJECT_ACCESS_VIEW = """
-CREATE OR REPLACE VIEW api_service_token_project_access AS
+CREATE VIEW api_service_token_project_access AS
 SELECT DISTINCT
     api_servicetokenpermission.token_id,
     api_servicetokenpermission.resource_id AS project_id
@@ -158,12 +162,14 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql=(
                 DROP_SERVICE_TOKEN_USER_ACCESS_VIEW
+                + DROP_SERVICE_TOKEN_PROJECT_ACCESS_VIEW
                 + CREATE_SERVICE_TOKEN_PROJECT_ACCESS_VIEW
                 + ";"
                 + CREATE_SERVICE_TOKEN_USER_ACCESS_VIEW
             ),
             reverse_sql=(
                 DROP_SERVICE_TOKEN_USER_ACCESS_VIEW
+                + DROP_SERVICE_TOKEN_PROJECT_ACCESS_VIEW
                 + CREATE_PREVIOUS_SERVICE_TOKEN_PROJECT_ACCESS_VIEW
                 + ";"
                 + CREATE_SERVICE_TOKEN_USER_ACCESS_VIEW
