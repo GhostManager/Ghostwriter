@@ -1169,6 +1169,7 @@
                     {{ field_spec.get_type_display }} Field
                   {% endif %}
                 </div>
+                <div class="extra-field-type">Reference as <code>project.extra_fields.{{ field_spec.internal_name }}</code></div>
                 <div class="extra-field-value">
                   {% if field_spec.type == "rich_text" %}
                     <span class="extra-field-summary">Use Preview to view formatted content.</span>

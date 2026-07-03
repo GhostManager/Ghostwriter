@@ -189,52 +189,6 @@
         {% endif %}
       </div>
 
-      {% comment %} Extra Fields Tab {% endcomment %}
-      {% if server_extra_fields_spec %}
-        <div id="extra-fields" class="tab-pane">
-          <h4>Extra Fields</h4>
-          <hr/>
-
-          <div class="extra-fields-grid">
-            {% for field_spec in server_extra_fields_spec %}
-              <section class="extra-field-card">
-                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
-                <div class="extra-field-type">
-                  {% if field_spec.type == "rich_text" %}
-                    Rich Text Field
-                  {% else %}
-                    {{ field_spec.get_type_display }} Field
-                  {% endif %}
-                </div>
-                <div class="extra-field-value">
-                  {% if field_spec.type == "rich_text" %}
-                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
-                  {% elif field_spec.type == "json" %}
-                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
-                  {% else %}
-                    {% include "user_extra_fields/field.html" with extra_fields=staticserver.extra_fields field_spec=field_spec preview_report=False %}
-                  {% endif %}
-                </div>
-                <div class="extra-field-actions">
-                  {% if field_spec.type == "rich_text" %}
-                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-                    </button>
-                  {% elif field_spec.type == "json" %}
-                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-                    </button>
-                  {% endif %}
-                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
-                     href="{% url 'shepherd:server_update' staticserver.id %}#extra-fields"
-                     title="Edit {{ field_spec.display_name }}">Edit</a>
-                </div>
-              </section>
-            {% endfor %}
-          </div>
-        </div>
-      {% endif %}
-
       <!-- Notes Tab -->
       <div id="notes" class="tab-pane">
         <h4>Server Notes</h4>
@@ -276,6 +230,53 @@
           <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this server.</div>
         {% endif %}
       </div>
+
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if server_extra_fields_spec %}
+        <div id="extra-fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          <div class="extra-fields-grid">
+            {% for field_spec in server_extra_fields_spec %}
+              <section class="extra-field-card">
+                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+                <div class="extra-field-type">
+                  {% if field_spec.type == "rich_text" %}
+                    Rich Text Field
+                  {% else %}
+                    {{ field_spec.get_type_display }} Field
+                  {% endif %}
+                </div>
+                <div class="extra-field-type">Loop and reference as <code>object.extra_fields.{{ field_spec.internal_name }}</code></div>
+                <div class="extra-field-value">
+                  {% if field_spec.type == "rich_text" %}
+                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
+                  {% elif field_spec.type == "json" %}
+                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+                  {% else %}
+                    {% include "user_extra_fields/field.html" with extra_fields=staticserver.extra_fields field_spec=field_spec preview_report=False %}
+                  {% endif %}
+                </div>
+                <div class="extra-field-actions">
+                  {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    </button>
+                  {% elif field_spec.type == "json" %}
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    </button>
+                  {% endif %}
+                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
+                     href="{% url 'shepherd:server_update' staticserver.id %}#extra-fields"
+                     title="Edit {{ field_spec.display_name }}">Edit</a>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
