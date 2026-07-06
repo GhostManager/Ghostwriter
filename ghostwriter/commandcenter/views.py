@@ -192,11 +192,10 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
         return self.request.user.is_active
 
     def handle_no_permission(self):
-        return JsonResponse(
-            {
-                "result": "error",
-                "message": "You do not have permission to access that.",
-            },
+        return HttpResponse(
+            '<div class="alert alert-danger" role="alert">'
+            "You do not have permission to access that.</div>",
+            content_type="text/html",
             status=403,
         )
 
