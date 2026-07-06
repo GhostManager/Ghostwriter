@@ -2583,7 +2583,7 @@ class ReportExtraFieldEditViewTests(TestCase):
             model_internal_name="reporting.Finding",
             model_display_name="Findings",
         )
-        finding_rt_field = ExtraFieldSpecFactory(
+        ExtraFieldSpecFactory(
             internal_name="finding_notes",
             display_name="Finding Notes",
             type="rich_text",
