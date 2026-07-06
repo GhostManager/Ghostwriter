@@ -24,7 +24,7 @@ from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlM
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
 from ghostwriter.commandcenter.views import CollabModelUpdate
-from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.reporting.forms import AssignReportObservationForm
 from ghostwriter.reporting.models import Observation, Report, ReportObservationLink
@@ -253,16 +253,17 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
                 "</div>",
                 content_type="text/html",
             )
-        except Exception:
-            logger.exception(
-                "Error building preview for observation %s on report %s",
+        except ReportExportError as error:
+            logger.warning(
+                "Export error building preview for observation %s on report %s: %s",
                 obj.pk,
                 report.pk,
+                error,
             )
             return HttpResponse(
                 '<div class="alert alert-danger">'
                 "<strong>Preview Error</strong><br>"
-                "An unexpected error occurred.</div>",
+                f"{escape(str(error))}</div>",
                 content_type="text/html",
             )
 

@@ -27,7 +27,7 @@ from ghostwriter.api.utils import (
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
-from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 
 logger = logging.getLogger(__name__)
 
@@ -265,17 +265,17 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
                 content_type="text/html",
                 status=200,
             )
-        except Exception:
-            logger.exception(
-                "Error rendering rich-text preview for %s field %s",
+        except ReportExportError as error:
+            logger.warning(
+                "Export error rendering rich-text preview for %s field %s: %s",
                 self.model.__name__,
                 field_name,
+                error,
             )
             return HttpResponse(
                 '<div class="alert alert-danger" role="alert">'
                 "<strong>Preview Error</strong><br>"
-                "An unexpected error occurred while rendering this "
-                "rich-text preview.</div>",
+                f"{escape(str(error))}</div>",
                 content_type="text/html",
                 status=200,
             )
