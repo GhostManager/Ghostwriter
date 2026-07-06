@@ -231,8 +231,9 @@ class ReportFindingLinkExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
         return ExportReportJson(obj.report)
 
     def extract_rendered_field(self, exporter, base_context, field_name):
+        pk = self.kwargs["pk"]
         for finding in base_context.get("findings", []):
-            if finding.get("id") == self.get_object().pk:
+            if finding.get("id") == pk:
                 value = finding.get("extra_fields", {}).get(field_name)
                 if value is None:
                     return ""
