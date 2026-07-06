@@ -3,13 +3,15 @@ import json
 import logging
 from socket import gaierror
 
+import bs4
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
-from django.http import HttpRequest, HttpResponseRedirect, JsonResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -215,6 +217,126 @@ class ReportObservationLinkUpdate(CollabModelUpdate):
     template_name = "reporting/report_observation_link_update.html"
     unauthorized_redirect = "home:dashboard"
     has_extra_fields = Observation
+
+
+class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Render a full preview of a reported observation with Jinja2 resolved."""
+
+    model = ReportObservationLink
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return HttpResponse(
+            '<div class="alert alert-danger">You do not have permission to access that.</div>',
+            content_type="text/html",
+            status=403,
+        )
+
+    def get(self, request, *args, **kwargs):
+        from django.utils.html import escape
+
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            _expand_evidence_and_sanitize,
+        )
+        from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+        from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+
+        obj = self.get_object()
+        report = obj.report
+        client = report.project.client
+
+        try:
+            exporter = ExportReportJson(report)
+            base_context = exporter.map_rich_texts()
+        except ReportExportTemplateError as error:
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                f"<strong>Template Error</strong><br>{escape(str(error))}"
+                "</div>",
+                content_type="text/html",
+            )
+        except Exception:
+            logger.exception(
+                "Error building preview for observation %s on report %s",
+                obj.pk,
+                report.pk,
+            )
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                "<strong>Preview Error</strong><br>"
+                "An unexpected error occurred.</div>",
+                content_type="text/html",
+            )
+
+        obs_data = None
+        for o in base_context.get("observations", []):
+            if o.get("id") == obj.pk:
+                obs_data = o
+                break
+
+        if obs_data is None:
+            return HttpResponse(
+                '<div class="alert alert-warning">Observation not found in report data.</div>',
+                content_type="text/html",
+            )
+
+        def _render(value):
+            if value is None:
+                return ""
+            try:
+                return str(value.__html__()) if hasattr(value, "__html__") else str(value)
+            except ReportExportTemplateError as error:
+                return (
+                    f'<div class="alert alert-danger">'
+                    f"<strong>Template Error</strong><br>{escape(str(error))}"
+                    f"</div>"
+                )
+
+        def _has_content(html_str):
+            if not html_str or not html_str.strip():
+                return False
+            return bool(bs4.BeautifulSoup(html_str, "html.parser").get_text(strip=True))
+
+        def _wrap_plain(value, html_str):
+            if isinstance(value, bool):
+                icon = "fa-check" if value else "fa-times"
+                css = "healthy" if value else "burned"
+                return f'<p><span class="{css}"><i class="fas {icon}"></i></span></p>'
+            if not hasattr(value, "__html__") and "<" not in html_str:
+                return f"<p>{escape(html_str)}</p>"
+            return html_str
+
+        parts = []
+        title = escape(obs_data.get("title", "Untitled Observation"))
+        parts.append(f"<h2>{title}</h2>")
+        parts.append(
+            '<hr>'
+        )
+
+        html = _render(obs_data.get("description_rt"))
+        if _has_content(html):
+            sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+            parts.append("<h3>Description</h3>")
+            parts.append(sanitized)
+
+        extra_fields = obs_data.get("extra_fields", {})
+        ef_display_names = {
+            spec.internal_name: spec.display_name
+            for spec in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label)
+        }
+        for ef_key, ef_value in extra_fields.items():
+            html = _render(ef_value)
+            if not _has_content(html):
+                continue
+            html = _wrap_plain(ef_value, html)
+            sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+            label = escape(ef_display_names.get(ef_key, ef_key))
+            parts.append(f"<h3>{label}</h3>")
+            parts.append(sanitized)
+
+        return HttpResponse("\n".join(parts), content_type="text/html")
 
 
 @login_required

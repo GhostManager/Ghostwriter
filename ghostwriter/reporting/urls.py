@@ -258,6 +258,11 @@ urlpatterns += [
         name="local_observation_edit",
     ),
     path(
+        "reports/observations/preview/<int:pk>",
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkPreview.as_view(),
+        name="observation_preview",
+    ),
+    path(
         "reports/observations/assign/<int:pk>",
         ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkAssign.as_view(),
         name="local_observation_assign",

@@ -3,6 +3,8 @@ import logging
 import json
 from socket import gaierror
 
+import bs4
+
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -350,39 +352,58 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
         if badges:
             parts.append(f'<div class="mb-3 text-center">{" ".join(badges)}</div>')
 
-        for key, label in self.RICH_TEXT_SECTIONS:
-            value = finding_data.get(key)
+        parts.append(
+            '<hr>'
+        )
+
+        def _render(value):
             if value is None:
-                continue
+                return ""
             try:
-                html = str(value.__html__()) if hasattr(value, "__html__") else str(value)
+                return str(value.__html__()) if hasattr(value, "__html__") else str(value)
             except ReportExportTemplateError as error:
-                html = (
+                return (
                     f'<div class="alert alert-danger">'
                     f"<strong>Template Error</strong><br>{escape(str(error))}"
                     f"</div>"
                 )
-            if html.strip():
-                sanitized = _expand_evidence_and_sanitize(html, report, client=client)
-                parts.append(f"<h3>{escape(label)}</h3>")
-                parts.append(sanitized)
+
+        def _has_content(html_str):
+            if not html_str or not html_str.strip():
+                return False
+            return bool(bs4.BeautifulSoup(html_str, "html.parser").get_text(strip=True))
+
+        def _wrap_plain(value, html_str):
+            if isinstance(value, bool):
+                icon = "fa-check" if value else "fa-times"
+                css = "healthy" if value else "burned"
+                return f'<p><span class="{css}"><i class="fas {icon}"></i></span></p>'
+            if not hasattr(value, "__html__") and "<" not in html_str:
+                return f"<p>{escape(html_str)}</p>"
+            return html_str
+
+        for key, label in self.RICH_TEXT_SECTIONS:
+            html = _render(finding_data.get(key))
+            if not _has_content(html):
+                continue
+            sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+            parts.append(f"<h3>{escape(label)}</h3>")
+            parts.append(sanitized)
 
         extra_fields = finding_data.get("extra_fields", {})
+        ef_display_names = {
+            spec.internal_name: spec.display_name
+            for spec in ExtraFieldSpec.objects.filter(target_model=Finding._meta.label)
+        }
         for ef_key, ef_value in extra_fields.items():
-            if ef_value is None:
+            html = _render(ef_value)
+            if not _has_content(html):
                 continue
-            try:
-                html = str(ef_value.__html__()) if hasattr(ef_value, "__html__") else str(ef_value)
-            except ReportExportTemplateError as error:
-                html = (
-                    f'<div class="alert alert-danger">'
-                    f"<strong>Template Error</strong><br>{escape(str(error))}"
-                    f"</div>"
-                )
-            if html.strip():
-                sanitized = _expand_evidence_and_sanitize(html, report, client=client)
-                parts.append(f"<h3>{escape(ef_key)}</h3>")
-                parts.append(sanitized)
+            html = _wrap_plain(ef_value, html)
+            sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+            label = escape(ef_display_names.get(ef_key, ef_key))
+            parts.append(f"<h3>{label}</h3>")
+            parts.append(sanitized)
 
         return HttpResponse("\n".join(parts), content_type="text/html")
 

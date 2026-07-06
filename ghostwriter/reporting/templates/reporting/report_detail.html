@@ -922,7 +922,7 @@
           <div>
             <h5 class="modal-title" id="finding-preview-modal-title">Finding Preview</h5>
             <p class="text-muted small mb-0">
-              This preview closely approximates report output using the report configuration and selected Word template settings.
+              This preview closely approximates report output using the report configuration and selected Word template settings. Only fields with content will be displayed in the preview.
             </p>
           </div>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -995,6 +995,90 @@
       findingPreviewAbortController = null;
       $('#finding-preview-modal-body').html(findingPreviewPlaceholder);
       $('#finding-preview-modal-title').text('Finding Preview');
+    });
+  </script>
+
+  {% comment %} Observation preview modal {% endcomment %}
+  <div id="observation-preview-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title" id="observation-preview-modal-title">Observation Preview</h5>
+            <p class="text-muted small mb-0">
+              This preview closely approximates report output using the report configuration and selected Word template settings. Only fields with content will be displayed in the preview.
+            </p>
+          </div>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" id="observation-preview-modal-body">
+          <p class="text-muted mb-0">Observation preview will load when opened.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const observationPreviewPlaceholder = '<p class="text-muted mb-0">Observation preview will load when opened.</p>';
+    const observationPreviewLoading = (
+      '<div class="text-center text-muted py-5" role="status" aria-live="polite">' +
+      '<i class="fas fa-spinner fa-spin fa-2x mb-3" aria-hidden="true"></i>' +
+      '<p class="mb-0">Rendering observation preview&hellip;</p>' +
+      '</div>'
+    );
+
+    let observationPreviewAbortController = null;
+
+    $('#observation-preview-modal').on('show.bs.modal', function (event) {
+      const $trigger = $(event.relatedTarget);
+      const previewUrl = $trigger.data('observation-preview-url');
+      const obsTitle = $trigger.data('observation-title') || 'Observation Preview';
+      const $body = $('#observation-preview-modal-body');
+      const $title = $('#observation-preview-modal-title');
+
+      $title.text(obsTitle);
+      $body.html(observationPreviewLoading);
+      observationPreviewAbortController = window.AbortController ? new AbortController() : null;
+
+      $(this).one('shown.bs.modal', function () {
+        const loadingStartedAt = performance.now();
+        requestAnimationFrame(function () {
+          fetch(previewUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            signal: observationPreviewAbortController ? observationPreviewAbortController.signal : undefined,
+          })
+            .then(response => {
+              if (!response.ok) throw new Error('Unable to render observation preview.');
+              return response.text();
+            })
+            .then(html => {
+              const remaining = Math.max(0, 350 - (performance.now() - loadingStartedAt));
+              setTimeout(function () {
+                if (!$('#observation-preview-modal').hasClass('show')) return;
+                $body.html('<div class="rich-text-field-preview">' + html + '</div>');
+                $body.find('[data-toggle="tooltip"]').tooltip();
+              }, remaining);
+            })
+            .catch(error => {
+              if (error.name === 'AbortError') return;
+              console.error(error);
+              $body.html('<p class="burned mb-0">Unable to render observation preview.</p>');
+            });
+        });
+      });
+    });
+
+    $('#observation-preview-modal').on('hide.bs.modal', function () {
+      if (observationPreviewAbortController) observationPreviewAbortController.abort();
+      observationPreviewAbortController = null;
+      $('#observation-preview-modal-body').html(observationPreviewPlaceholder);
+      $('#observation-preview-modal-title').text('Observation Preview');
     });
   </script>
 
