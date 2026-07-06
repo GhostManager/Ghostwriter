@@ -898,50 +898,14 @@
   {% if report_extra_fields_spec %}
     {% for field_spec in report_extra_fields_spec %}
       {% url 'reporting:report_extra_field_json' report.id field_spec.internal_name as extra_field_json_url %}
-      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report lazy_json_url=extra_field_json_url %}
+      {% url 'reporting:report_extra_field_richtext' report.id field_spec.internal_name as extra_field_richtext_url %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report lazy_json_url=extra_field_json_url lazy_richtext_url=extra_field_richtext_url %}
     {% endfor %}
 
     {% include "user_extra_fields/lazy_json_modal_script.html" %}
-    <script>
-      $('.extra-field-modal-content').each(function (e) {
-        if ($(this).data('lazy-json-url')) {
-          return;
-        }
-        let text = $(this).html();
-        let $previewModal = $(this);
-        for (let i = 0; i < evidenceFiles.length; i++) {
-          if (text.includes(evidenceFiles[i].text)) {
-            if (evidenceFiles[i].text.includes('caption')) {
-              console.log(evidenceFiles[i].text)
-              let re = new RegExp('<p>' + evidenceFiles[i].text, 'g');
-              text = text.replace(re, evidenceFiles[i].value);
-              console.log(text)
-              $previewModal.html(text);
-            } else {
-              $.ajaxSetup({
-                beforeSend: function (xhr, settings) {
-                  if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                  }
-                }
-              });
-              // Send AJAX POST request
-              $.ajax({
-                url: evidenceFiles[i].value,
-                type: 'GET',
-                success: function (data) {
-                  if (data) {
-                    let re = new RegExp('<p>' + evidenceFiles[i].text + '</p>', 'g');
-                    text = text.replace(re, data);
-                    $previewModal.html(text);
-                  }
-                }
-              });
-            }
-          }
-        }
-      });
+    {% include "user_extra_fields/lazy_richtext_modal_script.html" %}
 
+    <script>
       {% comment %} Store the last selected tab to return to it on page reload {% endcomment %}
       $('.nav-link').click(function () {
         let tab = $(this).attr('href');
