@@ -1449,8 +1449,21 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Denial of Service")
-        self.assertContains(response, "Social Engineering")
+        # Rich text previews are now lazy-loaded via AJAX, so the modal body
+        # contains a placeholder and a data attribute pointing to the preview
+        # endpoint instead of inline-rendered content.
+        self.assertContains(response, "data-lazy-richtext-url")
+        self.assertContains(response, "extra-field-richtext/out_of_scope_activities")
+
+        # Verify the preview endpoint itself renders the list content
+        preview_url = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={"pk": self.report.pk, "extra_field_name": "out_of_scope_activities"},
+        )
+        preview_response = self.client_mgr.get(preview_url)
+        self.assertEqual(preview_response.status_code, 200)
+        self.assertContains(preview_response, "Denial of Service")
+        self.assertContains(preview_response, "Social Engineering")
 
 
 class ReportOplogOutlineGenerateTests(TestCase):
@@ -2517,6 +2530,106 @@ class ReportExtraFieldEditViewTests(TestCase):
 
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_endpoint_requires_login_and_permissions(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_endpoint_rejects_non_richtext_fields(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_grants_access_to_assigned_user(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(project=self.report.project, operator=self.user)
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_finding_link_richtext_preview_resolves_finding_extra_fields(self):
+        """ReportFindingLink specs are registered against Finding, not ReportFindingLink."""
+        finding_ef_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Finding",
+            model_display_name="Findings",
+        )
+        finding_rt_field = ExtraFieldSpecFactory(
+            internal_name="finding_notes",
+            display_name="Finding Notes",
+            type="rich_text",
+            target_model=finding_ef_model,
+        )
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            extra_fields={"finding_notes": "<p>test content</p>"},
+        )
+        uri = reverse(
+            "reporting:reportfindinglink_extra_field_richtext",
+            kwargs={"pk": rfl.pk, "extra_field_name": "finding_notes"},
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "test content")
+
+    def test_finding_link_richtext_preview_requires_permissions(self):
+        finding_ef_model, _ = ExtraFieldModel.objects.get_or_create(
+            model_internal_name="reporting.Finding",
+            defaults={"model_display_name": "Findings"},
+        )
+        finding_rt_field = ExtraFieldSpecFactory(
+            internal_name="finding_notes2",
+            display_name="Finding Notes 2",
+            type="rich_text",
+            target_model=finding_ef_model,
+        )
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            extra_fields={"finding_notes2": "<p>secret</p>"},
+        )
+        uri = reverse(
+            "reporting:reportfindinglink_extra_field_richtext",
+            kwargs={"pk": rfl.pk, "extra_field_name": "finding_notes2"},
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
 
 
 # Tests related to :model:`reporting.Evidence`
