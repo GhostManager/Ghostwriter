@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
 from django.db.models import Model
 from django.utils.decorators import method_decorator
+from django.utils.html import escape
 from django.views.decorators.csrf import requires_csrf_token
 
 from ghostwriter.api.utils import (
@@ -24,7 +25,9 @@ from ghostwriter.api.utils import (
     generate_jwt,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 logger = logging.getLogger(__name__)
 
@@ -233,13 +236,6 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
         return None
 
     def get(self, request, *args, **kwargs):
-        from django.utils.html import escape
-
-        from ghostwriter.commandcenter.templatetags.extra_fields import (
-            _expand_evidence_and_sanitize,
-        )
-        from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
-
         obj = self.get_object()
         field_name = kwargs["extra_field_name"]
 

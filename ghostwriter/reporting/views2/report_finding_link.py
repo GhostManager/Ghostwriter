@@ -22,7 +22,10 @@ from asgiref.sync import async_to_sync
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldRichTextPreviewView
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.reporting.forms import AssignReportFindingForm
 from ghostwriter.reporting.models import Finding, FindingType, Report, ReportFindingLink, Severity
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -226,8 +229,6 @@ class ReportFindingLinkExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
     extra_field_spec_model = Finding
 
     def build_exporter(self, obj):
-        from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-
         return ExportReportJson(obj.report)
 
     def extract_rendered_field(self, exporter, base_context, field_name):
@@ -275,12 +276,6 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
     ]
 
     def get(self, request, *args, **kwargs):
-        from ghostwriter.commandcenter.templatetags.extra_fields import (
-            _expand_evidence_and_sanitize,
-        )
-        from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
-        from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-
         obj = self.get_object()
         report = obj.report
         client = report.project.client

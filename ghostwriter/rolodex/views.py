@@ -1738,8 +1738,6 @@ class ProjectExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
     model = Project
 
     def build_exporter(self, obj):
-        from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
-
         return ExportProjectJson(obj)
 
     def extract_rendered_field(self, exporter, base_context, field_name):

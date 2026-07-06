@@ -15,13 +15,17 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonRes
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.html import escape
 from django.views import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import UpdateView
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
 from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.reporting.forms import AssignReportObservationForm
 from ghostwriter.reporting.models import Observation, Report, ReportObservationLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -235,14 +239,6 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
         )
 
     def get(self, request, *args, **kwargs):
-        from django.utils.html import escape
-
-        from ghostwriter.commandcenter.templatetags.extra_fields import (
-            _expand_evidence_and_sanitize,
-        )
-        from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
-        from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-
         obj = self.get_object()
         report = obj.report
         client = report.project.client

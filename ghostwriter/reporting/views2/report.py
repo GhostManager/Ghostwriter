@@ -573,8 +573,6 @@ class ReportExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
     model = Report
 
     def build_exporter(self, obj):
-        from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-
         return ExportReportJson(obj)
 
     def get_report_for_evidence(self, obj):
