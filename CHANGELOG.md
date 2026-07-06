@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added option to scope a service token by client
   * This works similarly to _All Accessible Projects_ but filters the access by one or more clients
   * The token will have access to all current and future user-accessible projects under the selected client(s)
+* Added preview modals for findings and observations on reports
+  * These now have _Preview_ buttons in their dropdown menus
+* Added jinja2 rendering to field preview modals for finding, observation, report, and project fields
+  * Continuing preview enhancements from v7.2.0, previews now render Jinja2 templating using the report context
+  * Clicking the _Preview_ buttons will now trigger the modal and a _Rendering rich text preview..._ loading message
+  * It will take a moment to generate the context and render any Jinja2
+  * If there are syntax errors, rendering will fail and there will be an error message
 
 ### Changed
 
@@ -22,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Marked the starter templates as non-required so they will not re-appear during updates and container builds if deleted
 * Adjusted the Docker service configurations to cap log file size to 30MB (maximum of 3 files * 10MB each)
   * This caps the size of all logs to ~240MB
+* Preview modals for rich-text fields now render references, captions, and client logo objects
+  * References will be represented by your figure label and a placeholder—e.g., `Figure #`
+  * Captions will also use the configured caption label and prefix and show the caption text–e.g., `Figure # — Caption Contents`
+  * Client logo objects will insert the client logo when available
+    * Logos are set to a static 6.5" width to align with Office's default width and keep very large or wide logos under control
 
 ## [7.2.0] - 30 June 2026
 

@@ -28,6 +28,12 @@
         <span class="badge badge-pill badge-light">{{ domain.history_set.all.count }}</span>
     </a>
 </li>
+<li class="nav-item">
+    <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
+        Notes
+        <span class="badge badge-pill badge-light">{{ domain.domainnote_set.all.count }}</span>
+    </a>
+</li>
 {% if domain_extra_fields_spec %}
     <li class="nav-item">
         <a id="id_extra-fields" class="nav-link icon custom-field-icon" data-toggle="tab" href="#extra-fields">
@@ -35,9 +41,3 @@
         </a>
     </li>
 {% endif %}
-<li class="nav-item">
-    <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
-        Notes
-        <span class="badge badge-pill badge-light">{{ domain.domainnote_set.all.count }}</span>
-    </a>
-</li>

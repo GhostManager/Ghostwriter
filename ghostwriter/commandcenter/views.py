@@ -1,15 +1,17 @@
 
+import logging
 from typing import Any
 from datetime import datetime, timezone, timedelta
 
 from django.views import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
 from django.db.models import Model
 from django.utils.decorators import method_decorator
+from django.utils.html import escape
 from django.views.decorators.csrf import requires_csrf_token
 
 from ghostwriter.api.utils import (
@@ -23,7 +25,11 @@ from ghostwriter.api.utils import (
     generate_jwt,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
+from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+
+logger = logging.getLogger(__name__)
 
 COLLAB_MODEL_NAME_MAP = {
     "reportfindinglink": "report_finding_link",
@@ -166,3 +172,113 @@ class ExtraFieldJsonView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 "value": field.value_of(obj.extra_fields),
             }
         )
+
+
+class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Return rendered rich-text HTML for an extra field, with Jinja2 template
+    variables resolved using the same export context used for report generation.
+
+    Subclasses must set ``model`` and may override ``build_exporter`` and
+    ``extract_rendered_field`` to customize context building.
+    """
+
+    def test_func(self):
+        obj = self.get_object()
+        can_view = getattr(obj, "user_can_view", None)
+        if callable(can_view):
+            return can_view(self.request.user)
+        return self.request.user.is_active
+
+    def handle_no_permission(self):
+        return HttpResponse(
+            '<div class="alert alert-danger" role="alert">'
+            "You do not have permission to access that.</div>",
+            content_type="text/html",
+            status=403,
+        )
+
+    #: Model used to look up ``ExtraFieldSpec`` entries.  Defaults to
+    #: ``self.model`` but can be overridden when the specs are registered
+    #: against a different model (e.g. ``Finding`` for ``ReportFindingLink``).
+    extra_field_spec_model = None
+
+    def build_exporter(self, obj):
+        """
+        Return an ``ExportBase`` subclass instance whose ``map_rich_texts``
+        method produces ``LazilyRenderedTemplate`` objects for rich-text
+        extra fields.
+
+        The default implementation raises ``NotImplementedError``.
+        """
+        raise NotImplementedError
+
+    def extract_rendered_field(self, exporter, base_context, field_name):
+        """
+        Navigate the processed *base_context* to find the rendered value of
+        *field_name*.  Returns an HTML string.
+
+        The default walks ``base_context["extra_fields"][field_name]``.
+        """
+        value = base_context.get("extra_fields", {}).get(field_name)
+        if value is None:
+            return ""
+        return str(value.__html__()) if hasattr(value, "__html__") else str(value)
+
+    def get_report_for_evidence(self, obj):
+        """Return a ``Report`` instance to use for evidence expansion, or ``None``."""
+        return None
+
+    def get_client(self, obj):
+        """Return the :model:`rolodex.Client` for image resolution, or ``None``."""
+        return None
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        field_name = kwargs["extra_field_name"]
+
+        spec_model = self.extra_field_spec_model or self.model
+        get_object_or_404(
+            ExtraFieldSpec.for_model(spec_model),
+            internal_name=field_name,
+            type="rich_text",
+        )
+
+        try:
+            exporter = self.build_exporter(obj)
+            base_context = exporter.map_rich_texts()
+            html = self.extract_rendered_field(exporter, base_context, field_name)
+        except ReportExportTemplateError as error:
+            logger.warning(
+                "Template error rendering rich-text preview for %s field %s: %s",
+                self.model.__name__,
+                field_name,
+                error,
+            )
+            return HttpResponse(
+                '<div class="alert alert-danger" role="alert">'
+                "<strong>Template Error</strong><br>"
+                f"{escape(str(error))}"
+                "</div>",
+                content_type="text/html",
+                status=200,
+            )
+        except ReportExportError as error:
+            logger.warning(
+                "Export error rendering rich-text preview for %s field %s: %s",
+                self.model.__name__,
+                field_name,
+                error,
+            )
+            return HttpResponse(
+                '<div class="alert alert-danger" role="alert">'
+                "<strong>Preview Error</strong><br>"
+                f"{escape(str(error))}</div>",
+                content_type="text/html",
+                status=200,
+            )
+
+        report = self.get_report_for_evidence(obj)
+        client = self.get_client(obj)
+        sanitized = expand_evidence_and_sanitize(html, report, client=client)
+        return HttpResponse(sanitized, content_type="text/html")
