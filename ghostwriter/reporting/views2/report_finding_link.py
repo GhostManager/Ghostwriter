@@ -338,7 +338,7 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
                 "</span>"
             )
             badges.append(sev_badge)
-        if cvss_vector:
+        if cvss_vector and cvss_score not in (None, ""):
             badges.append(
                 f'<span class="badge badge-pill badge-dark"'
                 f' style="cursor: help; background-color: #{severity_color}; color: #fff;" data-toggle="tooltip"'
