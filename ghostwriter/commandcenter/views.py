@@ -244,7 +244,7 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
         field_name = kwargs["extra_field_name"]
 
         spec_model = self.extra_field_spec_model or self.model
-        field = get_object_or_404(
+        get_object_or_404(
             ExtraFieldSpec.for_model(spec_model),
             internal_name=field_name,
             type="rich_text",
