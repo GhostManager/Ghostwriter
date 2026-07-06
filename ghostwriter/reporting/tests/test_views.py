@@ -2632,6 +2632,292 @@ class ReportExtraFieldEditViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+class ExpandEvidenceAndSanitizeTests(TestCase):
+    """Tests for _expand_evidence_and_sanitize marker expansion."""
+
+    def test_ref_marker_expanded(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        html = '<p>See <span data-gw-ref="evA"></span> for details</p>'
+        result = _expand_evidence_and_sanitize(html, None)
+        self.assertIn("Figure", result)
+        self.assertIn("#", result)
+        self.assertNotIn("data-gw-ref", result)
+
+    def test_inline_caption_marker_expanded(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        html = '<p><span data-gw-caption=""></span>My Caption</p>'
+        result = _expand_evidence_and_sanitize(html, None)
+        self.assertIn("Figure", result)
+        self.assertIn("My Caption", result)
+        self.assertNotIn("data-gw-caption", result)
+
+    def test_block_caption_wrapped_in_p(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        html = '<div data-gw-caption="bookmark">Caption Text</div>'
+        result = _expand_evidence_and_sanitize(html, None)
+        self.assertIn("<p>", result)
+        self.assertIn("Caption Text", result)
+        self.assertIn("Figure", result)
+
+    def test_image_marker_without_client_decomposed(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        html = '<div data-gw-image="CLIENT_LOGO"></div>'
+        result = _expand_evidence_and_sanitize(html, None)
+        self.assertNotIn("CLIENT_LOGO", result)
+        self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
+
+    def test_image_marker_with_client_logo(self):
+        from unittest.mock import MagicMock, PropertyMock, patch
+        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        client = ClientFactory()
+        logo_mock = MagicMock()
+        logo_mock.__bool__ = lambda s: True
+        logo_mock.name = "test_logo.png"
+        with patch.object(type(client), "logo", new_callable=PropertyMock, return_value=logo_mock):
+            html = '<div data-gw-image="CLIENT_LOGO"></div>'
+            result = _expand_evidence_and_sanitize(html, None, client=client)
+        self.assertIn("<img", result)
+        self.assertIn("/rolodex/clients/logo/download/", result)
+        self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
+
+    def test_evidence_markers_without_report_decomposed(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        html = '<p><span data-gw-evidence="999"></span></p>'
+        result = _expand_evidence_and_sanitize(html, None)
+        self.assertNotIn("data-gw-evidence", result)
+
+    def test_plain_html_passes_through(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        html = '<p>Hello <strong>world</strong></p>'
+        result = _expand_evidence_and_sanitize(html, None)
+        self.assertIn("Hello", result)
+        self.assertIn("world", result)
+
+
+class ReportFindingLinkPreviewTests(TestCase):
+    """Tests for :view:`reporting.ReportFindingLinkPreview`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        cls.finding_ef_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Finding",
+            model_display_name="Findings",
+        )
+        cls.finding_rt_field = ExtraFieldSpecFactory(
+            internal_name="notes",
+            display_name="Finding Notes",
+            type="rich_text",
+            target_model=cls.finding_ef_model,
+        )
+        cls.rfl = ReportFindingLinkFactory(
+            report=cls.report,
+            title="Test Finding",
+            description="<p>Finding description</p>",
+            extra_fields={"notes": "<p>Extra field content</p>"},
+        )
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:finding_preview", kwargs={"pk": cls.rfl.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthorized_user_gets_403(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "text/html")
+
+    def test_manager_gets_200_with_content(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Test Finding", content)
+        self.assertIn("Finding description", content)
+
+    def test_renders_severity_badge(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertIn("badge", content)
+
+    def test_renders_extra_field_with_display_name(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertIn("Finding Notes", content)
+        self.assertIn("Extra field content", content)
+
+    def test_hr_separator_after_badges(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("<hr>", content)
+
+    def test_empty_fields_omitted(self):
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            title="Empty Finding",
+            description="",
+            impact="",
+            mitigation="",
+            replication_steps="",
+            host_detection_techniques="",
+            network_detection_techniques="",
+            references="",
+        )
+        uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
+        response = self.client_mgr.get(uri)
+        content = response.content.decode()
+        self.assertIn("Empty Finding", content)
+        self.assertNotIn("<h3>Description</h3>", content)
+        self.assertNotIn("<h3>Impact</h3>", content)
+
+
+class ReportObservationLinkPreviewTests(TestCase):
+    """Tests for :view:`reporting.ReportObservationLinkPreview`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        cls.obs_ef_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Observation",
+            model_display_name="Observations",
+        )
+        cls.obs_rt_field = ExtraFieldSpecFactory(
+            internal_name="obs_notes",
+            display_name="Observation Notes",
+            type="rich_text",
+            target_model=cls.obs_ef_model,
+        )
+        cls.rol = ReportObservationLinkFactory(
+            report=cls.report,
+            title="Test Observation",
+            description="<p>Observation description</p>",
+            extra_fields={"obs_notes": "<p>Observation extra</p>"},
+        )
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_preview", kwargs={"pk": cls.rol.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthorized_user_gets_403_html(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "text/html")
+
+    def test_manager_gets_200_with_content(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Test Observation", content)
+        self.assertIn("Observation description", content)
+
+    def test_renders_extra_field_with_display_name(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertIn("Observation Notes", content)
+        self.assertIn("Observation extra", content)
+
+    def test_no_severity_badges(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertNotIn("badge-pill", content)
+
+    def test_empty_description_omitted(self):
+        rol = ReportObservationLinkFactory(
+            report=self.report,
+            title="Empty Obs",
+            description="",
+        )
+        uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
+        response = self.client_mgr.get(uri)
+        content = response.content.decode()
+        self.assertIn("Empty Obs", content)
+        self.assertNotIn("<h3>Description</h3>", content)
+
+
+class ExtraFieldRichTextPreviewPermissionTests(TestCase):
+    """Tests for ExtraFieldRichTextPreviewView permission handling."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Report",
+            model_display_name="Reports",
+        )
+        cls.rt_field = ExtraFieldSpecFactory(
+            internal_name="test_rt",
+            display_name="Test RT",
+            type="rich_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.report.extra_fields = {"test_rt": "<p>content</p>"}
+        cls.report.save(update_fields=["extra_fields"])
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={"pk": cls.report.pk, "extra_field_name": "test_rt"},
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_403_returns_html_not_json(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "text/html")
+        self.assertIn("permission", response.content.decode())
+
+    def test_nonexistent_field_returns_404(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={"pk": self.report.pk, "extra_field_name": "nonexistent"},
+        )
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_template_error_returns_200_with_error_message(self):
+        self.report.extra_fields = {"test_rt": "<p>{% for x in %}broken{% endfor %}</p>"}
+        self.report.save(update_fields=["extra_fields"])
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Error", content)
+        self.assertIn("alert-danger", content)
+
+
 # Tests related to :model:`reporting.Evidence`
 
 

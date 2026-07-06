@@ -349,9 +349,7 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
         if badges:
             parts.append(f'<div class="mb-3 text-center">{" ".join(badges)}</div>')
 
-        parts.append(
-            '<hr>'
-        )
+        parts.append("<hr>")
 
         def _render(value):
             if value is None:
