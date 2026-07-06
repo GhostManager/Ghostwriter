@@ -297,7 +297,12 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
         def _has_content(html_str):
             if not html_str or not html_str.strip():
                 return False
-            return bool(bs4.BeautifulSoup(html_str, "html.parser").get_text(strip=True))
+            soup = bs4.BeautifulSoup(html_str, "html.parser")
+            if soup.get_text(strip=True):
+                return True
+            return bool(soup.select(
+                "[data-gw-evidence], [data-evidence-id], [data-gw-image], [data-gw-ref], [data-gw-caption], img"
+            ))
 
         def _wrap_plain(value, html_str):
             if isinstance(value, bool):
