@@ -3,9 +3,10 @@ import logging
 import json
 from socket import gaierror
 
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.html import escape
 from django.views import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import UpdateView
@@ -241,6 +242,149 @@ class ReportFindingLinkExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
 
     def get_client(self, obj):
         return obj.report.project.client
+
+
+class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Render a full preview of a reported finding with Jinja2 resolved."""
+
+    model = ReportFindingLink
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return HttpResponse(
+            '<div class="alert alert-danger">You do not have permission to access that.</div>',
+            content_type="text/html",
+            status=403,
+        )
+
+    # Ordered list of (serialized field key, display label) for the preview.
+    RICH_TEXT_SECTIONS = [
+        ("affected_entities_rt", "Affected Entities"),
+        ("description_rt", "Description"),
+        ("impact_rt", "Impact"),
+        ("mitigation_rt", "Mitigation"),
+        ("replication_steps_rt", "Replication Steps"),
+        ("host_detection_techniques_rt", "Host Detection Techniques"),
+        ("network_detection_techniques_rt", "Network Detection Techniques"),
+        ("references_rt", "References"),
+    ]
+
+    def get(self, request, *args, **kwargs):
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            _expand_evidence_and_sanitize,
+        )
+        from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+        from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+
+        obj = self.get_object()
+        report = obj.report
+        client = report.project.client
+
+        try:
+            exporter = ExportReportJson(report)
+            base_context = exporter.map_rich_texts()
+        except ReportExportTemplateError as error:
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                f"<strong>Template Error</strong><br>{escape(str(error))}"
+                "</div>",
+                content_type="text/html",
+            )
+        except Exception:
+            logger.exception(
+                "Error building preview for finding %s on report %s",
+                obj.pk,
+                report.pk,
+            )
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                "<strong>Preview Error</strong><br>"
+                "An unexpected error occurred.</div>",
+                content_type="text/html",
+            )
+
+        finding_data = None
+        for f in base_context.get("findings", []):
+            if f.get("id") == obj.pk:
+                finding_data = f
+                break
+
+        if finding_data is None:
+            return HttpResponse(
+                '<div class="alert alert-warning">Finding not found in report data.</div>',
+                content_type="text/html",
+            )
+
+        parts = []
+        title = escape(finding_data.get("title", "Untitled Finding"))
+        severity = escape(str(finding_data.get("severity", "")))
+        severity_color = escape(str(finding_data.get("severity_color", "6c757d")))
+        cvss_score = finding_data.get("cvss_score")
+        cvss_vector = escape(str(finding_data.get("cvss_vector", "")))
+        finding_type = escape(str(finding_data.get("finding_type", "")))
+
+        parts.append(f"<h2>{title}</h2>")
+
+        badges = []
+        if severity:
+            sev_badge = (
+                f'<span class="badge badge-pill" '
+                f'style="background-color: #{severity_color}; color: #fff;">'
+                f"{severity}"
+                "</span>"
+            )
+            badges.append(sev_badge)
+        if cvss_vector:
+            badges.append(
+                f'<span class="badge badge-pill badge-dark"'
+                f' style="cursor: help; background-color: #{severity_color}; color: #fff;" data-toggle="tooltip"'
+                f' data-placement="bottom" title="{cvss_vector}">'
+                f"CVSS: {cvss_score}</span>"
+            )
+        if finding_type:
+            badges.append(
+                f'<span class="badge badge-pill badge-primary">{finding_type}</span>'
+            )
+        if badges:
+            parts.append(f'<div class="mb-3 text-center">{" ".join(badges)}</div>')
+
+        for key, label in self.RICH_TEXT_SECTIONS:
+            value = finding_data.get(key)
+            if value is None:
+                continue
+            try:
+                html = str(value.__html__()) if hasattr(value, "__html__") else str(value)
+            except ReportExportTemplateError as error:
+                html = (
+                    f'<div class="alert alert-danger">'
+                    f"<strong>Template Error</strong><br>{escape(str(error))}"
+                    f"</div>"
+                )
+            if html.strip():
+                sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+                parts.append(f"<h3>{escape(label)}</h3>")
+                parts.append(sanitized)
+
+        extra_fields = finding_data.get("extra_fields", {})
+        for ef_key, ef_value in extra_fields.items():
+            if ef_value is None:
+                continue
+            try:
+                html = str(ef_value.__html__()) if hasattr(ef_value, "__html__") else str(ef_value)
+            except ReportExportTemplateError as error:
+                html = (
+                    f'<div class="alert alert-danger">'
+                    f"<strong>Template Error</strong><br>{escape(str(error))}"
+                    f"</div>"
+                )
+            if html.strip():
+                sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+                parts.append(f"<h3>{escape(ef_key)}</h3>")
+                parts.append(sanitized)
+
+        return HttpResponse("\n".join(parts), content_type="text/html")
 
 
 class ReportFindingStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):

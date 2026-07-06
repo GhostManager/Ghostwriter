@@ -243,6 +243,11 @@ urlpatterns += [
         name="reportfindinglink_extra_field_richtext",
     ),
     path(
+        "reports/findings/preview/<int:pk>",
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkPreview.as_view(),
+        name="finding_preview",
+    ),
+    path(
         "reports/findings/assign/<int:pk>",
         ghostwriter.reporting.views2.report_finding_link.ReportFindingAssign.as_view(),
         name="local_assign",
