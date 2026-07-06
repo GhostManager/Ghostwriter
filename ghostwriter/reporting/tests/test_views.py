@@ -2633,63 +2633,63 @@ class ReportExtraFieldEditViewTests(TestCase):
 
 
 class ExpandEvidenceAndSanitizeTests(TestCase):
-    """Tests for _expand_evidence_and_sanitize marker expansion."""
+    """Tests for expand_evidence_and_sanitize marker expansion."""
 
     def test_ref_marker_expanded(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
         html = '<p>See <span data-gw-ref="evA"></span> for details</p>'
-        result = _expand_evidence_and_sanitize(html, None)
+        result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Figure", result)
         self.assertIn("#", result)
         self.assertNotIn("data-gw-ref", result)
 
     def test_inline_caption_marker_expanded(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
         html = '<p><span data-gw-caption=""></span>My Caption</p>'
-        result = _expand_evidence_and_sanitize(html, None)
+        result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Figure", result)
         self.assertIn("My Caption", result)
         self.assertNotIn("data-gw-caption", result)
 
     def test_block_caption_wrapped_in_p(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
         html = '<div data-gw-caption="bookmark">Caption Text</div>'
-        result = _expand_evidence_and_sanitize(html, None)
+        result = expand_evidence_and_sanitize(html, None)
         self.assertIn("<p>", result)
         self.assertIn("Caption Text", result)
         self.assertIn("Figure", result)
 
     def test_image_marker_without_client_decomposed(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
         html = '<div data-gw-image="CLIENT_LOGO"></div>'
-        result = _expand_evidence_and_sanitize(html, None)
+        result = expand_evidence_and_sanitize(html, None)
         self.assertNotIn("CLIENT_LOGO", result)
         self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
 
     def test_image_marker_with_client_logo(self):
         from unittest.mock import MagicMock, PropertyMock, patch
-        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
         client = ClientFactory()
         logo_mock = MagicMock()
         logo_mock.__bool__ = lambda s: True
         logo_mock.name = "test_logo.png"
         with patch.object(type(client), "logo", new_callable=PropertyMock, return_value=logo_mock):
             html = '<div data-gw-image="CLIENT_LOGO"></div>'
-            result = _expand_evidence_and_sanitize(html, None, client=client)
+            result = expand_evidence_and_sanitize(html, None, client=client)
         self.assertIn("<img", result)
         self.assertIn("/rolodex/clients/logo/download/", result)
         self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
 
     def test_evidence_markers_without_report_decomposed(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
         html = '<p><span data-gw-evidence="999"></span></p>'
-        result = _expand_evidence_and_sanitize(html, None)
+        result = expand_evidence_and_sanitize(html, None)
         self.assertNotIn("data-gw-evidence", result)
 
     def test_plain_html_passes_through(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
         html = '<p>Hello <strong>world</strong></p>'
-        result = _expand_evidence_and_sanitize(html, None)
+        result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Hello", result)
         self.assertIn("world", result)
 

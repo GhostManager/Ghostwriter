@@ -3,8 +3,6 @@ import json
 import logging
 from socket import gaierror
 
-import bs4
-
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
@@ -22,7 +20,8 @@ from django.views.generic.edit import UpdateView
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+from ghostwriter.commandcenter.utils import has_rich_text_content, render_rich_text_value, wrap_plain_value
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
@@ -279,47 +278,14 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
                 content_type="text/html",
             )
 
-        def _render(value):
-            if value is None:
-                return ""
-            try:
-                return str(value.__html__()) if hasattr(value, "__html__") else str(value)
-            except ReportExportTemplateError as error:
-                return (
-                    f'<div class="alert alert-danger">'
-                    f"<strong>Template Error</strong><br>{escape(str(error))}"
-                    f"</div>"
-                )
-
-        def _has_content(html_str):
-            if not html_str or not html_str.strip():
-                return False
-            soup = bs4.BeautifulSoup(html_str, "html.parser")
-            if soup.get_text(strip=True):
-                return True
-            return bool(soup.select(
-                "[data-gw-evidence], [data-evidence-id], [data-gw-image], [data-gw-ref], [data-gw-caption], img"
-            ))
-
-        def _wrap_plain(value, html_str):
-            if isinstance(value, bool):
-                icon = "fa-check" if value else "fa-times"
-                css = "healthy" if value else "burned"
-                return f'<p><span class="{css}"><i class="fas {icon}"></i></span></p>'
-            if not hasattr(value, "__html__") and "<" not in html_str:
-                return f"<p>{escape(html_str)}</p>"
-            return html_str
-
         parts = []
         title = escape(obs_data.get("title", "Untitled Observation"))
         parts.append(f"<h2>{title}</h2>")
-        parts.append(
-            '<hr>'
-        )
+        parts.append("<hr>")
 
-        html = _render(obs_data.get("description_rt"))
-        if _has_content(html):
-            sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+        html = render_rich_text_value(obs_data.get("description_rt"))
+        if has_rich_text_content(html):
+            sanitized = expand_evidence_and_sanitize(html, report, client=client)
             parts.append("<h3>Description</h3>")
             parts.append(sanitized)
 
@@ -329,11 +295,11 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
             for spec in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label)
         }
         for ef_key, ef_value in extra_fields.items():
-            html = _render(ef_value)
-            if not _has_content(html):
+            html = render_rich_text_value(ef_value)
+            if not has_rich_text_content(html):
                 continue
-            html = _wrap_plain(ef_value, html)
-            sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+            html = wrap_plain_value(ef_value, html)
+            sanitized = expand_evidence_and_sanitize(html, report, client=client)
             label = escape(ef_display_names.get(ef_key, ef_key))
             parts.append(f"<h3>{label}</h3>")
             parts.append(sanitized)

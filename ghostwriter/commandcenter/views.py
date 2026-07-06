@@ -25,7 +25,7 @@ from ghostwriter.api.utils import (
     generate_jwt,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.templatetags.extra_fields import _expand_evidence_and_sanitize
+from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 
@@ -174,7 +174,6 @@ class ExtraFieldJsonView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         )
 
 
-
 class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Return rendered rich-text HTML for an extra field, with Jinja2 template
@@ -281,5 +280,5 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
 
         report = self.get_report_for_evidence(obj)
         client = self.get_client(obj)
-        sanitized = _expand_evidence_and_sanitize(html, report, client=client)
+        sanitized = expand_evidence_and_sanitize(html, report, client=client)
         return HttpResponse(sanitized, content_type="text/html")

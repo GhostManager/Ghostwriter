@@ -2,7 +2,6 @@
 import html as html_module
 import json
 
-# Django Imports
 import bleach
 import bs4
 from bleach.css_sanitizer import CSSSanitizer
@@ -51,7 +50,7 @@ def _sanitize_rich_text(value):
     )
 
 
-def _expand_evidence_and_sanitize(html, report, *, client=None):
+def expand_evidence_and_sanitize(html, report, *, client=None):
     """
     Expand Ghostwriter marker spans in *html* and sanitize the result.
 
@@ -187,7 +186,7 @@ def _expand_evidence_and_sanitize(html, report, *, client=None):
 @register.filter
 def rich_text_preview(value, report=None):
     html = _coerce_rich_text_value(value)
-    return mark_safe(_expand_evidence_and_sanitize(html, report))
+    return mark_safe(expand_evidence_and_sanitize(html, report))
 
 
 @register.filter
