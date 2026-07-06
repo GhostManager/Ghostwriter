@@ -120,6 +120,7 @@ urlpatterns += [
         ghostwriter.reporting.views2.finding.FindingExtraFieldJson.as_view(),
         name="finding_extra_field_json",
     ),
+
     path("findings/create/", ghostwriter.reporting.views2.finding.FindingCreate.as_view(), name="finding_create"),
     path("findings/update/<int:pk>", ghostwriter.reporting.views2.finding.FindingUpdate.as_view(), name="finding_update"),
     path("findings/delete/<int:pk>", ghostwriter.reporting.views2.finding.FindingDelete.as_view(), name="finding_delete"),
@@ -143,6 +144,7 @@ urlpatterns += [
         ghostwriter.reporting.views2.observations.ObservationExtraFieldJson.as_view(),
         name="observation_extra_field_json",
     ),
+
     path("observations/create/", ghostwriter.reporting.views2.observations.ObservationCreate.as_view(), name="observation_create"),
     path("observations/update/<int:pk>", ghostwriter.reporting.views2.observations.ObservationUpdate.as_view(), name="observation_update"),
     path("observations/delete/<int:pk>", ghostwriter.reporting.views2.observations.ObservationDelete.as_view(), name="observation_delete"),
@@ -180,6 +182,11 @@ urlpatterns += [
         "reports/<int:pk>/extra-field-json/<str:extra_field_name>",
         ghostwriter.reporting.views2.report.ReportExtraFieldJson.as_view(),
         name="report_extra_field_json",
+    ),
+    path(
+        "reports/<int:pk>/extra-field-richtext/<str:extra_field_name>",
+        ghostwriter.reporting.views2.report.ReportExtraFieldRichTextPreview.as_view(),
+        name="report_extra_field_richtext",
     ),
     path(
         "reports/<int:pk>/generate-oplog-outline",
@@ -229,6 +236,11 @@ urlpatterns += [
         "reports/findings/update/<int:pk>",
         ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkUpdate.as_view(),
         name="local_edit",
+    ),
+    path(
+        "reports/findings/<int:pk>/extra-field-richtext/<str:extra_field_name>",
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkExtraFieldRichTextPreview.as_view(),
+        name="reportfindinglink_extra_field_richtext",
     ),
     path(
         "reports/findings/assign/<int:pk>",

@@ -44,7 +44,8 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
+
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -1731,6 +1732,24 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
 
 class ProjectExtraFieldJson(ExtraFieldJsonView):
     model = Project
+
+
+class ProjectExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    model = Project
+
+    def build_exporter(self, obj):
+        from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
+
+        return ExportProjectJson(obj)
+
+    def extract_rendered_field(self, exporter, base_context, field_name):
+        value = base_context.get("project", {}).get("extra_fields", {}).get(field_name)
+        if value is None:
+            return ""
+        return str(value.__html__()) if hasattr(value, "__html__") else str(value)
+
+    def get_client(self, obj):
+        return obj.client
 
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):

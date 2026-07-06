@@ -19,7 +19,7 @@ from asgiref.sync import async_to_sync
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldRichTextPreviewView
 from ghostwriter.reporting.forms import AssignReportFindingForm
 from ghostwriter.reporting.models import Finding, FindingType, Report, ReportFindingLink, Severity
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -210,6 +210,37 @@ class ReportFindingLinkUpdate(CollabModelUpdate):
     template_name = "reporting/report_finding_link_update.html"
     unauthorized_redirect = "home:dashboard"
     has_extra_fields = Finding
+
+
+class ReportFindingLinkExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    """
+    Rich-text preview for a finding linked to a report.
+
+    Uses the full report export context so that ``project``, ``client``,
+    ``finding``, and evidence references all resolve correctly.
+    """
+    model = ReportFindingLink
+    extra_field_spec_model = Finding
+
+    def build_exporter(self, obj):
+        from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+
+        return ExportReportJson(obj.report)
+
+    def extract_rendered_field(self, exporter, base_context, field_name):
+        for finding in base_context.get("findings", []):
+            if finding.get("id") == self.get_object().pk:
+                value = finding.get("extra_fields", {}).get(field_name)
+                if value is None:
+                    return ""
+                return str(value.__html__()) if hasattr(value, "__html__") else str(value)
+        return ""
+
+    def get_report_for_evidence(self, obj):
+        return obj.report
+
+    def get_client(self, obj):
+        return obj.report.project.client
 
 
 class ReportFindingStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
