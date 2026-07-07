@@ -181,6 +181,7 @@ urlpatterns += [
         views.ClientExtraFieldJson.as_view(),
         name="client_extra_field_json",
     ),
+
     path(
         "clients/notes/create/<int:pk>",
         views.ClientNoteCreate.as_view(),
@@ -246,5 +247,10 @@ urlpatterns += [
         "projects/<int:pk>/extra-field-json/<str:extra_field_name>",
         views.ProjectExtraFieldJson.as_view(),
         name="project_extra_field_json",
+    ),
+    path(
+        "projects/<int:pk>/extra-field-richtext/<str:extra_field_name>",
+        views.ProjectExtraFieldRichTextPreview.as_view(),
+        name="project_extra_field_richtext",
     ),
 ]

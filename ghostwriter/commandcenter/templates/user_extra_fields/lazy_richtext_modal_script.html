@@ -1,0 +1,68 @@
+<script>
+  const richtextPreviewPlaceholder = '<p class="text-muted mb-0">Rich text preview will load when this preview opens.</p>';
+  const richtextPreviewLoading = (
+    '<div class="text-center text-muted py-5" role="status" aria-live="polite">' +
+    '<i class="fas fa-spinner fa-spin fa-2x mb-3" aria-hidden="true"></i>' +
+    '<p class="mb-0">Rendering rich text preview&hellip;</p>' +
+    '</div>'
+  );
+
+  $('.extra-field-modal-content[data-lazy-richtext-url]').closest('.modal').on('show.bs.modal', function () {
+    const $modal = $(this);
+    const $content = $modal.find('.extra-field-modal-content[data-lazy-richtext-url]');
+    const richtextUrl = $content.data('lazy-richtext-url');
+    const minimumLoadingMs = 350;
+    const loadId = `${Date.now()}-${Math.random()}`;
+    const abortController = window.AbortController ? new AbortController() : null;
+
+    $content.data('richtextLoadId', loadId);
+    $content.data('richtextAbortController', abortController);
+    $content.html(richtextPreviewLoading);
+    $modal.one('shown.bs.modal', function () {
+      const loadingStartedAt = performance.now();
+      requestAnimationFrame(function () {
+        fetch(richtextUrl, {
+          method: 'GET',
+          credentials: 'same-origin',
+          signal: abortController ? abortController.signal : undefined,
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Unable to render rich text preview.');
+            }
+            return response.text();
+          })
+          .then(html => {
+            const remainingLoadingMs = Math.max(0, minimumLoadingMs - (performance.now() - loadingStartedAt));
+            setTimeout(function () {
+              if ($content.data('richtextLoadId') !== loadId || !$modal.hasClass('show')) {
+                return;
+              }
+              $content.empty().html(
+                '<div class="rich-text-field-preview">' + html + '</div>'
+              );
+            }, remainingLoadingMs);
+          })
+          .catch(error => {
+            if (error.name === 'AbortError' || $content.data('richtextLoadId') !== loadId) {
+              return;
+            }
+            console.error(error);
+            $content.html('<p class="burned mb-0">Unable to render rich text preview.</p>');
+          });
+      });
+    });
+  });
+
+  $('.extra-field-modal-content[data-lazy-richtext-url]').closest('.modal').on('hide.bs.modal', function () {
+    const $content = $(this).find('.extra-field-modal-content[data-lazy-richtext-url]');
+    const abortController = $content.data('richtextAbortController');
+
+    if (abortController) {
+      abortController.abort();
+    }
+    $content.removeData('richtextAbortController');
+    $content.removeData('richtextLoadId');
+    $content.html(richtextPreviewPlaceholder);
+  });
+</script>

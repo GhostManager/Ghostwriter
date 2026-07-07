@@ -1307,10 +1307,12 @@ th.severity-header {
   padding-top: 10px;
   padding-bottom: 10px;
   border-bottom: none;
+  border-top: none;
   padding-left: 18px;
   pointer-events: none;
   opacity: 0.75;
   color: #fff;
+  border-radius: 0 !important;
 }
 
 th.severity-header.severity_1 {

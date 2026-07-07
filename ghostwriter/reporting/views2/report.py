@@ -30,7 +30,7 @@ from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -567,6 +567,19 @@ class ReportExtraFieldEdit(CollabModelUpdate):
 
 class ReportExtraFieldJson(ExtraFieldJsonView):
     model = Report
+
+
+class ReportExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    model = Report
+
+    def build_exporter(self, obj):
+        return ExportReportJson(obj)
+
+    def get_report_for_evidence(self, obj):
+        return obj
+
+    def get_client(self, obj):
+        return obj.project.client
 
 
 class ReportOplogOutlineGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):

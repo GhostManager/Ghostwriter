@@ -26,6 +26,11 @@
         Infrastructure History <span class="badge badge-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
     </a>
 </li>
+<li class="nav-item">
+    <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
+        Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>
+    </a>
+</li>
 {% if client_extra_fields_spec %}
     <li class="nav-item">
         <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-toggle="tab" href="#extra-fields">
@@ -33,8 +38,3 @@
         </a>
     </li>
 {% endif %}
-<li class="nav-item">
-    <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
-        Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>
-    </a>
-</li>
