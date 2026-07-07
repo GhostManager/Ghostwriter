@@ -4136,11 +4136,14 @@ class ApiKeyCreateTests(TestCase):
         self.assertEqual(obj.user, self.user)
 
     def test_post_rejects_expiry_beyond_max_lifetime(self):
+        expiry_date = (datetime.now() + timedelta(days=366)).strftime(
+            "%Y-%m-%dT%H:%M:%S"
+        )
         response = self.client_auth.post(
             self.uri,
             data={
                 "name": "Too Long",
-                "expiry_date": datetime.now() + timedelta(days=366),
+                "expiry_date": expiry_date,
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -4897,6 +4900,9 @@ class ServiceTokenCreateTests(TestCase):
         )
 
     def test_post_rejects_expiry_beyond_max_lifetime(self):
+        expiry_date = (datetime.now() + timedelta(days=366)).strftime(
+            "%Y-%m-%dT%H:%M:%S"
+        )
         response = self.client_auth.post(
             self.uri,
             data={
@@ -4904,7 +4910,7 @@ class ServiceTokenCreateTests(TestCase):
                 "name": "Too Long Service Token",
                 "service_principal": self.existing_principal.id,
                 "oplog": self.oplog.id,
-                "expiry_date": datetime.now() + timedelta(days=366),
+                "expiry_date": expiry_date,
             },
         )
         self.assertEqual(response.status_code, 200)
