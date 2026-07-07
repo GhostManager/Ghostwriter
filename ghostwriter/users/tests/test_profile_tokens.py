@@ -15,6 +15,7 @@ from ghostwriter.api.models import (
     ServiceToken,
     ServiceTokenPreset,
 )
+from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.factories import (
     OplogFactory,
     ProjectAssignmentFactory,
@@ -36,6 +37,9 @@ class UserProfileTokenDisplayTests(TestCase):
         cls.uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
 
     def setUp(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = False
+        config.save(update_fields=["token_extend_requires_rotation"])
         self.client_auth = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
@@ -85,8 +89,12 @@ class UserProfileTokenDisplayTests(TestCase):
 
         response = self.client_auth.get(self.uri)
 
-        self.assertContains(response, 'id="api-token-card"')
-        self.assertContains(response, 'id="service-token-card"')
+        self.assertContains(response, 'id="token-card"')
+        self.assertNotContains(response, 'id="api-token-card"')
+        self.assertNotContains(response, 'id="service-token-card"')
+        self.assertContains(response, ">Tokens</h4>")
+        self.assertContains(response, "User API Tokens")
+        self.assertContains(response, "Service Tokens")
         self.assertContains(
             response,
             "API tokens authenticate as your user account and inherit your current Ghostwriter permissions.",
@@ -96,42 +104,39 @@ class UserProfileTokenDisplayTests(TestCase):
             "Service tokens authenticate as non-human service principals",
         )
         self.assertContains(response, "use only the permissions assigned to the token")
-        self.assertContains(response, 'id="js-hide-expired"')
-        self.assertContains(response, 'id="js-hide-expired-service-tokens"')
-        self.assertContains(
-            response, 'class="table-responsive js-token-table-wrapper"', count=2
-        )
+        self.assertContains(response, "Tokens are shown once when created or regenerated", count=1)
+        self.assertContains(response, "Expiry changes must stay within 365 days", count=1)
+        self.assertContains(response, "Expired tokens must have expiry extended before regeneration", count=1)
+        self.assertContains(response, "Regenerate after extending expiry to rotate the credential", count=1)
+        self.assertContains(response, 'id="js-hide-expired-tokens"')
+        self.assertContains(response, 'data-expired-token-selector=".js-expired-token"')
+        self.assertContains(response, 'data-storage-key="profileHideExpiredTokens"')
+        self.assertNotContains(response, 'id="js-hide-expired-service-tokens"')
+        self.assertContains(response, 'class="js-token-table-wrapper"', count=1)
+        self.assertContains(response, 'class="js-token-table-section"', count=2)
+        self.assertContains(response, 'class="table-responsive js-token-table-responsive"', count=2)
         self.assertContains(response, 'class="js-token-row"', count=6)
         self.assertContains(
             response,
-            'class="alert alert-secondary mt-2 mb-2 js-all-tokens-hidden-alert d-none"',
+            'class="alert alert-secondary mt-2 mb-2 js-token-table-empty-alert d-none"',
             count=2,
         )
-        self.assertContains(
-            response,
-            "All API tokens are expired and hidden. Disable Hide Expired to show them.",
-        )
-        self.assertContains(
-            response,
-            "All service tokens are expired and hidden. Disable Hide Expired to show them.",
-        )
+        self.assertContains(response, "No API tokens to display.")
+        self.assertContains(response, "No service tokens to display.")
         self.assertContains(
             response, '<th class="align-middle text-left">Last Used</th>', count=2
         )
-        self.assertContains(
-            response, 'data-expired-token-selector=".js-expired-api-token"'
-        )
-        self.assertContains(
-            response, 'data-expired-token-selector=".js-expired-service-token"'
-        )
-        self.assertContains(response, 'data-storage-key="profileHideExpiredApiTokens"')
-        self.assertContains(
-            response, 'data-storage-key="profileHideExpiredServiceTokens"'
-        )
+        self.assertNotContains(response, 'data-expired-token-selector=".js-expired-api-token"')
+        self.assertNotContains(response, 'data-expired-token-selector=".js-expired-service-token"')
+        self.assertNotContains(response, 'data-storage-key="profileHideExpiredApiTokens"')
+        self.assertNotContains(response, 'data-storage-key="profileHideExpiredServiceTokens"')
         self.assertContains(response, "localStorage.getItem(storageKey)")
         self.assertContains(response, "localStorage.setItem(storageKey")
-        self.assertContains(response, "expiredRows.length === totalRows")
         self.assertContains(response, "replaceTokenTableState(")
+        self.assertContains(response, "$card.find('.js-token-table-section').each")
+        self.assertContains(response, "visibleRows === 0")
+        self.assertContains(response, ".promise().always(callback)")
+        self.assertContains(response, "updateTokenTableVisibility(hideCheckbox, expiredTokenSelector, animate);")
         self.assertContains(response, "$currentElement.fadeOut(200")
         self.assertContains(
             response, "$nextElement.removeClass('d-none').hide().fadeIn(200)"
@@ -164,18 +169,42 @@ class UserProfileTokenDisplayTests(TestCase):
             'data-revoke-target-url="/api/ajax/service-token/revoke/',
         )
         self.assertContains(response, "Edit Expiry", count=6)
+        self.assertContains(response, ">Regenerate</button>", count=6)
         self.assertContains(response, 'id="edit-token-expiry-modal"')
+        self.assertContains(response, 'id="token-expiry-display-', count=3)
+        self.assertContains(response, 'id="service-token-expiry-display-', count=3)
+        self.assertContains(response, 'data-expiry-display-selector="#token-expiry-display-', count=3)
+        self.assertContains(response, 'data-expiry-display-selector="#service-token-expiry-display-', count=3)
         self.assertContains(response, 'data-expiry-target-url="/api/token/expiry/')
         self.assertContains(
             response,
             'data-expiry-target-url="/api/service-token/expiry/',
         )
-        self.assertContains(response, 'data-expiry-regenerates-token="true"', count=3)
-        self.assertContains(response, 'data-expiry-regenerates-token="false"', count=3)
-        self.assertContains(response, "Choose a future date and time.")
+        self.assertNotContains(response, 'data-expiry-regenerates-token="true"')
+        self.assertContains(response, 'data-expiry-regenerates-token="false"', count=6)
+        self.assertContains(response, 'action="/api/token/regenerate/')
+        self.assertContains(response, 'action="/api/service-token/regenerate/')
+        self.assertContains(response, 'class="d-flex m-0 js-regenerate-token-form"', count=6)
+        self.assertContains(response, "btn btn-primary btn-sm rounded-0 h-100", count=6)
+        self.assertContains(response, "Extend expiry before regenerating this token.", count=2)
+        self.assertContains(response, "disabled>Regenerate</button>", count=2)
+        self.assertContains(response, "Choose a future date and time within 365 days.")
         self.assertContains(
-            response, "Changing an API token's expiry generates a replacement token."
+            response, "Extending this token's expiry will generate a replacement token."
         )
+        self.assertContains(response, 'id="edit-token-expiry-error"')
+        self.assertContains(response, "validateExpiryModal(")
+        self.assertContains(response, "setExpiryModalError(")
+        self.assertContains(response, "X-Requested-With")
+        self.assertContains(response, "response.expiryStatusClass")
+        self.assertContains(response, "showReplacementTokenModal(")
+        self.assertContains(response, "$('.js-regenerate-token-form').on('submit'")
+        self.assertContains(response, "Regenerate Failed")
+        self.assertContains(response, "Regenerated")
+        self.assertContains(response, "$replacementModal.find('code').text(replacementToken)")
+        self.assertContains(response, "Please store it somewhere safe; you will not be able to see it")
+        self.assertContains(response, "I Saved It")
+        self.assertNotContains(response, "{{ message|linebreaks }}")
         self.assertContains(response, "$(event.relatedTarget)")
         self.assertContains(response, "edit-token-expiry-regeneration-warning")
         self.assertContains(response, "$modal.data('revoke-target', $target)")
