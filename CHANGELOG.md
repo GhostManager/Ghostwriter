@@ -45,6 +45,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Removed tags from autocomplete suggestions in filters so they work as expected when selecting them (Fixes #927)
 
+### Security
+
+* Adjusted WebSocket consumers to check object access to match access controls used elsewhere
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-f6w3-9v9c-5364](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-f6w3-9v9c-5364)
+
 ## [7.2.0] - 30 June 2026
 
 ### Added
