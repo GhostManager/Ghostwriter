@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Clicking the _Preview_ buttons will now trigger the modal and a _Rendering rich text preview..._ loading message
   * It will take a moment to generate the context and render any Jinja2
   * If there are syntax errors, rendering will fail and there will be an error message
+* Added configuration options to the General Settings to control maximum API token lifetime and credential rotation
+  * Maximum Token Lifetime in Days (default: 365) limits how far into the future a token expiry date may be set
+  * Require Token Rotation to Extend Expiry (default: True) forces token rotation when extending expiry
+* Added the option to regenerate an API token to immediately roll the credential and receive a new token
 
 ### Changed
 
@@ -34,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Captions will also use the configured caption label and prefix and show the caption text–e.g., `Figure # — Caption Contents`
   * Client logo objects will insert the client logo when available
     * Logos are set to a static 6.5" width to align with Office's default width and keep very large or wide logos under control
+* When editing an API token's expiration date, the form and back-end now enforce the *Maximum Token Lifetime in Days* setting
+* The `whoami` query now works with service tokens
 
 ## [7.2.0] - 30 June 2026
 
