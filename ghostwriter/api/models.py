@@ -554,7 +554,7 @@ class ServiceTokenManager(models.Manager):
         )
         if updated:
             token.last_used_at = used_at
-            logger.info("Recorded last-used timestamp for service token %s", token.pk)
+            logger.debug("Recorded last-used timestamp for service token %s", token.pk)
         return bool(updated)
 
     def is_valid(self, token: str) -> bool:
