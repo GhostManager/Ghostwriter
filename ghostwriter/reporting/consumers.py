@@ -17,7 +17,7 @@ def user_can_access_report(report_id, user):
         return False
     try:
         report = Report.objects.get(pk=report_id)
-    except Report.DoesNotExist:
+    except (Report.DoesNotExist, ValueError, TypeError):
         return False
     return report.user_can_view(user)
 
@@ -28,7 +28,7 @@ def user_can_access_report_finding(finding_id, user):
         return False
     try:
         finding = ReportFindingLink.objects.get(pk=finding_id)
-    except ReportFindingLink.DoesNotExist:
+    except (ReportFindingLink.DoesNotExist, ValueError, TypeError):
         return False
     return finding.user_can_view(user)
 
