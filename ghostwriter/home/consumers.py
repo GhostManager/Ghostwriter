@@ -37,10 +37,8 @@ class UserConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
-        if self.user.is_active:
+        if self.user and self.user_group_name and self.user.is_active:
             await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
-        else:
-            pass
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
