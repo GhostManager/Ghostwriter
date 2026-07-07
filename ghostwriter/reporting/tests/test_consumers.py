@@ -45,6 +45,12 @@ class ReportingConsumerAccessTests(TestCase):
     def test_missing_report_denies_socket_access(self):
         self.assertFalse(user_can_access_report(0, self.user))
 
+    def test_non_integer_report_id_denies_socket_access(self):
+        self.assertFalse(user_can_access_report("abc", self.user))
+
+    def test_none_report_id_denies_socket_access(self):
+        self.assertFalse(user_can_access_report(None, self.user))
+
     def test_assigned_user_can_access_report_finding_socket(self):
         self.assertTrue(user_can_access_report_finding(self.finding.id, self.user))
 
@@ -60,3 +66,9 @@ class ReportingConsumerAccessTests(TestCase):
 
     def test_missing_report_finding_denies_socket_access(self):
         self.assertFalse(user_can_access_report_finding(0, self.user))
+
+    def test_non_integer_finding_id_denies_socket_access(self):
+        self.assertFalse(user_can_access_report_finding("abc", self.user))
+
+    def test_none_finding_id_denies_socket_access(self):
+        self.assertFalse(user_can_access_report_finding(None, self.user))
