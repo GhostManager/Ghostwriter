@@ -138,7 +138,7 @@ class BaseAPIKeyManager(models.Manager):
         )
         if updated:
             token.last_used_at = used_at
-            logger.info("Recorded last-used timestamp for API token %s", token.pk)
+            logger.debug("Recorded last-used timestamp for API token %s", token.pk)
         return bool(updated)
 
 
