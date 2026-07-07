@@ -323,7 +323,7 @@ class GeneralConfigurationTests(TestCase):
         # Read
         self.assertEqual(entry.default_timezone, zoneinfo.ZoneInfo("UTC"))
         self.assertEqual(entry.pk, 1)
-        self.assertFalse(entry.token_extend_requires_rotation)
+        self.assertTrue(entry.token_extend_requires_rotation)
         self.assertEqual(entry.token_max_lifetime_days, 365)
 
         # Update
