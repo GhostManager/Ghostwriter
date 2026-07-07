@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * When editing an API token's expiration date, the form and back-end now enforce the *Maximum Token Lifetime in Days* setting
 * The `whoami` query now works with service tokens
 
+### Fixed
+
+* Removed tags from autocomplete suggestions in filters so they work as expected when selecting them (Fixes #927)
+
 ## [7.2.0] - 30 June 2026
 
 ### Added
