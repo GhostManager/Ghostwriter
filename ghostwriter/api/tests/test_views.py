@@ -34,6 +34,7 @@ from ghostwriter.api.models import (
     UserSession,
 )
 from ghostwriter.api.views import HasuraActionView, JwtRequiredMixin
+from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.factories import (
     ActivityTypeFactory,
     BlankReportFindingLinkFactory,
@@ -1405,6 +1406,29 @@ class HasuraWhoamiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         # Test bypasses Hasura so the ``["data"]["whoami"]`` keys are not present
         self.assertEqual(response.json()["username"], self.user.username)
+
+    def test_graphql_whoami_with_service_token(self):
+        service_principal = ServicePrincipal.objects.create(
+            name="Automation Principal",
+            created_by=self.user,
+        )
+        _, service_token = ServiceToken.objects.create_token(
+            name="Automation Token",
+            created_by=self.user,
+            service_principal=service_principal,
+            permissions=[],
+        )
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {service_token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["username"], service_principal.name)
+        self.assertEqual(response.json()["role"], "service")
 
 
 class HasuraGenerateReportTests(TestCase):
@@ -3649,19 +3673,166 @@ class ApiKeyExpiryUpdateTests(TestCase):
         )
 
     def setUp(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = False
+        config.save(update_fields=["token_extend_requires_rotation"])
         self.client = Client()
         self.client_auth = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
         )
 
-    def test_updates_expired_token_to_future_expiry(self):
+    def test_expired_token_future_expiry_extends_without_rotation_by_default(self):
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
             microsecond=0
         )
         old_token = self.token
-        old_identifier = self.token_obj.identifier
         old_prefix = self.token_obj.token_prefix
+        old_identifier = self.token_obj.identifier
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.token_obj.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(self.token_obj.expiry_date).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
+            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+        self.assertEqual(self.token_obj.identifier, old_identifier)
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertTrue(APIKey.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "api-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
+
+    def test_shortens_active_token_without_rotation(self):
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = APIKey.objects.create_token(
+            user=self.user,
+            name="Active Token",
+            expiry_date=current_expiry,
+        )
+        token_obj.last_used_at = timezone.now() - timedelta(days=1)
+        token_obj.save(update_fields=["last_used_at"])
+        old_identifier = token_obj.identifier
+        old_prefix = token_obj.token_prefix
+        shorter_expiry = timezone.localtime(timezone.now() + timedelta(days=3)).replace(
+            microsecond=0
+        )
+        response = self.client_auth.post(
+            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": shorter_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        token_obj.refresh_from_db()
+        self.assertEqual(token_obj.identifier, old_identifier)
+        self.assertEqual(token_obj.token_prefix, old_prefix)
+        self.assertIsNotNone(token_obj.last_used_at)
+        self.assertTrue(APIKey.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "api-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
+
+    def test_extends_active_token_without_rotation_by_default(self):
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = APIKey.objects.create_token(
+            user=self.user,
+            name="Active Token",
+            expiry_date=current_expiry,
+        )
+        old_identifier = token_obj.identifier
+        old_prefix = token_obj.token_prefix
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+
+        response = self.client_auth.post(
+            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+        auth_response = self.client.post(
+            reverse("api:graphql_test"),
+            data={
+                "input": {
+                    "id": 1,
+                    "function": "test_func",
+                    "args": {},
+                }
+            },
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {old_token}",
+            },
+        )
+        token_obj.refresh_from_db()
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.assertEqual(token_obj.identifier, old_identifier)
+        self.assertEqual(token_obj.token_prefix, old_prefix)
+        self.assertEqual(auth_response.status_code, 200)
+
+    def test_extending_active_token_rotates_when_required_by_settings(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = True
+        config.save(update_fields=["token_extend_requires_rotation"])
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = APIKey.objects.create_token(
+            user=self.user,
+            name="Active Token",
+            expiry_date=current_expiry,
+        )
+        old_identifier = token_obj.identifier
+        old_prefix = token_obj.token_prefix
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+
+        response = self.client_auth.post(
+            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        token_obj.refresh_from_db()
+        self.assertNotEqual(token_obj.identifier, old_identifier)
+        self.assertNotEqual(token_obj.token_prefix, old_prefix)
+        self.assertFalse(APIKey.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "api-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 1)
+        self.assertTrue(APIKey.objects.is_valid(str(replacement_messages[0])))
+
+    def test_expired_token_future_expiry_rotates_when_required_by_settings(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = True
+        config.save(update_fields=["token_extend_requires_rotation"])
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+        old_token = self.token
+        old_prefix = self.token_obj.token_prefix
+        old_identifier = self.token_obj.identifier
         response = self.client_auth.post(
             self.uri,
             data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
@@ -3684,84 +3855,106 @@ class ApiKeyExpiryUpdateTests(TestCase):
             if "api-token" in message.tags and "replacement-token" in message.tags
         ]
         self.assertEqual(len(replacement_messages), 1)
-        replacement_token = str(replacement_messages[0])
-        self.assertTrue(replacement_token.startswith(f"{APIKey.objects.token_prefix}_"))
-        self.assertTrue(APIKey.objects.is_valid(replacement_token))
+        self.assertTrue(APIKey.objects.is_valid(str(replacement_messages[0])))
 
-    def test_updates_active_token_replaces_current_token(self):
-        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+    def test_regenerate_active_token_rejects_previous_token_for_authentication(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
             microsecond=0
         )
         token_obj, old_token = APIKey.objects.create_token(
             user=self.user,
             name="Active Token",
-            expiry_date=current_expiry,
+            expiry_date=future_expiry,
         )
-        token_obj.last_used_at = timezone.now() - timedelta(days=1)
-        token_obj.save(update_fields=["last_used_at"])
         old_identifier = token_obj.identifier
         old_prefix = token_obj.token_prefix
-        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
-            microsecond=0
-        )
+
         response = self.client_auth.post(
-            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
-            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+            reverse("api:regenerate_token", kwargs={"pk": token_obj.pk}),
         )
 
         self.assertRedirects(response, self.redirect_uri)
         token_obj.refresh_from_db()
         self.assertNotEqual(token_obj.identifier, old_identifier)
         self.assertNotEqual(token_obj.token_prefix, old_prefix)
-        self.assertIsNone(token_obj.last_used_at)
+        self.assertEqual(token_obj.expiry_date, future_expiry)
+        self.assertFalse(APIKey.objects.is_valid(old_token))
+
+    def test_ajax_regenerate_active_token_returns_replacement_token_without_redirect(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = APIKey.objects.create_token(
+            user=self.user,
+            name="Active Token",
+            expiry_date=future_expiry,
+        )
+        old_identifier = token_obj.identifier
+        old_prefix = token_obj.token_prefix
+
+        response = self.client_auth.post(
+            reverse("api:regenerate_token", kwargs={"pk": token_obj.pk}),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["result"], "success")
+        self.assertEqual(
+            response.json()["message"],
+            "API token regenerated. Please record your new token value.",
+        )
+        self.assertTrue(APIKey.objects.is_valid(response.json()["replacementToken"]))
+        token_obj.refresh_from_db()
+        self.assertNotEqual(token_obj.identifier, old_identifier)
+        self.assertNotEqual(token_obj.token_prefix, old_prefix)
+        self.assertEqual(token_obj.expiry_date, future_expiry)
         self.assertFalse(APIKey.objects.is_valid(old_token))
         replacement_messages = [
             message
             for message in get_messages(response.wsgi_request)
             if "api-token" in message.tags and "replacement-token" in message.tags
         ]
-        self.assertEqual(len(replacement_messages), 1)
-        self.assertTrue(APIKey.objects.is_valid(str(replacement_messages[0])))
+        self.assertEqual(len(replacement_messages), 0)
 
-    def test_updates_active_token_rejects_previous_token_for_authentication(self):
-        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
-            microsecond=0
-        )
-        token_obj, old_token = APIKey.objects.create_token(
-            user=self.user,
-            name="Active Token",
-            expiry_date=current_expiry,
-        )
-        old_identifier = token_obj.identifier
-        old_prefix = token_obj.token_prefix
-        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
-            microsecond=0
+    def test_regenerate_expired_token_is_rejected(self):
+        old_identifier = self.token_obj.identifier
+        old_prefix = self.token_obj.token_prefix
+        old_secret_hash = self.token_obj.secret_hash
+        response = self.client_auth.post(
+            reverse("api:regenerate_token", kwargs={"pk": self.token_obj.pk}),
         )
 
-        self.client_auth.post(
-            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
-            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
-        )
-        response = self.client.post(
-            reverse("api:graphql_test"),
-            data={
-                "input": {
-                    "id": 1,
-                    "function": "test_func",
-                    "args": {},
-                }
-            },
-            content_type="application/json",
-            **{
-                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
-                "HTTP_AUTHORIZATION": f"Bearer {old_token}",
-            },
-        )
-        token_obj.refresh_from_db()
+        self.assertRedirects(response, self.redirect_uri)
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.identifier, old_identifier)
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "api-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
 
-        self.assertNotEqual(token_obj.identifier, old_identifier)
-        self.assertNotEqual(token_obj.token_prefix, old_prefix)
-        self.assertEqual(response.status_code, 401)
+    def test_ajax_regenerate_expired_token_is_rejected_without_redirect(self):
+        old_identifier = self.token_obj.identifier
+        old_prefix = self.token_obj.token_prefix
+        old_secret_hash = self.token_obj.secret_hash
+        response = self.client_auth.post(
+            reverse("api:regenerate_token", kwargs={"pk": self.token_obj.pk}),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["result"], "error")
+        self.assertEqual(
+            response.json()["message"],
+            "Expired tokens must have expiry extended before regeneration.",
+        )
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.identifier, old_identifier)
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
 
     def test_rejects_past_expiry(self):
         old_prefix = self.token_obj.token_prefix
@@ -3776,6 +3969,79 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.assertEqual(self.token_obj.expiry_date, self.expired_at)
         self.assertEqual(self.token_obj.token_prefix, old_prefix)
         self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
+
+    def test_ajax_rejects_past_expiry_without_redirect(self):
+        old_prefix = self.token_obj.token_prefix
+        old_secret_hash = self.token_obj.secret_hash
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": self.expired_at.strftime("%Y-%m-%dT%H:%M:%S")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["result"], "error")
+        self.assertIn("future expiry date", response.json()["message"])
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.expiry_date, self.expired_at)
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
+
+    def test_ajax_updates_expiry_without_redirect(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["result"], "success")
+        self.assertEqual(response.json()["message"], "API token expiry date updated.")
+        self.assertEqual(response.json()["replacementToken"], None)
+        self.assertIn("expiry", response.json())
+        self.token_obj.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(self.token_obj.expiry_date).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
+            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+
+    def test_ajax_extending_token_rotation_returns_replacement_without_message(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = True
+        config.save(update_fields=["token_extend_requires_rotation"])
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = APIKey.objects.create_token(
+            user=self.user,
+            name="Active Token",
+            expiry_date=current_expiry,
+        )
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+
+        response = self.client_auth.post(
+            reverse("api:update_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["result"], "success")
+        self.assertTrue(APIKey.objects.is_valid(response.json()["replacementToken"]))
+        self.assertFalse(APIKey.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "api-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
@@ -3868,6 +4134,17 @@ class ApiKeyCreateTests(TestCase):
         self.assertRedirects(response, self.redirect_uri)
         obj = APIKey.objects.get(name="CreateView Test")
         self.assertEqual(obj.user, self.user)
+
+    def test_post_rejects_expiry_beyond_max_lifetime(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "name": "Too Long",
+                "expiry_date": datetime.now() + timedelta(days=366),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(APIKey.objects.filter(name="Too Long").exists())
 
 
 class ServiceTokenRevokeTests(TestCase):
@@ -3971,16 +4248,21 @@ class ServiceTokenExpiryUpdateTests(TestCase):
         )
 
     def setUp(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = False
+        config.save(update_fields=["token_extend_requires_rotation"])
         self.client = Client()
         self.client_auth = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
         )
 
-    def test_updates_expired_service_token_to_future_expiry(self):
+    def test_expired_service_token_future_expiry_extends_without_rotation_by_default(self):
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
             microsecond=0
         )
+        old_token = self.token
+        old_prefix = self.token_obj.token_prefix
         response = self.client_auth.post(
             self.uri,
             data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
@@ -3994,7 +4276,205 @@ class ServiceTokenExpiryUpdateTests(TestCase):
             ),
             future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
         )
-        self.assertTrue(ServiceToken.objects.is_valid(self.token))
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertTrue(ServiceToken.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "service-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
+
+    def test_extends_active_service_token_without_rotation_by_default(self):
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = ServiceToken.objects.create_token(
+            name="Active Service Token",
+            created_by=self.user,
+            service_principal=self.principal,
+            expiry_date=current_expiry,
+        )
+        old_prefix = token_obj.token_prefix
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+
+        response = self.client_auth.post(
+            reverse("api:update_service_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        token_obj.refresh_from_db()
+        self.assertEqual(token_obj.token_prefix, old_prefix)
+        self.assertTrue(ServiceToken.objects.is_valid(old_token))
+
+    def test_extending_active_service_token_rotates_when_required_by_settings(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = True
+        config.save(update_fields=["token_extend_requires_rotation"])
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = ServiceToken.objects.create_token(
+            name="Active Service Token",
+            created_by=self.user,
+            service_principal=self.principal,
+            expiry_date=current_expiry,
+        )
+        old_prefix = token_obj.token_prefix
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+
+        response = self.client_auth.post(
+            reverse("api:update_service_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        token_obj.refresh_from_db()
+        self.assertNotEqual(token_obj.token_prefix, old_prefix)
+        self.assertFalse(ServiceToken.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "service-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 1)
+        self.assertTrue(ServiceToken.objects.is_valid(str(replacement_messages[0])))
+
+    def test_expired_service_token_future_expiry_rotates_when_required_by_settings(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = True
+        config.save(update_fields=["token_extend_requires_rotation"])
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+        old_token = self.token
+        old_prefix = self.token_obj.token_prefix
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.token_obj.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(self.token_obj.expiry_date).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
+            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+        self.assertNotEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertFalse(ServiceToken.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "service-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 1)
+        self.assertTrue(ServiceToken.objects.is_valid(str(replacement_messages[0])))
+
+    def test_regenerate_service_token_rejects_previous_token(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = ServiceToken.objects.create_token(
+            name="Active Service Token",
+            created_by=self.user,
+            service_principal=self.principal,
+            expiry_date=future_expiry,
+        )
+        old_prefix = token_obj.token_prefix
+
+        response = self.client_auth.post(
+            reverse("api:regenerate_service_token", kwargs={"pk": token_obj.pk}),
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        token_obj.refresh_from_db()
+        self.assertNotEqual(token_obj.token_prefix, old_prefix)
+        self.assertEqual(token_obj.expiry_date, future_expiry)
+        self.assertFalse(ServiceToken.objects.is_valid(old_token))
+
+    def test_ajax_regenerate_service_token_returns_replacement_token_without_redirect(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = ServiceToken.objects.create_token(
+            name="Active Service Token",
+            created_by=self.user,
+            service_principal=self.principal,
+            expiry_date=future_expiry,
+        )
+        old_prefix = token_obj.token_prefix
+
+        response = self.client_auth.post(
+            reverse("api:regenerate_service_token", kwargs={"pk": token_obj.pk}),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["result"], "success")
+        self.assertEqual(
+            response.json()["message"],
+            "Service token regenerated. Please record your new token value.",
+        )
+        self.assertTrue(
+            ServiceToken.objects.is_valid(response.json()["replacementToken"])
+        )
+        token_obj.refresh_from_db()
+        self.assertNotEqual(token_obj.token_prefix, old_prefix)
+        self.assertEqual(token_obj.expiry_date, future_expiry)
+        self.assertFalse(ServiceToken.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "service-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
+
+    def test_regenerate_expired_service_token_is_rejected(self):
+        old_prefix = self.token_obj.token_prefix
+        old_secret_hash = self.token_obj.secret_hash
+        response = self.client_auth.post(
+            reverse(
+                "api:regenerate_service_token", kwargs={"pk": self.token_obj.pk}
+            ),
+        )
+
+        self.assertRedirects(response, self.redirect_uri)
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "service-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
+
+    def test_ajax_regenerate_expired_service_token_is_rejected_without_redirect(self):
+        old_prefix = self.token_obj.token_prefix
+        old_secret_hash = self.token_obj.secret_hash
+        response = self.client_auth.post(
+            reverse(
+                "api:regenerate_service_token", kwargs={"pk": self.token_obj.pk}
+            ),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["result"], "error")
+        self.assertEqual(
+            response.json()["message"],
+            "Expired tokens must have expiry extended before regeneration.",
+        )
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
@@ -4031,6 +4511,84 @@ class ServiceTokenExpiryUpdateTests(TestCase):
         self.revoked_token_obj.refresh_from_db()
         self.assertTrue(self.revoked_token_obj.revoked)
         self.assertEqual(self.revoked_token_obj.expiry_date, self.expired_at)
+
+    def test_ajax_rejects_past_service_token_expiry_without_redirect(self):
+        old_prefix = self.token_obj.token_prefix
+        old_secret_hash = self.token_obj.secret_hash
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": self.expired_at.strftime("%Y-%m-%dT%H:%M:%S")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["result"], "error")
+        self.assertIn("future expiry date", response.json()["message"])
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.expiry_date, self.expired_at)
+        self.assertEqual(self.token_obj.token_prefix, old_prefix)
+        self.assertEqual(self.token_obj.secret_hash, old_secret_hash)
+
+    def test_ajax_updates_service_token_expiry_without_redirect(self):
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+        response = self.client_auth.post(
+            self.uri,
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["result"], "success")
+        self.assertEqual(
+            response.json()["message"], "Service token expiry date updated."
+        )
+        self.assertEqual(response.json()["replacementToken"], None)
+        self.assertIn("expiry", response.json())
+        self.token_obj.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(self.token_obj.expiry_date).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
+            future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+
+    def test_ajax_extending_service_token_rotation_returns_replacement_without_message(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = True
+        config.save(update_fields=["token_extend_requires_rotation"])
+        current_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
+            microsecond=0
+        )
+        token_obj, old_token = ServiceToken.objects.create_token(
+            name="Active Service Token",
+            created_by=self.user,
+            service_principal=self.principal,
+            expiry_date=current_expiry,
+        )
+        future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
+            microsecond=0
+        )
+
+        response = self.client_auth.post(
+            reverse("api:update_service_token_expiry", kwargs={"pk": token_obj.pk}),
+            data={"expiry_date": future_expiry.strftime("%Y-%m-%dT%H:%M:%S")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()["result"], "success")
+        self.assertTrue(
+            ServiceToken.objects.is_valid(response.json()["replacementToken"])
+        )
+        self.assertFalse(ServiceToken.objects.is_valid(old_token))
+        replacement_messages = [
+            message
+            for message in get_messages(response.wsgi_request)
+            if "service-token" in message.tags and "replacement-token" in message.tags
+        ]
+        self.assertEqual(len(replacement_messages), 0)
 
 
 class ServiceTokenCreateTests(TestCase):
@@ -4336,6 +4894,22 @@ class ServiceTokenCreateTests(TestCase):
         self.assertEqual(
             obj.get_scope_display(),
             "All Accessible Projects (Read-Only)",
+        )
+
+    def test_post_rejects_expiry_beyond_max_lifetime(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Too Long Service Token",
+                "service_principal": self.existing_principal.id,
+                "oplog": self.oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=366),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            ServiceToken.objects.filter(name="Too Long Service Token").exists()
         )
 
 

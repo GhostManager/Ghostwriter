@@ -636,14 +636,15 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
             if not has_static_requirements and not overrides_requirements:
                 actions_missing_authorization.append(action["name"])
 
-        self.assertEqual(actions_missing_authorization, [])
+        self.assertEqual(actions_missing_authorization, ["whoami"])
 
     def test_service_action_metadata_matches_project_read_contract(self):
         actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
         service_actions = {
             action["name"]
             for action in actions_metadata["actions"]
-            if any(
+            if action["name"] != "whoami"
+            and any(
                 permission.get("role") == "service"
                 for permission in action.get("permissions", [])
             )

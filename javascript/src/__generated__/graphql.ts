@@ -22421,7 +22421,7 @@ export type Query_Root = {
   whitecard_aggregate: Whitecard_Aggregate;
   /** fetch data from the table: "rolodex_whitecard" using primary key columns */
   whitecard_by_pk?: Maybe<Whitecard>;
-  /** User `whoami` query for JWT */
+  /** User `whoami` query for JWTs, API tokens, and service tokens */
   whoami?: Maybe<WhoamiOutput>;
   /** fetch data from the table: "shepherd_whoisstatus" */
   whoisStatus: Array<WhoisStatus>;

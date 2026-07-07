@@ -9,10 +9,12 @@ from ghostwriter.api.views import (
     ApiKeyCreate,
     APIKeyDetails,
     ApiKeyExpiryUpdate,
+    ApiKeyRegenerate,
     ApiKeyRevoke,
     ServiceTokenCreate,
     ServiceTokenDetails,
     ServiceTokenExpiryUpdate,
+    ServiceTokenRegenerate,
     ServiceTokenRevoke,
     GraphqlAttachFinding,
     GraphqlAuthenticationWebhook,
@@ -141,6 +143,7 @@ urlpatterns = [
         name="ajax_token_details",
     ),
     path("token/expiry/<int:pk>", ApiKeyExpiryUpdate.as_view(), name="update_token_expiry"),
+    path("token/regenerate/<int:pk>", ApiKeyRegenerate.as_view(), name="regenerate_token"),
     path("token/create", ApiKeyCreate.as_view(), name="ajax_create_token"),
     path(
         "ajax/service-token/details/<int:pk>",
@@ -149,6 +152,7 @@ urlpatterns = [
     ),
     path("ajax/service-token/revoke/<int:pk>", ServiceTokenRevoke.as_view(), name="ajax_revoke_service_token"),
     path("service-token/expiry/<int:pk>", ServiceTokenExpiryUpdate.as_view(), name="update_service_token_expiry"),
+    path("service-token/regenerate/<int:pk>", ServiceTokenRegenerate.as_view(), name="regenerate_service_token"),
     path("service-token/create", ServiceTokenCreate.as_view(), name="ajax_create_service_token"),
     path(
         "check_permissions",

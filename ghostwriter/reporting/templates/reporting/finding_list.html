@@ -259,7 +259,7 @@
     $(function () {
       let availableTitles = [
         {% for entry in autocomplete %}
-          '{{ entry.title|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
+          '{{ entry.title|escapejs }}',
         {% endfor %}
       ];
       $('#id_title').autocomplete({
