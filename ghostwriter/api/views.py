@@ -2274,7 +2274,6 @@ class TokenExpiryUpdateMixin(
             token.save(update_fields=self.rotated_update_fields + ["expiry_date"])
         else:
             replacement_token = self.update_token_expiry(token, expiry_date)
-        self.add_success_messages(replacement_token)
         logger.info(
             "%s %s %s expiry date by request of %s%s",
             token.__class__.__name__,
@@ -2285,6 +2284,7 @@ class TokenExpiryUpdateMixin(
         )
         if self.is_ajax_request():
             return self.get_ajax_success_response(token, replacement_token)
+        self.add_success_messages(replacement_token)
         return redirect(self.get_success_url())
 
 
@@ -2390,6 +2390,14 @@ class TokenRegenerateMixin(utils.RoleBasedAccessControlMixin, SingleObjectMixin,
 
         replacement_token = self.rotate_token(token)
         token.save(update_fields=self.rotated_update_fields)
+        logger.info(
+            "Regenerated %s %s by request of %s",
+            token.__class__.__name__,
+            token.id,
+            self.request.user,
+        )
+        if self.is_ajax_request():
+            return self.get_ajax_success_response(replacement_token)
         messages.info(
             self.request,
             replacement_token,
@@ -2400,14 +2408,6 @@ class TokenRegenerateMixin(utils.RoleBasedAccessControlMixin, SingleObjectMixin,
             self.success_message,
             extra_tags="alert-success",
         )
-        logger.info(
-            "Regenerated %s %s by request of %s",
-            token.__class__.__name__,
-            token.id,
-            self.request.user,
-        )
-        if self.is_ajax_request():
-            return self.get_ajax_success_response(replacement_token)
         return redirect(self.get_success_url())
 
 
