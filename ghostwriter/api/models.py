@@ -77,6 +77,7 @@ class BaseAPIKeyManager(models.Manager):
         obj = self.model(**kwargs)
         _, token = self.generate_token(obj)
         obj.save()
+        logger.info("Created API token %s (%s) for user %s", obj.pk, obj.name, obj.user_id)
         return obj, token
 
     def get_usable_keys(self) -> models.QuerySet:
@@ -137,6 +138,7 @@ class BaseAPIKeyManager(models.Manager):
         )
         if updated:
             token.last_used_at = used_at
+            logger.info("Recorded last-used timestamp for API token %s", token.pk)
         return bool(updated)
 
 
@@ -381,7 +383,20 @@ class ServiceTokenManager(models.Manager):
             obj.save()
             if permissions:
                 self._create_permissions(obj, permissions)
+        logger.info(
+            "Created service token %s (%s) for service principal %s",
+            obj.pk,
+            obj.name,
+            obj.service_principal_id,
+        )
         return obj, token
+
+    def generate_token(self, obj: "ServiceToken") -> tuple[None, str]:
+        prefix, secret, token = self._build_token()
+        obj.token_prefix = prefix
+        obj.secret_hash = make_password(secret)
+        obj.last_used_at = None
+        return None, token
 
     def _create_permissions(
         self, token: "ServiceToken", permissions: list[dict[str, typing.Any]]
@@ -539,6 +554,7 @@ class ServiceTokenManager(models.Manager):
         )
         if updated:
             token.last_used_at = used_at
+            logger.info("Recorded last-used timestamp for service token %s", token.pk)
         return bool(updated)
 
     def is_valid(self, token: str) -> bool:

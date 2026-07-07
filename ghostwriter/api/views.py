@@ -24,6 +24,8 @@ from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone as django_timezone
+from django.utils.formats import date_format
 from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView
@@ -2161,6 +2163,7 @@ class TokenExpiryUpdateMixin(
     form_class = TokenExpiryForm
     success_message = "Token expiry date updated."
     revoked_message = "Revoked tokens cannot be updated."
+    token_message_tag = "api-token"
 
     def get_success_url(self):
         return reverse(
@@ -2176,12 +2179,31 @@ class TokenExpiryUpdateMixin(
         token.save(update_fields=["expiry_date"])
         return None
 
+    def rotate_token(self, token):
+        raise NotImplementedError
+
+    def should_rotate_for_expiry_change(self, token, expiry_date):
+        if token.expiry_date is None:
+            return False
+        if expiry_date <= token.expiry_date:
+            return False
+        return GeneralConfiguration.get_solo().token_extend_requires_rotation
+
+    def get_expiry_change_label(self, token, expiry_date):
+        if token.expiry_date is None:
+            return "updated"
+        if expiry_date > token.expiry_date:
+            return "extended"
+        if expiry_date < token.expiry_date:
+            return "shortened"
+        return "unchanged"
+
     def add_success_messages(self, replacement_token=None):
         if replacement_token:
             messages.info(
                 self.request,
                 replacement_token,
-                extra_tags="api-token replacement-token no-toast",
+                extra_tags=f"{self.token_message_tag} replacement-token no-toast",
             )
         messages.success(
             self.request,
@@ -2189,9 +2211,38 @@ class TokenExpiryUpdateMixin(
             extra_tags="alert-success",
         )
 
+    def is_ajax_request(self):
+        return self.request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+    def get_expiry_status_class(self, token):
+        if token.has_expired:
+            return "burned js-expired-token"
+        if token.expires_soon:
+            return "warning"
+        return ""
+
+    def get_ajax_success_response(self, token, replacement_token=None):
+        return JsonResponse(
+            {
+                "result": "success",
+                "message": self.success_message,
+                "expiry": date_format(
+                    django_timezone.localtime(token.expiry_date),
+                    "d M Y @ H:i:s e",
+                ),
+                "expiryStatusClass": self.get_expiry_status_class(token),
+                "replacementToken": replacement_token,
+            }
+        )
+
     def post(self, *args, **kwargs):
         token = self.get_object()
         if token.revoked:
+            if self.is_ajax_request():
+                return JsonResponse(
+                    {"result": "error", "message": self.revoked_message},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
             messages.error(
                 self.request, self.revoked_message, extra_tags="alert-danger"
             )
@@ -2199,24 +2250,41 @@ class TokenExpiryUpdateMixin(
 
         form = self.form_class(self.request.POST)
         if not form.is_valid():
+            if self.is_ajax_request():
+                return JsonResponse(
+                    {
+                        "result": "error",
+                        "message": "Choose a future expiry date within the configured token lifetime.",
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
             messages.error(
                 self.request,
-                "Choose a future expiry date for this token.",
+                "Choose a future expiry date within the configured token lifetime.",
                 extra_tags="alert-danger",
             )
             return redirect(self.get_success_url())
 
-        replacement_token = self.update_token_expiry(
-            token,
-            form.cleaned_data["expiry_date"],
-        )
+        expiry_date = form.cleaned_data["expiry_date"]
+        change_label = self.get_expiry_change_label(token, expiry_date)
+        should_rotate = self.should_rotate_for_expiry_change(token, expiry_date)
+        if should_rotate:
+            replacement_token = self.rotate_token(token)
+            token.expiry_date = expiry_date
+            token.save(update_fields=self.rotated_update_fields + ["expiry_date"])
+        else:
+            replacement_token = self.update_token_expiry(token, expiry_date)
         self.add_success_messages(replacement_token)
         logger.info(
-            "Updated %s %s expiry date by request of %s",
+            "%s %s %s expiry date by request of %s%s",
             token.__class__.__name__,
             token.id,
+            change_label,
             self.request.user,
+            " with credential rotation" if should_rotate else "",
         )
+        if self.is_ajax_request():
+            return self.get_ajax_success_response(token, replacement_token)
         return redirect(self.get_success_url())
 
 
@@ -2224,28 +2292,23 @@ class ApiKeyExpiryUpdate(TokenExpiryUpdateMixin):
     """Update an individual :model:`api.APIKey` expiry date."""
 
     model = APIKey
-    success_message = (
-        "API token expiry date updated. Please record your new token value."
-    )
+    success_message = "API token expiry date updated."
     revoked_message = "Revoked API tokens cannot be updated."
+    token_message_tag = "api-token"
+    rotated_update_fields = [
+        "identifier",
+        "token_prefix",
+        "secret_hash",
+        "token",
+        "last_used_at",
+    ]
 
     def test_func(self):
         return self.get_object().user_id == self.request.user.id
 
-    def update_token_expiry(self, token, expiry_date):
-        token.expiry_date = expiry_date
+    def rotate_token(self, token):
         token.identifier = uuid.uuid4()
         _, replacement_token = APIKey.objects.generate_token(token)
-        token.save(
-            update_fields=[
-                "expiry_date",
-                "identifier",
-                "token_prefix",
-                "secret_hash",
-                "token",
-                "last_used_at",
-            ]
-        )
         return replacement_token
 
 
@@ -2255,9 +2318,142 @@ class ServiceTokenExpiryUpdate(TokenExpiryUpdateMixin):
     model = ServiceToken
     success_message = "Service token expiry date updated."
     revoked_message = "Revoked service tokens cannot be updated."
+    token_message_tag = "service-token"
+    rotated_update_fields = [
+        "token_prefix",
+        "secret_hash",
+        "last_used_at",
+    ]
 
     def test_func(self):
         return self.get_object().created_by_id == self.request.user.id
+
+    def rotate_token(self, token):
+        _, replacement_token = ServiceToken.objects.generate_token(token)
+        return replacement_token
+
+
+class TokenRegenerateMixin(utils.RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Rotate an opaque token credential without changing expiry or scope."""
+
+    success_message = "Token regenerated. Please record your new token value."
+    revoked_message = "Revoked tokens cannot be regenerated."
+    expired_message = "Expired tokens must have expiry extended before regeneration."
+    token_message_tag = "api-token"
+
+    def get_success_url(self):
+        return reverse(
+            "users:user_detail", kwargs={"username": self.request.user.username}
+        )
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def rotate_token(self, token):
+        raise NotImplementedError
+
+    def is_ajax_request(self):
+        return self.request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+    def get_ajax_error_response(self, message):
+        return JsonResponse(
+            {"result": "error", "message": message},
+            status=HTTPStatus.BAD_REQUEST,
+        )
+
+    def get_ajax_success_response(self, replacement_token):
+        return JsonResponse(
+            {
+                "result": "success",
+                "message": self.success_message,
+                "replacementToken": replacement_token,
+            }
+        )
+
+    def post(self, *args, **kwargs):
+        token = self.get_object()
+        if token.revoked:
+            if self.is_ajax_request():
+                return self.get_ajax_error_response(self.revoked_message)
+            messages.error(
+                self.request, self.revoked_message, extra_tags="alert-danger"
+            )
+            return redirect(self.get_success_url())
+        if token.has_expired:
+            if self.is_ajax_request():
+                return self.get_ajax_error_response(self.expired_message)
+            messages.error(
+                self.request, self.expired_message, extra_tags="alert-danger"
+            )
+            return redirect(self.get_success_url())
+
+        replacement_token = self.rotate_token(token)
+        token.save(update_fields=self.rotated_update_fields)
+        messages.info(
+            self.request,
+            replacement_token,
+            extra_tags=f"{self.token_message_tag} replacement-token no-toast",
+        )
+        messages.success(
+            self.request,
+            self.success_message,
+            extra_tags="alert-success",
+        )
+        logger.info(
+            "Regenerated %s %s by request of %s",
+            token.__class__.__name__,
+            token.id,
+            self.request.user,
+        )
+        if self.is_ajax_request():
+            return self.get_ajax_success_response(replacement_token)
+        return redirect(self.get_success_url())
+
+
+class ApiKeyRegenerate(TokenRegenerateMixin):
+    """Regenerate an individual :model:`api.APIKey` credential."""
+
+    model = APIKey
+    success_message = "API token regenerated. Please record your new token value."
+    revoked_message = "Revoked API tokens cannot be regenerated."
+    token_message_tag = "api-token"
+    rotated_update_fields = [
+        "identifier",
+        "token_prefix",
+        "secret_hash",
+        "token",
+        "last_used_at",
+    ]
+
+    def test_func(self):
+        return self.get_object().user_id == self.request.user.id
+
+    def rotate_token(self, token):
+        token.identifier = uuid.uuid4()
+        _, replacement_token = APIKey.objects.generate_token(token)
+        return replacement_token
+
+
+class ServiceTokenRegenerate(TokenRegenerateMixin):
+    """Regenerate an individual :model:`api.ServiceToken` credential."""
+
+    model = ServiceToken
+    success_message = "Service token regenerated. Please record your new token value."
+    revoked_message = "Revoked service tokens cannot be regenerated."
+    token_message_tag = "service-token"
+    rotated_update_fields = [
+        "token_prefix",
+        "secret_hash",
+        "last_used_at",
+    ]
+
+    def test_func(self):
+        return self.get_object().created_by_id == self.request.user.id
+
+    def rotate_token(self, token):
+        _, replacement_token = ServiceToken.objects.generate_token(token)
+        return replacement_token
 
 
 ##################
@@ -2299,6 +2495,7 @@ class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
             _, token = APIKey.objects.create_token(
                 name=name, user=self.request.user, expiry_date=expiry
             )
+            logger.info("Created API token by request of %s", self.request.user)
             messages.info(
                 self.request,
                 token,
@@ -2378,6 +2575,11 @@ class ServiceTokenCreate(utils.RoleBasedAccessControlMixin, FormView):
                 service_principal=principal,
                 expiry_date=expiry,
                 permissions=permissions,
+            )
+            logger.info(
+                "Created service token for service principal %s by request of %s",
+                principal.pk,
+                self.request.user,
             )
             messages.info(
                 self.request,

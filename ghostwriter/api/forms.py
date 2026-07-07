@@ -28,6 +28,7 @@ from ghostwriter.api.models import (
     ServiceTokenProjectScope,
 )
 from ghostwriter.api.utils import get_client_list
+from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import (
     Evidence,
@@ -43,6 +44,19 @@ from ghostwriter.reporting.validators import (
 from ghostwriter.rolodex.models import Client, Project
 
 logger = logging.getLogger(__name__)
+
+
+def validate_token_max_lifetime(expiry_date):
+    """Validate that the token expiration date is within the maximum allowed lifetime."""
+    if expiry_date is None:
+        return
+    general_config = GeneralConfiguration.get_solo()
+    max_expiry_date = general_config.token_max_expiry_date()
+    if expiry_date > max_expiry_date:
+        raise ValidationError(
+            f"Token expiration cannot be more than {general_config.token_max_lifetime_days} days from now",
+            code="max_token_lifetime",
+        )
 
 
 class ApiKeyForm(forms.Form):
@@ -110,6 +124,7 @@ class ApiKeyForm(forms.Form):
                     "The API token expiration date cannot be in the past",
                     code="invalid_expiry_date",
                 )
+            validate_token_max_lifetime(expiry_date)
         return expiry_date
 
 
@@ -132,6 +147,7 @@ class TokenExpiryForm(forms.Form):
                 "The token expiration date cannot be in the past",
                 code="invalid_expiry_date",
             )
+        validate_token_max_lifetime(expiry_date)
         return expiry_date
 
 
@@ -319,6 +335,7 @@ class ServiceTokenForm(forms.Form):
                 "The service token expiration date cannot be in the past",
                 code="invalid_expiry_date",
             )
+        validate_token_max_lifetime(expiry_date)
         return expiry_date
 
     def clean_oplog(self):

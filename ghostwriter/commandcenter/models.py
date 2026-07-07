@@ -571,6 +571,7 @@ class GeneralConfiguration(SingletonModel):
     )
 
     def token_max_expiry_date(self):
+        """Return the current datetime plus the maximum token lifetime in days."""
         return timezone.now() + timedelta(days=self.token_max_lifetime_days)
 
     def __str__(self):
