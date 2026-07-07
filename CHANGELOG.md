@@ -22,10 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Clicking the _Preview_ buttons will now trigger the modal and a _Rendering rich text preview..._ loading message
   * It will take a moment to generate the context and render any Jinja2
   * If there are syntax errors, rendering will fail and there will be an error message
-* Added configuration options to the General Settings to control maximum API token lifetime and credential rotation
+* Added configuration options to the General Settings to control maximum token lifetime and credential rotation
   * Maximum Token Lifetime in Days (default: 365) limits how far into the future a token expiry date may be set
   * Require Token Rotation to Extend Expiry (default: True) forces token rotation when extending expiry
-* Added the option to regenerate an API token to immediately roll the credential and receive a new token
+* Added the option to regenerate API and service tokens to immediately roll the credential and receive a new token
 
 ### Changed
 
