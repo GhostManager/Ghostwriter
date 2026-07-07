@@ -260,6 +260,7 @@ class HasuraActionView(HasuraView):
     input = None
     required_inputs = []
     allow_large_input = False
+    allow_service_token = False
     service_token_permission_requirements = ()
 
     def get_service_token_permission_requirements(
@@ -348,6 +349,8 @@ class HasuraActionView(HasuraView):
         )
 
     def authorize_service_token_action(self) -> bool:
+        if self.allow_service_token:
+            return True
         requirements = self.get_service_token_permission_requirements()
         if not requirements:
             return False
@@ -814,8 +817,20 @@ class GraphqlLoginAction(HasuraActionView):
 class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
     """Endpoint for retrieving user data with the ``whoami`` action."""
 
+    allow_service_token = True
+
     def post(self, request, *args, **kwargs):
-        if self.api_key_obj:
+        if self.service_token_obj:
+            entry = self.service_token_obj
+            expiration = entry.expiry_date
+            if expiration is None:
+                expiration = "Never"
+            data = {
+                "username": f"{entry.service_principal.name}",
+                "role": "service",
+                "expires": f"{expiration}",
+            }
+        elif self.api_key_obj:
             entry = self.api_key_obj
             expiration = entry.expiry_date
             if expiration is None:

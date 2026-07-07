@@ -325,6 +325,7 @@ actions:
     permissions:
       - role: user
       - role: manager
+      - role: service
     comment: User `whoami` query for JWT
 custom_types:
   enums: []
