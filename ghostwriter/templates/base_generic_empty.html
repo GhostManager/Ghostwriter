@@ -113,6 +113,46 @@
     $(selector).modal('show');
   }
 
+  function moveFocusOutOfModal(modal) {
+    const activeElement = document.activeElement;
+
+    if (!modal || !activeElement || !modal.contains(activeElement)) {
+      return;
+    }
+
+    const bodyHadTabindex = document.body.hasAttribute('tabindex');
+    const previousBodyTabindex = document.body.getAttribute('tabindex');
+
+    activeElement.blur();
+    document.body.setAttribute('tabindex', '-1');
+    document.body.focus({preventScroll: true});
+
+    if (bodyHadTabindex) {
+      document.body.setAttribute('tabindex', previousBodyTabindex);
+    } else {
+      document.body.removeAttribute('tabindex');
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const dismissButton = target.closest('[data-dismiss="modal"]');
+    const modal = dismissButton ? dismissButton.closest('.modal') : null;
+
+    if (modal) {
+      moveFocusOutOfModal(modal);
+    }
+  }, true);
+
+  $(document).on('hide.bs.modal', '.modal', function () {
+    moveFocusOutOfModal(this);
+  });
+
   {% comment %} Handle AJAX errors {% endcomment %}
   (function($){
     $(document).on('ajaxError', function(event, xhr) {

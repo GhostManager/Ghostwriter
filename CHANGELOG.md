@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.1] - 9 July 2026
+
 ### Added
 
 * Added support for a new `--required-only` for loading seed data

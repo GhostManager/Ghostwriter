@@ -11,6 +11,17 @@ html {
   transition: background-color 0.5s ease, color 0.5s ease;
 }
 
+@supports (scrollbar-gutter: stable) {
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body.modal-open {
+    overflow: hidden;
+    padding-right: 0 !important;
+  }
+}
+
 body {
   font-family: 'Poppins', 'Font Awesome 5 Free', sans-serif;
   background: var(--main-bg-color);

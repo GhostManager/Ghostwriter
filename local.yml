@@ -62,7 +62,6 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
-      - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
       - GHOSTWRITER_MAX_FILE_SIZE=${GHOSTWRITER_MAX_FILE_SIZE:-10485760}
     logging:
       driver: "json-file"
@@ -75,7 +74,7 @@ services:
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
-    command: /start
+    command: /bin/sh /app/compose/local/django/start
 
   postgres:
     build:
