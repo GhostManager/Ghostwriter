@@ -502,9 +502,18 @@
       return;
     }
 
+    const bodyHadTabindex = document.body.hasAttribute('tabindex');
+    const previousBodyTabindex = document.body.getAttribute('tabindex');
+
     activeElement.blur();
     document.body.setAttribute('tabindex', '-1');
     document.body.focus({preventScroll: true});
+
+    if (bodyHadTabindex) {
+      document.body.setAttribute('tabindex', previousBodyTabindex);
+    } else {
+      document.body.removeAttribute('tabindex');
+    }
   }
 
   document.addEventListener('click', function (event) {
