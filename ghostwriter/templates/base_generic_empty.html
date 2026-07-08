@@ -126,7 +126,13 @@
   }
 
   document.addEventListener('click', function (event) {
-    const dismissButton = event.target.closest('[data-dismiss="modal"]');
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const dismissButton = target.closest('[data-dismiss="modal"]');
     const modal = dismissButton ? dismissButton.closest('.modal') : null;
 
     if (modal) {
