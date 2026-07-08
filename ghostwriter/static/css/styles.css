@@ -414,6 +414,11 @@ h6 {
     MODAL STYLES
 ----------------------------------------------------- */
 
+body.modal-open {
+  overflow: hidden;
+  padding-right: 0 !important;
+}
+
 #object-preview-content {
   font-style: italic;
   text-align: center;

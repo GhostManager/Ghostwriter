@@ -495,6 +495,31 @@
     $(selector).modal('show');
   }
 
+  function moveFocusOutOfModal(modal) {
+    const activeElement = document.activeElement;
+
+    if (!modal || !activeElement || !modal.contains(activeElement)) {
+      return;
+    }
+
+    activeElement.blur();
+    document.body.setAttribute('tabindex', '-1');
+    document.body.focus({preventScroll: true});
+  }
+
+  document.addEventListener('click', function (event) {
+    const dismissButton = event.target.closest('[data-dismiss="modal"]');
+    const modal = dismissButton ? dismissButton.closest('.modal') : null;
+
+    if (modal) {
+      moveFocusOutOfModal(modal);
+    }
+  }, true);
+
+  $(document).on('hide.bs.modal', '.modal', function () {
+    moveFocusOutOfModal(this);
+  });
+
   {% comment %} Handle AJAX errors {% endcomment %}
   (function ($) {
     $(document).on('ajaxError', function (event, xhr) {
