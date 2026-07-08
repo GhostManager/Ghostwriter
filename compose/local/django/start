@@ -24,4 +24,13 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py migrate_totp_device
 # python manage.py runserver 0.0.0.0:8000
-uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload
+exec uvicorn config.asgi:application \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --reload \
+  --reload-dir /app/config \
+  --reload-dir /app/ghostwriter \
+  --reload-include '*.py' \
+  --reload-include '*.html' \
+  --reload-include '*.css' \
+  --reload-include '*.js'
