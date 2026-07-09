@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.2] - 9 July 2026
+
+### Changed
+
+* Changed the Hasura GraphQL build to add a copy of BusyBox for health checks
+  * The Hasura base image uses Ubuntu Jammy, and installing `curl` during emulated `linux/arm64` builds can trigger `libc-bin` post-installation failures under QEMU
+  * The Hasura image no longer runs `apt-get` just to provide a health check command
+  * Hasura health checks now use the bundled BusyBox `wget` probe instead of `curl`
+
 ## [7.2.1] - 9 July 2026
 
 ### Added
