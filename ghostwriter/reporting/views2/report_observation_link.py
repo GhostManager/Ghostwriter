@@ -243,7 +243,10 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
         client = report.project.client
 
         try:
-            exporter = ExportReportJson(report)
+            exporter = ExportReportJson(
+                report,
+                include_bloodhound=report.include_bloodhound_data,
+            )
             base_context = exporter.map_rich_texts()
         except ReportExportTemplateError as error:
             return HttpResponse(

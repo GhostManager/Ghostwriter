@@ -2782,6 +2782,26 @@ class ReportFindingLinkPreviewTests(TestCase):
         self.assertNotIn("<h3>Description</h3>", content)
         self.assertNotIn("<h3>Impact</h3>", content)
 
+    def test_respects_report_bloodhound_setting(self):
+        report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+            include_bloodhound_data=False,
+        )
+        rfl = ReportFindingLinkFactory(
+            report=report,
+            title="BloodHound Probe",
+            description="{% if bloodhound is defined %}LEAKED{% else %}NO_BH{% endif %}",
+        )
+        uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("NO_BH", content)
+        self.assertNotIn("LEAKED", content)
+
 
 class ReportObservationLinkPreviewTests(TestCase):
     """Tests for :view:`reporting.ReportObservationLinkPreview`."""
@@ -2872,6 +2892,26 @@ class ReportObservationLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Bad Regex Obs", content)
         self.assertIn("Preview Error", content)
+
+    def test_respects_report_bloodhound_setting(self):
+        report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+            include_bloodhound_data=False,
+        )
+        rol = ReportObservationLinkFactory(
+            report=report,
+            title="BloodHound Probe",
+            description="{% if bloodhound is defined %}LEAKED{% else %}NO_BH{% endif %}",
+        )
+        uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("NO_BH", content)
+        self.assertNotIn("LEAKED", content)
 
 
 class ExtraFieldRichTextPreviewPermissionTests(TestCase):
