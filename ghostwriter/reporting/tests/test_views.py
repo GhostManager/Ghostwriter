@@ -4437,6 +4437,46 @@ class GenerateReportTests(TestCase):
             finding_row[headers.index("Supporting Evidence")], evidence.friendly_name
         )
 
+    def test_view_xlsx_prepares_supporting_evidence_names_once(self):
+        from unittest.mock import patch
+
+        from ghostwriter.reporting.views2 import report as report_views
+
+        class CountingExportReportXlsx(report_views.ExportReportXlsx):
+            prepare_calls = 0
+
+            def prepare_valid_evidence_names(self):
+                type(self).prepare_calls += 1
+                return super().prepare_valid_evidence_names()
+
+        evidence_names = []
+        for index in range(3):
+            evidence = EvidenceFactory(
+                report=self.report, friendly_name=f"XLSX Linked Evidence {index}"
+            )
+            evidence_names.append(evidence.friendly_name)
+            ReportFindingLinkFactory(
+                report=self.report,
+                title=f"Finding with XLSX evidence {index}",
+                description=f"<p>{{{{.ref {evidence.friendly_name}}}}}</p>",
+            )
+
+        with patch.object(report_views, "ExportReportXlsx", CountingExportReportXlsx):
+            response = self.client_mgr.get(self.xlsx_uri)
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(CountingExportReportXlsx.prepare_calls, 1)
+
+        rows = self._xlsx_rows(response)
+        headers = rows[0]
+        supporting_evidence_index = headers.index("Supporting Evidence")
+        supporting_evidence_values = [
+            row[supporting_evidence_index]
+            for row in rows[1:]
+            if row[0].startswith("Finding with XLSX evidence")
+        ]
+        self.assertCountEqual(supporting_evidence_values, evidence_names)
+
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)
         self.assertEqual(

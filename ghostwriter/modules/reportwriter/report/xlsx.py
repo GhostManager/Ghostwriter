@@ -14,15 +14,29 @@ logger = logging.getLogger(__name__)
 
 
 class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
+    def prepare_valid_evidence_names(self):
+        """
+        Cache report evidence friendly names once for supporting-evidence lookups.
+        """
+        self._valid_evidence_names = {
+            evidence["friendly_name"] for evidence in self.evidences_by_id.values()
+        }
+
+    def valid_evidence_names(self) -> set[str]:
+        """
+        Return the report evidence friendly-name set for reference validation.
+        """
+        if not hasattr(self, "_valid_evidence_names"):
+            self.prepare_valid_evidence_names()
+        return self._valid_evidence_names
+
     def referenced_evidence_names(self, rich_texts) -> list[str]:
         """
         Return report evidence friendly names referenced by rendered rich-text sections.
         """
         names = []
         seen = set()
-        valid_names = {
-            evidence["friendly_name"] for evidence in self.evidences_by_id.values()
-        }
+        valid_names = self.valid_evidence_names()
 
         for rich_text in rich_texts:
             html = rich_text.render_html()
@@ -78,6 +92,7 @@ class ExportReportXlsx(ExportXlsxBase, ExportReportBase):
 
     def run(self) -> io.BytesIO:
         context = self.map_rich_texts()
+        self.prepare_valid_evidence_names()
 
         # Create an in-memory Excel workbook with a named worksheet
         xlsx_doc = self.workbook
