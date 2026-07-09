@@ -492,10 +492,10 @@ $(document).ready(function () {
                     let safeVal = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(val) : jsEscape(val);
                     html += `<div class="oplog-rich-content">${safeVal}</div>`;
                 } else if (spec.type === 'integer') {
-                    html += `<div class="oplog-rich-content">${val}</div>`;
+                    html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
                 } else if (spec.type === 'float') {
                     let display = Number.isInteger(val) ? val.toFixed(1) : String(val);
-                    html += `<div class="oplog-rich-content">${display}</div>`;
+                    html += `<div class="oplog-rich-content">${jsEscape(display)}</div>`;
                 } else {
                     html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
                 }
