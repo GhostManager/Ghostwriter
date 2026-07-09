@@ -3,6 +3,7 @@
 # Standard Libraries
 import base64
 import logging
+import re
 from binascii import Error as BinAsciiError
 from datetime import timedelta
 from os.path import splitext
@@ -44,6 +45,16 @@ from ghostwriter.reporting.validators import (
 from ghostwriter.rolodex.models import Client, Project
 
 logger = logging.getLogger(__name__)
+CONTROL_CHARACTER_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def validate_no_control_characters(value):
+    """Reject control characters that can forge log lines or terminal output."""
+    if value and CONTROL_CHARACTER_RE.search(value):
+        raise ValidationError(
+            "Control characters are not allowed.",
+            code="control_characters",
+        )
 
 
 def validate_token_max_lifetime(expiry_date):
@@ -62,7 +73,7 @@ def validate_token_max_lifetime(expiry_date):
 class ApiKeyForm(forms.Form):
     """Save an individual :model:`api.APIKey`."""
 
-    name = forms.CharField()
+    name = forms.CharField(validators=[validate_no_control_characters])
     expiry_date = forms.DateTimeField(
         input_formats=[
             "%Y-%m-%dT%H:%M:%S",
@@ -178,11 +189,14 @@ class ServiceTokenForm(forms.Form):
         initial=ServiceTokenProjectScope.SELECTED,
         required=False,
     )
-    name = forms.CharField()
+    name = forms.CharField(validators=[validate_no_control_characters])
     service_principal = forms.ModelChoiceField(
         queryset=ServicePrincipal.objects.none(), required=False
     )
-    new_service_principal_name = forms.CharField(required=False)
+    new_service_principal_name = forms.CharField(
+        required=False,
+        validators=[validate_no_control_characters],
+    )
     oplog = forms.ModelChoiceField(
         queryset=Oplog.objects.none(), empty_label=None, required=False
     )

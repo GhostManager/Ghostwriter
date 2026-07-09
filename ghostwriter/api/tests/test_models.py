@@ -190,6 +190,20 @@ class ApiKeyModelTests(TestCase):
         token_obj.refresh_from_db()
         self.assertEqual(token_obj.last_used_at, stale_used_at)
 
+    def test_create_token_escapes_control_characters_in_log_name(self):
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="INFO") as logs:
+                APIKey.objects.create_token(
+                    user=self.user,
+                    name="Unsafe\nToken",
+                )
+        finally:
+            logging.disable(logging.CRITICAL)
+
+        self.assertIn(r"Unsafe\x0aToken", logs.output[0])
+        self.assertNotIn("Unsafe\nToken", logs.output[0])
+
 
 class UserSessionModelTests(TestCase):
     """Collection of tests for revocable login sessions."""
@@ -291,6 +305,25 @@ class ServiceTokenModelTests(TestCase):
         self.assertTrue(ServiceToken.objects.is_valid(token))
         self.assertTrue(token_obj.check_secret(token.split("_", 2)[2]))
         self.assertFalse(token_obj.check_secret("incorrect-secret"))
+
+    def test_create_token_escapes_control_characters_in_log_name(self):
+        principal = ServicePrincipal.objects.create(
+            name="Mythic Sync", created_by=self.user
+        )
+
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="INFO") as logs:
+                ServiceToken.objects.create_token(
+                    name="Unsafe\r\nToken",
+                    created_by=self.user,
+                    service_principal=principal,
+                )
+        finally:
+            logging.disable(logging.CRITICAL)
+
+        self.assertIn(r"Unsafe\x0d\x0aToken", logs.output[0])
+        self.assertNotIn("Unsafe\r\nToken", logs.output[0])
 
     def test_service_token_factory_hashes_secret_per_instance(self):
         first_token = ServiceTokenFactory()

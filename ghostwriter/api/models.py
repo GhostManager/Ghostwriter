@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import logging
+import re
 import secrets
 import typing
 import uuid
@@ -27,6 +28,15 @@ from ghostwriter.rolodex.models import Project
 User = get_user_model()
 logger = logging.getLogger(__name__)
 TOKEN_EXPIRY_WARNING_WINDOW = timedelta(days=7)
+CONTROL_CHARACTER_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def _log_safe(value: typing.Any) -> str:
+    """Escape control characters before interpolating user-controlled names in logs."""
+    return CONTROL_CHARACTER_RE.sub(
+        lambda match: f"\\x{ord(match.group(0)):02x}",
+        str(value),
+    )
 
 
 def _expires_within_warning_window(expiry_date) -> bool:
@@ -77,7 +87,12 @@ class BaseAPIKeyManager(models.Manager):
         obj = self.model(**kwargs)
         _, token = self.generate_token(obj)
         obj.save()
-        logger.info("Created API token %s (%s) for user %s", obj.pk, obj.name, obj.user_id)
+        logger.info(
+            "Created API token %s (%s) for user %s",
+            obj.pk,
+            _log_safe(obj.name),
+            obj.user_id,
+        )
         return obj, token
 
     def get_usable_keys(self) -> models.QuerySet:
@@ -386,7 +401,7 @@ class ServiceTokenManager(models.Manager):
         logger.info(
             "Created service token %s (%s) for service principal %s",
             obj.pk,
-            obj.name,
+            _log_safe(obj.name),
             obj.service_principal_id,
         )
         return obj, token
@@ -488,7 +503,7 @@ class ServiceTokenManager(models.Manager):
             logger.warning(
                 "Revoked service token %s (%s)%s",
                 token.pk,
-                token.name,
+                _log_safe(token.name),
                 f": {reason}" if reason else "",
             )
 
@@ -521,7 +536,7 @@ class ServiceTokenManager(models.Manager):
             logger.warning(
                 "Deactivated service principal %s (%s)%s",
                 service_principal.pk,
-                service_principal.name,
+                _log_safe(service_principal.name),
                 f": {reason}" if reason else "",
             )
 
@@ -536,7 +551,7 @@ class ServiceTokenManager(models.Manager):
                 "Revoked %s service token(s) for service principal %s (%s)%s",
                 revoked_tokens,
                 service_principal.pk,
-                service_principal.name,
+                _log_safe(service_principal.name),
                 f": {reason}" if reason else "",
             )
 
