@@ -5,6 +5,7 @@ import json
 import os
 import logging
 import mimetypes
+import re
 import zipfile
 from socket import gaierror
 from asgiref.sync import async_to_sync
@@ -49,6 +50,7 @@ from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
+JINJA_ENDRAW_RE = re.compile(r"{%-?\s*endraw\s*-?%}")
 
 
 def _outline_value(value):
@@ -79,8 +81,14 @@ def _outline_jinja_raw_text(value):
     Return text wrapped so later rich-text Jinja rendering treats it as literal output.
     """
     text = value or ""
-    escaped_endraw = "{% endraw %}{{ '{% endraw %}' }}{% raw %}"
-    return "{% raw %}" + text.replace("{% endraw %}", escaped_endraw) + "{% endraw %}"
+    return (
+        "{% raw %}"
+        + JINJA_ENDRAW_RE.sub(
+            lambda match: "{% endraw %}{{ " + repr(match.group(0)) + " }}{% raw %}",
+            text,
+        )
+        + "{% endraw %}"
+    )
 
 
 def _unavailable_template_response(request, report):
