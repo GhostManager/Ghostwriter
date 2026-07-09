@@ -42,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * Logos are set to a static 6.5" width to align with Office's default width and keep very large or wide logos under control
 * When editing an API token's expiration date, the form and back-end now enforce the *Maximum Token Lifetime in Days* setting
 * The `whoami` query now works with service tokens
+* Changed the Hasura GraphQL build to add a copy of BusyBox for health checks
+  * The Hasura base image uses Ubuntu Jammy, and installing `curl` during emulated `linux/arm64` builds can trigger `libc-bin` post-installation failures under QEMU
+  * The Hasura image no longer runs `apt-get` just to provide a health check command
+  * Hasura health checks now use the bundled BusyBox `wget` probe instead of `curl`
 
 ### Fixed
 
