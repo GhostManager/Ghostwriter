@@ -2858,6 +2858,21 @@ class ReportObservationLinkPreviewTests(TestCase):
         self.assertIn("Empty Obs", content)
         self.assertNotIn("<h3>Description</h3>", content)
 
+    def test_render_export_error_returns_preview_error(self):
+        rol = ReportObservationLinkFactory(
+            report=self.report,
+            title="Bad Regex Obs",
+            description="{{ 'content'|regex_search('(') }}",
+        )
+        uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Bad Regex Obs", content)
+        self.assertIn("Preview Error", content)
+
 
 class ExtraFieldRichTextPreviewPermissionTests(TestCase):
     """Tests for ExtraFieldRichTextPreviewView permission handling."""

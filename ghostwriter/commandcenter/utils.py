@@ -6,10 +6,10 @@ def render_rich_text_value(value):
     """
     Render a lazily-evaluated rich-text value to an HTML string.
 
-    Catches ``ReportExportTemplateError`` and returns an inline alert
+    Catches ``ReportExportError`` and returns an inline alert
     so the preview can still display remaining fields.
     """
-    from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+    from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 
     if value is None:
         return ""
@@ -19,6 +19,12 @@ def render_rich_text_value(value):
         return (
             f'<div class="alert alert-danger">'
             f"<strong>Template Error</strong><br>{escape(str(error))}"
+            f"</div>"
+        )
+    except ReportExportError as error:
+        return (
+            f'<div class="alert alert-danger">'
+            f"<strong>Preview Error</strong><br>{escape(str(error))}"
             f"</div>"
         )
 
