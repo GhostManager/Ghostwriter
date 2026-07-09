@@ -504,7 +504,7 @@ class ServiceTokenManager(models.Manager):
                 "Revoked service token %s (%s)%s",
                 token.pk,
                 _log_safe(token.name),
-                f": {reason}" if reason else "",
+                f": {_log_safe(reason)}" if reason else "",
             )
 
     def revoke_tokens_for_inactive_user(

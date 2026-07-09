@@ -1820,6 +1820,35 @@ class ServiceTokenModelTests(TestCase):
             token_obj.clean()
             token_obj.save()
 
+    def test_revoke_token_log_sanitizes_reason_control_characters(self):
+        principal = ServicePrincipal.objects.create(
+            name="Mythic Sync", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Oplog Service Token",
+            created_by=self.user,
+            service_principal=principal,
+        )
+
+        previous_disable_level = logging.root.manager.disable
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="WARNING") as logs:
+                ServiceToken.objects.revoke_token(
+                    token_obj,
+                    reason="scope failed\nforged line\rwith tab\tand null\x00",
+                )
+        finally:
+            logging.disable(previous_disable_level)
+
+        message = logs.output[0]
+        self.assertIn(
+            r"scope failed\x0aforged line\x0dwith tab\x09and null\x00",
+            message,
+        )
+        self.assertNotIn("\nforged line", message)
+        self.assertNotIn("\rwith tab", message)
+
     def test_service_token_expiration(self):
         principal = ServicePrincipal.objects.create(
             name="Mythic Sync", created_by=self.user
