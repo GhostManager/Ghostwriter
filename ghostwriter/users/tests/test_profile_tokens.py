@@ -365,6 +365,42 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "Update entries")
         self.assertContains(response, "Delete entries")
 
+    def test_service_token_details_view_revokes_stale_oplog_access_without_metadata(self):
+        project = ProjectFactory(codename="Alpha Project")
+        assignment = ProjectAssignmentFactory(project=project, operator=self.user)
+        oplog = OplogFactory(name="Operator Activity", project=project)
+        principal = ServicePrincipal.objects.create(
+            name="External Integration", created_by=self.user
+        )
+        oplog_token, _ = ServiceToken.objects.create_token(
+            name="Oplog Writer",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.OPLOG_RW,
+                oplog_id=oplog.id,
+            ),
+        )
+        assignment.delete()
+
+        response = self.client_auth.get(
+            reverse("api:ajax_service_token_details", kwargs={"pk": oplog_token.id})
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.GONE)
+        self.assertEqual(
+            response.json(),
+            {
+                "result": "error",
+                "message": "Service token scope is no longer accessible.",
+                "token_id": oplog_token.id,
+            },
+        )
+        self.assertNotContains(response, "Operator Activity", status_code=HTTPStatus.GONE)
+        self.assertNotContains(response, "Alpha Project", status_code=HTTPStatus.GONE)
+        oplog_token.refresh_from_db()
+        self.assertTrue(oplog_token.revoked)
+
     def test_service_token_details_view_rejects_tokens_owned_by_other_users(self):
         other_user = UserFactory(password=PASSWORD)
         principal = ServicePrincipal.objects.create(

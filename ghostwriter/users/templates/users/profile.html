@@ -669,7 +669,19 @@
           method: 'GET'
         }).done(function (html) {
           $content.html(html);
-        }).fail(function () {
+        }).fail(function (xhr) {
+          if (xhr.status === 410 && xhr.responseJSON && xhr.responseJSON.token_id) {
+            let tokenId = xhr.responseJSON.token_id;
+            $("#service_token_" + tokenId).remove();
+            $modal.modal('hide');
+            if ($("#serviceTokenTable .js-token-row").length === 0) {
+              $("#serviceTokenTable").addClass("d-none");
+              $("#serviceTokenTable").closest(".js-token-table-responsive").addClass("d-none");
+              $("#serviceTokenTable").closest(".card-body").find(".js-token-table-empty-alert").removeClass("d-none");
+            }
+            showToast("warning", xhr.responseJSON.message || "Service token scope is no longer accessible.");
+            return;
+          }
           $content.html(errorHtml);
         });
       });
