@@ -1,6 +1,8 @@
 import bs4
 from django.utils.html import escape
 
+from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+
 
 def render_rich_text_value(value):
     """
@@ -9,7 +11,6 @@ def render_rich_text_value(value):
     Catches ``ReportExportError`` and returns an inline alert
     so the preview can still display remaining fields.
     """
-    from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 
     if value is None:
         return ""
@@ -23,10 +24,10 @@ def render_rich_text_value(value):
         )
     except ReportExportError:
         return (
-            f'<div class="alert alert-danger">'
+            '<div class="alert alert-danger">'
             "<strong>Preview Error</strong><br>"
             "An unexpected error occurred while rendering this preview."
-            f"</div>"
+            "</div>"
         )
 
 
