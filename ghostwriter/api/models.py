@@ -39,6 +39,11 @@ def _log_safe(value: typing.Any) -> str:
     )
 
 
+def _log_reason(reason: str | None) -> str:
+    """Return a sanitized optional reason suffix for log messages."""
+    return f": {_log_safe(reason)}" if reason else ""
+
+
 def _expires_within_warning_window(expiry_date) -> bool:
     if expiry_date is None:
         return False
@@ -504,7 +509,7 @@ class ServiceTokenManager(models.Manager):
                 "Revoked service token %s (%s)%s",
                 token.pk,
                 _log_safe(token.name),
-                f": {_log_safe(reason)}" if reason else "",
+                _log_reason(reason),
             )
 
     def revoke_tokens_for_inactive_user(
@@ -522,7 +527,7 @@ class ServiceTokenManager(models.Manager):
                 deactivated_principals,
                 revoked_tokens,
                 user.pk,
-                f": {reason}" if reason else "",
+                _log_reason(reason),
             )
 
     def deactivate_service_principal(
@@ -537,7 +542,7 @@ class ServiceTokenManager(models.Manager):
                 "Deactivated service principal %s (%s)%s",
                 service_principal.pk,
                 _log_safe(service_principal.name),
-                f": {reason}" if reason else "",
+                _log_reason(reason),
             )
 
     def revoke_tokens_for_service_principal(
@@ -552,7 +557,7 @@ class ServiceTokenManager(models.Manager):
                 revoked_tokens,
                 service_principal.pk,
                 _log_safe(service_principal.name),
-                f": {reason}" if reason else "",
+                _log_reason(reason),
             )
 
     def record_usage(self, token: "ServiceToken", used_at=None) -> bool:

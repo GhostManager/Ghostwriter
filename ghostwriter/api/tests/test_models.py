@@ -1849,6 +1849,57 @@ class ServiceTokenModelTests(TestCase):
         self.assertNotIn("\nforged line", message)
         self.assertNotIn("\rwith tab", message)
 
+    def test_service_token_management_logs_sanitize_reason_control_characters(self):
+        inactive_user = UserFactory(password=PASSWORD)
+        inactive_user_principal = ServicePrincipal.objects.create(
+            name="Inactive User Principal", created_by=inactive_user
+        )
+        ServiceToken.objects.create_token(
+            name="Inactive User Token",
+            created_by=inactive_user,
+            service_principal=inactive_user_principal,
+        )
+        revoke_principal = ServicePrincipal.objects.create(
+            name="Revoke Principal", created_by=self.user
+        )
+        ServiceToken.objects.create_token(
+            name="Principal Token",
+            created_by=self.user,
+            service_principal=revoke_principal,
+        )
+        deactivate_principal = ServicePrincipal.objects.create(
+            name="Deactivate Principal", created_by=self.user
+        )
+        reason = "owner disabled\nforged line\rwith tab\tand null\x00"
+
+        previous_disable_level = logging.root.manager.disable
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="WARNING") as logs:
+                ServiceToken.objects.revoke_tokens_for_inactive_user(
+                    inactive_user,
+                    reason=reason,
+                )
+                ServiceToken.objects.revoke_tokens_for_service_principal(
+                    revoke_principal,
+                    reason=reason,
+                )
+                ServiceToken.objects.deactivate_service_principal(
+                    deactivate_principal,
+                    reason=reason,
+                )
+        finally:
+            logging.disable(previous_disable_level)
+
+        self.assertGreaterEqual(len(logs.output), 3)
+        for message in logs.output:
+            self.assertIn(
+                r"owner disabled\x0aforged line\x0dwith tab\x09and null\x00",
+                message,
+            )
+            self.assertNotIn("\nforged line", message)
+            self.assertNotIn("\rwith tab", message)
+
     def test_service_token_expiration(self):
         principal = ServicePrincipal.objects.create(
             name="Mythic Sync", created_by=self.user
