@@ -1663,6 +1663,10 @@ class ReportOplogOutlineGenerateTests(TestCase):
                 "statement={% if project %}expanded{% endif %}",
                 "comment={# hidden #}",
                 "literal endraw={% endraw %}",
+                "compact endraw={%endraw%}",
+                "trimmed start endraw={%- endraw %}",
+                "trimmed end endraw={% endraw -%}",
+                "trimmed both endraw={%- endraw -%}",
             ]
         )
         OplogEntryFactory(
