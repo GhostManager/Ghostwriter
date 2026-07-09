@@ -74,6 +74,15 @@ def _outline_command_value(command):
     return command_text if command_text != "N/A" else ""
 
 
+def _outline_jinja_raw_text(value):
+    """
+    Return text wrapped so later rich-text Jinja rendering treats it as literal output.
+    """
+    text = value or ""
+    escaped_endraw = "{% endraw %}{{ '{% endraw %}' }}{% raw %}"
+    return "{% raw %}" + text.replace("{% endraw %}", escaped_endraw) + "{% endraw %}"
+
+
 def _unavailable_template_response(request, report):
     messages.error(
         request,
@@ -187,7 +196,7 @@ def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str
 
         if has_output:
             blocks.append({"type": "paragraph", "text": "Output:"})
-            blocks.append({"type": "code", "text": output})
+            blocks.append({"type": "code", "text": _outline_jinja_raw_text(output)})
 
         for friendly_name, evidence_id in _report_evidence_refs_for_entry(report, entry):
             blocks.append({"type": "paragraph", "text": "{{.ref " + friendly_name + "}}"})

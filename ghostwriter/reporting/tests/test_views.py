@@ -1637,7 +1637,7 @@ class ReportOplogOutlineGenerateTests(TestCase):
                     "html": "<p><strong>Initial foothold</strong> confirmed.</p>",
                 },
                 {"type": "paragraph", "text": "Output:"},
-                {"type": "code", "text": "PORT 80/tcp open http"},
+                {"type": "code", "text": "{% raw %}PORT 80/tcp open http{% endraw %}"},
                 {"type": "paragraph", "text": "{{.ref Alpha}}"},
                 {"type": "evidence", "evidence_id": report_evidence.id},
                 {"type": "paragraph", "text": "{{.ref Bravo}}"},
@@ -1653,6 +1653,47 @@ class ReportOplogOutlineGenerateTests(TestCase):
                 },
             ],
         )
+
+    def test_view_wraps_output_as_jinja_literal_text(self):
+        from ghostwriter.modules.reportwriter import prepare_jinja2_env
+
+        output = "\n".join(
+            [
+                "project={{ project }}",
+                "statement={% if project %}expanded{% endif %}",
+                "comment={# hidden #}",
+                "literal endraw={% endraw %}",
+            ]
+        )
+        OplogEntryFactory(
+            oplog_id=self.oplog,
+            start_date=datetime(2024, 5, 1, 14, 0, 0, tzinfo=timezone.utc),
+            tool="Shell",
+            command="cat output.txt",
+            output=output,
+            comments="",
+            tags=["report"],
+        )
+
+        response = self.client_mgr.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.oplog.pk}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        code_blocks = [
+            block["text"]
+            for block in response.json()["blocks"]
+            if block["type"] == "code"
+        ]
+        self.assertEqual(len(code_blocks), 1)
+
+        rendered = prepare_jinja2_env(debug=False).from_string(code_blocks[0]).render(
+            {"project": "Rendered Project"}
+        )
+        self.assertEqual(rendered, output)
+        self.assertNotIn("project=Rendered Project", rendered)
 
     def test_view_includes_entries_matching_configured_exact_tag_case_insensitively(self):
         self.report_config.outline_tags = "Credential"
