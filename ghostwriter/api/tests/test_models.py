@@ -22,7 +22,9 @@ from ghostwriter.api.models import (
 from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
+    DomainServerConnectionFactory,
     EvidenceFactory,
+    HistoryFactory,
     LocalFindingNoteFactory,
     OplogFactory,
     ProjectAssignmentFactory,
@@ -31,6 +33,7 @@ from ghostwriter.factories import (
     ReportFactory,
     ReportFindingLinkFactory,
     ReportObservationLinkFactory,
+    ServerHistoryFactory,
     ServiceTokenFactory,
     UserFactory,
 )
@@ -248,6 +251,34 @@ class ServiceTokenModelTests(TestCase):
                 FROM api_service_token_project_access
                 WHERE token_id = %s
                 ORDER BY project_id
+                """,
+                [token.id],
+            )
+            return [row[0] for row in cursor.fetchall()]
+
+    def _service_token_domain_access_ids(self, token: ServiceToken) -> list[int]:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT domain_id
+                FROM api_service_token_domain_access
+                WHERE token_id = %s
+                ORDER BY domain_id
+                """,
+                [token.id],
+            )
+            return [row[0] for row in cursor.fetchall()]
+
+    def _service_token_static_server_access_ids(
+        self, token: ServiceToken
+    ) -> list[int]:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT server_id
+                FROM api_service_token_static_server_access
+                WHERE token_id = %s
+                ORDER BY server_id
                 """,
                 [token.id],
             )
@@ -1349,6 +1380,65 @@ class ServiceTokenModelTests(TestCase):
         self.assertIn(
             visible_project.id,
             self._service_token_project_access_ids(token_obj),
+        )
+
+    def test_service_token_domain_access_view_tracks_scoped_infrastructure(self):
+        direct_checkout = HistoryFactory(project=self.project)
+        connected_checkout = HistoryFactory()
+        DomainServerConnectionFactory(project=self.project, domain=connected_checkout)
+        out_of_scope_checkout = HistoryFactory()
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Selected Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[self.project.id],
+            ),
+        )
+
+        self.assertEqual(
+            self._service_token_domain_access_ids(token_obj),
+            sorted([direct_checkout.domain_id, connected_checkout.domain_id]),
+        )
+        self.assertNotIn(
+            out_of_scope_checkout.domain_id,
+            self._service_token_domain_access_ids(token_obj),
+        )
+
+    def test_service_token_static_server_access_view_tracks_scoped_infrastructure(
+        self,
+    ):
+        direct_checkout = ServerHistoryFactory(project=self.project)
+        connected_checkout = ServerHistoryFactory()
+        DomainServerConnectionFactory(
+            project=self.project,
+            static_server=connected_checkout,
+        )
+        out_of_scope_checkout = ServerHistoryFactory()
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Selected Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[self.project.id],
+            ),
+        )
+
+        self.assertEqual(
+            self._service_token_static_server_access_ids(token_obj),
+            sorted([direct_checkout.server_id, connected_checkout.server_id]),
+        )
+        self.assertNotIn(
+            out_of_scope_checkout.server_id,
+            self._service_token_static_server_access_ids(token_obj),
         )
 
     def test_service_token_project_access_view_excludes_inactive_creator_tokens(self):

@@ -1,4 +1,6 @@
+- "!include public_api_service_token_domain_access.yaml"
 - "!include public_api_service_token_project_access.yaml"
+- "!include public_api_service_token_static_server_access.yaml"
 - "!include public_api_service_token_user_access.yaml"
 - "!include public_auth_group.yaml"
 - "!include public_auth_group_permissions.yaml"
