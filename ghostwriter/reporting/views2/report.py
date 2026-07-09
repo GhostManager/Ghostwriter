@@ -50,7 +50,7 @@ from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
-JINJA_ENDRAW_RE = re.compile(r"{%-?\s*endraw\s*-?%}")
+JINJA_ENDRAW_RE = re.compile(r"{%[-+]?\s*endraw\s*[-+]?%}")
 
 
 def _outline_value(value):

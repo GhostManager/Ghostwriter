@@ -1667,6 +1667,9 @@ class ReportOplogOutlineGenerateTests(TestCase):
                 "trimmed start endraw={%- endraw %}",
                 "trimmed end endraw={% endraw -%}",
                 "trimmed both endraw={%- endraw -%}",
+                "preserved start endraw={%+ endraw %}",
+                "preserved end endraw={% endraw +%}",
+                "preserved both endraw={%+ endraw +%}",
             ]
         )
         OplogEntryFactory(
