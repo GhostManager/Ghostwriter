@@ -30,6 +30,13 @@ from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 
 logger = logging.getLogger(__name__)
+GENERIC_RICH_TEXT_PREVIEW_ERROR_HTML = (
+    '<div class="alert alert-danger" role="alert">'
+    "<strong>Preview Error</strong><br>"
+    "An unexpected error occurred while rendering this preview."
+    "</div>"
+)
+RICH_TEXT_PREVIEW_DATA_ERRORS = (AttributeError, KeyError, TypeError, ValueError)
 
 COLLAB_MODEL_NAME_MAP = {
     "reportfindinglink": "report_finding_link",
@@ -278,22 +285,24 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
                 error,
             )
             return HttpResponse(
-                '<div class="alert alert-danger" role="alert">'
-                "<strong>Preview Error</strong><br>"
-                "An unexpected error occurred while rendering this preview.</div>",
+                GENERIC_RICH_TEXT_PREVIEW_ERROR_HTML,
                 content_type="text/html",
                 status=200,
             )
-        except Exception:
+        except RICH_TEXT_PREVIEW_DATA_ERRORS as error:
             logger.exception(
-                "Unexpected error rendering rich-text preview for %s field %s",
+                (
+                    "Data error rendering rich-text preview for %s object %s "
+                    "extra field %s on %s: %s"
+                ),
                 self.model.__name__,
+                obj.pk,
                 field_name,
+                spec_model._meta.label,
+                error,
             )
             return HttpResponse(
-                '<div class="alert alert-danger" role="alert">'
-                "<strong>Preview Error</strong><br>"
-                "An unexpected error occurred while rendering this preview.</div>",
+                GENERIC_RICH_TEXT_PREVIEW_ERROR_HTML,
                 content_type="text/html",
                 status=200,
             )
