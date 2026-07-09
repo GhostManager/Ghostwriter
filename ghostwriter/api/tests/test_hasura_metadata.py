@@ -230,10 +230,6 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
         "token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}
     },
     "api_service_token_user_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
-    "commandcenter_companyinformation": {},
-    "commandcenter_extrafieldmodel": {},
-    "commandcenter_extrafieldspec": {},
-    "commandcenter_reportconfiguration": {},
     "oplog_oplog": {
         "_or": [
             {"id": {"_eq": READ_OPLOG_ID_HEADER}},
@@ -311,6 +307,13 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
 }
 
 EXPECTED_SERVICE_SELECT_TABLES = set(EXPECTED_SERVICE_SELECT_FILTERS)
+
+SERVICE_FORBIDDEN_SELECT_TABLES = {
+    "commandcenter_companyinformation",
+    "commandcenter_extrafieldmodel",
+    "commandcenter_extrafieldspec",
+    "commandcenter_reportconfiguration",
+}
 
 
 def load_yaml(path):
@@ -434,6 +437,18 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
         self.assertFalse(
             SENSITIVE_TABLES_WITHOUT_SERVICE_SELECT & service_select_tables,
             "Sensitive tables unexpectedly grant service select permissions",
+        )
+
+    def test_commandcenter_configuration_tables_do_not_grant_service_select(self):
+        service_select_tables = {
+            table["table"]["name"]
+            for _, table in table_metadata()
+            if get_service_select_permission(table)
+        }
+
+        self.assertFalse(
+            SERVICE_FORBIDDEN_SELECT_TABLES & service_select_tables,
+            "Command center configuration tables unexpectedly grant service select permissions",
         )
 
     def test_service_select_permissions_match_expected_scope_filters(self):
