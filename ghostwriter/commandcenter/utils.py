@@ -1,7 +1,10 @@
 import bs4
+import logging
 from django.utils.html import escape
 
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+
+logger = logging.getLogger(__name__)
 
 
 def render_rich_text_value(value):
@@ -23,6 +26,7 @@ def render_rich_text_value(value):
             f"</div>"
         )
     except ReportExportError:
+        logger.exception("Export error rendering rich-text preview value")
         return (
             '<div class="alert alert-danger">'
             "<strong>Preview Error</strong><br>"
