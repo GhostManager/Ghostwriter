@@ -2104,6 +2104,21 @@ class ServiceTokenDetails(utils.RoleBasedAccessControlMixin, SingleObjectMixin, 
 
     def get(self, request, *args, **kwargs):
         token = self.get_object()
+        try:
+            token.validate_current_grants()
+        except ValidationError as error:
+            ServiceToken.objects.revoke_token(
+                token,
+                reason=f"scope validation failed while rendering details: {error}",
+            )
+            return JsonResponse(
+                {
+                    "result": "error",
+                    "message": "Service token scope is no longer accessible.",
+                    "token_id": token.id,
+                },
+                status=HTTPStatus.GONE,
+            )
         return render(
             request,
             self.template_name,

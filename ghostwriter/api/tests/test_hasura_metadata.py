@@ -118,13 +118,26 @@ def report_template_project_filter():
     }
 
 
-def domain_project_filter():
-    return {
-        "_or": [
-            project_scope_filter("checkouts", "project_id"),
-            project_scope_filter("checkouts", "domainServerConnections", "project_id"),
-        ]
+def service_token_domain_access_filter(*path):
+    expression = {
+        "serviceTokenDomainAccesses": {
+            "token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}
+        }
     }
+    for segment in reversed(path):
+        expression = {segment: expression}
+    return expression
+
+
+def service_token_static_server_access_filter(*path):
+    expression = {
+        "serviceTokenStaticServerAccesses": {
+            "token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}
+        }
+    }
+    for segment in reversed(path):
+        expression = {segment: expression}
+    return expression
 
 
 def users_project_filter():
@@ -211,12 +224,12 @@ EXPECTED_COLLAB_SELECT_PERMISSIONS = {
 }
 
 EXPECTED_SERVICE_SELECT_FILTERS = {
+    "api_service_token_domain_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
     "api_service_token_project_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
+    "api_service_token_static_server_access": {
+        "token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}
+    },
     "api_service_token_user_access": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}},
-    "commandcenter_companyinformation": {},
-    "commandcenter_extrafieldmodel": {},
-    "commandcenter_extrafieldspec": {},
-    "commandcenter_reportconfiguration": {},
     "oplog_oplog": {
         "_or": [
             {"id": {"_eq": READ_OPLOG_ID_HEADER}},
@@ -275,25 +288,32 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
     "rolodex_projecttype": {},
     "rolodex_whitecard": project_scope_filter("project_id"),
     "shepherd_activitytype": {},
-    "shepherd_auxserveraddress": {},
-    "shepherd_domain": {},
-    "shepherd_domainnote": {},
+    "shepherd_auxserveraddress": service_token_static_server_access_filter("server"),
+    "shepherd_domain": service_token_domain_access_filter(),
+    "shepherd_domainnote": service_token_domain_access_filter("domain"),
     "shepherd_domainserverconnection": project_scope_filter("project_id"),
     "shepherd_domainstatus": {},
     "shepherd_healthstatus": {},
     "shepherd_history": project_scope_filter("project_id"),
     "shepherd_serverhistory": project_scope_filter("project_id"),
-    "shepherd_servernote": {},
+    "shepherd_servernote": service_token_static_server_access_filter("staticServer"),
     "shepherd_serverprovider": {},
     "shepherd_serverrole": {},
     "shepherd_serverstatus": {},
-    "shepherd_staticserver": {},
+    "shepherd_staticserver": service_token_static_server_access_filter(),
     "shepherd_transientserver": project_scope_filter("project_id"),
     "shepherd_whoisstatus": {},
     "users_user": users_project_filter(),
 }
 
 EXPECTED_SERVICE_SELECT_TABLES = set(EXPECTED_SERVICE_SELECT_FILTERS)
+
+SERVICE_FORBIDDEN_SELECT_TABLES = {
+    "commandcenter_companyinformation",
+    "commandcenter_extrafieldmodel",
+    "commandcenter_extrafieldspec",
+    "commandcenter_reportconfiguration",
+}
 
 
 def load_yaml(path):
@@ -419,6 +439,18 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
             "Sensitive tables unexpectedly grant service select permissions",
         )
 
+    def test_commandcenter_configuration_tables_do_not_grant_service_select(self):
+        service_select_tables = {
+            table["table"]["name"]
+            for _, table in table_metadata()
+            if get_service_select_permission(table)
+        }
+
+        self.assertFalse(
+            SERVICE_FORBIDDEN_SELECT_TABLES & service_select_tables,
+            "Command center configuration tables unexpectedly grant service select permissions",
+        )
+
     def test_service_select_permissions_match_expected_scope_filters(self):
         mismatched_tables = {}
         for _, table in table_metadata():
@@ -483,6 +515,64 @@ class HasuraMetadataServiceRoleTests(SimpleTestCase):
                             "insertion_order": None,
                             "remote_table": {
                                 "name": "api_service_token_user_access",
+                                "schema": "public",
+                            },
+                        }
+                    },
+                }
+            ],
+        )
+
+    def test_domain_metadata_has_service_token_domain_access_relationship(self):
+        domain_metadata = load_yaml(HASURA_TABLE_DIR / "public_shepherd_domain.yaml")
+        service_token_relationships = [
+            relationship
+            for relationship in domain_metadata.get("array_relationships", [])
+            if relationship.get("name") == "serviceTokenDomainAccesses"
+        ]
+
+        self.assertEqual(
+            service_token_relationships,
+            [
+                {
+                    "name": "serviceTokenDomainAccesses",
+                    "using": {
+                        "manual_configuration": {
+                            "column_mapping": {"id": "domain_id"},
+                            "insertion_order": None,
+                            "remote_table": {
+                                "name": "api_service_token_domain_access",
+                                "schema": "public",
+                            },
+                        }
+                    },
+                }
+            ],
+        )
+
+    def test_static_server_metadata_has_service_token_static_server_access_relationship(
+        self,
+    ):
+        static_server_metadata = load_yaml(
+            HASURA_TABLE_DIR / "public_shepherd_staticserver.yaml"
+        )
+        service_token_relationships = [
+            relationship
+            for relationship in static_server_metadata.get("array_relationships", [])
+            if relationship.get("name") == "serviceTokenStaticServerAccesses"
+        ]
+
+        self.assertEqual(
+            service_token_relationships,
+            [
+                {
+                    "name": "serviceTokenStaticServerAccesses",
+                    "using": {
+                        "manual_configuration": {
+                            "column_mapping": {"id": "server_id"},
+                            "insertion_order": None,
+                            "remote_table": {
+                                "name": "api_service_token_static_server_access",
                                 "schema": "public",
                             },
                         }

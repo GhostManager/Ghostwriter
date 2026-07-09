@@ -1,15 +1,19 @@
 import bs4
+import logging
 from django.utils.html import escape
+
+from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+
+logger = logging.getLogger(__name__)
 
 
 def render_rich_text_value(value):
     """
     Render a lazily-evaluated rich-text value to an HTML string.
 
-    Catches ``ReportExportTemplateError`` and returns an inline alert
+    Catches ``ReportExportError`` and returns an inline alert
     so the preview can still display remaining fields.
     """
-    from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
     if value is None:
         return ""
@@ -20,6 +24,14 @@ def render_rich_text_value(value):
             f'<div class="alert alert-danger">'
             f"<strong>Template Error</strong><br>{escape(str(error))}"
             f"</div>"
+        )
+    except ReportExportError:
+        logger.exception("Export error rendering rich-text preview value")
+        return (
+            '<div class="alert alert-danger">'
+            "<strong>Preview Error</strong><br>"
+            "An unexpected error occurred while rendering this preview."
+            "</div>"
         )
 
 

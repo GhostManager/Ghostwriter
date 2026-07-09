@@ -30,6 +30,13 @@ from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
 
 logger = logging.getLogger(__name__)
+GENERIC_RICH_TEXT_PREVIEW_ERROR_HTML = (
+    '<div class="alert alert-danger" role="alert">'
+    "<strong>Preview Error</strong><br>"
+    "An unexpected error occurred while rendering this preview."
+    "</div>"
+)
+RICH_TEXT_PREVIEW_DATA_ERRORS = (AttributeError, KeyError, TypeError, ValueError)
 
 COLLAB_MODEL_NAME_MAP = {
     "reportfindinglink": "report_finding_link",
@@ -233,6 +240,12 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
         """Return the :model:`rolodex.Client` for image resolution, or ``None``."""
         return None
 
+    def prepare_exporter_for_preview(self, exporter, spec_model, field_name):
+        """Limit extra-field rich-text compilation to the requested preview field."""
+        exporter.preview_extra_field_model_label = spec_model._meta.label
+        exporter.preview_extra_field_name = field_name
+        return exporter
+
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         field_name = kwargs["extra_field_name"]
@@ -246,6 +259,7 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
 
         try:
             exporter = self.build_exporter(obj)
+            exporter = self.prepare_exporter_for_preview(exporter, spec_model, field_name)
             base_context = exporter.map_rich_texts()
             html = self.extract_rendered_field(exporter, base_context, field_name)
         except ReportExportTemplateError as error:
@@ -271,9 +285,24 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
                 error,
             )
             return HttpResponse(
-                '<div class="alert alert-danger" role="alert">'
-                "<strong>Preview Error</strong><br>"
-                f"{escape(str(error))}</div>",
+                GENERIC_RICH_TEXT_PREVIEW_ERROR_HTML,
+                content_type="text/html",
+                status=200,
+            )
+        except RICH_TEXT_PREVIEW_DATA_ERRORS as error:
+            logger.exception(
+                (
+                    "Data error rendering rich-text preview for %s object %s "
+                    "extra field %s on %s: %s"
+                ),
+                self.model.__name__,
+                obj.pk,
+                field_name,
+                spec_model._meta.label,
+                error,
+            )
+            return HttpResponse(
+                GENERIC_RICH_TEXT_PREVIEW_ERROR_HTML,
                 content_type="text/html",
                 status=200,
             )

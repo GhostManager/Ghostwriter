@@ -4149,6 +4149,21 @@ class ApiKeyCreateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(APIKey.objects.filter(name="Too Long").exists())
 
+    def test_post_rejects_control_characters_in_name(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "name": "Bad Token\nForged log line",
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("name", response.context["form"].errors)
+        self.assertFalse(
+            APIKey.objects.filter(name="Bad Token\nForged log line").exists()
+        )
+
 
 class ServiceTokenRevokeTests(TestCase):
     """Collection of tests for :view:`api:ServiceTokenRevoke`."""
@@ -4916,6 +4931,46 @@ class ServiceTokenCreateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(
             ServiceToken.objects.filter(name="Too Long Service Token").exists()
+        )
+
+    def test_post_rejects_control_characters_in_name(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Bad Service Token\r\nForged log line",
+                "service_principal": self.existing_principal.id,
+                "oplog": self.oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("name", response.context["form"].errors)
+        self.assertFalse(
+            ServiceToken.objects.filter(
+                name="Bad Service Token\r\nForged log line"
+            ).exists()
+        )
+
+    def test_post_rejects_control_characters_in_new_service_principal_name(self):
+        response = self.client_auth.post(
+            self.uri,
+            data={
+                "token_preset": ServiceTokenPreset.OPLOG_RW,
+                "name": "Valid Service Token",
+                "new_service_principal_name": "Bad Principal\nForged log line",
+                "oplog": self.oplog.id,
+                "expiry_date": datetime.now() + timedelta(days=1),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("new_service_principal_name", response.context["form"].errors)
+        self.assertFalse(
+            ServicePrincipal.objects.filter(
+                name="Bad Principal\nForged log line"
+            ).exists()
         )
 
 

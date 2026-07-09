@@ -27,12 +27,17 @@ on:
       - "javascript/package-lock.json"
       - "javascript/src/**"
 
+permissions:
+  contents: read
+
 jobs:
   check-graphql-codegen:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source code
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Build environment
         run: |

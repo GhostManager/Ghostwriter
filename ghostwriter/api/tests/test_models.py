@@ -22,7 +22,9 @@ from ghostwriter.api.models import (
 from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
+    DomainServerConnectionFactory,
     EvidenceFactory,
+    HistoryFactory,
     LocalFindingNoteFactory,
     OplogFactory,
     ProjectAssignmentFactory,
@@ -31,6 +33,7 @@ from ghostwriter.factories import (
     ReportFactory,
     ReportFindingLinkFactory,
     ReportObservationLinkFactory,
+    ServerHistoryFactory,
     ServiceTokenFactory,
     UserFactory,
 )
@@ -190,6 +193,20 @@ class ApiKeyModelTests(TestCase):
         token_obj.refresh_from_db()
         self.assertEqual(token_obj.last_used_at, stale_used_at)
 
+    def test_create_token_escapes_control_characters_in_log_name(self):
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="INFO") as logs:
+                APIKey.objects.create_token(
+                    user=self.user,
+                    name="Unsafe\nToken",
+                )
+        finally:
+            logging.disable(logging.CRITICAL)
+
+        self.assertIn(r"Unsafe\x0aToken", logs.output[0])
+        self.assertNotIn("Unsafe\nToken", logs.output[0])
+
 
 class UserSessionModelTests(TestCase):
     """Collection of tests for revocable login sessions."""
@@ -234,6 +251,34 @@ class ServiceTokenModelTests(TestCase):
                 FROM api_service_token_project_access
                 WHERE token_id = %s
                 ORDER BY project_id
+                """,
+                [token.id],
+            )
+            return [row[0] for row in cursor.fetchall()]
+
+    def _service_token_domain_access_ids(self, token: ServiceToken) -> list[int]:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT domain_id
+                FROM api_service_token_domain_access
+                WHERE token_id = %s
+                ORDER BY domain_id
+                """,
+                [token.id],
+            )
+            return [row[0] for row in cursor.fetchall()]
+
+    def _service_token_static_server_access_ids(
+        self, token: ServiceToken
+    ) -> list[int]:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT server_id
+                FROM api_service_token_static_server_access
+                WHERE token_id = %s
+                ORDER BY server_id
                 """,
                 [token.id],
             )
@@ -291,6 +336,25 @@ class ServiceTokenModelTests(TestCase):
         self.assertTrue(ServiceToken.objects.is_valid(token))
         self.assertTrue(token_obj.check_secret(token.split("_", 2)[2]))
         self.assertFalse(token_obj.check_secret("incorrect-secret"))
+
+    def test_create_token_escapes_control_characters_in_log_name(self):
+        principal = ServicePrincipal.objects.create(
+            name="Mythic Sync", created_by=self.user
+        )
+
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="INFO") as logs:
+                ServiceToken.objects.create_token(
+                    name="Unsafe\r\nToken",
+                    created_by=self.user,
+                    service_principal=principal,
+                )
+        finally:
+            logging.disable(logging.CRITICAL)
+
+        self.assertIn(r"Unsafe\x0d\x0aToken", logs.output[0])
+        self.assertNotIn("Unsafe\r\nToken", logs.output[0])
 
     def test_service_token_factory_hashes_secret_per_instance(self):
         first_token = ServiceTokenFactory()
@@ -1318,6 +1382,65 @@ class ServiceTokenModelTests(TestCase):
             self._service_token_project_access_ids(token_obj),
         )
 
+    def test_service_token_domain_access_view_tracks_scoped_infrastructure(self):
+        direct_checkout = HistoryFactory(project=self.project)
+        connected_checkout = HistoryFactory()
+        DomainServerConnectionFactory(project=self.project, domain=connected_checkout)
+        out_of_scope_checkout = HistoryFactory()
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Selected Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[self.project.id],
+            ),
+        )
+
+        self.assertEqual(
+            self._service_token_domain_access_ids(token_obj),
+            sorted([direct_checkout.domain_id, connected_checkout.domain_id]),
+        )
+        self.assertNotIn(
+            out_of_scope_checkout.domain_id,
+            self._service_token_domain_access_ids(token_obj),
+        )
+
+    def test_service_token_static_server_access_view_tracks_scoped_infrastructure(
+        self,
+    ):
+        direct_checkout = ServerHistoryFactory(project=self.project)
+        connected_checkout = ServerHistoryFactory()
+        DomainServerConnectionFactory(
+            project=self.project,
+            static_server=connected_checkout,
+        )
+        out_of_scope_checkout = ServerHistoryFactory()
+        principal = ServicePrincipal.objects.create(
+            name="Project Reader", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Selected Project Read Token",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.PROJECT_READ,
+                project_ids=[self.project.id],
+            ),
+        )
+
+        self.assertEqual(
+            self._service_token_static_server_access_ids(token_obj),
+            sorted([direct_checkout.server_id, connected_checkout.server_id]),
+        )
+        self.assertNotIn(
+            out_of_scope_checkout.server_id,
+            self._service_token_static_server_access_ids(token_obj),
+        )
+
     def test_service_token_project_access_view_excludes_inactive_creator_tokens(self):
         principal = ServicePrincipal.objects.create(
             name="Project Reader", created_by=self.user
@@ -1696,6 +1819,86 @@ class ServiceTokenModelTests(TestCase):
         with self.assertRaises(ValidationError):
             token_obj.clean()
             token_obj.save()
+
+    def test_revoke_token_log_sanitizes_reason_control_characters(self):
+        principal = ServicePrincipal.objects.create(
+            name="Mythic Sync", created_by=self.user
+        )
+        token_obj, _ = ServiceToken.objects.create_token(
+            name="Oplog Service Token",
+            created_by=self.user,
+            service_principal=principal,
+        )
+
+        previous_disable_level = logging.root.manager.disable
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="WARNING") as logs:
+                ServiceToken.objects.revoke_token(
+                    token_obj,
+                    reason="scope failed\nforged line\rwith tab\tand null\x00",
+                )
+        finally:
+            logging.disable(previous_disable_level)
+
+        message = logs.output[0]
+        self.assertIn(
+            r"scope failed\x0aforged line\x0dwith tab\x09and null\x00",
+            message,
+        )
+        self.assertNotIn("\nforged line", message)
+        self.assertNotIn("\rwith tab", message)
+
+    def test_service_token_management_logs_sanitize_reason_control_characters(self):
+        inactive_user = UserFactory(password=PASSWORD)
+        inactive_user_principal = ServicePrincipal.objects.create(
+            name="Inactive User Principal", created_by=inactive_user
+        )
+        ServiceToken.objects.create_token(
+            name="Inactive User Token",
+            created_by=inactive_user,
+            service_principal=inactive_user_principal,
+        )
+        revoke_principal = ServicePrincipal.objects.create(
+            name="Revoke Principal", created_by=self.user
+        )
+        ServiceToken.objects.create_token(
+            name="Principal Token",
+            created_by=self.user,
+            service_principal=revoke_principal,
+        )
+        deactivate_principal = ServicePrincipal.objects.create(
+            name="Deactivate Principal", created_by=self.user
+        )
+        reason = "owner disabled\nforged line\rwith tab\tand null\x00"
+
+        previous_disable_level = logging.root.manager.disable
+        logging.disable(logging.NOTSET)
+        try:
+            with self.assertLogs("ghostwriter.api.models", level="WARNING") as logs:
+                ServiceToken.objects.revoke_tokens_for_inactive_user(
+                    inactive_user,
+                    reason=reason,
+                )
+                ServiceToken.objects.revoke_tokens_for_service_principal(
+                    revoke_principal,
+                    reason=reason,
+                )
+                ServiceToken.objects.deactivate_service_principal(
+                    deactivate_principal,
+                    reason=reason,
+                )
+        finally:
+            logging.disable(previous_disable_level)
+
+        self.assertGreaterEqual(len(logs.output), 3)
+        for message in logs.output:
+            self.assertIn(
+                r"owner disabled\x0aforged line\x0dwith tab\x09and null\x00",
+                message,
+            )
+            self.assertNotIn("\nforged line", message)
+            self.assertNotIn("\rwith tab", message)
 
     def test_service_token_expiration(self):
         principal = ServicePrincipal.objects.create(

@@ -66,32 +66,6 @@ select_permissions:
         - border_weight
         - target_delivery_date
       filter: {}
-  - role: service
-    permission:
-      columns:
-        - default_docx_template_id
-        - default_pptx_template_id
-        - id
-        - enable_borders
-        - title_case_captions
-        - border_color
-        - default_cvss_version
-        - evidence_image_alignment
-        - figure_caption_location
-        - label_figure
-        - label_table
-        - outline_tags
-        - prefix_figure
-        - prefix_table
-        - project_filename
-        - report_filename
-        - table_caption_location
-        - title_case_exceptions
-        - evidence_image_width
-        - border_weight
-        - target_delivery_date
-      filter: {}
-    comment: ""
   - role: user
     permission:
       columns:

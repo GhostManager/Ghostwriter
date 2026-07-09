@@ -1292,6 +1292,60 @@ class ProjectDetailViewTests(TestCase):
         response = self.client_auth.get(uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_richtext_preview_ignores_unrelated_broken_richtext_field(self):
+        broken_field = ExtraFieldSpecFactory(
+            internal_name="broken_notes",
+            display_name="Broken Notes",
+            type="rich_text",
+            target_model=self.extra_field_model,
+        )
+        self.project.extra_fields.update(
+            {
+                self.richtext_extra_field.internal_name: "<p>Requested preview content</p>",
+                broken_field.internal_name: "<p>{% for item in %}broken{% endfor %}</p>",
+            }
+        )
+        self.project.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Requested preview content", content)
+        self.assertNotIn("Template Error", content)
+        self.assertNotIn("broken_notes", content)
+
+    def test_richtext_preview_unexpected_export_error_returns_generic_error(self):
+        ProjectAssignmentFactory(
+            project=self.project,
+            operator=UserFactory(),
+            start_date=None,
+            end_date=None,
+        )
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("NoneType", content)
+        self.assertNotIn("object has no attribute", content)
+
     def test_richtext_preview_renders_client_logo_without_report_context(self):
         """CLIENT_LOGO should render as an <img> even when report is None."""
         self.project.extra_fields["notes"] = '<div data-gw-image="CLIENT_LOGO"></div>'
