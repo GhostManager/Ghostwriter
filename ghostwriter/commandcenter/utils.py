@@ -21,10 +21,11 @@ def render_rich_text_value(value):
             f"<strong>Template Error</strong><br>{escape(str(error))}"
             f"</div>"
         )
-    except ReportExportError as error:
+    except ReportExportError:
         return (
             f'<div class="alert alert-danger">'
-            f"<strong>Preview Error</strong><br>{escape(str(error))}"
+            "<strong>Preview Error</strong><br>"
+            "An unexpected error occurred while rendering this preview."
             f"</div>"
         )
 

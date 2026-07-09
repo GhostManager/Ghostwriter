@@ -265,7 +265,7 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
             return HttpResponse(
                 '<div class="alert alert-danger">'
                 "<strong>Preview Error</strong><br>"
-                f"{escape(str(error))}</div>",
+                "An unexpected error occurred while rendering this preview.</div>",
                 content_type="text/html",
             )
 

@@ -2853,6 +2853,24 @@ class ReportFindingLinkPreviewTests(TestCase):
         self.assertNotIn("<h3>Description</h3>", content)
         self.assertNotIn("<h3>Impact</h3>", content)
 
+    def test_render_export_error_returns_generic_preview_error(self):
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            title="Bad Regex Finding",
+            description="{{ 'content'|regex_search('(') }}",
+        )
+        uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Bad Regex Finding", content)
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("unterminated subpattern", content)
+        self.assertNotIn("missing ),", content)
+
     def test_respects_report_bloodhound_setting(self):
         report = ReportFactory(
             docx_template=ReportDocxTemplateFactory(),
@@ -2949,7 +2967,7 @@ class ReportObservationLinkPreviewTests(TestCase):
         self.assertIn("Empty Obs", content)
         self.assertNotIn("<h3>Description</h3>", content)
 
-    def test_render_export_error_returns_preview_error(self):
+    def test_render_export_error_returns_generic_preview_error(self):
         rol = ReportObservationLinkFactory(
             report=self.report,
             title="Bad Regex Obs",
@@ -2963,6 +2981,9 @@ class ReportObservationLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Bad Regex Obs", content)
         self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("unterminated subpattern", content)
+        self.assertNotIn("missing ),", content)
 
     def test_respects_report_bloodhound_setting(self):
         report = ReportFactory(
@@ -3042,6 +3063,19 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         content = response.content.decode()
         self.assertIn("Error", content)
         self.assertIn("alert-danger", content)
+
+    def test_export_error_returns_generic_preview_error(self):
+        self.report.extra_fields = {"test_rt": "<p>{{ 'content'|regex_search('(') }}</p>"}
+        self.report.save(update_fields=["extra_fields"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("unterminated subpattern", content)
+        self.assertNotIn("missing ),", content)
 
 
 # Tests related to :model:`reporting.Evidence`
