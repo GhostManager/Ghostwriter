@@ -24287,7 +24287,6 @@ export type ReportConfiguration = {
   prefixTable: Scalars['String']['output'];
   project_filename: Scalars['String']['output'];
   report_filename: Scalars['String']['output'];
-  sanitize_template_uploads: Scalars['Boolean']['output'];
   table_caption_location: Scalars['String']['output'];
   target_delivery_date: Scalars['Int']['output'];
   title_case_captions: Scalars['Boolean']['output'];
@@ -24492,7 +24491,6 @@ export type ReportConfiguration_Bool_Exp = {
   prefixTable?: InputMaybe<String_Comparison_Exp>;
   project_filename?: InputMaybe<String_Comparison_Exp>;
   report_filename?: InputMaybe<String_Comparison_Exp>;
-  sanitize_template_uploads?: InputMaybe<Boolean_Comparison_Exp>;
   table_caption_location?: InputMaybe<String_Comparison_Exp>;
   target_delivery_date?: InputMaybe<Int_Comparison_Exp>;
   title_case_captions?: InputMaybe<Boolean_Comparison_Exp>;
@@ -24536,7 +24534,6 @@ export type ReportConfiguration_Insert_Input = {
   prefixTable?: InputMaybe<Scalars['String']['input']>;
   project_filename?: InputMaybe<Scalars['String']['input']>;
   report_filename?: InputMaybe<Scalars['String']['input']>;
-  sanitize_template_uploads?: InputMaybe<Scalars['Boolean']['input']>;
   table_caption_location?: InputMaybe<Scalars['String']['input']>;
   target_delivery_date?: InputMaybe<Scalars['Int']['input']>;
   title_case_captions?: InputMaybe<Scalars['Boolean']['input']>;
@@ -24674,7 +24671,6 @@ export type ReportConfiguration_Order_By = {
   prefixTable?: InputMaybe<Order_By>;
   project_filename?: InputMaybe<Order_By>;
   report_filename?: InputMaybe<Order_By>;
-  sanitize_template_uploads?: InputMaybe<Order_By>;
   table_caption_location?: InputMaybe<Order_By>;
   target_delivery_date?: InputMaybe<Order_By>;
   title_case_captions?: InputMaybe<Order_By>;
@@ -24723,8 +24719,6 @@ export enum ReportConfiguration_Select_Column {
   /** column name */
   ReportFilename = 'report_filename',
   /** column name */
-  SanitizeTemplateUploads = 'sanitize_template_uploads',
-  /** column name */
   TableCaptionLocation = 'table_caption_location',
   /** column name */
   TargetDeliveryDate = 'target_delivery_date',
@@ -24745,8 +24739,6 @@ export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool
   /** column name */
   EnableBorders = 'enableBorders',
   /** column name */
-  SanitizeTemplateUploads = 'sanitize_template_uploads',
-  /** column name */
   TitleCaseCaptions = 'title_case_captions'
 }
 
@@ -24754,8 +24746,6 @@ export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool
 export enum ReportConfiguration_Select_Column_ReportConfiguration_Aggregate_Bool_Exp_Bool_Or_Arguments_Columns {
   /** column name */
   EnableBorders = 'enableBorders',
-  /** column name */
-  SanitizeTemplateUploads = 'sanitize_template_uploads',
   /** column name */
   TitleCaseCaptions = 'title_case_captions'
 }
@@ -24821,7 +24811,6 @@ export type ReportConfiguration_Set_Input = {
   prefixTable?: InputMaybe<Scalars['String']['input']>;
   project_filename?: InputMaybe<Scalars['String']['input']>;
   report_filename?: InputMaybe<Scalars['String']['input']>;
-  sanitize_template_uploads?: InputMaybe<Scalars['Boolean']['input']>;
   table_caption_location?: InputMaybe<Scalars['String']['input']>;
   target_delivery_date?: InputMaybe<Scalars['Int']['input']>;
   title_case_captions?: InputMaybe<Scalars['Boolean']['input']>;
@@ -24918,7 +24907,6 @@ export type ReportConfiguration_Stream_Cursor_Value_Input = {
   prefixTable?: InputMaybe<Scalars['String']['input']>;
   project_filename?: InputMaybe<Scalars['String']['input']>;
   report_filename?: InputMaybe<Scalars['String']['input']>;
-  sanitize_template_uploads?: InputMaybe<Scalars['Boolean']['input']>;
   table_caption_location?: InputMaybe<Scalars['String']['input']>;
   target_delivery_date?: InputMaybe<Scalars['Int']['input']>;
   title_case_captions?: InputMaybe<Scalars['Boolean']['input']>;
@@ -24982,8 +24970,6 @@ export enum ReportConfiguration_Update_Column {
   ProjectFilename = 'project_filename',
   /** column name */
   ReportFilename = 'report_filename',
-  /** column name */
-  SanitizeTemplateUploads = 'sanitize_template_uploads',
   /** column name */
   TableCaptionLocation = 'table_caption_location',
   /** column name */
