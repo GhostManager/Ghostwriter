@@ -233,6 +233,12 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
         """Return the :model:`rolodex.Client` for image resolution, or ``None``."""
         return None
 
+    def prepare_exporter_for_preview(self, exporter, spec_model, field_name):
+        """Limit extra-field rich-text compilation to the requested preview field."""
+        exporter.preview_extra_field_model_label = spec_model._meta.label
+        exporter.preview_extra_field_name = field_name
+        return exporter
+
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         field_name = kwargs["extra_field_name"]
@@ -246,6 +252,7 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
 
         try:
             exporter = self.build_exporter(obj)
+            exporter = self.prepare_exporter_for_preview(exporter, spec_model, field_name)
             base_context = exporter.map_rich_texts()
             html = self.extract_rendered_field(exporter, base_context, field_name)
         except ReportExportTemplateError as error:
@@ -269,6 +276,19 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
                 self.model.__name__,
                 field_name,
                 error,
+            )
+            return HttpResponse(
+                '<div class="alert alert-danger" role="alert">'
+                "<strong>Preview Error</strong><br>"
+                "An unexpected error occurred while rendering this preview.</div>",
+                content_type="text/html",
+                status=200,
+            )
+        except Exception:
+            logger.exception(
+                "Unexpected error rendering rich-text preview for %s field %s",
+                self.model.__name__,
+                field_name,
             )
             return HttpResponse(
                 '<div class="alert alert-danger" role="alert">'
