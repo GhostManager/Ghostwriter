@@ -269,6 +269,21 @@ class DomainListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
 
+    def test_view_handles_list_category_values(self):
+        DomainStatus = DomainStatusFactory._meta.model
+        available_status = DomainStatus.objects.get(domain_status="Available")
+        DomainFactory(
+            name="category-list.com",
+            categorization={"source": "demo", "categories": ["business", "technology"]},
+            domain_status=available_status,
+            expired=False,
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Business, Technology")
+
 
 class DomainDetailViewTests(TestCase):
     """Collection of tests for :view:`shepherd.DomainDetailView`."""
@@ -298,6 +313,15 @@ class DomainDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_detail.html")
+
+    def test_view_handles_list_category_values(self):
+        self.domain.categorization = {"source": "demo", "categories": ["business", "technology"]}
+        self.domain.save()
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Business, Technology")
 
 
 class DomainCreateViewTests(TestCase):
