@@ -10,11 +10,11 @@ from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.db.models import Q
-from taggit.models import Tag
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
+from ghostwriter.modules.shared import get_tags_for_queryset
 from ghostwriter.reporting.filters import FindingFilter
 from ghostwriter.reporting.forms import FindingNoteForm
 from ghostwriter.reporting.models import Finding, FindingNote, ReportFindingLink
@@ -73,13 +73,14 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         return findings
 
     def get(self, request, *args, **kwarg):
-        findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())
+        queryset = self.get_queryset()
+        findings_filter = FindingFilter(request.GET, queryset=queryset)
         return render(
             request, "reporting/finding_list.html", {
                 "filter": findings_filter,
                 "autocomplete": self.autocomplete,
                 "searching_report_findings": self.searching_report_findings,
-                "tags": Tag.objects.all(),
+                "tags": get_tags_for_queryset(queryset),
             }
         )
 

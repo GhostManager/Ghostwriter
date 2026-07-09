@@ -985,6 +985,22 @@ class FindingsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
 
+    def test_tags_are_scoped_to_findings(self):
+        visible_finding = FindingFactory(title="Tagged Finding")
+        visible_finding.tags.add("visible-finding-tag")
+        hidden_report = ReportFactory(title="Hidden Tagged Report")
+        hidden_report.tags.add("hidden-report-tag")
+        hidden_project = ProjectFactory()
+        hidden_project.tags.add("hidden-project-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-finding-tag", tag_names)
+        self.assertNotIn("hidden-report-tag", tag_names)
+        self.assertNotIn("hidden-project-tag", tag_names)
+
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
@@ -1001,6 +1017,20 @@ class FindingsListViewTests(TestCase):
         self.assertQuerySetEqual(
             response.context["filter"].qs, list(blank_findings), transform=lambda x: x
         )
+
+    def test_report_finding_tags_are_scoped_to_accessible_report_findings(self):
+        self.accessibleReportFindings[0].tags.add("visible-report-finding-tag")
+        self.inaccessibleReportFindings[0].tags.add("hidden-report-finding-tag")
+        master_finding = FindingFactory(title="Master Tagged Finding")
+        master_finding.tags.add("hidden-master-finding-tag")
+
+        response = self.client_auth.get(self.uri + "?on_reports=on")
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-report-finding-tag", tag_names)
+        self.assertNotIn("hidden-report-finding-tag", tag_names)
+        self.assertNotIn("hidden-master-finding-tag", tag_names)
 
 
 class FindingDetailViewTests(TestCase):
@@ -5180,8 +5210,68 @@ class EvidencePreviewTests(TestCase):
 # Tests related to :model:`reporting.Observation`
 
 
+class ObservationListViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationList`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.observation = ObservationFactory(title="Visible Observation")
+        cls.observation.tags.add("visible-observation-tag")
+        cls.uri = reverse("reporting:observations")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/observation_list.html")
+
+    def test_tags_are_scoped_to_observations(self):
+        hidden_report = ReportFactory(title="Hidden Tagged Report")
+        hidden_report.tags.add("hidden-report-tag")
+        hidden_project = ProjectFactory()
+        hidden_project.tags.add("hidden-project-tag")
+        hidden_finding = FindingFactory(title="Hidden Tagged Finding")
+        hidden_finding.tags.add("hidden-finding-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-observation-tag", tag_names)
+        self.assertNotIn("hidden-report-tag", tag_names)
+        self.assertNotIn("hidden-project-tag", tag_names)
+        self.assertNotIn("hidden-finding-tag", tag_names)
+
+    def test_tags_are_scoped_to_filtered_observation_queryset(self):
+        other_observation = ObservationFactory(title="Other Observation")
+        other_observation.tags.add("other-observation-tag")
+
+        response = self.client_auth.get(self.uri + "?observation=Visible")
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-observation-tag", tag_names)
+        self.assertNotIn("other-observation-tag", tag_names)
+
+
 class ObservationCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ObservationCreate`."""
+
 
     @classmethod
     def setUpTestData(cls):
