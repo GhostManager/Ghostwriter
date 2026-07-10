@@ -38,6 +38,18 @@ EVIDENCE_IMAGE_ALIGNMENT_MAP = {
     EvidenceImageAlignment.RIGHT: WD_ALIGN_PARAGRAPH.RIGHT,
 }
 
+# Word limits bookmark names to 40 characters; hidden aliases add ``_Ref``.
+WORD_BOOKMARK_BASE_NAME_MAX_LENGTH = 36
+WORD_BOOKMARK_INVALID_CHARACTERS = re.compile(r"[^A-Za-z0-9_]")
+
+
+def normalize_bookmark_name(name: str) -> str:
+    """Return a Word-safe name with room for Ghostwriter's ``_Ref`` prefix."""
+    name = WORD_BOOKMARK_INVALID_CHARACTERS.sub("_", name)
+    if not name or not name[0].isalpha():
+        name = "Bookmark_" + name
+    return name[:WORD_BOOKMARK_BASE_NAME_MAX_LENGTH]
+
 
 class HtmlToDocx(BaseHtmlToOOXML):
     """
@@ -148,18 +160,22 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
-            tag = heading_paragraph.runs[0]._r
-            start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
-            start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
-            tag.insert(0, start)
+            bookmark_name = normalize_bookmark_name(bookmark_name)
+            # The visible bookmark supports Word's bookmark list and internal
+            # links. The hidden alias preserves existing {{.ref}} targets.
+            self._add_heading_bookmark(heading_paragraph, bookmark_name)
+            self._add_heading_bookmark(heading_paragraph, "_Ref" + bookmark_name)
 
-            tag = heading_paragraph.runs[-1]._r
-            end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
-            end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
-            tag.append(end)
-            self.current_bookmark_id += 1
+    def _add_heading_bookmark(self, paragraph, bookmark_name):
+        start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
+        start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
+        paragraph.runs[0]._r.addprevious(start)
+
+        end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
+        end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        paragraph.runs[-1]._r.addnext(end)
+        self.current_bookmark_id += 1
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
@@ -526,7 +542,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 continue
 
         if ref:
-            ref = f"_Ref{ref}"
+            ref = f"_Ref{normalize_bookmark_name(ref)}"
         else:
             ref = f"_Ref{random.randint(10000000, 99999999)}"
 
@@ -693,6 +709,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
+        ref = normalize_bookmark_name(ref)
+
         # Start the field character run for the label and number
         run = par.add_run()
         r = run._r

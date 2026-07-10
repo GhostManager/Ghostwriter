@@ -1,4 +1,4 @@
-{% load bleach_tags %}
+{% load bleach_tags shepherd_tags %}
 
 <div id="domain_detail_{{ domain.id }}" class="modal fade" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
@@ -27,7 +27,7 @@
           {% if domain.categorization.items %}
             <span class="align-middle">
               {% for source, cat in domain.categorization.items %}
-                {{ cat|bleach|title }}{% if not forloop.last %},&nbsp;{% endif %}
+                {{ cat|category_value|bleach|title }}{% if not forloop.last %},&nbsp;{% endif %}
               {% endfor %}
             </span>
           {% else %}
