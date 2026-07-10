@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The filter handles more than just the basic `{"source": "category"}` pairings from VirusTotal
   * Ensures the result is a string that can be safely passed through `bleach`
 
+### Fixed
+
+* Fixed heading bookmarks not appearing in Word's bookmark list when using Insert > Bookmark (Fixes #707; Closes #792)
+  * Ghostwriter now emits two bookmarks over each heading’s text, a visible name and a hidden `_Refname` alias
+  * Captions keep only `_Refname`, and `{{.ref}}` keeps targeting `_Refname`
+  * This preserves old templates while making only headings appear in Word’s normal bookmark list
+
 ## [7.2.1] - 9 July 2026
 
 ### Added
