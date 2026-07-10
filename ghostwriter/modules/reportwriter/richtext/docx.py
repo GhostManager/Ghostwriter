@@ -148,18 +148,21 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
-            tag = heading_paragraph.runs[0]._r
-            start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
-            start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
-            tag.insert(0, start)
+            # The visible bookmark supports Word's bookmark list and internal
+            # links. The hidden alias preserves existing {{.ref}} targets.
+            self._add_heading_bookmark(heading_paragraph, bookmark_name)
+            self._add_heading_bookmark(heading_paragraph, "_Ref" + bookmark_name)
 
-            tag = heading_paragraph.runs[-1]._r
-            end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
-            end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
-            tag.append(end)
-            self.current_bookmark_id += 1
+    def _add_heading_bookmark(self, paragraph, bookmark_name):
+        start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
+        start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
+        paragraph.runs[0]._r.addprevious(start)
+
+        end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
+        end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        paragraph.runs[-1]._r.addnext(end)
+        self.current_bookmark_id += 1
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
