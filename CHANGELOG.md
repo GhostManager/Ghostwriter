@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Added a `category_value` filter to parse domain categories for presenting in the interface
+  * The filter handles more than just the basic `{"source": "category"}` pairings from VirusTotal
+  * Ensures the result is a string that can be safely passed through `bleach`
+
 ## [7.2.1] - 9 July 2026
 
 ### Added
@@ -169,6 +175,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed API database migrations breaking when the existing database has many existing API tokens
+
 ## [7.0.0] - 3 June 2026
 
 ### Breaking Changes
