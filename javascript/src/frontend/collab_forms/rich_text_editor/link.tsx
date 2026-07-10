@@ -4,10 +4,12 @@ import { Editor } from "@tiptap/core";
 import { useEditorState } from "@tiptap/react";
 import { useId, useState } from "react";
 import ReactModal from "react-modal";
+import { sanitizeLinkHref } from "../../../tiptap_gw/link";
 
 export default function LinkButton({ editor }: { editor: Editor }) {
     const [modalMode, setModalMode] = useState<null | "new" | "edit">(null);
     const [formUrl, setFormUrl] = useState("");
+    const [validationError, setValidationError] = useState<string | null>(null);
     const urlId = useId();
 
     const { enabled, active } = useEditorState({
@@ -42,6 +44,7 @@ export default function LinkButton({ editor }: { editor: Editor }) {
                     } else {
                         setFormUrl("");
                     }
+                    setValidationError(null);
                     setModalMode(active ? "edit" : "new");
                 }}
             >
@@ -62,8 +65,16 @@ export default function LinkButton({ editor }: { editor: Editor }) {
                         onSubmit={(ev) => {
                             ev.preventDefault();
                             if (formUrl) {
-                                editor.chain().setLink({ href: formUrl }).run();
+                                const sanitizedHref = sanitizeLinkHref(formUrl);
+                                if (!sanitizedHref) {
+                                    setValidationError(
+                                        "Use a relative URL, anchor, or an http, https, mailto, or tel link.",
+                                    );
+                                    return;
+                                }
+                                editor.chain().focus().setLink({ href: sanitizedHref }).run();
                             }
+                            setValidationError(null);
                             setModalMode(null);
                         }}
                     >
@@ -75,9 +86,17 @@ export default function LinkButton({ editor }: { editor: Editor }) {
                                 className="form-control"
                                 value={formUrl}
                                 autoFocus
-                                onChange={(e) => setFormUrl(e.target.value)}
+                                onChange={(e) => {
+                                    setFormUrl(e.target.value);
+                                    setValidationError(null);
+                                }}
                             />
                         </div>
+                        {validationError && (
+                            <div className="alert alert-danger py-2" role="alert">
+                                {validationError}
+                            </div>
+                        )}
 
                         <div className="modal-footer">
                             <button className="btn btn-primary">Save</button>
@@ -88,6 +107,7 @@ export default function LinkButton({ editor }: { editor: Editor }) {
                                     onClick={(e) => {
                                         e.preventDefault();
                                         editor.chain().unsetLink().run();
+                                        setValidationError(null);
                                         setModalMode(null);
                                     }}
                                 >
@@ -99,6 +119,7 @@ export default function LinkButton({ editor }: { editor: Editor }) {
                                 className="btn btn-secondary"
                                 onClick={(e) => {
                                     e.preventDefault();
+                                    setValidationError(null);
                                     setModalMode(null);
                                 }}
                             >

@@ -13,12 +13,13 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     DocTypeFactory,
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     ProjectAssignmentFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     UserFactory,
 )
+from ghostwriter.reporting.models import EvidenceImageAlignmentOverride
 
 logging.disable(logging.CRITICAL)
 
@@ -78,7 +79,6 @@ class ApiEvidenceFormTests(TestCase):
     def setUpTestData(cls):
         cls.report = ReportFactory()
         cls.other_report = ReportFactory()
-        cls.finding = ReportFindingLinkFactory()
         cls.user = UserFactory(password=PASSWORD)
         ProjectAssignmentFactory(operator=cls.user, project=cls.report.project)
 
@@ -99,17 +99,21 @@ class ApiEvidenceFormTests(TestCase):
         report_queryset=None,
         **kwargs,
     ):
+        data = {
+            "friendly_name": friendly_name,
+            "description": description,
+            "caption": caption,
+            "tags": tags,
+            "report": report.pk if report is not None else None,
+            "file_base64": file_base64,
+            "filename": filename,
+        }
+        if finding is not None:
+            data["finding"] = finding.pk
+        data.update(kwargs)
+
         return ApiEvidenceForm(
-            data={
-                "friendly_name": friendly_name,
-                "description": description,
-                "caption": caption,
-                "tags": tags,
-                "finding": finding,
-                "report": report,
-                "file_base64": file_base64,
-                "filename": filename,
-            },
+            data=data,
             user_obj=user_obj,
             report_queryset=report_queryset,
         )
@@ -129,7 +133,7 @@ class ApiEvidenceFormTests(TestCase):
         )
         self.assertTrue(form.is_valid())
 
-    def test_finding_and_report(self):
+    def test_report_required_and_finding_rejected(self):
         form = self.form_data(
             friendly_name="Test Finding & Report",
             description="Test Description",
@@ -144,14 +148,15 @@ class ApiEvidenceFormTests(TestCase):
         )
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())
-        self.assertEqual(len(errors), 2)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("report", errors)
 
         form = self.form_data(
             friendly_name="Test Finding & Report",
             description="Test Description",
             caption="Test Caption",
             tags="Test, Tag",
-            finding=self.finding,
+            finding=ReportFindingLinkFactory(),
             report=self.report,
             filename="test.txt",
             file_base64="dGVzdA==",
@@ -161,6 +166,26 @@ class ApiEvidenceFormTests(TestCase):
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())
         self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["report"][0].code, "finding_evidence_removed")
+
+    def test_empty_legacy_finding_values_are_ignored(self):
+        for field_name, value in (("finding", None), ("finding", ""), ("findingId", None), ("findingId", "")):
+            with self.subTest(field_name=field_name, value=value):
+                form = ApiEvidenceForm(
+                    data={
+                        "friendly_name": f"Test {field_name} {value!r}",
+                        "description": "Test Description",
+                        "caption": "Test Caption",
+                        "tags": "Test, Tag",
+                        "report": self.report.pk,
+                        "filename": "test.txt",
+                        "file_base64": "dGVzdA==",
+                        field_name: value,
+                    },
+                    user_obj=self.user,
+                    report_queryset=get_reports_list(self.user),
+                )
+                self.assertTrue(form.is_valid(), form.errors.as_data())
 
     def test_invalid_extension(self):
         form = self.form_data(
@@ -198,7 +223,7 @@ class ApiEvidenceFormTests(TestCase):
         self.assertEqual(len(errors), 1)
 
     def test_duplicate_friendly_name(self):
-        evidence = EvidenceOnReportFactory(report=self.report, friendly_name="Duplicate Test")
+        EvidenceFactory(report=self.report, friendly_name="Duplicate Test")
         form = self.form_data(
             friendly_name="Duplicate Test",
             description="Test Description",
@@ -251,26 +276,30 @@ class ApiReportTemplateFormTests(TestCase):
         file_base64=None,
         user_obj=None,
         bloodhound_heading_offset=None,
+        evidence_image_width=None,
+        evidence_image_alignment=None,
         **kwargs,
     ):
-        return ApiReportTemplateForm(
-            data={
-                "name": name,
-                "description": description,
-                "protected": protected,
-                "changelog": changelog,
-                "landscape": landscape,
-                "filename_override": filename_override,
-                "tags": tags,
-                "doc_type": doc_type,
-                "client": client,
-                "p_style": p_style,
-                "filename": filename,
-                "file_base64": file_base64,
-                "bloodhound_heading_offset": bloodhound_heading_offset,
-            },
-            user_obj=user_obj,
-        )
+        data = {
+            "name": name,
+            "description": description,
+            "protected": protected,
+            "changelog": changelog,
+            "landscape": landscape,
+            "filename_override": filename_override,
+            "tags": tags,
+            "doc_type": doc_type,
+            "client": client,
+            "p_style": p_style,
+            "filename": filename,
+            "file_base64": file_base64,
+            "bloodhound_heading_offset": bloodhound_heading_offset,
+        }
+        if evidence_image_width is not None:
+            data["evidence_image_width"] = evidence_image_width
+        if evidence_image_alignment is not None:
+            data["evidence_image_alignment"] = evidence_image_alignment
+        return ApiReportTemplateForm(data=data, user_obj=user_obj)
 
     def test_valid_data(self):
         form = self.form_data(
@@ -289,6 +318,10 @@ class ApiReportTemplateFormTests(TestCase):
             user_obj=self.user,
         )
         self.assertTrue(form.is_valid())
+        self.assertEqual(
+            form.cleaned_data["evidence_image_alignment"],
+            EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
 
         form = self.form_data(
             name="Test Template",
@@ -306,6 +339,27 @@ class ApiReportTemplateFormTests(TestCase):
             user_obj=self.user,
         )
         self.assertTrue(form.is_valid())
+
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+            evidence_image_width=4.25,
+            evidence_image_alignment=EvidenceImageAlignmentOverride.RIGHT,
+        )
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["evidence_image_width"], 4.25)
+        self.assertEqual(form.cleaned_data["evidence_image_alignment"], EvidenceImageAlignmentOverride.RIGHT)
 
     def test_unauthorized_or_invalid_client(self):
         form = self.form_data(

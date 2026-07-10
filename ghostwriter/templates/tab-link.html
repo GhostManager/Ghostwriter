@@ -7,6 +7,6 @@
         It also adds a "spacer" below the tab to add a buffer before the tab's contents. The spacer is controlled by the
         `form-spacer` CSS class.
     {% endcomment %}
-    <a class="nav-link{% if 'active' in link.css_class %} active{% endif %} {{ link.link_css_class }}" href="#{{ link.css_id }}" data-toggle="tab">{{ link.name }}{% if tab.errors %}!{% endif %}
+    <a class="nav-link{% if 'active' in link.css_class %} active{% endif %} {{ link.link_css_class }}" href="{{ link.tab_hash }}" data-target="#{{ link.css_id }}" data-tab-hash="{{ link.tab_hash }}" data-toggle="tab">{{ link.name }}{% if tab.errors %}!{% endif %}
     </a>
 </li>

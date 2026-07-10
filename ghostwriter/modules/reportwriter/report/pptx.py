@@ -5,7 +5,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches
 import pptx
 
-from ghostwriter.modules.reportwriter.base.pptx import SLD_LAYOUT_FINAL, SLD_LAYOUT_TITLE_AND_CONTENT, ExportBasePptx, delete_paragraph, get_textframe, prepare_for_pptx, write_bullet
+from ghostwriter.modules.reportwriter.base.pptx import SLD_LAYOUT_TITLE_AND_CONTENT, ExportBasePptx, delete_paragraph, get_textframe, prepare_for_pptx, write_bullet
 from ghostwriter.modules.reportwriter.project.pptx import ProjectSlidesMixin
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
@@ -33,16 +33,14 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        body_shape = shapes.placeholders[1]
-        title_shape.text = "Positive Observations"
+        _ = self.get_title_or_textbox(shapes, "Positive Observations")
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
 
         # If there are observations then write a table
         if len(base_context["observations"]) > 0:
             # Delete the default text placeholder
-            textbox = shapes[1]
-            sp = textbox.element
+            sp = body_shape.element
             sp.getparent().remove(sp)
             # Add a table
             rows = len(base_context["observations"]) + 1
@@ -76,10 +74,9 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             observation_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = observation_slide.shapes
-            title_shape = shapes.title
 
             # Prepare text frame
-            observation_body_shape = shapes.placeholders[1]
+            observation_body_shape = self.get_placeholder_or_textbox(shapes, 1)
             if observation_body_shape.has_text_frame:
                 text_frame = get_textframe(observation_body_shape)
                 text_frame.clear()
@@ -87,8 +84,8 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             else:
                 text_frame = None
 
-            # Set slide title to title + [severity]
-            title_shape.text = f'{observation["title"]}'
+            # Set slide title to title
+            _ = self.get_title_or_textbox(shapes, f'{observation["title"]}')
 
             # Add description to the slide body (other sections will appear in the notes)
             if observation.get("description", "").strip():
@@ -113,16 +110,14 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        body_shape = shapes.placeholders[1]
-        title_shape.text = "Findings Overview"
+        _ = self.get_title_or_textbox(shapes, "Findings Overview")
+        body_shape = self.get_placeholder_or_textbox(shapes, 1)
         text_frame = get_textframe(body_shape)
 
         # If there are findings then write a table of findings and severity ratings
         if len(base_context["findings"]) > 0:
             # Delete the default text placeholder
-            textbox = shapes[1]
-            sp = textbox.element
+            sp = body_shape.element
             sp.getparent().remove(sp)
             # Add a table
             rows = len(base_context["findings"]) + 1
@@ -169,10 +164,9 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
             slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = finding_slide.shapes
-            title_shape = shapes.title
 
             # Prepare text frame
-            finding_body_shape = shapes.placeholders[1]
+            finding_body_shape = self.get_placeholder_or_textbox(shapes, 1)
             if finding_body_shape.has_text_frame:
                 text_frame = get_textframe(finding_body_shape)
                 text_frame.clear()
@@ -181,7 +175,7 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
                 text_frame = None
 
             # Set slide title to title + [severity]
-            title_shape.text = f'{finding["title"]} [{finding["severity"]}]'
+            _ = self.get_title_or_textbox(shapes, f'{finding["title"]} [{finding["severity"]}]')
 
             # Add description to the slide body (other sections will appear in the notes)
             if finding.get("description", "").strip():
@@ -245,21 +239,26 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Recommendations"
+        _ = self.get_title_or_textbox(shapes, "Recommendations")
 
         # Add Next Steps slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        title_shape = shapes.title
-        title_shape.text = "Next Steps"
+        _ = self.get_title_or_textbox(shapes, "Next Steps")
 
-        # Add final slide
-        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_FINAL]
+        # Add final slide (use the last slide layout)
+        slide_layout = self.ppt_presentation.slide_layouts[-1]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
-        body_shape = shapes.placeholders[1]
+        body_shape = self.get_placeholder_or_textbox(
+            shapes,
+            1,
+            left=Inches(1),
+            top=Inches(5),
+            width=Inches(8),
+            height=Inches(2),
+        )
         text_frame = get_textframe(body_shape)
         text_frame.clear()
         p = text_frame.paragraphs[0]

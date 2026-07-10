@@ -9,11 +9,16 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+      args:
+        - SPACY_MODEL=${SPACY_MODEL:-en_core_web_sm}
     image: ghostwriter_local_django
     depends_on:
-      - postgres
-      - redis
-      - frontend
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      frontend:
+        condition: service_started
     volumes:
       - .:/app
       - local_data:/app/ghostwriter/media
@@ -22,8 +27,10 @@ services:
     environment:
       - USE_DOCKER=${USE_DOCKER}
       - IPYTHONDIR=${IPYTHONDIR}
+      - SPACY_MODEL=${SPACY_MODEL:-en_core_web_sm}
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS=${DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS}
+      - DJANGO_MFA_PASSKEY_LOGIN_ENABLED=${DJANGO_MFA_PASSKEY_LOGIN_ENABLED:-true}
       - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION}
       - DJANGO_ACCOUNT_EMAIL_VERIFICATION=${DJANGO_ACCOUNT_EMAIL_VERIFICATION}
       - DJANGO_ACCOUNT_REAUTHENTICATION_TIMEOUT=${DJANGO_ACCOUNT_REAUTHENTICATION_TIMEOUT}
@@ -55,14 +62,19 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
-      - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
+      - GHOSTWRITER_MAX_FILE_SIZE=${GHOSTWRITER_MAX_FILE_SIZE:-10485760}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     healthcheck:
       test: curl --insecure --fail http://django:8000/status/simple/ || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
       start_period: ${HEALTHCHECK_START}
-    command: /start
+    command: /bin/sh /app/compose/local/django/start
 
   postgres:
     build:
@@ -81,6 +93,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     healthcheck:
       test: pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER
       interval: ${HEALTHCHECK_INTERVAL}
@@ -103,6 +120,11 @@ services:
     volumes:
       - ./compose/local/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./compose/production/nginx/nginx_common.conf:/etc/nginx/nginx_common.conf
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_nginx
     ports:
@@ -115,6 +137,11 @@ services:
       context: .
       dockerfile: ./compose/production/redis/Dockerfile
     image: ghostwriter_local_redis
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_redis
     healthcheck:
@@ -128,8 +155,10 @@ services:
     <<: *django
     image: ghostwriter_local_queue
     depends_on:
-      - redis
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     labels:
       name: ghostwriter_queue
     ports: []
@@ -142,12 +171,19 @@ services:
     image: ghostwriter_local_frontend
     volumes:
       - ./javascript:/app
+      - local_node_modules:/app/node_modules
     working_dir: /app
     command: sh -c 'npm install && exec npm run watch-frontend-dev'
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_frontend
     environment:
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
 
   collab-server:
     build:
@@ -156,28 +192,37 @@ services:
     image: ghostwriter_local_collab_server
     depends_on:
       - graphql_engine
+      - django
     volumes:
       - ./javascript:/app
       - local_node_modules:/app/node_modules
     working_dir: /app
     command: sh -c 'npm install && npm run build-collab-server-dev && exec npm run run-collab-server-dev'
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_collab
     environment:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
     ports:
       - "8001:8000" # HTTP. Also reverse-proxied through nginx
-      - "9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
+      - "127.0.0.1:9229:9229" # nodejs debugging: https://nodejs.org/en/learn/getting-started/debugging
 
   graphql_engine:
     build:
       context: .
-      dockerfile: ./compose/production/hasura/Dockerfile
+      dockerfile: ./compose/local/hasura/Dockerfile
     image: ghostwriter_local_graphql
     depends_on:
-      - postgres
-      - django
+      postgres:
+        condition: service_healthy
+      django:
+        condition: service_started
     ports:
       - "${HASURA_GRAPHQL_SERVER_PORT}:8080"
       - "9691:9691"
@@ -186,7 +231,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-file: "1"
+        max-file: "3"
         max-size: "10m"
     labels:
       name: ghostwriter_graphql
@@ -207,7 +252,7 @@ services:
       - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR}
       - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
     healthcheck:
-      test: curl --insecure --fail http://graphql_engine:8080/healthz || exit 1
+      test: /usr/local/bin/busybox wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}

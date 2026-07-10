@@ -1,20 +1,27 @@
 """This contains all the database models for the CommandCenter application."""
 
 import json
+from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Callable, NamedTuple
 from urllib.parse import urlparse
 
 # Django Imports
 from django.db import models
+from django.db.models import F, Max, Q
+from django.db.transaction import atomic
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, URLValidator
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
+from ghostwriter.reporting.models import EvidenceImageAlignment
 from ghostwriter.singleton.models import SingletonModel
 
 def sanitize(sensitive_thing):
@@ -57,6 +64,12 @@ class BloodHoundConfiguration(SingletonModel):
     BloodHoundConfiguration represents a global BloodHound API integration that can be used to
     access the BloodHound API of the configured instance.
     """
+    allow_project_fallback = models.BooleanField(
+        default=False,
+        verbose_name="Allow Projects to Use Shared Configuration",
+        help_text="Allow projects without their own BloodHound settings to use this shared configuration and its cached results",
+    )
+
     bloodhound_api_root_url = models.CharField(
         max_length=255,
         verbose_name="BloodHound API URL",
@@ -90,6 +103,9 @@ class BloodHoundConfiguration(SingletonModel):
 
     def has_bloodhound_api(self) -> bool:
         return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
+
+    def allows_project_fallback(self) -> bool:
+        return self.allow_project_fallback and self.has_bloodhound_api()
 
     def __str__(self):
         return "BloodHound API Configuration"
@@ -147,6 +163,15 @@ class NamecheapConfiguration(SingletonModel):
 
 
 class ReportConfiguration(SingletonModel):
+    @dataclass(frozen=True)
+    class OutlineTagRules:
+        """Normalized tag rules for narrative outline generation."""
+
+        exact_tags: tuple[str, ...]
+        prefix_tags: tuple[str, ...]
+
+    OUTLINE_DEFAULT_TAGS = ("report", "evidence")
+
     enable_borders = models.BooleanField(default=False, help_text="Enable borders around images in Word documents")
     border_weight = models.IntegerField(
         default=12700,
@@ -172,6 +197,21 @@ class ReportConfiguration(SingletonModel):
         choices=[("top", "Top"), ("bottom", "Bottom")],
         default="bottom",
         help_text="Where to place figure captions relative to the figure",
+    )
+    evidence_image_alignment = models.CharField(
+        "Default Image Evidence Alignment",
+        max_length=16,
+        choices=EvidenceImageAlignment.choices,
+        default=EvidenceImageAlignment.CENTER,
+        help_text="Default alignment for inserted image evidence in Word reports.",
+    )
+    evidence_image_width = models.FloatField(
+        "Default Evidence Image Width",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0)],
+        help_text='Default width for inserted image evidence in Word reports. If left blank, 6.5" is used.',
     )
     prefix_table = models.CharField(
         "Character Before Table Titles",
@@ -221,6 +261,26 @@ class ReportConfiguration(SingletonModel):
         default=5,
         help_text="Number of business days from the project's end date to set as the default target delivery date",
     )
+    default_cvss_version = models.CharField(
+        "Default CVSS Calculator Version",
+        max_length=10,
+        choices=[("3.1", "CVSS v3.1"), ("4.0", "CVSS v4.0")],
+        default="3.1",
+        help_text="Default CVSS calculator version to display when no user preference is saved in browser local storage",
+    )
+    outline_tags = models.CharField(
+        "Narrative Outline Tags",
+        max_length=255,
+        default="report,evidence",
+        help_text=(
+            "Comma-separated list of additional tags to include in generated narrative "
+            "outlines. Built-in `report` and `evidence` tags are always included and "
+            "cannot be removed here. Use exact tags like `credentials` or `detection`, wildcard "
+            "prefixes like `cred*`, or namespaced prefixes like `att&ck:`. Matching is "
+            "case-insensitive."
+        ),
+        blank=True,
+    )
     # Foreign Keys
     default_docx_template = models.ForeignKey(
         "reporting.reporttemplate",
@@ -249,6 +309,96 @@ class ReportConfiguration(SingletonModel):
 
     def __str__(self):
         return "Global Report Configuration"
+
+    @classmethod
+    def parse_outline_tags(
+        cls,
+        outline_tags: str | None,
+        include_defaults: bool = True,
+    ) -> "ReportConfiguration.OutlineTagRules":
+        """
+        Parse outline tag configuration into normalized exact and prefix match rules.
+
+        Matching is case-insensitive, ignores empty comma-separated segments, and supports
+        trailing ``*`` or ``:`` to indicate a prefix match. The built-in ``report`` and
+        ``evidence`` tags are included by default for backwards-compatible behavior.
+        """
+
+        exact_tags: list[str] = []
+        prefix_tags: list[str] = []
+        seen_exact: set[str] = set()
+        seen_prefix: set[str] = set()
+
+        def add_exact(tag: str):
+            if tag and tag not in seen_exact:
+                seen_exact.add(tag)
+                exact_tags.append(tag)
+
+        def add_prefix(prefix: str):
+            if prefix and prefix not in seen_prefix:
+                seen_prefix.add(prefix)
+                prefix_tags.append(prefix)
+
+        if include_defaults:
+            for tag in cls.OUTLINE_DEFAULT_TAGS:
+                add_exact(tag)
+
+        for raw_token in (outline_tags or "").split(","):
+            token = raw_token.strip().lower()
+            if not token:
+                continue
+            if token.endswith("*"):
+                add_prefix(token[:-1])
+            elif token.endswith(":"):
+                add_prefix(token)
+            else:
+                add_exact(token)
+
+        return cls.OutlineTagRules(tuple(exact_tags), tuple(prefix_tags))
+
+    @classmethod
+    def normalize_outline_tags(cls, outline_tags: str | None) -> str:
+        """Return the canonical comma-separated storage form for outline tags."""
+
+        rules = cls.parse_outline_tags(outline_tags, include_defaults=False)
+        return ",".join([*rules.exact_tags, *(f"{prefix}*" for prefix in rules.prefix_tags)])
+
+    @classmethod
+    def validate_outline_tags(cls, outline_tags: str | None) -> str:
+        """
+        Validate and normalize outline tags for configuration storage.
+
+        The input may contain exact tags or prefix rules that end in ``*`` or ``:``.
+        Empty tokens are ignored, and malformed wildcard tokens raise ``ValidationError``.
+        """
+
+        normalized_tokens: list[str] = []
+        seen_tokens: set[str] = set()
+
+        for raw_token in (outline_tags or "").split(","):
+            token = raw_token.strip().lower()
+            if not token:
+                continue
+            if token == "*" or token == ":":
+                raise ValidationError(_("Outline tag wildcard rules must include a prefix before '*' or ':'"))
+            if token.count("*") > 1 or "*" in token[:-1]:
+                raise ValidationError(_("Outline tag wildcard rules may only include '*' at the end"))
+            if token.endswith("*"):
+                normalized = f"{token[:-1]}*"
+                if normalized == "*":
+                    raise ValidationError(_("Outline tag wildcard rules must include a prefix before '*'"))
+            elif token.endswith(":"):
+                if "*" in token or token[:-1].endswith(":"):
+                    raise ValidationError(_("Outline tag ':' prefixes must end with a single trailing ':'"))
+                normalized = token
+            else:
+                normalized = token
+
+            if normalized not in seen_tokens:
+                seen_tokens.add(normalized)
+                normalized_tokens.append(normalized)
+
+        return cls.normalize_outline_tags(",".join(normalized_tokens))
 
     def clear_incorrect_template_defaults(self, template):
         altered = False
@@ -395,6 +545,8 @@ class VirusTotalConfiguration(SingletonModel):
 
 
 class GeneralConfiguration(SingletonModel):
+    DEFAULT_TOKEN_MAX_LIFETIME_DAYS = 365
+
     default_timezone = TimeZoneField(
         "Default Timezone",
         default="America/Los_Angeles",
@@ -406,6 +558,21 @@ class GeneralConfiguration(SingletonModel):
         default="ghostwriter.local",
         help_text="Hostname or IP address for Ghostwriter (used for links in notifications)",
     )
+    token_extend_requires_rotation = models.BooleanField(
+        default=True,
+        verbose_name="Require Token Rotation to Extend Expiry",
+        help_text="Require API and service token expiry extensions to rotate the opaque credential",
+    )
+    token_max_lifetime_days = models.PositiveIntegerField(
+        default=DEFAULT_TOKEN_MAX_LIFETIME_DAYS,
+        validators=[MinValueValidator(1)],
+        verbose_name="Maximum Token Lifetime in Days",
+        help_text="Maximum allowed lifetime for new API and service token expiries",
+    )
+
+    def token_max_expiry_date(self):
+        """Return the current datetime plus the maximum token lifetime in days."""
+        return timezone.now() + timedelta(days=self.token_max_lifetime_days)
 
     def __str__(self):
         return "General Settings"
@@ -428,11 +595,12 @@ class BannerConfiguration(SingletonModel):
         help_text="Message to display in the banner",
         blank=True,
     )
-    banner_link = models.CharField(
+    banner_link = models.URLField(
         max_length=255,
         default="",
         help_text="URL to link the banner to (leave blank for no link)",
         blank=True,
+        validators=[URLValidator(schemes=["http", "https"])],
     )
     public_banner = models.BooleanField(
         default=False,
@@ -536,6 +704,13 @@ class ExtraFieldSpec(models.Model):
     internal_name = models.CharField(max_length=255)
     display_name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    position = models.PositiveIntegerField(
+        "Position",
+        blank=True,
+        null=True,
+        help_text="Enter the display order for this extra field. Changing it will reorder the other extra fields for this model.",
+        validators=[MinValueValidator(1)],
+    )
     type = models.CharField(
         max_length=255, choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
     )
@@ -547,15 +722,50 @@ class ExtraFieldSpec(models.Model):
 
     @classmethod
     def for_model(cls, model):
-        return cls.objects.filter(target_model=model._meta.label)
+        return cls.objects.filter(target_model=model._meta.label).order_by(F("position").asc(nulls_last=True), "id")
 
     @classmethod
     def for_instance(cls, instance):
-        return cls.objects.filter(target_model=type(instance)._meta.label)
+        return cls.for_model(type(instance))
 
     @classmethod
     def initial_json(cls, model):
         return {v.internal_name: v.initial_value() for v in cls.for_model(model)}
+
+    @classmethod
+    def get_last_position(cls, target_model):
+        target_model_id = cls._target_model_id(target_model)
+        return cls.objects.filter(target_model=target_model_id).aggregate(max_position=Max("position"))["max_position"] or 0
+
+    @staticmethod
+    def _target_model_id(target_model):
+        return getattr(target_model, "pk", target_model)
+
+    @classmethod
+    def _lock_target_model(cls, target_model_id):
+        ExtraFieldModel.objects.select_for_update().get(pk=target_model_id)
+
+    @classmethod
+    def _shift_positions(cls, queryset, delta, target_model_id):
+        queryset = queryset.order_by()
+        if not queryset.exists():
+            return
+
+        target_ids = list(queryset.values_list("pk", flat=True))
+        max_position = cls.get_last_position(target_model_id)
+        offset = max_position + len(target_ids) + 1
+        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(position=F("position") + offset)
+        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(position=F("position") - offset + delta)
+
+    def _normalize_position(self, target_model_id, current_position=None):
+        last_position = self.get_last_position(target_model_id)
+        if current_position is not None:
+            last_position -= 1
+
+        if self.position is None:
+            return last_position + 1
+
+        return min(max(1, self.position), last_position + 1)
 
     def __str__(self):
         return "Extra Field"
@@ -588,7 +798,113 @@ class ExtraFieldSpec(models.Model):
     def empty_value(self):
         return self.field_type_spec().empty_value()
 
+    def save(self, *args, **kwargs):
+        target_model_id = self.target_model_id or self._target_model_id(self.target_model)
+        update_fields = kwargs.get("update_fields")
+        must_persist_position = False
+        must_persist_target_model = False
+
+        with atomic():
+            if self._state.adding:
+                self.__class__._lock_target_model(target_model_id)
+                self.position = self._normalize_position(target_model_id)
+                must_persist_position = True
+                self._shift_positions(
+                    self.__class__.objects.filter(target_model=target_model_id, position__gte=self.position),
+                    1,
+                    target_model_id,
+                )
+            else:
+                current = self.__class__.objects.select_for_update().get(pk=self.pk)
+                lock_ids = sorted({current.target_model_id, target_model_id})
+                for lock_id in lock_ids:
+                    self.__class__._lock_target_model(lock_id)
+
+                if current.target_model_id != target_model_id:
+                    must_persist_position = True
+                    must_persist_target_model = True
+                    temp_position = self.get_last_position(current.target_model_id) + 1
+                    self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
+                    self.__class__._shift_positions(
+                        self.__class__.objects.filter(
+                            target_model=current.target_model_id,
+                            position__gt=current.position,
+                        ),
+                        -1,
+                        current.target_model_id,
+                    )
+                    self.position = self._normalize_position(target_model_id)
+                    self._shift_positions(
+                        self.__class__.objects.filter(target_model=target_model_id, position__gte=self.position),
+                        1,
+                        target_model_id,
+                    )
+                else:
+                    requested_position = self._normalize_position(target_model_id, current.position)
+
+                    if requested_position != current.position:
+                        must_persist_position = True
+                        temp_position = self.get_last_position(target_model_id) + 1
+                        self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
+
+                    if requested_position < current.position:
+                        self._shift_positions(
+                            self.__class__.objects.filter(
+                                target_model=target_model_id,
+                                position__gte=requested_position,
+                                position__lt=current.position,
+                            ),
+                            1,
+                            target_model_id,
+                        )
+                    elif requested_position > current.position:
+                        self._shift_positions(
+                            self.__class__.objects.filter(
+                                target_model=target_model_id,
+                                position__gt=current.position,
+                                position__lte=requested_position,
+                            ),
+                            -1,
+                            target_model_id,
+                        )
+
+                    self.position = requested_position
+
+            if update_fields is not None and (must_persist_position or must_persist_target_model):
+                update_fields = set(update_fields)
+                if must_persist_position:
+                    update_fields.add("position")
+                if must_persist_target_model:
+                    update_fields.add("target_model")
+                kwargs["update_fields"] = update_fields
+
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        target_model_id = self.target_model_id
+        deleted_position = self.position
+
+        with atomic():
+            self.__class__._lock_target_model(target_model_id)
+            result = super().delete(*args, **kwargs)
+            self.__class__._shift_positions(
+                self.__class__.objects.filter(target_model=target_model_id, position__gt=deleted_position),
+                -1,
+                target_model_id,
+            )
+        return result
+
     class Meta:
+        ordering = ["target_model", F("position").asc(nulls_last=True), "id"]
         verbose_name = "Extra Field"
-        order_with_respect_to = "target_model"
         unique_together = [("target_model", "internal_name")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["target_model", "position"],
+                name="commandcenter_extrafieldspec_unique_position_per_model",
+            ),
+            models.CheckConstraint(
+                condition=Q(position__gte=1) | Q(position__isnull=True),
+                name="commandcenter_extrafieldspec_position_gte_1",
+            ),
+        ]

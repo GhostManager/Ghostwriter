@@ -8,21 +8,46 @@ import { DOMParser, DOMSerializer } from "@tiptap/pm/model";
 import { Window } from "happy-dom";
 
 import { SCHEMA } from "./tiptap_extensions";
+import { sanitizeLinkHref } from "../tiptap_gw/link";
+
+type QueryableNode = {
+    querySelectorAll: (selector: string) => Iterable<{
+        getAttribute: (name: string) => string | null;
+        setAttribute: (name: string, value: string) => void;
+        removeAttribute: (name: string) => void;
+    }>;
+};
+
+function sanitizeAnchorHrefs(root: QueryableNode) {
+    for (const anchor of root.querySelectorAll("a[href]")) {
+        const href = anchor.getAttribute("href");
+        if (!href) {
+            continue;
+        }
+        const sanitizedHref = sanitizeLinkHref(href);
+        if (sanitizedHref) {
+            anchor.setAttribute("href", sanitizedHref);
+        } else {
+            anchor.removeAttribute("href");
+        }
+    }
+}
 
 /**
  * Parses rich text HTML and inserts the content to the YJS XmlFragment
  * @param html Source HTML to read
  * @param frag Empty XmlFragment to write to
  */
-export function htmlToYjs(html: string, frag: Y.XmlFragment) {
+export function htmlToYjs(html: string | null | undefined, frag: Y.XmlFragment) {
     // Partially copied from `@tiptap/html` `generateJSON`, but using the constant SCHEMA
     // and not converting to JSON just to read it again.
     const window = new Window();
     const parser = new window.DOMParser();
     try {
-        const fullHtml = `<!DOCTYPE html><html><body>${html}</body></html>`;
+        const fullHtml = `<!DOCTYPE html><html><body>${html ?? ""}</body></html>`;
         const doc = parser.parseFromString(fullHtml, "text/html");
         if (!doc) throw new Error("Could not parse HTML doc");
+        sanitizeAnchorHrefs(doc.body);
         const ttNode = DOMParser.fromSchema(SCHEMA).parse(
             doc.body as unknown as Node
         );
@@ -44,14 +69,16 @@ export function yjsToHtml(frag: Y.XmlFragment): string {
     // but using the constant SCHEMA.
     const window = new Window();
     try {
-        const doc = DOMSerializer.fromSchema(SCHEMA).serializeFragment(
+        const fragment = DOMSerializer.fromSchema(SCHEMA).serializeFragment(
             node.content,
             {
                 document: window.document as unknown as Document,
             }
         );
-        const serializer = new window.XMLSerializer();
-        return serializer.serializeToString(doc as any);
+        const wrapper = window.document.createElement("div");
+        wrapper.appendChild(fragment as any);
+        sanitizeAnchorHrefs(wrapper);
+        return wrapper.innerHTML;
     } finally {
         window.happyDOM.close();
     }

@@ -12,6 +12,7 @@ import Evidence from "./evidence";
 import FormattedCodeblock from "./codeblock";
 import {
     BoldCompat,
+    CodeCompat,
     HighlightCompat,
     ItalicCompat,
     UnderlineCompat,
@@ -24,6 +25,8 @@ import Link from "./link";
 import Image from "./image";
 import TextAlign from "./text_align";
 import Caption from "./caption";
+import Footnote from "./footnote";
+import { PassiveVoiceDecoration } from "./passive_voice_decoration";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -34,6 +37,7 @@ const EXTENSIONS: Extensions = [
         underline: false,
         bold: false,
         italic: false,
+        code: false,
         horizontalRule: false,
     }),
     HeadingWithId,
@@ -54,6 +58,7 @@ const EXTENSIONS: Extensions = [
     TextAlign.configure({
         types: ["heading", "paragraph"],
     }),
+    CodeCompat,
     HighlightCompat,
     Table,
     TableRow,
@@ -69,6 +74,8 @@ const EXTENSIONS: Extensions = [
     Image,
     CaseChange,
     Caption,
+    Footnote,
+    PassiveVoiceDecoration,
 ];
 
 export default EXTENSIONS;

@@ -37,6 +37,11 @@ class ReportConfigurationForm(forms.ModelForm):
     def clean_default_docx_template(self):
         docx_template = self.cleaned_data["default_docx_template"]
         if docx_template:
+            if docx_template.client_id is not None:
+                raise ValidationError(
+                    _("Global default Word templates cannot be scoped to a client"),
+                    "invalid",
+                )
             docx_template_status = docx_template.get_status()
             if docx_template_status in ("error", "failed"):
                 raise ValidationError(
@@ -48,6 +53,11 @@ class ReportConfigurationForm(forms.ModelForm):
     def clean_default_pptx_template(self):
         pptx_template = self.cleaned_data["default_pptx_template"]
         if pptx_template:
+            if pptx_template.client_id is not None:
+                raise ValidationError(
+                    _("Global default PowerPoint templates cannot be scoped to a client"),
+                    "invalid",
+                )
             pptx_template_status = pptx_template.get_status()
             if pptx_template_status in ("error", "failed"):
                 raise ValidationError(
@@ -65,6 +75,12 @@ class ReportConfigurationForm(forms.ModelForm):
         name_template = self.cleaned_data["project_filename"]
         ExportProjectBase.check_filename_template(name_template)
         return name_template
+
+    def clean_outline_tags(self):
+        """Validate and normalize the configured narrative outline tags."""
+
+        outline_tags = self.cleaned_data["outline_tags"]
+        return ReportConfiguration.validate_outline_tags(outline_tags)
 
 
 # Marker object to signal ExtraFieldsWidget to use the admin-configured defaults in the DB rather than loading from a value.
@@ -133,11 +149,16 @@ class ExtraFieldsWidget(forms.Widget):
                 widget_attrs = final_attrs
 
             widget_attrs.setdefault("class", "")
-            # Append `mb3` to the class list to add a margin below the field
-            widget_attrs["class"] += " mb-3"
+            is_checkbox = getattr(widget, "input_type", None) == "checkbox"
+            if is_checkbox:
+                widget_attrs["class"] += " custom-control-input"
+            else:
+                # Append `mb-3` to the class list to add a margin below the field
+                widget_attrs["class"] += " mb-3"
             # Add any classes from the widget
             if "class" in widget.attrs:
                 widget_attrs["class"] += " " + widget.attrs["class"]
+            widget_attrs["class"] = widget_attrs["class"].strip()
 
             widget_ctx = widget.get_context(widget_name, widget_value, widget_attrs)["widget"]
 
@@ -145,6 +166,7 @@ class ExtraFieldsWidget(forms.Widget):
                 {
                     "label": spec.display_name,
                     "description": spec.description,
+                    "is_checkbox": is_checkbox,
                     "widget": widget_ctx,
                 }
             )

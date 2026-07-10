@@ -24,6 +24,17 @@ select_permissions:
         - id
         - project_id
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - report_archive
+        - id
+        - project_id
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'

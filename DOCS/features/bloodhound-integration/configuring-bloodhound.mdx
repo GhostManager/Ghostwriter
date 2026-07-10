@@ -38,17 +38,35 @@ Take the _ID_ and _Token_ values and plug them into the BloodHound API Configura
 to add the URL of your BloodHound instance. The URL should be the base URL of your BloodHound instance, including the
 protocol and port (if needed). For example, `http://bloodhound:8080`.
 
+Ghostwriter supports two configuration models:
+
+- A shared global BloodHound configuration in the admin interface
+- A project-specific BloodHound configuration on an individual project
+
+The shared global configuration is reused by projects that do not have their own BloodHound API settings. Use the
+global configuration only when that shared-access model is intentional for your environment.
+
+By default, the global configuration is managed from the admin page only. Projects use it only when an admin enables
+_Allow Projects to Use Shared Configuration_.
+
 <Frame>
   <img src="/images/configuring-global-settings/configuring-apis/image-3.png" alt=""/>
 </Frame>
 
 #### Testing the Configuration
 
-Once you have configured the BloodHound API in Ghostwriter, an admin can test the configuration by clicking the _Test BloodHound_
-button on the _Review Configuration_ page. This will send a request to the `/api/version` endpoint of the BloodHound API
-and verify that the connection is successful.
+Once you have configured the BloodHound API in Ghostwriter, an admin can test the shared global configuration from the
+BloodHound admin page. This sends a request to the `/api/version` endpoint of the BloodHound API and verifies that the
+connection is successful.
+
+If a project has its own BloodHound API settings, project members can test that project-specific configuration from the
+project's _BloodHound_ tab.
 
 #### Per-Project Instances
 
 If you have multiple BloodHound instances — such as seperate servers for different clients — you can configure a BloodHound server for a project.
-Project members can manage their BloodHound instance under the _BloodHound_ tab on the project dashboard.
+Project members can manage their project-specific BloodHound instance under the _BloodHound_ tab on the project dashboard.
+
+If a project does not have its own BloodHound configuration, Ghostwriter falls back to the shared global configuration
+and uses the cached results associated with that shared server only when an admin has enabled project fallback on the
+global configuration.

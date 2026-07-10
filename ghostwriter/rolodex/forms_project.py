@@ -28,7 +28,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ExtraFieldsField
-from ghostwriter.commandcenter.models import GeneralConfiguration
+from ghostwriter.commandcenter.models import BloodHoundConfiguration, GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import (
@@ -47,6 +47,22 @@ from ghostwriter.rolodex.models import (
 # Number of "extra" formsets created by default
 # Higher numbers can increase page load times with WYSIWYG editors
 EXTRAS = 0
+DATETIME_LOCAL_FORMAT = "%Y-%m-%dT%H:%M:%S"
+DATETIME_LOCAL_MINUTES_FORMAT = "%Y-%m-%dT%H:%M"
+
+
+def configure_datetime_local_field(field):
+    """Render and parse datetimes in the format expected by datetime-local inputs."""
+    field.widget = forms.DateTimeInput(
+        attrs=field.widget.attrs.copy(),
+        format=DATETIME_LOCAL_FORMAT,
+    )
+    field.widget.input_type = "datetime-local"
+    field.input_formats = [
+        DATETIME_LOCAL_FORMAT,
+        DATETIME_LOCAL_MINUTES_FORMAT,
+        *field.input_formats,
+    ]
 
 
 # Custom inline formsets for nested forms
@@ -418,11 +434,13 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
         if any(self.errors):
             return
 
+        active_forms = []
         contacts = set()
         primary_set = False
         for form in self.forms:
             if not form.cleaned_data or form.cleaned_data["DELETE"]:
                 continue
+            active_forms.append(form)
             name = form.cleaned_data["name"]
             primary = form.cleaned_data["primary"]
 
@@ -449,8 +467,46 @@ class BaseProjectContactInlineFormSet(BaseInlineFormSet):
                     )
                 primary_set = True
 
+        # Auto-set primary when only one contact is being submitted
+        if len(active_forms) == 1 and not primary_set:
+            active_forms[0].cleaned_data["primary"] = True
+            active_forms[0].instance.primary = True
+            active_forms[0]._force_primary_save = True
+        # Require a primary when multiple contacts exist
+        elif len(active_forms) > 1 and not primary_set:
+            active_forms[0].add_error(
+                "primary",
+                ValidationError(
+                    _("You must designate one contact as the primary point of contact."),
+                    code="required",
+                ),
+            )
+            raise ValidationError(
+                _("You must designate one contact as the primary point of contact. You may have marked the primary for deletion. If so, please mark a different contact as primary."),
+                code="required",
+            )
 
-# Forms used with the inline formsets
+    def save(self, commit=True):
+        instances = super().save(commit=commit)
+        if commit:
+            for form in self.forms:
+                if (
+                    getattr(form, "_force_primary_save", False)
+                    and form.instance.pk
+                    and not form.has_changed()
+                    and form not in self.deleted_forms
+                ):
+                    form.instance.save(update_fields=["primary"])
+        else:
+            for form in self.forms:
+                if (
+                    getattr(form, "_force_primary_save", False)
+                    and form.instance.pk
+                    and form.instance not in instances
+                    and form not in self.deleted_forms
+                ):
+                    instances.append(form.instance)
+        return instances
 
 
 class ProjectAssignmentForm(forms.ModelForm):
@@ -478,6 +534,8 @@ class ProjectAssignmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["operator"].queryset = self.fields["operator"].queryset.order_by("-is_active", "username", "name")
         self.fields["operator"].label_from_instance = lambda obj: obj.get_display_name
+        # Inline formset validation handles incomplete assignment combinations so users get targeted errors.
+        self.fields["role"].required = False
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
@@ -551,7 +609,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Assignment",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-md-3",
                         ),
@@ -593,6 +651,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         }
         field_classes = {
             "description": JinjaRichTextField,
+            "result": JinjaRichTextField,
         }
 
     def __init__(self, *args, **kwargs):
@@ -605,6 +664,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["description"].widget.attrs[
             "placeholder"
         ] = "The task is to escalate privileges to a domain admin and..."
+        self.fields["result"].widget.attrs["placeholder"] = "Document the outcome, evidence, or result of this objective..."
         self.fields["priority"].empty_label = "-- Prioritize Objective --"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
@@ -673,7 +733,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Objective",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -767,7 +827,7 @@ class ProjectScopeForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete List",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -850,7 +910,7 @@ class ProjectTargetForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Target",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -885,7 +945,7 @@ class WhiteCardForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["issued"].widget.input_type = "datetime-local"
+        configure_datetime_local_field(self.fields["issued"])
         self.fields["issued"].label = "Issued Date & Time"
         self.fields["description"].widget.attrs["rows"] = 5
         self.fields["description"].widget.attrs[
@@ -946,7 +1006,7 @@ class WhiteCardForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete White Card",
-                                css_class="btn-outline-danger formset-del-button col-5",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -980,6 +1040,7 @@ class ProjectContactForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
+        self.bloodhound_config = BloodHoundConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Janine Melnitz"
@@ -1039,7 +1100,7 @@ class ProjectContactForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Contact",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -1104,7 +1165,7 @@ class ProjectInviteForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Invite",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -1250,6 +1311,7 @@ class ProjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
+        self.bloodhound_config = BloodHoundConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
@@ -1263,6 +1325,9 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
+        self.fields["bloodhound_api_root_url"].required = False
+        self.fields["bloodhound_api_key_id"].required = False
+        self.fields["bloodhound_api_key_token"].required = False
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -1341,7 +1406,13 @@ class ProjectForm(forms.ModelForm):
                 ),
                 CustomTab(
                     "BloodHound Integration",
-                    HTML("<p>Overrides the global configuration (if any)</p>"),
+                    HTML(
+                        (
+                            "<p>Project-specific settings override the shared global BloodHound configuration.</p>"
+                            if self.bloodhound_config.allows_project_fallback()
+                            else "<p>Configure project-specific BloodHound settings here. Shared global fallback is currently disabled.</p>"
+                        )
+                    ),
                     "bloodhound_api_root_url",
                     "bloodhound_api_key_id",
                     "bloodhound_api_key_token",
@@ -1382,6 +1453,27 @@ class ProjectForm(forms.ModelForm):
                     code="invalid_channel",
                 )
         return slack_channel
+
+    def clean(self):
+        cleaned_data = super().clean()
+        bloodhound_fields = {
+            "bloodhound_api_root_url": cleaned_data.get("bloodhound_api_root_url"),
+            "bloodhound_api_key_id": cleaned_data.get("bloodhound_api_key_id"),
+            "bloodhound_api_key_token": cleaned_data.get("bloodhound_api_key_token"),
+        }
+
+        if any(bloodhound_fields.values()) and not all(bloodhound_fields.values()):
+            for field_name, value in bloodhound_fields.items():
+                if not value:
+                    self.add_error(
+                        field_name,
+                        ValidationError(
+                            _("Complete all BloodHound configuration fields or leave them all blank"),
+                            code="incomplete",
+                        ),
+                    )
+
+        return cleaned_data
 
 
 class ProjectNoteForm(forms.ModelForm):
@@ -1443,9 +1535,9 @@ class DeconflictionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["report_timestamp"].widget.input_type = "datetime-local"
-        self.fields["alert_timestamp"].widget.input_type = "datetime-local"
-        self.fields["response_timestamp"].widget.input_type = "datetime-local"
+        configure_datetime_local_field(self.fields["report_timestamp"])
+        configure_datetime_local_field(self.fields["alert_timestamp"])
+        configure_datetime_local_field(self.fields["response_timestamp"])
         self.fields["report_timestamp"].label = "Date & Time of Report"
         self.fields["alert_timestamp"].label = "Date & Time the Alert Triggered"
         self.fields["response_timestamp"].label = "Date & Time of Your Response"

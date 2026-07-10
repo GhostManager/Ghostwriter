@@ -93,7 +93,17 @@
             {% endif %}
 			<tr>
                 <td class="text-left bold">Evidence Image Width</td>
-                <td class="text-left">{{ reporttemplate.evidence_image_width }} inches</td>
+                <td class="text-left">
+                    {% if reporttemplate.evidence_image_width is not None %}
+                        {{ reporttemplate.evidence_image_width }} inches
+                    {% else %}
+                        Use global default
+                    {% endif %}
+                </td>
+            </tr>
+			<tr>
+                <td class="text-left bold">Evidence Image Alignment</td>
+                <td class="text-left">{{ reporttemplate.get_evidence_image_alignment_display }}</td>
             </tr>
 			<tr>
                 <td class="text-left bold">References BloodHound Data</td>

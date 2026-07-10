@@ -179,6 +179,15 @@ array_relationships:
         table:
           name: shepherd_staticserver
           schema: public
+  - name: serviceTokenUserAccesses
+    using:
+      manual_configuration:
+        column_mapping:
+          id: user_id
+        insertion_order: null
+        remote_table:
+          name: api_service_token_user_access
+          schema: public
 select_permissions:
   - role: manager
     permission:
@@ -192,6 +201,24 @@ select_permissions:
       filter:
         is_active:
           _eq: true
+  - role: service
+    permission:
+      columns:
+        - email
+        - id
+        - name
+        - phone
+        - timezone
+        - username
+      filter:
+        _and:
+          - is_active:
+              _eq: true
+          - serviceTokenUserAccesses:
+              token_id:
+                _eq: X-Hasura-Service-Token-Id
+      query_root_fields: []
+      subscription_root_fields: []
   - role: user
     permission:
       columns:

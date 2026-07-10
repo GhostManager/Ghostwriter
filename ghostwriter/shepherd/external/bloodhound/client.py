@@ -15,7 +15,7 @@ import hmac
 import json
 import logging
 from datetime import datetime
-from typing import Counter, Literal, Optional, NamedTuple, Dict, Any, List
+from typing import Literal, Optional, NamedTuple, Dict, Any, List
 
 # Django Imports
 from django.conf import settings
@@ -23,6 +23,9 @@ from django.conf import settings
 # 3rd Party Libraries
 import requests
 from markdown import markdown
+
+# Ghostwriter Libraries
+from ghostwriter.reporting.models import Severity
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +135,7 @@ class APIClient:
                 "Content-Type": "application/json",
             },
             data=body,
-            timeout=(3, 10),
+            timeout=(3, 30),
         )
 
         if response.status_code < 200:
@@ -179,15 +182,150 @@ class APIClient:
     def get_all(self) -> dict:
         findings = self.get_enterprise_findings()
         domains = self.get_community_domains()
+        is_empty = not findings and not domains
         return {
             "findings": findings,
             "domains": domains,
+            "empty": is_empty,
+            "status_message": (
+                "BloodHound fetch completed, but this instance has no domains or findings yet. It may still be processing data."
+                if is_empty
+                else "Findings updated from BloodHound successfully."
+            ),
         }
+
+    @staticmethod
+    def _escape_cypher_string(value: str) -> str:
+        """Escape a string value for safe interpolation into a cypher query."""
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
+    def _run_cypher_literal_query(self, query: str, alias: str) -> list[Any]:
+        """Execute a cypher query and return literal values for the requested alias."""
+        response = self._request(
+            "POST",
+            "/api/v2/graphs/cypher",
+            body=json.dumps({
+                "query": query,
+                "include_properties": False,
+            }).encode("utf-8"),
+        ).json()["data"]
+
+        literals = response.get("literals", [])
+        matching_values = [entry["value"] for entry in literals if entry.get("key") == alias]
+        if matching_values:
+            return matching_values
+        return [entry["value"] for entry in literals]
+
+    def _run_cypher_count_query(self, query: str) -> int:
+        """Execute a cypher count query and normalize the first returned value to an integer."""
+        values = self._run_cypher_literal_query(query, "count")
+        if not values:
+            return 0
+        try:
+            return int(values[0])
+        except (TypeError, ValueError):
+            return 0
+
+    def _run_cypher_grouped_count_query(self, query: str, group_alias: str, count_alias: str = "count") -> dict[str, int]:
+        """Execute a grouped cypher query and return a mapping of group value to count."""
+        response = self._request(
+            "POST",
+            "/api/v2/graphs/cypher",
+            body=json.dumps({
+                "query": query,
+                "include_properties": False,
+            }).encode("utf-8"),
+        ).json()["data"]
+
+        grouped_counts: dict[str, int] = {}
+        current_group = None
+        for entry in response.get("literals", []):
+            key = entry.get("key")
+            value = entry.get("value")
+            if key == group_alias:
+                current_group = None if value is None else str(value)
+            elif key == count_alias and current_group is not None:
+                try:
+                    grouped_counts[current_group] = int(value)
+                except (TypeError, ValueError):
+                    grouped_counts[current_group] = 0
+                current_group = None
+
+        return grouped_counts
+
+    @staticmethod
+    def _is_pwdlastset_text_type_error(err: "APIException") -> bool:
+        """Return True when BloodHound rejects numeric pwdlastset comparisons against a text property."""
+        if not isinstance(err.err_response, ErrorResponse):
+            return False
+        return any(
+            "text" in error.message.lower() and "integer" in error.message.lower()
+            for error in err.err_response.errors
+        )
+
+    def _count_users_with_old_passwords(self, domain_name: str, pw_cutoff: int) -> int:
+        """
+        Count users with old passwords, preferring numeric comparisons and falling back for text-backed schemas.
+
+        The `pwdlastset` property is numeric in Active Directory and BHCE, but we must use strings for BHE.
+        """
+        numeric_query = (
+            f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
+            "AND u.enabled = true "
+            "AND u.pwdlastset IS NOT NULL "
+            "AND NOT u.pwdlastset IN [-1, 0] "
+            f"AND u.pwdlastset <= {pw_cutoff} "
+            "RETURN count(u) AS count"
+        )
+        try:
+            return self._run_cypher_count_query(numeric_query)
+        except APIException as err:
+            logger.warning(f"Numeric pwdlastset query failed for domain {domain_name}, attempting text-based fallback. Error: {err}")
+            if not self._is_pwdlastset_text_type_error(err):
+                raise
+
+        string_query = (
+            f'MATCH (u:User) WHERE u.domain = "{domain_name}" '
+            "AND u.enabled = true "
+            "AND u.pwdlastset IS NOT NULL "
+            'AND NOT u.pwdlastset IN ["-1", "0"] '
+            f'AND u.pwdlastset <= "{pw_cutoff}" '
+            "RETURN count(u) AS count"
+        )
+        return self._run_cypher_count_query(string_query)
+
+    def _apply_exposures(self, domain: dict, domain_out: dict) -> None:
+        """
+        Applies BHE-specific exposures data from a raw API ``domain`` dict into ``domain_out`` in-place.
+        Exposures are only present in BHE (not BHCE).
+        """
+        if "exposures" in domain:
+            domain_out["exposures"] = domain["exposures"]
 
     def get_enterprise_findings(self) -> dict:
         """
         Gets findings from BHEE
         """
+        # Get ``Severity`` objects based on their ``weight`` for later use (single query)
+        # We map weights to BloodHound severity names
+        severity_weight_map = {4: "Low", 3: "Moderate", 2: "High", 1: "Critical"}
+        severity_objects = Severity.objects.filter(weight__in=[1, 2, 3, 4])
+        severities = {severity_weight_map[s.weight]: s for s in severity_objects}
+
+        # BloodHound's severity names to order mapping
+        severity_order = {
+            "Low": 1,
+            "Moderate": 2,
+            "High": 3,
+            "Critical": 4,
+        }
+
+        def _get_source_id(finding: dict) -> Any:
+            """
+            Return the relationship source principal ID across BHE field-name variants.
+            """
+            return finding.get("sourceid", finding.get("source_id"))
+
         def _calculate_severity(finding: dict) -> str:
             """
             Calculate severity based on ``impact_percentage`` or ``exposure_percentage``.
@@ -201,9 +339,15 @@ class APIClient:
             ``impact_percentage`` ``LargeDefaultGroups`` means exposure is 100% so impact is more relevant for
             prioritizing the finding.
             """
-            impact_percentage = finding.get("impact_percentage", 0)
-            exposure_percentage = finding.get("exposure_percentage", 0)
-            if finding.get("sourceid") is not None and "LargeDefaultGroups" not in finding.get("finding_name", ""):
+            def _normalize_percentage(value: Any) -> float:
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return 0.0
+
+            impact_percentage = _normalize_percentage(finding.get("impact_percentage", 0))
+            exposure_percentage = _normalize_percentage(finding.get("exposure_percentage", 0))
+            if _get_source_id(finding) is not None and "LargeDefaultGroups" not in finding.get("finding_name", ""):
                 impact_percentage = exposure_percentage
             # Convert to percentage (0.98473 -> 98.473) for comparison
             impact_pct = impact_percentage * 100
@@ -231,7 +375,7 @@ class APIClient:
                 "impact_percentage": finding.get("impact_percentage", 0),
 
                 # BHE's API has a typo in "sourceid" (missing underscore)
-                "source_id": finding.get("sourceid", None),
+                "source_id": _get_source_id(finding),
                 "source_kind": finding.get("source_kind", None),
                 "source_properties": finding.get("source_properties", {}),
 
@@ -287,7 +431,18 @@ class APIClient:
         # Add assets to each finding based on name and tier
         findings = payload["findings"]
         for finding in findings:
-            if tzgroup is not None and finding.get("asset_group") == tzgroup and finding["finding_name"] in txassets:
+            is_tier_zero_finding = False
+            if isinstance(tzgroup, dict):
+                # BHE returns the configured tier zero tag via ``/asset-group-tags``, so match findings
+                # against that dynamic tag ID instead of assuming a fixed value across instances
+                tzgroup_id = tzgroup.get("id")
+                if tzgroup_id is not None:
+                    is_tier_zero_finding = finding.get("asset_group_tag_id") == tzgroup_id
+            elif tzgroup is not None:
+                # As a fallback, compare to the default tier zero group name
+                is_tier_zero_finding = finding.get("asset_group") == tzgroup
+
+            if is_tier_zero_finding and finding["finding_name"] in txassets:
                 finding["assets"] = txassets[finding["finding_name"]]
             else:
                 finding["assets"] = tzassets.get(finding["finding_name"])
@@ -304,7 +459,8 @@ class APIClient:
                 # First occurrence - create entry with all fields
                 grouped[unique_key] = dict(finding)
                 # Move ``finding_name`` to the top level of the dict
-                grouped[unique_key] = {"finding_name": finding.pop("finding_name"), **grouped[unique_key]}
+                grouped[unique_key] = {"finding_name": finding_name, **grouped[unique_key]}
+                grouped[unique_key]["is_tier_zero"] = is_tier_zero_finding
 
                 # Calculate severity and build target entry
                 severity = _calculate_severity(finding)
@@ -319,6 +475,7 @@ class APIClient:
                 grouped[unique_key].pop("impact_percentage", None)
 
                 grouped[unique_key].pop("sourceid", None)
+                grouped[unique_key].pop("source_id", None)
                 grouped[unique_key].pop("source_kind", None)
                 grouped[unique_key].pop("source_properties", None)
 
@@ -327,28 +484,29 @@ class APIClient:
 
                 grouped[unique_key].pop("attack_path_edge_id", None)
             else:
+                grouped[unique_key]["is_tier_zero"] = grouped[unique_key].get("is_tier_zero", False) or is_tier_zero_finding
                 # Additional finding occurrence - just add the target information if not already present
-                target_id = finding.get("target_id")
-                # Check if this ``target_id`` is already in the list
-                existing_target_ids = [t["target_id"] for t in grouped[unique_key]["principals"]]
-                if target_id not in existing_target_ids:
+                source_target_pair = (_get_source_id(finding), finding.get("target_id"))
+                existing_source_target_pairs = [(t["source_id"], t["target_id"]) for t in grouped[unique_key]["principals"]]
+                if source_target_pair not in existing_source_target_pairs:
                     severity = _calculate_severity(finding)
                     grouped[unique_key]["principals"].append(_build_target_entry(finding, severity))
 
         # Now we set the ``severity`` at the top level based on the highest severity of its target(s)
-        severity_order = {
-            "Low": 1,
-            "Moderate": 2,
-            "High": 3,
-            "Critical": 4,
-        }
         for finding_key, finding_value in grouped.items():
             highest_severity = "Low"
             for target in finding_value["principals"]:
                 target_severity = target.get("severity", "Low")
                 if severity_order.get(target_severity, 0) > severity_order.get(highest_severity, 0):
                     highest_severity = target_severity
-            grouped[finding_key]["severity"] = highest_severity
+            finding_value["severity"] = highest_severity
+
+            # Add severity ``color``, ``color_rgb``, and ``color_hex`` from Ghostwriter ``Severity`` model and ``severities`` dict
+            severity_obj = severities.get(highest_severity) or severities.get("Low")
+            if severity_obj is not None:
+                finding_value["severity_color"] = severity_obj.color
+                finding_value["severity_color_rgb"] = severity_obj.color_rgb
+                finding_value["severity_color_hex"] = severity_obj.color_hex
 
         # Convert to list and sort by severity
         result = list(grouped.values())
@@ -370,7 +528,7 @@ class APIClient:
         # The tier zero tag is the one with type=1 and position=1
         for tag in response.json()["data"]["tags"]:
             if tag["type"] == 1 and tag["position"] == 1:
-                return tag["name"]
+                return tag
         return None
 
     def get_data_quality(self, domain: Domain) -> dict:
@@ -385,7 +543,24 @@ class APIClient:
         response = self._request("GET", "/api/v2/{idp_subdir}/{domain_id}/data-quality-stats?limit=1"
                                  .format(domain_id = domain["id"],
                                          idp_subdir = "ad-domains" if domain["type"] == "active-directory" else "azure-tenants"))
-        payload = response.json()['data'][0]
+        payload_list = response.json()["data"]
+        # If someone attempts to fetch data at just the right moment during initial ingestion, the domain may exist in the list of available domains
+        # but not have any data quality stats yet, so we return default values in this case to avoid errors
+        if not payload_list:
+            logger.info("No data quality stats available yet for domain %s", domain["name"])
+            if domain["type"] == "active-directory":
+                return {
+                    "groups": 0,
+                    "sessions": 0,
+                    "gpos": 0,
+                    "acls": 0,
+                    "relationships": 0,
+                    "session_completeness": 0,
+                    "local_group_completeness": 0,
+                }
+            return {}
+
+        payload = payload_list[0]
 
         if domain["type"] == "active-directory":
             payload["session_completeness"] *= 100
@@ -399,78 +574,75 @@ class APIClient:
         """
         available_domains = self._request("GET", "/api/v2/available-domains").json()["data"]
         domains_out = []
+        pw_cutoff = int(datetime.now().timestamp() - 90 * 86400)
         for domain in available_domains:
-            domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}").json()["data"]
-            domain_out = {
-                "name": domain_data["props"]["name"],
-                "domain": domain_data["props"].get("domain"),
-                "distinguished_name": domain_data["props"].get("distinguishedname"),
-                "domain_sid": domain_data["props"].get("domainsid"),
-                "functional_level": domain_data["props"].get("functionallevel"),
-                "data_quality": self.get_data_quality(domain),
-                "inbound_trusts": [],
-                "outbound_trusts": [],
-            }
-            if domain_data.get("inboundTrusts", 0) > 0:
+            logger.debug(f"Processing domain {domain['name']}")
+            domain_name = self._escape_cypher_string(domain["name"])
+            # A domain lookup may 404 if the domain is an Azure tenant without AD data collected
+            try:
+                domain_data = self._request("GET", f"/api/v2/domains/{domain['id']}?counts=false").json()["data"]
+                domain_out = {
+                    "name": domain_data["props"]["name"],
+                    "domain": domain_data["props"].get("domain"),
+                    "distinguished_name": domain_data["props"].get("distinguishedname"),
+                    "domain_sid": domain_data["props"].get("domainsid"),
+                    "functional_level": domain_data["props"].get("functionallevel"),
+                    "data_quality": self.get_data_quality(domain),
+                    "inbound_trusts": [],
+                    "outbound_trusts": [],
+                }
                 domain_out["inbound_trusts"] = [{
                     "name": v["name"],
-                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/inbound-trusts").json()["data"]]
-            if domain_data.get("outboundTrusts", 0) > 0:
+                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/inbound-trusts?skip=0&limit=128").json()["data"]]
                 domain_out["outbound_trusts"] = [{
                     "name": v["name"],
-                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts").json()["data"]]
+                } for v in self._request("GET", f"/api/v2/domains/{domain['id']}/outbound-trusts?skip=0&limit=128").json()["data"]]
+
+                try:
+                    computer_count = self._run_cypher_count_query(
+                        f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" RETURN count(n) AS count'
+                    )
+                    operating_systems = self._run_cypher_grouped_count_query(
+                        f'MATCH (n:Computer) WHERE n.domain = "{domain_name}" '
+                        "AND n.operatingsystem IS NOT NULL "
+                        "RETURN n.operatingsystem AS operating_system, count(n) AS count",
+                        "operating_system",
+                    )
+                except APIException as err:
+                    if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
+                        logger.info(f"No computers found for domain {domain['name']}")
+                        computer_count = 0
+                        operating_systems = {}
+                    else:
+                        raise
+                domain_out["computers"] = {
+                    "count": computer_count,
+                    "operating_systems": operating_systems,
+                }
+
+            except APIException as err:
+                logger.error(f"Error retrieving data for domain {domain['name']}: {err}")
+                continue
 
             try:
-                domain_computers = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                    "query": 'MATCH (n:Computer) WHERE n.domain = "{}" RETURN n'.format(domain['name']),
-                    "include_properties": True,
-                }).encode("utf-8")).json()["data"]
+                user_count = self._run_cypher_count_query(
+                    f'MATCH (u:User) WHERE u.domain = "{domain_name}" RETURN count(u) AS count'
+                )
+                pw_old_count = self._count_users_with_old_passwords(domain_name, pw_cutoff)
             except APIException as err:
                 if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
-                    # No results
-                    logger.info(f"No computers found for domain {domain['name']}")
-                    domain_computers = {"nodes": {}}
-                else:
-                    raise
-            domain_oses = Counter(
-                value["properties"]["operatingsystem"]
-                for value in domain_computers["nodes"].values()
-                if "properties" in value and "operatingsystem" in value["properties"]
-            )
-            domain_out["computers"] = {
-                "count": len(domain_computers["nodes"]),
-                "operating_systems": domain_oses,
-            }
-
-            try:
-                domain_users = self._request("POST", "/api/v2/graphs/cypher", body=json.dumps({
-                    "query": 'MATCH (u:User) WHERE u.domain = "{}" RETURN u'.format(domain['name']),
-                    "include_properties": True,
-                }).encode("utf-8")).json()["data"]
-            except APIException as err:
-                if isinstance(err.err_response, ErrorResponse) and err.http_code == 404:
-                    # No results
                     logger.info(f"No users found for domain {domain['name']}")
-                    domain_users = {"nodes": {}}
+                    user_count = 0
+                    pw_old_count = 0
                 else:
                     raise
-
-            pw_cutoff = datetime.now().timestamp() - 90*86400
-            pw_old_count = 0
-            for node in domain_users["nodes"].values():
-                if "pwdlastset" not in node["properties"]:
-                    continue
-                last_set = node["properties"]["pwdlastset"]
-                if last_set in (0, -1):
-                    continue
-                if last_set <= pw_cutoff:
-                    pw_old_count += 1
 
             domain_out["users"] = {
-                "count": len(domain_users["nodes"]),
+                "count": user_count,
                 "with_old_pw": pw_old_count
             }
 
+            self._apply_exposures(domain, domain_out)
             domains_out.append(domain_out)
 
         return domains_out

@@ -6,10 +6,16 @@ from io import BytesIO
 
 # Django Imports
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+
+# 3rd Party Libraries
+from allauth.account.models import EmailAddress
+from allauth.mfa import app_settings as mfa_app_settings
+from allauth.mfa.internal.flows.add import validate_can_add_authenticator
 
 # Ghostwriter Libraries
 from ghostwriter.factories import UserFactory
@@ -281,6 +287,34 @@ class RequireMFAMiddlewareTests(TestCase):
         self.user.require_mfa = False
         self.user.save()
 
+    def test_mfa_setup_allows_unverified_email(self):
+        EmailAddress.objects.filter(user=self.user).delete()
+        EmailAddress.objects.create(
+            user=self.user,
+            email=self.user.email,
+            verified=False,
+            primary=True,
+        )
+
+        try:
+            validate_can_add_authenticator(self.user)
+        except ValidationError as exc:
+            self.fail(f"MFA setup should not require email verification: {exc}")
+
+    @override_settings(MFA_ALLOW_UNVERIFIED_EMAIL=False)
+    def test_allauth_mfa_guard_blocks_unverified_email_when_disabled(self):
+        EmailAddress.objects.filter(user=self.user).delete()
+        EmailAddress.objects.create(
+            user=self.user,
+            email=self.user.email,
+            verified=False,
+            primary=True,
+        )
+
+        self.assertFalse(mfa_app_settings.ALLOW_UNVERIFIED_EMAIL)
+        with self.assertRaises(ValidationError):
+            validate_can_add_authenticator(self.user)
+
 
 class AvatarDownloadTest(TestCase):
     """Collection of tests for :view:`users.AvatarDownload`."""
@@ -318,9 +352,24 @@ class AvatarDownloadTest(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        """Test default behavior downloads file (as_attachment=True)."""
+        response = self.client_auth.get(f"{self.uri}")
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+        # Verify security header is present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+    def test_view_inline_with_view_parameter(self):
+        """Test inline viewing with ?view=true parameter."""
+        response = self.client_auth.get(f"{self.uri}?view=true")
+        self.assertEqual(response.status_code, 200)
+        # Should NOT have attachment disposition for inline viewing
+        content_disposition = response.get("Content-Disposition")
+        if content_disposition:
+            self.assertNotIn("attachment", content_disposition)
+        # Verify security headers
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        self.assertIn("Content-Security-Policy", response)
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -341,6 +390,8 @@ class AvatarDownloadTest(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertRegexpMatches(response.get("Content-Disposition"), r'^attachment; filename="fake[_0-9a-zA-Z]*\.png"$')
+        # Verify security header
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
 
         if os.path.exists(self.user_profile.avatar.path):
             os.remove(self.user_profile.avatar.path)

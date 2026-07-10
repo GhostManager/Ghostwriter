@@ -6,11 +6,11 @@ description: "How to use Ghostwriter CLI to monitor and manage your Ghostwriter 
 
 <Warning>
 Ghostwriter CLI reads and writes to the `.env` file and tries to establish an outbound network connection when you run
-    the `update` and `version` commands. The CLI only writes to Ghostwriter's `.env` file and only reads Ghostwriter's
-    `.env` and `VERSION` files. For network connectivity, it only connects to GitHub's REST API to pull the version information
-    for Ghostwriter and Ghostwriter CLI's latest tagged releases. However, these actions taken by a downloaded binary
-    will cause some anti-malware and EDR solutions to flag Ghostwriter CLI as malware. If you encounter an issue with
-    such a solution blocking Ghostwriter CLI from executing, please add the binary to your allowlist or exclusions list.
+    the `update` and `version` commands. The CLI only reads and writes to Ghostwriter's `.env` file. For network connectivity,
+    it only connects to GitHub's REST API to pull the version information for Ghostwriter and Ghostwriter CLI's latest
+    tagged releases. However, these actions taken by a downloaded binary will cause some anti-malware and EDR solutions to
+    flag Ghostwriter CLI as malware. If you encounter an issue with such a solution blocking Ghostwriter CLI from executing,
+    please add the binary to your allowlist or exclusions list.
 
     We are working to try to get Ghostwriter CLI to be trusted, as it once was, but these issues come and go.
 
@@ -90,6 +90,7 @@ You can use the `logs` command to view a particular container's recent log event
 * nginx
 * postgres
 * redis
+* collab
 
 With `all`, logs from all running containers will be returned. By default, `logs` will return up to 500 lines. You can use the `--lines` flag to adjust how many lines you want to retrieve.
 

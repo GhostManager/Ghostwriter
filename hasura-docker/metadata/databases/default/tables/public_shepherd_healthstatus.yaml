@@ -24,6 +24,10 @@ select_permissions:
         - health_status
         - id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter: {}
   - role: user
     permission:
       columns: '*'

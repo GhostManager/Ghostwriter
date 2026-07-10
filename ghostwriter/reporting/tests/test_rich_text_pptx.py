@@ -2,7 +2,7 @@ import pptx
 from io import BytesIO
 from zipfile import ZipFile
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from .test_rich_text_docx import clean_xml
 
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptx
@@ -92,8 +92,48 @@ def mk_test_pptx(name, input, expected_output, add_suffix=True):
     return test_func
 
 
-class RichTextToPptxTests(TestCase):
+class RichTextToPptxTests(SimpleTestCase):
     maxDiff = None
+
+    def test_safe_links_are_preserved(self):
+        ppt = pptx.Presentation()
+        slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])
+        shape = slide.shapes.placeholders[1]
+        shape.text_frame.clear()
+        HtmlToPptx.run('<p><a href="mailto:test@example.com">Email</a></p>', slide, shape)
+        HtmlToPptx.delete_extra_paragraph(shape)
+
+        out = BytesIO()
+        ppt.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("ppt/slides/slide1.xml") as file:
+                slide_xml = file.read().decode("utf-8")
+            with zip.open("ppt/slides/_rels/slide1.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Email", slide_xml)
+        self.assertIn("mailto:test@example.com", rels_xml)
+
+    def test_unsafe_links_are_removed(self):
+        ppt = pptx.Presentation()
+        slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])
+        shape = slide.shapes.placeholders[1]
+        shape.text_frame.clear()
+        HtmlToPptx.run('<p><a href="data:text/html,boom">Email</a></p>', slide, shape)
+        HtmlToPptx.delete_extra_paragraph(shape)
+
+        out = BytesIO()
+        ppt.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("ppt/slides/slide1.xml") as file:
+                slide_xml = file.read().decode("utf-8")
+            with zip.open("ppt/slides/_rels/slide1.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Email", slide_xml)
+        self.assertNotIn("data:text/html,boom", rels_xml)
 
     test_paragraphs = mk_test_pptx(
         "test_paragraphs",
@@ -556,4 +596,28 @@ class RichTextToPptxTests(TestCase):
 </p:sld>
         """,
         add_suffix=False,
+    )
+
+    # Footnotes are not supported in PowerPoint - they should be silently ignored
+    test_footnote_ignored = mk_test_pptx(
+        "test_footnote_ignored",
+        "<p>Text with footnote<footnote>This footnote should be ignored.</footnote> continues here.</p>",
+        """
+            <a:p>
+                <a:r><a:t>Text with footnote</a:t></a:r>
+                <a:r><a:t> continues here.</a:t></a:r>
+            </a:p>
+        """,
+    )
+
+    test_multiple_footnotes_ignored = mk_test_pptx(
+        "test_multiple_footnotes_ignored",
+        "<p>First<footnote>Note 1</footnote> and second<footnote>Note 2</footnote> footnotes.</p>",
+        """
+            <a:p>
+                <a:r><a:t>First</a:t></a:r>
+                <a:r><a:t> and second</a:t></a:r>
+                <a:r><a:t> footnotes.</a:t></a:r>
+            </a:p>
+        """,
     )

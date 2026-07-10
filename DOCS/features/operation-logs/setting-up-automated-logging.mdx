@@ -5,16 +5,19 @@ description: "Configuring the API endpoint for automatic activity logging"
 
 Currently, two different C2 frameworks can easily integrate with Ghostwriter's GraphQL API: Mythic and Cobalt Strike. These utilities automatically create and update log entries.
 
-You can also write scripts to integrate other frameworks and tools. All you need to get started if an API token.
+You can also write scripts to integrate other frameworks and tools. All you need to get started is an automation token.
 
-## Obtaining an API Token
+## Obtaining an Automation Token
 
+For operation-log syncing, prefer a scoped service token when the integration supports it. A service token can be limited to one operation log and its entries, so the automation does not inherit all permissions from the user who created the token.
 
-To get started logging you need an API token. To use the utilities mentioned below you will want to generate an API token with an expiration date. For custom logging tools, you can consider using the `login` action with the API.
+Use an API token only when the automation should act as your user account and inherit your current permissions. For custom logging tools, you can also consider using the `login` action with the API, but generated API tokens or service tokens are usually a better fit for long-running automation.
 
 Read more about this process here:
 
 <CardGroup cols={1}> <Card title="Authentication" icon="key" iconType="solid" href="/features/graphql-api/authentication" /> </CardGroup>
+
+<CardGroup cols={1}> <Card title="User Profile and Tokens" icon="user-gear" iconType="solid" href="/features/access-authentication-and-session-controls/user-profile-and-tokens" /> </CardGroup>
 
 ## Setting up Syncing with Cobalt Strike
 

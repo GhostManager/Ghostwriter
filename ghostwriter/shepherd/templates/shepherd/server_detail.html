@@ -158,6 +158,17 @@
                 <td class="align-middle text-left">{{ checkout.server_role }}</td>
                 <td class="align-middle text-left" data-text="{{ checkout.start_date|date:"Y-m-d" }}">{{ checkout.start_date|date:"DATE_FORMAT" }}
                   - {{ checkout.end_date|date:"DATE_FORMAT" }}</td>
+                <td class="align-middle text-left">
+                  {% if checkout.operator %}
+                    {% if checkout.operator.name %}
+                      {{ checkout.operator.name }} ({{ checkout.operator.username }})
+                    {% else %}
+                      Missing Full Name ({{ checkout.operator.username }})
+                    {% endif %}
+                  {% else %}
+                    Unknown/Deleted user
+                  {% endif %}
+                </td>
                 <td class="align-middle">
                   {% if checkout.project|has_access:request.user %}
                     <div class="d-flex justify-content-center">
@@ -177,16 +188,6 @@
           <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This server has no history.</div>
         {% endif %}
       </div>
-
-      {% comment %} Extra Fields Tab {% endcomment %}
-      {% if server_extra_fields_spec %}
-        <div id="extra_fields" class="tab-pane">
-          <h4>Extra Fields</h4>
-          <hr/>
-
-          {% include "user_extra_fields/field_preview_display.html" with object=staticserver object_extra_fields_spec=server_extra_fields_spec %}
-        </div>
-      {% endif %}
 
       <!-- Notes Tab -->
       <div id="notes" class="tab-pane">
@@ -229,6 +230,55 @@
           <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this server.</div>
         {% endif %}
       </div>
+
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if server_extra_fields_spec %}
+        <div id="extra-fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          <p class="text-muted small">Jinja2 template syntax will not be rendered in these previews because a project and report context is needed. Rich text previews with rendered Jinja2 are available on report and project detail pages where these fields are referenced.</p>
+
+          <div class="extra-fields-grid">
+            {% for field_spec in server_extra_fields_spec %}
+              <section class="extra-field-card">
+                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+                <div class="extra-field-type">
+                  {% if field_spec.type == "rich_text" %}
+                    Rich Text Field
+                  {% else %}
+                    {{ field_spec.get_type_display }} Field
+                  {% endif %}
+                </div>
+                <div class="extra-field-type">Loop and reference as <code>object.extra_fields.{{ field_spec.internal_name }}</code></div>
+                <div class="extra-field-value">
+                  {% if field_spec.type == "rich_text" %}
+                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
+                  {% elif field_spec.type == "json" %}
+                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+                  {% else %}
+                    {% include "user_extra_fields/field.html" with extra_fields=staticserver.extra_fields field_spec=field_spec preview_report=False %}
+                  {% endif %}
+                </div>
+                <div class="extra-field-actions">
+                  {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    </button>
+                  {% elif field_spec.type == "json" %}
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    </button>
+                  {% endif %}
+                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
+                     href="{% url 'shepherd:server_update' staticserver.id %}#extra-fields"
+                     title="Edit {{ field_spec.display_name }}">Edit</a>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
@@ -274,7 +324,9 @@
   {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
   {% if server_extra_fields_spec %}
     {% for field_spec in server_extra_fields_spec %}
-      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=staticserver.extra_fields field_spec=field_spec %}
+      {% url 'shepherd:server_extra_field_json' staticserver.id field_spec.internal_name as extra_field_json_url %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=staticserver.extra_fields field_spec=field_spec lazy_json_url=extra_field_json_url preview_report=False %}
     {% endfor %}
+    {% include "user_extra_fields/lazy_json_modal_script.html" %}
   {% endif %}
 {% endblock %}

@@ -1,10 +1,22 @@
 
 {% for entry in widget.subwidgets %}
-    <label>{{entry.label}}</label>
-    {% with widget=entry.widget %}
-        {% include widget.template_name %}
-    {% endwith %}
-    {% if entry.description %}
-        <small class="form-text text-muted">{{entry.description}}</small>
+    {% if entry.is_checkbox %}
+        <div class="mb-3 custom-control custom-switch">
+            {% with widget=entry.widget %}
+                {% include widget.template_name %}
+            {% endwith %}
+            <label for="{{entry.widget.attrs.id}}" class="custom-control-label form-check-label">{{entry.label}}</label>
+            {% if entry.description %}
+                <small class="form-text text-muted">{{entry.description}}</small>
+            {% endif %}
+        </div>
+    {% else %}
+        <label>{{entry.label}}</label>
+        {% with widget=entry.widget %}
+            {% include widget.template_name %}
+        {% endwith %}
+        {% if entry.description %}
+            <small class="form-text text-muted">{{entry.description}}</small>
+        {% endif %}
     {% endif %}
 {% endfor %}

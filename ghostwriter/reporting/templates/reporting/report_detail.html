@@ -130,23 +130,38 @@
 
         <table class="table table-responsive-lg table-borderless table-config">
           <tr>
-            <td class="text-left icon tag-icon">Figure Label & Prefix</td>
+            <td class="text-left icon hash-icon">Figure Label & Prefix</td>
             <td class="text-justify">{{ report_config.label_figure }}{{ report_config.prefix_figure }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Figure Caption Location</td>
+            <td class="text-left icon hash-icon">Figure Caption Location</td>
             <td class="text-justify">{{ report_config.get_figure_caption_location_display }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Table Label & Prefix</td>
+            <td class="text-left icon align-icon">Default Evidence Image Alignment</td>
+            <td class="text-justify">{{ report_config.get_evidence_image_alignment_display }}</td>
+          </tr>
+          <tr>
+            <td class="text-left icon width-icon">Default Evidence Image Width</td>
+            <td class="text-justify">
+              {% if report_config.evidence_image_width is not None %}
+                {{ report_config.evidence_image_width }}
+              {% else %}
+                6.5
+              {% endif %}
+              inches
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left icon hash-icon">Table Label & Prefix</td>
             <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Table Caption Location</td>
+            <td class="text-left icon hash-icon">Table Caption Location</td>
             <td class="text-justify">{{ report_config.get_table_caption_location_display }}</td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Title Case Captions</td>
+            <td class="text-left icon toggle-on-icon">Title Case Captions</td>
             <td class="text-justify">
               {% if report_config.title_case_captions %}
                 <span class="align-middle healthy"><i class="fas fa-check"></i></span>
@@ -156,7 +171,7 @@
             </td>
           </tr>
           <tr>
-            <td class="text-left icon tag-icon">Title Case Exceptions</td>
+            <td class="text-left icon wand-icon">Title Case Exceptions</td>
             <td class="text-justify"> {{ report_config.title_case_exceptions|split_and_join:"," }}</td>
           </tr>
           <tr>
@@ -193,6 +208,16 @@
                 +{% endif %}{{ report_config.target_delivery_date }} business days
               </td>
             </tr>
+            <tr>
+              <td class="text-left icon tag-icon">Operation Log Tags</td>
+              <td class="text-justify">
+                {% if report_config.outline_tags %}
+                  {{ report_config.outline_tags|humanize_comma_list }}
+                {% else %}
+                  report and evidence
+                {% endif %}
+              </td>
+            </tr>
           {% endif %}
         </table>
       </div>
@@ -218,11 +243,11 @@
           </div>
         </form>
 
-        <p class="mt-3">Add a finding by adding a blank template below, by searching the library and then
+        <p class="mt-3 mb-1">Add a finding by adding a blank template below, by searching the library and then
           clicking the <span class="p-1 add-icon"></span> button in the results, or
           by clicking an autocomplete result above.</p>
 
-        <p class="mt-3">Drag and drop findings within a severity category to change its ordering. Edit
+        <p class="mt-0">Drag and drop findings within a severity category to change its ordering. Edit
           a finding to change its severity.</p>
 
         <button class="btn btn-primary icon add-icon col-3"
@@ -288,7 +313,7 @@
         <p>Upload evidence here to make it accessible to all findings and report sections.</p>
 
         <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
-                           href="{% url 'reporting:upload_evidence' 'report' report.id %}" data-toggle="tooltip"
+                           href="{% url 'reporting:upload_evidence' report.id %}" data-toggle="tooltip"
                            data-placement="top" title="Upload evidence, attaching to a report">Upload Evidence</a></p>
 
         {% if report.evidence_set.all %}
@@ -345,51 +370,44 @@
           <h4>Extra Fields</h4>
           <hr/>
 
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
-                  <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <div class="mt-2 col-3 text-md-center align-middle offset-2">
-                  {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+          <div class="extra-fields-grid">
+            {% for field_spec in report_extra_fields_spec %}
+              <section class="extra-field-card">
+                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+                <div class="extra-field-type">
+                  {% if field_spec.type == "rich_text" %}
+                    Rich Text Field
+                  {% else %}
+                    {{ field_spec.get_type_display }} Field
+                  {% endif %}
                 </div>
-              </div>
-            {% endif %}
-          {% endfor %}
-          {% if report_extra_fields_spec|has_non_rt_fields %}
-            <hr>
-          {% endif %}
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type == "rich_text" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
+                <div class="extra-field-type">Reference as <code>extra_fields.{{ field_spec.internal_name }}</code></div>
+                <div class="extra-field-value">
+                  {% if field_spec.type == "rich_text" %}
+                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
+                  {% elif field_spec.type == "json" %}
+                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+                  {% else %}
+                    {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report %}
+                  {% endif %}
+                </div>
+                <div class="extra-field-actions">
+                  {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    </button>
+                  {% elif field_spec.type == "json" %}
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    </button>
+                  {% endif %}
                   <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-                </button>
-                {% if not forloop.last %}
-                  <hr>{% endif %}
-              </div>
-            {% endif %}
-          {% endfor %}
-
-          {% for field_spec in report_extra_fields_spec %}
-            {% if field_spec.type == "json" %}
-              <div class="row justify-content-md-center mb-1">
-                <h6 class="col-3 text-left">
-                  <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
-                     class="icon edit-icon-right">{{ field_spec.display_name }}</a>
-                </h6>
-                <button type="button" class="btn btn-primary col-3 offset-2 icon code-icon" data-toggle="modal"
-                        data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-                </button>
-              </div>
-            {% endif %}
-          {% endfor %}
+                     class="btn btn-outline-primary btn-sm icon edit-icon"
+                     title="Edit {{ field_spec.display_name }}">Edit</a>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
         </div>
       {% endif %}
 
@@ -651,7 +669,7 @@
       let availableFindingTitles = [
         {% for entry in finding_autocomplete %}
           {
-            value: '{{  entry.severity }} : {{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+            value: '{{  entry.severity }} : {{ entry.title|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
             id: '{{ entry.id }}',
             url: '{% url 'reporting:ajax_assign_finding' entry.id %}',
             csrftoken: '{{ csrf_token }}'
@@ -706,7 +724,7 @@
       let availableObservationTitles = [
         {% for entry in observation_autocomplete %}
           {
-            value: '{{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+            value: '{{ entry.title|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
             id: '{{ entry.id }}',
             url: '{% url 'reporting:ajax_assign_observation' entry.id %}',
             csrftoken: '{{ csrf_token }}'
@@ -876,58 +894,18 @@
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
 
-  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% comment %} Insert modals for rich text and JSON extra field previews {% endcomment %}
   {% if report_extra_fields_spec %}
     {% for field_spec in report_extra_fields_spec %}
-      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+      {% url 'reporting:report_extra_field_json' report.id field_spec.internal_name as extra_field_json_url %}
+      {% url 'reporting:report_extra_field_richtext' report.id field_spec.internal_name as extra_field_richtext_url %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report lazy_json_url=extra_field_json_url lazy_richtext_url=extra_field_richtext_url %}
     {% endfor %}
-  {% endif %}
 
-  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
-  {% if report_extra_fields_spec %}
-    {% for field_spec in report_extra_fields_spec %}
-      {% if field_spec == "rich_text" %}
-        {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec report_config=report_config %}
-      {% endif %}
-    {% endfor %}
+    {% include "user_extra_fields/lazy_json_modal_script.html" %}
+    {% include "user_extra_fields/lazy_richtext_modal_script.html" %}
 
     <script>
-      $('.extra-field-modal-content').each(function (e) {
-        let text = $(this).html();
-        let $previewModal = $(this);
-        for (let i = 0; i < evidenceFiles.length; i++) {
-          if (text.includes(evidenceFiles[i].text)) {
-            if (evidenceFiles[i].text.includes('caption')) {
-              console.log(evidenceFiles[i].text)
-              let re = new RegExp('<p>' + evidenceFiles[i].text, 'g');
-              text = text.replace(re, evidenceFiles[i].value);
-              console.log(text)
-              $previewModal.html(text);
-            } else {
-              $.ajaxSetup({
-                beforeSend: function (xhr, settings) {
-                  if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                  }
-                }
-              });
-              // Send AJAX POST request
-              $.ajax({
-                url: evidenceFiles[i].value,
-                type: 'GET',
-                success: function (data) {
-                  if (data) {
-                    let re = new RegExp('<p>' + evidenceFiles[i].text + '</p>', 'g');
-                    text = text.replace(re, data);
-                    $previewModal.html(text);
-                  }
-                }
-              });
-            }
-          }
-        }
-      });
-
       {% comment %} Store the last selected tab to return to it on page reload {% endcomment %}
       $('.nav-link').click(function () {
         let tab = $(this).attr('href');
@@ -935,6 +913,174 @@
       });
     </script>
   {% endif %}
+
+  {% comment %} Finding preview modal {% endcomment %}
+  <div id="finding-preview-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title" id="finding-preview-modal-title">Finding Preview</h5>
+            <p class="text-muted small mb-0">
+              This preview closely approximates report output using the report configuration and selected Word template settings. Only fields with content will be displayed in the preview.
+            </p>
+          </div>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" id="finding-preview-modal-body">
+          <p class="text-muted mb-0">Finding preview will load when opened.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const findingPreviewPlaceholder = '<p class="text-muted mb-0">Finding preview will load when opened.</p>';
+    const findingPreviewLoading = (
+      '<div class="text-center text-muted py-5" role="status" aria-live="polite">' +
+      '<i class="fas fa-spinner fa-spin fa-2x mb-3" aria-hidden="true"></i>' +
+      '<p class="mb-0">Rendering finding preview&hellip;</p>' +
+      '</div>'
+    );
+
+    let findingPreviewAbortController = null;
+
+    $('#finding-preview-modal').on('show.bs.modal', function (event) {
+      const $trigger = $(event.relatedTarget);
+      const previewUrl = $trigger.data('finding-preview-url');
+      const findingTitle = $trigger.data('finding-title') || 'Finding Preview';
+      const $body = $('#finding-preview-modal-body');
+      const $title = $('#finding-preview-modal-title');
+
+      $title.text(findingTitle);
+      $body.html(findingPreviewLoading);
+      findingPreviewAbortController = window.AbortController ? new AbortController() : null;
+
+      $(this).one('shown.bs.modal', function () {
+        const loadingStartedAt = performance.now();
+        requestAnimationFrame(function () {
+          fetch(previewUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            signal: findingPreviewAbortController ? findingPreviewAbortController.signal : undefined,
+          })
+            .then(response => {
+              if (!response.ok) throw new Error('Unable to render finding preview.');
+              return response.text();
+            })
+            .then(html => {
+              const remaining = Math.max(0, 350 - (performance.now() - loadingStartedAt));
+              setTimeout(function () {
+                if (!$('#finding-preview-modal').hasClass('show')) return;
+                $body.html('<div class="rich-text-field-preview">' + html + '</div>');
+                $body.find('[data-toggle="tooltip"]').tooltip();
+              }, remaining);
+            })
+            .catch(error => {
+              if (error.name === 'AbortError') return;
+              console.error(error);
+              $body.html('<p class="burned mb-0">Unable to render finding preview.</p>');
+            });
+        });
+      });
+    });
+
+    $('#finding-preview-modal').on('hide.bs.modal', function () {
+      if (findingPreviewAbortController) findingPreviewAbortController.abort();
+      findingPreviewAbortController = null;
+      $('#finding-preview-modal-body').html(findingPreviewPlaceholder);
+      $('#finding-preview-modal-title').text('Finding Preview');
+    });
+  </script>
+
+  {% comment %} Observation preview modal {% endcomment %}
+  <div id="observation-preview-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title" id="observation-preview-modal-title">Observation Preview</h5>
+            <p class="text-muted small mb-0">
+              This preview closely approximates report output using the report configuration and selected Word template settings. Only fields with content will be displayed in the preview.
+            </p>
+          </div>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" id="observation-preview-modal-body">
+          <p class="text-muted mb-0">Observation preview will load when opened.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const observationPreviewPlaceholder = '<p class="text-muted mb-0">Observation preview will load when opened.</p>';
+    const observationPreviewLoading = (
+      '<div class="text-center text-muted py-5" role="status" aria-live="polite">' +
+      '<i class="fas fa-spinner fa-spin fa-2x mb-3" aria-hidden="true"></i>' +
+      '<p class="mb-0">Rendering observation preview&hellip;</p>' +
+      '</div>'
+    );
+
+    let observationPreviewAbortController = null;
+
+    $('#observation-preview-modal').on('show.bs.modal', function (event) {
+      const $trigger = $(event.relatedTarget);
+      const previewUrl = $trigger.data('observation-preview-url');
+      const obsTitle = $trigger.data('observation-title') || 'Observation Preview';
+      const $body = $('#observation-preview-modal-body');
+      const $title = $('#observation-preview-modal-title');
+
+      $title.text(obsTitle);
+      $body.html(observationPreviewLoading);
+      observationPreviewAbortController = window.AbortController ? new AbortController() : null;
+
+      $(this).one('shown.bs.modal', function () {
+        const loadingStartedAt = performance.now();
+        requestAnimationFrame(function () {
+          fetch(previewUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            signal: observationPreviewAbortController ? observationPreviewAbortController.signal : undefined,
+          })
+            .then(response => {
+              if (!response.ok) throw new Error('Unable to render observation preview.');
+              return response.text();
+            })
+            .then(html => {
+              const remaining = Math.max(0, 350 - (performance.now() - loadingStartedAt));
+              setTimeout(function () {
+                if (!$('#observation-preview-modal').hasClass('show')) return;
+                $body.html('<div class="rich-text-field-preview">' + html + '</div>');
+                $body.find('[data-toggle="tooltip"]').tooltip();
+              }, remaining);
+            })
+            .catch(error => {
+              if (error.name === 'AbortError') return;
+              console.error(error);
+              $body.html('<p class="burned mb-0">Unable to render observation preview.</p>');
+            });
+        });
+      });
+    });
+
+    $('#observation-preview-modal').on('hide.bs.modal', function () {
+      if (observationPreviewAbortController) observationPreviewAbortController.abort();
+      observationPreviewAbortController = null;
+      $('#observation-preview-modal-body').html(observationPreviewPlaceholder);
+      $('#observation-preview-modal-title').text('Observation Preview');
+    });
+  </script>
 
   {% comment %} Include the evidence lightbox modal {% endcomment %}
   {% include "snippets/evidence_lightbox_modal.html" %}

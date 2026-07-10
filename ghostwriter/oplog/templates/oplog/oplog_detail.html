@@ -15,6 +15,9 @@
 {% endblock %}
 
 {% block content %}
+    <link rel="stylesheet" href="{% static 'vendor/asciinema-player/asciinema-player.css' %}" />
+    <script src="{% static 'vendor/asciinema-player/asciinema-player.min.js' %}"></script>
+    <script src="{% static 'js/purify.min.js' %}"></script>
     <script src="{% static 'js/oplog.js' %}"></script>
     <div>
         <div class="dropdown">
@@ -67,26 +70,15 @@
     </div>
     <hr>
 
-    <div>
-        <p>The table syncs automatically while you are connected to the server (see the status indicator above the table).</p>
-        <p>Double-click a row to edit the details of any log entry. Use <em>CTRL+S</em> and <em>CTRL+N</em> to export the log and create new entries.</p>
-    </div>
+    <!-- Toolbar -->
+    <div class="oplog-toolbar">
+        <a id="createNewEntryButton" class="icon add-icon btn btn-primary btn-sm" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
+        <a id="columnSelectDropdown" class="icon open-icon btn btn-info btn-sm" href="javascript:void(0);">Show/Hide Columns</a>
+        <a id="resetSortBtn" class="btn btn-secondary icon sync-icon btn-sm" role="button">Reset Sort</a>
+        <a class="btn btn-outline-secondary btn-sm" role="button" data-toggle="modal" data-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</a>
 
-    <a id="createNewEntryButton" class="icon add-icon btn btn-primary mb-3 col-2" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
-    <a id="columnSelectDropdown" class="icon open-icon btn btn-info mb-3 col-2" href="javascript:void(0);">Show/Hide Columns</a>
-    <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mb-3 col-2" role="button">Reset Sort</a>
-
-    <div id="columnSelect" style="display:none;">
-        <div class="list-group-row" id="checkboxList">
-        </div>
-    </div>
-
-    <div class="hidden-element" style="height:.25em;"></div>
-
-    <!-- Oplog Table Section -->
-    <div id="utilBar" class="form-row my-auto align-items-center">
-        <div class="offset-3 col-6">
-            <div class="input-group">
+        <div class="oplog-toolbar-right">
+            <div class="input-group input-group-sm" style="width:280px;">
                 <div class="input-group-prepend">
                     <span class="input-group-text" id="filter-addon"><i class="fas fa-filter"></i></span>
                 </div>
@@ -95,33 +87,64 @@
                   <button id="clearSearchBtn" class="btn btn-outline-secondary" type="button"><i class="fas fa-times"></i></button>
                 </div>
             </div>
-        </div>
-
-        <div class="offset-1 col-2">
-            <div id="connection">
+            <div id="connection" style="margin-left:12px;">
                 <div id="connectionStatus" class="js-connection-status icon network-icon">Disconnected</div>
             </div>
         </div>
     </div>
 
-    <table id="oplogTable" class="table table-striped table-borderless table-sm scroll table-oplog">
-        <thead id="oplogTableHeader">
-        </thead>
-        <tbody id="oplogTableBody"
-            data-oplog-name="{{ oplog.name }}"
-            data-oplog-id="{{ oplog.id }}"
-            data-oplog-export-url="{% url 'oplog:oplog_export' oplog.pk %}"
-        >
-        </tbody>
-        <tfoot>
-          <tr style="display:none" id="oplogTableNoEntries">
-            <td>No entries to display</td>
-          </tr>
-          <tr style="display:none" id="oplogTableLoading">
-            <td><i class="fa fa-sync fa-spin"></i> Loading the log entries...</td>
-          </tr>
-        </tfoot>
-    </table>
+    <div id="columnSelect" style="display:none;">
+        <div class="list-group-row" id="checkboxList">
+        </div>
+    </div>
+
+    <!-- Split-pane oplog viewer -->
+    <div class="oplog-split-container"
+        data-oplog-name="{{ oplog.name }}"
+        data-oplog-id="{{ oplog.id }}"
+        data-oplog-export-url="{% url 'oplog:oplog_export' oplog.pk %}"
+        data-csrf-token="{{ csrf_token }}"
+        data-evidence-upload-base-url="/oplog/entry/"
+        data-project-has-reports="{% if project_has_reports %}true{% else %}false{% endif %}"
+        data-project-url="{% url 'rolodex:project_detail' oplog.project.id %}"
+    >
+        <!-- Left: Entry List -->
+        <div class="oplog-list-pane" id="oplogListPane">
+            <div class="oplog-list-header" id="oplogListHeader">
+                <table class="oplog-list-header-table">
+                    <thead id="oplogTableHeader"></thead>
+                </table>
+            </div>
+            <div class="oplog-list-scroll" id="oplogListScroll">
+                <table id="oplogTable" class="oplog-list-table">
+                    <thead id="oplogTableHeaderHidden" style="display:none;"></thead>
+                    <tbody id="oplogTableBody"></tbody>
+                </table>
+                <div style="display:none;" id="oplogTableNoEntries" class="oplog-list-placeholder">
+                    <i class="fas fa-inbox" style="font-size:2rem;opacity:0.3;"></i>
+                    <p>No entries to display</p>
+                </div>
+                <div style="display:none;" id="oplogTableLoading" class="oplog-list-placeholder">
+                    <i class="fa fa-sync fa-spin"></i> Loading entries...
+                </div>
+            </div>
+        </div>
+
+        <!-- Resize handle -->
+        <div class="oplog-resize-handle" id="oplogResizeHandle">
+            <div class="oplog-resize-grip"></div>
+        </div>
+
+        <!-- Right: Detail Viewer -->
+        <div class="oplog-detail-pane" id="oplogDetailPane">
+            <div class="oplog-detail-empty" id="oplogDetailEmpty">
+                <i class="fas fa-mouse-pointer" style="font-size:2.5rem;opacity:0.15;margin-bottom:16px;"></i>
+                <p style="opacity:0.5;font-size:0.9rem;">Select an entry to view details</p>
+                <p style="opacity:0.35;font-size:0.8rem;">Double-click to edit &middot; CTRL+N to create</p>
+            </div>
+            <div class="oplog-detail-content" id="oplogDetailContent" style="display:none;"></div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block morescripts %}
@@ -139,7 +162,153 @@
       </div>
   </div>
 
+  <div id="evidence-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title"><i class="fas fa-file-upload"></i> Upload Evidence</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="modal-body oplog-evidence-form-div"></div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div id="export-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="exportModalLabel"><i class="fas fa-file-archive mr-2"></i> Export Entries</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="modal-body">
+                  <p>Select what to include with the export. If no attachments are selected, a plain CSV will be returned.</p>
+                  <div class="form-group">
+                      <div class="custom-control custom-switch">
+                          <input type="checkbox" class="custom-control-input" id="export-recordings">
+                          <label class="custom-control-label form-check-label" for="export-recordings">Include terminal recordings</label>
+                      </div>
+                      <div class="custom-control custom-switch mt-2">
+                          <input type="checkbox" class="custom-control-input" id="export-evidence">
+                          <label class="custom-control-label form-check-label" for="export-evidence">Include linked evidence files</label>
+                      </div>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button id="exportModalDownload" type="button" class="btn btn-primary">Download</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
   {{ oplog_entry_extra_fields_spec_ser|json_script:"oplog_entry_extra_fields_spec" }}
+
+  <!-- Oplog Help Modal -->
+  <div id="oplog-help-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="oplogHelpModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-super-sized" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="oplogHelpModalLabel"><i class="fas fa-book-open mr-2"></i>Activity Log &mdash; Quick Reference</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="modal-body">
+                  <div class="row">
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-wifi mr-1"></i> <strong>Live Updates</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-1">Entries are kept in sync via <strong>WebSockets</strong>. The <span class="badge badge-success">Connected</span> / <span class="badge badge-danger">Disconnected</span> indicator in the toolbar shows the current connection state.</p>
+                                  <p class="card-text small mb-0">Changes made by other operators appear automatically &mdash; no refresh needed.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-mouse-pointer mr-1"></i> <strong>Navigation &amp; Selection</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <ul class="small mb-0 pl-3">
+                                      <li><strong>Click</strong> a row to open the details pane.</li>
+                                      <li><strong>Double-click</strong> a row to edit the entry.</li>
+                                      <li><strong>&uarr;&darr; arrow keys</strong> move between entries once one is selected.</li>
+                                      <li><kbd>Enter</kbd> opens the edit form; tap <kbd>Enter</kbd> again to submit it, saving and closing the form.</li>
+                                      <li><kbd>Esc</kbd> closes the details pane and deselects the entry, giving the table full width.</li>
+                                      <li><kbd>Ctrl+N</kbd> creates a new entry.</li>
+                                  </ul>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-sort mr-1"></i> <strong>Sorting</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <ul class="small mb-0 pl-3">
+                                      <li>The default order is <strong>start date, newest first</strong>.</li>
+                                      <li><strong>Click</strong> a column header to sort by that column.</li>
+                                      <li><strong>Shift+click</strong> additional headers to add a secondary sort column.</li>
+                                      <li>Your sort preference is saved and restored on the next visit. Use <strong>Reset Sort</strong> to return to the default order.</li>
+                                  </ul>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-columns mr-1"></i> <strong>Show / Hide Columns</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-0">Click <strong>Show/Hide Columns</strong> to toggle individual columns on or off. Your preferences are saved in your browser. Long-form fields (Command, Output, Description, Comments) are truncated in the table &mdash; select an entry to read the full content in the details pane.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-filter mr-1"></i> <strong>Filtering</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-0">Type in the <strong>Filter Entries</strong> box to search across all fields, including fields not currently shown as columns. Filtering also includes the raw input and output text of any terminal recordings attached to entries. Results update as you type. Click <i class="fas fa-times"></i> or clear the box to remove the filter.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-link mr-1"></i> <strong>Details Pane &amp; Deep Links</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-0">The details pane shows the full entry, evidence attachments, and a terminal recording player. Use the <i class="fas fa-link"></i> <strong>deep link</strong> button in the details pane to copy a URL that opens this log and scrolls directly to that entry &mdash; useful for sharing specific entries with coworkers.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              </div>
+          </div>
+      </div>
+  </div>
 
 
 {% endblock %}

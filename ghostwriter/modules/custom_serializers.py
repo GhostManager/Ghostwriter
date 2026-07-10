@@ -22,6 +22,9 @@ from rest_framework.serializers import (
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
+# Django Imports (additional)
+from django.core.exceptions import ObjectDoesNotExist
+
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, BloodHoundConfiguration
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -77,11 +80,11 @@ class CustomModelSerializer(serializers.ModelSerializer):
     """
 
     def __init__(self, *args, exclude=None, **kwargs):
+        super().__init__(*args, **kwargs)
         if exclude:
             exclude = set(exclude)
             for field in exclude:
-                self.fields.pop(field)
-        super().__init__(*args, **kwargs)
+                self.fields.pop(field, None)
 
     def to_representation(self, instance):
         """
@@ -247,16 +250,6 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
 
     # Include a copy of the ``mitigation`` field as ``recommendation`` to match legacy JSON output
     recommendation = serializers.CharField(source="mitigation")
-
-    evidence = EvidenceSerializer(
-        source="evidence_set",
-        many=True,
-        exclude=[
-            "report",
-            "finding",
-            "uploaded_by",
-        ],
-    )
 
     class Meta:
         model = ReportFindingLink
@@ -770,6 +763,17 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
 
     tags = TagListSerializerField()
     extra_fields = ExtraFieldsSerField(OplogEntry._meta.label)
+    recording_url = serializers.SerializerMethodField()
+
+    def get_recording_url(self, obj):
+        try:
+            rec = obj.recording
+            if rec and rec.recording_file:
+                from django.urls import reverse
+                return reverse("oplog:oplog_entry_recording_download", kwargs={"pk": rec.pk})
+        except ObjectDoesNotExist:
+            pass
+        return None
 
     class Meta:
         model = OplogEntry
@@ -877,7 +881,7 @@ class ReportDataSerializer(CustomModelSerializer):
     deconflictions = DeconflictionSerializer(source="project.deconfliction_set", many=True, exclude=["id", "project"])
     whitecards = WhiteCardSerializer(source="project.whitecard_set", many=True, exclude=["id", "project"])
     infrastructure = ProjectInfrastructureSerializer(source="project")
-    evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["report", "finding"])
+    evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["report"])
     severities = SerializerMethodField("get_severities")
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",

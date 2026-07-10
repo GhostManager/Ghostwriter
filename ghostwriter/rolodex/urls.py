@@ -177,6 +177,12 @@ urlpatterns += [
     path("clients/update/<int:pk>", views.ClientUpdate.as_view(), name="client_update"),
     path("clients/delete/<int:pk>", views.ClientDelete.as_view(), name="client_delete"),
     path(
+        "clients/<int:pk>/extra-field-json/<str:extra_field_name>",
+        views.ClientExtraFieldJson.as_view(),
+        name="client_extra_field_json",
+    ),
+
+    path(
         "clients/notes/create/<int:pk>",
         views.ClientNoteCreate.as_view(),
         name="client_note_add",
@@ -185,6 +191,11 @@ urlpatterns += [
         "clients/notes/update/<int:pk>",
         views.ClientNoteUpdate.as_view(),
         name="client_note_edit",
+    ),
+    path(
+        "clients/logo/download/<int:pk>",
+        views.ClientLogoDownload.as_view(),
+        name="client_logo_download",
     ),
 ]
 
@@ -231,5 +242,15 @@ urlpatterns += [
         "projects/update/components/<int:pk>",
         views.ProjectComponentsUpdate.as_view(),
         name="project_component_update",
+    ),
+    path(
+        "projects/<int:pk>/extra-field-json/<str:extra_field_name>",
+        views.ProjectExtraFieldJson.as_view(),
+        name="project_extra_field_json",
+    ),
+    path(
+        "projects/<int:pk>/extra-field-richtext/<str:extra_field_name>",
+        views.ProjectExtraFieldRichTextPreview.as_view(),
+        name="project_extra_field_richtext",
     ),
 ]

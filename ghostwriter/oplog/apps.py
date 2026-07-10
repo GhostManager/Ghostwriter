@@ -6,6 +6,7 @@ from django.apps import AppConfig
 
 class OplogConfig(AppConfig):
     name = "ghostwriter.oplog"
+    verbose_name = "Activity Logging"
 
     def ready(self):
         try:

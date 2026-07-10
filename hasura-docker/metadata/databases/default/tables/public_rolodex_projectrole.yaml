@@ -22,7 +22,12 @@ select_permissions:
     permission:
       columns:
         - id
+        - position
         - project_role
+      filter: {}
+  - role: service
+    permission:
+      columns: '*'
       filter: {}
   - role: user
     permission:

@@ -13,7 +13,8 @@ from django.db.models import Q
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
+from ghostwriter.modules.shared import get_tags_for_queryset
 from ghostwriter.reporting.filters import FindingFilter
 from ghostwriter.reporting.forms import FindingNoteForm
 from ghostwriter.reporting.models import Finding, FindingNote, ReportFindingLink
@@ -52,8 +53,11 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
         else:
             findings = Finding.objects.all()
 
+        findings = findings.prefetch_related("tags")
+
         self.autocomplete = findings
-        findings = findings.select_related("severity", "finding_type").order_by("severity__weight", "-cvss_score", "finding_type", "title")
+
+        findings = findings.select_related("severity", "finding_type")
 
         search_term = self.request.GET.get("finding", "").strip()
         if search_term:
@@ -64,16 +68,19 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
             )
             findings = findings.filter(
                 Q(title__icontains=search_term) | Q(description__icontains=search_term)
-            ).order_by("severity__weight", "-cvss_score", "finding_type", "title")
+            )
+        findings = findings.order_by("severity__weight", "-cvss_score", "finding_type", "title")
         return findings
 
     def get(self, request, *args, **kwarg):
-        findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())
+        queryset = self.get_queryset()
+        findings_filter = FindingFilter(request.GET, queryset=queryset)
         return render(
             request, "reporting/finding_list.html", {
                 "filter": findings_filter,
                 "autocomplete": self.autocomplete,
                 "searching_report_findings": self.searching_report_findings,
+                "tags": get_tags_for_queryset(queryset),
             }
         )
 
@@ -93,6 +100,10 @@ class FindingDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["finding_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Finding._meta.label)
         return ctx
+
+
+class FindingExtraFieldJson(ExtraFieldJsonView):
+    model = Finding
 
 
 class FindingCreate(RoleBasedAccessControlMixin, View):

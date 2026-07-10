@@ -61,6 +61,15 @@ array_relationships:
         table:
           name: shepherd_domainnote
           schema: public
+  - name: serviceTokenDomainAccesses
+    using:
+      manual_configuration:
+        column_mapping:
+          id: domain_id
+        insertion_order: null
+        remote_table:
+          name: api_service_token_domain_access
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -126,6 +135,13 @@ select_permissions:
         - vt_permalink
         - whois_status_id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        serviceTokenDomainAccesses:
+          token_id:
+            _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'

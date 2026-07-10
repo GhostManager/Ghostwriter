@@ -4,25 +4,36 @@
 import datetime
 import json
 import logging
+import mimetypes
+import os
 from urllib.parse import urlparse
 
 # Django Imports
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseRedirect,
+    FileResponse,
+    JsonResponse
+)
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
+from django.views import View
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
-from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.db.models import Exists, OuterRef
 
 # 3rd Party Libraries
-from taggit.models import Tag
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -33,12 +44,14 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
+
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.modules.shared import get_tags_for_queryset
 from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
@@ -1064,14 +1077,23 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 contact_dict = to_dict(contact_instance, resolve_fk=True)
                 del contact_dict["client"]
                 del contact_dict["description"]
+                del contact_dict["primary"]
+
+                project = self.get_object()
 
                 # Check if this contact already exists in the project
-                if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
+                if ProjectContact.objects.filter(**contact_dict, project=project).exists():
                     message = "{} already exists in your project.".format(contact_instance.name)
                     data = {"result": "error", "message": message}
                 else:
+                    # Carry over primary status only if no project contact is already primary
+                    project_has_primary = ProjectContact.objects.filter(project=project, primary=True).exists()
+                    inherit_primary = contact_instance.primary and not project_has_primary
                     project_contact = ProjectContact(
-                        project=self.get_object(), **contact_dict, description=contact_instance.description
+                        project=project,
+                        **contact_dict,
+                        description=contact_instance.description,
+                        primary=inherit_primary,
                     )
                     project_contact.save()
 
@@ -1081,8 +1103,8 @@ class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                         "Assigned %s %s to %s %s by request of %s",
                         contact_instance.__class__.__name__,
                         contact_instance.id,
-                        self.get_object().__class__.__name__,
-                        self.get_object().id,
+                        project.__class__.__name__,
+                        project.id,
                         self.request.user,
                     )
         except ValueError:
@@ -1124,6 +1146,50 @@ def index(request):
 ################
 
 # CBVs related to :model:`rolodex.Client`
+
+
+class ClientLogoDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Return the target :model:`rolodex.Client` logo file for download."""
+
+    model = Client
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+        try:
+            file_path = os.path.join(settings.MEDIA_ROOT, obj.logo.path)
+        except ValueError as exc:
+            raise Http404 from exc
+        if os.path.exists(file_path):
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
+                open(file_path, "rb"),
+                as_attachment=not inline_view,
+                filename=os.path.basename(file_path),
+                content_type=content_type,
+            )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
+
+            return response
+        raise Http404
 
 
 class ClientListView(RoleBasedAccessControlMixin, ListView):
@@ -1170,9 +1236,10 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset(), request=self.request)
+        queryset = self.get_queryset()
+        ctx["filter"] = ClientFilter(self.request.GET, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = Tag.objects.all()
+        ctx["tags"] = get_tags_for_queryset(queryset)
         return ctx
 
 
@@ -1206,11 +1273,32 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         client_instance = self.get_object()
-        domain_history = History.objects.select_related("domain").filter(client=client_instance)
-        server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
-        projects = Project.objects.filter(client=client_instance)
+        domain_history = (
+            History.objects
+            .filter(client=client_instance)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("project__pk"))))
+            .select_related("domain", "project", "operator", "activity_type")
+        )
+        server_history = (
+            ServerHistory.objects
+            .filter(client=client_instance)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("project__pk"))))
+            .select_related("server", "project", "activity_type", "operator")
+        )
+        projects = (
+            Project.objects
+            .filter(client=client_instance)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("pk"))))
+            .prefetch_related("projectassignment_set", "projectassignment_set__operator")
+            .select_related("project_type", "client")
+        )
+        client_vps = (
+            TransientServer.objects
+            .filter(project__in=projects)
+            .annotate(current_user_can_view=Exists(Project.for_user(self.request.user).filter(pk=OuterRef("project__pk"))))
+            .select_related("project", "activity_type")
+        )
 
-        client_vps = TransientServer.objects.filter(project__in=projects)
         ctx["domains"] = domain_history
         ctx["servers"] = server_history
         ctx["vps"] = client_vps
@@ -1218,6 +1306,10 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
 
         return ctx
+
+
+class ClientExtraFieldJson(ExtraFieldJsonView):
+    model = Client
 
 
 class ClientCreate(RoleBasedAccessControlMixin, CreateView):
@@ -1263,6 +1355,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         return ctx
 
     def get(self, request, *args, **kwargs):
+        self.object = None
         self.contacts = ClientContactFormSet(prefix="poc")
         self.contacts.extra = 1
         self.invites = ClientInviteFormSet(prefix="invite")
@@ -1270,6 +1363,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        self.object = None
         form = self.get_form()
         self.contacts = ClientContactFormSet(request.POST, prefix="poc")
         self.invites = ClientInviteFormSet(request.POST, prefix="invite")
@@ -1564,20 +1658,31 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = get_project_list(user).defer("extra_fields")
+        queryset = (
+            get_project_list(user)
+            .prefetch_related(
+                "tags",
+                "client__tags",
+                "projectassignment_set",
+                "projectassignment_set__operator",
+            )
+            .select_related()
+            .defer("extra_fields")
+        )
         self.autocomplete = queryset
         return queryset
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
         # Copy the GET request data
         data = self.request.GET.copy()
         # If user has not submitted their own filter, default to showing only active projects
         if len(data) == 0:
             data["complete"] = 0
-        ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset(), request=self.request)
+        ctx["filter"] = ProjectFilter(data, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = Tag.objects.all()
+        ctx["tags"] = get_tags_for_queryset(queryset)
         return ctx
 
 
@@ -1609,19 +1714,40 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             self.request.user,
             object.pk,
             None,
+            CollabModelUpdate.collab_jwt_claims("project", object),
         ))
 
         bhc = BloodHoundConfiguration.get_solo()
         ctx["global_bloodhound_config"] = bhc
 
         if object.has_bloodhound_api():
-            ctx["bhc_api"] = object
-        elif bhc.has_bloodhound_api():
-            ctx["bhc_api"] = bhc
+            ctx["bh_api"] = object
+        elif bhc.allows_project_fallback():
+            ctx["bh_api"] = bhc
         else:
-            ctx["bhc_api"] = None
+            ctx["bh_api"] = None
 
         return ctx
+
+
+class ProjectExtraFieldJson(ExtraFieldJsonView):
+    model = Project
+
+
+class ProjectExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    model = Project
+
+    def build_exporter(self, obj):
+        return ExportProjectJson(obj)
+
+    def extract_rendered_field(self, exporter, base_context, field_name):
+        value = base_context.get("project", {}).get("extra_fields", {}).get(field_name)
+        if value is None:
+            return ""
+        return str(value.__html__()) if hasattr(value, "__html__") else str(value)
+
+    def get_client(self, obj):
+        return obj.client
 
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
@@ -2195,29 +2321,37 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
 
 class BloodhoundApiBaseView(RoleBasedAccessControlMixin, View):
     project: Project | None
-    bh_api: Project | BloodHoundConfiguration
+    bh_api: Project | BloodHoundConfiguration | None
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
+        self.global_bh_api = BloodHoundConfiguration.get_solo()
         if "project" in request.GET:
             try:
                 project_id = int(request.GET["project"])
             except ValueError:
-                return self.render_result(request, messages.constants.ERROR, "Project does not exist.")
+                return self.render_result(messages.constants.ERROR, "Project does not exist.")
             self.project = get_object_or_404(Project, pk=project_id)
-            self.bh_api = self.project if self.project.has_bloodhound_api() else BloodHoundConfiguration.get_solo()
+            if self.project.has_bloodhound_api():
+                self.bh_api = self.project
+            elif self.global_bh_api.allows_project_fallback():
+                self.bh_api = self.global_bh_api
+            else:
+                self.bh_api = None
         else:
             self.project = None
-            self.bh_api = BloodHoundConfiguration.get_solo()
+            self.bh_api = self.global_bh_api
         return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
         if self.project is not None:
-            return self.project.user_can_view(self.request.user)
-        return self.request.user.is_authenticated
+            if self.project.has_bloodhound_api():
+                return self.project.user_can_view(self.request.user)
+            return self.project.user_can_view(self.request.user) and self.global_bh_api.allows_project_fallback()
+        return verify_user_is_privileged(self.request.user)
 
     def post(self, request: HttpRequest, *args, **kwargs):
-        if not self.bh_api.has_bloodhound_api():
-            return self.render_result(request, messages.constants.ERROR, "BloodHound is not configured.")
+        if self.bh_api is None or not self.bh_api.has_bloodhound_api():
+            return self.render_result(messages.constants.ERROR, "BloodHound is not configured.")
         bh_url = urlparse(self.bh_api.bloodhound_api_root_url)
         bh_client = BhAPIClient(
             scheme=bh_url.scheme,
@@ -2275,4 +2409,4 @@ class BloodhoundApiFetchView(BloodhoundApiBaseView):
         self.bh_api.bloodhound_results = out
         self.bh_api.save()
 
-        return self.render_result(messages.SUCCESS, "Findings updated from BloodHound successfully.")
+        return self.render_result(messages.SUCCESS, out.get("status_message", "Findings updated from BloodHound successfully."))

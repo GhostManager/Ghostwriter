@@ -35,6 +35,10 @@ select_permissions:
         - activity
         - id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter: {}
   - role: user
     permission:
       columns: '*'

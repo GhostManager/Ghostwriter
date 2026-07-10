@@ -394,8 +394,11 @@ def check_domains(domain_id=None):
                 domain_qs.health_status = HealthStatus.objects.get(health_status="Burned")
                 change = "burned"
                 pretty_categories = []
-                for vendor, category in lab_results[k]["categories"].items():
-                    pretty_categories.append(f"{vendor}: {category}")
+                if lab_results[k]["categories"]:
+                    for vendor, category in lab_results[k]["categories"].items():
+                        pretty_categories.append(f"{vendor}: {category}")
+                else:
+                    pretty_categories.append("Uncategorized")
 
                 scanners = "N/A"
                 if lab_results[k]["scanners"]:

@@ -1,27 +1,43 @@
 # Standard Libraries
 import logging
+import os
 from datetime import date, timedelta
 
+# 3rd Party Libraries
+import factory
+from bs4 import BeautifulSoup
+
 # Django Imports
+from django.contrib.auth.models import Permission
+from django.template.loader import render_to_string
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
+from ghostwriter.api import utils
+from ghostwriter.commandcenter.models import BloodHoundConfiguration
 from ghostwriter.factories import (
     AuxServerAddressFactory,
     ClientContactFactory,
     ClientFactory,
     ClientInviteFactory,
     ClientNoteFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
+    HistoryFactory,
     ObjectiveStatusFactory,
+    ProjectContactFactory,
+    ProjectRoleFactory,
     ProjectFactory,
     ProjectInviteFactory,
     ProjectNoteFactory,
     ProjectAssignmentFactory,
     ProjectObjectiveFactory,
     ProjectScopeFactory,
+    ServerHistoryFactory,
     StaticServerFactory,
+    TransientServerFactory,
     UserFactory,
 )
 from ghostwriter.rolodex.forms_project import (
@@ -36,6 +52,21 @@ from ghostwriter.rolodex.templatetags import determine_primary
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+def assert_active_tab(test_case, response, tab_id):
+    soup = BeautifulSoup(response.content, "html.parser")
+    tab_link = soup.select_one(f'a[data-toggle="tab"][data-tab-hash="#{tab_id}"]')
+    tab_pane = soup.select_one(f"#tab-pane-{tab_id}.tab-pane")
+    legacy_anchor = soup.select_one(f"#{tab_id}.tab-pane")
+
+    test_case.assertIsNotNone(tab_link)
+    test_case.assertIsNotNone(tab_pane)
+    test_case.assertIsNone(legacy_anchor)
+    test_case.assertEqual(tab_link.get("href"), f"#{tab_id}")
+    test_case.assertEqual(tab_link.get("data-target"), f"#tab-pane-{tab_id}")
+    test_case.assertIn("active", tab_link.get("class", []))
+    test_case.assertIn("active", tab_pane.get("class", []))
 
 
 class IndexViewTests(TestCase):
@@ -552,6 +583,11 @@ class ProjectCreateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "rolodex/project_form.html")
 
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "project")
+
     def test_custom_context_exists(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -576,6 +612,41 @@ class ProjectCreateTests(TestCase):
         response = self.client_mgr.get(self.no_client_uri)
         self.assertIn("client", response.context["form"].initial)
         self.assertEqual(response.context["client"], "")
+
+
+class ProjectUpdateTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.uri = reverse("rolodex:project_update", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/project_form.html")
+
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "project")
 
 
 class ProjectComponentsUpdateTests(TestCase):
@@ -691,6 +762,100 @@ class ClientListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 2)
 
+    def test_tags_are_scoped_to_visible_clients(self):
+        visible_client = ClientFactory(name="Visible Client")
+        hidden_client = ClientFactory(name="Hidden Client")
+        ClientInviteFactory(user=self.user, client=visible_client)
+        visible_client.tags.add("visible-tag")
+        hidden_client.tags.add("hidden-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-tag", tag_names)
+        self.assertNotIn("hidden-tag", tag_names)
+
+
+class ClientCreateViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("rolodex:client_create")
+
+    def setUp(self):
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "client")
+
+    def test_incomplete_contact_formset_rerenders_errors(self):
+        response = self.client_mgr.post(
+            self.uri,
+            {
+                "name": "New Client",
+                "short_name": "New",
+                "codename": "New Client Codename",
+                "timezone": "America/Los_Angeles",
+                "poc-TOTAL_FORMS": "1",
+                "poc-INITIAL_FORMS": "0",
+                "poc-0-name": "Janine Melnitz",
+                "poc-0-job_title": "",
+                "poc-0-email": "",
+                "poc-0-phone": "",
+                "poc-0-timezone": "America/Los_Angeles",
+                "poc-0-description": "",
+                "invite-TOTAL_FORMS": "0",
+                "invite-INITIAL_FORMS": "0",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        contact_form = response.context["contacts"].forms[0]
+        self.assertEqual(contact_form.errors["job_title"].as_data()[0].code, "required")
+        self.assertEqual(contact_form.errors["email"].as_data()[0].code, "required")
+        self.assertFalse(ClientFactory._meta.model.objects.filter(name="New Client").exists())
+
+
+class ClientUpdateViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.client_obj = ClientFactory()
+        cls.uri = reverse("rolodex:client_update", kwargs={"pk": cls.client_obj.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/client_form.html")
+
+    def test_view_selects_initial_tab(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        assert_active_tab(self, response, "client")
+
 
 class ClientDetailViewTest(TestCase):
     @classmethod
@@ -699,10 +864,16 @@ class ClientDetailViewTest(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.invited_user = UserFactory(password=PASSWORD)
-        cls.project_assigned = ProjectFactory(client=cls.client)
-        cls.project_unassigned = ProjectFactory(client=cls.client)
+        cls.project_assigned = ProjectFactory(client=cls.client, codename="ASSIGNED_PROJECT")
+        cls.project_unassigned = ProjectFactory(client=cls.client, codename="SUPER_SECRET_PROJECT_NO_REGULAR_USERS")
         ProjectAssignmentFactory(project=cls.project_assigned, operator=cls.user)
         ClientInviteFactory(client=cls.client, user=cls.invited_user)
+        cls.domain_assigned = HistoryFactory(client=cls.client, project=cls.project_assigned)
+        cls.domain_unassigned = HistoryFactory(client=cls.client, project=cls.project_unassigned)
+        cls.server_assigend = ServerHistoryFactory(client=cls.client, project=cls.project_assigned)
+        cls.server_unassigend = ServerHistoryFactory(client=cls.client, project=cls.project_unassigned)
+        cls.vps_assigned = TransientServerFactory(project=cls.project_assigned)
+        cls.vps_unassigned = TransientServerFactory(project=cls.project_unassigned)
         cls.uri = reverse("rolodex:client_detail", kwargs={"pk": cls.client.pk})
 
     def setUp(self):
@@ -713,22 +884,25 @@ class ClientDetailViewTest(TestCase):
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
         self.assertTrue(self.client_invited.login(username=self.invited_user.username, password=PASSWORD))
 
-    # This test is valid, but we are currently passing all projects to the template
-    # Projects the user cannot access are filtered in the template
-    # def test_projects_assigned_only(self):
-    #     response = self.client.get(self.uri)
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(set(response.context["projects"]), {self.project_assigned})
+    def test_projects_assigned_only(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.project_assigned.codename)
+        self.assertNotContains(response, self.project_unassigned.codename)
 
     def test_projects_staff_all(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(set(response.context["projects"]), {self.project_assigned, self.project_unassigned})
+        self.assertContains(response, self.project_assigned.codename)
+        self.assertContains(response, self.project_unassigned.codename)
 
     def test_projects_invited_all(self):
         response = self.client_invited.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(set(response.context["projects"]), {self.project_assigned, self.project_unassigned})
+        self.assertContains(response, self.project_assigned.codename)
+        self.assertContains(response, self.project_unassigned.codename)
 
 
 class ProjectListViewTests(TestCase):
@@ -790,6 +964,20 @@ class ProjectListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
 
+    def test_tags_are_scoped_to_visible_projects(self):
+        visible_project = ProjectFactory(codename="VISIBLE")
+        hidden_project = ProjectFactory(codename="HIDDEN")
+        ProjectInviteFactory(user=self.user, project=visible_project)
+        visible_project.tags.add("visible-project-tag")
+        hidden_project.tags.add("hidden-project-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-project-tag", tag_names)
+        self.assertNotIn("hidden-project-tag", tag_names)
+
         response = self.client_mgr.get(f"{self.uri}?client=pops")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 2)
@@ -811,11 +999,11 @@ class ProjectListViewTests(TestCase):
         """Test that execution window cells have data-text attribute for locale-independent sorting."""
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        
+
         # Check that the response contains data-text attribute with ISO date format
         content = response.content.decode('utf-8')
         self.assertIn('data-text="', content, "data-text attribute should be present in the template")
-        
+
         # Verify each project in the queryset has its start_date in the data-text attribute
         for project in response.context["filter"].qs:
             expected_sort_value = project.start_date.strftime("%Y-%m-%d")
@@ -883,6 +1071,38 @@ class AssignProjectContactViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
+    def test_primary_contact_inherits_when_no_project_primary(self):
+        primary_contact = ClientContactFactory(client=self.project.client, primary=True)
+        uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": self.project.pk})
+        response = self.client_mgr.post(uri, {"contact": primary_contact.pk})
+        self.assertEqual(response.status_code, 200)
+        from ghostwriter.rolodex.models import ProjectContact
+        project_contact = ProjectContact.objects.get(project=self.project, name=primary_contact.name)
+        self.assertTrue(project_contact.primary)
+        project_contact.delete()
+
+    def test_primary_contact_does_not_inherit_when_project_primary_exists(self):
+        primary_contact = ClientContactFactory(client=self.project.client, primary=True)
+        existing_primary = ProjectContactFactory(project=self.project, primary=True)
+        uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": self.project.pk})
+        response = self.client_mgr.post(uri, {"contact": primary_contact.pk})
+        self.assertEqual(response.status_code, 200)
+        from ghostwriter.rolodex.models import ProjectContact
+        project_contact = ProjectContact.objects.get(project=self.project, name=primary_contact.name)
+        self.assertFalse(project_contact.primary)
+        project_contact.delete()
+        existing_primary.delete()
+
+    def test_non_primary_client_contact_does_not_set_project_primary(self):
+        non_primary_contact = ClientContactFactory(client=self.project.client, primary=False)
+        uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": self.project.pk})
+        response = self.client_mgr.post(uri, {"contact": non_primary_contact.pk})
+        self.assertEqual(response.status_code, 200)
+        from ghostwriter.rolodex.models import ProjectContact
+        project_contact = ProjectContact.objects.get(project=self.project, name=non_primary_contact.name)
+        self.assertFalse(project_contact.primary)
+        project_contact.delete()
+
 
 class ProjectDetailViewTests(TestCase):
     """Collection of tests for :view:`rolodex.ProjectDetailView`."""
@@ -892,6 +1112,34 @@ class ProjectDetailViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
         cls.project = ProjectFactory()
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="rolodex.Project",
+            model_display_name="Projects",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="summary",
+            display_name="Summary",
+            type="single_line_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.json_extra_field = ExtraFieldSpecFactory(
+            internal_name="testJSON",
+            display_name="Test JSON",
+            type="json",
+            target_model=cls.extra_field_model,
+        )
+        cls.richtext_extra_field = ExtraFieldSpecFactory(
+            internal_name="notes",
+            display_name="Notes",
+            type="rich_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.project.extra_fields = {
+            "summary": "Project summary",
+            "testJSON": {"large": ["value", {"nested": "content"}]},
+            "notes": "<p>Test notes</p>",
+        }
+        cls.project.save(update_fields=["extra_fields"])
         cls.uri = reverse("rolodex:project_detail", kwargs={"pk": cls.project.pk})
 
     def setUp(self):
@@ -905,6 +1153,17 @@ class ProjectDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_context_data_scopes_collab_jwt_to_project(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        payload = utils.get_jwt_payload(response.context["collab_jwt"])
+
+        self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "project")
+        self.assertEqual(payload[utils.COLLAB_OBJECT_ID_CLAIM], self.project.id)
+        self.assertEqual(payload[utils.COLLAB_REPORT_ID_CLAIM], utils.COLLAB_NO_ID)
+        self.assertEqual(payload[utils.COLLAB_FINDING_ID_CLAIM], utils.COLLAB_NO_ID)
+
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
@@ -917,6 +1176,316 @@ class ProjectDetailViewTests(TestCase):
         ProjectAssignmentFactory(project=self.project, operator=self.user)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_json_extra_field_modal_is_lazy_loaded(self):
+        lazy_json_url = reverse(
+            "rolodex:project_extra_field_json",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+        rendered = render_to_string(
+            "user_extra_fields/extra_field_modal.html",
+            {
+                "extra_fields": self.project.extra_fields,
+                "field_spec": self.json_extra_field,
+                "lazy_json_url": lazy_json_url,
+            },
+        )
+
+        self.assertIn(lazy_json_url, rendered)
+        self.assertIn("JSON content will load when this preview opens.", rendered)
+        self.assertNotIn("jsonView", rendered)
+        self.assertNotIn("nested", rendered)
+
+    def test_project_detail_json_lazy_loader_has_cleanup_handlers(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "fa-spinner fa-spin")
+        self.assertContains(response, "Loading JSON content...")
+        self.assertContains(response, "shown.bs.modal")
+        self.assertContains(response, "minimumJsonLoadingMs")
+        self.assertContains(response, "hide.bs.modal")
+        self.assertContains(response, "jsonPreviewPlaceholder")
+        self.assertContains(response, "jsonAbortController")
+        self.assertNotContains(response, "nested")
+
+    def test_json_extra_field_endpoint_requires_login_and_permissions(self):
+        uri = reverse(
+            "rolodex:project_extra_field_json",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["field"], "Test JSON")
+        self.assertEqual(
+            response.json()["value"],
+            {"large": ["value", {"nested": "content"}]},
+        )
+
+    def test_json_extra_field_endpoint_rejects_non_json_fields(self):
+        uri = reverse(
+            "rolodex:project_extra_field_json",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_endpoint_requires_login_and_permissions(self):
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_endpoint_rejects_non_richtext_fields(self):
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_grants_access_to_assigned_user(self):
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_ignores_unrelated_broken_richtext_field(self):
+        broken_field = ExtraFieldSpecFactory(
+            internal_name="broken_notes",
+            display_name="Broken Notes",
+            type="rich_text",
+            target_model=self.extra_field_model,
+        )
+        self.project.extra_fields.update(
+            {
+                self.richtext_extra_field.internal_name: "<p>Requested preview content</p>",
+                broken_field.internal_name: "<p>{% for item in %}broken{% endfor %}</p>",
+            }
+        )
+        self.project.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Requested preview content", content)
+        self.assertNotIn("Template Error", content)
+        self.assertNotIn("broken_notes", content)
+
+    def test_richtext_preview_unexpected_export_error_returns_generic_error(self):
+        ProjectAssignmentFactory(
+            project=self.project,
+            operator=UserFactory(),
+            start_date=None,
+            end_date=None,
+        )
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("NoneType", content)
+        self.assertNotIn("object has no attribute", content)
+
+    def test_richtext_preview_renders_client_logo_without_report_context(self):
+        """CLIENT_LOGO should render as an <img> even when report is None."""
+        self.project.extra_fields["notes"] = '<div data-gw-image="CLIENT_LOGO"></div>'
+        self.project.save(update_fields=["extra_fields"])
+
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertNotIn("__GW_IMAGE_PREVIEW_", content)
+        if self.project.client.logo:
+            self.assertIn("<img", content)
+            self.assertIn("client_logo_download", content)
+
+    def test_project_assignments_render_in_role_order(self):
+        lead_role = ProjectRoleFactory(project_role="Lead", position=1)
+        operator_role = ProjectRoleFactory(project_role="Operator", position=2)
+
+        ProjectAssignmentFactory(
+            project=self.project,
+            role=operator_role,
+            operator=UserFactory(name="Zed Zebra"),
+        )
+        ProjectAssignmentFactory(
+            project=self.project,
+            role=lead_role,
+            operator=UserFactory(name="Beth Baker"),
+        )
+        ProjectAssignmentFactory(
+            project=self.project,
+            role=lead_role,
+            operator=UserFactory(name="Amy Adams"),
+        )
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        content = force_str(response.content)
+
+        self.assertLess(content.index("Amy Adams"), content.index("Beth Baker"))
+        self.assertLess(content.index("Beth Baker"), content.index("Zed Zebra"))
+
+    def test_shared_global_bloodhound_copy_renders_for_project_viewers(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.allow_project_fallback = True
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Using Shared Global Configuration")
+        self.assertContains(response, "shared global BloodHound configuration and cached results")
+
+    def test_shared_global_bloodhound_tab_hidden_when_fallback_disabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = False
+        bloodhound_config.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Using Shared Global Configuration")
+        self.assertNotContains(response, "This project is using the shared global BloodHound configuration")
+
+
+class BloodhoundApiAccessTests(TestCase):
+    """Collection of tests for BloodHound API access boundaries."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
+        cls.fetch_uri = reverse("rolodex:ajax_bloodhound_fetch")
+        cls.test_uri = reverse("rolodex:ajax_bloodhound_test")
+        cls.admin_permission = Permission.objects.get(codename="change_bloodhoundconfiguration")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.project = ProjectFactory()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
+        self.user_mgr.user_permissions.add(self.admin_permission)
+
+    def test_global_fetch_requires_privileged_user(self):
+        response = self.client_auth.post(self.fetch_uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.fetch_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_global_connectivity_test_requires_privileged_user(self):
+        response = self.client_auth.post(self.test_uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.post(self.test_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_project_viewer_cannot_use_global_fallback_when_not_enabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = False
+        bloodhound_config.save()
+
+        response = self.client_auth.post(f"{self.fetch_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_auth.post(f"{self.test_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 403)
+
+    def test_project_viewer_can_use_global_fallback_when_explicitly_enabled(self):
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        bloodhound_config = BloodHoundConfiguration.get_solo()
+        bloodhound_config.bloodhound_api_root_url = "https://bloodhound.example"
+        bloodhound_config.bloodhound_api_key_id = "id"
+        bloodhound_config.bloodhound_api_key_token = "token"
+        bloodhound_config.allow_project_fallback = True
+        bloodhound_config.save()
+
+        response = self.client_auth.post(f"{self.fetch_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(f"{self.test_uri}?project={self.project.pk}")
+        self.assertEqual(response.status_code, 302)
 
 class ProjectInviteDeleteTests(TestCase):
     """Collection of tests for :view:`rolodex.ProjectInviteDelete`."""
@@ -984,3 +1553,95 @@ class ClientInviteDeleteTests(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
         self.assertEqual(len(self.ClientInvite.objects.all()), 0)
+
+
+class ClientLogoDownloadTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientLogoDownload`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        # Create a client with a logo
+        cls.client_with_logo = ClientFactory(
+            logo=factory.django.ImageField(filename="test_logo.png", width=100, height=100)
+        )
+        # Create another client with a logo that we'll delete for testing
+        cls.client_deleted_logo = ClientFactory(
+            logo=factory.django.ImageField(filename="deleted_logo.png", width=100, height=100)
+        )
+        # Create a client with no logo to test ValueError handling
+        cls.client_no_logo = ClientFactory()
+        cls.uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_with_logo.pk})
+        cls.deleted_uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_deleted_logo.pk})
+        cls.no_logo_uri = reverse("rolodex:client_logo_download", kwargs={"pk": cls.client_no_logo.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            f'attachment; filename="{os.path.basename(self.client_with_logo.logo.path)}"',
+        )
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        # Grant the user access to the client
+        ClientInviteFactory(client=self.client_with_logo, user=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Manager should have access
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 200)
+
+        # Delete the logo file and test 404
+        if os.path.exists(self.client_deleted_logo.logo.path):
+            os.remove(self.client_deleted_logo.logo.path)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_no_logo_returns_404(self):
+        """A client with no logo set should return 404, not 500."""
+        response = self.client_mgr.get(self.no_logo_uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_inline_view_parameter(self):
+        """?view=true serves inline, sets security headers, and does not force download."""
+        response = self.client_mgr.get(self.uri + "?view=true")
+        self.assertEqual(response.status_code, 200)
+
+        # Content-Disposition must not trigger a download (no 'attachment')
+        content_disposition = response.get("Content-Disposition", "")
+        self.assertNotIn("attachment", content_disposition)
+
+        # Nosniff must always be present
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+
+        # CSP must be present and restrict to safe sources for inline image rendering
+        csp = response.get("Content-Security-Policy", "")
+        self.assertIn("img-src", csp)
+        self.assertIn("default-src 'none'", csp)
+        self.assertNotIn("unsafe-inline", csp)
+
+    def test_default_download_has_nosniff_but_no_csp(self):
+        """Default (no view param) forces download, sets nosniff, and omits the inline CSP."""
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response.get("Content-Disposition", ""))
+        self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
+        # CSP is only added for inline responses
+        self.assertIsNone(response.get("Content-Security-Policy"))

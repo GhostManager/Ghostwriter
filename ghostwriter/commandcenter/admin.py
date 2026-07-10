@@ -3,6 +3,7 @@
 # Django Imports
 from django.contrib import admin
 from django import forms
+from django.forms.models import BaseInlineFormSet
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.forms import ReportConfigurationForm
@@ -35,6 +36,14 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
     form = ReportConfigurationForm
     fieldsets = (
         (
+            "Findings",
+            {
+                "fields": (
+                    "default_cvss_version",
+                )
+            },
+        ),
+        (
             "Borders",
             {
                 "fields": (
@@ -60,6 +69,8 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                     "prefix_figure",
                     "label_figure",
                     "figure_caption_location",
+                    "evidence_image_alignment",
+                    "evidence_image_width",
                 )
             },
         ),
@@ -79,6 +90,7 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                 "fields": (
                     "report_filename",
                     "project_filename",
+                    "outline_tags",
                     "target_delivery_date",
                     "default_docx_template",
                     "default_pptx_template",
@@ -124,9 +136,40 @@ class ExtraFieldSpecForm(forms.ModelForm):
         exclude = ["target_model"]
 
 
+class ExtraFieldSpecInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+
+        seen_positions = {}
+        has_errors = False
+
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data") or not form.cleaned_data:
+                continue
+            if form.cleaned_data.get("DELETE"):
+                continue
+
+            position = form.cleaned_data.get("position")
+            if position is None:
+                continue
+
+            if position in seen_positions:
+                message = "Each extra field must have a unique position within this model."
+                form.add_error("position", forms.ValidationError(message, code="duplicate"))
+                seen_positions[position].add_error("position", forms.ValidationError(message, code="duplicate"))
+                has_errors = True
+            else:
+                seen_positions[position] = form
+
+        if has_errors:
+            raise forms.ValidationError("Resolve duplicate extra field positions before saving.", code="duplicate")
+
+
 class ExtraFieldSpecInline(admin.TabularInline):
     model = ExtraFieldSpec
     form = ExtraFieldSpecForm
+    formset = ExtraFieldSpecInlineFormSet
+    template = "admin/commandcenter/extrafieldspec/tabular.html"
 
 
 class ExtraFieldModelAdmin(admin.ModelAdmin):
@@ -149,6 +192,23 @@ admin.site.register(ExtraFieldModel, ExtraFieldModelAdmin)
 
 class BloodhoundConfigurationAdmin(SingletonModelAdmin):
     change_form_template = "bloodhound_admin_change_form.html"
+    fieldsets = (
+        (
+            "Shared BloodHound Configuration",
+            {
+                "description": (
+                    "This configuration can be used only from the admin page, or it can be "
+                    "explicitly shared with projects that do not have their own BloodHound API settings."
+                ),
+                "fields": (
+                    "allow_project_fallback",
+                    "bloodhound_api_root_url",
+                    "bloodhound_api_key_id",
+                    "bloodhound_api_key_token",
+                ),
+            },
+        ),
+    )
 
 admin.site.register(BloodHoundConfiguration, BloodhoundConfigurationAdmin)
 

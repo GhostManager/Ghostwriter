@@ -114,7 +114,7 @@
         },
         success: function (data) {
           if (data.length > 0) {
-            project = data[0]['fields'];
+            let project = data[0]['fields'];
             $('#id_start_date')[0].value = project['start_date'];
             $('#id_end_date')[0].value = project['end_date'];
           }

@@ -11,7 +11,7 @@ from ghostwriter.factories import (
     ClientFactory,
     DomainFactory,
     DomainServerConnectionFactory,
-    EvidenceOnFindingFactory,
+    EvidenceFactory,
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
@@ -255,22 +255,17 @@ class Command(BaseCommand):
 
             # Assign some findings to reports
             for r in reports:
-                report_findings = []
                 for _ in range(FINDINGS_PER_REPORT):
-                    f = ReportFindingLinkFactory(
+                    ReportFindingLinkFactory(
                         report=r,
                         severity=random.choice(SEVERITIES),
                         finding_type=random.choice(FINDING_TYPES),
                         assigned_to=random.choice(assignments).operator,
                     )
-                    report_findings.append(f)
 
                 # Create fake evidence
-                for f in report_findings:
-                    EvidenceOnFindingFactory(
-                        finding=f,
-                        uploaded_by=random.choice(assignments).operator,
-                    )
+                for _ in range(FINDINGS_PER_REPORT):
+                    EvidenceFactory(report=r, uploaded_by=random.choice(assignments).operator)
 
             # Create oplogs
             oplogs = OplogFactory.create_batch(OPLOGS_PER_PROJECT, project=p)

@@ -9,7 +9,14 @@ from django.db import models
 from django.http.request import HttpRequest
 
 # Ghostwriter Libraries
-from ghostwriter.api.models import AbstractAPIKey, APIKey
+from ghostwriter.api.models import (
+    AbstractAPIKey,
+    APIKey,
+    ServicePrincipal,
+    ServiceToken,
+    ServiceTokenPermission,
+    UserSession,
+)
 
 
 class APIKeyModelAdmin(admin.ModelAdmin):
@@ -19,39 +26,121 @@ class APIKeyModelAdmin(admin.ModelAdmin):
         "name",
         "created",
         "expiry_date",
+        "last_used_at",
         "_has_expired",
         "revoked",
     )
     list_filter = ("created",)
-    search_fields = ("name",)
+    readonly_fields = ("identifier", "token_prefix", "secret_hash", "last_used_at")
+    search_fields = ("name", "token_prefix", "user__username", "user__email")
 
-    def get_readonly_fields(self, request: HttpRequest, obj: models.Model = None) -> typing.Tuple[str, ...]:
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    def get_readonly_fields(
+        self, request: HttpRequest, obj: models.Model = None
+    ) -> typing.Tuple[str, ...]:
         obj = typing.cast(AbstractAPIKey, obj)
         fields: typing.Tuple[str, ...]
 
-        fields = ()
+        fields = self.readonly_fields
         if obj is not None and obj.revoked:
             fields = fields + ("name", "revoked", "expiry_date")
 
         return fields
 
-    def save_model(
-        self,
-        request: HttpRequest,
-        obj: AbstractAPIKey,
-        form: typing.Any = None,
-        change: bool = False,
-    ) -> None:
-        created = not obj.pk
-
-        if created:
-            _, token = self.model.objects.generate_token(obj)
-            obj.token = token
-            obj.save()
-            message = f"The API key for {obj.name} is: " f"{token}"
-            messages.add_message(request, messages.WARNING, message)
-        else:
-            obj.save()
-
 
 admin.site.register(APIKey, APIKeyModelAdmin)
+
+
+@admin.register(UserSession)
+class UserSessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "identifier",
+        "created",
+        "expires_at",
+        "revoked_at",
+        "is_valid",
+    )
+    list_filter = ("created", "expires_at", "revoked_at")
+    readonly_fields = ("identifier", "created")
+    search_fields = ("identifier", "user__username", "user__email")
+    actions = ("revoke_sessions",)
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    @admin.action(description="Revoke selected user sessions")
+    def revoke_sessions(self, request, queryset):
+        for session in queryset:
+            session.revoke(revoked_by=request.user)
+
+
+class ServiceTokenPermissionInline(admin.TabularInline):
+    model = ServiceTokenPermission
+    extra = 0
+
+
+@admin.register(ServicePrincipal)
+class ServicePrincipalAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "service_type",
+        "created_by",
+        "active",
+        "created",
+    )
+    list_filter = ("service_type", "active", "created")
+    search_fields = ("name", "created_by__username", "created_by__email")
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+
+@admin.register(ServiceToken)
+class ServiceTokenAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "service_principal",
+        "created_by",
+        "created",
+        "expiry_date",
+        "has_expired",
+        "revoked",
+        "last_used_at",
+        "scope_display",
+    )
+    list_filter = (
+        "created",
+        "expiry_date",
+        "revoked",
+        "service_principal__service_type",
+    )
+    search_fields = (
+        "name",
+        "service_principal__name",
+        "created_by__username",
+        "token_prefix",
+    )
+    readonly_fields = ("token_prefix", "secret_hash", "created", "last_used_at")
+    actions = ("revoke_tokens",)
+    inlines = (ServiceTokenPermissionInline,)
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    @admin.display(boolean=True, description="Has expired")
+    def has_expired(self, obj: ServiceToken) -> bool:
+        return obj.has_expired
+
+    @admin.display(description="Scope")
+    def scope_display(self, obj: ServiceToken) -> str:
+        return obj.get_scope_display()
+
+    @admin.action(description="Revoke selected service tokens")
+    def revoke_tokens(self, request: HttpRequest, queryset):
+        updated = queryset.filter(revoked=False).update(revoked=True)
+        self.message_user(
+            request, f"Revoked {updated} service token(s).", level=messages.SUCCESS
+        )

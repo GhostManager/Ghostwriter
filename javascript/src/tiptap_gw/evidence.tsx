@@ -90,12 +90,30 @@ export type Evidence = {
 
 export type Evidences = {
     evidence: Evidence[];
-    mediaUrl: string;
     uploadUrl: string;
     poll: () => Promise<void>;
 };
 
 export const EvidencesContext = React.createContext<Evidences | null>(null);
+
+const TEXT_EXTENSIONS = [".txt", ".log", ".md"];
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg"];
+
+// Custom hook to fetch text content of an evidence if it's a text file
+function useTextContent(id: number, isText: boolean): string | null {
+    const [content, setContent] = React.useState<string | null>(null);
+    React.useEffect(() => {
+        if (!isText) return;
+        fetch("/reporting/evidence/download/" + id)
+            .then((r) => {
+                if (!r.ok) throw new Error(r.statusText);
+                return r.text();
+            })
+            .then(setContent)
+            .catch(() => setContent(null));
+    }, [id, isText]);
+    return content;
+}
 
 function EvidenceView(props: NodeViewProps) {
     const id = parseInt(props.node.attrs.id);
@@ -103,27 +121,30 @@ function EvidenceView(props: NodeViewProps) {
     const evidence =
         ghostwriterEvidences &&
         ghostwriterEvidences.evidence.find((v) => v.id === id);
+    const normalizedDocument = evidence?.document.toLowerCase() ?? "";
 
     const [lightboxOpen, setLightboxOpen] = useState(false);
+
+    const isImage =
+        !!evidence && IMAGE_EXTENSIONS.some((ext) => normalizedDocument.endsWith(ext));
+    const isText =
+        !!evidence && TEXT_EXTENSIONS.some((ext) => normalizedDocument.endsWith(ext));
+    const textContent = useTextContent(id, isText);
 
     if (!evidence) {
         return (
             <NodeViewWrapper className="richtext-evidence">
                 <span className="richtext-evidence-missing">
-                    (Evidence Missing)
+                    « Evidence Missing »
                 </span>
             </NodeViewWrapper>
         );
     }
 
-    let img = null;
-    if (
-        evidence.document.endsWith(".png") ||
-        evidence.document.endsWith(".jpg") ||
-        evidence.document.endsWith(".jpeg")
-    ) {
-        const url = ghostwriterEvidences.mediaUrl + evidence["document"];
-        img = (
+    let preview = null;
+    if (isImage) {
+        const url = "/reporting/evidence/download/" + evidence.id;
+        preview = (
             <>
                 <img src={url} onClick={() => setLightboxOpen(true)} />
                 <ReactModal
@@ -136,6 +157,14 @@ function EvidenceView(props: NodeViewProps) {
                 </ReactModal>
             </>
         );
+    } else if (isText) {
+        preview = (
+            <pre className="richtext-evidence-text">
+                <code>
+                    {textContent === null ? "Loading…" : textContent}
+                </code>
+            </pre>
+        );
     }
 
     return (
@@ -143,7 +172,7 @@ function EvidenceView(props: NodeViewProps) {
             <span className="richtext-evidence-name">
                 {evidence.friendlyName}
             </span>
-            {img}
+            {preview}
             <span className="richtext-evidence-caption">
                 {"Evidence: " + evidence.caption}
             </span>

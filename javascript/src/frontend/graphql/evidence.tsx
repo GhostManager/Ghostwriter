@@ -1,8 +1,9 @@
 import { useQuery } from "@apollo/client";
 import { gql } from "../../__generated__/";
-import { Evidence_Bool_Exp } from "../../__generated__/graphql";
 import { useCallback, useMemo } from "react";
 import { Evidences, EvidencesContext } from "../../tiptap_gw/evidence";
+import { Evidence_Bool_Exp } from "../../__generated__/graphql";
+import { parseEvidenceReportId } from "./evidence_metadata";
 
 const QUERY_EVIDENCE = gql(`
     query QUERY_EVIDENCE($where: evidence_bool_exp!) {
@@ -12,34 +13,45 @@ const QUERY_EVIDENCE = gql(`
     }
 `);
 
-export function usePageEvidence(): Evidences | null {
-    const filters: Evidence_Bool_Exp["_or"] = useMemo(() => {
-        const reportId = parseInt(
-            document.getElementById("graphql-evidence-report-id")!.innerHTML
+function getPageElementText(id: string): string | null {
+    const element = document.getElementById(id);
+    const value = element?.textContent?.trim();
+    if (!value) {
+        console.error(`Missing required page metadata: #${id}`);
+        return null;
+    }
+    return value;
+}
+
+function getPageEvidenceReportId(): number | null {
+    const value = getPageElementText("graphql-evidence-report-id");
+    if (value === null) return null;
+
+    const reportId = parseEvidenceReportId(value);
+    if (reportId === null) {
+        console.error(
+            `Invalid #graphql-evidence-report-id value: ${JSON.stringify(value)}`
         );
-        const findingIdText = document.getElementById(
-            "graphql-evidence-finding-id"
-        )?.innerHTML;
-        const filters: Evidence_Bool_Exp["_or"] = [
-            {
-                report_id: { _eq: reportId },
-            },
-        ];
-        if (findingIdText !== undefined) {
-            filters.push({
-                findingId: { _eq: +findingIdText },
-            });
-        }
-        return filters;
-    }, []);
+        return null;
+    }
+    return reportId;
+}
+
+export function usePageEvidence(): Evidences | null {
+    const reportId = useMemo(getPageEvidenceReportId, []);
+    const filters: Evidence_Bool_Exp | null = useMemo(() => {
+        if (reportId === null) return null;
+        return {
+            reportId: { _eq: reportId },
+        };
+    }, [reportId]);
 
     const { data, refetch } = useQuery(QUERY_EVIDENCE, {
         variables: {
-            where: {
-                _or: filters,
-            },
+            where: filters ?? {},
         },
         pollInterval: 10000,
+        skip: filters === null,
     });
 
     const poll = useCallback(() => refetch().then(() => {}), [refetch]);
@@ -47,14 +59,13 @@ export function usePageEvidence(): Evidences | null {
     const evidences = data?.evidence;
     if (evidences === null || evidences === undefined) return null;
 
-    const mediaUrl = document.getElementById("graphql-media-url")!.innerHTML;
-    const uploadUrl = document.getElementById(
+    const uploadUrl = getPageElementText(
         "graphql-evidence-upload-url"
-    )!.innerHTML;
+    );
+    if (uploadUrl === null) return null;
 
     return {
         evidence: evidences,
-        mediaUrl,
         uploadUrl,
         poll,
     };

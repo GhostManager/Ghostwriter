@@ -6,9 +6,11 @@ from datetime import time, timedelta
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.core.validators import MinValueValidator
+from django.db import connection, models
+from django.db.models import F, Max, Q
+from django.db.transaction import atomic
 from django.urls import reverse
-from django.db.models import Q
 
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
@@ -121,7 +123,7 @@ class Client(models.Model):
         return user.is_privileged
 
     def user_can_view(self, user) -> bool:
-        return self in self.for_user(user)
+        return self.for_user(user).contains(self)
 
     def user_can_edit(self, user) -> bool:
         return self.user_can_view(user)
@@ -165,6 +167,11 @@ class ClientContact(models.Model):
         default="",
         blank=True,
         help_text="Provide additional information about the contact",
+    )
+    primary = models.BooleanField(
+        "Primary Contact",
+        default=False,
+        help_text="Flag this contact as the primary point of contact for the client",
     )
     # Foreign keys
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
@@ -250,7 +257,7 @@ class Project(models.Model):
         "Collaborative Notes",
         default="",
         blank=True,
-        null=False,
+        null=True,
     )
     tags = TaggableManager(blank=True)
 
@@ -260,6 +267,7 @@ class Project(models.Model):
         help_text="The URL of the BloodHound instance",
         default="",
         blank=True,
+        null=True,
         validators=[validate_endpoint],
     )
 
@@ -269,6 +277,7 @@ class Project(models.Model):
         help_text="The ID portion of a BloodHound API Key",
         default="",
         blank=True,
+        null=True,
     )
 
     bloodhound_api_key_token = models.CharField(
@@ -277,6 +286,7 @@ class Project(models.Model):
         help_text="The token portion of a BloodHound API Key",
         default="",
         blank=True,
+        null=True,
     )
 
     bloodhound_results = models.JSONField(
@@ -338,7 +348,11 @@ class Project(models.Model):
         return reverse("rolodex:project_detail", args=[str(self.id)])
 
     def has_bloodhound_api(self) -> bool:
-        return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
+        return all([
+            self.bloodhound_api_root_url,
+            self.bloodhound_api_key_id,
+            self.bloodhound_api_key_token,
+        ])
 
     def __str__(self):
         return f"{self.start_date} {self.client} {self.project_type} ({self.codename})"
@@ -368,7 +382,7 @@ class Project(models.Model):
         return user.is_privileged
 
     def user_can_view(self, user) -> bool:
-        return self in self.for_user(user)
+        return self.for_user(user).contains(self)
 
     @classmethod
     def user_viewable(cls, user):
@@ -384,20 +398,115 @@ class Project(models.Model):
 class ProjectRole(models.Model):
     """Stores an individual project role."""
 
+    ADVISORY_LOCK_KEY = 1_346_001
+
     project_role = models.CharField(
         "Project Role",
         max_length=255,
         unique=True,
         help_text="Enter an operator role used for project assignments",
     )
+    position = models.PositiveIntegerField(
+        "Position",
+        help_text="Enter the display order for this project role",
+        validators=[MinValueValidator(1)],
+    )
 
     class Meta:
-        ordering = ["project_role"]
+        ordering = ["position", "project_role"]
         verbose_name = "Project role"
         verbose_name_plural = "Project roles"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["position"],
+                name="rolodex_projectrole_unique_position",
+            ),
+            models.CheckConstraint(
+                condition=Q(position__gte=1),
+                name="rolodex_projectrole_position_gte_1",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.project_role}"
+
+    @classmethod
+    def get_last_position(cls):
+        """Return the final occupied position or zero if no roles exist."""
+        return cls.objects.aggregate(max_position=Max("position"))["max_position"] or 0
+
+    @classmethod
+    def _acquire_reorder_lock(cls):
+        """Serialize role reordering, including the empty-table case."""
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [cls.ADVISORY_LOCK_KEY])
+
+    @classmethod
+    def _shift_positions(cls, queryset, delta):
+        """Shift a queryset of positions while avoiding unique conflicts."""
+        queryset = queryset.order_by()
+        if not queryset.exists():
+            return
+
+        target_ids = list(queryset.values_list("pk", flat=True))
+        max_position = cls.get_last_position()
+        offset = max_position + len(target_ids) + 1
+        cls.objects.filter(pk__in=target_ids).update(position=F("position") + offset)
+        cls.objects.filter(pk__in=target_ids).update(position=F("position") - offset + delta)
+
+    def _normalize_position(self, current_position=None):
+        """Clamp the requested position into the current valid range."""
+        last_position = self.get_last_position()
+        if current_position is not None:
+            last_position -= 1
+
+        if self.position is None:
+            return last_position + 1
+
+        return min(max(1, self.position), last_position + 1)
+
+    def save(self, *args, **kwargs):
+        with atomic():
+            self.__class__._acquire_reorder_lock()
+            if self._state.adding:
+                self.position = self._normalize_position()
+                self._shift_positions(self.__class__.objects.filter(position__gte=self.position), 1)
+            else:
+                current = self.__class__.objects.get(pk=self.pk)
+                requested_position = self._normalize_position(current.position)
+
+                if requested_position != current.position:
+                    temp_position = self.get_last_position() + 1
+                    self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
+
+                if requested_position < current.position:
+                    self._shift_positions(
+                        self.__class__.objects.filter(
+                            position__gte=requested_position,
+                            position__lt=current.position,
+                        ),
+                        1,
+                    )
+                elif requested_position > current.position:
+                    self._shift_positions(
+                        self.__class__.objects.filter(
+                            position__gt=current.position,
+                            position__lte=requested_position,
+                        ),
+                        -1,
+                    )
+
+                self.position = requested_position
+
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        with atomic():
+            self.__class__._acquire_reorder_lock()
+            position = self.position
+            response = super().delete(*args, **kwargs)
+            self.__class__._shift_positions(self.__class__.objects.filter(position__gt=position), -1)
+            return response
 
 
 class ProjectAssignment(models.Model):
@@ -436,13 +545,11 @@ class ProjectAssignment(models.Model):
     role = models.ForeignKey(
         ProjectRole,
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         help_text="Select a role that best describes the selected user's role in this project",
     )
 
     class Meta:
-        ordering = ["project", "start_date", "operator"]
+        ordering = ["project", "role__position", "operator__name", "operator__username"]
         verbose_name = "Project assignment"
         verbose_name_plural = "Project assignments"
 

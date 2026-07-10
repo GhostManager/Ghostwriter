@@ -164,7 +164,7 @@ class AuxServerAddressForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Address",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-8",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -427,7 +427,7 @@ class ServerCheckoutForm(forms.ModelForm):
 
     class Meta:
         model = ServerHistory
-        fields = "__all__"
+        exclude = ("operator",)
         widgets = {
             "server": forms.HiddenInput(),
             "start_date": forms.DateInput(

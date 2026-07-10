@@ -63,14 +63,14 @@
       if (pastedFileObj.files.length) {
         fileInput.files = pastedFileObj.files
         filename.textContent = fileInput.files[0].name
-        renderPreview(fileInput, previewDiv)
+        renderAvatarPreview(fileInput, previewDiv)
       }
     });
     // Detect when a file is dragged into the page and update the input and preview
     $('input[type=file]').on('change', function () {
       let filename = $(this).val().split('\\').pop();
       $('#filename').text(filename);
-      renderPreview(fileInput, previewDiv)
+      renderAvatarPreview(fileInput, previewDiv)
     });
   </script>
 {% endblock %}

@@ -13,8 +13,18 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("domains/", views.DomainListView.as_view(), name="domains"),
     path("domains/<int:pk>", views.DomainDetailView.as_view(), name="domain_detail"),
+    path(
+        "domains/<int:pk>/extra-field-json/<str:extra_field_name>",
+        views.DomainExtraFieldJson.as_view(),
+        name="domain_extra_field_json",
+    ),
     path("servers/", views.ServerListView.as_view(), name="servers"),
     path("servers/<int:pk>", views.ServerDetailView.as_view(), name="server_detail"),
+    path(
+        "servers/<int:pk>/extra-field-json/<str:extra_field_name>",
+        views.ServerExtraFieldJson.as_view(),
+        name="server_extra_field_json",
+    ),
     path("user/active_assets", views.user_assets, name="user_assets"),
     path("update/", views.update, name="update"),
 ]

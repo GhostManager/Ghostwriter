@@ -205,6 +205,10 @@
         }
     }
 
+    [data-theme="dark"] & table th p {
+        color: #000;
+    }
+
     .tableWrapper {
         margin: 1.5rem 0;
         overflow-x: auto;
@@ -270,6 +274,13 @@
     .node-evidence.ProseMirror-selectednode .richtext-evidence {
         color: #fff;
         background-color: #88c;
+
+        pre.richtext-evidence-text {
+            color: #222;
+        }
+    }
+    .node-evidence.ProseMirror-selectednode .richtext-evidence .richtext-evidence-missing {
+        color: #fff;
     }
     .richtext-evidence {
         display: flex;
@@ -304,7 +315,7 @@
         }
         .richtext-evidence-text-field {
             border: 1px solid #aaa;
-            background-color: #fafafa;
+            // background-color: #fafafa;
             border-radius: 0.5rem;
             padding-left: 1rem;
             padding-right: 1rem;
@@ -330,6 +341,23 @@
         .richtext-evidence-caption {
             margin-top: 0.5rem;
         }
+        pre.richtext-evidence-text {
+            border: 1px solid #aaa;
+            background-color: #fafafa;
+            color: #222;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
+        }
     }
 
     a {
@@ -351,7 +379,7 @@
     }
 
     /* Collaboration caret */
-    .collaboration-cursor__caret {
+    .collaboration-carets__caret {
         border-left: 1px solid #0d0d0d;
         border-right: 1px solid #0d0d0d;
         margin-left: -1px;
@@ -362,7 +390,7 @@
     }
 
     /* Collaboration caret username */
-    .collaboration-cursor__label {
+    .collaboration-carets__label {
         border-radius: 3px 3px 3px 0;
         color: #0d0d0d;
         font-size: 12px;
@@ -436,4 +464,19 @@ ul.collab-focused-users {
 .rich-text-lightbox img {
     max-width: 95vw;
     max-height: 95vh;
+}
+
+// Passive Voice Highlighting
+.passive-voice-highlight {
+    background-color: #fff3cd;
+    text-decoration: underline wavy #ff6b6b;
+    text-decoration-thickness: 2px;
+    transition: background-color 0.15s ease;
+    color: marktext;
+    cursor: text;
+}
+
+// Hover state applied via JavaScript to all segments in same group
+.passive-voice-highlight.passive-voice-hover {
+    background-color: #ffe69c;
 }

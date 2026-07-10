@@ -23,8 +23,21 @@ function displayToastTop({
     toastr.options.closeButton = true;
     if (url !== '') {
         toastr.options.onclick = function () {
-            window.location.href = url;
-        }
+            try {
+                // Only navigate to same-origin http/https URLs to prevent javascript: URI injection
+                let parsed = new URL(url, window.location.href);
+                // Restrict navigation to same-origin http/https URLs only.
+                // Use parsed.href (not the raw string) so the destination exactly
+                // matches the sanitized, normalized URL and cannot be crafted to
+                // behave differently than the parsed result.
+                if (parsed.origin === window.location.origin &&
+                        (parsed.protocol === 'https:' || parsed.protocol === 'http:')) {
+                    window.location.href = parsed.href;
+                }
+            } catch (e) {
+                // Malformed URL — do not navigate
+            }
+        };
     }
     let msg;
     if (type === 'success') {
@@ -122,13 +135,64 @@ function jsEscape(s) {
 
 // Download a file from a URL and save it with a given filename
 function download(url, filename) {
-    fetch(url).then(function (t) {
-        return t.blob().then((b) => {
-            let a = document.createElement('a');
-            a.href = URL.createObjectURL(b);
+    function getDownloadErrorMessage(response, responseText) {
+        const defaultMessage = `The download failed with status ${response.status}.`;
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+            try {
+                const data = JSON.parse(responseText);
+                const candidate = data.message || data.detail || data.error;
+                if (typeof candidate === 'string' && candidate.trim() !== '') {
+                    return candidate.trim().slice(0, 200);
+                }
+            } catch (e) {
+                return defaultMessage;
+            }
+        }
+
+        return defaultMessage;
+    }
+
+    return fetch(url).then(function (response) {
+        if (!response.ok) {
+            return response.text().then(function (message) {
+                const errorMessage = getDownloadErrorMessage(response, message);
+                displayToastTop({
+                    type: 'error',
+                    title: 'Download Failed',
+                    string: errorMessage,
+                });
+                throw new Error(errorMessage);
+            });
+        }
+
+        return response.blob().then(function (blob) {
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
             a.setAttribute('download', filename);
             a.click();
+            setTimeout(function () {
+                URL.revokeObjectURL(objectUrl);
+            }, 0);
+            return blob;
         });
+    }).catch(function (error) {
+        if (!(error instanceof Error && error.message)) {
+            displayToastTop({
+                type: 'error',
+                title: 'Download Failed',
+                string: 'An unexpected error occurred while downloading the file.',
+            });
+        } else if (error.message === 'Failed to fetch') {
+            displayToastTop({
+                type: 'error',
+                title: 'Download Failed',
+                string: 'Could not reach the server to download the file.',
+            });
+        }
+        throw error;
     });
 }
 
@@ -177,11 +241,106 @@ function showHideRow(btn, row) {
 
 // Insert a preview for pasted or selected image files
 function renderPreview(fileInput, previewDiv) {
+  if (!fileInput.files || fileInput.files.length === 0) return;
   if (fileInput.files[0].type.indexOf('image') == 0) {
-    previewDiv.innerHTML = '<img id="loadedImage" alt="image"/ >'
-    let loadedImage = document.getElementById('loadedImage')
-    loadedImage.src = URL.createObjectURL(fileInput.files[0])
+    // Revoke any existing object URL before clearing to prevent memory leaks
+    const existingImg = previewDiv.querySelector('img');
+    if (existingImg && existingImg.src.startsWith('blob:')) {
+      URL.revokeObjectURL(existingImg.src);
+    }
+
+    // Clear previous content
+    while (previewDiv.firstChild) {
+      previewDiv.removeChild(previewDiv.firstChild);
+    }
+
+    const objectUrl = URL.createObjectURL(fileInput.files[0]);
+    const loadedImage = document.createElement('img');
+    loadedImage.alt = 'image';
     loadedImage.style.border = 'thin solid #555555';
+    const revokeObjectUrl = function() { URL.revokeObjectURL(objectUrl); };
+    loadedImage.addEventListener('load', revokeObjectUrl, { once: true });
+    loadedImage.addEventListener('error', revokeObjectUrl, { once: true });
+    loadedImage.addEventListener('abort', revokeObjectUrl, { once: true });
+    loadedImage.src = objectUrl;
+    previewDiv.appendChild(loadedImage);
+  }
+}
+
+// Insert avatar-specific previews showing how the image will appear in navbar and profile
+function renderAvatarPreview(fileInput, previewDiv) {
+  if (!fileInput.files || fileInput.files.length === 0) return;
+  if (fileInput.files[0].type.indexOf('image') == 0) {
+    // Revoke any existing blob URLs before clearing to prevent leaks when the user
+    // selects a new file before the previous images have settled (load/error/abort).
+    // Both preview images share the same URL, so track revoked URLs to avoid double-revoking.
+    const revokedUrls = new Set();
+    previewDiv.querySelectorAll('img').forEach(function(img) {
+      if (img.src.startsWith('blob:') && !revokedUrls.has(img.src)) {
+        URL.revokeObjectURL(img.src);
+        revokedUrls.add(img.src);
+      }
+    });
+
+    // Clear previous content
+    while (previewDiv.firstChild) {
+      previewDiv.removeChild(previewDiv.firstChild);
+    }
+
+    // Create container
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.gap = '20px';
+    container.style.flexWrap = 'wrap';
+
+    // Create navbar preview section
+    const navbarSection = document.createElement('div');
+    const navbarLabel = document.createElement('p');
+    const navbarStrong = document.createElement('strong');
+    navbarStrong.textContent = 'Navbar Preview (40x40)';
+    navbarLabel.appendChild(navbarStrong);
+    const navbarImg = document.createElement('img');
+    navbarImg.alt = 'Navbar preview';
+    navbarImg.className = 'navbar-avatar';
+    navbarImg.style.position = 'static';
+    navbarSection.appendChild(navbarLabel);
+    navbarSection.appendChild(navbarImg);
+
+    // Create profile preview section
+    const profileSection = document.createElement('div');
+    const profileLabel = document.createElement('p');
+    const profileStrong = document.createElement('strong');
+    profileStrong.textContent = 'Profile Preview (250x250)';
+    profileLabel.appendChild(profileStrong);
+    const profileImg = document.createElement('img');
+    profileImg.alt = 'Profile preview';
+    profileImg.className = 'avatar';
+    profileImg.style.position = 'static';
+    profileSection.appendChild(profileLabel);
+    profileSection.appendChild(profileImg);
+
+    // Assemble and append
+    container.appendChild(navbarSection);
+    container.appendChild(profileSection);
+    previewDiv.appendChild(container);
+
+    // Set image sources — revoke the object URL once both images have settled (load, error, or abort)
+    const imageUrl = URL.createObjectURL(fileInput.files[0]);
+    let settledCount = 0;
+    const onSettle = function() {
+      settledCount++;
+      if (settledCount === 2) { URL.revokeObjectURL(imageUrl); }
+    };
+    navbarImg.addEventListener('load', onSettle, { once: true });
+    navbarImg.addEventListener('error', onSettle, { once: true });
+    navbarImg.addEventListener('abort', onSettle, { once: true });
+    profileImg.addEventListener('load', onSettle, { once: true });
+    profileImg.addEventListener('error', onSettle, { once: true });
+    profileImg.addEventListener('abort', onSettle, { once: true });
+    navbarImg.src = imageUrl;
+    profileImg.src = imageUrl;
   }
 }
 
@@ -202,4 +361,3 @@ function update_project_contacts() {
     });
   }
 }
-

@@ -44,6 +44,7 @@
 
   <!-- Ghostwriter JS & CSS -->
   <script src="{% static 'js/project.js' %}"></script>
+  <script src="{% static 'js/active-report.js' %}"></script>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
 
   <!-- TinyMCE -->
@@ -112,6 +113,46 @@
     $(selector).modal('show');
   }
 
+  function moveFocusOutOfModal(modal) {
+    const activeElement = document.activeElement;
+
+    if (!modal || !activeElement || !modal.contains(activeElement)) {
+      return;
+    }
+
+    const bodyHadTabindex = document.body.hasAttribute('tabindex');
+    const previousBodyTabindex = document.body.getAttribute('tabindex');
+
+    activeElement.blur();
+    document.body.setAttribute('tabindex', '-1');
+    document.body.focus({preventScroll: true});
+
+    if (bodyHadTabindex) {
+      document.body.setAttribute('tabindex', previousBodyTabindex);
+    } else {
+      document.body.removeAttribute('tabindex');
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const dismissButton = target.closest('[data-dismiss="modal"]');
+    const modal = dismissButton ? dismissButton.closest('.modal') : null;
+
+    if (modal) {
+      moveFocusOutOfModal(modal);
+    }
+  }, true);
+
+  $(document).on('hide.bs.modal', '.modal', function () {
+    moveFocusOutOfModal(this);
+  });
+
   {% comment %} Handle AJAX errors {% endcomment %}
   (function($){
     $(document).on('ajaxError', function(event, xhr) {
@@ -143,68 +184,10 @@
     $('html, body').animate({scrollTop: 0}, '300');
   });
 
-  {% comment %} Activate a report with AJAX {% endcomment %}
-  $('.js-activate-report').click(function (e) {
-    let url = $(this).attr('activate-report-url');
-    let reportId = $(this).attr('activate-report-id');
-    let csrftoken = $(this).attr('activate-report-csrftoken');
-    let shortcut = $('.active-report-shortcut');
-    let shortcut_url = shortcut.attr('href');
-    let url_tpl = '{% url 'reporting:report_detail' 0 %}';
-    $.ajaxSetup({
-      beforeSend: function (xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-          xhr.setRequestHeader('X-CSRFToken', csrftoken);
-        }
-      }
-    });
-    $.ajax({
-      url: url,
-      type: 'POST',
-      dataType: 'json',
-      data: {
-        'report': reportId
-      },
-      success: function (data) {
-        if (data['result'] === 'success') {
-          let $emptyReport = $('.empty-report')
-          $emptyReport.addClass('selected-report');
-          $emptyReport.toggleClass('empty-report');
-          $('.selected-report').each(function () {
-            if (reportId !== $(this).attr('activate-report-id')) {
-              $(this).toggleClass('selected-report');
-            }
-          });
-          $('.js-activate-report').each(function () {
-            if (reportId === $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
-              $(this).toggleClass('selected-report');
-              $(this).addClass('toggle-on-icon');
-              $(this).removeClass('toggle-off-icon');
-            } else {
-              $(this).show(1000);
-              $(this).removeClass('toggle-on-icon');
-              $(this).addClass('toggle-off-icon');
-            }
-          });
-          {% comment %} Update shortcut button {% endcomment %}
-          let current_value = shortcut_url.substring(shortcut_url.lastIndexOf('/') + 1);
-          if (current_value === reportId) {
-            shortcut.attr('href', shortcut_url);
-          } else {
-            shortcut.attr('href', url_tpl.replace('0', reportId));
-            shortcut.text('Jump to Report');
-            shortcut.removeClass('btn-disabled');
-          }
-        }
-        if (data['message']) {
-          displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
-          setTimeout(function () {
-            window.location.href = shortcut_url;
-          }, 5000);
-        }
-      }
-    });
-    e.stopImmediatePropagation();
+  {% comment %} Persist the active report in browser storage across login sessions {% endcomment %}
+  GhostwriterActiveReport.init({
+    reportUrlTemplate: '{% url 'reporting:report_detail' 0 %}',
+    redirectToShortcutAfterMessage: true,
   });
 
   {% comment %} Open and close the sidebar {% endcomment %}
@@ -445,8 +428,15 @@
 {% block tabs %}
   <script>
     $(function () {
+      function getTabLink(hash) {
+        return $('ul.nav a[data-tab-hash="' + hash + '"], ul.nav a[href="' + hash + '"]').first();
+      }
+
       let hash = window.location.hash.replace(/[^\w-#]/g, '');
-      hash && $('ul.nav a[href="' + hash + '"]').tab('show');
+      let tabLink = hash ? getTabLink(hash) : $();
+      if (tabLink.length) {
+        tabLink.tab('show');
+      }
 
       $('.nav-tabs a').click(function (e) {
         {%  comment %} Prevent the scrolling-to-tab animation {% endcomment %}
@@ -456,7 +446,7 @@
         e.preventDefault();
         e.stopImmediatePropagation();
         $(this).tab('show');
-        window.location.hash = $(this).attr('href');
+        window.location.hash = $(this).data('tab-hash') || $(this).attr('href');
       });
     });
   </script>
@@ -506,7 +496,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -520,7 +510,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -533,7 +523,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;

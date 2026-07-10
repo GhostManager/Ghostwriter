@@ -15,12 +15,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+from ghostwriter.commandcenter.models import ReportConfiguration
+from ghostwriter.reporting.archive import archive_report
 from ghostwriter.factories import (
     ArchiveFactory,
     ClientFactory,
     ClientInviteFactory,
     DocTypeFactory,
-    EvidenceOnFindingFactory,
+    EvidenceFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
@@ -35,10 +38,9 @@ from ghostwriter.factories import (
     SeverityFactory,
     UserFactory,
     ReportObservationLinkFactory,
-    ObservationFactory
 )
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.reporting.models import Report
+from ghostwriter.reporting.models import EvidenceImageAlignment, EvidenceImageAlignmentOverride, Report
 from ghostwriter.rolodex.models import Project
 
 
@@ -292,6 +294,21 @@ class ReportTemplateModelTests(TestCase):
         except Exception:
             self.fail("ReportTemplate model `get_status` method failed unexpectedly with PPTX template!")
 
+    def test_exporter_uses_report_template_for_docx_exports(self):
+        report = ReportFactory()
+
+        exporter = report.docx_template.exporter(report)
+
+        self.assertIsInstance(exporter, ExportReportDocx)
+        self.assertEqual(exporter.report_template, report.docx_template)
+
+    def test_docx_lint_initializes_template_document_before_style_checks(self):
+        report_template = ReportDocxTemplateFactory()
+
+        _, errors = ExportReportDocx.lint(report_template)
+
+        self.assertNotIn("Template rendering failed unexpectedly", errors)
+
     def test_update_upload_date_signal(self):
         # Create a template with an initial document
         template = ReportTemplateFactory()
@@ -329,6 +346,79 @@ class ReportTemplateModelTests(TestCase):
         # Also verify it's set to today's date
         today = timezone.now().date()
         self.assertEqual(template.upload_date, today)
+
+    def test_get_effective_evidence_image_alignment_uses_global_default(self):
+        template = ReportTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+
+        alignment = template.get_effective_evidence_image_alignment(report_config)
+
+        self.assertEqual(alignment, EvidenceImageAlignment.RIGHT)
+
+    def test_get_effective_evidence_image_alignment_uses_template_override(self):
+        template = ReportTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.LEFT,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+
+        alignment = template.get_effective_evidence_image_alignment(report_config)
+
+        self.assertEqual(alignment, EvidenceImageAlignment.LEFT)
+
+    def test_get_effective_evidence_image_alignment_accepts_case_variant_template_value(self):
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+
+        for alignment_value in ("CENTER", "Center", "center"):
+            with self.subTest(alignment_value=alignment_value):
+                template = ReportTemplateFactory(evidence_image_alignment=alignment_value)
+                alignment = template.get_effective_evidence_image_alignment(report_config)
+
+                self.assertEqual(alignment, EvidenceImageAlignment.CENTER)
+
+    def test_get_effective_evidence_image_alignment_accepts_case_variant_global_value(self):
+        template = ReportTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
+        report_config = ReportConfiguration.get_solo()
+
+        for alignment_value in ("RIGHT", "Right", "right"):
+            with self.subTest(alignment_value=alignment_value):
+                report_config.evidence_image_alignment = alignment_value
+                alignment = template.get_effective_evidence_image_alignment(report_config)
+
+                self.assertEqual(alignment, EvidenceImageAlignment.RIGHT)
+
+    def test_get_effective_evidence_image_width_uses_template_override(self):
+        template = ReportTemplateFactory(evidence_image_width=4.25)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = 7.0
+
+        width = template.get_effective_evidence_image_width(report_config)
+
+        self.assertEqual(width, 4.25)
+
+    def test_get_effective_evidence_image_width_uses_global_default(self):
+        template = ReportTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = 7.0
+
+        width = template.get_effective_evidence_image_width(report_config)
+
+        self.assertEqual(width, 7.0)
+
+    def test_get_effective_evidence_image_width_falls_back_to_default(self):
+        template = ReportTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = None
+
+        width = template.get_effective_evidence_image_width(report_config)
+
+        self.assertEqual(width, 6.5)
 
     def test_clean_template_signal(self):
         template = ReportDocxTemplateFactory()
@@ -496,6 +586,22 @@ class ReportModelTests(TestCase):
         self.assertEqual(new_report.project.client, client)
         self.assertIsNone(new_report.pptx_template)
 
+    def test_archive_rejects_client_scoped_template_for_other_client(self):
+        report = ReportFactory()
+        report.docx_template = ReportDocxTemplateFactory(client=ClientFactory())
+        report.save()
+
+        with self.assertRaises(ValueError):
+            archive_report(report)
+
+    def test_archive_rejects_template_for_wrong_document_type(self):
+        report = ReportFactory()
+        report.docx_template = ReportPptxTemplateFactory()
+        report.save()
+
+        with self.assertRaises(ValueError):
+            archive_report(report)
+
     def test_access(self):
         project: Project = ProjectFactory()
         report: Report = ReportFactory(
@@ -600,6 +706,14 @@ class ReportFindingLinkModelTests(TestCase):
         critical_finding = ReportFindingLinkFactory(severity=self.critical_severity, cvss_vector=four_vector)
         medium_finding = ReportFindingLinkFactory(severity=self.medium_severity, cvss_vector=three_vector)
         unknown_finding = ReportFindingLinkFactory(severity=self.high_severity, cvss_vector="Not a Vector")
+        invalid_v4_finding = ReportFindingLinkFactory(
+            severity=self.high_severity,
+            cvss_vector="CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:S/SI:S/SA:S/S:P",
+        )
+        incomplete_v4_finding = ReportFindingLinkFactory(
+            severity=self.high_severity,
+            cvss_vector="CVSS:4.0/AV:N",
+        )
 
         critical_data = ("4.0", 9.1, "Critical", "966FD6")
         medium_data = ("3.1", (8.0, 7.6, 5.4), ("High", "High", "Medium"), ["FF7E79", "FF7E79", "F4B083"])
@@ -608,6 +722,8 @@ class ReportFindingLinkModelTests(TestCase):
         self.assertEqual(critical_finding.cvss_data, critical_data)
         self.assertEqual(medium_finding.cvss_data, medium_data)
         self.assertEqual(unknown_finding.cvss_data, unknown_data)
+        self.assertEqual(invalid_v4_finding.cvss_data, unknown_data)
+        self.assertEqual(incomplete_v4_finding.cvss_data, unknown_data)
 
     def test_exists_in_finding_library(self):
         attached_finding = ReportFindingLinkFactory(added_as_blank=False)
@@ -625,11 +741,11 @@ class EvidenceModelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.Evidence = EvidenceOnFindingFactory._meta.model
+        cls.Evidence = EvidenceFactory._meta.model
 
     def test_crud_evidence(self):
         # Create
-        evidence = EvidenceOnFindingFactory(friendly_name="Test Evidence")
+        evidence = EvidenceFactory(friendly_name="Test Evidence")
 
         # Read
         self.assertEqual(evidence.friendly_name, "Test Evidence")
@@ -649,7 +765,7 @@ class EvidenceModelTests(TestCase):
         assert not self.Evidence.objects.all().exists()
 
     def test_get_absolute_url(self):
-        evidence = EvidenceOnFindingFactory()
+        evidence = EvidenceFactory()
         try:
             evidence.get_absolute_url()
         except:
@@ -657,14 +773,14 @@ class EvidenceModelTests(TestCase):
         evidence.delete()
 
     def test_file_extension_validator(self):
-        evidence = EvidenceOnFindingFactory(
+        evidence = EvidenceFactory(
             document=factory.django.FileField(filename="ext_test.PnG", data=b"lorem ipsum")
         )
         self.assertRegexpMatches(evidence.filename, r"^ext_test[_0-9a-zA-Z]*\.PnG$")
         evidence.delete()
 
     def test_prop_filename(self):
-        evidence = EvidenceOnFindingFactory()
+        evidence = EvidenceFactory()
         try:
             evidence.filename
         except Exception:
@@ -675,12 +791,18 @@ class EvidenceModelTests(TestCase):
             "In-mi-nisi-dignissim-nec-eleifend-sed-porta-eu-lacus-Sed-nunc-nisl-tristique-at-enim-bibendum-rutrum-sodales-ligula-Aliquam-quis-pharetra-sem-Morbi-nec-vestibulum-nunc-Nullam-urna-tortor-venenatis-et-nisi-ac-"
             + "fringilla-sodales-sed"
         )
-        evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename=name+".txt", data=b"lorem ipsum"))
+        evidence = EvidenceFactory(document=factory.django.FileField(filename=name+".txt", data=b"lorem ipsum"))
         self.assertRegexpMatches(evidence.filename, name + r"[_0-9a-zA-Z]*\.txt")
         try:
             evidence.get_absolute_url()
         except:
             self.fail("Evidence.get_absolute_url() raised an exception")
+        evidence.delete()
+
+    def test_uploaded_by_user_property(self):
+        user = UserFactory()
+        evidence = EvidenceFactory(uploaded_by=user)
+        self.assertEqual(evidence.uploaded_by_user, user.username)
         evidence.delete()
 
 
@@ -931,7 +1053,7 @@ class EmptyFieldFilteringReportExportTests(TestCase):
         # Template logic simulation
         def jinja_check(value):
             return bool(value)  # {% if value %} logic
-        
+
         # These should be False but will be True, demonstrating the bug
         self.assertFalse(jinja_check(finding_data['description']),
             "Direct ReportDataSerializer export includes <p></p> content incorrectly")

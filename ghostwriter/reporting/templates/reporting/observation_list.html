@@ -132,7 +132,7 @@
     $(function () {
       let availableTitles = [
         {% for entry in autocomplete %}
-          '{{ entry.title|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+          '{{ entry.title|escapejs }}',
         {% endfor %}
       ];
       $('#id_title').autocomplete({

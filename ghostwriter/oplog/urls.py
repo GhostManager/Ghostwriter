@@ -31,6 +31,31 @@ urlpatterns = [
     path("<int:pk>/entries", views.OplogListEntries.as_view(), name="oplog_entries"),
     path("import", views.oplog_entries_import, name="oplog_import"),
     path("export/<int:pk>", views.OplogExport.as_view(), name="oplog_export"),
+    path(
+        "entry/<int:pk>/evidence/upload",
+        views.OplogEvidenceCreate.as_view(),
+        name="oplog_entry_evidence_upload",
+    ),
+    path(
+        "entry/<int:pk>/evidence/list",
+        views.OplogEntryEvidenceList.as_view(),
+        name="oplog_entry_evidence_list",
+    ),
+    path(
+        "entry/<int:pk>/recording/upload",
+        views.OplogRecordingUpload.as_view(),
+        name="oplog_entry_recording_upload",
+    ),
+    path(
+        "entry/<int:pk>/recording/delete",
+        views.OplogRecordingDelete.as_view(),
+        name="oplog_entry_recording_delete",
+    ),
+    path(
+        "recording/<int:pk>/download",
+        views.OplogRecordingDownload.as_view(),
+        name="oplog_entry_recording_download",
+    ),
 ]
 
 # URLs for AJAX requests

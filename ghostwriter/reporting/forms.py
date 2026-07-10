@@ -45,6 +45,16 @@ from ghostwriter.reporting.models import (
 )
 from ghostwriter.rolodex.models import Project
 
+
+def _report_template_queryset(doc_type, project=None):
+    queryset = ReportTemplate.objects.filter(
+        doc_type__doc_type__iexact=doc_type,
+    ).select_related("doc_type", "client")
+    if project:
+        return queryset.filter(Q(client_id=project.client_id) | Q(client__isnull=True))
+    return queryset.filter(client__isnull=True)
+
+
 class AssignReportFindingForm(forms.ModelForm):
     class Meta:
         model = ReportFindingLink
@@ -65,6 +75,28 @@ class AssignReportFindingForm(forms.ModelForm):
                 """)
             )
         )
+
+class AssignReportObservationForm(forms.ModelForm):
+    class Meta:
+        model = ReportObservationLink
+        fields = ("assigned_to",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Field("assigned_to"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML("""
+                    <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
+                """)
+            )
+        )
+
 
 class ReportForm(forms.ModelForm):
     """
@@ -109,6 +141,17 @@ class ReportForm(forms.ModelForm):
                 lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
             )
 
+        selected_project = project
+        if selected_project is None and getattr(self.instance, "project_id", None):
+            selected_project = self.instance.project
+        if self.is_bound and not self.fields["project"].disabled:
+            project_id = self.data.get(self.add_prefix("project"))
+            if project_id:
+                try:
+                    selected_project = self.fields["project"].queryset.filter(pk=project_id).first()
+                except (TypeError, ValueError):
+                    selected_project = None
+
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["docx_template"].label = "DOCX Template"
@@ -119,8 +162,17 @@ class ReportForm(forms.ModelForm):
         self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
 
         report_config = ReportConfiguration.get_solo()
-        self.fields["docx_template"].initial = report_config.default_docx_template
-        self.fields["pptx_template"].initial = report_config.default_pptx_template
+        template_fields = (
+            ("docx_template", "docx", report_config.default_docx_template),
+            ("pptx_template", "pptx", report_config.default_pptx_template),
+        )
+        for field_name, doc_type, default_template in template_fields:
+            self.fields[field_name].queryset = _report_template_queryset(doc_type, selected_project)
+            if default_template and (
+                default_template.client_id is None
+                or (selected_project and default_template.can_apply_to_project(selected_project))
+            ):
+                self.fields[field_name].initial = default_template
         self.fields["docx_template"].empty_label = "-- Pick a Word Template --"
         self.fields["pptx_template"].empty_label = "-- Pick a PowerPoint Template --"
 
@@ -218,7 +270,7 @@ class EvidenceForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <h4 class="icon signature-icon">Report Information</h4>
+                <h4 class="icon edit-icon">Evidence Information</h4>
                 <hr>
                 <p>The friendly name is used to reference this evidence in the report and the caption appears below
                 the figures in the generated reports.</p>
@@ -250,8 +302,8 @@ class EvidenceForm(forms.ModelForm):
                 ),
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">
-                    Click here to select or drag and drop your file...</label>
+                    <label id="filename" class="custom-file-label" for="id_document">
+                    Click here or drag and drop...</label>
                     """
                 ),
                 css_class="custom-file",
@@ -371,11 +423,14 @@ class ReportTemplateForm(forms.ModelForm):
     """Save an individual :model:`reporting.ReportTemplate`."""
 
     def clean(self):
-        filename_override = self.cleaned_data["filename_override"]
+        filename_override = self.cleaned_data.get("filename_override")
         if not filename_override:
-            return
+            return self.cleaned_data
 
-        doc_typ = self.cleaned_data["doc_type"]
+        doc_typ = self.cleaned_data.get("doc_type")
+        if not doc_typ:
+            return self.cleaned_data
+
         try:
             if doc_typ.doc_type == "docx":
                 ExportReportBase.check_filename_template(filename_override)
@@ -383,6 +438,8 @@ class ReportTemplateForm(forms.ModelForm):
                 ExportProjectBase.check_filename_template(filename_override)
         except ValidationError as e:
             self.add_error("filename_override", e)
+
+        return self.cleaned_data
 
     class Meta:
         model = ReportTemplate
@@ -415,8 +472,12 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
         self.fields["doc_type"].label = "Document Type"
+        self.fields["doc_type"].required = True
         self.fields["evidence_image_width"].label = "Evidence Image Width"
-        self.fields["evidence_image_width"].initial = "6.5"
+        self.fields["evidence_image_width"].required = False
+        self.fields["evidence_image_width"].help_text = (
+            "Leave blank to use the global default evidence image width. If the global default is blank, 6.5 inches is used."
+        )
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -444,7 +505,7 @@ class ReportTemplateForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Row(
-                Column("tags", css_class="form-group col-md-6 mb-0"),
+                Column("evidence_image_alignment", css_class="form-group col-md-6 mb-0"),
                 Column("evidence_image_width", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
@@ -456,6 +517,12 @@ class ReportTemplateForm(forms.ModelForm):
                 Column(
                     "bloodhound_heading_offset",
                     css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row pb-2",
+            ),
+            Row(
+                Column(
+                    "tags", css_class="form-group col-md-12 mb-0"
                 ),
                 css_class="form-row pb-2",
             ),
@@ -538,6 +605,8 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.fields["docx_template"].required = False
         self.fields["pptx_template"].help_text = None
         self.fields["pptx_template"].required = False
+        self.fields["docx_template"].queryset = _report_template_queryset("docx", self.instance.project)
+        self.fields["pptx_template"].queryset = _report_template_queryset("pptx", self.instance.project)
         self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"
         self.fields["pptx_template"].empty_label = "-- Select a PPTX Template --"
         self.fields["include_bloodhound_data"].required = False
@@ -743,6 +812,8 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
             "report",
             "position",
             "added_as_blank",
+            "assigned_to",
+            "complete",
         )
         field_classes = {
             "description": JinjaRichTextField,

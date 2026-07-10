@@ -7,6 +7,15 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 
+def user_can_access_channel(username, user):
+    """Return whether a user can connect to the requested notification channel."""
+    if not user.is_active:
+        return False
+    if username == "all":
+        return True
+    return username == user.get_clean_username()
+
+
 class UserConsumer(AsyncWebsocketConsumer):
     """Handle notifications related individual :model:`users.User` over WebSockets."""
 
@@ -18,19 +27,18 @@ class UserConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.user = self.scope["user"]
-        if self.user.is_active:
-            self.username = self.scope["url_route"]["kwargs"]["username"]
-            if self.username != "all":
-                self.username = self.user.get_clean_username()
-            self.user_group_name = "notify_%s" % self.username
-            await self.channel_layer.group_add(self.user_group_name, self.channel_name)
-            await self.accept()
+        self.username = self.scope["url_route"]["kwargs"]["username"]
+        if not user_can_access_channel(self.username, self.user):
+            await self.close(code=4403)
+            return
+
+        self.user_group_name = "notify_%s" % self.username
+        await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        await self.accept()
 
     async def disconnect(self, close_code):
-        if self.user.is_active:
+        if self.user and self.user_group_name and self.user.is_active:
             await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
-        else:
-            pass
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)

@@ -11,6 +11,9 @@ from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django import forms
+from django.utils import formats
 from django.utils.dateformat import format as dateformat
 import jinja2
 from markupsafe import Markup
@@ -190,7 +193,7 @@ def format_datetime(date, new_format=None):
     return formatted_date
 
 
-def to_datetime(date, format_str):
+def to_datetime(date, format_str=None):
     """
     Convert a date string to a datetime object using the given format.
 
@@ -199,11 +202,20 @@ def to_datetime(date, format_str):
     ``date``
         Date string to convert
     ``format_str``
-        Format string to use for conversion
+        Format string to use for conversion (uses Django's configured date input formats if omitted)
     """
     try:
-        return datetime.strptime(date, format_str)
-    except ValueError as e:
+        if isinstance(date, datetime):
+            return date
+        if format_str:
+            return datetime.strptime(date, format_str)
+        return datetime.combine(
+            forms.DateField(
+                input_formats=formats.get_format("DATE_INPUT_FORMATS")
+            ).clean(date),
+            datetime.min.time(),
+        )
+    except (ParserError, TypeError, ValueError, ValidationError) as e:
         logger.exception("Error parsing ``date`` with the provided format: %s", date)
         raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter') from e
 
@@ -370,8 +382,13 @@ def filter_bhe_findings_by_domain(findings, domain_sid):
     """
     filtered_values = []
     try:
+        normalized_domain_sid = domain_sid.lower() if isinstance(domain_sid, str) and domain_sid else None
         for finding in findings:
-            if finding.get("environment_id", "").lower() == domain_sid.lower():
+            environment_id = finding.get("environment_id")
+            normalized_environment_id = (
+                environment_id.lower() if isinstance(environment_id, str) and environment_id else None
+            )
+            if normalized_domain_sid and normalized_environment_id == normalized_domain_sid:
                 filtered_values.append(finding)
     except (KeyError, TypeError, AttributeError) as e:
         logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)

@@ -218,18 +218,19 @@ class DomainReview:
                         analysis_stats = vt_results["data"]["last_analysis_stats"]
                         if analysis_stats["malicious"] > 0:
                             for scanner, result in vt_results["data"]["last_analysis_results"].items():
-                                if result["result"] == "malicious":
-                                    malicious_scans.append(scanner)
+                                if result["category"] == "malicious":
+                                    malicious_scans.append(f"{scanner} ({result['result']})")
                             burned = True
                             burned_explanations.append(
-                                "{} VirusTotal scanner(s) ({}) flagged the domain as malicious.".format(
+                                "{} VirusTotal scanner(s) flagged the domain as malicious:\n{}".format(
                                     analysis_stats["malicious"],
-                                    ", ".join(malicious_scans),
+                                    "\n".join(malicious_scans),
                                 )
                             )
                             logger.warning(
-                                "%s VirusTotal scanners flagged the %s as malicious",
+                                "%s VirusTotal scanners (%s) flagged the %s as malicious",
                                 analysis_stats["malicious"],
+                                ", ".join(malicious_scans),
                                 domain_name,
                             )
 

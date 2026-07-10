@@ -123,6 +123,7 @@
   {
     "model": "reporting.reporttemplate",
     "pk": 1,
+    "required": false,
     "fields": {
       "name": "Default Word Template",
       "document": "/app/ghostwriter/media/templates/template.docx",
@@ -131,13 +132,15 @@
       "last_update": "2023-09-19",
       "doc_type": 1,
       "p_style": "Normal",
-      "evidence_image_width": 6.5,
+      "evidence_image_width": null,
+      "evidence_image_alignment": "USE_GLOBAL",
       "lint_result": "{\"result\": \"success\", \"warnings\": [], \"errors\": []}"
     }
   },
   {
     "model": "reporting.reporttemplate",
     "pk": 2,
+    "required": false,
     "fields": {
       "name": "Default PowerPoint Template",
       "document": "/app/ghostwriter/media/templates/template.pptx",

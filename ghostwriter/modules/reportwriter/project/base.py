@@ -171,7 +171,7 @@ class ExportProjectBase(ExportBase):
             if server["description"]:
                 server["description_rt"] = ex.create_lazy_template(
                     f"the description of cloud server {server.get('name')}",
-                    domain["description"],
+                    server["description"],
                     rich_text_context,
                 )
         for server in base_context["infrastructure"]["servers"]:

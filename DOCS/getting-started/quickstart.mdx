@@ -5,88 +5,178 @@ title: "Quickstart"
 
 Get started with Ghostwriter quickly and easily with Docker and Ghostwriter CLI
 
-## Before You Begin: System Requirements
+## Prerequisites
 
-Ghostwriter uses [Docker Compose](https://docs.docker.com/compose/). Install Docker and Docker Compose before proceeding.
+Ghostwriter deploys in a traditional multi-tier container architecture consisting of database, application, and UI layers.
 
-You will need Docker version >=20 for the Alpine Linux images for Ghostwriter. Run `docker version` to check your installation. Look at the `Version` value for the client and server.
+To complete installation, ensure your system meets the following requirements:
 
-You will need Docker Compose version >=1.26 to support the compose files. Run `docker compose version` to check your installation.
-
-<Note>
-Older versions of Docker Compose will try to build the containers and run into issues while parsing the configuration file with Docker's older DotEnv file parser—specifically, issues with quotations. Compose versions below v1.26 will parse configurations like port numbers literally and cause errors when Docker tries to bind a port like `"8000"`(with the quotes).
-
-As of v1.26, Compose uses aPython's DotEnv parser, which understands quotations.
-</Note>
+| Minimum specifications | For larger teams (>5 users)         |
+| ---------------------- | ----------------------------------- |
+| 2GB of RAM             | 16GB of RAM                         |
+| 2 processor cores      | 4 processor cores                   |
+| 10GB hard disk space   | 60GB hard disk space                |
 
 <Info>
-Older installations of Docker Compose use `docker-compose` as the command. If you have `docker-compose` in your PATH instead of `docker compose`, consider upgrading to the latest version.
+  Ghostwriter includes features like full collaborative editing that require more resources as the number of simultaneous active users increases. For a smooth
+  experience, we recommend the higher system requirements for production use. That is equivalent to a `t3.xlarge` instance in AWS.
 </Info>
 
-```log Checking Docker Version
-$ docker compose version
-Docker Compose version v2.23.3    # Good; >=1.26.x
+<Steps>
+  <Step title="Install Docker Desktop">
+    For ease and convenience, we recommend installing [Docker Desktop](https://www.docker.com/get-started) to run Ghostwriter containers on your local machine.
 
-$ docker version
-Client:
- Version:           25.0.3        # Good; >=20
+    You will need Docker version >=20 for the Alpine Linux images for Ghostwriter. Run `docker version` to check your installation. Look at the `Version` value for the client and server.
 
-« snip »
-```
+    You will need Docker Compose version >=1.26 to support the compose files. Run `docker compose version` to check your installation.
 
-Docker requires sufficient resources to build the containers successfully. Most systems capable of running a modern OS should have the necessary resources. If building Ghostwriter inside of a VM, ensure the VM meets the following recommended specs:
+    <Note>
+      Older versions of Docker Compose will try to build the containers and run into issues while parsing the configuration file with Docker's older DotEnv file parser—specifically, issues with quotations. Compose versions below v1.26 will parse configurations like port numbers literally and cause errors when Docker tries to bind a port like `"8000"`(with the quotes).
 
-* Two (2) vCPUs
+      As of v1.26, Compose uses Python's DotEnv parser, which understands quotations.
+    </Note>
 
-* 3GB RAM
+    <Info>
+    Older installations of Docker Compose use `docker-compose` as the command. If you have `docker-compose` in your PATH instead of `docker compose`, consider upgrading to the latest version.
+    </Info>
 
-* 10GB Storage
+    ```log Checking Docker Version
+    $ docker compose version
+    Docker Compose version v2.23.3    # Good; >=1.26.x
 
-The above specs are recommendations for the bare minimum necessary to get started. Ideally, provide at least one vCPU per container, more RAM for multiple users and scheduled tasks to run smoothly, and more storage for file uploads.
+    $ docker version
+    Client:
+    Version:           25.0.3         # Good; >=20
 
-* Five (5) vCPUs
+    « snip »
+    ```
 
-* 4GB RAM
+  </Step>
 
-* 60GB
+  <Step title="Download Ghostwriter CLI">
+    Download the latest release of **[Ghostwriter CLI](https://github.com/GhostManager/ghostwriter_cli/releases)** for your operating system (macOS, Linux, or Windows) and architecture (AMD64 or ARM).
 
-## Getting Started
+    Ghostwriter CLI is a utility that makes it easy to install and manage Ghostwriter and its containers on your machine.
 
-Ghostwriter comes with the [Ghostwriter CLI](https://github.com/GhostManager/Ghostwriter_CLI) tool. This tool makes it simple to manage the application. You will use it to install, reconfigure, and upgrade Ghostwriter.
+    <Tip>You can also use the command line to download the software.</Tip>
 
-Ghostwriter can run on Windows, macOS, and Linux, so there are multiple builds of Ghostwriter CLI. Pick the appropriate Ghostwriter CLI binary for your operating system.
+    <CodeGroup>
+      ```bash Linux
+      wget https://github.com/GhostManager/ghostwriter_cli/releases/latest/download/ghostwriter-cli-linux-amd64.tar.gz
+      ```
 
-* `ghostwriter-cli-macos` : macOS (Intel)
+      ```powershell Windows PowerShell
+      curl.exe -L -o "$env:USERPROFILE\Downloads\ghostwriter-cli-windows-amd64.zip" https://github.com/GhostManager/ghostwriter_cli/releases/latest/download/ghostwriter-cli-windows-amd64.zip
+      ```
 
-* `ghostwriter-cli-linux` : Linux amd64
+      ```bash Mac
+      curl -L -o ghostwriter-cli-darwin-arm64.tar.gz https://github.com/GhostManager/ghostwriter_cli/releases/latest/download/ghostwriter-cli-darwin-arm64.tar.gz
+      ```
+    </CodeGroup>
 
-* `ghostwriter-cli.exe` : Windows 64-bit
+    <Info>
+      More information about Ghostwriter CLI is detailed in the [Managing the Server with Ghostwriter CLI](/getting-started/managing-the-server-with-ghostwriter-cli) section.
+    </Info>
+  </Step>
 
-<Check>
-You can rename these binaries without causing any issues. This wiki will always refer to it simply as `ghostwriter-cli` for commands.
-</Check>
+  <Step title="Unpack the file">
 
-### Installing Ghostwriter
+      Change to the directory where you downloaded the file and unpack it.
 
-You can install Ghostwriter with three basic commands:
+      <CodeGroup>
+      ```bash Linux
+      tar -xvzf ghostwriter-cli-linux-amd64.tar.gz
+      ```
 
-```log Installing Ghostwriter
-$ git clone https://github.com/GhostManager/Ghostwriter.git
-$ cd Ghostwriter
-$ ./ghostwriter-cli install
-```
+      ```powershell Windows PowerShell
+      cd "$env:USERPROFILE\Downloads"; tar -xf ghostwriter-cli-windows-amd64.zip
+      ```
 
-## Migrating TOTP Secrets from Legacy Installations
+      ```bash Mac
+      tar -xvzf ghostwriter-cli-darwin-arm64.tar.gz
+      ```
+      </CodeGroup>
+  </Step>
 
-If you are upgrading from an older version of Ghostwriter that used `allauth-2fa` for two-factor authentication, you'll need to migrate your TOTP secrets to the new format:
+  <Step title="Run the install command">
 
-```log Migrate TOTP Secrets
-$ ./ghostwriter-cli migrate_totp
-```
+    In your terminal or PowerShell, navigate to the directory where you unpacked the Ghostwriter CLI and install Ghostwriter.
 
-<Info>
-Ghostwriter will create self-signed TLS/SSL certificates. If you'd like to use your signed certificates, do that now to make things easier. If you don't have them ready, you can install them later.
-</Info>
+    <CodeGroup>
+      ```bash Linux
+      ./ghostwriter-cli install
+      ```
+
+      ```powershell Windows PowerShell
+      .\ghostwriter-cli install
+      ```
+
+      ```bash Mac
+      ./ghostwriter-cli install
+      ```
+    </CodeGroup>
+
+    <Tip>
+      During install, Ghostwriter will generate some TLS certificates and download the latest Docker file. You can find these files in your operating system's
+      XDG data file directory:
+
+      * Linux: `~/.local/share/ghostwriter/`
+
+      * macOS: `~/Library/Application Support/ghostwriter/`
+
+      * Windows: `%LOCALAPPDATA%/ghostwriter/`
+    </Tip>
+  </Step>
+
+  <Step title="Wait for installation to complete">
+
+    Keep your terminal open until you see the randomly generated password displayed. Save this password for the next step.
+
+    ```bash
+    [+] Ghostwriter is ready to go!
+    [+] You can log in as `admin` with this password: <Password>
+    ```
+
+    If you lose the password, retrieve it with:
+
+    <CodeGroup>
+      ```bash Linux
+      ./ghostwriter-cli config get ADMIN_PASSWORD
+      ```
+
+      ```powershell Windows PowerShell
+      .\ghostwriter-cli config get ADMIN_PASSWORD
+      ```
+
+      ```bash Mac
+      ./ghostwriter-cli config get ADMIN_PASSWORD
+      ```
+    </CodeGroup>
+
+    <Check>
+      This password is only used for creating the account. You can change it in the admin panel after logging into Ghostwriter. You can also change any other part of the user profile.
+
+      Changing the password in the config DOES NOT affect the installation. It's only stored in the config to make it easy for you to retrieve the original password.
+    </Check>
+
+  </Step>
+
+  <Step title="Log in to Ghostwriter">
+    In a browser, go to [https://localhost/](https://localhost/) and log in with the `admin` username and the randomly generated password.
+
+    <Note>
+      Ghostwriter will start listening on port 443 for production use. For development environments, you can use `--mode local-dev` and Ghostwriter will start on localhost (127.0.0.1) and listen on port 8000.
+
+      `./ghostwriter-cli install --mode local-dev`
+
+      A development environment is best if you want to change Ghostwriter's codebase or test functionality. Debug logging is enabled, which makes it easier to troubleshoot. The `dev` installation does not use TLS, so it skips creating certificates.
+    </Note>
+  </Step>
+
+  <Step title="Customize and access Ghostwriter">
+    Read on to customize your installation.
+  </Step>
+</Steps>
 
 There is more information below in [Customizing Your Installation](/getting-started/quickstart#customizing-your-installation).
 
@@ -96,38 +186,13 @@ The `install` command will take care of everything necessary to create a product
 
 * Generates TLS certificates for the server
 
-* Builds the Docker containers
+* Pulls the latest pre-built container images
 
 * Creates a default *admin* user with a randomly generated password
 
-<Check>
-If you'd prefer to install a development (`dev`) environment, you can run:
-
-`./ghostwriter-cli install --dev`
-
-A development environment is best if you want to change Ghostwriter's codebase or test functionality. Debug logging is enabled, which makes it easier to troubleshoot. The `dev` installation does not use TLS, so it skips creating certificates.
-</Check>
-
-### Accessing Ghostwriter
-
-The Ghostwriter server will now be accessible! Just visit *https\://127.0.0.1* and authenticate with the *admin* user. The password is displayed in the Ghostwriter CLI output at the end of the installation.
-
-You can also get the password by running this command:
-
-`./ghostwriter-cli config get admin_password`
-
-<Check>
-This password is only used for creating the account. You can change it in the admin panel after logging into Ghostwriter. You can also change any other part of the user profile.
-
-Changing the password in the config DOES NOT affect the installation. It's only stored in the config to make it easy for you to view the original password.
-</Check>
-### Adding More Users
-
-You may create users using the admin panel or ask users to sign-up using `/accounts/signup`. Filling out a complete profile is recommended. Ghostwriter can use full names for displaying user actions and filling in report templates.
-
-<Note>
-Django usernames are *case-sensitive*, so all lowercase is recommended to avoid confusion later.
-</Note>
+<Info>
+  Ghostwriter will create self-signed TLS/SSL certificates. If you'd like to use your signed certificates, do that now to make things easier. If you don't have them ready, you can install them later.
+</Info>
 
 ### Customizing Your Installation
 
@@ -162,7 +227,7 @@ You can use your own TLS/SSL certificates for Ghostwriter. To swap in your certi
 
 2. Name the Diffie-Helman Parameters file *dhparam.pem*
 
-3. Place all three files inside the *ssl* directory
+3. Place all three files inside the *ssl* directory created during installation (e.g., `~/.local/share/ghostwriter/ssl`, `~/Library/Application Support/ghostwriter/ssl`, or `%LOCALAPPDATA%/ghostwriter/ssl`)
 
 Your certificate will likely have a new hostname, so continue to the next section to complete the customization of your domain name.
 
@@ -195,3 +260,18 @@ Similar to the HTTP `Host` header protections, Ghostwriter also checks the `Orig
 
 You can use `config distrustorigin` to remove a proxy you have added to the list.
 
+### Adding More Users
+
+You may create users using the admin panel or ask users to sign-up using `/accounts/signup`. Filling out a complete profile is recommended. Ghostwriter can use full names for displaying user actions and filling in report templates.
+
+<Note>
+Django usernames are *case-sensitive*, so all lowercase is recommended to avoid confusion later.
+</Note>
+
+## Migrating TOTP Secrets from Legacy Installations
+
+If you are upgrading from an older version of Ghostwriter that used `allauth-2fa` for two-factor authentication, you'll need to migrate your TOTP secrets to the new format:
+
+```log Migrate TOTP Secrets
+$ ./ghostwriter-cli migrate_totp
+```

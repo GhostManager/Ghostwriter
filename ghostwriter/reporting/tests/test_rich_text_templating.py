@@ -1,12 +1,16 @@
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
+from ghostwriter.factories import ExtraFieldModelFactory, ExtraFieldSpecFactory, ReportFactory
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import rich_text_template
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+from ghostwriter.reporting.models import Report
 
 
-class RichTextTemplatingTests(TestCase):
+class RichTextTemplatingTests(SimpleTestCase):
     maxDiff = None
 
     def test_list(self):
@@ -29,3 +33,76 @@ class RichTextTemplatingTests(TestCase):
         env, _ = prepare_jinja2_env(debug=True)
         with self.assertRaisesMessage(ReportExportTemplateError, "Jinja tag prefixed with 'li' was not a descendant of a li tag"):
             rich_text_template(env, "<ol>{%li for i in thelist %}<li>{{i}}</li><li>{%li endfor %}</li></ol>")
+
+    def test_legacy_reference_and_caption_tags_accept_whitespace_after_opening_braces(self):
+        env, _ = prepare_jinja2_env(debug=True)
+        template = rich_text_template(
+            env,
+            '<h2 xmlns="http://www.w3.org/1999/xhtml">Some H2</h2>'
+            '<p xmlns="http://www.w3.org/1999/xhtml">The following is an example.</p>'
+            '<h3 xmlns="http://www.w3.org/1999/xhtml">Some H3</h3>'
+            '<p xmlns="http://www.w3.org/1999/xhtml">{{ .ref Payload Hosting and Lateral Movement With Codex }} is a reference with a space after the dot.</p>'
+            '<p xmlns="http://www.w3.org/1999/xhtml">{{ .caption Here is a Caption}}</p>',
+        )
+        out = template.render({})
+        self.assertIn('data-gw-ref="Payload Hosting and Lateral Movement With Codex"', out)
+        self.assertIn('data-gw-caption="Here is a Caption"', out)
+
+
+class RichTextTemplatingExportTests(TestCase):
+    def test_create_lazy_template_normalizes_none_to_empty_rich_text(self):
+        class DummyExport(ExportBase):
+            @classmethod
+            def generate_lint_data(cls):
+                return {}
+
+            def map_rich_texts(self):
+                return {}
+
+            def run(self):
+                return None
+
+            @classmethod
+            def mime_type(cls) -> str:
+                return "text/plain"
+
+            @classmethod
+            def extension(cls) -> str:
+                return "txt"
+
+        lazy_template = DummyExport({}, is_raw=True).create_lazy_template("test rich text", None, {})
+
+        self.assertEqual(lazy_template.render_html(), "")
+
+    def test_report_export_handles_report_extra_field_with_spaced_legacy_reference_and_caption_tags(self):
+        report_extra_field = ExtraFieldModelFactory(
+            model_internal_name=Report._meta.label,
+            model_display_name="Reports",
+        )
+        ExtraFieldSpecFactory(
+            internal_name="narrative",
+            display_name="Narrative",
+            type="rich_text",
+            target_model=report_extra_field,
+        )
+        report = ReportFactory(
+            extra_fields={
+                "narrative": (
+                    '<h2 xmlns="http://www.w3.org/1999/xhtml">Some H2</h2>'
+                    '<p xmlns="http://www.w3.org/1999/xhtml">'
+                    "The following is an example."
+                    "</p>"
+                    '<h3 xmlns="http://www.w3.org/1999/xhtml">Some H3</h3>'
+                    '<p xmlns="http://www.w3.org/1999/xhtml">'
+                    "{{ .ref Payload Hosting and Lateral Movement With Codex }} "
+                    "is a reference with a space after the dot."
+                    "</p>"
+                    '<p xmlns="http://www.w3.org/1999/xhtml">'
+                    "{{ .caption Here is a Caption}}"
+                    "</p>"
+                )
+            },
+        )
+
+        out = ExportReportDocx(report, report_template=report.docx_template).run()
+        self.assertGreater(len(out.getvalue()), 0)

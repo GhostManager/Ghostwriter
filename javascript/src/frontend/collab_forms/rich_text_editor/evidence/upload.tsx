@@ -1,15 +1,21 @@
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { EvidencesContext } from "../../../../tiptap_gw/evidence";
+import { getCsrfToken } from "../../../../services/csrf";
 
 type DjangoFormErrors = Record<string, string[]>;
 
 export default function EvidenceUploadForm(props: {
     onSubmit: (id: number | null) => void;
     switchMode: () => void;
+    initialFile?: File;
 }) {
     const evidences = useContext(EvidencesContext)!;
     const [state, setState] = useState<null | DjangoFormErrors | "loading">(
         null
+    );
+    // Pre-populate the friendly name based on the initial file name without the extension, if provided
+    const [friendlyName, setFriendlyName] = useState<string>(
+        props.initialFile ? props.initialFile.name.replace(/\.[^.]+$/, "") : ""
     );
     const formRef = useRef<HTMLFormElement | null>(null);
     const friendlyNameId = useId();
@@ -27,13 +33,15 @@ export default function EvidenceUploadForm(props: {
                 const data = new FormData(formRef.current!);
 
                 (async () => {
-                    const csrf = document.cookie
-                        .split("; ")
-                        .find((row) => row.startsWith("csrftoken="))
-                        ?.split("=")[1];
+                    const csrf = getCsrfToken();
+                    if (!csrf) {
+                        console.error("CSRF token is missing; aborting evidence upload.");
+                        setState({ form: ["CSRF token not found. Please refresh the page."] });
+                        return;
+                    }
                     const headers = new Headers();
                     headers.append("Accept", "application/json");
-                    headers.append("X-CSRFToken", csrf!);
+                    headers.append("X-CSRFToken", csrf);
                     const res = await fetch(evidences.uploadUrl, {
                         method: "POST",
                         headers,
@@ -83,6 +91,8 @@ export default function EvidenceUploadForm(props: {
                             autoComplete="off"
                             placeholder="Friendly Name"
                             disabled={disabled}
+                            value={friendlyName}
+                            onChange={(e) => setFriendlyName(e.target.value)}
                         />
                         <ErrorFeedback errors={errors?.friendly_name} />
                         <small>
@@ -119,7 +129,11 @@ export default function EvidenceUploadForm(props: {
                 <input type="hidden" name="tags" value="" />
                 <input type="hidden" name="description" value="" />
 
-                <FileInput errors={errors} disabled={disabled} />
+                <FileInput
+                    errors={errors}
+                    disabled={disabled}
+                    initialFile={props.initialFile}
+                />
             </div>
 
             <div className="modal-footer">
@@ -154,10 +168,21 @@ export default function EvidenceUploadForm(props: {
 function FileInput(props: {
     errors: DjangoFormErrors | null;
     disabled: boolean;
+    initialFile?: File;
 }) {
     const id = useId();
     const fileRef = useRef<HTMLInputElement | null>(null);
-    const [fileName, setFileName] = useState<string | null>(null);
+    const [fileName, setFileName] = useState<string | null>(
+        props.initialFile?.name ?? null
+    );
+
+    // Pre-populate the file input when an initial file is provided (paste-to-upload)
+    useEffect(() => {
+        if (!props.initialFile || !fileRef.current) return;
+        const dt = new DataTransfer();
+        dt.items.add(props.initialFile);
+        fileRef.current.files = dt.files;
+    }, [props.initialFile]);
 
     useEffect(() => {
         const cb = (ev: ClipboardEvent) => {

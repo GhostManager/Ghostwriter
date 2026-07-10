@@ -1,9 +1,12 @@
 # Standard Libraries
 import random
-from datetime import date, timedelta, timezone
+from datetime import date, timedelta
+from datetime import timezone as datetime_timezone
 
 # Django Imports
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 # 3rd Party Libraries
@@ -12,6 +15,9 @@ import zoneinfo
 from factory import Faker
 from faker.providers import BaseProvider
 from faker.providers.lorem.en_US import Provider as LoremProvider
+
+# Ghostwriter Libraries
+from ghostwriter.reporting.models import EvidenceImageAlignment, EvidenceImageAlignmentOverride
 
 # Couple of timezones to test with
 TIMEZONES = [
@@ -28,6 +34,12 @@ EXTRA_FIELD_TYPES = [
     "integer",
     "float",
 ]
+
+DEFAULT_TEMPLATE_LINT_RESULT = {
+    "result": "success",
+    "warnings": [],
+    "errors": [],
+}
 
 # Add faker provider for rich text (html)
 class RichTextProvider(BaseProvider):
@@ -133,6 +145,7 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     email = Faker("email")
     phone = Faker("phone_number")
     description = Faker("rich_text")
+    primary = False
     timezone = random.choice(TIMEZONES)
     client = factory.SubFactory(ClientFactory)
 
@@ -149,6 +162,7 @@ class ProjectRoleFactory(factory.django.DjangoModelFactory):
         model = "rolodex.ProjectRole"
 
     project_role = factory.Sequence(lambda n: "Type %s" % n)
+    position = factory.Sequence(lambda n: n + 1)
 
 
 class ProjectFactory(factory.django.DjangoModelFactory):
@@ -341,6 +355,7 @@ class DocTypeFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ("doc_type", "extension", "name")
 
 
+@factory.django.mute_signals(post_save)
 class ReportTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportTemplate"
@@ -349,13 +364,16 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: "Template %s" % n)
     description = Faker("rich_text")
     changelog = Faker("rich_text")
-    lint_result = ""
+    lint_result = factory.LazyFunction(lambda: DEFAULT_TEMPLATE_LINT_RESULT.copy())
     protected = False
     client = None
     bloodhound_heading_offset = 0
     contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
+    p_style = "Normal"
+    evidence_image_width = None
+    evidence_image_alignment = EvidenceImageAlignmentOverride.USE_GLOBAL
 
     class Params:
         docx = factory.Trait(
@@ -377,6 +395,7 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+@factory.django.mute_signals(post_save)
 class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportTemplate"
@@ -385,15 +404,19 @@ class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: "Template %s" % n)
     description = Faker("rich_text")
     changelog = Faker("rich_text")
-    lint_result = ""
+    lint_result = factory.LazyFunction(lambda: DEFAULT_TEMPLATE_LINT_RESULT.copy())
     protected = False
     client = None
     bloodhound_heading_offset = 0
     contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx", extension="docx", name="docx")
     uploaded_by = factory.SubFactory(UserFactory)
+    p_style = "Normal"
+    evidence_image_width = None
+    evidence_image_alignment = EvidenceImageAlignmentOverride.USE_GLOBAL
 
 
+@factory.django.mute_signals(post_save)
 class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportTemplate"
@@ -402,14 +425,16 @@ class ReportPptxTemplateFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: "Template %s" % n)
     description = Faker("rich_text")
     changelog = Faker("rich_text")
-    lint_result = ""
+    lint_result = factory.LazyFunction(lambda: DEFAULT_TEMPLATE_LINT_RESULT.copy())
     protected = False
     client = None
     bloodhound_heading_offset = 0
     contains_bloodhound_data = False
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="pptx", extension="pptx", name="pptx")
     uploaded_by = factory.SubFactory(UserFactory)
-
+    p_style = "Normal"
+    evidence_image_width = None
+    evidence_image_alignment = EvidenceImageAlignmentOverride.USE_GLOBAL
 
 class ReportFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -525,11 +550,7 @@ class BaseEvidenceFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
-class EvidenceOnFindingFactory(BaseEvidenceFactory):
-    finding = factory.SubFactory(ReportFindingLinkFactory)
-
-
-class EvidenceOnReportFactory(BaseEvidenceFactory):
+class EvidenceFactory(BaseEvidenceFactory):
     report = factory.SubFactory(ReportFactory)
 
 
@@ -632,6 +653,56 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
         if extracted:
             for tag in extracted:
                 self.tags.add(tag)
+
+
+class OplogEntryEvidenceFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.OplogEntryEvidence"
+
+    oplog_entry = factory.SubFactory(OplogEntryFactory)
+    evidence = factory.SubFactory(EvidenceFactory)
+
+
+class OplogEntryRecordingFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.OplogEntryRecording"
+
+    oplog_entry = factory.SubFactory(OplogEntryFactory)
+    recording_file = factory.django.FileField(
+        filename="test.cast",
+        data=b'{"version": 3, "term": {"cols": 80, "rows": 24}}\n[0.5, "o", "Hello, world!"]\n',
+    )
+
+
+class ServicePrincipalFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServicePrincipal"
+
+    name = Faker("sentence")
+    service_type = "integration"
+    created_by = factory.SubFactory(UserFactory)
+
+
+class ServiceTokenFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServiceToken"
+
+    name = Faker("sentence")
+    token_prefix = factory.Sequence(lambda n: f"prefix{n}")
+    secret_hash = factory.LazyFunction(lambda: make_password("service-secret"))
+    created_by = factory.SubFactory(UserFactory)
+    service_principal = factory.SubFactory(ServicePrincipalFactory)
+
+
+class ServiceTokenPermissionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServiceTokenPermission"
+
+    token = factory.SubFactory(ServiceTokenFactory)
+    resource_type = "oplog"
+    resource_id = factory.Sequence(lambda n: n + 1)
+    action = "read"
+    constraints = {}
 
 
 # Shepherd Factories
@@ -836,13 +907,19 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     border_color = "2D2B6B"
     prefix_figure = Faker("word")
     label_figure = Faker("word")
+    figure_caption_location = "bottom"
+    evidence_image_alignment = EvidenceImageAlignment.CENTER
+    evidence_image_width = None
     prefix_table = Faker("word")
     label_table = Faker("word")
+    table_caption_location = "top"
     report_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
     project_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
     title_case_captions = Faker("boolean")
     title_case_exceptions = str(Faker("csv"))[:255]
     target_delivery_date = Faker("pyint")
+    default_cvss_version = "3.1"
+    outline_tags = "report,evidence"
     default_docx_template = factory.SubFactory(ReportDocxTemplateFactory)
     default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
 
@@ -905,7 +982,7 @@ class BannerConfigurationFactory(factory.django.DjangoModelFactory):
     banner_message = Faker("sentence")
     banner_link = Faker("url")
     public_banner = Faker("boolean")
-    expiry_date = Faker("date_time", tzinfo=timezone.utc)
+    expiry_date = Faker("date_time", tzinfo=datetime_timezone.utc)
 
 
 class DeconflictionStatusFactory(factory.django.DjangoModelFactory):
@@ -920,9 +997,9 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Deconfliction"
 
-    report_timestamp = Faker("date_time", tzinfo=timezone.utc)
-    alert_timestamp = Faker("date_time", tzinfo=timezone.utc)
-    response_timestamp = Faker("date_time", tzinfo=timezone.utc)
+    report_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
+    alert_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
+    response_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
     title = Faker("sentence")
     description = Faker("rich_text")
     alert_source = Faker("word")
@@ -934,7 +1011,7 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.WhiteCard"
 
-    issued = Faker("date_time", tzinfo=timezone.utc)
+    issued = Faker("date_time", tzinfo=datetime_timezone.utc)
     title = Faker("user_name")
     description = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)
