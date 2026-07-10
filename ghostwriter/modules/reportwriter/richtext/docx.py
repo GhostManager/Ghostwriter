@@ -38,6 +38,18 @@ EVIDENCE_IMAGE_ALIGNMENT_MAP = {
     EvidenceImageAlignment.RIGHT: WD_ALIGN_PARAGRAPH.RIGHT,
 }
 
+# Word limits bookmark names to 40 characters; hidden aliases add ``_Ref``.
+WORD_BOOKMARK_BASE_NAME_MAX_LENGTH = 36
+WORD_BOOKMARK_INVALID_CHARACTERS = re.compile(r"[^A-Za-z0-9_]")
+
+
+def normalize_bookmark_name(name: str) -> str:
+    """Return a Word-safe name with room for Ghostwriter's ``_Ref`` prefix."""
+    name = WORD_BOOKMARK_INVALID_CHARACTERS.sub("_", name)
+    if not name or not name[0].isalpha():
+        name = "Bookmark_" + name
+    return name[:WORD_BOOKMARK_BASE_NAME_MAX_LENGTH]
+
 
 class HtmlToDocx(BaseHtmlToOOXML):
     """
@@ -148,6 +160,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
+            bookmark_name = normalize_bookmark_name(bookmark_name)
             # The visible bookmark supports Word's bookmark list and internal
             # links. The hidden alias preserves existing {{.ref}} targets.
             self._add_heading_bookmark(heading_paragraph, bookmark_name)
@@ -529,7 +542,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 continue
 
         if ref:
-            ref = f"_Ref{ref}"
+            ref = f"_Ref{normalize_bookmark_name(ref)}"
         else:
             ref = f"_Ref{random.randint(10000000, 99999999)}"
 
@@ -696,6 +709,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
+        ref = normalize_bookmark_name(ref)
+
         # Start the field character run for the label and number
         run = par.add_run()
         r = run._r

@@ -867,7 +867,7 @@ class HtmlToDocxWithEvidenceTests(TestCase):
         report_config = ReportConfiguration.get_solo()
 
         converter = HtmlToDocxWithEvidence.run(
-            '<h2 data-bookmark="heading_bookmark">Heading</h2>',
+            """<h2 data-bookmark='heading bookmark"quoted'>Heading</h2>""",
             doc,
             evidences={},
             report_template=report_template,
@@ -875,17 +875,17 @@ class HtmlToDocxWithEvidenceTests(TestCase):
             images={},
         )
         caption = doc.add_paragraph()
-        converter.make_caption(caption, "Figure", "caption_bookmark")
+        converter.make_caption(caption, "Figure", 'caption bookmark"quoted')
         heading_reference = doc.add_paragraph()
-        converter.make_cross_ref(heading_reference, "heading_bookmark")
+        converter.make_cross_ref(heading_reference, 'heading bookmark"quoted')
         caption_reference = doc.add_paragraph()
-        converter.make_cross_ref(caption_reference, "caption_bookmark")
+        converter.make_cross_ref(caption_reference, 'caption bookmark"quoted')
 
         heading_starts = doc.paragraphs[0]._p.findall(qn("w:bookmarkStart"))
         heading_ends = doc.paragraphs[0]._p.findall(qn("w:bookmarkEnd"))
         self.assertEqual(
             [start.get(qn("w:name")) for start in heading_starts],
-            ["heading_bookmark", "_Refheading_bookmark"],
+            ["heading_bookmark_quoted", "_Refheading_bookmark_quoted"],
         )
         self.assertEqual(
             [end.get(qn("w:id")) for end in heading_ends],
@@ -895,13 +895,19 @@ class HtmlToDocxWithEvidenceTests(TestCase):
         caption_starts = caption._p.findall(qn("w:bookmarkStart"))
         self.assertEqual(
             [start.get(qn("w:name")) for start in caption_starts],
-            ["_Refcaption_bookmark"],
+            ["_Refcaption_bookmark_quoted"],
         )
 
         heading_instruction = heading_reference._p.find(".//" + qn("w:instrText"))
         caption_instruction = caption_reference._p.find(".//" + qn("w:instrText"))
-        self.assertEqual(heading_instruction.text, ' REF "_Refheading_bookmark" \\h ')
-        self.assertEqual(caption_instruction.text, ' REF "_Refcaption_bookmark" \\h ')
+        self.assertEqual(
+            heading_instruction.text,
+            ' REF "_Refheading_bookmark_quoted" \\h ',
+        )
+        self.assertEqual(
+            caption_instruction.text,
+            ' REF "_Refcaption_bookmark_quoted" \\h ',
+        )
 
     def test_text_evidence_uses_codeblock_style_without_forcing_alignment(self):
         doc = docx.Document()
