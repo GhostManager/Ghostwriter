@@ -26,7 +26,10 @@ def category_value(value):
             if rendered_category:
                 rendered_categories.append(f"{key}: {rendered_category}")
         return ", ".join(rendered_categories)
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, set):
+        rendered_categories = sorted(category_value(category) for category in value)
+        return ", ".join(category for category in rendered_categories if category)
+    if isinstance(value, (list, tuple)):
         rendered_categories = [category_value(category) for category in value]
         return ", ".join(category for category in rendered_categories if category)
     return str(value)
