@@ -664,8 +664,9 @@ $(document).ready(function () {
         if (safeId === null) return;
         let url = window.location.origin + '/oplog/entry/update/' + safeId;
         $('.oplog-form-div').load(url, function () {
-            $('#edit-modal').modal('toggle');
-            tinymceLogInit();
+            const $editModal = $('#edit-modal');
+            $editModal.find('.modal-body').scrollTop(0);
+            $editModal.modal('show');
             formAjaxSubmit('#oplog-entry-form', '#edit-modal');
         });
     };
@@ -1359,28 +1360,45 @@ $(document).ready(function () {
 
     // --- AJAX form submit ---
     let formAjaxSubmit = function (form, modal) {
+        let submissionPending = false;
         $(form).submit(function (e) {
             e.preventDefault();
+            if (submissionPending) return;
+            submissionPending = true;
             $.ajax({
                 type: $(this).attr('method'),
                 url: $(this).attr('action'),
                 data: $(this).serialize(),
                 success: function (xhr) {
                     if ($(xhr).find('.has-error').length > 0) {
+                        submissionPending = false;
                         $(modal).find('.oplog-form-div').html(xhr);
                         formAjaxSubmit(form, modal);
                     } else {
-                        $(modal).modal('toggle');
+                        $(modal).modal('hide');
                     }
                     tinymceRemove();
                 },
-                error: function () {},
+                error: function () {
+                    submissionPending = false;
+                },
             });
         });
     };
 
     $('#edit-modal').on('hide.bs.modal', function () {
         tinymceRemove();
+    });
+
+    $('#edit-modal').on('keydown', function (event) {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            const form = this.querySelector('form');
+            if (form) {
+                event.preventDefault();
+                event.stopPropagation();
+                window.gwRequestFormSubmit(form);
+            }
+        }
     });
 
     $('#evidence-modal').on('hide.bs.modal', function () {

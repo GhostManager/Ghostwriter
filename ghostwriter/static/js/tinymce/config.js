@@ -66,6 +66,16 @@
 
     window.gwGetTinyMceThemeConfig = gwGetTinyMceThemeConfig;
 
+    function gwRequestFormSubmit(form) {
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            $(form).trigger('submit');
+        }
+    }
+
+    window.gwRequestFormSubmit = gwRequestFormSubmit;
+
     function gwApplyTinyMceTheme(editor) {
         if (!editor || editor.removed) {
             return;
@@ -100,7 +110,18 @@
             editor._gwTinyMceRefreshRafId = window.requestAnimationFrame(function () {
                 editor._gwTinyMceRefreshRafId = null;
                 if (!editor.removed && editor.initialized && editor.getBody()) {
+                    const activeElement = document.activeElement;
+                    const scrollContainer = editor.targetElm.closest('.modal-body');
+                    const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+                    const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
                     editor.execCommand('mceAutoResize');
+                    if (activeElement && activeElement !== document.activeElement && activeElement.isConnected) {
+                        activeElement.focus({preventScroll: true});
+                    }
+                    if (scrollContainer) {
+                        scrollContainer.scrollLeft = scrollLeft;
+                        scrollContainer.scrollTop = scrollTop;
+                    }
                 }
             });
         }
@@ -442,6 +463,21 @@
                 gwObserveTinyMceTheme();
             });
 
+            editor.on('keydown', function (event) {
+                if (
+                    event.key === 'Enter' &&
+                    (event.ctrlKey || event.metaKey) &&
+                    editor.targetElm.closest('[data-submit-on-mod-enter]')
+                ) {
+                    const form = editor.targetElm.closest('form');
+                    if (form) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        gwRequestFormSubmit(form);
+                    }
+                }
+            });
+
             editor.on('remove', function () {
                 gwClearTinyMceRefreshTimers(editor);
                 if (editor._gwTinyMceRefreshRafId) {
@@ -623,6 +659,13 @@
             ...gwGetTinyMceThemeConfig(sourceConfig),
             target: textarea,
         };
+        const minimumHeightContainer = textarea.closest('[data-tinymce-min-height]');
+        if (minimumHeightContainer) {
+            const minimumHeight = Number.parseInt(minimumHeightContainer.dataset.tinymceMinHeight, 10);
+            if (Number.isFinite(minimumHeight)) {
+                config.min_height = minimumHeight;
+            }
+        }
         delete config.selector;
         const initResult = tinymce.init(config);
         return initResult && typeof initResult.then === 'function' ? initResult : Promise.resolve(initResult);
@@ -764,18 +807,6 @@
     });
 
 })($ || django.jQuery);
-
-function tinymceLogInit() {
-    const modalContent = document.querySelector('.modal-content');
-    if (window.gwInitTinyMceTextareas) {
-        window.gwInitTinyMceTextareas(modalContent || document, {includeInactiveTabs: true});
-        return;
-    }
-
-    let logConfig = { ...GW_TINYMCE_BASIC_CONFIG };
-    logConfig.selector = '.modal-content textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)';
-    tinymce.init(gwGetTinyMceThemeConfig(logConfig));
-}
 
 function tinymceRemove() {
     tinymce.remove();
