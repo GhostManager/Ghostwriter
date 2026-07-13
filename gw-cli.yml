@@ -150,7 +150,7 @@ services:
       postgres:
         condition: service_healthy
       django:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - ./ssl:/etc/ssl/certs
