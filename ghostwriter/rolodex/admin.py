@@ -70,6 +70,7 @@ class ClientAdmin(admin.ModelAdmin):
             {"fields": ("name", "short_name", "codename", "timezone", "address")},
         ),
         ("Misc", {"fields": ("description",)}),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -122,6 +123,7 @@ class ProjectAdmin(admin.ModelAdmin):
             },
         ),
         ("Misc", {"fields": ("slack_channel", "description")}),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):

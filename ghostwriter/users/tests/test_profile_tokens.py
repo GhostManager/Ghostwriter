@@ -15,6 +15,7 @@ from ghostwriter.api.models import (
     ServiceToken,
     ServiceTokenPreset,
 )
+from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.factories import (
     OplogFactory,
     ProjectAssignmentFactory,
@@ -36,6 +37,9 @@ class UserProfileTokenDisplayTests(TestCase):
         cls.uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
 
     def setUp(self):
+        config = GeneralConfiguration.get_solo()
+        config.token_extend_requires_rotation = False
+        config.save(update_fields=["token_extend_requires_rotation"])
         self.client_auth = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
@@ -85,57 +89,27 @@ class UserProfileTokenDisplayTests(TestCase):
 
         response = self.client_auth.get(self.uri)
 
-        self.assertContains(response, 'id="api-token-card"')
-        self.assertContains(response, 'id="service-token-card"')
-        self.assertContains(
-            response,
-            "API tokens authenticate as your user account and inherit your current Ghostwriter permissions.",
-        )
-        self.assertContains(
-            response,
-            "Service tokens authenticate as non-human service principals",
-        )
-        self.assertContains(response, "use only the permissions assigned to the token")
-        self.assertContains(response, 'id="js-hide-expired"')
-        self.assertContains(response, 'id="js-hide-expired-service-tokens"')
-        self.assertContains(
-            response, 'class="table-responsive js-token-table-wrapper"', count=2
-        )
+        self.assertContains(response, 'id="token-card"')
+        self.assertNotContains(response, 'id="api-token-card"')
+        self.assertNotContains(response, 'id="service-token-card"')
+        self.assertContains(response, 'id="js-hide-expired-tokens"')
+        self.assertContains(response, 'data-expired-token-selector=".js-expired-token"')
+        self.assertContains(response, 'data-storage-key="profileHideExpiredTokens"')
+        self.assertNotContains(response, 'id="js-hide-expired-service-tokens"')
+
+        self.assertContains(response, 'class="js-token-table-wrapper"', count=1)
+        self.assertContains(response, 'class="js-token-table-section"', count=2)
+        self.assertContains(response, 'class="table-responsive js-token-table-responsive"', count=2)
         self.assertContains(response, 'class="js-token-row"', count=6)
         self.assertContains(
             response,
-            'class="alert alert-secondary mt-2 mb-2 js-all-tokens-hidden-alert d-none"',
+            'class="alert alert-secondary mt-2 mb-2 js-token-table-empty-alert d-none"',
             count=2,
-        )
-        self.assertContains(
-            response,
-            "All API tokens are expired and hidden. Disable Hide Expired to show them.",
-        )
-        self.assertContains(
-            response,
-            "All service tokens are expired and hidden. Disable Hide Expired to show them.",
         )
         self.assertContains(
             response, '<th class="align-middle text-left">Last Used</th>', count=2
         )
-        self.assertContains(
-            response, 'data-expired-token-selector=".js-expired-api-token"'
-        )
-        self.assertContains(
-            response, 'data-expired-token-selector=".js-expired-service-token"'
-        )
-        self.assertContains(response, 'data-storage-key="profileHideExpiredApiTokens"')
-        self.assertContains(
-            response, 'data-storage-key="profileHideExpiredServiceTokens"'
-        )
-        self.assertContains(response, "localStorage.getItem(storageKey)")
-        self.assertContains(response, "localStorage.setItem(storageKey")
-        self.assertContains(response, "expiredRows.length === totalRows")
-        self.assertContains(response, "replaceTokenTableState(")
-        self.assertContains(response, "$currentElement.fadeOut(200")
-        self.assertContains(
-            response, "$nextElement.removeClass('d-none').hide().fadeIn(200)"
-        )
+
         self.assertContains(
             response,
             'class="align-middle text-left warning"',
@@ -151,10 +125,7 @@ class UserProfileTokenDisplayTests(TestCase):
             response,
             'class="align-middle text-left burned js-expired-token js-expired-service-token"',
         )
-        self.assertContains(response, 'data-revoke-target-preview="Expired API Token"')
-        self.assertContains(
-            response, 'data-revoke-target-preview="Expired Service Token"'
-        )
+
         self.assertContains(
             response,
             'data-revoke-target-url="/api/ajax/token/revoke/',
@@ -164,21 +135,31 @@ class UserProfileTokenDisplayTests(TestCase):
             'data-revoke-target-url="/api/ajax/service-token/revoke/',
         )
         self.assertContains(response, "Edit Expiry", count=6)
-        self.assertContains(response, 'id="edit-token-expiry-modal"')
+        self.assertContains(response, ">Regenerate</button>", count=6)
+
+        self.assertContains(response, 'id="token-expiry-display-', count=3)
+        self.assertContains(response, 'id="service-token-expiry-display-', count=3)
+        self.assertContains(response, 'data-expiry-display-selector="#token-expiry-display-', count=3)
+        self.assertContains(response, 'data-expiry-display-selector="#service-token-expiry-display-', count=3)
         self.assertContains(response, 'data-expiry-target-url="/api/token/expiry/')
         self.assertContains(
             response,
             'data-expiry-target-url="/api/service-token/expiry/',
         )
-        self.assertContains(response, 'data-expiry-regenerates-token="true"', count=3)
-        self.assertContains(response, 'data-expiry-regenerates-token="false"', count=3)
-        self.assertContains(response, "Choose a future date and time.")
-        self.assertContains(
-            response, "Changing an API token's expiry generates a replacement token."
-        )
-        self.assertContains(response, "$(event.relatedTarget)")
+        self.assertNotContains(response, 'data-expiry-regenerates-token="true"')
+        self.assertContains(response, 'data-expiry-regenerates-token="false"', count=6)
+        self.assertContains(response, 'action="/api/token/regenerate/')
+        self.assertContains(response, 'action="/api/service-token/regenerate/')
+        self.assertContains(response, 'class="d-flex m-0 js-regenerate-token-form"', count=6)
+        self.assertContains(response, "disabled>Regenerate</button>", count=2)
+
+        self.assertContains(response, 'id="edit-token-expiry-modal"')
+        self.assertContains(response, 'id="edit-token-expiry-error"')
+        self.assertContains(response, "validateExpiryModal(")
+        self.assertContains(response, "showReplacementTokenModal(")
+        self.assertContains(response, "$('.js-regenerate-token-form').on('submit'")
+        self.assertContains(response, "$replacementModal.find('code').text(replacementToken)")
         self.assertContains(response, "edit-token-expiry-regeneration-warning")
-        self.assertContains(response, "$modal.data('revoke-target', $target)")
 
     def test_profile_lazy_loads_api_token_details(self):
         project = ProjectFactory(codename="Alpha Project")
@@ -383,6 +364,42 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "Create entries")
         self.assertContains(response, "Update entries")
         self.assertContains(response, "Delete entries")
+
+    def test_service_token_details_view_revokes_stale_oplog_access_without_metadata(self):
+        project = ProjectFactory(codename="Alpha Project")
+        assignment = ProjectAssignmentFactory(project=project, operator=self.user)
+        oplog = OplogFactory(name="Operator Activity", project=project)
+        principal = ServicePrincipal.objects.create(
+            name="External Integration", created_by=self.user
+        )
+        oplog_token, _ = ServiceToken.objects.create_token(
+            name="Oplog Writer",
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.OPLOG_RW,
+                oplog_id=oplog.id,
+            ),
+        )
+        assignment.delete()
+
+        response = self.client_auth.get(
+            reverse("api:ajax_service_token_details", kwargs={"pk": oplog_token.id})
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.GONE)
+        self.assertEqual(
+            response.json(),
+            {
+                "result": "error",
+                "message": "Service token scope is no longer accessible.",
+                "token_id": oplog_token.id,
+            },
+        )
+        self.assertNotContains(response, "Operator Activity", status_code=HTTPStatus.GONE)
+        self.assertNotContains(response, "Alpha Project", status_code=HTTPStatus.GONE)
+        oplog_token.refresh_from_db()
+        self.assertTrue(oplog_token.revoked)
 
     def test_service_token_details_view_rejects_tokens_owned_by_other_users(self):
         other_user = UserFactory(password=PASSWORD)

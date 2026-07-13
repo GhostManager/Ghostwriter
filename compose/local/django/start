@@ -12,10 +12,10 @@ ARCHIVE_DIR=/app/ghostwriter/media/archives
 TEMPLATE_PATH_DOCX=/app/ghostwriter/reporting/templates/reports/template.docx
 TEMPLATE_PATH_PPTX=/app/ghostwriter/reporting/templates/reports/template.pptx
 
-[[ ! -d "$EVIDENCE_DIR" ]] && mkdir -p "$EVIDENCE_DIR"
-[[ ! -d "$AVATAR_DIR" ]] && mkdir -p "$AVATAR_DIR"
-[[ ! -d "$TEMPLATE_DIR" ]] && mkdir -p "$TEMPLATE_DIR"
-[[ ! -d "$ARCHIVE_DIR" ]] && mkdir -p "$ARCHIVE_DIR"
+[ ! -d "$EVIDENCE_DIR" ] && mkdir -p "$EVIDENCE_DIR"
+[ ! -d "$AVATAR_DIR" ] && mkdir -p "$AVATAR_DIR"
+[ ! -d "$TEMPLATE_DIR" ] && mkdir -p "$TEMPLATE_DIR"
+[ ! -d "$ARCHIVE_DIR" ] && mkdir -p "$ARCHIVE_DIR"
 
 cp -u -p "$TEMPLATE_PATH_DOCX" "$TEMPLATE_DIR"
 cp -u -p "$TEMPLATE_PATH_PPTX" "$TEMPLATE_DIR"
@@ -24,4 +24,13 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py migrate_totp_device
 # python manage.py runserver 0.0.0.0:8000
-uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload
+exec uvicorn config.asgi:application \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --reload \
+  --reload-dir /app/config \
+  --reload-dir /app/ghostwriter \
+  --reload-include '*.py' \
+  --reload-include '*.html' \
+  --reload-include '*.css' \
+  --reload-include '*.js'

@@ -65,6 +65,11 @@ services:
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
       - GHOSTWRITER_MAX_FILE_SIZE=${GHOSTWRITER_MAX_FILE_SIZE:-10485760}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     healthcheck:
       test: curl --insecure --fail https://nginx/status/simple/ || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
@@ -94,6 +99,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     healthcheck:
       test: pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER
       interval: ${HEALTHCHECK_INTERVAL}
@@ -113,6 +123,11 @@ services:
       - production_data:/app/media
       - production_staticfiles:/app/staticfiles
       - ./ssl:/ssl
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_nginx
     ports:
@@ -132,6 +147,11 @@ services:
       context: .
       dockerfile: ./compose/production/redis/Dockerfile
     image: ghostwriter_production_redis
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_redis
     restart: unless-stopped
@@ -171,7 +191,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-file: "1"
+        max-file: "3"
         max-size: "10m"
     labels:
       name: ghostwriter_graphql
@@ -193,7 +213,7 @@ services:
       - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
       - NO_PROXY=django
     healthcheck:
-      test: curl --insecure --fail http://graphql_engine:8080/healthz || exit 1
+      test: /usr/local/bin/busybox wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
@@ -208,6 +228,11 @@ services:
     depends_on:
       - graphql_engine
       - django
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "10m"
     labels:
       name: ghostwriter_collab
     environment:

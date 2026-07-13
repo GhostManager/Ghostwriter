@@ -43,6 +43,20 @@ class TsVectorConcat(Func):
     output_field = SearchVectorField()
 
 
+def user_can_access_oplog(oplog_id, user):
+    """Return whether the user can connect to an oplog's WebSocket group."""
+    if not user.is_active:
+        return False
+    try:
+        oplog = Oplog.objects.get(pk=oplog_id)
+    except Oplog.DoesNotExist:
+        return False
+    return oplog.user_can_view(user)
+
+
+user_can_access_oplog_async = database_sync_to_async(user_can_access_oplog)
+
+
 @database_sync_to_async
 def create_oplog_entry(oplog_id, user):
     """Attempt to create a new log entry for the given log ID."""
@@ -227,10 +241,18 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         user = self.scope["user"]
-        if user.is_active:
-            oplog_id = self.scope["url_route"]["kwargs"]["pk"]
-            await self.channel_layer.group_add(str(oplog_id), self.channel_name)
-            await self.accept()
+        oplog_id = self.scope["url_route"]["kwargs"]["pk"]
+        if not await user_can_access_oplog_async(oplog_id, user):
+            logger.warning(
+                "User %s attempted to connect to oplog %s without permission.",
+                user,
+                oplog_id,
+            )
+            await self.close(code=4403)
+            return
+
+        await self.channel_layer.group_add(str(oplog_id), self.channel_name)
+        await self.accept()
 
     async def disconnect(self, close_code):
         logger.info("WebSocket disconnected with close code: %s", close_code)

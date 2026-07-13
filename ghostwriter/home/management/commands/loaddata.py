@@ -4,15 +4,19 @@ import os
 
 # Django Imports
 from django.apps import apps
+from django.core.management.base import CommandError
 from django.core.management.commands import loaddata
 
 
-def should_add_record(record):
+def should_add_record(record, required_only=False):
     """
     Determine if a record should be inserted into the database. Some records are
     customizable and should not be overwritten during a build. If the ``pk`` already
     exists, err on the side of skipping the insert. Certain models are always seeded.
     """
+    if required_only and not record.get("required", True):
+        return False
+
     models_to_seed = [
         "reporting.doctype",
     ]
@@ -24,6 +28,14 @@ def should_add_record(record):
     return True
 
 
+def strip_fixture_metadata(record):
+    """
+    Remove Ghostwriter fixture metadata before passing records to Django's deserializer.
+    """
+    record.pop("required", None)
+    return record
+
+
 class Command(loaddata.Command):
     def add_arguments(self, parser):
         parser.add_argument(
@@ -31,6 +43,12 @@ class Command(loaddata.Command):
             action="store_true",
             dest="force",
             help="Apply all fixtures even if they already exist.",
+        )
+        parser.add_argument(
+            "--required-only",
+            action="store_true",
+            dest="required_only",
+            help="Only apply fixture records that are required for Ghostwriter to run.",
         )
         super().add_arguments(parser)
 
@@ -41,6 +59,10 @@ class Command(loaddata.Command):
         Based on this StackOverflow answer: https://stackoverflow.com/a/68894033
         """
         self.force_apply = options["force"]
+        self.required_only = options["required_only"]
+        if self.force_apply and self.required_only:
+            raise CommandError("--force and --required-only cannot be used together.")
+
         args = list(args)
 
         # Read the original JSON file
@@ -50,10 +72,14 @@ class Command(loaddata.Command):
 
         # Filter out records that already exists
         if not self.force_apply:
-            json_list_filtered = list(filter(should_add_record, json_list))
+            json_list_filtered = [
+                strip_fixture_metadata(record)
+                for record in json_list
+                if should_add_record(record, required_only=self.required_only)
+            ]
         else:
             self.stdout.write(self.style.WARNING("Applying all fixtures."))
-            json_list_filtered = json_list
+            json_list_filtered = [strip_fixture_metadata(record) for record in json_list]
         if not json_list_filtered:
             self.stdout.write(self.style.SUCCESS("All required records are present; no new data to load."))
             return

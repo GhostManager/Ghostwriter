@@ -5386,6 +5386,10 @@ export type Domain = {
   name: Scalars['String']['output'];
   registrar: Scalars['String']['output'];
   resetDns: Scalars['Boolean']['output'];
+  /** An array relationship */
+  serviceTokenDomainAccesses: Array<ServiceTokenDomainAccess>;
+  /** An aggregate relationship */
+  serviceTokenDomainAccesses_aggregate: ServiceTokenDomainAccess_Aggregate;
   /** An object relationship */
   user?: Maybe<User>;
   vtPermalink: Scalars['String']['output'];
@@ -5450,6 +5454,26 @@ export type DomainDnsArgs = {
 /** columns and relationships of "shepherd_domain" */
 export type DomainExtraFieldsArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** columns and relationships of "shepherd_domain" */
+export type DomainServiceTokenDomainAccessesArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenDomainAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+};
+
+
+/** columns and relationships of "shepherd_domain" */
+export type DomainServiceTokenDomainAccesses_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenDomainAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
 };
 
 /** columns and relationships of "shepherd_history" */
@@ -7152,6 +7176,8 @@ export type Domain_Bool_Exp = {
   name?: InputMaybe<String_Comparison_Exp>;
   registrar?: InputMaybe<String_Comparison_Exp>;
   resetDns?: InputMaybe<Boolean_Comparison_Exp>;
+  serviceTokenDomainAccesses?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+  serviceTokenDomainAccesses_aggregate?: InputMaybe<ServiceTokenDomainAccess_Aggregate_Bool_Exp>;
   user?: InputMaybe<User_Bool_Exp>;
   vtPermalink?: InputMaybe<String_Comparison_Exp>;
   whoisStatus?: InputMaybe<WhoisStatus_Bool_Exp>;
@@ -7219,6 +7245,7 @@ export type Domain_Insert_Input = {
   name?: InputMaybe<Scalars['String']['input']>;
   registrar?: InputMaybe<Scalars['String']['input']>;
   resetDns?: InputMaybe<Scalars['Boolean']['input']>;
+  serviceTokenDomainAccesses?: InputMaybe<ServiceTokenDomainAccess_Arr_Rel_Insert_Input>;
   user?: InputMaybe<User_Obj_Rel_Insert_Input>;
   vtPermalink?: InputMaybe<Scalars['String']['input']>;
   whoisStatus?: InputMaybe<WhoisStatus_Obj_Rel_Insert_Input>;
@@ -7341,6 +7368,7 @@ export type Domain_Order_By = {
   name?: InputMaybe<Order_By>;
   registrar?: InputMaybe<Order_By>;
   resetDns?: InputMaybe<Order_By>;
+  serviceTokenDomainAccesses_aggregate?: InputMaybe<ServiceTokenDomainAccess_Aggregate_Order_By>;
   user?: InputMaybe<User_Order_By>;
   vtPermalink?: InputMaybe<Order_By>;
   whoisStatus?: InputMaybe<WhoisStatus_Order_By>;
@@ -22345,10 +22373,18 @@ export type Query_Root = {
   serverStatus_aggregate: ServerStatus_Aggregate;
   /** fetch data from the table: "shepherd_serverstatus" using primary key columns */
   serverStatus_by_pk?: Maybe<ServerStatus>;
+  /** fetch data from the table: "api_service_token_domain_access" */
+  serviceTokenDomainAccess: Array<ServiceTokenDomainAccess>;
+  /** fetch aggregated fields from the table: "api_service_token_domain_access" */
+  serviceTokenDomainAccess_aggregate: ServiceTokenDomainAccess_Aggregate;
   /** fetch data from the table: "api_service_token_project_access" */
   serviceTokenProjectAccess: Array<ServiceTokenProjectAccess>;
   /** fetch aggregated fields from the table: "api_service_token_project_access" */
   serviceTokenProjectAccess_aggregate: ServiceTokenProjectAccess_Aggregate;
+  /** fetch data from the table: "api_service_token_static_server_access" */
+  serviceTokenStaticServerAccess: Array<ServiceTokenStaticServerAccess>;
+  /** fetch aggregated fields from the table: "api_service_token_static_server_access" */
+  serviceTokenStaticServerAccess_aggregate: ServiceTokenStaticServerAccess_Aggregate;
   /** fetch data from the table: "api_service_token_user_access" */
   serviceTokenUserAccess: Array<ServiceTokenUserAccess>;
   /** fetch aggregated fields from the table: "api_service_token_user_access" */
@@ -22421,7 +22457,7 @@ export type Query_Root = {
   whitecard_aggregate: Whitecard_Aggregate;
   /** fetch data from the table: "rolodex_whitecard" using primary key columns */
   whitecard_by_pk?: Maybe<Whitecard>;
-  /** User `whoami` query for JWT */
+  /** User `whoami` query for JWTs, API tokens, and service tokens */
   whoami?: Maybe<WhoamiOutput>;
   /** fetch data from the table: "shepherd_whoisstatus" */
   whoisStatus: Array<WhoisStatus>;
@@ -23770,6 +23806,24 @@ export type Query_RootServerStatus_By_PkArgs = {
 };
 
 
+export type Query_RootServiceTokenDomainAccessArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenDomainAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+};
+
+
+export type Query_RootServiceTokenDomainAccess_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenDomainAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+};
+
+
 export type Query_RootServiceTokenProjectAccessArgs = {
   distinct_on?: InputMaybe<Array<ServiceTokenProjectAccess_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -23785,6 +23839,24 @@ export type Query_RootServiceTokenProjectAccess_AggregateArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<ServiceTokenProjectAccess_Order_By>>;
   where?: InputMaybe<ServiceTokenProjectAccess_Bool_Exp>;
+};
+
+
+export type Query_RootServiceTokenStaticServerAccessArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenStaticServerAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
+};
+
+
+export type Query_RootServiceTokenStaticServerAccess_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenStaticServerAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
 };
 
 
@@ -29395,6 +29467,252 @@ export type ServerStatus_Variance_Fields = {
   id?: Maybe<Scalars['Float']['output']>;
 };
 
+/** columns and relationships of "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess = {
+  __typename?: 'serviceTokenDomainAccess';
+  /** An object relationship */
+  domain?: Maybe<Domain>;
+  domainId?: Maybe<Scalars['bigint']['output']>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** aggregated selection of "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Aggregate = {
+  __typename?: 'serviceTokenDomainAccess_aggregate';
+  aggregate?: Maybe<ServiceTokenDomainAccess_Aggregate_Fields>;
+  nodes: Array<ServiceTokenDomainAccess>;
+};
+
+export type ServiceTokenDomainAccess_Aggregate_Bool_Exp = {
+  count?: InputMaybe<ServiceTokenDomainAccess_Aggregate_Bool_Exp_Count>;
+};
+
+export type ServiceTokenDomainAccess_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
+/** aggregate fields of "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Aggregate_Fields = {
+  __typename?: 'serviceTokenDomainAccess_aggregate_fields';
+  avg?: Maybe<ServiceTokenDomainAccess_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<ServiceTokenDomainAccess_Max_Fields>;
+  min?: Maybe<ServiceTokenDomainAccess_Min_Fields>;
+  stddev?: Maybe<ServiceTokenDomainAccess_Stddev_Fields>;
+  stddev_pop?: Maybe<ServiceTokenDomainAccess_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<ServiceTokenDomainAccess_Stddev_Samp_Fields>;
+  sum?: Maybe<ServiceTokenDomainAccess_Sum_Fields>;
+  var_pop?: Maybe<ServiceTokenDomainAccess_Var_Pop_Fields>;
+  var_samp?: Maybe<ServiceTokenDomainAccess_Var_Samp_Fields>;
+  variance?: Maybe<ServiceTokenDomainAccess_Variance_Fields>;
+};
+
+
+/** aggregate fields of "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** order by aggregate values of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Aggregate_Order_By = {
+  avg?: InputMaybe<ServiceTokenDomainAccess_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<ServiceTokenDomainAccess_Max_Order_By>;
+  min?: InputMaybe<ServiceTokenDomainAccess_Min_Order_By>;
+  stddev?: InputMaybe<ServiceTokenDomainAccess_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<ServiceTokenDomainAccess_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<ServiceTokenDomainAccess_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<ServiceTokenDomainAccess_Sum_Order_By>;
+  var_pop?: InputMaybe<ServiceTokenDomainAccess_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<ServiceTokenDomainAccess_Var_Samp_Order_By>;
+  variance?: InputMaybe<ServiceTokenDomainAccess_Variance_Order_By>;
+};
+
+/** input type for inserting array relation for remote table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Arr_Rel_Insert_Input = {
+  data: Array<ServiceTokenDomainAccess_Insert_Input>;
+};
+
+/** aggregate avg on columns */
+export type ServiceTokenDomainAccess_Avg_Fields = {
+  __typename?: 'serviceTokenDomainAccess_avg_fields';
+  domainId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Avg_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** Boolean expression to filter rows from the table "api_service_token_domain_access". All fields are combined with a logical 'AND'. */
+export type ServiceTokenDomainAccess_Bool_Exp = {
+  _and?: InputMaybe<Array<ServiceTokenDomainAccess_Bool_Exp>>;
+  _not?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+  _or?: InputMaybe<Array<ServiceTokenDomainAccess_Bool_Exp>>;
+  domain?: InputMaybe<Domain_Bool_Exp>;
+  domainId?: InputMaybe<Bigint_Comparison_Exp>;
+  tokenId?: InputMaybe<Bigint_Comparison_Exp>;
+};
+
+/** input type for inserting data into table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Insert_Input = {
+  domain?: InputMaybe<Domain_Obj_Rel_Insert_Input>;
+  domainId?: InputMaybe<Scalars['bigint']['input']>;
+  tokenId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate max on columns */
+export type ServiceTokenDomainAccess_Max_Fields = {
+  __typename?: 'serviceTokenDomainAccess_max_fields';
+  domainId?: Maybe<Scalars['bigint']['output']>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by max() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Max_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate min on columns */
+export type ServiceTokenDomainAccess_Min_Fields = {
+  __typename?: 'serviceTokenDomainAccess_min_fields';
+  domainId?: Maybe<Scalars['bigint']['output']>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by min() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Min_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** Ordering options when selecting data from "api_service_token_domain_access". */
+export type ServiceTokenDomainAccess_Order_By = {
+  domain?: InputMaybe<Domain_Order_By>;
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "api_service_token_domain_access" */
+export enum ServiceTokenDomainAccess_Select_Column {
+  /** column name */
+  DomainId = 'domainId',
+  /** column name */
+  TokenId = 'tokenId'
+}
+
+/** aggregate stddev on columns */
+export type ServiceTokenDomainAccess_Stddev_Fields = {
+  __typename?: 'serviceTokenDomainAccess_stddev_fields';
+  domainId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Stddev_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_pop on columns */
+export type ServiceTokenDomainAccess_Stddev_Pop_Fields = {
+  __typename?: 'serviceTokenDomainAccess_stddev_pop_fields';
+  domainId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_pop() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Stddev_Pop_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_samp on columns */
+export type ServiceTokenDomainAccess_Stddev_Samp_Fields = {
+  __typename?: 'serviceTokenDomainAccess_stddev_samp_fields';
+  domainId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Stddev_Samp_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** Streaming cursor of the table "serviceTokenDomainAccess" */
+export type ServiceTokenDomainAccess_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: ServiceTokenDomainAccess_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type ServiceTokenDomainAccess_Stream_Cursor_Value_Input = {
+  domainId?: InputMaybe<Scalars['bigint']['input']>;
+  tokenId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate sum on columns */
+export type ServiceTokenDomainAccess_Sum_Fields = {
+  __typename?: 'serviceTokenDomainAccess_sum_fields';
+  domainId?: Maybe<Scalars['bigint']['output']>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by sum() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Sum_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_pop on columns */
+export type ServiceTokenDomainAccess_Var_Pop_Fields = {
+  __typename?: 'serviceTokenDomainAccess_var_pop_fields';
+  domainId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_pop() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Var_Pop_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_samp on columns */
+export type ServiceTokenDomainAccess_Var_Samp_Fields = {
+  __typename?: 'serviceTokenDomainAccess_var_samp_fields';
+  domainId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_samp() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Var_Samp_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate variance on columns */
+export type ServiceTokenDomainAccess_Variance_Fields = {
+  __typename?: 'serviceTokenDomainAccess_variance_fields';
+  domainId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "api_service_token_domain_access" */
+export type ServiceTokenDomainAccess_Variance_Order_By = {
+  domainId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
 /** columns and relationships of "api_service_token_project_access" */
 export type ServiceTokenProjectAccess = {
   __typename?: 'serviceTokenProjectAccess';
@@ -29638,6 +29956,252 @@ export type ServiceTokenProjectAccess_Variance_Fields = {
 /** order by variance() on columns of table "api_service_token_project_access" */
 export type ServiceTokenProjectAccess_Variance_Order_By = {
   projectId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** columns and relationships of "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess = {
+  __typename?: 'serviceTokenStaticServerAccess';
+  serverId?: Maybe<Scalars['bigint']['output']>;
+  /** An object relationship */
+  staticServer?: Maybe<StaticServer>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** aggregated selection of "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Aggregate = {
+  __typename?: 'serviceTokenStaticServerAccess_aggregate';
+  aggregate?: Maybe<ServiceTokenStaticServerAccess_Aggregate_Fields>;
+  nodes: Array<ServiceTokenStaticServerAccess>;
+};
+
+export type ServiceTokenStaticServerAccess_Aggregate_Bool_Exp = {
+  count?: InputMaybe<ServiceTokenStaticServerAccess_Aggregate_Bool_Exp_Count>;
+};
+
+export type ServiceTokenStaticServerAccess_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
+/** aggregate fields of "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Aggregate_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_aggregate_fields';
+  avg?: Maybe<ServiceTokenStaticServerAccess_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<ServiceTokenStaticServerAccess_Max_Fields>;
+  min?: Maybe<ServiceTokenStaticServerAccess_Min_Fields>;
+  stddev?: Maybe<ServiceTokenStaticServerAccess_Stddev_Fields>;
+  stddev_pop?: Maybe<ServiceTokenStaticServerAccess_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<ServiceTokenStaticServerAccess_Stddev_Samp_Fields>;
+  sum?: Maybe<ServiceTokenStaticServerAccess_Sum_Fields>;
+  var_pop?: Maybe<ServiceTokenStaticServerAccess_Var_Pop_Fields>;
+  var_samp?: Maybe<ServiceTokenStaticServerAccess_Var_Samp_Fields>;
+  variance?: Maybe<ServiceTokenStaticServerAccess_Variance_Fields>;
+};
+
+
+/** aggregate fields of "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** order by aggregate values of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Aggregate_Order_By = {
+  avg?: InputMaybe<ServiceTokenStaticServerAccess_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<ServiceTokenStaticServerAccess_Max_Order_By>;
+  min?: InputMaybe<ServiceTokenStaticServerAccess_Min_Order_By>;
+  stddev?: InputMaybe<ServiceTokenStaticServerAccess_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<ServiceTokenStaticServerAccess_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<ServiceTokenStaticServerAccess_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<ServiceTokenStaticServerAccess_Sum_Order_By>;
+  var_pop?: InputMaybe<ServiceTokenStaticServerAccess_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<ServiceTokenStaticServerAccess_Var_Samp_Order_By>;
+  variance?: InputMaybe<ServiceTokenStaticServerAccess_Variance_Order_By>;
+};
+
+/** input type for inserting array relation for remote table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Arr_Rel_Insert_Input = {
+  data: Array<ServiceTokenStaticServerAccess_Insert_Input>;
+};
+
+/** aggregate avg on columns */
+export type ServiceTokenStaticServerAccess_Avg_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_avg_fields';
+  serverId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Avg_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** Boolean expression to filter rows from the table "api_service_token_static_server_access". All fields are combined with a logical 'AND'. */
+export type ServiceTokenStaticServerAccess_Bool_Exp = {
+  _and?: InputMaybe<Array<ServiceTokenStaticServerAccess_Bool_Exp>>;
+  _not?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
+  _or?: InputMaybe<Array<ServiceTokenStaticServerAccess_Bool_Exp>>;
+  serverId?: InputMaybe<Bigint_Comparison_Exp>;
+  staticServer?: InputMaybe<StaticServer_Bool_Exp>;
+  tokenId?: InputMaybe<Bigint_Comparison_Exp>;
+};
+
+/** input type for inserting data into table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Insert_Input = {
+  serverId?: InputMaybe<Scalars['bigint']['input']>;
+  staticServer?: InputMaybe<StaticServer_Obj_Rel_Insert_Input>;
+  tokenId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate max on columns */
+export type ServiceTokenStaticServerAccess_Max_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_max_fields';
+  serverId?: Maybe<Scalars['bigint']['output']>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by max() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Max_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate min on columns */
+export type ServiceTokenStaticServerAccess_Min_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_min_fields';
+  serverId?: Maybe<Scalars['bigint']['output']>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by min() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Min_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** Ordering options when selecting data from "api_service_token_static_server_access". */
+export type ServiceTokenStaticServerAccess_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  staticServer?: InputMaybe<StaticServer_Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "api_service_token_static_server_access" */
+export enum ServiceTokenStaticServerAccess_Select_Column {
+  /** column name */
+  ServerId = 'serverId',
+  /** column name */
+  TokenId = 'tokenId'
+}
+
+/** aggregate stddev on columns */
+export type ServiceTokenStaticServerAccess_Stddev_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_stddev_fields';
+  serverId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Stddev_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_pop on columns */
+export type ServiceTokenStaticServerAccess_Stddev_Pop_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_stddev_pop_fields';
+  serverId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_pop() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Stddev_Pop_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_samp on columns */
+export type ServiceTokenStaticServerAccess_Stddev_Samp_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_stddev_samp_fields';
+  serverId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Stddev_Samp_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** Streaming cursor of the table "serviceTokenStaticServerAccess" */
+export type ServiceTokenStaticServerAccess_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: ServiceTokenStaticServerAccess_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type ServiceTokenStaticServerAccess_Stream_Cursor_Value_Input = {
+  serverId?: InputMaybe<Scalars['bigint']['input']>;
+  tokenId?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** aggregate sum on columns */
+export type ServiceTokenStaticServerAccess_Sum_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_sum_fields';
+  serverId?: Maybe<Scalars['bigint']['output']>;
+  tokenId?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by sum() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Sum_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_pop on columns */
+export type ServiceTokenStaticServerAccess_Var_Pop_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_var_pop_fields';
+  serverId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_pop() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Var_Pop_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_samp on columns */
+export type ServiceTokenStaticServerAccess_Var_Samp_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_var_samp_fields';
+  serverId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_samp() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Var_Samp_Order_By = {
+  serverId?: InputMaybe<Order_By>;
+  tokenId?: InputMaybe<Order_By>;
+};
+
+/** aggregate variance on columns */
+export type ServiceTokenStaticServerAccess_Variance_Fields = {
+  __typename?: 'serviceTokenStaticServerAccess_variance_fields';
+  serverId?: Maybe<Scalars['Float']['output']>;
+  tokenId?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "api_service_token_static_server_access" */
+export type ServiceTokenStaticServerAccess_Variance_Order_By = {
+  serverId?: InputMaybe<Order_By>;
   tokenId?: InputMaybe<Order_By>;
 };
 
@@ -29927,6 +30491,10 @@ export type StaticServer = {
   /** An object relationship */
   serverStatus?: Maybe<ServerStatus>;
   serverStatusId?: Maybe<Scalars['bigint']['output']>;
+  /** An array relationship */
+  serviceTokenStaticServerAccesses: Array<ServiceTokenStaticServerAccess>;
+  /** An aggregate relationship */
+  serviceTokenStaticServerAccesses_aggregate: ServiceTokenStaticServerAccess_Aggregate;
   /** An object relationship */
   user?: Maybe<User>;
 };
@@ -29995,6 +30563,26 @@ export type StaticServerComments_AggregateArgs = {
 /** columns and relationships of "shepherd_staticserver" */
 export type StaticServerExtraFieldsArgs = {
   path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** columns and relationships of "shepherd_staticserver" */
+export type StaticServerServiceTokenStaticServerAccessesArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenStaticServerAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
+};
+
+
+/** columns and relationships of "shepherd_staticserver" */
+export type StaticServerServiceTokenStaticServerAccesses_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenStaticServerAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
 };
 
 /** aggregated selection of "shepherd_staticserver" */
@@ -30103,6 +30691,8 @@ export type StaticServer_Bool_Exp = {
   serverProviderId?: InputMaybe<Bigint_Comparison_Exp>;
   serverStatus?: InputMaybe<ServerStatus_Bool_Exp>;
   serverStatusId?: InputMaybe<Bigint_Comparison_Exp>;
+  serviceTokenStaticServerAccesses?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
+  serviceTokenStaticServerAccesses_aggregate?: InputMaybe<ServiceTokenStaticServerAccess_Aggregate_Bool_Exp>;
   user?: InputMaybe<User_Bool_Exp>;
 };
 
@@ -30152,6 +30742,7 @@ export type StaticServer_Insert_Input = {
   serverProviderId?: InputMaybe<Scalars['bigint']['input']>;
   serverStatus?: InputMaybe<ServerStatus_Obj_Rel_Insert_Input>;
   serverStatusId?: InputMaybe<Scalars['bigint']['input']>;
+  serviceTokenStaticServerAccesses?: InputMaybe<ServiceTokenStaticServerAccess_Arr_Rel_Insert_Input>;
   user?: InputMaybe<User_Obj_Rel_Insert_Input>;
 };
 
@@ -30235,6 +30826,7 @@ export type StaticServer_Order_By = {
   serverProviderId?: InputMaybe<Order_By>;
   serverStatus?: InputMaybe<ServerStatus_Order_By>;
   serverStatusId?: InputMaybe<Order_By>;
+  serviceTokenStaticServerAccesses_aggregate?: InputMaybe<ServiceTokenStaticServerAccess_Aggregate_Order_By>;
   user?: InputMaybe<User_Order_By>;
 };
 
@@ -30908,12 +31500,24 @@ export type Subscription_Root = {
   serverStatus_by_pk?: Maybe<ServerStatus>;
   /** fetch data from the table in a streaming manner: "shepherd_serverstatus" */
   serverStatus_stream: Array<ServerStatus>;
+  /** fetch data from the table: "api_service_token_domain_access" */
+  serviceTokenDomainAccess: Array<ServiceTokenDomainAccess>;
+  /** fetch aggregated fields from the table: "api_service_token_domain_access" */
+  serviceTokenDomainAccess_aggregate: ServiceTokenDomainAccess_Aggregate;
+  /** fetch data from the table in a streaming manner: "api_service_token_domain_access" */
+  serviceTokenDomainAccess_stream: Array<ServiceTokenDomainAccess>;
   /** fetch data from the table: "api_service_token_project_access" */
   serviceTokenProjectAccess: Array<ServiceTokenProjectAccess>;
   /** fetch aggregated fields from the table: "api_service_token_project_access" */
   serviceTokenProjectAccess_aggregate: ServiceTokenProjectAccess_Aggregate;
   /** fetch data from the table in a streaming manner: "api_service_token_project_access" */
   serviceTokenProjectAccess_stream: Array<ServiceTokenProjectAccess>;
+  /** fetch data from the table: "api_service_token_static_server_access" */
+  serviceTokenStaticServerAccess: Array<ServiceTokenStaticServerAccess>;
+  /** fetch aggregated fields from the table: "api_service_token_static_server_access" */
+  serviceTokenStaticServerAccess_aggregate: ServiceTokenStaticServerAccess_Aggregate;
+  /** fetch data from the table in a streaming manner: "api_service_token_static_server_access" */
+  serviceTokenStaticServerAccess_stream: Array<ServiceTokenStaticServerAccess>;
   /** fetch data from the table: "api_service_token_user_access" */
   serviceTokenUserAccess: Array<ServiceTokenUserAccess>;
   /** fetch aggregated fields from the table: "api_service_token_user_access" */
@@ -32699,6 +33303,31 @@ export type Subscription_RootServerStatus_StreamArgs = {
 };
 
 
+export type Subscription_RootServiceTokenDomainAccessArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenDomainAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+};
+
+
+export type Subscription_RootServiceTokenDomainAccess_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenDomainAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenDomainAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+};
+
+
+export type Subscription_RootServiceTokenDomainAccess_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<ServiceTokenDomainAccess_Stream_Cursor_Input>>;
+  where?: InputMaybe<ServiceTokenDomainAccess_Bool_Exp>;
+};
+
+
 export type Subscription_RootServiceTokenProjectAccessArgs = {
   distinct_on?: InputMaybe<Array<ServiceTokenProjectAccess_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -32721,6 +33350,31 @@ export type Subscription_RootServiceTokenProjectAccess_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<ServiceTokenProjectAccess_Stream_Cursor_Input>>;
   where?: InputMaybe<ServiceTokenProjectAccess_Bool_Exp>;
+};
+
+
+export type Subscription_RootServiceTokenStaticServerAccessArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenStaticServerAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
+};
+
+
+export type Subscription_RootServiceTokenStaticServerAccess_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<ServiceTokenStaticServerAccess_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<ServiceTokenStaticServerAccess_Order_By>>;
+  where?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
+};
+
+
+export type Subscription_RootServiceTokenStaticServerAccess_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<ServiceTokenStaticServerAccess_Stream_Cursor_Input>>;
+  where?: InputMaybe<ServiceTokenStaticServerAccess_Bool_Exp>;
 };
 
 

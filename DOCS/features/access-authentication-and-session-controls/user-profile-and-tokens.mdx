@@ -23,7 +23,7 @@ The **Profile Overview** card presents user details in a condensed grid so they 
 
 The **API Tokens** card is for user-bound automation tokens. API tokens authenticate as your user account and inherit your current Ghostwriter permissions. Use API tokens when automation should do exactly what your user account can do.
 
-API tokens are opaque `gwat_` credentials. They are not JWTs, and Ghostwriter stores only a hash of the token secret. The full token value is shown once when you create a token or save an expiry update.
+API tokens are opaque `gwat_` credentials. They are not JWTs, and Ghostwriter stores only a hash of the token secret. The full token value is shown once when you create or regenerate a token.
 
 Ghostwriter records an API token's last-used timestamp when the token authenticates. Updates are throttled to avoid writing on every request, so a recently active token may show the latest tracked interval instead of the exact most recent request time.
 
@@ -34,11 +34,19 @@ The API token card lets you:
 * create a new API token with an expiration date
 * review existing tokens
 * view token details, including current project access for the token's user
-* edit a token's expiration date and receive a replacement token
+* edit a token's expiration date
+* regenerate a token without changing its expiration date
 * revoke tokens you no longer need
 * hide expired tokens from the table
 
-Tokens expiring within seven days use the warning color. Expired tokens use the expired color. The **Hide Expired** preference is saved in your browser's local storage so the same browser remembers your choice.
+Tokens expiring within seven days use the warning color. Expired tokens use the expired color. The **Hide Expired** preference is saved in your browser's local
+storage so the same browser remembers your choice.
+
+Token expiration changes follow the server's General Settings. New tokens and expiry edits cannot exceed the configured maximum lifetime, which defaults to
+365 days from the time of the change. Existing tokens that already exceed a newly lowered maximum are not changed automatically, but they cannot be extended
+beyond the active policy. Shortening a token's expiry updates the existing credential in place. Extending a token's expiry either updates the existing credential
+or rotates it immediately, depending on whether administrators require rotation for expiry extensions. Expired tokens cannot be regenerated until their expiry is
+extended. If administrators do not require rotation for expiry extensions, regenerate the token after extending expiry to rotate the credential.
 
 ## Service Tokens
 
@@ -68,11 +76,12 @@ The service token card lets you:
 * choose or create a reusable service principal
 * select the token scope
 * review existing service tokens
+* regenerate a service token without changing its expiration date or scope
 * revoke tokens you no longer need
 * hide expired tokens from the table
 
 Service-token expiration styling and the **Hide Expired** browser preference work the same way as API tokens.
 
 <Warning>
-Store newly created API tokens and service tokens immediately. Ghostwriter only shows the token value once.
+Store newly created and regenerated API tokens and service tokens immediately. Ghostwriter only shows the token value once. Revocation and regeneration invalidate the previous credential immediately.
 </Warning>

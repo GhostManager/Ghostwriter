@@ -11,6 +11,12 @@
         <span class="badge badge-pill badge-light">{{ staticserver.serverhistory_set.all.count }}</span>
     </a>
 </li>
+<li class="nav-item">
+    <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
+        Notes
+        <span class="badge badge-pill badge-light">{{ staticserver.servernote_set.all.count }}</span>
+    </a>
+</li>
 {% if server_extra_fields_spec %}
     <li class="nav-item">
         <a id="id_extra-fields" class="nav-link tab-icon custom-field-icon" data-toggle="tab" href="#extra-fields">
@@ -18,9 +24,3 @@
         </a>
     </li>
 {% endif %}
-<li class="nav-item">
-    <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
-        Notes
-        <span class="badge badge-pill badge-light">{{ staticserver.servernote_set.all.count }}</span>
-    </a>
-</li>

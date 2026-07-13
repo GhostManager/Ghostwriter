@@ -112,6 +112,10 @@
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                 <div id="finding-dropdown-menu-{{ finding.id }}" class="dropdown-menu"
                      aria-labelledby="dns-dropdown-btn_{{ finding.id }}">
+                  <a class="dropdown-item icon view-icon js-finding-preview" href="javascript:void(0);"
+                     data-finding-preview-url="{% url 'reporting:finding_preview' finding.id %}"
+                     data-finding-title="{{ finding.title }}"
+                     data-toggle="modal" data-target="#finding-preview-modal">Preview</a>
                   <a class="dropdown-item icon edit-icon"
                      href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
                   <a class="dropdown-item icon user-icon"

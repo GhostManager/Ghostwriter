@@ -81,7 +81,7 @@
       $(function () {
         let availableNames = [
           {% for entry in autocomplete %}
-            '{{ entry.name|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+            '{{ entry.name|escapejs }}',
           {% endfor %}
         ];
         $('#id_name').autocomplete({

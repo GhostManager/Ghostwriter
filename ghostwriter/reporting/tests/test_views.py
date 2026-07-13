@@ -985,6 +985,22 @@ class FindingsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
 
+    def test_tags_are_scoped_to_findings(self):
+        visible_finding = FindingFactory(title="Tagged Finding")
+        visible_finding.tags.add("visible-finding-tag")
+        hidden_report = ReportFactory(title="Hidden Tagged Report")
+        hidden_report.tags.add("hidden-report-tag")
+        hidden_project = ProjectFactory()
+        hidden_project.tags.add("hidden-project-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-finding-tag", tag_names)
+        self.assertNotIn("hidden-report-tag", tag_names)
+        self.assertNotIn("hidden-project-tag", tag_names)
+
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
@@ -1001,6 +1017,20 @@ class FindingsListViewTests(TestCase):
         self.assertQuerySetEqual(
             response.context["filter"].qs, list(blank_findings), transform=lambda x: x
         )
+
+    def test_report_finding_tags_are_scoped_to_accessible_report_findings(self):
+        self.accessibleReportFindings[0].tags.add("visible-report-finding-tag")
+        self.inaccessibleReportFindings[0].tags.add("hidden-report-finding-tag")
+        master_finding = FindingFactory(title="Master Tagged Finding")
+        master_finding.tags.add("hidden-master-finding-tag")
+
+        response = self.client_auth.get(self.uri + "?on_reports=on")
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-report-finding-tag", tag_names)
+        self.assertNotIn("hidden-report-finding-tag", tag_names)
+        self.assertNotIn("hidden-master-finding-tag", tag_names)
 
 
 class FindingDetailViewTests(TestCase):
@@ -1449,8 +1479,21 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Denial of Service")
-        self.assertContains(response, "Social Engineering")
+        # Rich text previews are now lazy-loaded via AJAX, so the modal body
+        # contains a placeholder and a data attribute pointing to the preview
+        # endpoint instead of inline-rendered content.
+        self.assertContains(response, "data-lazy-richtext-url")
+        self.assertContains(response, "extra-field-richtext/out_of_scope_activities")
+
+        # Verify the preview endpoint itself renders the list content
+        preview_url = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={"pk": self.report.pk, "extra_field_name": "out_of_scope_activities"},
+        )
+        preview_response = self.client_mgr.get(preview_url)
+        self.assertEqual(preview_response.status_code, 200)
+        self.assertContains(preview_response, "Denial of Service")
+        self.assertContains(preview_response, "Social Engineering")
 
 
 class ReportOplogOutlineGenerateTests(TestCase):
@@ -1594,7 +1637,7 @@ class ReportOplogOutlineGenerateTests(TestCase):
                     "html": "<p><strong>Initial foothold</strong> confirmed.</p>",
                 },
                 {"type": "paragraph", "text": "Output:"},
-                {"type": "code", "text": "PORT 80/tcp open http"},
+                {"type": "code", "text": "{% raw %}PORT 80/tcp open http{% endraw %}"},
                 {"type": "paragraph", "text": "{{.ref Alpha}}"},
                 {"type": "evidence", "evidence_id": report_evidence.id},
                 {"type": "paragraph", "text": "{{.ref Bravo}}"},
@@ -1610,6 +1653,54 @@ class ReportOplogOutlineGenerateTests(TestCase):
                 },
             ],
         )
+
+    def test_view_wraps_output_as_jinja_literal_text(self):
+        from ghostwriter.modules.reportwriter import prepare_jinja2_env
+
+        output = "\n".join(
+            [
+                "project={{ project }}",
+                "statement={% if project %}expanded{% endif %}",
+                "comment={# hidden #}",
+                "literal endraw={% endraw %}",
+                "compact endraw={%endraw%}",
+                "trimmed start endraw={%- endraw %}",
+                "trimmed end endraw={% endraw -%}",
+                "trimmed both endraw={%- endraw -%}",
+                "preserved start endraw={%+ endraw %}",
+                "preserved end endraw={% endraw +%}",
+                "preserved both endraw={%+ endraw +%}",
+            ]
+        )
+        OplogEntryFactory(
+            oplog_id=self.oplog,
+            start_date=datetime(2024, 5, 1, 14, 0, 0, tzinfo=timezone.utc),
+            tool="Shell",
+            command="cat output.txt",
+            output=output,
+            comments="",
+            tags=["report"],
+        )
+
+        response = self.client_mgr.post(
+            self.uri,
+            data=json.dumps({"oplog_id": self.oplog.pk}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        code_blocks = [
+            block["text"]
+            for block in response.json()["blocks"]
+            if block["type"] == "code"
+        ]
+        self.assertEqual(len(code_blocks), 1)
+
+        rendered = prepare_jinja2_env(debug=False).from_string(code_blocks[0]).render(
+            {"project": "Rendered Project"}
+        )
+        self.assertEqual(rendered, output)
+        self.assertNotIn("project=Rendered Project", rendered)
 
     def test_view_includes_entries_matching_configured_exact_tag_case_insensitively(self):
         self.report_config.outline_tags = "Credential"
@@ -2517,6 +2608,481 @@ class ReportExtraFieldEditViewTests(TestCase):
 
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_endpoint_requires_login_and_permissions(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_endpoint_rejects_non_richtext_fields(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_grants_access_to_assigned_user(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(project=self.report.project, operator=self.user)
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_finding_link_richtext_preview_resolves_finding_extra_fields(self):
+        """ReportFindingLink specs are registered against Finding, not ReportFindingLink."""
+        finding_ef_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Finding",
+            model_display_name="Findings",
+        )
+        ExtraFieldSpecFactory(
+            internal_name="finding_notes",
+            display_name="Finding Notes",
+            type="rich_text",
+            target_model=finding_ef_model,
+        )
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            extra_fields={"finding_notes": "<p>test content</p>"},
+        )
+        uri = reverse(
+            "reporting:reportfindinglink_extra_field_richtext",
+            kwargs={"pk": rfl.pk, "extra_field_name": "finding_notes"},
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "test content")
+
+    def test_finding_link_richtext_preview_requires_permissions(self):
+        finding_ef_model, _ = ExtraFieldModel.objects.get_or_create(
+            model_internal_name="reporting.Finding",
+            defaults={"model_display_name": "Findings"},
+        )
+        ExtraFieldSpecFactory(
+            internal_name="finding_notes2",
+            display_name="Finding Notes 2",
+            type="rich_text",
+            target_model=finding_ef_model,
+        )
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            extra_fields={"finding_notes2": "<p>secret</p>"},
+        )
+        uri = reverse(
+            "reporting:reportfindinglink_extra_field_richtext",
+            kwargs={"pk": rfl.pk, "extra_field_name": "finding_notes2"},
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+
+class ExpandEvidenceAndSanitizeTests(TestCase):
+    """Tests for expand_evidence_and_sanitize marker expansion."""
+
+    def test_ref_marker_expanded(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        html = '<p>See <span data-gw-ref="evA"></span> for details</p>'
+        result = expand_evidence_and_sanitize(html, None)
+        self.assertIn("Figure", result)
+        self.assertIn("#", result)
+        self.assertNotIn("data-gw-ref", result)
+
+    def test_inline_caption_marker_expanded(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        html = '<p><span data-gw-caption=""></span>My Caption</p>'
+        result = expand_evidence_and_sanitize(html, None)
+        self.assertIn("Figure", result)
+        self.assertIn("My Caption", result)
+        self.assertNotIn("data-gw-caption", result)
+
+    def test_block_caption_wrapped_in_p(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        html = '<div data-gw-caption="bookmark">Caption Text</div>'
+        result = expand_evidence_and_sanitize(html, None)
+        self.assertIn("<p>", result)
+        self.assertIn("Caption Text", result)
+        self.assertIn("Figure", result)
+
+    def test_image_marker_without_client_decomposed(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        html = '<div data-gw-image="CLIENT_LOGO"></div>'
+        result = expand_evidence_and_sanitize(html, None)
+        self.assertNotIn("CLIENT_LOGO", result)
+        self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
+
+    def test_image_marker_with_client_logo(self):
+        from unittest.mock import MagicMock, PropertyMock, patch
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        client = ClientFactory()
+        logo_mock = MagicMock()
+        logo_mock.__bool__ = lambda s: True
+        logo_mock.name = "test_logo.png"
+        with patch.object(type(client), "logo", new_callable=PropertyMock, return_value=logo_mock):
+            html = '<div data-gw-image="CLIENT_LOGO"></div>'
+            result = expand_evidence_and_sanitize(html, None, client=client)
+        self.assertIn("<img", result)
+        self.assertIn("/rolodex/clients/logo/download/", result)
+        self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
+
+    def test_evidence_markers_without_report_decomposed(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        html = '<p><span data-gw-evidence="999"></span></p>'
+        result = expand_evidence_and_sanitize(html, None)
+        self.assertNotIn("data-gw-evidence", result)
+
+    def test_plain_html_passes_through(self):
+        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        html = '<p>Hello <strong>world</strong></p>'
+        result = expand_evidence_and_sanitize(html, None)
+        self.assertIn("Hello", result)
+        self.assertIn("world", result)
+
+
+class ReportFindingLinkPreviewTests(TestCase):
+    """Tests for :view:`reporting.ReportFindingLinkPreview`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        cls.finding_ef_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Finding",
+            model_display_name="Findings",
+        )
+        cls.finding_rt_field = ExtraFieldSpecFactory(
+            internal_name="notes",
+            display_name="Finding Notes",
+            type="rich_text",
+            target_model=cls.finding_ef_model,
+        )
+        cls.rfl = ReportFindingLinkFactory(
+            report=cls.report,
+            title="Test Finding",
+            description="<p>Finding description</p>",
+            extra_fields={"notes": "<p>Extra field content</p>"},
+        )
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:finding_preview", kwargs={"pk": cls.rfl.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthorized_user_gets_403(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "text/html")
+
+    def test_manager_gets_200_with_content(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Test Finding", content)
+        self.assertIn("Finding description", content)
+
+    def test_renders_severity_badge(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertIn("badge", content)
+
+    def test_renders_extra_field_with_display_name(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertIn("Finding Notes", content)
+        self.assertIn("Extra field content", content)
+
+    def test_hr_separator_after_badges(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("<hr>", content)
+
+    def test_empty_fields_omitted(self):
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            title="Empty Finding",
+            description="",
+            impact="",
+            mitigation="",
+            replication_steps="",
+            host_detection_techniques="",
+            network_detection_techniques="",
+            references="",
+        )
+        uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
+        response = self.client_mgr.get(uri)
+        content = response.content.decode()
+        self.assertIn("Empty Finding", content)
+        self.assertNotIn("<h3>Description</h3>", content)
+        self.assertNotIn("<h3>Impact</h3>", content)
+
+    def test_render_export_error_returns_generic_preview_error(self):
+        rfl = ReportFindingLinkFactory(
+            report=self.report,
+            title="Bad Regex Finding",
+            description="{{ 'content'|regex_search('(') }}",
+        )
+        uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Bad Regex Finding", content)
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("unterminated subpattern", content)
+        self.assertNotIn("missing ),", content)
+
+    def test_respects_report_bloodhound_setting(self):
+        report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+            include_bloodhound_data=False,
+        )
+        rfl = ReportFindingLinkFactory(
+            report=report,
+            title="BloodHound Probe",
+            description="{% if bloodhound is defined %}LEAKED{% else %}NO_BH{% endif %}",
+        )
+        uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("NO_BH", content)
+        self.assertNotIn("LEAKED", content)
+
+
+class ReportObservationLinkPreviewTests(TestCase):
+    """Tests for :view:`reporting.ReportObservationLinkPreview`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        cls.obs_ef_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Observation",
+            model_display_name="Observations",
+        )
+        cls.obs_rt_field = ExtraFieldSpecFactory(
+            internal_name="obs_notes",
+            display_name="Observation Notes",
+            type="rich_text",
+            target_model=cls.obs_ef_model,
+        )
+        cls.rol = ReportObservationLinkFactory(
+            report=cls.report,
+            title="Test Observation",
+            description="<p>Observation description</p>",
+            extra_fields={"obs_notes": "<p>Observation extra</p>"},
+        )
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("reporting:observation_preview", kwargs={"pk": cls.rol.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthorized_user_gets_403_html(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "text/html")
+
+    def test_manager_gets_200_with_content(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Test Observation", content)
+        self.assertIn("Observation description", content)
+
+    def test_renders_extra_field_with_display_name(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertIn("Observation Notes", content)
+        self.assertIn("Observation extra", content)
+
+    def test_no_severity_badges(self):
+        response = self.client_mgr.get(self.uri)
+        content = response.content.decode()
+        self.assertNotIn("badge-pill", content)
+
+    def test_empty_description_omitted(self):
+        rol = ReportObservationLinkFactory(
+            report=self.report,
+            title="Empty Obs",
+            description="",
+        )
+        uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
+        response = self.client_mgr.get(uri)
+        content = response.content.decode()
+        self.assertIn("Empty Obs", content)
+        self.assertNotIn("<h3>Description</h3>", content)
+
+    def test_render_export_error_returns_generic_preview_error(self):
+        rol = ReportObservationLinkFactory(
+            report=self.report,
+            title="Bad Regex Obs",
+            description="{{ 'content'|regex_search('(') }}",
+        )
+        uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Bad Regex Obs", content)
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("unterminated subpattern", content)
+        self.assertNotIn("missing ),", content)
+
+    def test_respects_report_bloodhound_setting(self):
+        report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+            include_bloodhound_data=False,
+        )
+        rol = ReportObservationLinkFactory(
+            report=report,
+            title="BloodHound Probe",
+            description="{% if bloodhound is defined %}LEAKED{% else %}NO_BH{% endif %}",
+        )
+        uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("NO_BH", content)
+        self.assertNotIn("LEAKED", content)
+
+
+class ExtraFieldRichTextPreviewPermissionTests(TestCase):
+    """Tests for ExtraFieldRichTextPreviewView permission handling."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Report",
+            model_display_name="Reports",
+        )
+        cls.rt_field = ExtraFieldSpecFactory(
+            internal_name="test_rt",
+            display_name="Test RT",
+            type="rich_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.report.extra_fields = {"test_rt": "<p>content</p>"}
+        cls.report.save(update_fields=["extra_fields"])
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={"pk": cls.report.pk, "extra_field_name": "test_rt"},
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_403_returns_html_not_json(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "text/html")
+        self.assertIn("permission", response.content.decode())
+
+    def test_nonexistent_field_returns_404(self):
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={"pk": self.report.pk, "extra_field_name": "nonexistent"},
+        )
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_template_error_returns_200_with_error_message(self):
+        self.report.extra_fields = {"test_rt": "<p>{% for x in %}broken{% endfor %}</p>"}
+        self.report.save(update_fields=["extra_fields"])
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Error", content)
+        self.assertIn("alert-danger", content)
+
+    def test_export_error_returns_generic_preview_error(self):
+        self.report.extra_fields = {"test_rt": "<p>{{ 'content'|regex_search('(') }}</p>"}
+        self.report.save(update_fields=["extra_fields"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("unterminated subpattern", content)
+        self.assertNotIn("missing ),", content)
 
 
 # Tests related to :model:`reporting.Evidence`
@@ -3953,6 +4519,46 @@ class GenerateReportTests(TestCase):
             finding_row[headers.index("Supporting Evidence")], evidence.friendly_name
         )
 
+    def test_view_xlsx_prepares_supporting_evidence_names_once(self):
+        from unittest.mock import patch
+
+        from ghostwriter.reporting.views2 import report as report_views
+
+        class CountingExportReportXlsx(report_views.ExportReportXlsx):
+            prepare_calls = 0
+
+            def prepare_valid_evidence_names(self):
+                type(self).prepare_calls += 1
+                return super().prepare_valid_evidence_names()
+
+        evidence_names = []
+        for index in range(3):
+            evidence = EvidenceFactory(
+                report=self.report, friendly_name=f"XLSX Linked Evidence {index}"
+            )
+            evidence_names.append(evidence.friendly_name)
+            ReportFindingLinkFactory(
+                report=self.report,
+                title=f"Finding with XLSX evidence {index}",
+                description=f"<p>{{{{.ref {evidence.friendly_name}}}}}</p>",
+            )
+
+        with patch.object(report_views, "ExportReportXlsx", CountingExportReportXlsx):
+            response = self.client_mgr.get(self.xlsx_uri)
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(CountingExportReportXlsx.prepare_calls, 1)
+
+        rows = self._xlsx_rows(response)
+        headers = rows[0]
+        supporting_evidence_index = headers.index("Supporting Evidence")
+        supporting_evidence_values = [
+            row[supporting_evidence_index]
+            for row in rows[1:]
+            if row[0].startswith("Finding with XLSX evidence")
+        ]
+        self.assertCountEqual(supporting_evidence_values, evidence_names)
+
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.pptx_uri)
         self.assertEqual(
@@ -4726,8 +5332,68 @@ class EvidencePreviewTests(TestCase):
 # Tests related to :model:`reporting.Observation`
 
 
+class ObservationListViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationList`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.observation = ObservationFactory(title="Visible Observation")
+        cls.observation.tags.add("visible-observation-tag")
+        cls.uri = reverse("reporting:observations")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/observation_list.html")
+
+    def test_tags_are_scoped_to_observations(self):
+        hidden_report = ReportFactory(title="Hidden Tagged Report")
+        hidden_report.tags.add("hidden-report-tag")
+        hidden_project = ProjectFactory()
+        hidden_project.tags.add("hidden-project-tag")
+        hidden_finding = FindingFactory(title="Hidden Tagged Finding")
+        hidden_finding.tags.add("hidden-finding-tag")
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-observation-tag", tag_names)
+        self.assertNotIn("hidden-report-tag", tag_names)
+        self.assertNotIn("hidden-project-tag", tag_names)
+        self.assertNotIn("hidden-finding-tag", tag_names)
+
+    def test_tags_are_scoped_to_filtered_observation_queryset(self):
+        other_observation = ObservationFactory(title="Other Observation")
+        other_observation.tags.add("other-observation-tag")
+
+        response = self.client_auth.get(self.uri + "?observation=Visible")
+        self.assertEqual(response.status_code, 200)
+
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-observation-tag", tag_names)
+        self.assertNotIn("other-observation-tag", tag_names)
+
+
 class ObservationCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ObservationCreate`."""
+
 
     @classmethod
     def setUpTestData(cls):

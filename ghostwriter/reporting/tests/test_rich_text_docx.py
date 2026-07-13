@@ -12,6 +12,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 import docx
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 from lxml import etree
 
 # Ghostwriter Libraries
@@ -858,6 +859,54 @@ class HtmlToDocxWithEvidenceTests(TestCase):
             report_template=report_template or ReportDocxTemplateFactory(),
             global_report_config=report_config or ReportConfiguration.get_solo(),
             images={},
+        )
+
+    def test_heading_bookmarks_are_visible_with_hidden_reference_aliases(self):
+        doc = docx.Document()
+        report_template = ReportDocxTemplateFactory()
+        report_config = ReportConfiguration.get_solo()
+
+        converter = HtmlToDocxWithEvidence.run(
+            """<h2 data-bookmark='heading bookmark"quoted'>Heading</h2>""",
+            doc,
+            evidences={},
+            report_template=report_template,
+            global_report_config=report_config,
+            images={},
+        )
+        caption = doc.add_paragraph()
+        converter.make_caption(caption, "Figure", 'caption bookmark"quoted')
+        heading_reference = doc.add_paragraph()
+        converter.make_cross_ref(heading_reference, 'heading bookmark"quoted')
+        caption_reference = doc.add_paragraph()
+        converter.make_cross_ref(caption_reference, 'caption bookmark"quoted')
+
+        heading_starts = doc.paragraphs[0]._p.findall(qn("w:bookmarkStart"))
+        heading_ends = doc.paragraphs[0]._p.findall(qn("w:bookmarkEnd"))
+        self.assertEqual(
+            [start.get(qn("w:name")) for start in heading_starts],
+            ["heading_bookmark_quoted", "_Refheading_bookmark_quoted"],
+        )
+        self.assertEqual(
+            [end.get(qn("w:id")) for end in heading_ends],
+            [heading_starts[1].get(qn("w:id")), heading_starts[0].get(qn("w:id"))],
+        )
+
+        caption_starts = caption._p.findall(qn("w:bookmarkStart"))
+        self.assertEqual(
+            [start.get(qn("w:name")) for start in caption_starts],
+            ["_Refcaption_bookmark_quoted"],
+        )
+
+        heading_instruction = heading_reference._p.find(".//" + qn("w:instrText"))
+        caption_instruction = caption_reference._p.find(".//" + qn("w:instrText"))
+        self.assertEqual(
+            heading_instruction.text,
+            ' REF "_Refheading_bookmark_quoted" \\h ',
+        )
+        self.assertEqual(
+            caption_instruction.text,
+            ' REF "_Refcaption_bookmark_quoted" \\h ',
         )
 
     def test_text_evidence_uses_codeblock_style_without_forcing_alignment(self):

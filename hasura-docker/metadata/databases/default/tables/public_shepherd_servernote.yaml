@@ -49,7 +49,11 @@ select_permissions:
   - role: service
     permission:
       columns: '*'
-      filter: {}
+      filter:
+        staticServer:
+          serviceTokenStaticServerAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'

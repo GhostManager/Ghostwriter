@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import logging
+import re
 import secrets
 import typing
 import uuid
@@ -20,12 +21,27 @@ from ghostwriter.api.utils import (
     USER_JWT_TYPE,
     generate_jwt,
 )
+from ghostwriter.rolodex.models import Client
 from ghostwriter.oplog.models import Oplog
 from ghostwriter.rolodex.models import Project
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 TOKEN_EXPIRY_WARNING_WINDOW = timedelta(days=7)
+CONTROL_CHARACTER_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def _log_safe(value: typing.Any) -> str:
+    """Escape control characters before interpolating user-controlled names in logs."""
+    return CONTROL_CHARACTER_RE.sub(
+        lambda match: f"\\x{ord(match.group(0)):02x}",
+        str(value),
+    )
+
+
+def _log_reason(reason: str | None) -> str:
+    """Return a sanitized optional reason suffix for log messages."""
+    return f": {_log_safe(reason)}" if reason else ""
 
 
 def _expires_within_warning_window(expiry_date) -> bool:
@@ -43,6 +59,7 @@ class ServiceTokenPreset(models.TextChoices):
 
 class ServiceTokenProjectScope(models.TextChoices):
     SELECTED = "selected", "Selected Projects"
+    SELECTED_CLIENTS = "selected_clients", "Selected Clients"
     ALL_ACCESSIBLE = "all_accessible", "All Accessible Projects"
 
 
@@ -75,6 +92,12 @@ class BaseAPIKeyManager(models.Manager):
         obj = self.model(**kwargs)
         _, token = self.generate_token(obj)
         obj.save()
+        logger.info(
+            "Created API token %s (%s) for user %s",
+            obj.pk,
+            _log_safe(obj.name),
+            obj.user_id,
+        )
         return obj, token
 
     def get_usable_keys(self) -> models.QuerySet:
@@ -135,6 +158,7 @@ class BaseAPIKeyManager(models.Manager):
         )
         if updated:
             token.last_used_at = used_at
+            logger.debug("Recorded last-used timestamp for API token %s", token.pk)
         return bool(updated)
 
 
@@ -379,7 +403,20 @@ class ServiceTokenManager(models.Manager):
             obj.save()
             if permissions:
                 self._create_permissions(obj, permissions)
+        logger.info(
+            "Created service token %s (%s) for service principal %s",
+            obj.pk,
+            _log_safe(obj.name),
+            obj.service_principal_id,
+        )
         return obj, token
+
+    def generate_token(self, obj: "ServiceToken") -> tuple[None, str]:
+        prefix, secret, token = self._build_token()
+        obj.token_prefix = prefix
+        obj.secret_hash = make_password(secret)
+        obj.last_used_at = None
+        return None, token
 
     def _create_permissions(
         self, token: "ServiceToken", permissions: list[dict[str, typing.Any]]
@@ -471,8 +508,8 @@ class ServiceTokenManager(models.Manager):
             logger.warning(
                 "Revoked service token %s (%s)%s",
                 token.pk,
-                token.name,
-                f": {reason}" if reason else "",
+                _log_safe(token.name),
+                _log_reason(reason),
             )
 
     def revoke_tokens_for_inactive_user(
@@ -490,7 +527,7 @@ class ServiceTokenManager(models.Manager):
                 deactivated_principals,
                 revoked_tokens,
                 user.pk,
-                f": {reason}" if reason else "",
+                _log_reason(reason),
             )
 
     def deactivate_service_principal(
@@ -504,8 +541,8 @@ class ServiceTokenManager(models.Manager):
             logger.warning(
                 "Deactivated service principal %s (%s)%s",
                 service_principal.pk,
-                service_principal.name,
-                f": {reason}" if reason else "",
+                _log_safe(service_principal.name),
+                _log_reason(reason),
             )
 
     def revoke_tokens_for_service_principal(
@@ -519,8 +556,8 @@ class ServiceTokenManager(models.Manager):
                 "Revoked %s service token(s) for service principal %s (%s)%s",
                 revoked_tokens,
                 service_principal.pk,
-                service_principal.name,
-                f": {reason}" if reason else "",
+                _log_safe(service_principal.name),
+                _log_reason(reason),
             )
 
     def record_usage(self, token: "ServiceToken", used_at=None) -> bool:
@@ -537,6 +574,7 @@ class ServiceTokenManager(models.Manager):
         )
         if updated:
             token.last_used_at = used_at
+            logger.debug("Recorded last-used timestamp for service token %s", token.pk)
         return bool(updated)
 
     def is_valid(self, token: str) -> bool:
@@ -618,6 +656,7 @@ class ServiceToken(models.Model):
         oplog_id: int | None = None,
         project_id: int | None = None,
         project_ids: typing.Iterable[int] | None = None,
+        client_ids: typing.Iterable[int] | None = None,
         all_accessible_projects: bool = False,
     ) -> list[dict[str, typing.Any]]:
         """Return the explicit permission rows required for a supported preset."""
@@ -640,7 +679,7 @@ class ServiceToken(models.Model):
 
         if preset == ServiceTokenPreset.PROJECT_READ:
             if all_accessible_projects:
-                if project_id is not None or project_ids:
+                if project_id is not None or project_ids or client_ids:
                     raise ValueError(
                         "project_read service tokens require either selected projects or all-accessible scope"
                     )
@@ -655,6 +694,26 @@ class ServiceToken(models.Model):
                             ),
                         },
                     }
+                ]
+            if client_ids is not None:
+                if project_id is not None or project_ids:
+                    raise ValueError(
+                        "project_read service tokens require either selected projects or selected clients"
+                    )
+                client_scope_ids = sorted(
+                    {int(client_scope_id) for client_scope_id in client_ids}
+                )
+                if not client_scope_ids:
+                    raise ValueError(
+                        "project_read service tokens require at least one client_id"
+                    )
+                return [
+                    {
+                        "resource_type": ServiceTokenPermission.ResourceType.CLIENT,
+                        "resource_id": client_scope_id,
+                        "action": ServiceTokenPermission.Action.READ,
+                    }
+                    for client_scope_id in client_scope_ids
                 ]
             if project_ids is None:
                 project_ids = [project_id] if project_id is not None else []
@@ -752,6 +811,13 @@ class ServiceToken(models.Model):
                         preset,
                         all_accessible_projects=True,
                     )
+                elif self.has_client_project_scope():
+                    client_ids = self.get_allowed_client_ids()
+                    if not client_ids:
+                        return False
+                    expected = self.build_permissions_for_preset(
+                        preset, client_ids=client_ids
+                    )
                 else:
                     project_ids = self.get_allowed_project_ids()
                     if not project_ids:
@@ -780,6 +846,12 @@ class ServiceToken(models.Model):
             ServiceTokenPermission.Action.READ,
         )
 
+    def get_allowed_client_ids(self) -> list[int]:
+        return self._resource_ids(
+            ServiceTokenPermission.ResourceType.CLIENT,
+            ServiceTokenPermission.Action.READ,
+        )
+
     def has_all_accessible_project_scope(self) -> bool:
         return any(
             permission.is_all_accessible_project_scope()
@@ -790,12 +862,33 @@ class ServiceToken(models.Model):
             )
         )
 
+    def has_client_project_scope(self) -> bool:
+        return bool(self.get_allowed_client_ids())
+
+    def get_current_client_read_clients(self):
+        """Return Client objects this token's client-scope grants currently cover."""
+        client_ids = self.get_allowed_client_ids()
+        if not client_ids:
+            return Client.objects.none()
+        accessible_client_ids = set(self._creator_accessible_client_ids())
+        current_ids = sorted(set(client_ids) & accessible_client_ids)
+        return Client.objects.filter(id__in=current_ids).order_by("name")
+
     def get_current_project_read_ids(self) -> list[int]:
         """Return project IDs this token can read right now."""
         accessible_project_ids = set(self._creator_accessible_project_ids())
         if self.has_all_accessible_project_scope():
             return sorted(accessible_project_ids)
-        return sorted(set(self.get_allowed_project_ids()) & accessible_project_ids)
+        selected_project_ids = set(self.get_allowed_project_ids())
+        client_ids = self.get_allowed_client_ids()
+        if client_ids:
+            selected_project_ids.update(
+                Project.objects.filter(
+                    client_id__in=client_ids,
+                    id__in=accessible_project_ids,
+                ).values_list("id", flat=True)
+            )
+        return sorted(selected_project_ids & accessible_project_ids)
 
     def get_current_project_read_projects(self):
         """Return project objects this token can read right now."""
@@ -806,7 +899,16 @@ class ServiceToken(models.Model):
         if self.has_all_accessible_project_scope():
             project_ids = accessible_project_ids
         else:
-            project_ids = set(self.get_allowed_project_ids()) & accessible_project_ids
+            project_ids = set(self.get_allowed_project_ids())
+            client_ids = self.get_allowed_client_ids()
+            if client_ids:
+                project_ids.update(
+                    Project.objects.filter(
+                        client_id__in=client_ids,
+                        id__in=accessible_project_ids,
+                    ).values_list("id", flat=True)
+                )
+            project_ids &= accessible_project_ids
 
         return (
             Project.objects.filter(id__in=project_ids)
@@ -821,6 +923,14 @@ class ServiceToken(models.Model):
             return []
         accessible_project_ids = set(self._creator_accessible_project_ids())
         return sorted(selected_project_ids - accessible_project_ids)
+
+    def get_stale_client_project_scope_ids(self) -> list[int]:
+        """Return selected client grants the token creator can no longer access."""
+        selected_client_ids = set(self.get_allowed_client_ids())
+        if not selected_client_ids:
+            return []
+        accessible_client_ids = set(self._creator_accessible_client_ids())
+        return sorted(selected_client_ids - accessible_client_ids)
 
     def get_oplog_access_details(self) -> list[dict[str, typing.Any]]:
         """Return oplog access grouped by oplog with user-facing action labels."""
@@ -859,13 +969,16 @@ class ServiceToken(models.Model):
         ]
 
     def _creator_accessible_project_ids(self) -> list[int]:
-        # Ghostwriter Libraries
-
         if not self.created_by_id or not self.created_by.is_active:
             return []
         return list(
             Project.for_user(self.created_by).values_list("id", flat=True).distinct()
         )
+
+    def _creator_accessible_client_ids(self) -> list[int]:
+        if not self.created_by_id or not self.created_by.is_active:
+            return []
+        return list(Client.for_user(self.created_by).values_list("id", flat=True))
 
     def get_token_preset(self) -> str:
         if self.matches_preset(ServiceTokenPreset.OPLOG_RW):
@@ -919,6 +1032,14 @@ class ServiceToken(models.Model):
             and self.has_all_accessible_project_scope()
         ):
             return "All Accessible Projects (Read-Only)"
+        if (
+            preset == ServiceTokenPreset.PROJECT_READ
+            and self.has_client_project_scope()
+        ):
+            client_ids = self.get_allowed_client_ids()
+            if len(client_ids) == 1:
+                return "1 Client's Projects (Read-Only)"
+            return f"{len(client_ids)} Clients' Projects (Read-Only)"
         if preset == ServiceTokenPreset.PROJECT_READ and len(project_ids) == 1:
             return f"Project #{project_id} (Read-Only)"
         if preset == ServiceTokenPreset.PROJECT_READ and project_ids:
@@ -935,6 +1056,7 @@ class ServiceToken(models.Model):
         self._validate_current_oplog_grants()
 
     def _validate_current_project_grants(self) -> None:
+        self._validate_current_client_grants()
         selected_project_ids = set(self.get_allowed_project_ids())
         if not selected_project_ids:
             return
@@ -958,6 +1080,27 @@ class ServiceToken(models.Model):
         )
         if not self._has_permission_grants():
             raise ValidationError("Service token project scope is no longer accessible")
+
+    def _validate_current_client_grants(self) -> None:
+        stale_client_ids = set(self.get_stale_client_project_scope_ids())
+        if not stale_client_ids:
+            return
+        deleted_count, _ = ServiceTokenPermission.objects.filter(
+            token=self,
+            resource_type=ServiceTokenPermission.ResourceType.CLIENT,
+            action=ServiceTokenPermission.Action.READ,
+            resource_id__in=stale_client_ids,
+        ).delete()
+        self._clear_permission_cache()
+        logger.warning(
+            "Pruned %s stale client project-scope permission(s) from service token %s (%s): client ids %s",
+            deleted_count,
+            self.pk,
+            self.name,
+            sorted(stale_client_ids),
+        )
+        if not self._has_permission_grants():
+            raise ValidationError("Service token client scope is no longer accessible")
 
     def _has_permission_grants(self) -> bool:
         return self.permissions.exists()
@@ -1003,6 +1146,7 @@ class ServiceTokenPermission(models.Model):
     """Stores an explicit permission grant for a :model:`api.ServiceToken`."""
 
     class ResourceType(models.TextChoices):
+        CLIENT = "client", "Client"
         OPLOG = "oplog", "Oplog"
         PROJECT = "project", "Project"
 
@@ -1023,6 +1167,7 @@ class ServiceTokenPermission(models.Model):
     }
     ALLOWED_CONSTRAINT_KEYS = {ConstraintKey.SCOPE.value}
     ALLOWED_ACTIONS_BY_RESOURCE = {
+        ResourceType.CLIENT: {Action.READ},
         ResourceType.OPLOG: {Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE},
         ResourceType.PROJECT: {Action.READ},
     }
@@ -1055,6 +1200,7 @@ class ServiceTokenPermission(models.Model):
                         action__in=["read", "create", "update", "delete"],
                     )
                     | models.Q(resource_type="project", action="read")
+                    | models.Q(resource_type="client", action="read")
                 ),
                 name="api_stp_allowed_resource_action",
             ),

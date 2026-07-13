@@ -1128,9 +1128,16 @@ class ProjectDetailViewTests(TestCase):
             type="json",
             target_model=cls.extra_field_model,
         )
+        cls.richtext_extra_field = ExtraFieldSpecFactory(
+            internal_name="notes",
+            display_name="Notes",
+            type="rich_text",
+            target_model=cls.extra_field_model,
+        )
         cls.project.extra_fields = {
             "summary": "Project summary",
             "testJSON": {"large": ["value", {"nested": "content"}]},
+            "notes": "<p>Test notes</p>",
         }
         cls.project.save(update_fields=["extra_fields"])
         cls.uri = reverse("rolodex:project_detail", kwargs={"pk": cls.project.pk})
@@ -1238,6 +1245,126 @@ class ProjectDetailViewTests(TestCase):
 
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_endpoint_requires_login_and_permissions(self):
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client.get(uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_endpoint_rejects_non_richtext_fields(self):
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.json_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_richtext_preview_grants_access_to_assigned_user(self):
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        response = self.client_auth.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_ignores_unrelated_broken_richtext_field(self):
+        broken_field = ExtraFieldSpecFactory(
+            internal_name="broken_notes",
+            display_name="Broken Notes",
+            type="rich_text",
+            target_model=self.extra_field_model,
+        )
+        self.project.extra_fields.update(
+            {
+                self.richtext_extra_field.internal_name: "<p>Requested preview content</p>",
+                broken_field.internal_name: "<p>{% for item in %}broken{% endfor %}</p>",
+            }
+        )
+        self.project.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Requested preview content", content)
+        self.assertNotIn("Template Error", content)
+        self.assertNotIn("broken_notes", content)
+
+    def test_richtext_preview_unexpected_export_error_returns_generic_error(self):
+        ProjectAssignmentFactory(
+            project=self.project,
+            operator=UserFactory(),
+            start_date=None,
+            end_date=None,
+        )
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Preview Error", content)
+        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertNotIn("NoneType", content)
+        self.assertNotIn("object has no attribute", content)
+
+    def test_richtext_preview_renders_client_logo_without_report_context(self):
+        """CLIENT_LOGO should render as an <img> even when report is None."""
+        self.project.extra_fields["notes"] = '<div data-gw-image="CLIENT_LOGO"></div>'
+        self.project.save(update_fields=["extra_fields"])
+
+        uri = reverse(
+            "rolodex:project_extra_field_richtext",
+            kwargs={
+                "pk": self.project.pk,
+                "extra_field_name": self.richtext_extra_field.internal_name,
+            },
+        )
+        response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertNotIn("__GW_IMAGE_PREVIEW_", content)
+        if self.project.client.logo:
+            self.assertIn("<img", content)
+            self.assertIn("client_logo_download", content)
 
     def test_project_assignments_render_in_role_order(self):
         lead_role = ProjectRoleFactory(project_role="Lead", position=1)

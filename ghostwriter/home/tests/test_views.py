@@ -6,6 +6,7 @@ from io import StringIO
 # Django Imports
 from django.conf import settings
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import Q
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -27,6 +28,7 @@ from ghostwriter.factories import (
     UserFactory,
 )
 from ghostwriter.home.templatetags import custom_tags
+from ghostwriter.reporting.models import ReportTemplate
 
 logging.disable(logging.CRITICAL)
 
@@ -65,6 +67,25 @@ class ManagementCommandsTestCase(TestCase):
         out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force")
         self.assertIn("Applying all fixtures.", out)
         self.assertIn("Found 17 new records to insert into the database.", out)
+
+    def test_loaddata_required_only_skips_optional_records(self):
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--required-only")
+        self.assertIn("Found 15 new records to insert into the database.", out)
+        self.assertFalse(ReportTemplate.objects.exists())
+
+    def test_loaddata_required_only_does_not_restore_deleted_optional_records(self):
+        self.call_command("ghostwriter/reporting/fixtures/initial.json")
+        self.assertEqual(ReportTemplate.objects.count(), 2)
+
+        ReportTemplate.objects.all().delete()
+
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--required-only")
+        self.assertIn("Found 3 new records to insert into the database.", out)
+        self.assertFalse(ReportTemplate.objects.exists())
+
+    def test_loaddata_force_and_required_only_are_rejected(self):
+        with self.assertRaisesMessage(CommandError, "--force and --required-only cannot be used together."):
+            self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force", "--required-only")
 
 
 # Tests related to custom template tags and filters
