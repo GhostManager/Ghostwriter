@@ -98,8 +98,12 @@
     color: #000;
     overflow-wrap: break-word;
     padding: 0.3rem;
-    overflow-x: hidden;
+    // Let collaboration caret labels extend over the sticky toolbar while
+    // retaining horizontal clipping for editor content.
+    overflow-x: clip;
+    overflow-y: visible;
     position: relative;
+    z-index: 2;
 
     &,
     blockquote {
