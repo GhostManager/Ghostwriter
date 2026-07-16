@@ -9,6 +9,12 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase, override_settings
 
 
+def restore_latest_migrations():
+    """Return the shared test database to the current migration state."""
+    executor = MigrationExecutor(connection)
+    executor.migrate(executor.loader.graph.leaf_nodes())
+
+
 class FindingEvidenceMigrationTests(TransactionTestCase):
     """Verify finding-owned evidence is moved to report ownership."""
 
@@ -31,6 +37,7 @@ class FindingEvidenceMigrationTests(TransactionTestCase):
         self.apps = self.executor.loader.project_state(self.migrate_to).apps
 
     def tearDown(self):
+        restore_latest_migrations()
         self.override.disable()
         self.media_root_context.cleanup()
         super().tearDown()
@@ -212,6 +219,10 @@ class EvidenceFriendlyNameConstraintMigrationTests(TransactionTestCase):
         self.executor = MigrationExecutor(connection)
         self.executor.migrate(self.migrate_to)
         self.apps = self.executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        restore_latest_migrations()
+        super().tearDown()
 
     def setUpBeforeMigration(self, apps):
         Client = apps.get_model("rolodex", "Client")

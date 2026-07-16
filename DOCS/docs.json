@@ -23,6 +23,7 @@
             "group": "Getting Started",
             "pages": [
               "getting-started/quickstart",
+              "getting-started/populating-a-demo-database",
               "getting-started/updating-ghostwriter",
               {
                 "group": "Managing the Server with Ghostwriter CLI",

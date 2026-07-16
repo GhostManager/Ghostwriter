@@ -151,7 +151,7 @@
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_sanitize_modal.html" %}
 
-  <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true" data-tinymce-min-height="260" data-submit-on-mod-enter>
       <div class="modal-dialog modal-dialog-centered modal-super-sized modal-dialog-scrollable" role="document">
           <div class="modal-content">
               <div class="modal-header">
@@ -244,7 +244,8 @@
                                       <li><strong>Click</strong> a row to open the details pane.</li>
                                       <li><strong>Double-click</strong> a row to edit the entry.</li>
                                       <li><strong>&uarr;&darr; arrow keys</strong> move between entries once one is selected.</li>
-                                      <li><kbd>Enter</kbd> opens the edit form; tap <kbd>Enter</kbd> again to submit it, saving and closing the form.</li>
+                                      <li><kbd>Enter</kbd> opens the selected entry's edit form.</li>
+                                      <li><kbd>Ctrl+Enter</kbd> or <kbd>Cmd+Enter</kbd> submits the edit form, saving the entry and closing the modal.</li>
                                       <li><kbd>Esc</kbd> closes the details pane and deselects the entry, giving the table full width.</li>
                                       <li><kbd>Ctrl+N</kbd> creates a new entry.</li>
                                   </ul>

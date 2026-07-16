@@ -190,7 +190,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
             # <p> nested in another block element like blockquote, use or copy the paragraph object
             if any(run.text for run in par.runs):
                 # Paragraph has things in it already, make a new one but copy the style
-                par = self.doc.add_paragraph(style=par.style)
+                # Add the paragraph to the same container as the current one.
+                # In a table cell, ``self.doc.add_paragraph`` adds it after the
+                # table, rather than in the cell.
+                parent = par._parent
+                if hasattr(parent, "add_paragraph"):
+                    par = parent.add_paragraph(style=par.style)
+                else:
+                    par = self.doc.add_paragraph(style=par.style)
         else:
             # Top level <p>
             par = self.doc.add_paragraph()

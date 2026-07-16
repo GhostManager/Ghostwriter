@@ -79,6 +79,21 @@ def mk_test_docx(name, input, expected_output, p_style=None):
 class RichTextToDocxTests(SimpleTestCase):
     maxDiff = None
 
+    def test_table_cell_paragraphs_remain_in_the_cell(self):
+        doc = docx.Document()
+        HtmlToDocx.run(
+            "<table><tr><td><p>AAAA</p><p>BBBB</p><p>CCCC</p></td></tr></table>",
+            doc,
+            None,
+        )
+
+        self.assertEqual(
+            [paragraph.text for paragraph in doc.tables[0].cell(0, 0).paragraphs],
+            ["AAAA", "BBBB", "CCCC"],
+        )
+        self.assertNotIn("BBBB", [paragraph.text for paragraph in doc.paragraphs])
+        self.assertNotIn("CCCC", [paragraph.text for paragraph in doc.paragraphs])
+
     def test_safe_links_are_preserved(self):
         doc = docx.Document()
         HtmlToDocx.run('<p><a href="https://example.com">Example</a></p>', doc, None)
