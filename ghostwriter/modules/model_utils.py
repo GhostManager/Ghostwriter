@@ -40,12 +40,10 @@ def to_dict(instance: django.db.models.Model, include_id: bool = False, resolve_
     return data
 
 
-def _clamp_position(position: Optional[int], count: int) -> int:
+def _clamp_position(position: int, count: int) -> int:
     """Return a one-based position that fits inside a group of findings."""
     if count < 1:
         return 1
-    if position is None:
-        return count
     return min(max(position, 1), count)
 
 
@@ -83,6 +81,8 @@ def normalize_finding_positions(
                 None,
             )
             if moving_finding is not None:
+                if target_position is None:
+                    target_position = len(findings)
                 ordered_findings = [
                     finding for finding in findings if finding.id != moving_instance_id
                 ]
@@ -161,14 +161,11 @@ def set_finding_positions(
                 )
         else:
             # Insert events append new findings to the end of the severity group.
-            group_count = model.objects.filter(
-                Q(report_id=report_id) & Q(severity_id=new_sev)
-            ).count()
             normalize_finding_positions(
                 model,
                 report_id,
                 new_sev,
                 moving_instance_id=instance.id,
-                target_position=group_count,
+                target_position=None,
             )
     return None
