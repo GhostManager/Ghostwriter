@@ -4,6 +4,12 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
 
+def restore_latest_migrations():
+    """Return the shared test database to the current migration state."""
+    executor = MigrationExecutor(connection)
+    executor.migrate(executor.loader.graph.leaf_nodes())
+
+
 class ExtraFieldSpecPositionMigrationTests(TransactionTestCase):
     """Verify the ExtraFieldSpec ordering migration backfills positions per model."""
 
@@ -20,6 +26,10 @@ class ExtraFieldSpecPositionMigrationTests(TransactionTestCase):
         self.executor = MigrationExecutor(connection)
         self.executor.migrate(self.migrate_to)
         self.apps = self.executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        restore_latest_migrations()
+        super().tearDown()
 
     def setUpBeforeMigration(self, apps):
         ExtraFieldModel = apps.get_model("commandcenter", "ExtraFieldModel")
