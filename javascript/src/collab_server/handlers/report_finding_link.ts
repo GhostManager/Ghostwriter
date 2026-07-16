@@ -128,6 +128,8 @@ const ReportFindingLinkHandler = simpleModelHandler(
             extraFields,
         };
 
+        // Omit an unchanged severity so an unrelated collaborative save does
+        // not overwrite a newer value set through another application view.
         if (severityId !== data.savedSeverityId) {
             set.severityId = severityId;
         }
@@ -137,15 +139,20 @@ const ReportFindingLinkHandler = simpleModelHandler(
             set,
             tags: yjsToTags(doc.get("tags", Y.Map<boolean>)),
         };
+    },
+    (queryVars, data) => {
+        const variables = queryVars as {
+            set?: { severityId?: number | null };
+        };
+
+        // Advance the baseline only for a severity value that the backend
+        // accepted. Failed saves must continue to include the local change.
+        if (
+            variables.set &&
+            Object.prototype.hasOwnProperty.call(variables.set, "severityId")
+        ) {
+            data.savedSeverityId = variables.set.severityId ?? null;
+        }
     }
 );
-ReportFindingLinkHandler.markSaved = (payload, data) => {
-    const variables = payload as { set?: { severityId?: number | null } };
-    if (
-        variables.set &&
-        Object.prototype.hasOwnProperty.call(variables.set, "severityId")
-    ) {
-        data.savedSeverityId = variables.set.severityId ?? null;
-    }
-};
 export default ReportFindingLinkHandler;

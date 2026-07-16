@@ -6,11 +6,14 @@ import {
 } from "@apollo/client";
 
 /** Functions for loading, saving, and converting a type from/to YJS. */
-export type ModelHandler<T, P = unknown> = {
+export type ModelHandler<T> = {
     load: (client: ApolloClient<unknown>, id: number) => Promise<[Y.Doc, T]>;
-    getSavePayload: (id: number, doc: Y.Doc, data: T) => P;
-    save: (client: ApolloClient<unknown>, payload: P, data: T) => Promise<void>;
-    markSaved?: (payload: P, data: T) => void;
+    save: (
+        client: ApolloClient<unknown>,
+        id: number,
+        doc: Y.Doc,
+        data: T
+    ) => Promise<void>;
 };
 
 export type IdVars = { id: number };
@@ -21,6 +24,7 @@ export type IdVars = { id: number };
  * @param setQuery The GraphQL query to save the model.
  * @param fillFields Function to set fields on a `Y.Doc` based on the results returned from the `getQuery`. Called in a YJS transaction.
  * @param mkQueryVars Function to get the parameters for the `setQuery` to save the model. Called in a YJS transaction.
+ * @param onSaveSuccess Optional callback to update handler state after the generated variables have been saved successfully.
  * @returns The model handler.
  */
 export function simpleModelHandler<
@@ -32,8 +36,9 @@ export function simpleModelHandler<
     getQuery: TypedDocumentNode<GetRes, IdVars>,
     setQuery: TypedDocumentNode<SetRes, SetQueryVars>,
     fillFields: (doc: Y.Doc, res: GetRes) => T,
-    mkQueryVars: (doc: Y.Doc, id: number, data: T) => SetQueryVars
-): ModelHandler<T, SetQueryVars> {
+    mkQueryVars: (doc: Y.Doc, id: number, data: T) => SetQueryVars,
+    onSaveSuccess?: (queryVars: SetQueryVars, data: T) => void
+): ModelHandler<T> {
     return {
         load: async (client, id) => {
             const res = await client.query({
@@ -52,21 +57,20 @@ export function simpleModelHandler<
             });
             return [doc, data!];
         },
-        getSavePayload(id, doc, data) {
+        async save(client, id, doc, data) {
             let queryVars: SetQueryVars | undefined;
             doc.transact(() => {
                 queryVars = mkQueryVars(doc, id, data);
             });
-            return queryVars!;
-        },
-        async save(client, payload) {
+            const savedQueryVars = queryVars!;
             const res = await client.mutate({
                 mutation: setQuery,
-                variables: payload,
+                variables: savedQueryVars,
             });
             if (res.errors) {
                 throw res.errors;
             }
+            onSaveSuccess?.(savedQueryVars, data);
         },
     };
 }
