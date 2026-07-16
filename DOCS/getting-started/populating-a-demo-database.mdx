@@ -7,25 +7,29 @@ Ghostwriter includes a management command that rebuilds a development or demo da
 you need a fresh environment for demos, training, screenshots, testing workflows, or validating report exports.
 
 <Warning>
-The default command **wipes the database** before loading demo data. Do not run it against a production database or any environment
-with data you need to keep.
+The default command **wipes the database and uploaded media** before loading demo data. Do not run it against a production database
+or any environment with data or files you need to keep.
 </Warning>
+
+The media directory itself is preserved so the command works when `MEDIA_ROOT` is a Docker volume or bind mount; only its contents
+are removed. The command validates the media path and bundled templates before flushing the database.
 
 ## What the Command Creates
 
 The demo data command performs the same baseline setup as a fresh install and then adds realistic Ghostwriter content:
 
-* Reloads Ghostwriter's initial fixture data
+* Clears uploaded media and reloads all Ghostwriter initial fixture data, including the optional default report templates
 * Creates or updates the admin user using the username, email, and password from the DotEnv configuration
-* Assigns the admin user to an active project so the dashboard looks realistic immediately after login
+* Assigns the admin user to every active project and checks out a domain and server to the admin so the dashboard and **My Active Assets** page are populated immediately after login
 * Creates demo users with names, emails, passwords, and user profiles
-* Creates clients, contacts, projects, assignments, scopes, targets, objectives, deconflictions, white cards, operation logs, findings, observations, reports, and evidence
-* Creates one of each extra field type for every model that supports extra fields
+* Creates clients, contacts, projects, four-person project teams with one lead, one oversight, and two operators, scopes, targets, objectives, deconflictions, white cards, operation logs, findings, observations, reports, and evidence
+* Creates believable examples of every extra field type, including project fields such as **Entity Tested** and **Include CVSS**, plus report fields for **Reviewed**, **Attack Path Narrative**, and **Executive Summary**
+* Adds sanitized Nmap, Burp Proxy, and Rubeus text evidence from `DOCS/example-data`
 * Applies demo company information and report configuration
 * Enables the global BloodHound API configuration with placeholder values and loads cached demo BloodHound results
 
-Project dates are generated relative to the day you run the command. Several projects overlap the current date and appear in progress,
-while past projects are marked completed.
+Project dates are generated relative to the day you run the command. The full dataset includes completed work in the past, projects
+overlapping the current date, and upcoming work in the future.
 
 ## Run the Command
 
@@ -80,7 +84,9 @@ If you want to keep existing data and only add or update demo rows, use `--appen
 docker compose -f local.yml run --rm django python manage.py generate_test_data --append
 ```
 
-Append mode is idempotent for the seeded demo rows. To remove previous demo rows before appending fresh demo data, add `--reset`:
+Append mode is idempotent for the seeded demo rows. It stops with an error rather than overwrite an unrelated client, project, finding,
+domain, or server that uses the same identifying value as a demo record. To remove previous demo rows before appending fresh demo data,
+add `--reset`:
 
 ```bash
 docker compose -f local.yml run --rm django python manage.py generate_test_data --append --reset
@@ -88,12 +94,8 @@ docker compose -f local.yml run --rm django python manage.py generate_test_data 
 
 <Note>
 `--reset` only removes rows marked as demo seed data. It does not wipe unrelated rows unless you omit `--append`, in which case the default database rebuild behavior applies.
+Because a normal run already performs the full rebuild, `--reset` is only necessary together with `--append`.
 </Note>
 
-## Reproducible Dates and Assignments
-
-The command uses a deterministic random seed for repeatable demo data. Provide `--seed` to change the generated date and assignment choices while keeping the output reproducible:
-
-```bash
-docker compose -f local.yml run --rm django python manage.py generate_test_data --seed 2026
-```
+The standard rebuild is deterministic apart from dates being relative to the day it runs. Re-running it produces the same clients,
+projects, assignments, findings, and related demo content on a clean database and media directory.

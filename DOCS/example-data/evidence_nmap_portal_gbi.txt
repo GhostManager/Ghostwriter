@@ -1,0 +1,39 @@
+# Nmap 7.95 scan initiated Tue Jul 08 14:22:31 2026 as: nmap -Pn -sV -sC -p 80,443,8080,8443 -oN evidence_nmap_portal_gbi.txt 10.40.20.20
+Nmap scan report for portal.gbi.example (10.40.20.20)
+Host is up (0.018s latency).
+
+PORT     STATE  SERVICE    VERSION
+80/tcp   open   http       nginx 1.24.0
+|_http-title: Did not follow redirect to https://portal.gbi.example/
+| http-headers:
+|   Server: nginx/1.24.0
+|   Date: Tue, 08 Jul 2026 18:22:35 GMT
+|   Content-Type: text/html
+|   Content-Length: 169
+|   Connection: close
+|   Location: https://portal.gbi.example/
+|_  X-Request-ID: 93d40f6a7f6c4a08
+443/tcp  open   ssl/http   nginx 1.24.0
+| ssl-cert: Subject: commonName=portal.gbi.example/organizationName=Ghostbusters International
+| Subject Alternative Name: DNS:portal.gbi.example, DNS:accounts.gbi.example
+| Not valid before: 2026-05-14T00:00:00
+|_Not valid after:  2027-05-14T23:59:59
+| tls-alpn:
+|   h2
+|_  http/1.1
+| http-title: GBI Customer Portal
+|_Requested resource was /auth/login
+| http-security-headers:
+|   Strict_Transport_Security:
+|     Header: Strict-Transport-Security: max-age=31536000; includeSubDomains
+|   X_Frame_Options:
+|     Header: X-Frame-Options: SAMEORIGIN
+|   X_Content_Type_Options:
+|     Header: X-Content-Type-Options: nosniff
+|   Content_Security_Policy:
+|_    Header: Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'
+8080/tcp closed http-proxy
+8443/tcp closed https-alt
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/.
+# Nmap done at Tue Jul 08 14:22:39 2026 -- 1 IP address (1 host up) scanned in 8.41 seconds

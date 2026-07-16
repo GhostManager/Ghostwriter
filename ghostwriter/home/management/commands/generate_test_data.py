@@ -3,13 +3,14 @@
 # Standard Libraries
 import json
 import os
-import random
+import shutil
 from collections import Counter
 from contextlib import contextmanager, nullcontext
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 # Django Imports
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -75,12 +76,38 @@ from ghostwriter.shepherd.models import (
 
 DEMO_MARKER_KEY = "demo_seed"
 DEMO_MARKER_VALUE = "ghostbusters"
-DEMO_TAG = "demo-seed"
 DEMO_PASSWORD = "SuperNaturalReporting!"
 DEMO_BLOODHOUND_RESULTS_PATH = (
     Path(__file__).resolve().parents[2] / "fixtures" / "demo_bloodhound_results.json"
 )
-
+DEFAULT_TEMPLATE_DIR = (
+    Path(__file__).resolve().parents[3] / "reporting" / "templates" / "reports"
+)
+DEFAULT_TEMPLATE_FILENAMES = ("template.docx", "template.pptx")
+DEMO_EVIDENCE_DIR = Path(__file__).resolve().parents[4] / "DOCS" / "example-data"
+DEMO_EVIDENCE_TEXT_SAMPLES = [
+    {
+        "path": DEMO_EVIDENCE_DIR / "evidence_nmap_portal_gbi.txt",
+        "friendly_name": "Nmap Service Scan - portal.gbi.example",
+        "caption": "Nmap service detection for portal.gbi.example (10.40.20.20).",
+        "description": "Sanitized Nmap output captured while validating the approved GBI customer portal target.",
+        "tags": ["nmap", "network", "service-enumeration"],
+    },
+    {
+        "path": DEMO_EVIDENCE_DIR / "evidence_burp_portal_gbi_response.txt",
+        "friendly_name": "Burp Response - GBI Profile Notes",
+        "caption": "Burp Proxy capture showing an unencoded stored note in the GBI portal response.",
+        "description": "Sanitized HTTP request and response retained during validation of stored cross-site scripting behavior.",
+        "tags": ["burp", "http", "web-application"],
+    },
+    {
+        "path": DEMO_EVIDENCE_DIR / "evidence_rubeus_asktgs.txt",
+        "friendly_name": "Rubeus Ticket Request - GBI.LOCAL",
+        "caption": "Sanitized Rubeus service-ticket and Kerberoast output from GBI.LOCAL.",
+        "description": "Sanitized command output captured while validating service-account exposure in the GBI domain.",
+        "tags": ["rubeus", "kerberos", "credential-access"],
+    },
+]
 INITIAL_FIXTURES = [
     "ghostwriter/commandcenter/fixtures/initial.json",
     "ghostwriter/reporting/fixtures/initial.json",
@@ -108,8 +135,8 @@ REPORT_CONFIGURATION = {
     "prefix_table": " \u2013 ",
     "label_table": "Table",
     "table_caption_location": "top",
-    "report_filename": '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report',
-    "project_filename": '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report',
+    "report_filename": '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.type}} Report',
+    "project_filename": '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.type}} Report',
     "title_case_captions": True,
     "title_case_exceptions": "a,as,at,an,and,of,the,is,to,by,for,in,on,but,or",
     "target_delivery_date": 5,
@@ -134,48 +161,175 @@ EXTRA_FIELD_MODELS = [
 
 EXTRA_FIELD_SPECS = [
     {
-        "internal_name": "demo_json",
-        "display_name": "Demo JSON",
-        "description": "Structured demo metadata for validating JSON extra-field rendering.",
+        "internal_name": "workflow_metadata",
+        "display_name": "Workflow Metadata",
+        "description": "Structured metadata used by internal review and delivery workflows.",
         "type": "json",
-        "user_default_value": '{"source": "demo", "status": "ready"}',
+        "user_default_value": '{"classification": "internal", "status": "active"}',
+        "seed_value": {"classification": "internal", "status": "active"},
     },
     {
-        "internal_name": "demo_summary",
-        "display_name": "Demo Summary",
-        "description": "Short single-line demo value for list and form testing.",
+        "internal_name": "tracking_reference",
+        "display_name": "Tracking Reference",
+        "description": "Internal reference used to correlate the record with supporting workflows.",
         "type": "single_line_text",
-        "user_default_value": "Seeded demo value",
+        "user_default_value": "OPS-001",
+        "seed_value": "OPS-{label}",
     },
     {
-        "internal_name": "demo_reviewed",
-        "display_name": "Demo Reviewed",
-        "description": "Checkbox used to validate boolean extra-field behavior.",
+        "internal_name": "reviewed",
+        "display_name": "Reviewed",
+        "description": "Indicates the record has completed an internal review.",
         "type": "checkbox",
         "user_default_value": "",
+        "seed_value": True,
     },
     {
-        "internal_name": "demo_confidence",
-        "display_name": "Demo Confidence",
-        "description": "Numeric demo value for validating number inputs and report rendering.",
+        "internal_name": "confidence_score",
+        "display_name": "Confidence Score",
+        "description": "Analyst confidence in the accuracy of the recorded information.",
         "type": "float",
-        "user_default_value": "7.5",
+        "user_default_value": "8.0",
+        "seed_value": 8.5,
     },
     {
-        "internal_name": "demo_count",
-        "display_name": "Demo Count",
-        "description": "Integer demo value for validating whole-number inputs and report rendering.",
+        "internal_name": "review_round",
+        "display_name": "Review Round",
+        "description": "Current round of internal review for this record.",
         "type": "integer",
-        "user_default_value": "3",
+        "user_default_value": "1",
+        "seed_value": 1,
     },
     {
-        "internal_name": "demo_notes",
-        "display_name": "Demo Notes",
-        "description": "Formatted text used to validate rich text extra-field editing and exports.",
+        "internal_name": "analyst_notes",
+        "display_name": "Analyst Notes",
+        "description": "Internal context and review notes for this record.",
         "type": "rich_text",
-        "user_default_value": "<p>Seeded rich text demo note.</p>",
+        "user_default_value": "",
+        "seed_value": "<p>{label} has been reviewed and is ready for the next workflow stage.</p>",
     },
 ]
+
+PROJECT_EXTRA_FIELD_SPECS = [
+    {
+        "internal_name": "assessment_parameters",
+        "display_name": "Assessment Parameters",
+        "description": "Structured parameters used by assessment and reporting workflows.",
+        "type": "json",
+        "user_default_value": '{"methodology": "threat-informed", "reporting_cadence": "weekly"}',
+        "seed_value": {
+            "methodology": "threat-informed",
+            "reporting_cadence": "weekly",
+        },
+    },
+    {
+        "internal_name": "entity_tested",
+        "display_name": "Entity Tested",
+        "description": "Business unit, environment, application, or organization being tested.",
+        "type": "single_line_text",
+        "user_default_value": "",
+        "seed_value": "Enterprise identity and external attack surface",
+    },
+    {
+        "internal_name": "include_cvss",
+        "display_name": "Include CVSS",
+        "description": "Include CVSS scores and vectors in generated reports for this project.",
+        "type": "checkbox",
+        "user_default_value": "",
+        "seed_value": True,
+    },
+    {
+        "internal_name": "estimated_coverage",
+        "display_name": "Estimated Coverage",
+        "description": "Estimated percentage of the approved scope covered by testing.",
+        "type": "float",
+        "user_default_value": "80",
+        "seed_value": 85.0,
+    },
+    {
+        "internal_name": "retest_round",
+        "display_name": "Retest Round",
+        "description": "Current remediation retest cycle for the project.",
+        "type": "integer",
+        "user_default_value": "0",
+        "seed_value": 1,
+    },
+    {
+        "internal_name": "testing_notes",
+        "display_name": "Testing Notes",
+        "description": "Engagement-specific context for operators and report authors.",
+        "type": "rich_text",
+        "user_default_value": "",
+        "seed_value": "<p>Testing prioritizes identity controls, remote access paths, and the approved external attack surface.</p>",
+    },
+]
+
+REPORT_EXTRA_FIELD_SPECS = [
+    {
+        "internal_name": "delivery_metadata",
+        "display_name": "Delivery Metadata",
+        "description": "Structured information used by report delivery workflows.",
+        "type": "json",
+        "user_default_value": '{"classification": "confidential", "delivery": "secure portal"}',
+        "seed_value": {
+            "classification": "confidential",
+            "delivery": "secure portal",
+        },
+    },
+    {
+        "internal_name": "report_version",
+        "display_name": "Report Version",
+        "description": "Human-readable version included in the report review workflow.",
+        "type": "single_line_text",
+        "user_default_value": "1.0",
+        "seed_value": "1.0",
+    },
+    {
+        "internal_name": "reviewed",
+        "display_name": "Reviewed",
+        "description": "Indicates the report has completed an internal quality review.",
+        "type": "checkbox",
+        "user_default_value": "",
+        "seed_value": True,
+    },
+    {
+        "internal_name": "quality_score",
+        "display_name": "Quality Score",
+        "description": "Internal quality score recorded during report review.",
+        "type": "float",
+        "user_default_value": "8.0",
+        "seed_value": 9.0,
+    },
+    {
+        "internal_name": "revision_number",
+        "display_name": "Revision Number",
+        "description": "Current internal revision number for the report.",
+        "type": "integer",
+        "user_default_value": "1",
+        "seed_value": 1,
+    },
+    {
+        "internal_name": "attack_path_narrative",
+        "display_name": "Attack Path Narrative",
+        "description": "Narrative connecting individual findings into the demonstrated attack path.",
+        "type": "rich_text",
+        "user_default_value": "",
+        "seed_value": "<p>The team combined valid remote access, identity reconnaissance, and delegated privileges to demonstrate a path to sensitive systems without disrupting production services.</p>",
+    },
+    {
+        "internal_name": "executive_summary",
+        "display_name": "Executive Summary",
+        "description": "Executive-level summary of assessment outcomes, business impact, and priorities.",
+        "type": "rich_text",
+        "user_default_value": "",
+        "seed_value": "<p>The assessment identified opportunities to strengthen identity assurance, privileged access, and monitoring while confirming several existing controls operated as intended.</p>",
+    },
+]
+
+EXTRA_FIELD_SPECS_BY_MODEL = {
+    Project: PROJECT_EXTRA_FIELD_SPECS,
+    Report: REPORT_EXTRA_FIELD_SPECS,
+}
 
 USERS = [
     {
@@ -266,6 +420,7 @@ CLIENTS = [
         "projects": [
             {
                 "codename": "ECTO-SHIELD",
+                "schedule": "current",
                 "type": "Red Team",
                 "description": "<p>Enterprise red team engagement focused on identity abuse, remote access paths, and executive reporting workflows.</p>",
                 "slack": "#ecto-shield",
@@ -294,6 +449,7 @@ CLIENTS = [
             },
             {
                 "codename": "PROTON-DRILL",
+                "schedule": "past",
                 "type": "Red Team",
                 "description": "<p>Collaborative validation of endpoint detections for credential access and lateral movement.</p>",
                 "slack": "#proton-drill",
@@ -354,6 +510,7 @@ CLIENTS = [
         "projects": [
             {
                 "codename": "PINK-SLIP",
+                "schedule": "future",
                 "type": "Penetration Test",
                 "description": "<p>External network and web application assessment for the public ecommerce and partner access perimeter.</p>",
                 "slack": "#pink-slip",
@@ -383,7 +540,45 @@ CLIENTS = [
                         False,
                     ),
                 ],
-            }
+            },
+            {
+                "codename": "GOZER-GATE",
+                "schedule": "past",
+                "type": "Penetration Test",
+                "description": "<p>Completed assessment of the manufacturing network and vendor remote-access boundary following an identity modernization project.</p>",
+                "slack": "#gozer-gate",
+                "complete": True,
+                "objectives": [
+                    "Validate segmentation between corporate and manufacturing systems",
+                    "Review vendor remote-access controls and privileged account handling",
+                    "Confirm remediation of previously identified perimeter exposures",
+                ],
+                "scope": [
+                    "plant.staypuft.example",
+                    "vendors.staypuft.example",
+                    "10.62.40.0/24",
+                ],
+                "targets": [
+                    (
+                        "10.62.40.10",
+                        "ops-jump.staypuft.local",
+                        "Manufacturing operations jump host",
+                        True,
+                    ),
+                    (
+                        "10.62.40.25",
+                        "batch.staypuft.local",
+                        "Production scheduling server",
+                        False,
+                    ),
+                    (
+                        "198.51.100.61",
+                        "vendors.staypuft.example",
+                        "Vendor access gateway",
+                        False,
+                    ),
+                ],
+            },
         ],
     },
     {
@@ -419,6 +614,7 @@ CLIENTS = [
         "projects": [
             {
                 "codename": "PKE-METER",
+                "schedule": "current",
                 "type": "Red Team",
                 "description": "<p>Threat-informed emulation mapped to likely intrusion paths against the research enclave.</p>",
                 "slack": "#pke-meter",
@@ -443,7 +639,45 @@ CLIENTS = [
                     ),
                     ("10.55.3.10", "sql01.srl.local", "Research database", False),
                 ],
-            }
+            },
+            {
+                "codename": "SLIME-LINE",
+                "schedule": "future",
+                "type": "Red Team",
+                "description": "<p>Planned adversary simulation covering research partner access, cloud identity, and protected build infrastructure.</p>",
+                "slack": "#slime-line",
+                "complete": False,
+                "objectives": [
+                    "Evaluate research partner identity federation and access boundaries",
+                    "Test detection coverage for cloud privilege escalation workflows",
+                    "Exercise incident coordination for compromise of build infrastructure",
+                ],
+                "scope": [
+                    "partners.srl.example",
+                    "build.srl.example",
+                    "10.56.0.0/23",
+                ],
+                "targets": [
+                    (
+                        "10.56.0.18",
+                        "build01.srl.local",
+                        "Protected build coordinator",
+                        False,
+                    ),
+                    (
+                        "10.56.0.42",
+                        "idp-proxy.srl.local",
+                        "Partner identity proxy",
+                        False,
+                    ),
+                    (
+                        "10.56.1.12",
+                        "artifact.srl.local",
+                        "Research artifact repository",
+                        False,
+                    ),
+                ],
+            },
         ],
     },
 ]
@@ -573,33 +807,49 @@ OPLOG_STEPS = [
         "nmap",
         "nmap -Pn -sV {target}",
         "Enumerated exposed services for the scoped host.",
+        ["att&ck:T1046", "discovery"],
     ),
     (
         "httpx",
         "httpx -title -tech-detect -u https://{host}",
         "Captured web technology and title information.",
+        ["att&ck:T1595", "discovery"],
     ),
-    ("Mythic", "jobs", "Reviewed active agent jobs and task status."),
+    (
+        "Mythic",
+        "jobs",
+        "Reviewed active agent jobs and task status.",
+        ["att&ck:T1071", "detection"],
+    ),
     (
         "SharpHound",
         "Invoke-BloodHound -CollectionMethod Session,Trusts,ACL",
         "Collected Active Directory relationship data.",
+        ["att&ck:T1482", "discovery"],
     ),
     (
         "Rubeus",
         "Rubeus.exe kerberoast /nowrap",
         "Requested service tickets for approved Kerberoast validation.",
+        ["att&ck:T1558", "creds"],
     ),
     (
         "PowerView",
         "Get-DomainGroupMember 'Domain Admins'",
         "Enumerated privileged group membership.",
+        ["att&ck:T1069", "discovery"],
     ),
-    ("curl", "curl -I https://{host}", "Validated redirect and response headers."),
     (
-        "Ghostwriter",
-        "uploaded evidence artifact",
-        "Attached sanitized evidence to the working report.",
+        "curl",
+        "curl -I https://{host}",
+        "Validated redirect and response headers.",
+        ["att&ck:T1071", "detection"],
+    ),
+    (
+        "Manual Validation",
+        "Reviewed captured evidence against reporting criteria.",
+        "Correlated validated evidence with report findings and noted detection coverage.",
+        ["detection"],
     ),
 ]
 
@@ -635,16 +885,17 @@ class Command(BaseCommand):
             default=None,
             help="Maximum number of projects to create for each selected client.",
         )
-        parser.add_argument(
-            "--seed",
-            type=int,
-            default=1337,
-            help="Deterministic random seed for date and assignment choices.",
-        )
 
     def handle(self, *args, **options):
-        self.random = random.Random(options["seed"])
+        self.append_mode = options["append"]
         self.stats = Counter()
+        if options["reset"] and not self.append_mode:
+            self.stdout.write(
+                self.style.WARNING(
+                    "--reset is only needed with --append; performing the default "
+                    "full database and media rebuild."
+                )
+            )
         client_limit = self._bounded_count(
             options["clients"], 1 if options["quick"] else len(CLIENTS), 1, len(CLIENTS)
         )
@@ -664,7 +915,7 @@ class Command(BaseCommand):
 
             with trigger_context:
                 with transaction.atomic():
-                    if options["reset"]:
+                    if options["reset"] and self.append_mode:
                         self._reset_demo_data()
 
                     self._seed_extra_field_specs()
@@ -701,30 +952,76 @@ class Command(BaseCommand):
     def _demo_extra(self, model=None, label="", **extra):
         data = {
             DEMO_MARKER_KEY: DEMO_MARKER_VALUE,
-            "demo_json": {
-                "source": "generate_test_data",
-                "model": model._meta.label if model else "demo",
-                "label": label,
-            },
-            "demo_summary": f"Demo data for {label or (model._meta.verbose_name if model else 'Ghostwriter')}",
-            "demo_reviewed": True,
-            "demo_confidence": 8.5,
-            "demo_count": 3,
-            "demo_notes": f"<p>{label or 'This row'} was seeded for Ghostwriter demos and UI validation.</p>",
         }
+        specs = EXTRA_FIELD_SPECS_BY_MODEL.get(model, EXTRA_FIELD_SPECS)
+        for spec in specs:
+            value = spec["seed_value"]
+            if isinstance(value, str):
+                value = value.format(label=label)
+            data[spec["internal_name"]] = value
         data.update(extra)
         return data
 
     def _reinstall_database(self):
+        self._validate_media_reset()
+        self._reset_media()
         call_command("flush", interactive=False, verbosity=0)
         self.stats["flushed"] += 1
         for fixture in INITIAL_FIXTURES:
-            call_command("loaddata", fixture, verbosity=0)
+            call_command("loaddata", fixture, force=True, verbosity=0)
             self.stats["fixtures"] += 1
         self._configure_install_admin()
         self._configure_company_information()
         self._configure_report_configuration()
         self._configure_bloodhound_configuration()
+
+    def _media_root(self):
+        media_root = Path(settings.MEDIA_ROOT).resolve()
+        if media_root == Path(media_root.anchor):
+            raise CommandError(f"Refusing to clear unsafe MEDIA_ROOT: {media_root}")
+        return media_root
+
+    def _validate_media_reset(self):
+        media_root = self._media_root()
+        for filename in DEFAULT_TEMPLATE_FILENAMES:
+            source = DEFAULT_TEMPLATE_DIR / filename
+            if not source.is_file():
+                raise CommandError(f"Default report template is missing: {source}")
+        for sample in DEMO_EVIDENCE_TEXT_SAMPLES:
+            if not sample["path"].is_file():
+                raise CommandError(f"Demo evidence sample is missing: {sample['path']}")
+
+        if media_root.exists() and not media_root.is_dir():
+            raise CommandError(f"MEDIA_ROOT is not a directory: {media_root}")
+        media_root.mkdir(parents=True, exist_ok=True)
+        probe = media_root / ".ghostwriter-demo-reset-check"
+        try:
+            probe.touch(exist_ok=False)
+            probe.unlink()
+        except OSError as exc:
+            raise CommandError(
+                f"MEDIA_ROOT is not writable and cannot be reset: {media_root}: {exc}"
+            ) from exc
+
+    def _reset_media(self):
+        media_root = self._media_root()
+        child = media_root
+        try:
+            for child in media_root.iterdir():
+                if child.is_symlink() or not child.is_dir():
+                    child.unlink()
+                else:
+                    shutil.rmtree(child)
+        except OSError as exc:
+            raise CommandError(
+                f"Could not clear media entry {child} under {media_root}: {exc}"
+            ) from exc
+
+        template_dir = media_root / "templates"
+        template_dir.mkdir()
+        for filename in DEFAULT_TEMPLATE_FILENAMES:
+            source = DEFAULT_TEMPLATE_DIR / filename
+            shutil.copy2(source, template_dir / filename)
 
     def _env_value(self, *names, default=""):
         for name in names:
@@ -787,41 +1084,34 @@ class Command(BaseCommand):
             return
 
         today = date.today()
-        project = (
-            Project.objects.filter(
-                start_date__lte=today,
-                end_date__gte=today,
-                complete=False,
-                extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE},
-            )
-            .order_by("start_date", "codename")
-            .first()
-        )
-        if project is None:
-            return
-
-        assignment, created = ProjectAssignment.objects.get_or_create(
-            project=project,
-            operator=admin,
-            defaults={
-                "role": lookups["project_roles"]["Assessment Oversight"],
-                "start_date": project.start_date,
-                "end_date": project.end_date,
-                "description": f"<p>{admin.get_display_name()} assigned to {project.codename} for demo login visibility.</p>",
-            },
-        )
-        if created:
-            self.stats["created"] += 1
-        else:
-            self._update_object(
-                assignment,
-                {
+        projects = Project.objects.filter(
+            start_date__lte=today,
+            end_date__gte=today,
+            complete=False,
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE},
+        ).order_by("start_date", "codename")
+        for project in projects:
+            assignment, created = ProjectAssignment.objects.get_or_create(
+                project=project,
+                operator=admin,
+                defaults={
                     "role": lookups["project_roles"]["Assessment Oversight"],
                     "start_date": project.start_date,
                     "end_date": project.end_date,
                     "description": f"<p>{admin.get_display_name()} assigned to {project.codename} for demo login visibility.</p>",
                 },
             )
+            if created:
+                self.stats["created"] += 1
+            else:
+                self._update_object(
+                    assignment,
+                    {
+                        "start_date": project.start_date,
+                        "end_date": project.end_date,
+                        "description": f"<p>{admin.get_display_name()} assigned to {project.codename} for demo login visibility.</p>",
+                    },
+                )
 
     def _configure_company_information(self):
         self._update_object(CompanyInformation.get_solo(), COMPANY_INFORMATION)
@@ -849,7 +1139,7 @@ class Command(BaseCommand):
 
     def _set_tags(self, obj, tags):
         if hasattr(obj, "tags"):
-            obj.tags.set([DEMO_TAG, *tags])
+            obj.tags.set(tags)
 
     def _update_object(self, obj, defaults):
         changed = False
@@ -865,11 +1155,23 @@ class Command(BaseCommand):
         return obj
 
     def _get_or_update(self, model, lookup, defaults):
-        obj, created = model.objects.get_or_create(**lookup, defaults=defaults)
-        if created:
-            self.stats["created"] += 1
-            return obj
-        return self._update_object(obj, defaults)
+        obj = model.objects.filter(
+            **lookup,
+            extra_fields__contains={DEMO_MARKER_KEY: DEMO_MARKER_VALUE},
+        ).first()
+        if obj is not None:
+            return self._update_object(obj, defaults)
+
+        if self.append_mode and model.objects.filter(**lookup).exists():
+            description = ", ".join(f"{key}={value!r}" for key, value in lookup.items())
+            raise CommandError(
+                f"Cannot append demo {model._meta.verbose_name}: "
+                f"an unrelated row already uses {description}."
+            )
+
+        obj = model.objects.create(**lookup, **defaults)
+        self.stats["created"] += 1
+        return obj
 
     def _table_has_column(self, table_name, column_name):
         cache_key = f"_has_column_{table_name}_{column_name}"
@@ -927,7 +1229,8 @@ class Command(BaseCommand):
                     },
                 )
 
-            for position, spec_data in enumerate(EXTRA_FIELD_SPECS, start=1):
+            model_specs = EXTRA_FIELD_SPECS_BY_MODEL.get(model, EXTRA_FIELD_SPECS)
+            for position, spec_data in enumerate(model_specs, start=1):
                 spec, created = ExtraFieldSpec.objects.get_or_create(
                     target_model=extra_field_model,
                     internal_name=spec_data["internal_name"],
@@ -1015,7 +1318,7 @@ class Command(BaseCommand):
             "domain_statuses": self._load_lookup_map(
                 DomainStatus,
                 "domain_status",
-                ["Available", "Reserved"],
+                ["Available", "Reserved", "Unavailable"],
             ),
             "activity_types": self._load_lookup_map(
                 ActivityType,
@@ -1025,7 +1328,7 @@ class Command(BaseCommand):
             "server_statuses": self._load_lookup_map(
                 ServerStatus,
                 "server_status",
-                ["Available", "Reserved"],
+                ["Available", "Reserved", "Unavailable"],
             ),
             "server_providers": self._load_lookup_map(
                 ServerProvider,
@@ -1060,15 +1363,22 @@ class Command(BaseCommand):
                 "enable_observation_delete": False,
                 "require_mfa": False,
             }
-            user, created = User.objects.get_or_create(
-                username=data["username"], defaults=defaults
-            )
+            try:
+                user = User.objects.get(username=data["username"])
+                created = False
+            except User.DoesNotExist:
+                user = User.objects.create(username=data["username"], **defaults)
+                created = True
             if created:
                 self.stats["created"] += 1
+                user.set_password(DEMO_PASSWORD)
+                user.save()
+            elif self.append_mode:
+                self.stats["reused"] += 1
             else:
                 self._update_object(user, defaults)
-            user.set_password(DEMO_PASSWORD)
-            user.save()
+                user.set_password(DEMO_PASSWORD)
+                user.save()
             self._ensure_user_profile(user)
             users[user.username] = user
         return users
@@ -1236,12 +1546,15 @@ class Command(BaseCommand):
 
     def _seed_project(self, client, data, client_index, project_index, lookups, users):
         today = date.today()
-        if data["complete"]:
+        if data["schedule"] == "past":
             end_date = today - timedelta(days=20 + (client_index * 4) + project_index)
             start_date = end_date - timedelta(days=21 + (project_index * 7))
-        else:
+        elif data["schedule"] == "current":
             start_date = today - timedelta(days=8 + (client_index * 3) + project_index)
             end_date = today + timedelta(days=18 + (client_index * 4) + project_index)
+        else:
+            start_date = today + timedelta(days=12 + (client_index * 3) + project_index)
+            end_date = start_date + timedelta(days=21 + (project_index * 7))
         operator = users["cmaddalena"] if project_index == 1 else users["pstanz"]
         defaults = {
             "client": client,
@@ -1311,6 +1624,18 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             cursor.execute(
                 """
+                SELECT document FROM reporting_evidence
+                WHERE report_id IN (
+                    SELECT id FROM reporting_report WHERE project_id = %s
+                )
+                """,
+                [project.pk],
+            )
+            document_paths = [row[0] for row in cursor.fetchall() if row[0]]
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
                 DELETE FROM reporting_evidence
                 WHERE report_id IN (
                     SELECT id FROM reporting_report WHERE project_id = %s
@@ -1318,6 +1643,8 @@ class Command(BaseCommand):
                 """,
                 [project.pk],
             )
+        for document_path in document_paths:
+            default_storage.delete(document_path)
 
     def _delete_project_reports(self, project):
         if self._evidence_has_finding_column():
@@ -1335,17 +1662,26 @@ class Command(BaseCommand):
             ("pstanz", "Operator"),
             ("rstantz", "Operator"),
             ("espengler", "Assessment Oversight"),
-            ("wzeddemore", "Assessment Oversight"),
         ]
+        admin = self._get_install_admin()
+        today = date.today()
+        project_is_active = (
+            project.start_date <= today <= project.end_date and not project.complete
+        )
+        assigned_users = [users[username] for username, _ in assignment_data]
+        if project_is_active and admin is not None and admin not in assigned_users:
+            assignment_data[0] = (admin, "Assessment Lead")
+
         assignments = []
-        for username, role in assignment_data:
+        for user_ref, role in assignment_data:
+            operator = users[user_ref] if isinstance(user_ref, str) else user_ref
             assignment = ProjectAssignment.objects.create(
                 project=project,
-                operator=users[username],
+                operator=operator,
                 role=lookups["project_roles"][role],
                 start_date=project.start_date,
                 end_date=project.end_date,
-                description=f"<p>{users[username].name} assigned as {role.lower()} for {project.codename}.</p>",
+                description=f"<p>{operator.name} assigned as {role.lower()} for {project.codename}.</p>",
             )
             assignments.append(assignment)
             self.stats["created"] += 1
@@ -1530,8 +1866,13 @@ class Command(BaseCommand):
         histories = []
         server_histories = []
         transient_servers = []
+        admin = self._get_install_admin()
         for index, domain in enumerate(selected_domains):
-            operator = assignments[index % len(assignments)].operator
+            operator = (
+                admin
+                if index == 0 and admin is not None
+                else assignments[index % len(assignments)].operator
+            )
             history = History.objects.create(
                 domain=domain,
                 client=project.client,
@@ -1543,10 +1884,18 @@ class Command(BaseCommand):
                 description=f"Demo checkout for {project.codename} infrastructure.",
             )
             histories.append(history)
+            if index == 0:
+                domain.domain_status = lookups["domain_statuses"]["Unavailable"]
+                domain.last_used_by = operator
+                domain.save(update_fields=["domain_status", "last_used_by"])
             self.stats["created"] += 1
 
         for index, server in enumerate(selected_servers):
-            operator = assignments[index % len(assignments)].operator
+            operator = (
+                admin
+                if index == 0 and admin is not None
+                else assignments[index % len(assignments)].operator
+            )
             server_history = ServerHistory.objects.create(
                 server=server,
                 client=project.client,
@@ -1559,6 +1908,10 @@ class Command(BaseCommand):
                 description=f"Demo static server checkout for {project.codename}.",
             )
             server_histories.append(server_history)
+            if index == 0:
+                server.server_status = lookups["server_statuses"]["Unavailable"]
+                server.last_used_by = operator
+                server.save(update_fields=["server_status", "last_used_by"])
             self.stats["created"] += 1
 
         for index in range(2):
@@ -1626,8 +1979,11 @@ class Command(BaseCommand):
         targets = ProjectTarget.objects.filter(project=report.project).order_by(
             "hostname"
         )
-        affected_entities = "\n".join(
-            [target.hostname or target.ip_address for target in targets[:3]]
+        affected_entities = "<ul>{}</ul>".format(
+            "".join(
+                f"<li>{target.hostname or target.ip_address}</li>"
+                for target in targets[:3]
+            )
         )
         for position, finding in enumerate(selected_findings, start=1):
             report_finding = ReportFindingLink.objects.create(
@@ -1678,36 +2034,41 @@ class Command(BaseCommand):
 
     def _create_evidence(self, report_findings, users):
         for index, report_finding in enumerate(report_findings, start=1):
-            content = (
-                f"Demo evidence for {report_finding.title}\n"
-                f"Project: {report_finding.report.project.codename}\n"
-                "This placeholder is safe for demos and screenshots.\n"
-            ).encode()
-            filename = f"demo-evidence-{report_finding.pk}.txt"
-            if self._evidence_has_finding_column():
-                evidence = Evidence(
-                    report=report_finding.report,
-                    friendly_name=f"Evidence {index}: {report_finding.title[:60]}",
-                    caption=f"Sanitized validation evidence for {report_finding.title}.",
-                    description="Demo evidence file generated by the Ghostwriter seed command.",
-                    uploaded_by=users["cmaddalena"],
-                )
-                evidence.document.save(filename, ContentFile(content), save=True)
-                self._set_tags(evidence, ["evidence"])
-            else:
-                document_path = default_storage.save(
-                    f"evidence/{report_finding.report_id}/{filename}",
-                    ContentFile(content),
-                )
-                self._create_report_evidence_without_finding_column(
-                    report=report_finding.report,
-                    document_path=document_path,
-                    friendly_name=f"Evidence {index}: {report_finding.title[:60]}",
-                    caption=f"Sanitized validation evidence for {report_finding.title}.",
-                    description="Demo evidence file generated by the Ghostwriter seed command.",
-                    uploaded_by=users["cmaddalena"],
-                )
-            self.stats["created"] += 1
+            sample = DEMO_EVIDENCE_TEXT_SAMPLES[
+                (index - 1) % len(DEMO_EVIDENCE_TEXT_SAMPLES)
+            ]
+            self._create_evidence_file(
+                report=report_finding.report,
+                sample=sample,
+                uploaded_by=users["cmaddalena"],
+            )
+
+    def _create_evidence_file(self, report, sample, uploaded_by):
+        content = sample["path"].read_bytes()
+        filename = sample["path"].name
+        if self._evidence_has_finding_column():
+            evidence = Evidence(
+                report=report,
+                friendly_name=sample["friendly_name"],
+                caption=sample["caption"],
+                description=sample["description"],
+                uploaded_by=uploaded_by,
+            )
+            evidence.document.save(filename, ContentFile(content), save=True)
+            self._set_tags(evidence, ["evidence", *sample["tags"]])
+        else:
+            document_path = default_storage.save(
+                f"evidence/{report.pk}/{filename}", ContentFile(content)
+            )
+            self._create_report_evidence_without_finding_column(
+                report=report,
+                document_path=document_path,
+                friendly_name=sample["friendly_name"],
+                caption=sample["caption"],
+                description=sample["description"],
+                uploaded_by=uploaded_by,
+            )
+        self.stats["created"] += 1
 
     def _create_report_evidence_without_finding_column(
         self, report, document_path, friendly_name, caption, description, uploaded_by
@@ -1751,7 +2112,9 @@ class Command(BaseCommand):
         hosts = [target.hostname or target.ip_address for target in targets] or [
             "demo.local"
         ]
-        for index, (tool, command, description) in enumerate(OPLOG_STEPS, start=1):
+        for index, (tool, command, description, tags) in enumerate(
+            OPLOG_STEPS, start=1
+        ):
             target = targets[index % len(targets)] if targets else None
             host = hosts[index % len(hosts)]
             start_date = base_time + timedelta(hours=index * 3)
@@ -1775,7 +2138,7 @@ class Command(BaseCommand):
                     OplogEntry, f"{project.codename}-{index:03d}"
                 ),
             )
-            entry.tags.add(DEMO_TAG, "oplog", tool.lower().replace(" ", "-"))
+            entry.tags.set(tags)
             self.stats["created"] += 1
 
     def _reset_demo_data(self):

