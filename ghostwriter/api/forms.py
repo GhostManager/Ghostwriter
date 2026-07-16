@@ -3,6 +3,7 @@
 # Standard Libraries
 import base64
 import logging
+import re
 from binascii import Error as BinAsciiError
 from datetime import timedelta
 from os.path import splitext
@@ -28,6 +29,7 @@ from ghostwriter.api.models import (
     ServiceTokenProjectScope,
 )
 from ghostwriter.api.utils import get_client_list
+from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import (
     Evidence,
@@ -40,15 +42,38 @@ from ghostwriter.reporting.validators import (
     PPTX_ALLOWED_EXTENSIONS,
     TEMPLATE_ALLOWED_EXTENSIONS,
 )
-from ghostwriter.rolodex.models import Project
+from ghostwriter.rolodex.models import Client, Project
 
 logger = logging.getLogger(__name__)
+CONTROL_CHARACTER_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def validate_no_control_characters(value):
+    """Reject control characters that can forge log lines or terminal output."""
+    if value and CONTROL_CHARACTER_RE.search(value):
+        raise ValidationError(
+            "Control characters are not allowed.",
+            code="control_characters",
+        )
+
+
+def validate_token_max_lifetime(expiry_date):
+    """Validate that the token expiration date is within the maximum allowed lifetime."""
+    if expiry_date is None:
+        return
+    general_config = GeneralConfiguration.get_solo()
+    max_expiry_date = general_config.token_max_expiry_date()
+    if expiry_date > max_expiry_date:
+        raise ValidationError(
+            f"Token expiration cannot be more than {general_config.token_max_lifetime_days} days from now",
+            code="max_token_lifetime",
+        )
 
 
 class ApiKeyForm(forms.Form):
     """Save an individual :model:`api.APIKey`."""
 
-    name = forms.CharField()
+    name = forms.CharField(validators=[validate_no_control_characters])
     expiry_date = forms.DateTimeField(
         input_formats=[
             "%Y-%m-%dT%H:%M:%S",
@@ -110,6 +135,7 @@ class ApiKeyForm(forms.Form):
                     "The API token expiration date cannot be in the past",
                     code="invalid_expiry_date",
                 )
+            validate_token_max_lifetime(expiry_date)
         return expiry_date
 
 
@@ -132,6 +158,7 @@ class TokenExpiryForm(forms.Form):
                 "The token expiration date cannot be in the past",
                 code="invalid_expiry_date",
             )
+        validate_token_max_lifetime(expiry_date)
         return expiry_date
 
 
@@ -151,6 +178,10 @@ class ServiceTokenForm(forms.Form):
                 ServiceTokenProjectScope.SELECTED.label,
             ),
             (
+                ServiceTokenProjectScope.SELECTED_CLIENTS,
+                ServiceTokenProjectScope.SELECTED_CLIENTS.label,
+            ),
+            (
                 ServiceTokenProjectScope.ALL_ACCESSIBLE,
                 ServiceTokenProjectScope.ALL_ACCESSIBLE.label,
             ),
@@ -158,11 +189,14 @@ class ServiceTokenForm(forms.Form):
         initial=ServiceTokenProjectScope.SELECTED,
         required=False,
     )
-    name = forms.CharField()
+    name = forms.CharField(validators=[validate_no_control_characters])
     service_principal = forms.ModelChoiceField(
         queryset=ServicePrincipal.objects.none(), required=False
     )
-    new_service_principal_name = forms.CharField(required=False)
+    new_service_principal_name = forms.CharField(
+        required=False,
+        validators=[validate_no_control_characters],
+    )
     oplog = forms.ModelChoiceField(
         queryset=Oplog.objects.none(), empty_label=None, required=False
     )
@@ -170,6 +204,11 @@ class ServiceTokenForm(forms.Form):
         queryset=Project.objects.none(),
         required=False,
         widget=forms.SelectMultiple(attrs={"size": 10}),
+    )
+    clients = forms.ModelMultipleChoiceField(
+        queryset=Client.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"size": 6}),
     )
     expiry_date = forms.DateTimeField(
         input_formats=[
@@ -188,6 +227,7 @@ class ServiceTokenForm(forms.Form):
             "new_service_principal_name",
             "oplog",
             "project_scope",
+            "clients",
             "projects",
             "expiry_date",
         ]
@@ -207,6 +247,7 @@ class ServiceTokenForm(forms.Form):
         self.fields["projects"].queryset = Project.for_user(user).select_related(
             "client"
         )
+        self.fields["clients"].queryset = Client.for_user(user)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["token_preset"].label = "Token Type"
@@ -244,7 +285,11 @@ class ServiceTokenForm(forms.Form):
         self.fields["project_scope"].label = "Project Scope"
         self.fields[
             "project_scope"
-        ].help_text = "Choose selected projects, or dynamically track all projects this user can access now and later"
+        ].help_text = "Choose selected projects, selected clients, or dynamically track all projects this user can access now and later"
+        self.fields["clients"].label = "Select Projects by Client"
+        self.fields[
+            "clients"
+        ].help_text = "Select one or more clients. Tokens dynamically read accessible projects for these clients, including future projects."
         self.fields["projects"].help_text = (
             "Select one or more projects this token can read. "
             "Use Ctrl/Cmd-click to select multiple."
@@ -278,6 +323,11 @@ class ServiceTokenForm(forms.Form):
                 css_id="service-token-project-scope-row",
             ),
             Row(
+                Column("clients", css_class="form-group col-12 mb-0"),
+                css_class="form-group",
+                css_id="service-token-clients-row",
+            ),
+            Row(
                 Column("projects", css_class="form-group col-12 mb-0"),
                 css_class="form-group",
                 css_id="service-token-projects-row",
@@ -299,6 +349,7 @@ class ServiceTokenForm(forms.Form):
                 "The service token expiration date cannot be in the past",
                 code="invalid_expiry_date",
             )
+        validate_token_max_lifetime(expiry_date)
         return expiry_date
 
     def clean_oplog(self):
@@ -322,6 +373,17 @@ class ServiceTokenForm(forms.Form):
                 )
         return projects
 
+    def clean_clients(self):
+        clients = self.cleaned_data.get("clients")
+        if clients is None:
+            return clients
+        for client in clients:
+            if not client.user_can_view(self.user):
+                raise ValidationError(
+                    "You do not have permission to create a service token for this client"
+                )
+        return clients
+
     def clean(self):
         cleaned_data = super().clean()
         token_preset = cleaned_data.get("token_preset")
@@ -333,7 +395,9 @@ class ServiceTokenForm(forms.Form):
         project_scope = (
             cleaned_data.get("project_scope") or ServiceTokenProjectScope.SELECTED
         )
+        cleaned_data["project_scope"] = project_scope
         projects = cleaned_data.get("projects")
+        clients = cleaned_data.get("clients")
 
         if service_principal and new_service_principal_name:
             msg = "Select an existing service principal or enter a new one, not both"
@@ -359,15 +423,26 @@ class ServiceTokenForm(forms.Form):
             if oplog is None:
                 self.add_error("oplog", "Select an oplog for an oplog read/write token")
             cleaned_data["project_scope"] = ServiceTokenProjectScope.SELECTED
+            cleaned_data["clients"] = Client.objects.none()
             cleaned_data["projects"] = Project.objects.none()
         elif token_preset == ServiceTokenPreset.PROJECT_READ:
-            if project_scope == ServiceTokenProjectScope.SELECTED and not projects:
+            if project_scope == ServiceTokenProjectScope.SELECTED_CLIENTS:
+                if not clients:
+                    self.add_error(
+                        "clients",
+                        "Select at least one client for a client-scoped project read-only token",
+                    )
+                cleaned_data["projects"] = Project.objects.none()
+            elif project_scope == ServiceTokenProjectScope.SELECTED and not projects:
                 self.add_error(
                     "projects",
                     "Select at least one project for a project read-only token",
                 )
-            if project_scope == ServiceTokenProjectScope.ALL_ACCESSIBLE:
+            elif project_scope == ServiceTokenProjectScope.ALL_ACCESSIBLE:
+                cleaned_data["clients"] = Client.objects.none()
                 cleaned_data["projects"] = Project.objects.none()
+            elif project_scope == ServiceTokenProjectScope.SELECTED:
+                cleaned_data["clients"] = Client.objects.none()
             cleaned_data["oplog"] = None
 
         return cleaned_data

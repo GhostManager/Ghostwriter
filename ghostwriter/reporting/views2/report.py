@@ -5,6 +5,7 @@ import json
 import os
 import logging
 import mimetypes
+import re
 import zipfile
 from socket import gaierror
 from asgiref.sync import async_to_sync
@@ -30,7 +31,7 @@ from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -49,6 +50,7 @@ from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
+JINJA_ENDRAW_RE = re.compile(r"{%[-+]?\s*endraw\s*[-+]?%}")
 
 
 def _outline_value(value):
@@ -72,6 +74,21 @@ def _outline_rich_html(value):
 def _outline_command_value(command):
     command_text = _outline_value(command)
     return command_text if command_text != "N/A" else ""
+
+
+def _outline_jinja_raw_text(value):
+    """
+    Return text wrapped so later rich-text Jinja rendering treats it as literal output.
+    """
+    text = value or ""
+    return (
+        "{% raw %}"
+        + JINJA_ENDRAW_RE.sub(
+            lambda match: "{% endraw %}{{ " + repr(match.group(0)) + " }}{% raw %}",
+            text,
+        )
+        + "{% endraw %}"
+    )
 
 
 def _unavailable_template_response(request, report):
@@ -187,7 +204,7 @@ def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str
 
         if has_output:
             blocks.append({"type": "paragraph", "text": "Output:"})
-            blocks.append({"type": "code", "text": output})
+            blocks.append({"type": "code", "text": _outline_jinja_raw_text(output)})
 
         for friendly_name, evidence_id in _report_evidence_refs_for_entry(report, entry):
             blocks.append({"type": "paragraph", "text": "{{.ref " + friendly_name + "}}"})
@@ -567,6 +584,19 @@ class ReportExtraFieldEdit(CollabModelUpdate):
 
 class ReportExtraFieldJson(ExtraFieldJsonView):
     model = Report
+
+
+class ReportExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    model = Report
+
+    def build_exporter(self, obj):
+        return ExportReportJson(obj)
+
+    def get_report_for_evidence(self, obj):
+        return obj
+
+    def get_client(self, obj):
+        return obj.project.client
 
 
 class ReportOplogOutlineGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):

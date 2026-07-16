@@ -323,6 +323,8 @@ class GeneralConfigurationTests(TestCase):
         # Read
         self.assertEqual(entry.default_timezone, zoneinfo.ZoneInfo("UTC"))
         self.assertEqual(entry.pk, 1)
+        self.assertTrue(entry.token_extend_requires_rotation)
+        self.assertEqual(entry.token_max_lifetime_days, 365)
 
         # Update
         entry.default_timezone = "US/Pacific"
@@ -338,6 +340,7 @@ class GeneralConfigurationTests(TestCase):
         try:
             entry = self.GeneralConfiguration.get_solo()
             self.assertEqual(entry.pk, 1)
+            self.assertEqual(entry.token_max_lifetime_days, 365)
         except Exception:
             self.fail("GeneralConfiguration model `get_solo` method failed unexpectedly!")
 

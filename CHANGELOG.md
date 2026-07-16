@@ -9,14 +9,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* Added a `category_value` filter to parse domain categories for presenting in the interface
+  * The filter handles more than just the basic `{"source": "category"}` pairings from VirusTotal
+  * Ensures the result is a string that can be safely passed through `bleach`
+
+### Fixed
+
+* Fixed heading bookmarks not appearing in Word's bookmark list when using Insert > Bookmark (Fixes #707; Closes #792)
+  * Ghostwriter now emits two bookmarks over each heading’s text, a visible name and a hidden `_Refname` alias
+  * Captions keep only `_Refname`, and `{{.ref}}` keeps targeting `_Refname`
+  * This preserves old templates while making only headings appear in Word’s normal bookmark list
+
+## [7.2.1] - 9 July 2026
+
+### Added
+
 * Added support for a new `--required-only` for loading seed data
   * Fixtures can now be flagged with `"required": false`
   * The `loaddata` command will not load fixtures marked as such when the flag is set
+* Added option to scope a service token by client
+  * This works similarly to _All Accessible Projects_ but filters the access by one or more clients
+  * The token will have access to all current and future user-accessible projects under the selected client(s)
+* Added preview modals for findings and observations on reports
+  * These now have _Preview_ buttons in their dropdown menus
+* Added jinja2 rendering to field preview modals for finding, observation, report, and project fields
+  * Continuing preview enhancements from v7.2.0, previews now render Jinja2 templating using the report context
+  * Clicking the _Preview_ buttons will now trigger the modal and a _Rendering rich text preview..._ loading message
+  * It will take a moment to generate the context and render any Jinja2
+  * If there are syntax errors, rendering will fail and there will be an error message
+* Added configuration options to the General Settings to control maximum token lifetime and credential rotation
+  * Maximum Token Lifetime in Days (default: 365) limits how far into the future a token expiry date may be set
+  * Require Token Rotation to Extend Expiry (default: True) forces token rotation when extending expiry
+* Added the option to regenerate API and service tokens to immediately roll the credential and receive a new token
 
 ### Changed
 
 * **Updated Ghostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.1
 * Marked the starter templates as non-required so they will not re-appear during updates and container builds if deleted
+* Adjusted the Docker service configurations to cap log file size to 30MB (maximum of 3 files * 10MB each)
+  * This caps the size of all logs to ~240MB
+* Preview modals for rich-text fields now render references, captions, and client logo objects
+  * References will be represented by your figure label and a placeholder—e.g., `Figure #`
+  * Captions will also use the configured caption label and prefix and show the caption text–e.g., `Figure # — Caption Contents`
+  * Client logo objects will insert the client logo when available
+    * Logos are set to a static 6.5" width to align with Office's default width and keep very large or wide logos under control
+* When editing an API token's expiration date, the form and back-end now enforce the *Maximum Token Lifetime in Days* setting
+* The `whoami` query now works with service tokens
+* Changed the Hasura GraphQL build to add a copy of BusyBox for health checks
+  * The Hasura base image uses Ubuntu Jammy, and installing `curl` during emulated `linux/arm64` builds can trigger `libc-bin` post-installation failures under QEMU
+  * The Hasura image no longer runs `apt-get` just to provide a health check command
+  * Hasura health checks now use the bundled BusyBox `wget` probe instead of `curl`
+
+### Fixed
+
+* Removed tags from autocomplete suggestions in filters so they work as expected when selecting them (Fixes #927)
+
+### Security
+
+* Adjusted WebSocket consumers to check object access to match access controls used elsewhere
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-f6w3-9v9c-5364](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-f6w3-9v9c-5364)
 
 ## [7.2.0] - 30 June 2026
 
@@ -131,6 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed API database migrations breaking when the existing database has many existing API tokens
+
 ## [7.0.0] - 3 June 2026
 
 ### Breaking Changes

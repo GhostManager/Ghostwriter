@@ -40,31 +40,43 @@
             const newPrincipalNameField = $("#id_new_service_principal_name");
             const oplogRow = $("#service-token-oplog-row");
             const projectScopeRow = $("#service-token-project-scope-row");
+            const clientsRow = $("#service-token-clients-row");
             const projectsRow = $("#service-token-projects-row");
             const oplogField = $("#id_oplog");
             const projectScopeField = $("#id_project_scope");
+            const clientsField = $("#id_clients");
             const projectsField = $("#id_projects");
 
             function toggleScopeFields() {
                 const preset = tokenPresetField.val();
                 const isOplogPreset = preset === "oplog_rw";
                 const isAllAccessibleProjectScope = projectScopeField.val() === "all_accessible";
+                const isSelectedClientScope = projectScopeField.val() === "selected_clients";
+                const showClientFields = !isOplogPreset && isSelectedClientScope;
+                const showProjectFields = !isOplogPreset && !isAllAccessibleProjectScope && !isSelectedClientScope;
 
                 oplogRow.toggle(isOplogPreset);
                 projectScopeRow.toggle(!isOplogPreset);
-                projectsRow.toggle(!isOplogPreset && !isAllAccessibleProjectScope);
+                clientsRow.toggle(showClientFields);
+                projectsRow.toggle(showProjectFields);
 
                 oplogField.prop("disabled", !isOplogPreset);
                 projectScopeField.prop("disabled", isOplogPreset);
-                projectsField.prop("disabled", isOplogPreset || isAllAccessibleProjectScope);
+                clientsField.prop("disabled", !showClientFields);
+                projectsField.prop("disabled", !showProjectFields);
 
                 if (isOplogPreset) {
                     projectScopeField.val("selected");
+                    clientsField.val([]);
                     projectsField.val([]);
                 } else if (isAllAccessibleProjectScope) {
+                    clientsField.val([]);
+                    projectsField.val([]);
+                } else if (isSelectedClientScope) {
                     projectsField.val([]);
                 } else {
                     oplogField.val("");
+                    clientsField.val([]);
                 }
             }
 
