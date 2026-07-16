@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The filter handles more than just the basic `{"source": "category"}` pairings from VirusTotal
   * Ensures the result is a string that can be safely passed through `bleach`
 * Added a management command to populate a test database for test environments and demonstrations
-  * This new command applies GHostwriter's database fixtures and then populates a deterministic test database
+  * This new command applies Ghostwriter's database fixtures and then populates a deterministic test database
   * The goal is to populate the database with data that looks real enough to immediately jump into a "live" environment
   * It also creates a custom field of each type on every model that supports custom fields
   * More information in the wiki
