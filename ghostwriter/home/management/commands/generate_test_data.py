@@ -1971,9 +1971,8 @@ class Command(BaseCommand):
         self.stats["created"] += 1
         return report
 
-    def _create_report_findings(self, report, data, lookups, users, findings):
         selected_findings = list(findings.values())[:3]
-        if "Partner" in data["description"]:
+        if "partner" in data["description"].lower():
             selected_findings = list(findings.values())[1:4]
         report_findings = []
         targets = ProjectTarget.objects.filter(project=report.project).order_by(
