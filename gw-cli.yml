@@ -64,7 +64,7 @@ services:
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
     healthcheck:
-      test: curl --insecure --fail https://nginx/status/simple/ || exit 1
+      test: curl --fail http://django:8000/status/simple/ || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
@@ -150,7 +150,7 @@ services:
       postgres:
         condition: service_healthy
       django:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - ./ssl:/etc/ssl/certs
