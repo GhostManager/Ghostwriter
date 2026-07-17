@@ -1132,7 +1132,10 @@ class OplogSanitizeViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
         audit = OplogSanitization.objects.get(oplog=self.log)
         self.assertEqual(audit.sanitized_by, self.mgr_user)
-        self.assertEqual(audit.sanitized_by_name, self.mgr_user.username)
+        self.assertEqual(
+            audit.sanitized_by_name,
+            self.mgr_user.get_full_name() or self.mgr_user.username,
+        )
         self.assertEqual(audit.fields, ["user_context"])
         latest_entry_update = (
             self.OplogEntry.objects.filter(oplog_id=self.log)
@@ -1278,6 +1281,9 @@ class OplogSanitizeViewTests(TestCase):
             OplogEntryRecording.objects.filter(oplog_entry__oplog_id=self.log).count(),
             0,
         )
+        self.assertEqual(
+            OplogSanitization.objects.get(oplog=self.log).fields, ["recordings"]
+        )
 
     def test_recording_sanitization_with_fields(self):
         """Selecting 'recordings' alongside regular fields sanitizes both independently."""
@@ -1305,6 +1311,10 @@ class OplogSanitizeViewTests(TestCase):
         # Field must be cleared
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.user_context, "")
+        self.assertEqual(
+            OplogSanitization.objects.get(oplog=self.log).fields,
+            ["user_context", "recordings"],
+        )
 
     def test_recording_sanitization_tolerates_entries_without_recordings(self):
         """Sanitizing recordings on a log where some entries have no recording must not raise an error."""

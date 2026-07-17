@@ -201,6 +201,8 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             or field["name"] in self.clearable_fields
             or field["name"] in entry_field_specs
         ]
+        if sanitize_recordings:
+            fields.append("recordings")
 
         bulk_update_fields = [
             field["name"]

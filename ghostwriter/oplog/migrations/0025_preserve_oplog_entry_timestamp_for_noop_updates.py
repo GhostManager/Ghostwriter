@@ -54,7 +54,14 @@ class Migration(migrations.Migration):
                 LANGUAGE plpgsql
                 AS $$
                 BEGIN
-                    NEW.updated_at = clock_timestamp();
+                    IF TG_OP = 'INSERT' THEN
+                        NEW.updated_at = clock_timestamp();
+                    ELSIF current_setting('oplog.recording_change', true) = 'true'
+                        OR (to_jsonb(NEW) - 'updated_at') IS DISTINCT FROM (to_jsonb(OLD) - 'updated_at') THEN
+                        NEW.updated_at = clock_timestamp();
+                    ELSE
+                        NEW.updated_at = OLD.updated_at;
+                    END IF;
                     RETURN NEW;
                 END;
                 $$;
@@ -64,6 +71,8 @@ class Migration(migrations.Migration):
                 LANGUAGE plpgsql
                 AS $$
                 BEGIN
+                    PERFORM set_config('oplog.recording_change', 'true', true);
+
                     IF TG_OP = 'UPDATE' AND OLD.oplog_entry_id IS DISTINCT FROM NEW.oplog_entry_id THEN
                         UPDATE oplog_oplogentry SET updated_at = clock_timestamp() WHERE id = OLD.oplog_entry_id;
                     END IF;
@@ -73,6 +82,8 @@ class Migration(migrations.Migration):
                     ELSE
                         UPDATE oplog_oplogentry SET updated_at = clock_timestamp() WHERE id = NEW.oplog_entry_id;
                     END IF;
+
+                    PERFORM set_config('oplog.recording_change', 'false', true);
                     RETURN NULL;
                 END;
                 $$;
