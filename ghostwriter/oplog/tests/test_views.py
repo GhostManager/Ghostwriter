@@ -164,6 +164,15 @@ class OplogListEntriesTests(TestCase):
         self.assertContains(response, "Output")
         self.assertContains(response, "Recordings")
 
+    def test_view_displays_silenced_notifications_status(self):
+        self.oplog.mute_notifications = True
+        self.oplog.save(update_fields=["mute_notifications"])
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'id="oplog-notification-status"')
+        self.assertContains(response, "Notifications silenced")
+
     def test_view_warns_when_entry_changes_after_sanitization(self):
         OplogSanitization.objects.create(
             oplog=self.oplog,
@@ -670,16 +679,6 @@ class OplogMuteToggleViewTests(TestCase):
         response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
-        audit = OplogSanitization.objects.get(oplog=self.log)
-        self.assertEqual(audit.sanitized_by, self.mgr_user)
-        self.assertEqual(audit.sanitized_by_name, self.mgr_user.username)
-        self.assertEqual(audit.fields, ["user_context"])
-        latest_entry_update = (
-            self.OplogEntry.objects.filter(oplog_id=self.log)
-            .order_by("-updated_at")[0]
-            .updated_at
-        )
-        self.assertGreaterEqual(audit.sanitized_at, latest_entry_update)
 
         self.log.refresh_from_db()
         self.assertEqual(self.log.mute_notifications, True)
@@ -1131,6 +1130,16 @@ class OplogSanitizeViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+        audit = OplogSanitization.objects.get(oplog=self.log)
+        self.assertEqual(audit.sanitized_by, self.mgr_user)
+        self.assertEqual(audit.sanitized_by_name, self.mgr_user.username)
+        self.assertEqual(audit.fields, ["user_context"])
+        latest_entry_update = (
+            self.OplogEntry.objects.filter(oplog_id=self.log)
+            .order_by("-updated_at")[0]
+            .updated_at
+        )
+        self.assertGreaterEqual(audit.sanitized_at, latest_entry_update)
 
     def test_view_requires_login(self):
         response = self.client.post(

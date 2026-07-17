@@ -4100,6 +4100,15 @@ th.priority-header.tertiary:before {
   color: #721c24;
 }
 
+#oplog-notification-status {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+#oplog-notification-status.silenced-notification-icon:before {
+  color: inherit;
+}
+
 /* ---------------------------------------------------
     INPUT STYLES
 ----------------------------------------------------- */
@@ -4709,6 +4718,11 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] #connectionStatus.disconnected {
+  background-color: #5b252c;
+  color: #fecdd3;
+}
+
+[data-theme="dark"] #oplog-notification-status {
   background-color: #5b252c;
   color: #fecdd3;
 }

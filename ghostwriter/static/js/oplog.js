@@ -1467,10 +1467,13 @@ $(document).ready(function () {
             dataType: 'json',
             data: { oplog: oplogId },
             success: function (data) {
+                let $notificationStatus = $('#oplog-notification-status');
                 if (data.toggle) {
                     $toggleLink.removeClass('notification-bell-icon').addClass('silenced-notification-icon').text('Notifications: Off');
+                    $notificationStatus.show();
                 } else {
                     $toggleLink.removeClass('silenced-notification-icon').addClass('notification-bell-icon').text('Notifications: On');
+                    $notificationStatus.hide();
                 }
                 if (data.message) {
                     displayToastTop({ type: data.result, string: data.message, title: 'Log Update' });
