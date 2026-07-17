@@ -21,6 +21,13 @@ array_relationships:
         table:
           name: oplog_oplogentry
           schema: public
+  - name: sanitizations
+    using:
+      foreign_key_constraint_on:
+        column: oplog_id
+        table:
+          name: oplog_oplogsanitization
+          schema: public
 insert_permissions:
   - role: manager
     permission:

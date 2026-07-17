@@ -23,6 +23,7 @@
             "group": "Getting Started",
             "pages": [
               "getting-started/quickstart",
+              "getting-started/populating-a-demo-database",
               "getting-started/updating-ghostwriter",
               {
                 "group": "Managing the Server with Ghostwriter CLI",
@@ -109,7 +110,8 @@
                   "features/operation-logs/linking-evidence-to-entries",
                   "features/operation-logs/attaching-terminal-recordings",
                   "features/operation-logs/setting-up-automated-logging",
-                  "features/operation-logs/exporting-importing-oplogs"
+                  "features/operation-logs/exporting-importing-oplogs",
+                  "features/operation-logs/auditing-oplogs"
                 ]
               },
               {

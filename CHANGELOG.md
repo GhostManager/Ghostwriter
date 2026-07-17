@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added a `category_value` filter to parse domain categories for presenting in the interface
   * The filter handles more than just the basic `{"source": "category"}` pairings from VirusTotal
   * Ensures the result is a string that can be safely passed through `bleach`
+* Added a management command to populate a test database for test environments and demonstrations
+  * This new command applies Ghostwriter's database fixtures and then populates a deterministic test database
+  * The goal is to populate the database with data that looks real enough to immediately jump into a "live" environment
+  * It also creates a custom field of each type on every model that supports custom fields
+  * More information in the wiki
+* Added sanitization auditing and status to activity logs
+  * Each completed, on-demand sanitization records its time, requesting user, and selected fields
+  * Log entries now track material updates, allowing Ghostwriter and GraphQL clients to identify logs changed since their most recent sanitization
+  * The activity-log header displays sanitization status and details, including when it is no longer current
 
 ### Fixed
 
@@ -19,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Ghostwriter now emits two bookmarks over each heading’s text, a visible name and a hidden `_Refname` alias
   * Captions keep only `_Refname`, and `{{.ref}}` keeps targeting `_Refname`
   * This preserves old templates while making only headings appear in Word’s normal bookmark list
+* Fixed oplog edit modal scrolling to the bottom on open under certain conditions
+* Fixed some collab editor styling and form handling
+* Fixed multi-line table cells not rendering properly in reports
 
 ## [7.2.1] - 9 July 2026
 
@@ -137,6 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed project collaborative notes failing to load for users with project access (Fixes #913)
   * The collaborative editor JWT is now scoped to the project so assigned users, project invitees, client invitees, managers, and admins can edit shared project notes
+
 ### Security
 
 * Fixed an authorization bypass that allowed authenticated users to download client-scoped report templates by direct URL

@@ -7,6 +7,12 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
 
+def restore_latest_migrations():
+    """Return the shared test database to the current migration state."""
+    executor = MigrationExecutor(connection)
+    executor.migrate(executor.loader.graph.leaf_nodes())
+
+
 class ProjectRolePositionMigrationTests(TransactionTestCase):
     """Verify the ProjectRole ordering migration backfills and repairs data."""
 
@@ -23,6 +29,10 @@ class ProjectRolePositionMigrationTests(TransactionTestCase):
         self.executor = MigrationExecutor(connection)
         self.executor.migrate(self.migrate_to)
         self.apps = self.executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        restore_latest_migrations()
+        super().tearDown()
 
     def setUpBeforeMigration(self, apps):
         Client = apps.get_model("rolodex", "Client")
@@ -86,6 +96,10 @@ class ProjectRolePositionMigrationFallbackTests(TransactionTestCase):
         self.executor = MigrationExecutor(connection)
         self.executor.migrate(self.migrate_to)
         self.apps = self.executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        restore_latest_migrations()
+        super().tearDown()
 
     def setUpBeforeMigration(self, apps):
         Client = apps.get_model("rolodex", "Client")

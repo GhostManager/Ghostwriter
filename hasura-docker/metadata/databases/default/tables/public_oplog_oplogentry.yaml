@@ -21,6 +21,8 @@ configuration:
       custom_name: startDate
     user_context:
       custom_name: userContext
+    updated_at:
+      custom_name: updatedAt
   custom_column_names:
     dest_ip: destIp
     end_date: endDate
@@ -31,6 +33,7 @@ configuration:
     source_ip: sourceIp
     start_date: startDate
     user_context: userContext
+    updated_at: updatedAt
   custom_name: oplogEntry
   custom_root_fields: {}
 object_relationships:
@@ -125,6 +128,7 @@ select_permissions:
         - source_ip
         - start_date
         - tool
+        - updated_at
         - user_context
       filter: {}
   - role: service

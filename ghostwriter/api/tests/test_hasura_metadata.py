@@ -120,9 +120,7 @@ def report_template_project_filter():
 
 def service_token_domain_access_filter(*path):
     expression = {
-        "serviceTokenDomainAccesses": {
-            "token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}
-        }
+        "serviceTokenDomainAccesses": {"token_id": {"_eq": SERVICE_TOKEN_ID_HEADER}}
     }
     for segment in reversed(path):
         expression = {segment: expression}
@@ -252,6 +250,12 @@ EXPECTED_SERVICE_SELECT_FILTERS = {
         "_or": [
             {"oplogEntry": {"oplog_id_id": {"_eq": READ_OPLOG_ID_HEADER}}},
             {"oplogEntry": project_scope_filter("log", "project_id")},
+        ]
+    },
+    "oplog_oplogsanitization": {
+        "_or": [
+            {"oplog_id": {"_eq": READ_OPLOG_ID_HEADER}},
+            service_token_project_access_filter("oplog", "project"),
         ]
     },
     "reporting_archive": project_scope_filter("project_id"),

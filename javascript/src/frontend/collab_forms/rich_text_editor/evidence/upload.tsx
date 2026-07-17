@@ -115,6 +115,7 @@ export default function EvidenceUploadForm(props: {
                             required
                             type="text"
                             maxLength={255}
+                            autoComplete="off"
                             placeholder="Caption"
                             disabled={disabled}
                         />

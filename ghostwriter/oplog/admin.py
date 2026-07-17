@@ -13,7 +13,13 @@ from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
 # Ghostwriter Libraries
-from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence, OplogEntryRecording
+from ghostwriter.oplog.models import (
+    Oplog,
+    OplogEntry,
+    OplogEntryEvidence,
+    OplogEntryRecording,
+    OplogSanitization,
+)
 from ghostwriter.oplog.resources import OplogEntryResource
 
 
@@ -49,6 +55,30 @@ class OplogAdmin(ImportExportModelAdmin):
     resource_class = OplogResource
 
 
+@admin.register(OplogSanitization)
+class OplogSanitizationAdmin(admin.ModelAdmin):
+    """Expose immutable sanitization audit events to administrators."""
+
+    list_display = ("oplog", "sanitized_at", "sanitized_by_name", "fields")
+    list_filter = ("sanitized_at",)
+    readonly_fields = (
+        "oplog",
+        "sanitized_at",
+        "sanitized_by",
+        "sanitized_by_name",
+        "fields",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(OplogEntryEvidence)
 class OplogEntryEvidenceAdmin(admin.ModelAdmin):
     list_display = ("oplog_entry", "evidence")
@@ -58,19 +88,32 @@ class OplogEntryEvidenceAdmin(admin.ModelAdmin):
 
 @admin.register(OplogEntryRecording)
 class OplogEntryRecordingAdmin(admin.ModelAdmin):
-    list_display = ("oplog_entry", "recording_download_link", "uploaded_date", "uploaded_by")
+    list_display = (
+        "oplog_entry",
+        "recording_download_link",
+        "uploaded_date",
+        "uploaded_by",
+    )
     list_filter = ("uploaded_date",)
     list_display_links = ("oplog_entry",)
     readonly_fields = ("recording_file_download_link",)
     fieldsets = (
         (
             "Recording",
-            {"fields": ("oplog_entry", "recording_file", "recording_file_download_link", "uploaded_by", "recording_text")},
+            {
+                "fields": (
+                    "oplog_entry",
+                    "recording_file",
+                    "recording_file_download_link",
+                    "uploaded_by",
+                    "recording_text",
+                )
+            },
         ),
     )
 
     class Media:
-        js = ('js/admin/oplog_recording_admin.js',)
+        js = ("js/admin/oplog_recording_admin.js",)
 
     def recording_download_link(self, obj):
         """Display the filename as a clickable download link in the list view."""
@@ -81,6 +124,7 @@ class OplogEntryRecordingAdmin(admin.ModelAdmin):
                 filename=obj.filename,
             )
         return "No File"
+
     recording_download_link.short_description = "Recording"
 
     def recording_file_download_link(self, obj):
@@ -92,4 +136,5 @@ class OplogEntryRecordingAdmin(admin.ModelAdmin):
                 filename=obj.filename,
             )
         return "File missing or not available for download"
+
     recording_file_download_link.short_description = "Download File"
