@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.2] - 17 July 2026
+
 ### Added
 
 * Added a `category_value` filter to parse domain categories for presenting in the interface
