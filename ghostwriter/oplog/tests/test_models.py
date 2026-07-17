@@ -1,5 +1,6 @@
 # Standard Libraries
 import logging
+import os
 from datetime import datetime, timezone
 
 # Django Imports
@@ -271,8 +272,6 @@ class OplogEntryRecordingModelTests(TestCase):
 
     def test_file_deleted_on_recording_delete(self):
         """Deleting an OplogEntryRecording removes the file from disk."""
-        import os
-
         recording = OplogEntryRecordingFactory()
         file_path = recording.recording_file.path
         self.assertTrue(os.path.exists(file_path))

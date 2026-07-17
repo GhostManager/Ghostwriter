@@ -3,7 +3,6 @@
 # Standard Libraries
 import collections
 import csv
-from datetime import datetime
 import io
 import json
 import logging
@@ -11,9 +10,11 @@ import mimetypes
 import os
 import tempfile
 import zipfile
+from datetime import datetime
 from itertools import count
 
 # Django Imports
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import connection, transaction
@@ -25,7 +26,6 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
-from django.conf import settings
 from django.urls import reverse
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
@@ -35,10 +35,7 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from tablib import Dataset
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import (
-    RoleBasedAccessControlMixin,
-    verify_user_is_privileged,
-)
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, verify_user_is_privileged
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.modules.shared import add_content_disposition_header

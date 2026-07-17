@@ -3,12 +3,12 @@
 # Standard Libraries
 import json
 import logging
-import os
 from asgiref.sync import async_to_sync
 from datetime import datetime
 from socket import gaierror
 
 # Django Imports
+from django.db import transaction
 from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
@@ -18,7 +18,12 @@ from channels.layers import get_channel_layer
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
-from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence, OplogEntryRecording
+from ghostwriter.oplog.models import (
+    Oplog,
+    OplogEntry,
+    OplogEntryEvidence,
+    OplogEntryRecording,
+)
 
 # Using __name__ resolves to ghostwriter.rolodex.signals
 logger = logging.getLogger(__name__)

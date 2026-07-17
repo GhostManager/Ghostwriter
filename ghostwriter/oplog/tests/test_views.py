@@ -1,5 +1,6 @@
 # Standard Libraries
 import csv
+import gzip
 import io
 import json
 import logging
@@ -10,9 +11,9 @@ from datetime import datetime
 from unittest.mock import patch
 
 # Django Imports
+from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
-from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -33,7 +34,11 @@ from ghostwriter.factories import (
     ReportFactory,
     UserFactory,
 )
-from ghostwriter.oplog.models import OplogEntryRecording, OplogSanitization
+from ghostwriter.oplog.models import (
+    OplogEntryEvidence,
+    OplogEntryRecording,
+    OplogSanitization,
+)
 from ghostwriter.oplog.utils import (
     CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
     get_cast_decompressed_bytes,
@@ -1129,7 +1134,9 @@ class OplogSanitizeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data["result"], "success")
-        self.assertEqual(response_data["message"], "Successfully sanitized log entries.")
+        self.assertEqual(
+            response_data["message"], "Successfully sanitized log entries."
+        )
         audit = OplogSanitization.objects.get(oplog=self.log)
         self.assertEqual(audit.sanitized_by, self.mgr_user)
         self.assertEqual(
@@ -1331,8 +1338,6 @@ class OplogSanitizeViewTests(TestCase):
 
     def test_recording_sanitization_tolerates_entries_without_recordings(self):
         """Sanitizing recordings on a log where some entries have no recording must not raise an error."""
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         # Only one entry has a recording; the rest do not
         recording = OplogEntryRecordingFactory(oplog_entry=self.entry)
         recording_pk = recording.pk
@@ -1397,8 +1402,6 @@ class OplogEvidenceCreateViewTests(TestCase):
 
     def test_post_success(self):
         """Test that a valid POST creates evidence, links it, and tags the entry."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         evidence_file = SimpleUploadedFile(
             "evidence.txt", b"test content", content_type="text/plain"
         )
@@ -1414,8 +1417,6 @@ class OplogEvidenceCreateViewTests(TestCase):
         result = response.json()
         self.assertEqual(result["result"], "success")
         self.assertIn("evidence_id", result)
-        from ghostwriter.oplog.models import OplogEntryEvidence
-
         self.assertTrue(
             OplogEntryEvidence.objects.filter(oplog_entry=self.entry).exists()
         )
@@ -1424,8 +1425,6 @@ class OplogEvidenceCreateViewTests(TestCase):
 
     def test_post_invalid_form(self):
         """Test that a POST with a missing required field returns a form with errors."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         evidence_file = SimpleUploadedFile(
             "evidence.txt", b"test content", content_type="text/plain"
         )
@@ -1438,16 +1437,12 @@ class OplogEvidenceCreateViewTests(TestCase):
         response = self.client_auth.post(self.uri, data)
         # View re-renders the form HTML on failure (not a JSON response)
         self.assertEqual(response.status_code, 200)
-        from ghostwriter.oplog.models import OplogEntryEvidence
-
         self.assertFalse(
             OplogEntryEvidence.objects.filter(oplog_entry=self.entry).exists()
         )
 
     def test_post_unauthorized(self):
         """Test that an unauthenticated POST is redirected to login."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         evidence_file = SimpleUploadedFile(
             "evidence.txt", b"test content", content_type="text/plain"
         )
@@ -1549,8 +1544,6 @@ class OplogRecordingUploadViewTests(TestCase):
         )
 
     def _cast_file(self, name="session.cast"):
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         return SimpleUploadedFile(
             name,
             b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "test"]\n',
@@ -1578,8 +1571,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_wrong_extension(self):
         """Test that a non-.cast file is rejected with 400."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         bad_file = SimpleUploadedFile(
             "video.mp4", b"fake data", content_type="video/mp4"
         )
@@ -1589,9 +1580,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_cast_gz_accepted(self):
         """Test that a .cast.gz file is accepted."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        import gzip
-
         # Create a gzipped .cast file
         cast_content = (
             b'{"version": 2, "width": 80, "height": 24}\n[0.5, "o", "compressed"]\n'
@@ -1609,8 +1597,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_invalid_cast_gz_rejected(self):
         """Malformed .cast.gz files are rejected instead of crashing during parsing."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         bad_gz_file = SimpleUploadedFile(
             "session.cast.gz",
             b"\x1f\x8b\x08\x00truncated",
@@ -1624,9 +1610,6 @@ class OplogRecordingUploadViewTests(TestCase):
     @override_settings(GHOSTWRITER_MAX_FILE_SIZE=128)
     def test_gzip_bomb_like_cast_gz_rejected(self):
         """Compressed recordings that expand beyond the playback safety limit are rejected."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        import gzip
-
         gz_file = SimpleUploadedFile(
             "session.cast.gz",
             gzip.compress(b"a" * (get_cast_decompressed_bytes() + 1)),
@@ -1639,8 +1622,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_upload_success(self):
         """Test that a valid .cast file is accepted, saved, and tags the entry."""
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         response = self.client_auth.post(
             self.uri, {"recording_file": self._cast_file()}
         )
@@ -1656,8 +1637,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_upload_replaces_existing(self):
         """Test that uploading a second file replaces the first, keeping exactly one recording."""
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         self.client_auth.post(
             self.uri, {"recording_file": self._cast_file("first.cast")}
         )
@@ -1673,8 +1652,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_failed_replacement_preserves_existing_recording(self):
         """A failed replacement must not remove the existing recording."""
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         self.client_auth.post(
             self.uri, {"recording_file": self._cast_file("first.cast")}
         )
@@ -1706,8 +1683,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_upload_populates_recording_text(self):
         """recording_text is populated from the cast file's 'o' event data on upload."""
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         response = self.client_auth.post(
             self.uri, {"recording_file": self._cast_file()}
         )
@@ -1718,10 +1693,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_upload_v3_file_accepted_and_text_extracted(self):
         """A v3 format file is accepted and both 'o' and 'i' events populate recording_text."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         v3_data = (
             b'{"version": 3, "term": {"cols": 80, "rows": 24}}\n'
             b'[0.5, "o", "v3 command output"]\n'
@@ -1739,8 +1710,6 @@ class OplogRecordingUploadViewTests(TestCase):
 
     def test_upload_parse_warning_in_response(self):
         """A file with an unsupported version still uploads but the response includes a 'warning' key."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         bad_version = SimpleUploadedFile(
             "bad.cast",
             b'{"version": 99, "width": 80}\n[0.5, "o", "text"]\n',
@@ -1755,8 +1724,6 @@ class OplogRecordingUploadViewTests(TestCase):
     @override_settings(GHOSTWRITER_MAX_FILE_SIZE=16)
     def test_upload_large_file_rejected(self):
         """Recordings larger than the configured file-size cap are rejected."""
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         large_file = SimpleUploadedFile(
             "large.cast",
             b"a" * (get_cast_parse_input_bytes() + 1),
@@ -1816,8 +1783,6 @@ class OplogRecordingDeleteViewTests(TestCase):
 
     def test_delete_success(self):
         """Test that deleting an existing recording succeeds and removes the tag."""
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         recording = OplogEntryRecordingFactory(oplog_entry=self.entry)
         # Confirm tag was added by the post_save signal
         self.entry.refresh_from_db()
@@ -1836,8 +1801,6 @@ class OplogRecordingDeleteViewTests(TestCase):
         response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["result"], "success")
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         self.assertFalse(
             OplogEntryRecording.objects.filter(oplog_entry=self.entry).exists()
         )
@@ -1916,9 +1879,6 @@ class OplogRecordingDownloadViewTests(TestCase):
 
     def test_download_gzipped_file(self):
         """Test that a .cast.gz file is served with Content-Encoding: gzip header."""
-        import gzip
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
         # Create a new entry with a gzipped recording
         entry = OplogEntryFactory(oplog_id=self.oplog)
         cast_content = (
@@ -1929,8 +1889,6 @@ class OplogRecordingDownloadViewTests(TestCase):
             gzip.compress(cast_content),
             content_type="application/gzip",
         )
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         recording = OplogEntryRecording(oplog_entry=entry, uploaded_by=self.user)
         recording.recording_file = gz_file
         recording.save()

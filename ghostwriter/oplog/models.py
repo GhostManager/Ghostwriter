@@ -6,10 +6,6 @@ import os
 import re
 from datetime import datetime
 
-# 3rd Party Libraries
-import bleach
-from bleach.css_sanitizer import CSSSanitizer
-
 # Django Imports
 from django import forms
 from django.conf import settings
@@ -19,8 +15,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 # 3rd Party Libraries
+import bleach
+from bleach.css_sanitizer import CSSSanitizer
 from taggit.managers import TaggableManager
 
+# Ghostwriter Libraries
 from ghostwriter.reporting.models import Evidence
 from ghostwriter.rolodex.models import Project
 
