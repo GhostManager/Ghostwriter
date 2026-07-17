@@ -77,6 +77,40 @@ class OplogEntryModelTests(TestCase):
         entry.delete()
         assert not self.OplogEntry.objects.all().exists()
 
+    def test_database_trigger_updates_timestamp_for_direct_entry_updates(self):
+        """Database updates, including GraphQL mutations, refresh ``updated_at``."""
+        entry = OplogEntryFactory()
+        entry.refresh_from_db()
+        original_updated_at = entry.updated_at
+
+        self.OplogEntry.objects.filter(pk=entry.pk).update(
+            tool="Updated through the database"
+        )
+        entry.refresh_from_db()
+
+        self.assertGreater(entry.updated_at, original_updated_at)
+
+    def test_database_trigger_ignores_unchanged_entry_saves(self):
+        """Hasura event callbacks must not make an unchanged entry appear newer."""
+        entry = OplogEntryFactory()
+        entry.refresh_from_db()
+        original_updated_at = entry.updated_at
+
+        entry.save()
+        entry.refresh_from_db()
+
+        self.assertEqual(entry.updated_at, original_updated_at)
+
+    def test_recording_change_updates_parent_entry_timestamp(self):
+        entry = OplogEntryFactory()
+        entry.refresh_from_db()
+        original_updated_at = entry.updated_at
+
+        OplogEntryRecordingFactory(oplog_entry=entry)
+        entry.refresh_from_db()
+
+        self.assertGreater(entry.updated_at, original_updated_at)
+
     def test_pre_save_signal(self):
         entry = OplogEntryFactory(start_date=None, end_date=None)
         entry.tool = "Rubeus.exe"
@@ -179,7 +213,9 @@ class OplogEntryEvidenceModelTests(TestCase):
         link1 = OplogEntryEvidenceFactory()
         entry = link1.oplog_entry
         evidence2 = EvidenceFactory()
-        _ = self.OplogEntryEvidence.objects.create(oplog_entry=entry, evidence=evidence2)
+        _ = self.OplogEntryEvidence.objects.create(
+            oplog_entry=entry, evidence=evidence2
+        )
         # Now delete only one link; the tag should remain because the second link still exists
         link1.delete()
         self.assertIn("evidence", list(entry.tags.names()))
@@ -261,4 +297,8 @@ class OplogEntryRecordingModelTests(TestCase):
         recording_id = recording.pk
         # Cascade-deleting the entry should not raise — the signal handles DoesNotExist
         recording.oplog_entry.delete()
-        self.assertFalse(OplogEntryRecordingFactory._meta.model.objects.filter(pk=recording_id).exists())
+        self.assertFalse(
+            OplogEntryRecordingFactory._meta.model.objects.filter(
+                pk=recording_id
+            ).exists()
+        )
