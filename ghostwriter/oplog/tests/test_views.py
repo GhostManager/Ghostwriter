@@ -163,6 +163,7 @@ class OplogListEntriesTests(TestCase):
         self.assertContains(response, 'id="oplog-sanitization-status"')
         self.assertContains(response, "Output")
         self.assertContains(response, "Recordings")
+        self.assertContains(response, self.mgr_user.username)
 
     def test_view_displays_silenced_notifications_status(self):
         self.oplog.mute_notifications = True
@@ -1119,22 +1120,24 @@ class OplogSanitizeViewTests(TestCase):
         )
 
     def test_view_uri_exists_at_desired_location(self):
-        data = {
-            "result": "success",
-            "message": "Successfully sanitized log entries.",
-        }
         response = self.client_mgr.post(
             self.uri,
             data={"fields": '[{"name": "user_context", "value": "on"}]'},
             **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), data)
+        response_data = response.json()
+        self.assertEqual(response_data["result"], "success")
+        self.assertEqual(response_data["message"], "Successfully sanitized log entries.")
         audit = OplogSanitization.objects.get(oplog=self.log)
         self.assertEqual(audit.sanitized_by, self.mgr_user)
         self.assertEqual(
             audit.sanitized_by_name,
             self.mgr_user.get_full_name() or self.mgr_user.username,
+        )
+        self.assertEqual(
+            response_data["sanitization"]["sanitized_by_name"],
+            audit.sanitized_by_name,
         )
         self.assertEqual(audit.fields, ["user_context"])
         latest_entry_update = (
@@ -1216,10 +1219,6 @@ class OplogSanitizeViewTests(TestCase):
 
     def test_field_sanitization_with_extra_field(self):
         """Sanitizing selected fields empties/trims them while leaving unselected fields intact."""
-        data = {
-            "result": "success",
-            "message": "Successfully sanitized log entries.",
-        }
         entries = list(self.OplogEntry.objects.filter(oplog_id=self.log))
         for entry in entries:
             entry.user_context = "some_user"
@@ -1240,7 +1239,7 @@ class OplogSanitizeViewTests(TestCase):
             **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), data)
+        self.assertEqual(response.json()["result"], "success")
 
         self.entry.refresh_from_db()
         # Selected string field → emptied
@@ -1273,10 +1272,7 @@ class OplogSanitizeViewTests(TestCase):
             **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(
-            force_str(response.content),
-            {"result": "success", "message": "Successfully sanitized log entries."},
-        )
+        self.assertEqual(response.json()["result"], "success")
         self.assertEqual(
             OplogEntryRecording.objects.filter(oplog_entry__oplog_id=self.log).count(),
             0,
@@ -1302,10 +1298,7 @@ class OplogSanitizeViewTests(TestCase):
             **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(
-            force_str(response.content),
-            {"result": "success", "message": "Successfully sanitized log entries."},
-        )
+        self.assertEqual(response.json()["result"], "success")
         # Recording must be gone
         self.assertFalse(OplogEntryRecording.objects.filter(pk=recording_pk).exists())
         # Field must be cleared
@@ -1330,10 +1323,7 @@ class OplogSanitizeViewTests(TestCase):
             **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(
-            force_str(response.content),
-            {"result": "success", "message": "Successfully sanitized log entries."},
-        )
+        self.assertEqual(response.json()["result"], "success")
         self.assertFalse(OplogEntryRecording.objects.filter(pk=recording_pk).exists())
 
 

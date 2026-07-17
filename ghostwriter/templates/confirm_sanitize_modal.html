@@ -47,7 +47,7 @@
     }
   });
 
-  function updateOplogSanitizationStatus() {
+  function updateOplogSanitizationStatus(sanitization) {
     let $status = $('#oplog-sanitization-status');
     if (!$status.length) {
       return;
@@ -57,16 +57,16 @@
       return $('label[for="' + this.id + '"]').clone().children().remove().end().text().trim()
         .replace(' / Hostname', '');
     }).get();
-    let now = new Date();
-    let date = now.toLocaleDateString(undefined, { dateStyle: 'long' });
-    let time = now.toLocaleTimeString(undefined, { timeStyle: 'short' });
+    let sanitizedAt = new Date(sanitization.sanitized_at);
+    let date = sanitizedAt.toLocaleDateString(undefined, { dateStyle: 'long' });
+    let time = sanitizedAt.toLocaleTimeString(undefined, { timeStyle: 'short' });
     let $fieldList = $('#oplog-sanitization-details-fields');
 
     $('#oplog-sanitization-status-button').removeClass('badge-warning').addClass('badge-info');
     $('#oplog-sanitization-status-icon').removeClass('fa-exclamation-triangle').addClass('fa-shield-alt');
     $('#oplog-sanitization-status-text').text('Sanitized');
     $('#oplog-sanitization-details-time').text(date + ' at ' + time);
-    $('#oplog-sanitization-details-user').text('Current user');
+    $('#oplog-sanitization-details-user').text(sanitization.sanitized_by_name);
     $('#oplog-sanitization-stale-message').addClass('d-none');
     $fieldList.empty();
     fields.forEach(function (field) {
@@ -108,7 +108,7 @@
             displayToastTop({type:data['result'], string:data['message'], title:'Log Update'});
           }
           if (data['result'] === 'success') {
-            updateOplogSanitizationStatus();
+            updateOplogSanitizationStatus(data['sanitization']);
           }
       },
       error: function(jqXHR, textStatus, errorThrown) {

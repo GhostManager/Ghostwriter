@@ -266,7 +266,7 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                         cursor.execute("SELECT clock_timestamp()")
                         sanitized_at = cursor.fetchone()[0]
 
-                    OplogSanitization.objects.create(
+                    sanitization = OplogSanitization.objects.create(
                         oplog=obj,
                         sanitized_at=sanitized_at,
                         sanitized_by=self.request.user,
@@ -274,6 +274,10 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                         or self.request.user.username,
                         fields=fields,
                     )
+                    data["sanitization"] = {
+                        "sanitized_at": sanitization.sanitized_at.isoformat(),
+                        "sanitized_by_name": sanitization.sanitized_by_name,
+                    }
             except Exception as exception:  # pragma: no cover
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 log_message = template.format(type(exception).__name__, exception.args)
