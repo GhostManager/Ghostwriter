@@ -14,6 +14,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.contrib.messages import get_messages
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
@@ -1252,6 +1253,25 @@ class OplogSanitizeViewTests(TestCase):
         self.assertEqual(
             self.entry.extra_fields, {"test_field": "", "test_field_2": "test value"}
         )
+
+    def test_field_sanitization_clears_dates_to_null(self):
+        self.entry.start_date = timezone.now()
+        self.entry.end_date = timezone.now()
+        self.entry.save()
+
+        response = self.client_mgr.post(
+            self.uri,
+            data={
+                "fields": '[{"name": "start_date", "value": "on"}, {"name": "end_date", "value": "on"}]'
+            },
+            **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["result"], "success")
+        self.entry.refresh_from_db()
+        self.assertIsNone(self.entry.start_date)
+        self.assertIsNone(self.entry.end_date)
 
     def test_recording_only_sanitization(self):
         """Selecting only 'recordings' should succeed and delete recordings without requiring any other fields."""

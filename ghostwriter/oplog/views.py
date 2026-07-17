@@ -166,6 +166,7 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         "comments",
         "operator_name",
     }
+    nullable_date_fields = {"start_date", "end_date"}
 
     def test_func(self):
         return verify_user_is_privileged(self.request.user)
@@ -240,7 +241,13 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                                 elif field == "tags":
                                     entry.tags.clear()
                                 elif field in self.clearable_fields:
-                                    setattr(entry, field, "")
+                                    setattr(
+                                        entry,
+                                        field,
+                                        None
+                                        if field in self.nullable_date_fields
+                                        else "",
+                                    )
                                 elif field in entry_field_specs:
                                     extra_fields_data[field] = entry_field_specs[
                                         field
@@ -251,6 +258,7 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                             try:
                                 entry.recording.delete()
                             except OplogEntryRecording.DoesNotExist:
+                                # Entries without recordings are expected during bulk sanitization.
                                 pass
 
                     # Tags are a many-to-many relation and cannot be passed to bulk_update.
