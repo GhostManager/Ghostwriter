@@ -110,7 +110,8 @@
                   "features/operation-logs/linking-evidence-to-entries",
                   "features/operation-logs/attaching-terminal-recordings",
                   "features/operation-logs/setting-up-automated-logging",
-                  "features/operation-logs/exporting-importing-oplogs"
+                  "features/operation-logs/exporting-importing-oplogs",
+                  "features/operation-logs/auditing-oplogs"
                 ]
               },
               {

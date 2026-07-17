@@ -4,7 +4,17 @@ title: "Oplog Models"
 
 The **Oplog**  application contains everything related to operational logging for projects.
 
+## Sanitization Audit Models
+
+`OplogSanitization` is an immutable audit record for a completed, user-requested activity-log sanitization. It belongs to an
+`Oplog` and stores the database timestamp, the requesting user and display-name snapshot, and the selected fields. An activity log
+can have many sanitization records through its `sanitizations` relationship.
+
+`OplogEntry.updated_at` is maintained by PostgreSQL for inserts and material entry updates. It is indexed with the entry's activity
+log foreign key so the application can efficiently compare the newest entry update with the newest sanitization without storing a
+denormalized timestamp on `Oplog`. Tag-only changes do not affect this timestamp because tags are not entry content sanitized by this
+feature.
+
 <Frame>
   <img src="/images/development/image-9.png" alt=""/>
 </Frame>
-

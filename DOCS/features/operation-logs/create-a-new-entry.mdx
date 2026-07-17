@@ -7,12 +7,12 @@ description: "Using the live activity log"
 Once you are on the log entries page, you will be presented with an empty table. The following sections outline how to interact with the table and log entries.
 
 <Check>
-There will be times when you will need the log's unique ID. The ID number is always displayed at the top of the page, below the log's name.
+There will be times when you will need the log's unique ID. The ID number is displayed in the log header.
 </Check>
 
 ### Creating an Entry
 
-To manually create an entry, click on the "Create a new entry" button in the top right corner:
+To manually create an entry, click on the "Create a new entry" button in the action bar or by pressing `CTRL+N`:
 
 <Frame>
   <img src="/images/features/image-34.png" alt=""/>
@@ -84,11 +84,32 @@ Note that text search will include columns you may have hidden and terminal reco
 returned certain log entries, check the entry's details for content from table-view columns you have hidden or recordings.
 </Warning>
 
-#### Connection Status Indicator
+#### Log Status and Connection
 
-At the end of the controls is a connection status indicator. Since all entries are created/modified/deleted using WebSockets, a
-persistent connection is maintained. If the connection is ever lost, the connection status will turn red and indicate that the
-WebSocket connection is disconnected. When disconnected, you will not be able to create/modify/or delete any rows.
+The log header includes the WebSocket connection status. Since all entries are created, modified, and deleted using WebSockets, a
+persistent connection is maintained. If the connection is ever lost, the badge turns red and reports that it is disconnected. When
+disconnected, you will not be able to create, modify, or delete rows.
+
+When an authorized user has sanitized the log, the header also displays a **Sanitized** badge. Select it to see the last sanitization's
+date and time, requesting user, and selected fields. If an entry has been created or materially edited since that action, the badge
+indicates that there are new changes and the details explain that the sanitization is no longer current.
+
+### Sanitizing Entries
+
+Managers and administrators can select **Sanitize Entries** from the overflow menu in the command bar. Sanitization is a manual,
+on-demand action; Ghostwriter does not automatically sanitize activity logs. Choose the fields to scrub and confirm the action.
+
+<Warning>
+Sanitizing entries cannot be reversed. Export or otherwise preserve any information you need before running it.
+</Warning>
+
+Ghostwriter records each successful sanitization with its date and time, the user who requested it, and the fields selected. The
+status uses the latest entry update time to help determine whether entry content has changed after the most recent sanitization.
+
+<Note>
+Updating tags on a log entry does not flag a sanitized log as needing review. You can safely update tags for
+reporting purposes after sanitization, if needed.
+</Note>
 
 ### Applying Tags to Log Entries
 

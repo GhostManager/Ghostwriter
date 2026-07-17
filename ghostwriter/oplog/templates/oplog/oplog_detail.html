@@ -43,6 +43,7 @@
                     </span>
                 </button>
             </div>
+            <span id="oplog-notification-status" class="badge oplog-header-badge px-3 py-2 ml-2 icon silenced-notification-icon" {% if not oplog.mute_notifications %}style="display:none;"{% endif %}>Notifications silenced</span>
             <span id="connectionStatus" class="badge badge-secondary oplog-header-badge px-3 py-2 ml-2 js-connection-status icon network-icon disconnected">Disconnected</span>
         </div>
     </div>
