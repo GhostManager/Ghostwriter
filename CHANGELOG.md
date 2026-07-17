@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The goal is to populate the database with data that looks real enough to immediately jump into a "live" environment
   * It also creates a custom field of each type on every model that supports custom fields
   * More information in the wiki
+* Added sanitization auditing and status to activity logs
+  * Each completed, on-demand sanitization records its time, requesting user, and selected fields
+  * Log entries now track material updates, allowing Ghostwriter and GraphQL clients to identify logs changed since their most recent sanitization
+  * The activity-log header displays sanitization status and details, including when it is no longer current
 
 ### Fixed
 

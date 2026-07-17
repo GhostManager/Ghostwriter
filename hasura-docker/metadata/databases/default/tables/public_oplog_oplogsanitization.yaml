@@ -1,0 +1,79 @@
+table:
+  name: oplog_oplogsanitization
+  schema: public
+configuration:
+  column_config:
+    oplog_id:
+      custom_name: oplogId
+    sanitized_at:
+      custom_name: sanitizedAt
+    sanitized_by_id:
+      custom_name: sanitizedById
+    sanitized_by_name:
+      custom_name: sanitizedByName
+  custom_column_names:
+    oplog_id: oplogId
+    sanitized_at: sanitizedAt
+    sanitized_by_id: sanitizedById
+    sanitized_by_name: sanitizedByName
+  custom_name: oplogSanitization
+  custom_root_fields: {}
+object_relationships:
+  - name: oplog
+    using:
+      foreign_key_constraint_on: oplog_id
+  - name: sanitizedBy
+    using:
+      foreign_key_constraint_on: sanitized_by_id
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - fields
+        - id
+        - oplog_id
+        - sanitized_at
+        - sanitized_by_id
+        - sanitized_by_name
+      filter: {}
+  - role: service
+    permission:
+      columns:
+        - fields
+        - id
+        - oplog_id
+        - sanitized_at
+        - sanitized_by_id
+        - sanitized_by_name
+      filter:
+        _or:
+          - oplog_id:
+              _eq: X-Hasura-Read-Oplog-Id
+          - oplog:
+              project:
+                serviceTokenProjectAccesses:
+                  token_id:
+                    _eq: X-Hasura-Service-Token-Id
+  - role: user
+    permission:
+      columns:
+        - fields
+        - id
+        - oplog_id
+        - sanitized_at
+        - sanitized_by_id
+        - sanitized_by_name
+      filter:
+        oplog:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id

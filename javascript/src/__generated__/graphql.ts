@@ -11271,6 +11271,10 @@ export type Mutation_Root = {
   delete_oplogEntry?: Maybe<OplogEntry_Mutation_Response>;
   /** delete single row from the table: "oplog_oplogentry" */
   delete_oplogEntry_by_pk?: Maybe<OplogEntry>;
+  /** delete data from the table: "oplog_oplogsanitization" */
+  delete_oplogSanitization?: Maybe<OplogSanitization_Mutation_Response>;
+  /** delete single row from the table: "oplog_oplogsanitization" */
+  delete_oplogSanitization_by_pk?: Maybe<OplogSanitization>;
   /** delete single row from the table: "oplog_oplog" */
   delete_oplog_by_pk?: Maybe<Oplog>;
   /** delete data from the table: "oplog_oplogentryevidence" */
@@ -11547,6 +11551,10 @@ export type Mutation_Root = {
   insert_oplogEntry?: Maybe<OplogEntry_Mutation_Response>;
   /** insert a single row into the table: "oplog_oplogentry" */
   insert_oplogEntry_one?: Maybe<OplogEntry>;
+  /** insert data into the table: "oplog_oplogsanitization" */
+  insert_oplogSanitization?: Maybe<OplogSanitization_Mutation_Response>;
+  /** insert a single row into the table: "oplog_oplogsanitization" */
+  insert_oplogSanitization_one?: Maybe<OplogSanitization>;
   /** insert a single row into the table: "oplog_oplog" */
   insert_oplog_one?: Maybe<Oplog>;
   /** insert data into the table: "oplog_oplogentryevidence" */
@@ -11893,6 +11901,12 @@ export type Mutation_Root = {
   update_oplogEntry_by_pk?: Maybe<OplogEntry>;
   /** update multiples rows of table: "oplog_oplogentry" */
   update_oplogEntry_many?: Maybe<Array<Maybe<OplogEntry_Mutation_Response>>>;
+  /** update data of the table: "oplog_oplogsanitization" */
+  update_oplogSanitization?: Maybe<OplogSanitization_Mutation_Response>;
+  /** update single row of the table: "oplog_oplogsanitization" */
+  update_oplogSanitization_by_pk?: Maybe<OplogSanitization>;
+  /** update multiples rows of table: "oplog_oplogsanitization" */
+  update_oplogSanitization_many?: Maybe<Array<Maybe<OplogSanitization_Mutation_Response>>>;
   /** update single row of the table: "oplog_oplog" */
   update_oplog_by_pk?: Maybe<Oplog>;
   /** update multiples rows of table: "oplog_oplog" */
@@ -12585,6 +12599,18 @@ export type Mutation_RootDelete_OplogEntryArgs = {
 
 /** mutation root */
 export type Mutation_RootDelete_OplogEntry_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_OplogSanitizationArgs = {
+  where: OplogSanitization_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootDelete_OplogSanitization_By_PkArgs = {
   id: Scalars['bigint']['input'];
 };
 
@@ -13479,6 +13505,20 @@ export type Mutation_RootInsert_OplogEntryArgs = {
 export type Mutation_RootInsert_OplogEntry_OneArgs = {
   object: OplogEntry_Insert_Input;
   on_conflict?: InputMaybe<OplogEntry_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_OplogSanitizationArgs = {
+  objects: Array<OplogSanitization_Insert_Input>;
+  on_conflict?: InputMaybe<OplogSanitization_On_Conflict>;
+};
+
+
+/** mutation root */
+export type Mutation_RootInsert_OplogSanitization_OneArgs = {
+  object: OplogSanitization_Insert_Input;
+  on_conflict?: InputMaybe<OplogSanitization_On_Conflict>;
 };
 
 
@@ -14782,6 +14822,38 @@ export type Mutation_RootUpdate_OplogEntry_By_PkArgs = {
 /** mutation root */
 export type Mutation_RootUpdate_OplogEntry_ManyArgs = {
   updates: Array<OplogEntry_Updates>;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_OplogSanitizationArgs = {
+  _append?: InputMaybe<OplogSanitization_Append_Input>;
+  _delete_at_path?: InputMaybe<OplogSanitization_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<OplogSanitization_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<OplogSanitization_Delete_Key_Input>;
+  _inc?: InputMaybe<OplogSanitization_Inc_Input>;
+  _prepend?: InputMaybe<OplogSanitization_Prepend_Input>;
+  _set?: InputMaybe<OplogSanitization_Set_Input>;
+  where: OplogSanitization_Bool_Exp;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_OplogSanitization_By_PkArgs = {
+  _append?: InputMaybe<OplogSanitization_Append_Input>;
+  _delete_at_path?: InputMaybe<OplogSanitization_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<OplogSanitization_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<OplogSanitization_Delete_Key_Input>;
+  _inc?: InputMaybe<OplogSanitization_Inc_Input>;
+  _prepend?: InputMaybe<OplogSanitization_Prepend_Input>;
+  _set?: InputMaybe<OplogSanitization_Set_Input>;
+  pk_columns: OplogSanitization_Pk_Columns_Input;
+};
+
+
+/** mutation root */
+export type Mutation_RootUpdate_OplogSanitization_ManyArgs = {
+  updates: Array<OplogSanitization_Updates>;
 };
 
 
@@ -17361,6 +17433,10 @@ export type Oplog = {
   /** An object relationship */
   project?: Maybe<Project>;
   projectId?: Maybe<Scalars['bigint']['output']>;
+  /** An array relationship */
+  sanitizations: Array<OplogSanitization>;
+  /** An aggregate relationship */
+  sanitizations_aggregate: OplogSanitization_Aggregate;
 };
 
 
@@ -17383,6 +17459,26 @@ export type OplogEntries_AggregateArgs = {
   where?: InputMaybe<OplogEntry_Bool_Exp>;
 };
 
+
+/** columns and relationships of "oplog_oplog" */
+export type OplogSanitizationsArgs = {
+  distinct_on?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<OplogSanitization_Order_By>>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
+};
+
+
+/** columns and relationships of "oplog_oplog" */
+export type OplogSanitizations_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<OplogSanitization_Order_By>>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
+};
+
 /** columns and relationships of "oplog_oplogentry" */
 export type OplogEntry = {
   __typename?: 'oplogEntry';
@@ -17402,6 +17498,7 @@ export type OplogEntry = {
   sourceIp?: Maybe<Scalars['String']['output']>;
   startDate?: Maybe<Scalars['timestamptz']['output']>;
   tool?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['timestamptz']['output'];
   userContext?: Maybe<Scalars['String']['output']>;
 };
 
@@ -17512,6 +17609,7 @@ export type OplogEntry_Bool_Exp = {
   sourceIp?: InputMaybe<String_Comparison_Exp>;
   startDate?: InputMaybe<Timestamptz_Comparison_Exp>;
   tool?: InputMaybe<String_Comparison_Exp>;
+  updatedAt?: InputMaybe<Timestamptz_Comparison_Exp>;
   userContext?: InputMaybe<String_Comparison_Exp>;
 };
 
@@ -17559,6 +17657,7 @@ export type OplogEntry_Insert_Input = {
   sourceIp?: InputMaybe<Scalars['String']['input']>;
   startDate?: InputMaybe<Scalars['timestamptz']['input']>;
   tool?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['timestamptz']['input']>;
   userContext?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -17578,6 +17677,7 @@ export type OplogEntry_Max_Fields = {
   sourceIp?: Maybe<Scalars['String']['output']>;
   startDate?: Maybe<Scalars['timestamptz']['output']>;
   tool?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['timestamptz']['output']>;
   userContext?: Maybe<Scalars['String']['output']>;
 };
 
@@ -17596,6 +17696,7 @@ export type OplogEntry_Max_Order_By = {
   sourceIp?: InputMaybe<Order_By>;
   startDate?: InputMaybe<Order_By>;
   tool?: InputMaybe<Order_By>;
+  updatedAt?: InputMaybe<Order_By>;
   userContext?: InputMaybe<Order_By>;
 };
 
@@ -17615,6 +17716,7 @@ export type OplogEntry_Min_Fields = {
   sourceIp?: Maybe<Scalars['String']['output']>;
   startDate?: Maybe<Scalars['timestamptz']['output']>;
   tool?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['timestamptz']['output']>;
   userContext?: Maybe<Scalars['String']['output']>;
 };
 
@@ -17633,6 +17735,7 @@ export type OplogEntry_Min_Order_By = {
   sourceIp?: InputMaybe<Order_By>;
   startDate?: InputMaybe<Order_By>;
   tool?: InputMaybe<Order_By>;
+  updatedAt?: InputMaybe<Order_By>;
   userContext?: InputMaybe<Order_By>;
 };
 
@@ -17676,6 +17779,7 @@ export type OplogEntry_Order_By = {
   sourceIp?: InputMaybe<Order_By>;
   startDate?: InputMaybe<Order_By>;
   tool?: InputMaybe<Order_By>;
+  updatedAt?: InputMaybe<Order_By>;
   userContext?: InputMaybe<Order_By>;
 };
 
@@ -17720,6 +17824,8 @@ export enum OplogEntry_Select_Column {
   /** column name */
   Tool = 'tool',
   /** column name */
+  UpdatedAt = 'updatedAt',
+  /** column name */
   UserContext = 'userContext'
 }
 
@@ -17739,6 +17845,7 @@ export type OplogEntry_Set_Input = {
   sourceIp?: InputMaybe<Scalars['String']['input']>;
   startDate?: InputMaybe<Scalars['timestamptz']['input']>;
   tool?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['timestamptz']['input']>;
   userContext?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -17805,6 +17912,7 @@ export type OplogEntry_Stream_Cursor_Value_Input = {
   sourceIp?: InputMaybe<Scalars['String']['input']>;
   startDate?: InputMaybe<Scalars['timestamptz']['input']>;
   tool?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['timestamptz']['input']>;
   userContext?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -17851,6 +17959,8 @@ export enum OplogEntry_Update_Column {
   StartDate = 'startDate',
   /** column name */
   Tool = 'tool',
+  /** column name */
+  UpdatedAt = 'updatedAt',
   /** column name */
   UserContext = 'userContext'
 }
@@ -17911,6 +18021,425 @@ export type OplogEntry_Variance_Fields = {
 export type OplogEntry_Variance_Order_By = {
   id?: InputMaybe<Order_By>;
   oplog?: InputMaybe<Order_By>;
+};
+
+/** columns and relationships of "oplog_oplogsanitization" */
+export type OplogSanitization = {
+  __typename?: 'oplogSanitization';
+  fields: Scalars['jsonb']['output'];
+  id: Scalars['bigint']['output'];
+  /** An object relationship */
+  oplog: Oplog;
+  oplogId: Scalars['bigint']['output'];
+  sanitizedAt: Scalars['timestamptz']['output'];
+  /** An object relationship */
+  sanitizedBy?: Maybe<User>;
+  sanitizedById?: Maybe<Scalars['bigint']['output']>;
+  sanitizedByName: Scalars['String']['output'];
+};
+
+
+/** columns and relationships of "oplog_oplogsanitization" */
+export type OplogSanitizationFieldsArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregated selection of "oplog_oplogsanitization" */
+export type OplogSanitization_Aggregate = {
+  __typename?: 'oplogSanitization_aggregate';
+  aggregate?: Maybe<OplogSanitization_Aggregate_Fields>;
+  nodes: Array<OplogSanitization>;
+};
+
+export type OplogSanitization_Aggregate_Bool_Exp = {
+  count?: InputMaybe<OplogSanitization_Aggregate_Bool_Exp_Count>;
+};
+
+export type OplogSanitization_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<OplogSanitization_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
+/** aggregate fields of "oplog_oplogsanitization" */
+export type OplogSanitization_Aggregate_Fields = {
+  __typename?: 'oplogSanitization_aggregate_fields';
+  avg?: Maybe<OplogSanitization_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<OplogSanitization_Max_Fields>;
+  min?: Maybe<OplogSanitization_Min_Fields>;
+  stddev?: Maybe<OplogSanitization_Stddev_Fields>;
+  stddev_pop?: Maybe<OplogSanitization_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<OplogSanitization_Stddev_Samp_Fields>;
+  sum?: Maybe<OplogSanitization_Sum_Fields>;
+  var_pop?: Maybe<OplogSanitization_Var_Pop_Fields>;
+  var_samp?: Maybe<OplogSanitization_Var_Samp_Fields>;
+  variance?: Maybe<OplogSanitization_Variance_Fields>;
+};
+
+
+/** aggregate fields of "oplog_oplogsanitization" */
+export type OplogSanitization_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** order by aggregate values of table "oplog_oplogsanitization" */
+export type OplogSanitization_Aggregate_Order_By = {
+  avg?: InputMaybe<OplogSanitization_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<OplogSanitization_Max_Order_By>;
+  min?: InputMaybe<OplogSanitization_Min_Order_By>;
+  stddev?: InputMaybe<OplogSanitization_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<OplogSanitization_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<OplogSanitization_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<OplogSanitization_Sum_Order_By>;
+  var_pop?: InputMaybe<OplogSanitization_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<OplogSanitization_Var_Samp_Order_By>;
+  variance?: InputMaybe<OplogSanitization_Variance_Order_By>;
+};
+
+/** append existing jsonb value of filtered columns with new jsonb value */
+export type OplogSanitization_Append_Input = {
+  fields?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** input type for inserting array relation for remote table "oplog_oplogsanitization" */
+export type OplogSanitization_Arr_Rel_Insert_Input = {
+  data: Array<OplogSanitization_Insert_Input>;
+  /** upsert condition */
+  on_conflict?: InputMaybe<OplogSanitization_On_Conflict>;
+};
+
+/** aggregate avg on columns */
+export type OplogSanitization_Avg_Fields = {
+  __typename?: 'oplogSanitization_avg_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogId?: Maybe<Scalars['Float']['output']>;
+  sanitizedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Avg_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+};
+
+/** Boolean expression to filter rows from the table "oplog_oplogsanitization". All fields are combined with a logical 'AND'. */
+export type OplogSanitization_Bool_Exp = {
+  _and?: InputMaybe<Array<OplogSanitization_Bool_Exp>>;
+  _not?: InputMaybe<OplogSanitization_Bool_Exp>;
+  _or?: InputMaybe<Array<OplogSanitization_Bool_Exp>>;
+  fields?: InputMaybe<Jsonb_Comparison_Exp>;
+  id?: InputMaybe<Bigint_Comparison_Exp>;
+  oplog?: InputMaybe<Oplog_Bool_Exp>;
+  oplogId?: InputMaybe<Bigint_Comparison_Exp>;
+  sanitizedAt?: InputMaybe<Timestamptz_Comparison_Exp>;
+  sanitizedBy?: InputMaybe<User_Bool_Exp>;
+  sanitizedById?: InputMaybe<Bigint_Comparison_Exp>;
+  sanitizedByName?: InputMaybe<String_Comparison_Exp>;
+};
+
+/** unique or primary key constraints on table "oplog_oplogsanitization" */
+export enum OplogSanitization_Constraint {
+  /** unique or primary key constraint on columns "id" */
+  OplogOplogsanitizationPkey = 'oplog_oplogsanitization_pkey'
+}
+
+/** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+export type OplogSanitization_Delete_At_Path_Input = {
+  fields?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+export type OplogSanitization_Delete_Elem_Input = {
+  fields?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** delete key/value pair or string element. key/value pairs are matched based on their key value */
+export type OplogSanitization_Delete_Key_Input = {
+  fields?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** input type for incrementing numeric columns in table "oplog_oplogsanitization" */
+export type OplogSanitization_Inc_Input = {
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogId?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizedById?: InputMaybe<Scalars['bigint']['input']>;
+};
+
+/** input type for inserting data into table "oplog_oplogsanitization" */
+export type OplogSanitization_Insert_Input = {
+  fields?: InputMaybe<Scalars['jsonb']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplog?: InputMaybe<Oplog_Obj_Rel_Insert_Input>;
+  oplogId?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizedAt?: InputMaybe<Scalars['timestamptz']['input']>;
+  sanitizedBy?: InputMaybe<User_Obj_Rel_Insert_Input>;
+  sanitizedById?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizedByName?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate max on columns */
+export type OplogSanitization_Max_Fields = {
+  __typename?: 'oplogSanitization_max_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogId?: Maybe<Scalars['bigint']['output']>;
+  sanitizedAt?: Maybe<Scalars['timestamptz']['output']>;
+  sanitizedById?: Maybe<Scalars['bigint']['output']>;
+  sanitizedByName?: Maybe<Scalars['String']['output']>;
+};
+
+/** order by max() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Max_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedAt?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+  sanitizedByName?: InputMaybe<Order_By>;
+};
+
+/** aggregate min on columns */
+export type OplogSanitization_Min_Fields = {
+  __typename?: 'oplogSanitization_min_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogId?: Maybe<Scalars['bigint']['output']>;
+  sanitizedAt?: Maybe<Scalars['timestamptz']['output']>;
+  sanitizedById?: Maybe<Scalars['bigint']['output']>;
+  sanitizedByName?: Maybe<Scalars['String']['output']>;
+};
+
+/** order by min() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Min_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedAt?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+  sanitizedByName?: InputMaybe<Order_By>;
+};
+
+/** response of any mutation on the table "oplog_oplogsanitization" */
+export type OplogSanitization_Mutation_Response = {
+  __typename?: 'oplogSanitization_mutation_response';
+  /** number of rows affected by the mutation */
+  affected_rows: Scalars['Int']['output'];
+  /** data from the rows affected by the mutation */
+  returning: Array<OplogSanitization>;
+};
+
+/** on_conflict condition type for table "oplog_oplogsanitization" */
+export type OplogSanitization_On_Conflict = {
+  constraint: OplogSanitization_Constraint;
+  update_columns?: Array<OplogSanitization_Update_Column>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
+};
+
+/** Ordering options when selecting data from "oplog_oplogsanitization". */
+export type OplogSanitization_Order_By = {
+  fields?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  oplog?: InputMaybe<Oplog_Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedAt?: InputMaybe<Order_By>;
+  sanitizedBy?: InputMaybe<User_Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+  sanitizedByName?: InputMaybe<Order_By>;
+};
+
+/** primary key columns input for table: oplog_oplogsanitization */
+export type OplogSanitization_Pk_Columns_Input = {
+  id: Scalars['bigint']['input'];
+};
+
+/** prepend existing jsonb value of filtered columns with new jsonb value */
+export type OplogSanitization_Prepend_Input = {
+  fields?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
+/** select columns of table "oplog_oplogsanitization" */
+export enum OplogSanitization_Select_Column {
+  /** column name */
+  Fields = 'fields',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  OplogId = 'oplogId',
+  /** column name */
+  SanitizedAt = 'sanitizedAt',
+  /** column name */
+  SanitizedById = 'sanitizedById',
+  /** column name */
+  SanitizedByName = 'sanitizedByName'
+}
+
+/** input type for updating data in table "oplog_oplogsanitization" */
+export type OplogSanitization_Set_Input = {
+  fields?: InputMaybe<Scalars['jsonb']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogId?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizedAt?: InputMaybe<Scalars['timestamptz']['input']>;
+  sanitizedById?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizedByName?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate stddev on columns */
+export type OplogSanitization_Stddev_Fields = {
+  __typename?: 'oplogSanitization_stddev_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogId?: Maybe<Scalars['Float']['output']>;
+  sanitizedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Stddev_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_pop on columns */
+export type OplogSanitization_Stddev_Pop_Fields = {
+  __typename?: 'oplogSanitization_stddev_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogId?: Maybe<Scalars['Float']['output']>;
+  sanitizedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_pop() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Stddev_Pop_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+};
+
+/** aggregate stddev_samp on columns */
+export type OplogSanitization_Stddev_Samp_Fields = {
+  __typename?: 'oplogSanitization_stddev_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogId?: Maybe<Scalars['Float']['output']>;
+  sanitizedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Stddev_Samp_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+};
+
+/** Streaming cursor of the table "oplogSanitization" */
+export type OplogSanitization_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: OplogSanitization_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type OplogSanitization_Stream_Cursor_Value_Input = {
+  fields?: InputMaybe<Scalars['jsonb']['input']>;
+  id?: InputMaybe<Scalars['bigint']['input']>;
+  oplogId?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizedAt?: InputMaybe<Scalars['timestamptz']['input']>;
+  sanitizedById?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizedByName?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** aggregate sum on columns */
+export type OplogSanitization_Sum_Fields = {
+  __typename?: 'oplogSanitization_sum_fields';
+  id?: Maybe<Scalars['bigint']['output']>;
+  oplogId?: Maybe<Scalars['bigint']['output']>;
+  sanitizedById?: Maybe<Scalars['bigint']['output']>;
+};
+
+/** order by sum() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Sum_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+};
+
+/** update columns of table "oplog_oplogsanitization" */
+export enum OplogSanitization_Update_Column {
+  /** column name */
+  Fields = 'fields',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  OplogId = 'oplogId',
+  /** column name */
+  SanitizedAt = 'sanitizedAt',
+  /** column name */
+  SanitizedById = 'sanitizedById',
+  /** column name */
+  SanitizedByName = 'sanitizedByName'
+}
+
+export type OplogSanitization_Updates = {
+  /** append existing jsonb value of filtered columns with new jsonb value */
+  _append?: InputMaybe<OplogSanitization_Append_Input>;
+  /** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+  _delete_at_path?: InputMaybe<OplogSanitization_Delete_At_Path_Input>;
+  /** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+  _delete_elem?: InputMaybe<OplogSanitization_Delete_Elem_Input>;
+  /** delete key/value pair or string element. key/value pairs are matched based on their key value */
+  _delete_key?: InputMaybe<OplogSanitization_Delete_Key_Input>;
+  /** increments the numeric columns with given value of the filtered values */
+  _inc?: InputMaybe<OplogSanitization_Inc_Input>;
+  /** prepend existing jsonb value of filtered columns with new jsonb value */
+  _prepend?: InputMaybe<OplogSanitization_Prepend_Input>;
+  /** sets the columns of the filtered rows to the given values */
+  _set?: InputMaybe<OplogSanitization_Set_Input>;
+  /** filter the rows which have to be updated */
+  where: OplogSanitization_Bool_Exp;
+};
+
+/** aggregate var_pop on columns */
+export type OplogSanitization_Var_Pop_Fields = {
+  __typename?: 'oplogSanitization_var_pop_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogId?: Maybe<Scalars['Float']['output']>;
+  sanitizedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_pop() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Var_Pop_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+};
+
+/** aggregate var_samp on columns */
+export type OplogSanitization_Var_Samp_Fields = {
+  __typename?: 'oplogSanitization_var_samp_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogId?: Maybe<Scalars['Float']['output']>;
+  sanitizedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_samp() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Var_Samp_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
+};
+
+/** aggregate variance on columns */
+export type OplogSanitization_Variance_Fields = {
+  __typename?: 'oplogSanitization_variance_fields';
+  id?: Maybe<Scalars['Float']['output']>;
+  oplogId?: Maybe<Scalars['Float']['output']>;
+  sanitizedById?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "oplog_oplogsanitization" */
+export type OplogSanitization_Variance_Order_By = {
+  id?: InputMaybe<Order_By>;
+  oplogId?: InputMaybe<Order_By>;
+  sanitizedById?: InputMaybe<Order_By>;
 };
 
 /** aggregated selection of "oplog_oplog" */
@@ -18017,6 +18546,8 @@ export type Oplog_Bool_Exp = {
   name?: InputMaybe<String_Comparison_Exp>;
   project?: InputMaybe<Project_Bool_Exp>;
   projectId?: InputMaybe<Bigint_Comparison_Exp>;
+  sanitizations?: InputMaybe<OplogSanitization_Bool_Exp>;
+  sanitizations_aggregate?: InputMaybe<OplogSanitization_Aggregate_Bool_Exp>;
 };
 
 /** unique or primary key constraints on table "oplog_oplog" */
@@ -18041,6 +18572,7 @@ export type Oplog_Insert_Input = {
   name?: InputMaybe<Scalars['String']['input']>;
   project?: InputMaybe<Project_Obj_Rel_Insert_Input>;
   projectId?: InputMaybe<Scalars['bigint']['input']>;
+  sanitizations?: InputMaybe<OplogSanitization_Arr_Rel_Insert_Input>;
 };
 
 /** aggregate max on columns */
@@ -18618,6 +19150,7 @@ export type Oplog_Order_By = {
   name?: InputMaybe<Order_By>;
   project?: InputMaybe<Project_Order_By>;
   projectId?: InputMaybe<Order_By>;
+  sanitizations_aggregate?: InputMaybe<OplogSanitization_Aggregate_Order_By>;
 };
 
 /** primary key columns input for table: oplog_oplog */
@@ -22242,6 +22775,12 @@ export type Query_Root = {
   /** fetch data from the table: "oplog_oplogentry" using primary key columns */
   oplogEntry_by_pk?: Maybe<OplogEntry>;
   oplogEntry_by_tag?: Maybe<Array<GetOplogEntryByTagsResponse>>;
+  /** fetch data from the table: "oplog_oplogsanitization" */
+  oplogSanitization: Array<OplogSanitization>;
+  /** fetch aggregated fields from the table: "oplog_oplogsanitization" */
+  oplogSanitization_aggregate: OplogSanitization_Aggregate;
+  /** fetch data from the table: "oplog_oplogsanitization" using primary key columns */
+  oplogSanitization_by_pk?: Maybe<OplogSanitization>;
   /** fetch aggregated fields from the table: "oplog_oplog" */
   oplog_aggregate: Oplog_Aggregate;
   /** fetch data from the table: "oplog_oplog" using primary key columns */
@@ -23309,6 +23848,29 @@ export type Query_RootOplogEntry_By_PkArgs = {
 
 export type Query_RootOplogEntry_By_TagArgs = {
   tag: Scalars['String']['input'];
+};
+
+
+export type Query_RootOplogSanitizationArgs = {
+  distinct_on?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<OplogSanitization_Order_By>>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
+};
+
+
+export type Query_RootOplogSanitization_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<OplogSanitization_Order_By>>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
+};
+
+
+export type Query_RootOplogSanitization_By_PkArgs = {
+  id: Scalars['bigint']['input'];
 };
 
 
@@ -31334,6 +31896,14 @@ export type Subscription_Root = {
   oplogEntry_by_pk?: Maybe<OplogEntry>;
   /** fetch data from the table in a streaming manner: "oplog_oplogentry" */
   oplogEntry_stream: Array<OplogEntry>;
+  /** fetch data from the table: "oplog_oplogsanitization" */
+  oplogSanitization: Array<OplogSanitization>;
+  /** fetch aggregated fields from the table: "oplog_oplogsanitization" */
+  oplogSanitization_aggregate: OplogSanitization_Aggregate;
+  /** fetch data from the table: "oplog_oplogsanitization" using primary key columns */
+  oplogSanitization_by_pk?: Maybe<OplogSanitization>;
+  /** fetch data from the table in a streaming manner: "oplog_oplogsanitization" */
+  oplogSanitization_stream: Array<OplogSanitization>;
   /** fetch aggregated fields from the table: "oplog_oplog" */
   oplog_aggregate: Oplog_Aggregate;
   /** fetch data from the table: "oplog_oplog" using primary key columns */
@@ -32679,6 +33249,36 @@ export type Subscription_RootOplogEntry_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<OplogEntry_Stream_Cursor_Input>>;
   where?: InputMaybe<OplogEntry_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplogSanitizationArgs = {
+  distinct_on?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<OplogSanitization_Order_By>>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplogSanitization_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<OplogSanitization_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<OplogSanitization_Order_By>>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
+};
+
+
+export type Subscription_RootOplogSanitization_By_PkArgs = {
+  id: Scalars['bigint']['input'];
+};
+
+
+export type Subscription_RootOplogSanitization_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<OplogSanitization_Stream_Cursor_Input>>;
+  where?: InputMaybe<OplogSanitization_Bool_Exp>;
 };
 
 
