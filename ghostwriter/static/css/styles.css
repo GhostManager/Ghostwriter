@@ -1492,6 +1492,33 @@ table.table-oplog tbody tr {
   align-items: center;
 }
 
+.oplog-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .oplog-toolbar {
+    align-items: stretch;
+  }
+
+  .oplog-toolbar-actions {
+    flex: 1 1 100%;
+  }
+
+  .oplog-toolbar-right {
+    border-top: 1px solid var(--search-box-shadow);
+    flex: 1 1 100%;
+    margin-left: 0;
+    padding-top: 8px;
+  }
+
+  .oplog-toolbar-right .input-group {
+    width: 100% !important;
+  }
+}
+
 /* Split container */
 .oplog-split-container {
   display: flex;
@@ -3543,6 +3570,13 @@ ol {
   background-color: var(--warning-color);
 }
 
+/* Keep all activity-log header badges on one visual baseline. */
+.oplog-header-badge {
+  border: 0;
+  font-size: .75em;
+  line-height: 1;
+}
+
 .badge-word {
   color: #fff;
   background-color: var(--word-color);
@@ -4054,6 +4088,16 @@ th.priority-header.tertiary:before {
 
 .js-connection-status.connected {
   color: var(--healthy-color);
+}
+
+#connectionStatus.connected {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+#connectionStatus.disconnected {
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
 /* ---------------------------------------------------
@@ -4657,6 +4701,32 @@ input[type="color"]:focus,
 [data-theme="dark"] .badge-secondary {
   background-color: #3a3a3a;
   color: var(--main-txt-color);
+}
+
+[data-theme="dark"] #connectionStatus.connected {
+  background-color: #173b2b;
+  color: #9ce0b6;
+}
+
+[data-theme="dark"] #connectionStatus.disconnected {
+  background-color: #5b252c;
+  color: #fecdd3;
+}
+
+[data-theme="dark"] #oplog-sanitization-status-button.badge-info {
+  background-color: #164e63;
+  color: #bae6fd;
+}
+
+[data-theme="dark"] #oplog-sanitization-status-button.badge-warning {
+  background-color: #5c4208;
+  color: #fde68a;
+}
+
+[data-theme="dark"] #oplog-sanitization-details-fields .badge-light {
+  background-color: #343a40;
+  border-color: #4b5563 !important;
+  color: #cbd5e1;
 }
 
 /* Tooltips - keep light for readability */

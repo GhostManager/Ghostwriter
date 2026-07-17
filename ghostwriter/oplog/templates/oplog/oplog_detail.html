@@ -19,63 +19,75 @@
     <script src="{% static 'vendor/asciinema-player/asciinema-player.min.js' %}"></script>
     <script src="{% static 'js/purify.min.js' %}"></script>
     <script src="{% static 'js/oplog.js' %}"></script>
-    <div>
-        <div class="dropdown">
-            <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-                <div class="bar1"></div>
-                <div class="bar2"></div>
-                <div class="bar3"></div>
-            </div>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="oplog-dropdown-btn">
-                <a href="{% url 'oplog:oplog_update' oplog.id %}" class="dropdown-item icon edit-icon" >Edit Log</a>
-                <a href="{% url "oplog:oplog_import" %}?log={{ oplog.id }}" class="dropdown-item icon upload-icon">Import Entries</a>
-                <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
-                <a href="{% url 'rolodex:project_detail' oplog.project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
-                {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
-                    <a id="sanitize-button-{{ oplog.id }}" class="dropdown-item icon clean-icon js-confirm-sanitize" data-toggle="modal"
-                       data-target="#confirm-sanitize-modal" href="javascript:void(0);"
-                       sanitize-target-csrftoken="{{ csrf_token }}" sanitize-target-url="{% url 'oplog:ajax_oplog_sanitize' oplog.id %}"
-                       sanitize-target-id="{{ oplog.id }}">
-                      Sanitize Entries
-                    </a>
-                    <a
-                      href="javascript:void(0)"
-                      class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
-                      toggle-mute-csrftoken="{{ csrf_token }}"
-                      toggle-mute-url="{% url 'oplog:ajax_oplog_mute_toggle' oplog.id %}"
-                      toggle-mute-id="{{ oplog.id }}"
-                    >
-                      {% if oplog.mute_notifications %}
-                          Notifications: Off
-                      {% else %}
-                          Notifications: On
-                      {% endif %}
-                    </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <h2>{{ oplog.name }}</h2>
-        <h5>
+    <div class="container text-center">
+        <div class="d-inline-flex align-items-center flex-wrap justify-content-center">
             <span
-                class="slanted-highlight"
+                class="badge badge-secondary oplog-header-badge px-3 py-2 mr-2"
                 data-toggle="tooltip"
                 data-placement="top"
                 title="Oplog ID for use with the API and tools like `mythic_sync` and `cobalt_sync`"
                 style="cursor:help;"
             >Oplog ID #{{ oplog.id }}</span>
-        </h5>
+            <div id="oplog-sanitization-status" {% if not oplog_last_sanitization %}style="display:none;"{% endif %}>
+                <button
+                    id="oplog-sanitization-status-button"
+                    type="button"
+                    class="btn badge oplog-header-badge px-3 py-2 {% if oplog_sanitation_is_stale %}badge-warning{% else %}badge-info{% endif %}"
+                    data-toggle="modal"
+                    data-target="#oplog-sanitization-details-modal"
+                    aria-label="View sanitization details"
+                >
+                    <i id="oplog-sanitization-status-icon" class="fas {% if oplog_sanitation_is_stale %}fa-exclamation-triangle{% else %}fa-shield-alt{% endif %}"></i>
+                    <span id="oplog-sanitization-status-text">
+                        {% if oplog_sanitation_is_stale %}Sanitized &middot; new changes{% else %}Sanitized{% endif %}
+                    </span>
+                </button>
+            </div>
+            <span id="connectionStatus" class="badge badge-secondary oplog-header-badge px-3 py-2 ml-2 js-connection-status icon network-icon disconnected">Disconnected</span>
+        </div>
     </div>
     <hr>
 
     <!-- Toolbar -->
     <div class="oplog-toolbar">
-        <a id="createNewEntryButton" class="icon add-icon btn btn-primary btn-sm" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
-        <a id="columnSelectDropdown" class="icon open-icon btn btn-info btn-sm" href="javascript:void(0);">Show/Hide Columns</a>
-        <a id="resetSortBtn" class="btn btn-secondary icon sync-icon btn-sm" role="button">Reset Sort</a>
-        <a class="btn btn-outline-secondary btn-sm" role="button" data-toggle="modal" data-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</a>
+        <div class="oplog-toolbar-actions">
+            <a id="createNewEntryButton" class="icon add-icon btn btn-primary btn-sm" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
+            <a id="columnSelectDropdown" class="icon open-icon btn btn-info btn-sm" href="javascript:void(0);">Show/Hide Columns</a>
+            <a id="resetSortBtn" class="btn btn-secondary icon sync-icon btn-sm" role="button">Reset Sort</a>
+            <a class="btn btn-outline-secondary btn-sm" role="button" data-toggle="modal" data-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</a>
+            <div class="dropdown d-inline-block">
+                <button id="oplog-dropdown-btn" type="button" class="btn btn-sm btn-outline-secondary" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More oplog actions" title="More actions">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+                <div class="dropdown-menu" aria-labelledby="oplog-dropdown-btn">
+                    <a href="{% url 'oplog:oplog_update' oplog.id %}" class="dropdown-item icon edit-icon" >Edit Log</a>
+                    <a href="{% url "oplog:oplog_import" %}?log={{ oplog.id }}" class="dropdown-item icon upload-icon">Import Entries</a>
+                    <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
+                    <a href="{% url 'rolodex:project_detail' oplog.project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
+                    {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
+                        <a id="sanitize-button-{{ oplog.id }}" class="dropdown-item icon clean-icon js-confirm-sanitize" data-toggle="modal"
+                           data-target="#confirm-sanitize-modal" href="javascript:void(0);"
+                           sanitize-target-csrftoken="{{ csrf_token }}" sanitize-target-url="{% url 'oplog:ajax_oplog_sanitize' oplog.id %}"
+                           sanitize-target-id="{{ oplog.id }}">
+                          Sanitize Entries
+                        </a>
+                        <a
+                          href="javascript:void(0)"
+                          class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
+                          toggle-mute-csrftoken="{{ csrf_token }}"
+                          toggle-mute-url="{% url 'oplog:ajax_oplog_mute_toggle' oplog.id %}"
+                          toggle-mute-id="{{ oplog.id }}"
+                        >
+                          {% if oplog.mute_notifications %}
+                              Notifications: Off
+                          {% else %}
+                              Notifications: On
+                          {% endif %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
         <div class="oplog-toolbar-right">
             <div class="input-group input-group-sm" style="width:280px;">
@@ -86,9 +98,6 @@
                 <div class="input-group-append">
                   <button id="clearSearchBtn" class="btn btn-outline-secondary" type="button"><i class="fas fa-times"></i></button>
                 </div>
-            </div>
-            <div id="connection" style="margin-left:12px;">
-                <div id="connectionStatus" class="js-connection-status icon network-icon">Disconnected</div>
             </div>
         </div>
     </div>
@@ -150,6 +159,32 @@
 {% block morescripts %}
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_sanitize_modal.html" %}
+
+  <div id="oplog-sanitization-details-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="oplogSanitizationDetailsLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="oplogSanitizationDetailsLabel"><i class="fas fa-shield-alt mr-2"></i>Sanitization Details</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="modal-body">
+                  <p id="oplog-sanitization-stale-message" class="text-warning {% if not oplog_sanitation_is_stale %}d-none{% endif %}"><i class="fas fa-exclamation-triangle mr-1"></i>Changes were made to entries after this sanitization.</p>
+                  <dl class="row mb-0">
+                      <dt class="col-sm-4">Last sanitized</dt>
+                      <dd id="oplog-sanitization-details-time" class="col-sm-8">{% if oplog_last_sanitization %}{{ oplog_last_sanitization.sanitized_at|date:"DATE_FORMAT" }} at {{ oplog_last_sanitization.sanitized_at|time:"TIME_FORMAT" }}{% endif %}</dd>
+                      <dt class="col-sm-4">Sanitized by</dt>
+                      <dd id="oplog-sanitization-details-user" class="col-sm-8">{% if oplog_last_sanitization %}{{ oplog_last_sanitization.sanitized_by_name }}{% endif %}</dd>
+                      <dt class="col-sm-4">Fields</dt>
+                      <dd id="oplog-sanitization-details-fields" class="col-sm-8 mb-0">
+                          {% for field in oplog_last_sanitization_fields %}<span class="badge badge-light border mr-1 mb-1">{{ field }}</span>{% endfor %}
+                      </dd>
+                  </dl>
+              </div>
+          </div>
+      </div>
+  </div>
 
   <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true" data-tinymce-min-height="260" data-submit-on-mod-enter>
       <div class="modal-dialog modal-dialog-centered modal-super-sized modal-dialog-scrollable" role="document">
