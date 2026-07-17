@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -121,8 +121,8 @@
         </table>
 
         <div id="projectDescription" class="description-block offset-md-2 col-8">
-          {% if project.note %}
-            {{ project.note|bleach }}
+          {% if project.description %}
+            {{ project.description|bleach }}
           {% else %}
             <p class="text-center">No one has added a description of this project. <a class="clickable"
                                                                                       href="{% url 'rolodex:project_update' project.id %}">Fix
@@ -174,8 +174,8 @@
                   </a>
                 </td>
                 <td class="align-middle text-left">{{ operator.role }}</td>
-                <td class="align-middle text-left">{{ operator.start_date|date:"d M Y" }} –
-                  <br/> {{ operator.end_date|date:"d M Y" }}</td>
+                <td class="align-middle text-left" data-text="{{ operator.start_date|date:"Y-m-d" }}">{{ operator.start_date|date:"DATE_FORMAT" }} –
+                  <br/> {{ operator.end_date|date:"DATE_FORMAT" }}</td>
                 <td class="text-justify align-middle text-left">{{ operator.note|bleach }}</td>
                 {% if request.user|is_privileged %}
                   <td class="align-middle">
@@ -436,7 +436,7 @@
                     {{ target.hostname }}
                   {% endif %}
                 </td>
-                <td class="text-justify align-middle text-left">{{ target.note|bleach }}</td>
+                <td class="text-justify align-middle text-left">{{ target.description|bleach }}</td>
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
                       <a class="icon burn-icon js-compromise-target clickable-link" href="javascript:void(0);"
@@ -583,11 +583,11 @@
                   <td class="align-middle text-left">In Progress</td>
                 {% endif %}
                 <td class="align-middle text-left">{{ report.last_update|date:"DATE_FORMAT" }}</td>
-                <td class="align-middle text-left">{{ report.created_by }}</td>
+                <td class="align-middle text-left">{% if report.created_by %}{{ report.created_by }}{% else %}Unknown{% endif %}</td>
 
                 <td class="align-middle js-export-oplog">
                   <div class="d-flex justify-content-center">
-                      <a title="Set this report as your active report" href="javascript:void(0)"
+                      <a href="javascript:void(0)"
                          data-toggle="tooltip"
                          data-placement="top"
                          title="Set this report as your active report"
@@ -708,6 +708,7 @@
             <th class="align-middle text-left">Domain Name</th>
             <th class="align-middle text-left">Purpose</th>
             <th class="sorter-date-range-dMMMyyyy align-middle text-left">Date Range</th>
+            <th class="align-middle text-left">Checked Out By</th>
             <th class="sorter-false align-middle">Options</th>
             </thead>
             {% for domain in project.history_set.all %}
@@ -720,7 +721,18 @@
                                     </span>
                 </td>
                 <td class="align-middle text-left">{{ domain.activity_type }}</td>
-                <td class="align-middle text-left">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}
+                <td class="align-middle text-left" data-text="{{ domain.start_date|date:"Y-m-d" }}">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}
+                </td>
+                <td class="align-middle text-left">
+                  {% if domain.operator %}
+                    {% if domain.operator.name %}
+                      {{ domain.operator.name }} ({{ domain.operator.username }})
+                    {% else %}
+                      Missing Full Name ({{ domain.operator.username }})
+                    {% endif %}
+                  {% else %}
+                    Unknown/Deleted user
+                  {% endif %}
                 </td>
 
                 <td class="align-middle">
@@ -791,6 +803,7 @@
                 <th class="align-middle pr-4 text-left">Purpose</th>
                 <th class="align-middle pr-4 text-left">Role</th>
                 <th class="align-middle pr-4 text-left">Provider</th>
+                <th class="align-middle pr-4 text-left">Checked Out By</th>
                 <th class="sorter-false align-middle">Options</th>
               </tr>
             </thead>
@@ -820,7 +833,17 @@
                 <td class="align-middle text-left">{{ server.activity_type }}</td>
                 <td class="align-middle text-left">{{ server.server_role }}</td>
                 <td class="align-middle text-left">{{ server.server.server_provider }}</td>
-
+                <td class="align-middle text-left">
+                  {% if server.operator %}
+                    {% if server.operator.name %}
+                      {{ server.operator.name }} ({{ server.operator.username }})
+                    {% else %}
+                      Missing Full Name ({{ server.operator.username }})
+                    {% endif %}
+                  {% else %}
+                    Unknown/Deleted user
+                  {% endif %}
+                </td>
                 <td class="align-middle">
                   <div class="d-flex justify-content-center">
                     <span
@@ -1074,27 +1097,117 @@
         {% endif %}
       </div>
 
+      {% comment %} BloodHound Tab {% endcomment %}
+      {% if bh_api %}
+        <div id="bloodhound" class="tab-pane">
+          <h4>BloodHound</h4>
+          <hr/>
+
+          <p>
+            {% if project.has_bloodhound_api %}
+              Using Project-Specific Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
+            {% elif global_bloodhound_config.has_bloodhound_api %}
+              Using Shared Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em><br/>
+            {% else %}
+              Unavailable
+            {% endif %}
+          </p>
+          {% if global_bloodhound_config.has_bloodhound_api and not project.has_bloodhound_api%}
+            <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
+              This project is using the shared global BloodHound configuration and cached results. Refreshing data here updates the shared cache used by other projects that rely on the same fallback.
+            </div>
+          {% endif %}
+
+          <div class="btn-group-equal-height justify-content-center mb-3 row" role="group" aria-label="BloodHound buttons">
+            <div class="col-md-4 col-sm-4 px-1 mb-2">
+              <form id="bh-test-form" action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" class="h-100">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary w-100 btn-text-wrap h-100" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound">Test BloodHound Connectivity</button>
+              </form>
+            </div>
+            <div class="col-md-4 col-sm-4 px-1 mb-2">
+              <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST" class="h-100">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary w-100 btn-text-wrap h-100" data-toggle="tooltip"
+                  {% if project.has_bloodhound_api %}
+                  title="Fetch data from the project's configured BloodHound API"
+                  {% else %}
+                  title="Fetch data from the globally configured BloodHound API"
+                  {% endif %}
+                >Fetch BloodHound Data</button>
+              </form>
+            </div>
+          </div>
+
+          {% include "snippets/bloodhound_info.html" with res=bh_api.bloodhound_results only %}
+        </div>
+      {% endif %}
+
+      <div id="collab_notes" class="tab-pane">
+        <h4>Collaborative Notes</h4>
+        <hr />
+
+        <div id="collab_notes_container">
+          <p>Loading...</p>
+        </div>
+      </div>
+
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if project_extra_fields_spec %}
-        <div id="extra_fields" class="tab-pane">
+        <div id="extra-fields" class="tab-pane">
           <h4>Extra Fields</h4>
           <hr/>
 
-          <a class="icon edit-icon btn btn-primary mb-1 col-3"
-            href="{% url 'rolodex:project_component_update' project.id %}#extra-fields">Edit Extra Fields</a>
-
-          {% include "user_extra_fields/field_preview_display.html" with object=project object_extra_fields_spec=project_extra_fields_spec %}
-
+          <div class="extra-fields-grid">
+            {% for field_spec in project_extra_fields_spec %}
+              <section class="extra-field-card">
+                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
+                <div class="extra-field-type">
+                  {% if field_spec.type == "rich_text" %}
+                    Rich Text Field
+                  {% else %}
+                    {{ field_spec.get_type_display }} Field
+                  {% endif %}
+                </div>
+                <div class="extra-field-type">Reference as <code>project.extra_fields.{{ field_spec.internal_name }}</code></div>
+                <div class="extra-field-value">
+                  {% if field_spec.type == "rich_text" %}
+                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
+                  {% elif field_spec.type == "json" %}
+                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
+                  {% else %}
+                    {% include "user_extra_fields/field.html" with extra_fields=project.extra_fields field_spec=field_spec preview_report=False %}
+                  {% endif %}
+                </div>
+                <div class="extra-field-actions">
+                  {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    </button>
+                  {% elif field_spec.type == "json" %}
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
+                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    </button>
+                  {% endif %}
+                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
+                     href="{% url 'rolodex:project_component_update' project.id %}#extra-fields"
+                     title="Edit {{ field_spec.display_name }}">Edit</a>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
         </div>
       {% endif %}
 
       {% comment %} Notes Tab {% endcomment %}
-      <div id="notes" class="tab-pane">
-        <h4>Project Notes</h4>
+      {% if project.projectnote_set.all %}
+      <div id="legacy_comments" class="tab-pane">
+        <h4>Project Legacy Comments</h4>
         <hr/>
 
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a
-          Note</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">
+          Add a Comment
+        </a>
 
         {% if project.projectnote_set.all %}
           {% for note in project.projectnote_set.all reversed %}
@@ -1129,12 +1242,9 @@
           </div>
         {% endif %}
       </div>
+      {% endif %}
     </div>
   </div>
-{% endblock %}
-
-{% block tabs %}
-  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
@@ -1220,7 +1330,7 @@
       $('.tablesorter').trigger('update');
     });
 
-    {% comment %} Show/hide the project descirption block {% endcomment %}
+    {% comment %} Show/hide the project description block {% endcomment %}
     $('div.description-block').each(function () {
       $(this).css('height', $(this).height() + 'px');
       $(this).hide();
@@ -1235,7 +1345,7 @@
 
     function expandObjective(ele) {
       ele.parent().parent().toggleClass('open');
-      let accordionRow = ele.parent().parent().next('.accordion');
+      let accordionRow = ele.parent().parent().next('.hiddenAccordion');
       if (!accordionRow.is(':visible')) {
         accordionRow.show().find('.accordion-content').slideDown();
       } else {
@@ -1951,10 +2061,51 @@
     }
 
     $(document).ready(function () {
-
       "use strict";
-
       prepareTodoList();
+    });
+
+    {% comment %} BloodHound actions {% endcomment %}
+    $(document).ready(() => {
+      const bindBloodHoundAsyncForm = (formId, inProgressTitle, inProgressMessage, successTitle, failureTitle) => {
+        const form = document.getElementById(formId);
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", e => {
+          e.preventDefault();
+
+          displayToastTop({type: "info", string: inProgressMessage, title: inProgressTitle});
+          fetch(form.action, {
+            method: "POST",
+            body: new FormData(form, e.submitter),
+            headers: {
+              "X-GW-Async": "True"
+            },
+          }).then(async res => {
+            const message = await res.text();
+            if(res.status === 200)
+              displayToastTop({type: "success", string: message, delay: 0, title: successTitle});
+            else
+              displayToastTop({type: "error", string: message || "Please contact your administrator or consult the Ghostwriter logs.", title: failureTitle});
+          })
+        });
+      };
+
+      bindBloodHoundAsyncForm(
+        "bh-test-form",
+        "Testing BloodHound Connectivity",
+        "Testing the configured BloodHound connection.",
+        "Connectivity Test Complete",
+        "Connectivity Test Failed",
+      );
+      bindBloodHoundAsyncForm(
+        "bh-fetch-form",
+        "Fetching BloodHound Info",
+        "Please wait. Fetching can take several minutes.",
+        "Fetch Completed",
+        "Fetch Failed",
+      );
     });
   </script>
 
@@ -2042,8 +2193,12 @@
   {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
   {% if project_extra_fields_spec %}
     {% for field_spec in project_extra_fields_spec %}
-      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=project.extra_fields field_spec=field_spec %}
+      {% url 'rolodex:project_extra_field_json' project.id field_spec.internal_name as extra_field_json_url %}
+      {% url 'rolodex:project_extra_field_richtext' project.id field_spec.internal_name as extra_field_richtext_url %}
+      {% include "user_extra_fields/extra_field_modal.html" with extra_fields=project.extra_fields field_spec=field_spec lazy_json_url=extra_field_json_url lazy_richtext_url=extra_field_richtext_url preview_report=False %}
     {% endfor %}
+    {% include "user_extra_fields/lazy_json_modal_script.html" %}
+    {% include "user_extra_fields/lazy_richtext_modal_script.html" %}
   {% endif %}
 
   {% comment %} Insert modals for additional infrastructure entry details {% endcomment %}
@@ -2058,4 +2213,7 @@
   {% for vps in project.transientserver_set.all %}
     {% include "snippets/vps_detail_modal.html" with vps=vps %}
   {% endfor %}
+
+  {% include "collab_editing/attrs_snippet.html" %}
+  <script type="module" src="{% static "assets/collab_forms_project_collabnote.js" %}"></script>
 {% endblock %}

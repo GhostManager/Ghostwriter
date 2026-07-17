@@ -1,0 +1,21 @@
+---
+title: "Differences Between BHCE and BHE"
+description: "Data differences between Community Edition and Enterprise"
+---
+
+Ghostwriter integrates with both BHCE and BHE to pull domain data from your server. The full set of information will vary based on the environment,
+but the data includes these items (and more) for each domain:
+
+* Domain name
+* User information — count, count of users with old passwords
+* Computer information — count, operating systems
+* Inbound and outbound trusts
+* Functional level
+* BloodHound's data quality assessment with totals for:
+  * Organizational Units
+  * Access Control Lists
+  * Group Policy Objects
+  * and more
+
+BHE's API offers a "findings" endpoint that is unavailable in BHCE. If the configured instance is a BHE instance, Ghostwriter will
+also collect the findings and make them available to reports.

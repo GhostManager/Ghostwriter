@@ -98,6 +98,12 @@
     color: #000;
     overflow-wrap: break-word;
     padding: 0.3rem;
+    // Let collaboration caret labels extend over the sticky toolbar while
+    // retaining horizontal clipping for editor content.
+    overflow-x: clip;
+    overflow-y: visible;
+    position: relative;
+    z-index: 2;
 
     &,
     blockquote {
@@ -203,6 +209,10 @@
         }
     }
 
+    [data-theme="dark"] & table th p {
+        color: #000;
+    }
+
     .tableWrapper {
         margin: 1.5rem 0;
         overflow-x: auto;
@@ -263,25 +273,39 @@
     }
 
     .node-evidence {
-        width: fit-content;
+        width: 100%;
     }
     .node-evidence.ProseMirror-selectednode .richtext-evidence {
         color: #fff;
         background-color: #88c;
+
+        pre.richtext-evidence-text {
+            color: #222;
+        }
+    }
+    .node-evidence.ProseMirror-selectednode .richtext-evidence .richtext-evidence-missing {
+        color: #fff;
     }
     .richtext-evidence {
         display: flex;
         flex-direction: column;
         align-items: center;
+        text-align: center;
 
+        width: 100%;
         padding: 1rem;
-        margin-left: 1rem;
-        margin-right: 1rem;
         border-radius: 0.9rem;
         background-color: #ddd;
 
+        &:has(.richtext-evidence-prefix) {
+            padding: 0.25rem;
+        }
+
         img {
             width: 300px;
+            max-height: 500px;
+            object-fit: contain;
+            cursor: pointer;
         }
         .richtext-evidence-no-preview {
             font-size: larger;
@@ -289,6 +313,54 @@
         .richtext-evidence-missing {
             font-size: larger;
             color: #f77;
+        }
+        .richtext-evidence-prefix {
+            color: #6d70a7;
+        }
+        .richtext-evidence-text-field {
+            border: 1px solid #aaa;
+            // background-color: #fafafa;
+            border-radius: 0.5rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            margin-top: 0.5rem;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-break: break-word;
+
+            &:empty:before {
+                content: "Insert text here...";
+                pointer-events: none;
+                display: block;
+            }
+        }
+        .richtext-evidence-help {
+            margin-top: 0.5rem;
+        }
+        .richtext-evidence-name {
+            margin-bottom: 0.5rem;
+        }
+        .richtext-evidence-caption {
+            margin-top: 0.5rem;
+        }
+        pre.richtext-evidence-text {
+            border: 1px solid #aaa;
+            background-color: #fafafa;
+            color: #222;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
         }
     }
 
@@ -311,7 +383,7 @@
     }
 
     /* Collaboration caret */
-    .collaboration-cursor__caret {
+    .collaboration-carets__caret {
         border-left: 1px solid #0d0d0d;
         border-right: 1px solid #0d0d0d;
         margin-left: -1px;
@@ -322,7 +394,7 @@
     }
 
     /* Collaboration caret username */
-    .collaboration-cursor__label {
+    .collaboration-carets__label {
         border-radius: 3px 3px 3px 0;
         color: #0d0d0d;
         font-size: 12px;
@@ -381,4 +453,34 @@ ul.collab-focused-users {
 
 .ReactModal__Overlay {
     z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .ReactModal__Content.modal-dialog {
+        // Bootstrap CSS applies margin+height to center, but the overlay does this for us,
+        // and should be clickable to close, so unset bootstrap's stuff.
+        min-height: unset;
+        margin: unset;
+    }
+}
+
+.rich-text-lightbox img {
+    max-width: 95vw;
+    max-height: 95vh;
+}
+
+// Passive Voice Highlighting
+.passive-voice-highlight {
+    background-color: #fff3cd;
+    text-decoration: underline wavy #ff6b6b;
+    text-decoration-thickness: 2px;
+    transition: background-color 0.15s ease;
+    color: marktext;
+    cursor: text;
+}
+
+// Hover state applied via JavaScript to all segments in same group
+.passive-voice-highlight.passive-voice-hover {
+    background-color: #ffe69c;
 }

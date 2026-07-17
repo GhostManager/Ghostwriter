@@ -19,7 +19,7 @@ Support for alternate default paragraph styles:
 Support for custom fields, refactored report writer, and more:
     Alex Parrill (@ColonelThirtyTwo)
 
-Support for HTML tables:
+Support for HTML tables and other ehancements:
     @domwhewell
 
 Valuable feedback and testing:
@@ -45,3 +45,6 @@ Support for configuring evidence image width:
 
 Reported issues and submitted pull requests:
     @smcgu
+
+Submitted new report template filters:
+    @DeveloperMarius

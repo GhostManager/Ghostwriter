@@ -71,7 +71,7 @@ insert_permissions:
         - codename
         - extra_fields
         - name
-        - note
+        - description
         - short_name
         - timezone
 select_permissions:
@@ -83,10 +83,18 @@ select_permissions:
         - extra_fields
         - id
         - name
-        - note
+        - description
         - short_name
         - timezone
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        projects:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -111,7 +119,7 @@ update_permissions:
         - codename
         - extra_fields
         - name
-        - note
+        - description
         - short_name
         - timezone
       filter: {}

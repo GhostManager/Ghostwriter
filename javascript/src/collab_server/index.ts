@@ -7,7 +7,7 @@ import * as apollo from "@apollo/client/core";
 const { ApolloClient, createHttpLink, InMemoryCache } = apollo;
 
 import { randomUUID } from "node:crypto";
-import { Hocuspocus } from "@hocuspocus/server";
+import { Server } from "@hocuspocus/server";
 import { setContext } from "@apollo/client/link/context";
 import { env } from "node:process";
 import * as Y from "yjs";
@@ -20,20 +20,25 @@ import ReportObservationLinkHandler from "./handlers/report_observation_link";
 import FindingHandler from "./handlers/finding";
 import ReportFindingLinkHandler from "./handlers/report_finding_link";
 import ReportHandler from "./handlers/report";
+import ProjectHandler from "./handlers/project";
 
 // Extend this with your model handlers. See how-to-collab.md.
-const HANDLERS: Map<string, ModelHandler> = new Map([
+const HANDLERS_ARR: [string, ModelHandler<any>][] = [
     ["observation", ObservationHandler],
     ["report_observation_link", ReportObservationLinkHandler],
     ["finding", FindingHandler],
     ["report_finding_link", ReportFindingLinkHandler],
     ["report", ReportHandler],
-]);
+    ["project", ProjectHandler],
+];
+const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
 // Graphql Client
 
+const graphql_engine_hostname: string = env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
+
 const httpLink = createHttpLink({
-    uri: "http://graphql_engine:8080/v1/graphql",
+    uri: "http://" + graphql_engine_hostname + ":8080/v1/graphql"
 });
 
 const authLink = setContext((_, { headers }) => {
@@ -64,6 +69,7 @@ const gqlClient = new ApolloClient({
 
 // Hocuspocus collab server
 
+/// Per-user context
 type Context = {
     model: string;
     id: number;
@@ -79,8 +85,9 @@ class AuthError extends Error {
 }
 
 const BASE_LOGGER = pino({});
+const documentData = new Map<string, unknown>();
 
-const server = new Hocuspocus({
+const server = new Server({
     port: 8000,
 
     async onConnect(data) {
@@ -210,7 +217,7 @@ const server = new Hocuspocus({
             context.log.info("Loading document");
 
             const handler = HANDLERS.get(context.model)!;
-            const doc = await handler.load(gqlClient, context.id);
+            const [doc, docData] = await handler.load(gqlClient, context.id);
             doc.transact((tx) => {
                 const serverInfo = tx.doc.get("serverInfo", Y.Map);
                 // Embed an ID unique to this particular yjs doc, so a client working with an older version
@@ -219,6 +226,7 @@ const server = new Hocuspocus({
                 // Save error flag
                 serverInfo.set("saveError", false);
             });
+            documentData.set(data.documentName, docData);
             return doc;
         } catch (e) {
             context.log.error({ msg: "Could not load document", err: e });
@@ -229,9 +237,10 @@ const server = new Hocuspocus({
     async onStoreDocument(data) {
         const context = data.context as Context;
         try {
+            const docData = documentData.get(data.documentName);
             context.log.info("Saving document");
             const handler = HANDLERS.get(context.model)!;
-            await handler.save(gqlClient, context.id, data.document);
+            await handler.save(gqlClient, context.id, data.document, docData);
         } catch (e) {
             context.log.error({ msg: "Could not save document", err: e });
             data.document.transact((tx) => {
@@ -246,6 +255,10 @@ const server = new Hocuspocus({
 
     async onDisconnect(data) {
         (data.context as Context).log.info("Disconnected");
+    },
+
+    async afterUnloadDocument(data) {
+        documentData.delete(data.documentName);
     },
 });
 

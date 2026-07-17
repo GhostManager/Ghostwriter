@@ -9,16 +9,17 @@ from django.conf import settings
 
 # 3rd Party Libraries
 import docx
-from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
 from docx.image.exceptions import UnrecognizedImageError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt
 from docx.shared import RGBColor as DocxRgbColor
+from docx.document import Document as DocumentObject
 from lxml import etree
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.commandcenter.models import ReportConfiguration
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.extensions import (
     IMAGE_EXTENSIONS,
     TEXT_EXTENSIONS,
@@ -27,16 +28,37 @@ from ghostwriter.modules.reportwriter.richtext.ooxml import (
     BaseHtmlToOOXML,
     parse_styles,
 )
+from ghostwriter.reporting.models import EvidenceImageAlignment, ReportTemplate
 
 logger = logging.getLogger(__name__)
+
+EVIDENCE_IMAGE_ALIGNMENT_MAP = {
+    EvidenceImageAlignment.LEFT: WD_ALIGN_PARAGRAPH.LEFT,
+    EvidenceImageAlignment.CENTER: WD_ALIGN_PARAGRAPH.CENTER,
+    EvidenceImageAlignment.RIGHT: WD_ALIGN_PARAGRAPH.RIGHT,
+}
+
+# Word limits bookmark names to 40 characters; hidden aliases add ``_Ref``.
+WORD_BOOKMARK_BASE_NAME_MAX_LENGTH = 36
+WORD_BOOKMARK_INVALID_CHARACTERS = re.compile(r"[^A-Za-z0-9_]")
+
+
+def normalize_bookmark_name(name: str) -> str:
+    """Return a Word-safe name with room for Ghostwriter's ``_Ref`` prefix."""
+    name = WORD_BOOKMARK_INVALID_CHARACTERS.sub("_", name)
+    if not name or not name[0].isalpha():
+        name = "Bookmark_" + name
+    return name[:WORD_BOOKMARK_BASE_NAME_MAX_LENGTH]
 
 
 class HtmlToDocx(BaseHtmlToOOXML):
     """
     Converts HTML to a word document
     """
+    doc: DocumentObject
+    p_style: str
 
-    def __init__(self, doc, p_style):
+    def __init__(self, doc: DocumentObject, p_style: str):
         super().__init__()
         self.doc = doc
         self.p_style = p_style
@@ -46,6 +68,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if par is not None and style.get("hyperlink_url"):
             # For Word, this code is modified from this issue:
             #   https://github.com/python-openxml/python-docx/issues/384
+            # OOXML schema note: <w:hyperlink> is a valid child of <w:p>
+            # (per CT_P / EG_PContent), not of <w:r>. Wrapping it in an outer
+            # <w:r> produces malformed XML that Word silently recovers from
+            # but LibreOffice drops on import, breaking the link.
+
             # Get an ID from the ``document.xml.rels`` file
             part = par.part
             r_id = part.relate_to(
@@ -59,24 +86,41 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 docx.oxml.shared.qn("r:id"),
                 r_id,
             )
-            # Create the ``w:r`` and ``w:rPr`` elements
+
+            # Create the inner ``w:r`` and ``w:rPr`` that hold the link text.
+            # Styling must be applied to THIS run, not an outer wrapper,
+            # because this is the run that contains the visible text.
             new_run = docx.oxml.shared.OxmlElement("w:r")
             rPr = docx.oxml.shared.OxmlElement("w:rPr")
+
+            # Apply Hyperlink styling. If the template defines a "Hyperlink"
+            # character style, reference it; otherwise emit direct color +
+            # underline as a fallback so the link is visually distinguishable
+            # even without the style definition.
+            if "Hyperlink" in self.doc.styles:
+                rStyle = docx.oxml.shared.OxmlElement("w:rStyle")
+                rStyle.set(docx.oxml.shared.qn("w:val"), "Hyperlink")
+                rPr.append(rStyle)
+            else:
+                color = docx.oxml.shared.OxmlElement("w:color")
+                color.set(docx.oxml.shared.qn("w:val"), "0563C1")
+                rPr.append(color)
+                u = docx.oxml.shared.OxmlElement("w:u")
+                u.set(docx.oxml.shared.qn("w:val"), "single")
+                rPr.append(u)
+
             new_run.append(rPr)
             self.text_tracking.append_text_to_run(new_run, str(el))
             hyperlink.append(new_run)
-            # Create a new Run object and add the hyperlink into it
-            run = par.add_run()
-            run._r.append(hyperlink)
-            # A workaround for the lack of a hyperlink style
-            if "Hyperlink" in self.doc.styles:
-                try:
-                    run.style = "Hyperlink"
-                except KeyError:
-                    pass
-            else:
-                run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
-                run.font.underline = True
+
+            # Trigger run-tracking bookkeeping by calling add_run(), then
+            # replace the empty <w:r> it created with our <w:hyperlink>.
+            # This keeps text_tracking's state machine in sync while still
+            # producing schema-valid XML where <w:hyperlink> is a direct
+            # child of <w:p>.
+            placeholder = par.add_run()
+            placeholder._r.addprevious(hyperlink)
+            placeholder._r.getparent().remove(placeholder._r)
         else:
             super().text(el, par=par, style=style, **kwargs)
 
@@ -116,17 +160,22 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
-            run = heading_paragraph.runs[0]
-            tag = run._r
-            start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
-            start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
-            tag.append(start)
-            end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
-            end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), bookmark_name)
-            tag.append(end)
-            self.current_bookmark_id += 1
+            bookmark_name = normalize_bookmark_name(bookmark_name)
+            # The visible bookmark supports Word's bookmark list and internal
+            # links. The hidden alias preserves existing {{.ref}} targets.
+            self._add_heading_bookmark(heading_paragraph, bookmark_name)
+            self._add_heading_bookmark(heading_paragraph, "_Ref" + bookmark_name)
+
+    def _add_heading_bookmark(self, paragraph, bookmark_name):
+        start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
+        start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
+        paragraph.runs[0]._r.addprevious(start)
+
+        end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
+        end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        paragraph.runs[-1]._r.addnext(end)
+        self.current_bookmark_id += 1
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
@@ -141,7 +190,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
             # <p> nested in another block element like blockquote, use or copy the paragraph object
             if any(run.text for run in par.runs):
                 # Paragraph has things in it already, make a new one but copy the style
-                par = self.doc.add_paragraph(style=par.style)
+                # Add the paragraph to the same container as the current one.
+                # In a table cell, ``self.doc.add_paragraph`` adds it after the
+                # table, rather than in the cell.
+                parent = par._parent
+                if hasattr(parent, "add_paragraph"):
+                    par = parent.add_paragraph(style=par.style)
+                else:
+                    par = self.doc.add_paragraph(style=par.style)
         else:
             # Top level <p>
             par = self.doc.add_paragraph()
@@ -163,7 +219,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.process_children(el, par=par, **kwargs)
 
     def tag_pre(self, el, *, par=None, **kwargs):
-        if par is None:
+        if par is not None and not any(run.text for run in par.runs):
+            # Use provided empty paragraph
+            pass
+        elif par is not None:
+            # Nested in li or some other element, copy style
+            par = self.doc.add_paragraph(style=par.style)
+        else:
             par = self.doc.add_paragraph()
 
         par.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -237,13 +299,104 @@ class HtmlToDocx(BaseHtmlToOOXML):
         else:
             super().tag_div(el, **kwargs)
 
+    def tag_span(self, el, *, par, **kwargs):
+        """Override tag_span to handle footnotes."""
+        if "footnote" in el.attrs.get("class", []):
+            self.make_footnote(el, par=par, **kwargs)
+        else:
+            super().tag_span(el, par=par, **kwargs)
+
+    def make_footnote(self, el, *, par=None, **kwargs):
+        """
+        Handle <span class="footnote"> elements by creating a Word footnote.
+
+        The footnote content is the text content of the element.
+        A footnote reference is inserted at the current position in the paragraph.
+        """
+        if par is None:
+            logger.warning("Footnote found outside of a paragraph, skipping")
+            return
+
+        # Get the footnote content from the element's text
+        footnote_content = el.get_text().strip()
+        if not footnote_content:
+            return
+
+        # Emit any pending segment break before adding footnote
+        self.text_tracking.force_emit_pending_segment_break()
+
+        # Calculate the next footnote ID by finding the max existing ID
+        # This is simpler and more reliable than the paragraph-based algorithm
+        # which doesn't work well for table cells or dynamically-built documents
+        max_existing_id = 0
+        for footnote in self.doc.footnotes:
+            max_existing_id = max(max_existing_id, footnote.id)
+        next_footnote_id = max_existing_id + 1
+
+        # Add footnote reference to the run and create the footnote
+        paragraph_element = par._p.add_r()
+        paragraph_element.add_footnoteReference(next_footnote_id)
+        new_footnote = self.doc._add_footnote(next_footnote_id)
+
+        # Add the footnote paragraph with the footnote reference mark at the start
+        # This is required for Word to properly display the footnote number
+        footnote_paragraph = new_footnote.add_paragraph()
+
+        # Check if required styles exist in the template
+        has_footnote_text_style = "Footnote Text" in self.doc.styles
+        has_footnote_ref_style = "Footnote Reference" in self.doc.styles
+
+        # Apply paragraph style if available
+        if has_footnote_text_style:
+            footnote_paragraph.style = "Footnote Text"
+
+        # Create footnote reference run with style if available
+        if has_footnote_ref_style:
+            footnote_ref_run = footnote_paragraph.add_run()
+            footnote_ref_run.style = "Footnote Reference"
+            footnote_ref_run.font.superscript = True
+            footnote_ref_element = OxmlElement("w:footnoteRef")
+            footnote_ref_run._r.append(footnote_ref_element)
+        else:
+            # Fallback: manually create run with XML properties
+            footnote_ref_run = footnote_paragraph._p.add_r()
+            run_properties = OxmlElement("w:rPr")
+            style_element = OxmlElement("w:rStyle")
+            style_element.set(qn("w:val"), "FootnoteReference")
+            run_properties.append(style_element)
+            vert_align = OxmlElement("w:vertAlign")
+            vert_align.set(qn("w:val"), "superscript")
+            run_properties.append(vert_align)
+            footnote_ref_run.insert(0, run_properties)
+            footnote_ref_element = OxmlElement("w:footnoteRef")
+            footnote_ref_run.append(footnote_ref_element)
+
+        # Add a space and the footnote text with "Footnote Text" character style
+        text_run = footnote_paragraph.add_run(" " + footnote_content)
+        if has_footnote_text_style:
+            text_run.style = "Footnote Text"
+
+        # Apply fallback formatting if either style is missing
+        if not has_footnote_text_style or not has_footnote_ref_style:
+            pf = footnote_paragraph.paragraph_format
+            pf.line_spacing = 1.0
+            pf.space_before = 0
+            for run in footnote_paragraph.runs:
+                run.font.size = Pt(10)
+
+        # ...existing code...
+
     def create_table(self, rows, cols, **kwargs):
         table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
         table.autofit = True
         table.allow_autofit = True
-        table._tblPr.xpath("./w:tblW")[0].attrib[
+        tblw = table._tblPr.xpath("./w:tblW")[0]
+        tblw.attrib[
             "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
-        ] = "auto"
+        ] = "pct"
+        tblw.attrib[
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}w"
+        ] = "5000"
         for row_idx, _ in enumerate(table.rows):
             for cell_idx, _ in enumerate(table.rows[row_idx].cells):
                 table.rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
@@ -268,37 +421,31 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     and references.
     """
 
+    report_template: ReportTemplate
+    global_report_config: ReportConfiguration
+    image_alignment: WD_ALIGN_PARAGRAPH
+    image_width: float
+
     def __init__(
         self,
         doc,
         *,
-        p_style,
-        evidence_image_width,
         evidences,
-        figure_label: str,
-        figure_prefix: str,
-        figure_caption_location: str,
-        table_label: str,
-        table_prefix: str,
-        table_caption_location: str,
-        title_case_captions: bool,
-        title_case_exceptions: list[str],
-        border_color_width: tuple[str, float] | None,
+        report_template: ReportTemplate,
+        global_report_config: ReportConfiguration,
+        images: dict[str, str],
     ):
-        super().__init__(doc, p_style)
+        super().__init__(doc, report_template.p_style)
         self.evidences = evidences
-        self.figure_label = figure_label
-        self.figure_prefix = figure_prefix
-        self.figure_caption_location = figure_caption_location
-        self.table_label = table_label
-        self.table_prefix = table_prefix
-        self.table_caption_location = table_caption_location
-        self.title_case_captions = title_case_captions
-        self.title_case_exceptions = title_case_exceptions
-        self.border_color_width = border_color_width
-        self.evidence_image_width = evidence_image_width
+        self.images = images
+        self.report_template = report_template
+        self.global_report_config = global_report_config
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
         self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
+        self.title_case_exceptions = self.global_report_config.title_case_exceptions.split(",")
+        effective_alignment = self.report_template.get_effective_evidence_image_alignment(self.global_report_config)
+        self.image_alignment = EVIDENCE_IMAGE_ALIGNMENT_MAP[effective_alignment]
+        self.image_width = self.report_template.get_effective_evidence_image_width(self.global_report_config)
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -314,22 +461,25 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_evidence(par, evidence)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
-            self.make_caption(par, self.figure_label, ref_name or None)
-            par.add_run(self.figure_prefix)
+            self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
+            par.add_run(self.global_report_config.prefix_figure)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
             self.make_cross_ref(par, ref_name)
+        elif "footnote" in el.attrs.get("class", []):
+            self.make_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
 
     def tag_table(self, el, **kwargs):
-        caption = kwargs.get("caption") or el.find("caption")
-        if self.table_caption_location == "top":
-            self._mk_table_caption(caption)
+        caption_el = kwargs.get("caption_el") or el.find("caption")
+        caption_bookmark = kwargs.get("caption_bookmark")
+        if self.global_report_config.table_caption_location == "top":
+            self._mk_table_caption(caption_el, caption_bookmark)
         super().tag_table(el, **kwargs)
-        if self.table_caption_location == "bottom":
-            self._mk_table_caption(caption)
+        if self.global_report_config.table_caption_location == "bottom":
+            self._mk_table_caption(caption_el, caption_bookmark)
 
     def tag_div(self, el, **kwargs):
         if "richtext-evidence" in el.attrs.get("class", []):
@@ -341,15 +491,29 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
             par = self.doc.add_paragraph()
             self.make_evidence(par, evidence)
+        elif "data-gw-image" in el.attrs:
+            name = el.attrs["data-gw-image"]
+            if name not in self.images:
+                logger.warning("Unrecognized image used in rich text field: %s", name)
+                return
+
+            par = self.doc.add_paragraph()
+            self.make_image(par, name, self.images[name])
+        elif "data-gw-caption" in el.attrs:
+            ref_name = el.attrs["data-gw-caption"]
+            par = self.doc.add_paragraph()
+            self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
+            par.add_run(self.global_report_config.prefix_figure)
+            par.add_run(el.get_text())
         else:
             super().tag_div(el, **kwargs)
 
-    def _mk_table_caption(self, caption):
+    def _mk_table_caption(self, caption_el, caption_bookmark=None):
         par_caption = self.doc.add_paragraph()
-        self.make_caption(par_caption, self.table_label, None, styles=["Quote", "Caption"])
-        if caption is not None:
-            par_caption.add_run(self.table_prefix)
-            par_caption.add_run(self.title_except(caption.get_text()))
+        self.make_caption(par_caption, self.global_report_config.label_table, caption_bookmark, styles=["Quote", "Caption"])
+        if caption_el is not None:
+            par_caption.add_run(self.global_report_config.prefix_figure)
+            par_caption.add_run(self.title_except(caption_el.get_text()))
 
     def is_plural_acronym(self, word):
         """
@@ -363,7 +527,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         Ref: https://stackoverflow.com/a/3729957
         """
-        if self.title_case_captions:
+        if self.global_report_config.title_case_captions:
             word_list = re.split(" ", s)  # re.split behaves as expected
             final = []
             for word in word_list:
@@ -385,7 +549,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 continue
 
         if ref:
-            ref = f"_Ref{ref}"
+            ref = f"_Ref{normalize_bookmark_name(ref)}"
         else:
             ref = f"_Ref{random.randint(10000000, 99999999)}"
 
@@ -458,32 +622,29 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a UTF-8 encoded {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise ReportExportError(error_msg) from err
+                raise ReportExportTemplateError(error_msg) from err
 
-            if self.figure_caption_location == "top":
+            if self.global_report_config.figure_caption_location == "top":
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
                 par = self.doc.add_paragraph()
 
             par.text = evidence_text
-            par.alignment = WD_ALIGN_PARAGRAPH.LEFT
             try:
                 par.style = "CodeBlock"
             except KeyError:
-                pass
+                par.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-            if self.figure_caption_location == "bottom":
+            if self.global_report_config.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
 
         elif extension in IMAGE_EXTENSIONS:
-            if self.figure_caption_location == "top":
+            if self.global_report_config.figure_caption_location == "top":
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
                 par = self.doc.add_paragraph()
 
-            par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = par.add_run()
             try:
-                run.add_picture(file_path, width=Inches(self.evidence_image_width))
+                self._make_image(par, file_path)
             except UnrecognizedImageError as e:
                 logger.exception(
                     "Evidence file known as %s (%s) was not recognized as a %s file.",
@@ -495,48 +656,68 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
-                raise ReportExportError(error_msg) from e
+                raise ReportExportTemplateError(error_msg) from e
 
-            if self.border_color_width is not None:
-                border_color, border_width = self.border_color_width
-                # Add the border – see Ghostwriter Wiki for documentation
-                inline_class = run._r.xpath("//wp:inline")[-1]
-                inline_class.attrib["distT"] = "0"
-                inline_class.attrib["distB"] = "0"
-                inline_class.attrib["distL"] = "0"
-                inline_class.attrib["distR"] = "0"
-
-                # Set the shape's "effect extent" attributes to the border weight
-                effect_extent = OxmlElement("wp:effectExtent")
-                effect_extent.set("l", str(border_width))
-                effect_extent.set("t", str(border_width))
-                effect_extent.set("r", str(border_width))
-                effect_extent.set("b", str(border_width))
-                # Insert just below ``<wp:extent>`` or it will not work
-                inline_class.insert(1, effect_extent)
-
-                # Find inline shape properties – ``pic:spPr``
-                pic_data = run._r.xpath("//pic:spPr")[-1]
-                # Assemble OXML for a solid border
-                ln_xml = OxmlElement("a:ln")
-                ln_xml.set("w", str(border_width))
-                solidfill_xml = OxmlElement("a:solidFill")
-                color_xml = OxmlElement("a:srgbClr")
-                color_xml.set("val", border_color)
-                solidfill_xml.append(color_xml)
-                ln_xml.append(solidfill_xml)
-                pic_data.append(ln_xml)
-
-            if self.figure_caption_location == "bottom":
+            if self.global_report_config.figure_caption_location == "bottom":
                 par_caption = self.doc.add_paragraph()
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
 
+    def make_image(self, par, name: str, file_path: str):
+        if not os.path.isabs(file_path):
+            file_path = os.path.join(settings.MEDIA_ROOT, file_path)
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(file_path)
+
+        try:
+            self._make_image(par, file_path)
+        except UnrecognizedImageError:
+            logger.exception("Image file at %s was not recognized as an image file", file_path)
+            raise ReportExportTemplateError("Image %s was not recognized as an image file. Try opening it, exporting as desired type, and re-uploading it.", name)
+
+    def _make_image(self, par, file_path: str):
+        par.alignment = self.image_alignment
+        run = par.add_run()
+        run.add_picture(file_path, width=Inches(self.image_width))
+
+        if self.global_report_config.enable_borders:
+            border_color = self.global_report_config.border_color
+            border_width = self.global_report_config.border_weight
+            # Add the border – see Ghostwriter Wiki for documentation
+            inline_class = run._r.xpath("//wp:inline")[-1]
+            inline_class.attrib["distT"] = "0"
+            inline_class.attrib["distB"] = "0"
+            inline_class.attrib["distL"] = "0"
+            inline_class.attrib["distR"] = "0"
+
+            # Set the shape's "effect extent" attributes to the border weight
+            effect_extent = OxmlElement("wp:effectExtent")
+            effect_extent.set("l", str(border_width))
+            effect_extent.set("t", str(border_width))
+            effect_extent.set("r", str(border_width))
+            effect_extent.set("b", str(border_width))
+            # Insert just below ``<wp:extent>`` or it will not work
+            inline_class.insert(1, effect_extent)
+
+            # Find inline shape properties – ``pic:spPr``
+            pic_data = run._r.xpath("//pic:spPr")[-1]
+            # Assemble OXML for a solid border
+            ln_xml = OxmlElement("a:ln")
+            ln_xml.set("w", str(border_width))
+            solidfill_xml = OxmlElement("a:solidFill")
+            color_xml = OxmlElement("a:srgbClr")
+            color_xml.set("val", border_color)
+            solidfill_xml.append(color_xml)
+            ln_xml.append(solidfill_xml)
+            pic_data.append(ln_xml)
+
     def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
-        self.make_caption(par_caption, self.figure_label, ref)
-        par_caption.add_run(self.figure_prefix)
+        self.make_caption(par_caption, self.global_report_config.label_figure, ref)
+        par_caption.add_run(self.global_report_config.prefix_figure)
         par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
+        ref = normalize_bookmark_name(ref)
+
         # Start the field character run for the label and number
         run = par.add_run()
         r = run._r
@@ -559,7 +740,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         r.append(fldChar)
 
         # Add runs for the figure label and number
-        run = par.add_run(self.figure_label)
+        run = par.add_run(self.global_report_config.label_figure)
         # This ``#`` is a placeholder Word will replace with the figure's number
         run = par.add_run("#")
 
@@ -606,7 +787,7 @@ class ListTracking:
         try:
             numbering = doc.part.numbering_part.numbering_definitions._numbering
         except NotImplementedError as e:
-            raise ReportExportError("Tried to use a list in a template without list styles") from e
+            raise ReportExportTemplateError("Tried to use a list in a template without list styles") from e
         last_used_id = max(
             (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
             default=-1,
@@ -667,7 +848,9 @@ class ListTracking:
                 par.style = "Number List" if is_ordered else "Bullet List"
             except KeyError:
                 try:
-                    par.style = "ListParagraph"
+                    # Use the built-in style name rather than its style_id to avoid
+                    # python-docx's deprecated style_id lookup path.
+                    par.style = "List Paragraph"
                 except KeyError:
                     pass
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id

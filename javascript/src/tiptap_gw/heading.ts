@@ -15,7 +15,9 @@ export const HeadingWithId = Heading.extend({
     name: "gwheading",
 
     addAttributes() {
-        const attrs = Heading.config.addAttributes!.call(this) as Attributes;
+        const attrs = Heading.config.addAttributes!.call(
+            this as any
+        ) as Attributes;
         attrs.bookmark = {
             default: undefined,
             parseHTML: (el) =>
@@ -26,7 +28,7 @@ export const HeadingWithId = Heading.extend({
     },
 
     addCommands() {
-        const cmds = Heading.config.addCommands!.call(this);
+        const cmds = Heading.config.addCommands!.call(this as any);
         cmds.setHeadingBookmark =
             (name) =>
             ({ commands, can }) => {

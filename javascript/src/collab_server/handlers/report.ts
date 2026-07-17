@@ -28,9 +28,10 @@ const ReportHandler = simpleModelHandler(
         const obj = res.report_by_pk;
         if (!obj) throw new Error("No object");
         extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
+        return res.extraFieldSpec;
     },
-    (doc, id) => {
-        const extraFields = extraFieldsFromYdoc(doc);
+    (doc, id, extraFieldSpec) => {
+        const extraFields = extraFieldsFromYdoc(extraFieldSpec, doc);
         return {
             id,
             extraFields,

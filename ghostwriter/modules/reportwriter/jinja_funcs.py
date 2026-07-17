@@ -11,15 +11,17 @@ from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django import forms
+from django.utils import formats
 from django.utils.dateformat import format as dateformat
 import jinja2
 from markupsafe import Markup
 
 from ghostwriter.modules.exceptions import InvalidFilterValue
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 logger = logging.getLogger(__name__)
-
 
 # Custom Jinja2 filters for DOCX templates
 def filter_severity(findings, allowlist):
@@ -191,6 +193,66 @@ def format_datetime(date, new_format=None):
     return formatted_date
 
 
+def to_datetime(date, format_str=None):
+    """
+    Convert a date string to a datetime object using the given format.
+
+    **Parameters**
+
+    ``date``
+        Date string to convert
+    ``format_str``
+        Format string to use for conversion (uses Django's configured date input formats if omitted)
+    """
+    try:
+        if isinstance(date, datetime):
+            return date
+        if format_str:
+            return datetime.strptime(date, format_str)
+        return datetime.combine(
+            forms.DateField(
+                input_formats=formats.get_format("DATE_INPUT_FORMATS")
+            ).clean(date),
+            datetime.min.time(),
+        )
+    except (ParserError, TypeError, ValueError, ValidationError) as e:
+        logger.exception("Error parsing ``date`` with the provided format: %s", date)
+        raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter') from e
+
+
+def business_days(start_date, end_date):
+    """
+    Calculate the number of business days between two dates.
+
+    **Parameters**
+
+    ``start_date``
+        Start date string or datetime object
+    ``end_date``
+        End date string or datetime object
+    """
+    try:
+        start_date = start_date if isinstance(start_date, datetime) else parse_datetime(start_date)
+        end_date = end_date if isinstance(end_date, datetime) else parse_datetime(end_date)
+    except ParserError as e:
+        logger.exception("Error parsing dates with the provided format: %s, %s", start_date, end_date)
+        raise InvalidFilterValue(f'Invalid date strings ("{start_date}", "{end_date}") passed into the `business_days()` filter') from e
+
+    # If user passed the dates in the wrong order, swap them
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    # Count business days
+    business_days_count = 0
+    current_date = start_date
+    while current_date <= end_date:
+        if current_date.weekday() < 5:
+            business_days_count += 1
+        current_date += timedelta(days=1)
+
+    return business_days_count
+
+
 def get_item(lst, index):
     """
     Get the item at the specified index in a list.
@@ -273,10 +335,10 @@ def mk_evidence(context: jinja2.runtime.Context, evidence_name: str) -> Markup:
     """
     evidences = context.get("_evidences")
     if evidences is None:
-        raise ReportExportError("No evidences are available in this context")
+        raise ReportExportTemplateError("No evidences are available in this context")
     evidence_id = evidences.get(evidence_name)
     if evidence_id is None:
-        raise ReportExportError(f"No such evidence with name '{evidence_name}'")
+        raise ReportExportTemplateError(f"No such evidence with name '{evidence_name}'")
     return raw_mk_evidence(evidence_id)
 
 
@@ -305,3 +367,55 @@ def replace_blanks(list_of_dicts, placeholder=""):
             "Invalid list of dictionaries passed into `replace_blanks()` filter; must be a list of dictionaries"
         ) from e
     return list_of_dicts
+
+
+def filter_bhe_findings_by_domain(findings, domain_sid):
+    """
+    Filter a list of BloodHound Enterprise findings to return only those associated with a given domain.
+
+    **Parameters**
+
+    ``findings``
+        List of dictionary objects (JSON) for findings
+    ``domain_sid``
+        The domain's SID to filter findings by
+    """
+    filtered_values = []
+    try:
+        normalized_domain_sid = domain_sid.lower() if isinstance(domain_sid, str) and domain_sid else None
+        for finding in findings:
+            environment_id = finding.get("environment_id")
+            normalized_environment_id = (
+                environment_id.lower() if isinstance(environment_id, str) and environment_id else None
+            )
+            if normalized_domain_sid and normalized_environment_id == normalized_domain_sid:
+                filtered_values.append(finding)
+    except (KeyError, TypeError, AttributeError) as e:
+        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
+        raise InvalidFilterValue(
+            "Invalid list of findings passed into `filter_bhe_findings_by_domain()` filter; must be the `{{ findings }}` object"
+        ) from e
+    return filtered_values
+
+
+def translate_domain_sid(sid: str, domains: dict):
+    """
+    Translate a domain SID to its corresponding domain name.
+
+    **Parameters**
+    ``sid``
+        The domain SID to translate
+    ``domains``
+        List of domain dictionaries with `domain_sid` and `name` keys
+    """
+    for domain in domains:
+        try:
+            if sid == domain["domain_sid"]:
+                return domain["name"]
+        except KeyError:
+            continue
+        except TypeError as e:
+            raise InvalidFilterValue(
+                "Invalid parameters passed into `translate_domain_sid()` filter; must be a domain SID string and the `{{ bloodhound.domains }}` object"
+            ) from e
+    return sid

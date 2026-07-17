@@ -1,7 +1,7 @@
 
 import re
 
-from django.db import migrations, models
+from django.db import migrations
 
 def migrate_fwd(apps, _schemas_editor):
     ReportConfiguration = apps.get_model("commandcenter", "ReportConfiguration")

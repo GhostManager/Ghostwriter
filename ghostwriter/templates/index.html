@@ -78,6 +78,34 @@
           </div>
         </div>
 
+        {% if active_projects %}
+          <div class="dashboard__item">
+            <div class="card">
+              <p class="dashboard-header text-center">Assigned Findings</p>
+              {% if assigned_findings %}
+                {% for finding in assigned_findings %}
+                  <p class="text-left mb-1"><a class="dashboard-link" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></p>
+                {% endfor %}
+              {% else %}
+                <p class="text-center healthy mb-1">All Tasks Complete!</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="dashboard__item">
+            <div class="card">
+              <p class="dashboard-header text-center">Assigned Observations</p>
+              {% if assigned_observations %}
+                {% for observation in assigned_observations %}
+                  <p class="text-left mb-1"><a class="dashboard-link" href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}</a></p>
+                {% endfor %}
+              {% else %}
+                <p class="text-center healthy mb-1">All Tasks Complete!</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
         {%  if request.user|is_privileged %}
           <div class="dashboard__item">
             <div class="card">
@@ -145,15 +173,18 @@
 {% endblock %}
 
 {% block morescripts %}
+  {{ calendar_events|json_script:"dashboard-calendar-events" }}
   <!-- FullCalendar Rendering -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       // Track the initial calendar view in local storage
       var defaultView = (localStorage.getItem('fcDefaultView') !== null ? localStorage.getItem('fcDefaultView') : 'dayGridWeek');
       var calendarEl = document.getElementById('calendar');
+      var calendarEvents = JSON.parse(document.getElementById('dashboard-calendar-events').textContent);
       var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: defaultView,
         height: 'auto',
+        events: calendarEvents,
         headerToolbar: {
           left: 'today prev,next',
           center: 'title',
@@ -169,30 +200,26 @@
           localStorage.setItem("fcDefaultView", info.view.type);
         },
         eventDidMount: function (info) {
+          let assignedOperators = info.event.extendedProps.assignedOperators || ['No assigned operators'];
+          let calendarKind = info.event.extendedProps.calendarKind || 'Assignment';
+          let popoverTitle = $('<div>').text(calendarKind + ': ' + info.event.title).html();
           $(info.el).popover({
-            title: 'Assignment: ' + info.event.title,
+            title: popoverTitle,
             placement: 'top',
             trigger: 'hover',
-            content: 'Click event in calendar to view details.',
+            html: true,
+            sanitize: true,
+            content: function () {
+              return $('<div>')
+                .append($('<p>').text('Assigned: ' + assignedOperators.join(', ')))
+                .append($('<p>').text('Click event in calendar to view details.'))
+                .html();
+            },
             container: 'body'
           });
         },
       });
       calendar.render();
-      {% for assignment in user_projects %}
-        // Add project execution window
-        let event_{{ assignment.id }} = {
-          title: '{{ assignment.project.client }} {{ assignment.project.project_type }} ({{ assignment.role }})',
-          allDay: true,
-          start: '{{ assignment.start_date|date:"Y-m-d" }}',
-          end: '{{ assignment.end_date|plus_days:1|date:"Y-m-d" }}',
-          backgroundColor: 'var(--primary-color)',
-          borderColor: 'var(--secondary-color-light)',
-          classNames: ['calendar-exec-icon'],
-          url: '{{ assignment.project.get_absolute_url }}',
-        };
-        calendar.addEvent(event_{{ assignment.id }});
-      {% endfor %}
     });
 
     {% comment %} Hide the Quickstart card when the button is clicked {% endcomment %}

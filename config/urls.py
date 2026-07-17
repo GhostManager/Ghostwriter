@@ -10,10 +10,11 @@ from django.views import defaults as default_views
 from django.views.generic import RedirectView
 
 # Ghostwriter Libraries
-from ghostwriter.home.views import protected_serve
 from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
+    recovery_codes_view,
+    remove_device_totp_view,
 )
 
 # Ensure users go through the allauth workflow when logging into admin
@@ -38,7 +39,8 @@ urlpatterns = [
         account_reset_password_from_key,
         name="account_reset_password_from_key",
     ),
-    path("accounts/two-factor/", include("allauth_2fa.urls")),
+    path('accounts/2fa/recovery-codes/', recovery_codes_view, name='mfa_view_recovery_codes'),
+    path('accounts/2fa/totp/deactivate/', remove_device_totp_view, name='mfa_view_remove_device_totp'),
     path("accounts/", include("allauth.urls")),
     # path("accounts/", include("django.contrib.auth.urls")),
     path("rolodex/", include("ghostwriter.rolodex.urls", namespace="rolodex")),
@@ -46,11 +48,6 @@ urlpatterns = [
     path("reporting/", include("ghostwriter.reporting.urls", namespace="reporting")),
     path("", RedirectView.as_view(pattern_name="home:dashboard"), name="home"),
     path("oplog/", include("ghostwriter.oplog.urls", namespace="oplog")),
-    re_path(
-        r"^%s(?P<path>.*)$" % settings.MEDIA_URL[1:],
-        protected_serve,
-        {"document_root": settings.MEDIA_ROOT},
-    ),
     path("api/", include("ghostwriter.api.urls", namespace="api")),
     path("status/", include("ghostwriter.status.urls", namespace="status")),
     # Add additional custom paths below this line...

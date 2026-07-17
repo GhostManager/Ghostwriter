@@ -1,0 +1,52 @@
+Burp Suite Professional - Proxy history export
+Captured: 2026-07-08 15:04:18 EDT
+Tool: Proxy
+Listener: 127.0.0.1:8080
+TLS: portal.gbi.example:443
+
+--- Request ---
+GET /api/v1/profile/notes?account=1042 HTTP/2
+Host: portal.gbi.example
+Cookie: GBISESSION=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.REDACTED
+Sec-CH-UA: "Chromium";v="126", "Not.A/Brand";v="24"
+Sec-CH-UA-Platform: "Windows"
+Accept: application/json
+X-Requested-With: XMLHttpRequest
+Referer: https://portal.gbi.example/profile
+Accept-Encoding: gzip, deflate, br
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0.0.0 Safari/537.36
+
+--- Response ---
+HTTP/2 200 OK
+Date: Tue, 08 Jul 2026 19:04:18 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 412
+Server: nginx/1.24.0
+Cache-Control: no-store
+Pragma: no-cache
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; object-src 'none'
+X-Request-ID: c98bb7dc-2a66-48e8-bb92-43e458d77023
+
+{
+  "accountId": 1042,
+  "displayName": "Dana Barrett",
+  "notes": [
+    {
+      "id": 8817,
+      "author": "support.agent",
+      "created": "2026-07-02T16:41:09Z",
+      "body": "Follow-up scheduled after containment review."
+    },
+    {
+      "id": 8841,
+      "author": "assessment.user",
+      "created": "2026-07-08T19:03:55Z",
+      "body": "<img src=x onerror=console.log('GBI-XSS-VALIDATION')>"
+    }
+  ]
+}
+
+Burp annotation: The harmless console marker was stored and returned without output encoding. No external callback or destructive payload was used.

@@ -1,0 +1,59 @@
+{% extends "account/base.html" %}
+{% load i18n humanize %}
+
+{% block pagetitle %}Security Keys{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Security Keys</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+<h2>{% trans "Security Keys" %}</h2>
+
+<div class="row justify-content-center">
+    <table id="token-table" class="table table-striped col-8">
+        {% for authenticator in authenticators %}
+            <tr>
+                <td>
+                    {{ authenticator }}
+                    {% if authenticator.wrap.is_passwordless is True %}
+                        <span class="badge badge-primary">{% trans "Passkey" %}</span>
+                    {% elif authenticator.wrap.is_passwordless is False %}
+                        <span class="badge badge-secondary">{% trans "Key" %}</span>
+                    {% else %}
+                        <span class="badge badge-warning" title="{% trans 'Unknown type' %}">{% trans "Unknown" %}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if authenticator.created_at %}
+                        {% blocktranslate with created=authenticator.created_at|date:"SHORT_DATE_FORMAT" %}Added {{ created }}{% endblocktranslate %}
+                    {% endif %}
+                    {% if authenticator.last_used_at %}
+                        &nbsp;·&nbsp;{% blocktranslate with last=authenticator.last_used_at|naturaltime %}Used {{ last }}{% endblocktranslate %}
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    <form method="post" action="{% url 'mfa_edit_webauthn' authenticator.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-primary col-3">{% trans "Edit" %}</button>
+                    </form>
+                    <form method="post" action="{% url 'mfa_remove_webauthn' authenticator.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-danger col-3">{% trans "Delete" %}</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="3">{% trans "No keys added." %}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endblock %}

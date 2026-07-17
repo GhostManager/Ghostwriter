@@ -8,6 +8,8 @@ import bs4
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_HYPERLINK_PROTOCOLS = {"http", "https", "mailto", "tel"}
+
 
 def set_style_method(tag_name, style_key, style_value=True):
     """
@@ -22,7 +24,6 @@ def set_style_method(tag_name, style_key, style_value=True):
 
     tag_style.__name__ = "tag_" + tag_name
     return tag_style
-
 
 class TextTracking:
     """
@@ -59,7 +60,7 @@ class TextTracking:
         may need to append a space if later text contains non-space characters.
         """
         if self.in_pre:
-            run.text = run.text + text
+            run.text = run.text + remove_invalid_xml_chars(text)
             return
 
         while text:
@@ -72,7 +73,7 @@ class TextTracking:
                 # Non-space text
                 self.is_block_start = False
                 self.force_emit_pending_segment_break()
-                run.text = run.text + match[0]
+                run.text = run.text + remove_invalid_xml_chars(match[0])
             text = text[match.end() :]
 
     def force_emit_pending_segment_break(self):
@@ -169,7 +170,10 @@ class BaseHtmlToOOXML:
     tag_del = set_style_method("del", "strikethrough")
 
     def tag_a(self, el, *, style={}, **kwargs):
-        style = style | {"hyperlink_url": el.attrs.get("href")}
+        style = style.copy()
+        hyperlink_url = sanitize_hyperlink_url(el.attrs.get("href"))
+        if hyperlink_url:
+            style["hyperlink_url"] = hyperlink_url
         self.process_children(el.children, style=style, **kwargs)
 
     def tag_span(self, el, *, style={}, **kwargs):
@@ -248,8 +252,18 @@ class BaseHtmlToOOXML:
         classes = el.attrs.get("class", [])
         if "collab-table-wrapper" in classes:
             table = el.find("table")
-            caption = el.find(class_="collab-table-caption-content")
-            self.tag_table(table, caption=caption, **kwargs)
+            if table is None:
+                logger.warning("collab-table-wrapper div has no nested table element, skipping: %s", el)
+                return
+            caption_el = el.find(class_="collab-table-caption-content")
+            caption_bookmark_el = el.find(class_="collab-table-caption")
+            caption_bookmark = caption_bookmark_el.attrs.get("data-bookmark") if caption_bookmark_el is not None else None
+            self.tag_table(
+                table,
+                caption_el=caption_el,
+                caption_bookmark=caption_bookmark,
+                **kwargs,
+            )
         else:
             logger.warning("Don't know how to handle div: %s", el)
 
@@ -296,11 +310,37 @@ class BaseHtmlToOOXML:
         raise NotImplementedError()
 
 
-def strip_text_whitespace(text):
+def strip_text_whitespace(text: str):
     """
     Consolidates adjacent whitespace into one space, similar to how browsers display it
     """
     return re.sub(r"\s+", " ", text)
+
+
+def sanitize_hyperlink_url(url: str | None) -> str | None:
+    """
+    Allow safe relative URLs and a small allowlist of schemes for exported hyperlinks.
+    """
+    if not url:
+        return None
+    trimmed_url = url.strip()
+    if not trimmed_url or re.search(r"[\x00-\x20\x7f]", trimmed_url):
+        return None
+    if trimmed_url.startswith(("#", "?")):
+        return trimmed_url
+    if (
+        (trimmed_url.startswith("/") and not trimmed_url.startswith("//"))
+        or trimmed_url.startswith("./")
+        or trimmed_url.startswith("../")
+    ):
+        return trimmed_url
+
+    match = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", trimmed_url)
+    if match:
+        return trimmed_url if match.group(1).lower() in ALLOWED_HYPERLINK_PROTOCOLS else None
+    if trimmed_url.startswith("//"):
+        return None
+    return trimmed_url
 
 
 def parse_styles(style: str, handle):
@@ -322,3 +362,27 @@ def parse_styles(style: str, handle):
         except ValueError:
             # Invalid input
             pass
+
+def remove_invalid_xml_chars(text: str) -> str:
+    return "".join(c for c in text if _valid_xml_char_ordinal(c))
+
+def _valid_xml_char_ordinal(c: str):
+    """
+    Checks if the character is valid to include in XML.
+
+    Source:
+        https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+
+    **Parameters**
+
+    ``c`` : string
+        String of characters to validate
+    """
+    codepoint = ord(c)
+    # Conditions ordered by presumed frequency
+    return (
+        0x20 <= codepoint <= 0xD7FF
+        or codepoint in (0x9, 0xA, 0xD)
+        or 0xE000 <= codepoint <= 0xFFFD
+        or 0x10000 <= codepoint <= 0x10FFFF
+    )

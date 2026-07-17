@@ -15,13 +15,49 @@ from django.urls import reverse
 
 # 3rd Party Libraries
 from cvss import CVSS3, CVSS4
+from cvss.exceptions import CVSSError
 from taggit.managers import TaggableManager
 
 # Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.reporting.validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
 logger = logging.getLogger(__name__)
+
+
+def _text_choice_from_stored_value(text_choices, value):
+    """Resolve a Django TextChoices member from a stored value, label, or case variant.
+
+    This keeps report generation tolerant of development or legacy rows that
+    stored display labels like ``Center`` instead of canonical values like
+    ``CENTER``.
+    """
+    try:
+        return text_choices(value)
+    except ValueError:
+        normalized_value = str(value).strip().casefold()
+        for choice in text_choices:
+            if normalized_value in (
+                str(choice.value).casefold(),
+                str(choice.label).casefold(),
+                str(choice.name).casefold(),
+            ):
+                return choice
+        raise
+
+
+class EvidenceImageAlignment(models.TextChoices):
+    LEFT = "LEFT", "Left"
+    CENTER = "CENTER", "Center"
+    RIGHT = "RIGHT", "Right"
+
+
+class EvidenceImageAlignmentOverride(models.TextChoices):
+    USE_GLOBAL = "USE_GLOBAL", "Use global default"
+    LEFT = EvidenceImageAlignment.LEFT, EvidenceImageAlignment.LEFT.label
+    CENTER = EvidenceImageAlignment.CENTER, EvidenceImageAlignment.CENTER.label
+    RIGHT = EvidenceImageAlignment.RIGHT, EvidenceImageAlignment.RIGHT.label
 
 
 class Severity(models.Model):
@@ -240,6 +276,10 @@ class Finding(models.Model):
     def user_can_view(self, user) -> bool:
         return True
 
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.all()
+
     def user_can_edit(self, user) -> bool:
         return user.is_privileged or user.enable_finding_edit
 
@@ -250,7 +290,7 @@ class Finding(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Finding)"
+        return "Untitled Finding"
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
@@ -342,6 +382,39 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Jinja2 template. All template variables are available, plus {{now}} and {{company_name}}. The file extension is added to this. If blank, the admin-provided default will be used.",
     )
+    bloodhound_heading_offset = models.SmallIntegerField(
+        "BloodHound Heading Offset",
+        default=0,
+        blank=True,
+        help_text="Headings in BloodHound finding descriptions will have their level offset by this amount"
+    )
+    contains_bloodhound_data = models.BooleanField(
+        "Contains BloodHound Data",
+        default=False,
+        help_text="Set to true if this template is designed to include data from BloodHound",
+    )
+    p_style = models.CharField(
+        "New Paragraph Style",
+        max_length=255,
+        default="",
+        blank=True,
+        help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
+    )
+    evidence_image_width = models.FloatField(
+        "Evidence Image Width",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0)],
+        help_text="Override the global evidence image width for this template, in inches (Word only).",
+    )
+    evidence_image_alignment = models.CharField(
+        "Image Evidence Alignment",
+        max_length=16,
+        choices=EvidenceImageAlignmentOverride.choices,
+        default=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        help_text="Override the global image evidence alignment for this template (Word only).",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
@@ -359,20 +432,6 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Select the file type and target for this template",
     )
-    p_style = models.CharField(
-        "New Paragraph Style",
-        max_length=255,
-        default="",
-        blank=True,
-        help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
-    )
-    evidence_image_width = models.FloatField(
-        "Evidence Image Width",
-        default=6.5,
-        blank=True,
-        validators=[MinValueValidator(0)],
-        help_text="The width of inserted evidence images, in inches (Word only)",
-    )
 
     class Meta:
         ordering = ["doc_type", "client", "name"]
@@ -384,6 +443,47 @@ class ReportTemplate(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+    def user_can_view(self, user) -> bool:
+        if not user.is_active:
+            return False
+        if user.is_privileged or self.client is None:
+            return True
+        return self.client.user_can_view(user)
+
+    def can_apply_to_project(self, project) -> bool:
+        """Return whether this template is global or scoped to the project's client."""
+        return self.client_id is None or self.client_id == project.client_id
+
+    def can_apply_to_report(self, report, doc_type=None) -> bool:
+        """Return whether this template's client and optional document type match a report."""
+        doc_type_matches = doc_type is None or (
+            self.doc_type_id is not None and self.doc_type.doc_type.lower() == doc_type.lower()
+        )
+        return doc_type_matches and self.can_apply_to_project(report.project)
+
+    def user_can_apply_to_report(self, user, report, doc_type=None) -> bool:
+        """Return whether the user can view this template and apply it to the report."""
+        return self.user_can_view(user) and self.can_apply_to_report(report, doc_type)
+
+    def get_effective_evidence_image_alignment(self, report_config):
+        template_alignment = _text_choice_from_stored_value(
+            EvidenceImageAlignmentOverride, self.evidence_image_alignment
+        )
+        if template_alignment == EvidenceImageAlignmentOverride.USE_GLOBAL:
+            return _text_choice_from_stored_value(
+                EvidenceImageAlignment, report_config.evidence_image_alignment
+            )
+        return _text_choice_from_stored_value(
+            EvidenceImageAlignment, template_alignment.value
+        )
+
+    def get_effective_evidence_image_width(self, report_config):
+        if self.evidence_image_width is not None:
+            return self.evidence_image_width
+        if report_config.evidence_image_width is not None:
+            return report_config.evidence_image_width
+        return 6.5
 
     @property
     def filename(self):
@@ -403,7 +503,7 @@ class ReportTemplate(models.Model):
                 )
         return result_code
 
-    def exporter(self, object):
+    def exporter(self, object, **kwargs):
         """
         Returns an ExportBase subclass instance based on the template and the passed-in object.
         Call the `run` method to generate the corresponding report.
@@ -412,6 +512,11 @@ class ReportTemplate(models.Model):
         # Ghostwriter Libraries
         from ghostwriter.rolodex.models import Project
 
+        if self.doc_type is None:
+            raise ReportExportTemplateError(
+                f"Template {self.name} has no document type set. Please edit the template and select a document type."
+            )
+
         if self.doc_type.doc_type == "docx":
             assert isinstance(object, Report)
             # Ghostwriter Libraries
@@ -419,9 +524,8 @@ class ReportTemplate(models.Model):
 
             return ExportReportDocx(
                 object,
-                template_loc=self.document.path,
-                p_style=self.p_style,
-                evidence_image_width=self.evidence_image_width,
+                report_template=self,
+                **kwargs
             )
         if self.doc_type.doc_type == "project_docx":
             assert isinstance(object, Project)
@@ -430,21 +534,20 @@ class ReportTemplate(models.Model):
 
             return ExportProjectDocx(
                 object,
-                template_loc=self.document.path,
-                p_style=self.p_style,
-                evidence_image_width=self.evidence_image_width,
+                report_template=self,
+                **kwargs
             )
         if self.doc_type.doc_type == "pptx" and isinstance(object, Report):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 
-            return ExportReportPptx(object, template_loc=self.document.path)
+            return ExportReportPptx(object, report_template=self, **kwargs)
         if self.doc_type.doc_type == "pptx" and isinstance(object, Project):
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.pptx import ExportProjectPptx
 
-            return ExportProjectPptx(object, template_loc=self.document.path)
-        raise RuntimeError(
+            return ExportProjectPptx(object, report_template=self, **kwargs)
+        raise ReportExportTemplateError(
             f"Template for doc_type {self.doc_type.doc_type} and object {object} not implemented. Either this is a bug or an admin messed with the database."
         )
 
@@ -484,23 +587,29 @@ class ReportTemplate(models.Model):
         Runs the linter and returns the results. Does not set the template's `lint_results`.
         """
         # Import in function to avoid circular references
+
+        # Check if doc_type is set
+        if self.doc_type is None:
+            return [], ["Template has no document type set. Please edit the template and select a document type."]
+
+
         if self.doc_type.doc_type == "docx":
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 
-            return ExportReportDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+            return ExportReportDocx.lint(report_template=self)
         if self.doc_type.doc_type == "project_docx":
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.project.docx import ExportProjectDocx
 
-            return ExportProjectDocx.lint(template_loc=self.document.path, p_style=self.p_style)
+            return ExportProjectDocx.lint(report_template=self)
         if self.doc_type.doc_type == "pptx":
             # Report PPTX exporter exports more content, so use it to lint
             # Ghostwriter Libraries
             from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 
             return ExportReportPptx.lint(template_loc=self.document.path)
-        raise RuntimeError(
+        raise ReportExportTemplateError(
             f"Lint for doc_type {self.doc_type.doc_type} not implemented. Either this is a bug or an admin messed with the database."
         )
 
@@ -524,7 +633,7 @@ class Report(models.Model):
     project = models.ForeignKey(
         "rolodex.Project",
         on_delete=models.CASCADE,
-        null=True,
+        null=False,
         help_text="Select the project tied to this report",
     )
     docx_template = models.ForeignKey(
@@ -547,6 +656,7 @@ class Report(models.Model):
     )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     delivered = models.BooleanField("Delivered", default=False, help_text="Delivery status of the report")
+    include_bloodhound_data = models.BooleanField(default=False, help_text="Include data from BloodHound in the report context")
 
     class Meta:
         ordering = ["-creation", "-last_update", "project"]
@@ -582,12 +692,6 @@ class Report(models.Model):
         cls.objects.filter(filter_docx).update(docx_template=None)
         cls.objects.filter(filter_pptx).update(pptx_template=None)
 
-    def all_evidences(self):
-        """
-        Returns a queryset of all evidences attached to the report - both directly attached and through the findings.
-        """
-        return Evidence.objects.filter(Q(report__id=self.pk) | Q(finding__report__id=self.pk))
-
     def __str__(self):
         return f"{self.title}"
 
@@ -597,6 +701,13 @@ class Report(models.Model):
 
     def user_can_view(self, user) -> bool:
         return self.project.user_can_view(user)
+
+    @classmethod
+    def user_viewable(cls, user):
+        from ghostwriter.rolodex.models import Project
+        if user.is_privileged:
+            return cls.objects.all()
+        return cls.objects.filter(project__in=Project.user_viewable(user))
 
     def user_can_edit(self, user) -> bool:
         return self.project.user_can_edit(user)
@@ -741,7 +852,7 @@ class ReportFindingLink(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Finding)"
+        return "Untitled Finding"
 
     @classmethod
     def user_can_create(cls, user, report) -> bool:
@@ -749,6 +860,10 @@ class ReportFindingLink(models.Model):
 
     def user_can_view(self, user) -> bool:
         return self.report.user_can_view(user)
+
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.filter(report__in=Report.user_viewable(user))
 
     def user_can_edit(self, user) -> bool:
         return self.report.user_can_edit(user)
@@ -758,17 +873,28 @@ class ReportFindingLink(models.Model):
 
     @property
     def cvss_data(self):
-        if "3.1" in self.cvss_vector:
-            cvss_version = "3.1"
-            cvss_obj = CVSS3(self.cvss_vector)
-            cvss_scores = cvss_obj.scores()
-            cvss_severities = cvss_obj.severities()
-        elif "4.0" in self.cvss_vector:
-            cvss_version = "4.0"
-            cvss_obj = CVSS4(self.cvss_vector)
-            cvss_scores = cvss_obj.base_score
-            cvss_severities = cvss_obj.severity
-        else:
+        try:
+            if "3.1" in self.cvss_vector:
+                cvss_version = "3.1"
+                cvss_obj = CVSS3(self.cvss_vector)
+                cvss_scores = cvss_obj.scores()
+                cvss_severities = cvss_obj.severities()
+            elif "4.0" in self.cvss_vector:
+                cvss_version = "4.0"
+                cvss_obj = CVSS4(self.cvss_vector)
+                cvss_scores = cvss_obj.base_score
+                cvss_severities = cvss_obj.severity
+            else:
+                cvss_version = "Unknown"
+                cvss_scores = ""
+                cvss_severities = ""
+        except CVSSError as error:
+            logger.warning(
+                'Ignoring invalid CVSS vector "%s" for report finding %s: %s',
+                self.cvss_vector,
+                self.pk,
+                error,
+            )
             cvss_version = "Unknown"
             cvss_scores = ""
             cvss_severities = ""
@@ -807,14 +933,13 @@ class ReportFindingLink(models.Model):
 
 
 def set_evidence_upload_destination(this, filename):
-    """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
-    return os.path.join("evidence", str(this.associated_report.id), filename)
+    """Sets the `upload_to` destination to the evidence folder for the report ID."""
+    return os.path.join("evidence", str(this.report_id), filename)
 
 
 class Evidence(models.Model):
     """
-    Stores an individual evidence file, related to :model:`reporting.ReportFindingLink`
-    and :model:`users.User`.
+    Stores an individual evidence file, related to :model:`reporting.Report` and :model:`users.User`.
     """
 
     document = models.FileField(
@@ -846,37 +971,22 @@ class Evidence(models.Model):
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
-    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=True, blank=True)
-    report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True, blank=True)
+    report = models.ForeignKey("Report", on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
-        ordering = ["finding", "report", "document"]
+        ordering = ["report", "document"]
         verbose_name = "Evidence"
         verbose_name_plural = "Evidence"
-
         constraints = [
-            models.CheckConstraint(
-                name="%(app_label)s_%(class)s_finding_or_report",
-                check=(
-                    models.Q(finding__isnull=True, report__isnull=False)
-                    | models.Q(finding__isnull=False, report__isnull=True)
-                ),
+            models.UniqueConstraint(
+                fields=["report", "friendly_name"],
+                name="reporting_evidence_unique_report_friendly_name",
             )
         ]
 
     def get_absolute_url(self):
         return reverse("reporting:evidence_detail", args=[str(self.id)])
-
-    @property
-    def associated_report(self):
-        """
-        The report associated with this evidence, either directly through `self.report` or indirectly through
-        `self.finding.report`.
-        """
-        if self.finding:
-            return self.finding.report
-        return self.report
 
     def __str__(self):
         return f"{self.friendly_name} @ {self.document.name}"
@@ -884,6 +994,12 @@ class Evidence(models.Model):
     @property
     def filename(self):
         return os.path.basename(self.document.name)
+
+    @property
+    def uploaded_by_user(self):
+        if self.uploaded_by:
+            return self.uploaded_by.username
+        return "Unknown"
 
 
 class Archive(models.Model):
@@ -988,7 +1104,7 @@ class Observation(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Observation)"
+        return "Untitled Observation"
 
     @classmethod
     def user_can_create(cls, user) -> bool:
@@ -996,6 +1112,10 @@ class Observation(models.Model):
 
     def user_can_view(self, user) -> bool:
         return True
+
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.all()
 
     def user_can_edit(self, user) -> bool:
         return user.is_privileged or user.enable_observation_edit
@@ -1005,7 +1125,6 @@ class Observation(models.Model):
 
 
 class ReportObservationLink(models.Model):
-
     title = models.CharField(
         "Title",
         max_length=255,
@@ -1030,6 +1149,11 @@ class ReportObservationLink(models.Model):
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
 
+    complete = models.BooleanField(
+        "Completed",
+        default=False,
+        help_text="Mark the observation as ready for a QA review",
+    )
     # Foreign Keys
     report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True)
     assigned_to = models.ForeignKey(
@@ -1055,6 +1179,10 @@ class ReportObservationLink(models.Model):
 
     def user_can_view(self, user) -> bool:
         return self.report.user_can_view(user)
+
+    @classmethod
+    def user_viewable(cls, user):
+        return cls.objects.filter(report__in=Report.user_viewable(user))
 
     def user_can_edit(self, user) -> bool:
         return self.report.user_can_edit(user)

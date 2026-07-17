@@ -7,14 +7,18 @@ import EvidenceUploadForm from "./upload";
 export default function EvidenceModal(props: {
     editor: Editor;
     initialId: null | number;
+    initialFile?: File;
     setEvidenceId: (id: number | null) => void;
 }) {
-    const [uploadMode, setUploadMode] = useState<boolean>(false);
+    const [uploadMode, setUploadMode] = useState<boolean>(
+        props.initialFile != null
+    );
 
     let content;
     if (uploadMode) {
         content = (
             <EvidenceUploadForm
+                initialFile={props.initialFile}
                 switchMode={() => setUploadMode(false)}
                 onSubmit={props.setEvidenceId}
             />

@@ -2,6 +2,9 @@
 
 # Django Imports
 from django.contrib import admin
+from django.core.exceptions import ValidationError
+from django.forms import ModelForm
+from django.forms.models import construct_instance
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex.models import (
@@ -28,6 +31,34 @@ from ghostwriter.rolodex.models import (
 )
 
 
+class ProjectRoleAdminForm(ModelForm):
+    """Allow position edits to flow through model reorder logic before uniqueness is enforced."""
+
+    class Meta:
+        model = ProjectRole
+        fields = "__all__"
+
+    def _post_clean(self):
+        exclude = self._get_validation_exclusions()
+
+        try:
+            self.instance = construct_instance(self, self.instance, self._meta.fields, self._meta.exclude)
+        except ValidationError as e:
+            self._update_errors(e)
+
+        try:
+            self.instance.full_clean(
+                exclude=exclude,
+                validate_unique=False,
+                validate_constraints=False,
+            )
+        except ValidationError as e:
+            self._update_errors(e)
+
+        if self._validate_unique:
+            self.validate_unique()
+
+
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     list_display = ("name", "short_name", "codename", "tag_list")
@@ -38,7 +69,8 @@ class ClientAdmin(admin.ModelAdmin):
             "General Information",
             {"fields": ("name", "short_name", "codename", "timezone", "address")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -58,7 +90,7 @@ class ClientContactAdmin(admin.ModelAdmin):
             "Contact Information",
             {"fields": ("client", "name", "job_title", "email", "phone", "timezone")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
 
@@ -71,7 +103,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "start_date",
         "end_date",
         "complete",
-        "tags",
+        "tag_list",
     )
     list_filter = ("client", "complete", "tags")
     list_display_links = ("client", "codename")
@@ -90,7 +122,8 @@ class ProjectAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Misc", {"fields": ("slack_channel", "note")}),
+        ("Misc", {"fields": ("slack_channel", "description")}),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -107,8 +140,8 @@ class ProjectTypeAdmin(admin.ModelAdmin):
 
 @admin.register(ProjectAssignment)
 class ProjectAssignmentAdmin(admin.ModelAdmin):
-    list_display = ("operator", "project", "start_date", "end_date")
-    list_filter = ("operator", "project")
+    list_display = ("operator", "role", "project", "start_date", "end_date")
+    list_filter = ("operator", "project", "role")
     list_display_links = ("operator", "project")
     fieldsets = (
         ("Operator Information", {"fields": ("operator", "role", "project")}),
@@ -116,13 +149,16 @@ class ProjectAssignmentAdmin(admin.ModelAdmin):
             "Assignment Dates",
             {"fields": ("start_date", "end_date")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
 
 @admin.register(ProjectRole)
 class ProjectRoleAdmin(admin.ModelAdmin):
-    pass
+    form = ProjectRoleAdminForm
+    list_display = ("project_role", "position")
+    list_display_links = ("project_role",)
+    ordering = ("position", "project_role")
 
 
 @admin.register(ClientNote)
@@ -245,5 +281,5 @@ class ProjectContactAdmin(admin.ModelAdmin):
             "Contact Information",
             {"fields": ("project", "name", "job_title", "email", "phone", "timezone", "primary")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )

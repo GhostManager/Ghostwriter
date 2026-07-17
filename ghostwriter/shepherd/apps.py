@@ -6,6 +6,7 @@ from django.apps import AppConfig
 
 class ShepherdConfig(AppConfig):
     name = "ghostwriter.shepherd"
+    verbose_name = "Infrastructure Management"
 
     def ready(self):
         try:

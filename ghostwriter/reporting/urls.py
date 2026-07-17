@@ -51,6 +51,11 @@ urlpatterns += [
         name="ajax_set_finding_status",
     ),
     path(
+        "ajax/report/observation/status/<int:pk>/<str:status>",
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationStatusUpdate.as_view(),
+        name="ajax_set_observation_status",
+    ),
+    path(
         "ajax/report/status/toggle/<int:pk>",
         views.ReportStatusToggle.as_view(),
         name="ajax_toggle_report_status",
@@ -110,6 +115,12 @@ urlpatterns += [
 # URLs for creating, updating, and deleting findings
 urlpatterns += [
     path("findings/<int:pk>", ghostwriter.reporting.views2.finding.FindingDetailView.as_view(), name="finding_detail"),
+    path(
+        "findings/<int:pk>/extra-field-json/<str:extra_field_name>",
+        ghostwriter.reporting.views2.finding.FindingExtraFieldJson.as_view(),
+        name="finding_extra_field_json",
+    ),
+
     path("findings/create/", ghostwriter.reporting.views2.finding.FindingCreate.as_view(), name="finding_create"),
     path("findings/update/<int:pk>", ghostwriter.reporting.views2.finding.FindingUpdate.as_view(), name="finding_update"),
     path("findings/delete/<int:pk>", ghostwriter.reporting.views2.finding.FindingDelete.as_view(), name="finding_delete"),
@@ -128,6 +139,12 @@ urlpatterns += [
 # URLs for creating, updating, and deleting observations
 urlpatterns += [
     path("observations/<int:pk>", ghostwriter.reporting.views2.observations.ObservationDetail.as_view(), name="observation_detail"),
+    path(
+        "observations/<int:pk>/extra-field-json/<str:extra_field_name>",
+        ghostwriter.reporting.views2.observations.ObservationExtraFieldJson.as_view(),
+        name="observation_extra_field_json",
+    ),
+
     path("observations/create/", ghostwriter.reporting.views2.observations.ObservationCreate.as_view(), name="observation_create"),
     path("observations/update/<int:pk>", ghostwriter.reporting.views2.observations.ObservationUpdate.as_view(), name="observation_update"),
     path("observations/delete/<int:pk>", ghostwriter.reporting.views2.observations.ObservationDelete.as_view(), name="observation_delete"),
@@ -160,6 +177,21 @@ urlpatterns += [
         "reports/<int:pk>/edit-extra-field/<str:extra_field_name>",
         ghostwriter.reporting.views2.report.ReportExtraFieldEdit.as_view(),
         name="report_extra_field_edit",
+    ),
+    path(
+        "reports/<int:pk>/extra-field-json/<str:extra_field_name>",
+        ghostwriter.reporting.views2.report.ReportExtraFieldJson.as_view(),
+        name="report_extra_field_json",
+    ),
+    path(
+        "reports/<int:pk>/extra-field-richtext/<str:extra_field_name>",
+        ghostwriter.reporting.views2.report.ReportExtraFieldRichTextPreview.as_view(),
+        name="report_extra_field_richtext",
+    ),
+    path(
+        "reports/<int:pk>/generate-oplog-outline",
+        ghostwriter.reporting.views2.report.ReportOplogOutlineGenerate.as_view(),
+        name="report_generate_oplog_outline",
     ),
     path(
         "templates/<int:pk>",
@@ -206,6 +238,16 @@ urlpatterns += [
         name="local_edit",
     ),
     path(
+        "reports/findings/<int:pk>/extra-field-richtext/<str:extra_field_name>",
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkExtraFieldRichTextPreview.as_view(),
+        name="reportfindinglink_extra_field_richtext",
+    ),
+    path(
+        "reports/findings/preview/<int:pk>",
+        ghostwriter.reporting.views2.report_finding_link.ReportFindingLinkPreview.as_view(),
+        name="finding_preview",
+    ),
+    path(
         "reports/findings/assign/<int:pk>",
         ghostwriter.reporting.views2.report_finding_link.ReportFindingAssign.as_view(),
         name="local_assign",
@@ -216,12 +258,22 @@ urlpatterns += [
         name="local_observation_edit",
     ),
     path(
-        "reports/evidence/upload/<str:parent_type>/<int:pk>",
+        "reports/observations/preview/<int:pk>",
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkPreview.as_view(),
+        name="observation_preview",
+    ),
+    path(
+        "reports/observations/assign/<int:pk>",
+        ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkAssign.as_view(),
+        name="local_observation_assign",
+    ),
+    path(
+        "reports/evidence/upload/<int:pk>",
         views.EvidenceCreate.as_view(),
         name="upload_evidence",
     ),
     path(
-        "reports/evidence/upload/<str:parent_type>/<int:pk>/<str:modal>",
+        "reports/evidence/upload/<int:pk>/<str:modal>",
         views.EvidenceCreate.as_view(),
         name="upload_evidence_modal",
     ),

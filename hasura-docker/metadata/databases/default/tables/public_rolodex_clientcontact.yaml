@@ -22,11 +22,12 @@ insert_permissions:
       check: {}
       columns:
         - client_id
+        - description
         - email
         - job_title
         - name
-        - note
         - phone
+        - primary
         - timezone
   - role: user
     permission:
@@ -46,25 +47,36 @@ insert_permissions:
                         _eq: X-Hasura-User-Id
       columns:
         - client_id
+        - description
         - email
         - job_title
         - name
-        - note
         - phone
+        - primary
         - timezone
 select_permissions:
   - role: manager
     permission:
       columns:
+        - client_id
+        - description
         - email
+        - id
         - job_title
         - name
         - phone
+        - primary
         - timezone
-        - client_id
-        - id
-        - note
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        client:
+          projects:
+            serviceTokenProjectAccesses:
+              token_id:
+                _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -87,11 +99,12 @@ update_permissions:
     permission:
       columns:
         - client_id
+        - description
         - email
         - job_title
         - name
-        - note
         - phone
+        - primary
         - timezone
       filter: {}
       check: null
@@ -99,11 +112,12 @@ update_permissions:
     permission:
       columns:
         - client_id
+        - description
         - email
         - job_title
         - name
-        - note
         - phone
+        - primary
         - timezone
       filter:
         client:

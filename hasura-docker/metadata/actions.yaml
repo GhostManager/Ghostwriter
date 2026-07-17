@@ -80,6 +80,45 @@ actions:
       - role: user
       - role: manager
     comment: Delete the specified template file and remove the associated file from the filesystem
+  - name: downloadEvidence
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/downloadEvidence'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+    comment: Request the specified evidence file to receive a download URL or base64-encoded blob
+  - name: downloadOplogRecording
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/downloadOplogRecording'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+    comment: Request the specified oplog entry's terminal recording to receive a download URL or base64-encoded blob
+  - name: finding_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/finding'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: manager
+      - role: user
+    comment: FindingsByTag
   - name: generateCodename
     definition:
       kind: synchronous
@@ -101,6 +140,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Generate a JSON report for the given report ID
@@ -113,9 +153,21 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Fetch the extra field spec for a model
+  - name: linkOplogEvidence
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/linkOplogEvidence'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
   - name: login
     definition:
       kind: synchronous
@@ -127,6 +179,82 @@ actions:
       - role: manager
       - role: user
       - role: public
+  - name: observation_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/observation'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+    comment: ObservationsByTag
+  - name: oplogEntry_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/oplog_entry'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+  - name: project_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/project'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+    comment: project_by_tag
+  - name: report_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+    comment: ReportByTag
+  - name: reportedFinding_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report_finding_link'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+  - name: reportedObservation_by_tag
+    definition:
+      kind: ""
+      handler: '{{ACTIONS_URL_BASE}}/tags/get_by/report_observation_link'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: service
+      - role: user
+      - role: manager
+    comment: ReportObservationsByTag
   - name: setTags
     definition:
       kind: synchronous
@@ -148,6 +276,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Get Tags
@@ -162,6 +291,18 @@ actions:
     permissions:
       - role: user
       - role: manager
+  - name: uploadOplogRecording
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/uploadOplogRecording'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Upload an Asciinema terminal recording for an oplog entry
   - name: uploadReportTemplate
     definition:
       kind: synchronous
@@ -184,7 +325,8 @@ actions:
     permissions:
       - role: user
       - role: manager
-    comment: User `whoami` query for JWT
+      - role: service
+    comment: User `whoami` query for JWTs, API tokens, and service tokens
 custom_types:
   enums: []
   input_objects: []
@@ -207,6 +349,82 @@ custom_types:
           name: user
           remote_table:
             name: users_user
+            schema: public
+          source: default
+          type: object
+    - name: GetByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: observation
+          remote_table:
+            name: reporting_observation
+            schema: public
+          source: default
+          type: object
+    - name: GetByTagsObject
+    - name: GetFindingByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: finding
+          remote_table:
+            name: reporting_finding
+            schema: public
+          source: default
+          type: object
+    - name: GetObservationByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: observation
+          remote_table:
+            name: reporting_observation
+            schema: public
+          source: default
+          type: object
+    - name: GetReportObservationByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: report_observation
+          remote_table:
+            name: reporting_reportobservationlink
+            schema: public
+          source: default
+          type: object
+    - name: GetReportFindingByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: report_finding
+          remote_table:
+            name: reporting_finding
+            schema: public
+          source: default
+          type: object
+    - name: GetOplogEntryByTagsResponse
+      relationships:
+        - field_mapping:
+            id: id
+          name: oplog_entry
+          remote_table:
+            name: oplog_oplogentry
+            schema: public
+          source: default
+          type: object
+    - name: DownloadEvidenceResponse
+    - name: DownloadRecordingResponse
+    - name: GetReportByTagsResponse
+    - name: GetProjectByTagsResponse
+    - name: linkOplogEvidenceResponse
+    - name: uploadOplogRecordingResult
+      relationships:
+        - field_mapping:
+            oplogEntryId: id
+          name: oplogEntry
+          remote_table:
+            name: oplog_oplogentry
             schema: public
           source: default
           type: object

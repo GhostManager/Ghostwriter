@@ -63,9 +63,8 @@ insert_permissions:
       set:
         created_by_id: x-hasura-User-Id
       columns:
-        - docx_template_id
         - extra_fields
-        - pptx_template_id
+        - include_bloodhound_data
         - project_id
         - title
   - role: user
@@ -86,9 +85,8 @@ insert_permissions:
       set:
         created_by_id: x-hasura-User-Id
       columns:
-        - docx_template_id
         - extra_fields
-        - pptx_template_id
+        - include_bloodhound_data
         - project_id
         - title
 select_permissions:
@@ -103,11 +101,33 @@ select_permissions:
         - docx_template_id
         - extra_fields
         - id
+        - include_bloodhound_data
         - last_update
         - pptx_template_id
         - project_id
         - title
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - archived
+        - complete
+        - created_by_id
+        - creation
+        - delivered
+        - docx_template_id
+        - extra_fields
+        - id
+        - include_bloodhound_data
+        - last_update
+        - pptx_template_id
+        - project_id
+        - title
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -131,10 +151,8 @@ update_permissions:
         - archived
         - complete
         - delivered
-        - docx_template_id
         - extra_fields
-        - pptx_template_id
-        - project_id
+        - include_bloodhound_data
         - title
       filter: {}
       check: {}
@@ -143,10 +161,8 @@ update_permissions:
       columns:
         - complete
         - delivered
-        - docx_template_id
         - extra_fields
-        - pptx_template_id
-        - project_id
+        - include_bloodhound_data
         - title
       filter:
         project:

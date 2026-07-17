@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='generalconfiguration',
             name='hostname',
-            field=models.CharField(default='ghostwriter.local', help_text='Hostname or IP address for Ghostwtiter (used for links in notifications)', max_length=255),
+            field=models.CharField(default='ghostwriter.local', help_text='Hostname or IP address for Ghostwriter (used for links in notifications)', max_length=255),
         ),
     ]

@@ -6,8 +6,8 @@ The following versions are supported with security updates. In general, you shou
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 4.3.x   | :white_check_mark: |
-| < 4.x.x | :x:                |
+| 7.1.x   | :white_check_mark: |
+| < 7.1.x | :x:                |
 
 ## Reporting a Vulnerability
 

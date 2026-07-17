@@ -394,8 +394,11 @@ def check_domains(domain_id=None):
                 domain_qs.health_status = HealthStatus.objects.get(health_status="Burned")
                 change = "burned"
                 pretty_categories = []
-                for vendor, category in lab_results[k]["categories"].items():
-                    pretty_categories.append(f"{vendor}: {category}")
+                if lab_results[k]["categories"]:
+                    for vendor, category in lab_results[k]["categories"].items():
+                        pretty_categories.append(f"{vendor}: {category}")
+                else:
+                    pretty_categories.append("Uncategorized")
 
                 scanners = "N/A"
                 if lab_results[k]["scanners"]:
@@ -606,7 +609,7 @@ def scan_servers(only_active=False):
         server_queryset = StaticServer.objects.filter(server_status__server_status="Active")
     else:
         server_queryset = StaticServer.objects.all()
-    # Run a scan against each server in tbe queryset
+    # Run a scan against each server in the queryset
     for server in server_queryset:
         scanner.scan(
             server.ip_address,

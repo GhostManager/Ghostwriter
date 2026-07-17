@@ -3,18 +3,39 @@ import logging
 from django.forms import ValidationError
 
 # Django Imports
+from django.forms.models import inlineformset_factory
 from django.test import TestCase
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.admin import ExtraFieldSpecInlineFormSet
 from ghostwriter.commandcenter.models import ExtraFieldModel, ExtraFieldSpec
 from ghostwriter.commandcenter.forms import ExtraFieldsField, ExtraFieldsWidget, ReportConfigurationForm
 from ghostwriter.factories import (
+    ClientFactory,
+    ExtraFieldSpecFactory,
     ReportConfigurationFactory,
     ReportDocxTemplateFactory,
     ReportPptxTemplateFactory,
 )
 
 logging.disable(logging.CRITICAL)
+
+
+def instantiate_formset(formset_class, data, instance=None, initial=None):
+    prefix = formset_class.get_default_prefix()
+    formset_data = {}
+    for i, form_data in enumerate(data):
+        for name, value in form_data.items():
+            if name.endswith("_id"):
+                name = name.replace("_id", "")
+            formset_data["{}-{}-{}".format(prefix, i, name)] = value
+    formset_data["{}-TOTAL_FORMS".format(prefix)] = len(data)
+    formset_data["{}-INITIAL_FORMS".format(prefix)] = len(data)
+
+    if instance:
+        return formset_class(formset_data, instance=instance, initial=initial)
+    else:
+        return formset_class(formset_data, initial=initial)
 
 
 class ReportConfigurationFormTests(TestCase):
@@ -48,6 +69,8 @@ class ReportConfigurationFormTests(TestCase):
         prefix_figure=None,
         label_figure=None,
         figure_caption_location=None,
+        evidence_image_alignment=None,
+        evidence_image_width=None,
         prefix_table=None,
         label_table=None,
         table_caption_location=None,
@@ -58,6 +81,8 @@ class ReportConfigurationFormTests(TestCase):
         title_case_captions=None,
         title_case_exceptions=None,
         target_delivery_date=None,
+        default_cvss_version=None,
+        outline_tags=None,
         **kwargs,
     ):
         return ReportConfigurationForm(
@@ -68,6 +93,8 @@ class ReportConfigurationFormTests(TestCase):
                 "prefix_figure": prefix_figure,
                 "label_figure": label_figure,
                 "figure_caption_location": figure_caption_location,
+                "evidence_image_alignment": evidence_image_alignment,
+                "evidence_image_width": evidence_image_width,
                 "prefix_table": prefix_table,
                 "label_table": label_table,
                 "table_caption_location": table_caption_location,
@@ -78,6 +105,8 @@ class ReportConfigurationFormTests(TestCase):
                 "title_case_captions": title_case_captions,
                 "title_case_exceptions": title_case_exceptions,
                 "target_delivery_date": target_delivery_date,
+                "default_cvss_version": default_cvss_version,
+                "outline_tags": outline_tags,
             },
         )
 
@@ -99,6 +128,13 @@ class ReportConfigurationFormTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
 
+        config["default_docx_template_id"] = ReportDocxTemplateFactory(client=ClientFactory()).pk
+
+        form = self.form_data(**config)
+        errors = form.errors["default_docx_template"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid_choice")
+
     def test_clean_default_pptx_template(self):
         config = self.config.__dict__.copy()
         form = self.form_data(**config)
@@ -111,6 +147,31 @@ class ReportConfigurationFormTests(TestCase):
         errors = form.errors["default_pptx_template"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+
+        config["default_pptx_template_id"] = ReportPptxTemplateFactory(client=ClientFactory()).pk
+
+        form = self.form_data(**config)
+        errors = form.errors["default_pptx_template"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid_choice")
+
+    def test_clean_outline_tags_normalizes_and_deduplicates_rules(self):
+        config = self.config.__dict__.copy()
+        config["outline_tags"] = " report , EVIDENCE, cred* , att&ck: , cred* , ATT&CK:* ,, "
+
+        form = self.form_data(**config)
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["outline_tags"], "report,evidence,cred*,att&ck:*")
+
+    def test_clean_outline_tags_rejects_malformed_rules(self):
+        config = self.config.__dict__.copy()
+        config["outline_tags"] = "report,foo::,cred**"
+
+        form = self.form_data(**config)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("outline_tags", form.errors)
 
 
 class ExtraFieldFormTest(TestCase):
@@ -154,6 +215,23 @@ class ExtraFieldFormTest(TestCase):
         self.assertEqual(subwidgets[2]["label"], "Test Field 3")
         self.assertEqual(subwidgets[2]["widget"]["name"], "testform_test_field_integer")
         self.assertEqual(subwidgets[2]["widget"]["type"], "number")
+
+    def test_widget_orders_fields_by_position(self):
+        rich = ExtraFieldSpec.objects.get(internal_name="test_field_rich")
+        integer = ExtraFieldSpec.objects.get(internal_name="test_field_integer")
+        single_line = ExtraFieldSpec.objects.get(internal_name="test_field_single_line")
+
+        rich.position = 1
+        rich.save()
+        integer.position = 2
+        integer.save()
+        single_line.position = 3
+        single_line.save()
+
+        widget = ExtraFieldsWidget("test.TestModel")
+        labels = [field["label"] for field in widget.get_context("testform", None, {})["widget"]["subwidgets"]]
+
+        self.assertEqual(labels, ["Test Field 2", "Test Field 3", "Test Field 1"])
 
     def test_widget_values(self):
         widget = ExtraFieldsWidget("test.TestModel")
@@ -236,6 +314,24 @@ class ExtraFieldFormTest(TestCase):
         data = field.clean(field_data)
         self.assertTrue(data["test_field_bool"])
 
+    def test_checkbox_widget_uses_custom_switch_markup(self):
+        ExtraFieldSpec.objects.create(
+            target_model=self.model,
+            internal_name="test_field_bool",
+            display_name="Test Field 4",
+            type="checkbox",
+        )
+        widget = ExtraFieldsWidget("test.TestModel")
+
+        rendered = widget.render("testform", {"test_field_bool": True}, attrs={"id": "id_testform"})
+
+        self.assertIn('class="mb-3 custom-control custom-switch"', rendered)
+        self.assertIn('class="custom-control-input"', rendered)
+        self.assertIn("checked", rendered)
+        self.assertIn('for="id_testform_test_field_bool"', rendered)
+        self.assertIn('class="custom-control-label form-check-label"', rendered)
+        self.assertIn("Test Field 4", rendered)
+
     def test_checkbox_false(self):
         ExtraFieldSpec.objects.create(
             target_model=self.model,
@@ -257,3 +353,59 @@ class ExtraFieldFormTest(TestCase):
         self.assertFalse(field_data["test_field_bool"])
         data = field.clean(field_data)
         self.assertFalse(data["test_field_bool"])
+
+
+class ExtraFieldSpecInlineFormSetTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.model = ExtraFieldModel.objects.create(
+            model_internal_name="test.AdminModel",
+            model_display_name="Admin Test Model",
+        )
+        cls.field_1 = ExtraFieldSpecFactory(
+            target_model=cls.model,
+            internal_name="first_field",
+            display_name="First Field",
+            type="single_line_text",
+            position=1,
+        )
+        cls.field_2 = ExtraFieldSpecFactory(
+            target_model=cls.model,
+            internal_name="second_field",
+            display_name="Second Field",
+            type="single_line_text",
+            position=2,
+        )
+
+    def form_data(self, data):
+        formset_class = inlineformset_factory(
+            ExtraFieldModel,
+            ExtraFieldSpec,
+            formset=ExtraFieldSpecInlineFormSet,
+            fields="__all__",
+            exclude=["target_model"],
+            extra=0,
+            can_delete=True,
+        )
+        return instantiate_formset(formset_class, data=data, instance=self.model)
+
+    def test_duplicate_positions_raise_validation_error(self):
+        first = self.field_1.__dict__.copy()
+        second = self.field_2.__dict__.copy()
+        second["position"] = 1
+
+        formset = self.form_data([first, second])
+
+        self.assertFalse(formset.is_valid())
+        self.assertEqual(formset.errors[0]["position"].as_data()[0].code, "duplicate")
+        self.assertEqual(formset.errors[1]["position"].as_data()[0].code, "duplicate")
+
+    def test_deleted_form_is_ignored_for_duplicate_positions(self):
+        first = self.field_1.__dict__.copy()
+        second = self.field_2.__dict__.copy()
+        second["position"] = 1
+        second["DELETE"] = True
+
+        formset = self.form_data([first, second])
+
+        self.assertTrue(formset.is_valid())

@@ -1,0 +1,49 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load allauth %}
+
+{% block pagetitle %}Edit Security Key Name{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'mfa_list_webauthn' %}">Security Keys</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Edit Security Key</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h2 class="form-header">{% trans "Edit Security Key" %}</h2>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-12 col-lg-6">
+                {% url 'mfa_edit_webauthn' as action_url %}
+                <form method="post" action="{{ action_url }}" class="form">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="mfa_webauthn_edit">{% trans "Name" %}</label>
+                        <input id="mfa_webauthn_edit" type="text" name="name" value="{{ authenticator }}" class="form-control">
+                    </div>
+                    <div class="text-center">
+                        <button id="mfa_webauthn_edit_submit" type="submit" class="btn btn-primary">
+                            {% trans "Save" %}
+                        </button>
+                        <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-danger">
+                            {% trans "Cancel" %}
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

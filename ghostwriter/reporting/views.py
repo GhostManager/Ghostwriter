@@ -4,16 +4,15 @@
 import logging
 import os
 from datetime import datetime
+import mimetypes
 from os.path import exists
 
 # Django Imports
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.db import transaction
-from django.db.models import Q, Max
 from django.http import (
     FileResponse,
     Http404,
@@ -78,6 +77,12 @@ class UpdateTemplateLintResults(RoleBasedAccessControlMixin, SingleObjectMixin, 
     """
 
     model = ReportTemplate
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
 
     def get(self, *args, **kwargs):
         template = self.get_object()
@@ -288,6 +293,7 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         report = self.get_object()
         docx_template_id = self.request.POST.get("docx_template", None)
         pptx_template_id = self.request.POST.get("pptx_template", None)
+        include_bloodhound_data = self.request.POST.get("include_bloodhound_data", None)
         if docx_template_id and pptx_template_id:
             docx_template_query = None
             pptx_template_query = None
@@ -300,14 +306,25 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 if pptx_template_id < 0:
                     report.pptx_template = None
                 if docx_template_id >= 0:
-                    docx_template_query = ReportTemplate.objects.get(pk=docx_template_id)
+                    docx_template_query = ReportTemplate.objects.get(
+                        pk=docx_template_id, doc_type__doc_type__iexact="docx"
+                    )
+                    if not docx_template_query.user_can_apply_to_report(self.request.user, report, "docx"):
+                        raise ReportTemplate.DoesNotExist
                     report.docx_template = docx_template_query
                 if pptx_template_id >= 0:
-                    pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
+                    pptx_template_query = ReportTemplate.objects.get(
+                        pk=pptx_template_id, doc_type__doc_type__iexact="pptx"
+                    )
+                    if not pptx_template_query.user_can_apply_to_report(self.request.user, report, "pptx"):
+                        raise ReportTemplate.DoesNotExist
                     report.pptx_template = pptx_template_query
+                # Only update include_bloodhound_data if it was provided (field may not be present)
+                if include_bloodhound_data is not None:
+                    report.include_bloodhound_data = include_bloodhound_data.lower() == "true"
                 data = {
                     "result": "success",
-                    "message": "Templates successfully updated.",
+                    "message": "Template configuraton successfully updated.",
                 }
                 report.save()
 
@@ -374,6 +391,23 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                     report.id,
                     self.request.user,
                 )
+                # BloodHound warning logic
+                warnings = []
+                # Only check if include_bloodhound_data is explicitly False
+                if (
+                    hasattr(report, "include_bloodhound_data")
+                    and report.include_bloodhound_data is False
+                ):
+                    if docx_template_query and getattr(docx_template_query, "contains_bloodhound_data", False):
+                        warnings.append(
+                            "The selected Word template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence."
+                        )
+                    if pptx_template_query and getattr(pptx_template_query, "contains_bloodhound_data", False):
+                        warnings.append(
+                            "The selected PowerPoint template references BloodHound data, but BloodHound data inclusion is disabled. The report may not generate properly unless the template checks for data existence."
+                        )
+                data["warnings"] = warnings
+
             except ValueError:
                 data = {
                     "result": "error",
@@ -428,6 +462,12 @@ class ReportTemplateLint(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     model = ReportTemplate
 
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
     def post(self, *args, **kwargs):
         template = self.get_object()
         data = template.lint()
@@ -463,31 +503,10 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 report_to_clone.save()
                 new_pk = report_to_clone.pk
                 for finding in findings:
-                    # Get any evidence files attached to the original finding
-                    evidences = Evidence.objects.filter(finding=finding.pk)
                     # Create a clone of this finding attached to the new report
                     finding.report = report_to_clone
                     finding.pk = None
                     finding.save()
-                    # Clone evidence files and attach them to the new finding
-                    for evidence in evidences:
-                        if exists(evidence.document.path):
-                            evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
-                            evidence.finding = finding
-                            evidence._current_evidence = None
-                            evidence.document = evidence_file
-                            evidence.pk = None
-                            evidence.save()
-                        else:
-                            logger.warning(
-                                "Evidence file not found: %s",
-                                evidence.document.path,
-                            )
-                            messages.warning(
-                                self.request,
-                                f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
-                                extra_tags="alert-warning",
-                            )
 
                 for observation in observations:
                     observation.report = report_to_clone
@@ -622,11 +641,20 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Evidence
 
     def test_func(self):
-        return self.get_object().associated_report.user_can_view(self.request.user)
+        return self.get_object().report.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["linked_oplog_entries"] = (
+            self.object.oplog_entry_links.select_related(
+                "oplog_entry__oplog_id",
+            ).order_by("oplog_entry__oplog_id__name", "-oplog_entry__start_date")
+        )
+        return ctx
 
 
 class EvidencePreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -637,7 +665,7 @@ class EvidencePreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Evidence
 
     def test_func(self):
-        return self.get_object().associated_report.user_can_view(self.request.user)
+        return self.get_object().report.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -654,8 +682,7 @@ class EvidencePreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
 class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     """
-    Create an individual :model:`reporting.Evidence` entry linked to an individual
-    :model:`reporting.ReportFindingLink`.
+    Create an individual :model:`reporting.Evidence` entry linked to a report.
 
     **Template**
 
@@ -666,11 +693,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        if self.finding_instance:
-            report = self.finding_instance.report
-        else:
-            report = self.report_instance
-        return report.user_can_edit(self.request.user)
+        return self.report_instance.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -678,19 +701,8 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        pk = self.kwargs.get("pk")
-        typ = self.kwargs.get("parent_type")
-        if typ == "report":
-            self.finding_instance = None
-            self.report_instance = get_object_or_404(Report, pk=pk)
-            report = self.report_instance
-        elif typ == "finding":
-            self.finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
-            self.report_instance = None
-            report = self.finding_instance.report
-        else:
-            raise Http404("Unrecognized evidence parent model type: {!r}".format(typ))
-        self.evidence_queryset = report.all_evidences()
+        self.report_instance = get_object_or_404(Report, pk=self.kwargs.get("pk"))
+        self.evidence_queryset = self.report_instance.evidence_set.all()
 
     def get_template_names(self):
         if self.kwargs.get("modal", False):
@@ -706,10 +718,8 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        if self.finding_instance:
-            report = self.finding_instance.report
-        else:
-            report = self.report_instance
+        report = self.report_instance
+        ctx["report"] = report
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#evidence"
         if "modal" in self.kwargs:
             friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
@@ -724,10 +734,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     def form_valid(self, form: EvidenceForm):
         obj = form.save(commit=False)
         obj.uploaded_by = self.request.user
-        if self.finding_instance:
-            obj.finding = self.finding_instance
-        else:
-            obj.report = self.report_instance
+        obj.report = self.report_instance
         obj.save()
         form.save_m2m()
         if os.path.isfile(obj.document.path):
@@ -757,12 +764,8 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     def get_success_url(self):
         if "modal" in self.kwargs:
             return reverse("reporting:upload_evidence_modal_success")
-        if self.report_instance:
-            report_pk = self.report_instance.pk
-            fragment = "#evidence"
-        else:
-            report_pk = self.finding_instance.report.pk
-            fragment = "#findings"
+        report_pk = self.report_instance.pk
+        fragment = "#evidence"
         return reverse("reporting:report_detail", args=(report_pk,)) + fragment
 
 
@@ -784,7 +787,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return self.get_object().associated_report.user_can_edit(self.request.user)
+        return self.get_object().report.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -792,11 +795,12 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({"evidence_queryset": self.object.associated_report.all_evidences()})
+        kwargs.update({"evidence_queryset": self.object.report.evidence_set.all()})
         return kwargs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["report"] = self.object.report
         ctx["cancel_link"] = reverse(
             "reporting:evidence_detail",
             kwargs={"pk": self.object.pk},
@@ -838,18 +842,14 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return self.get_object().associated_report.user_can_edit(self.request.user)
+        return self.get_object().report.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get_success_url(self):
-        if self.object.finding:
-            fragment = "#findings"
-        else:
-            fragment = "#evidence"
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.associated_report.pk}) + fragment
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#evidence"
 
     def form_valid(self, form):
         res = super().form_valid(form)
@@ -873,12 +873,12 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
 
 
 class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Return the target :model:`reporting.Evidence` file for download."""
+    """Return the target :model:`reporting.Evidence` file for viewing or download."""
 
     model = Evidence
 
     def test_func(self):
-        return self.get_object().associated_report.user_can_view(self.request.user)
+        return self.get_object().report.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -886,13 +886,31 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        file_path = obj.document.path
         if os.path.exists(file_path):
-            return FileResponse(
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=True,
+                as_attachment=not inline_view,
                 filename=os.path.basename(file_path),
+                content_type=content_type,
             )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                # Additional hardening for inline content
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
+
+            return response
         raise Http404
 
 

@@ -45,11 +45,7 @@ The first endpoint, */status*, tests critical services and displays a table of r
   <img src="/images/features/image-63.avif" alt=""/>
 </Frame>
 
-These tests are more thorough than the Docker health checks. For example, Docker will verify the database back end is listening and accepting connections, but Ghostwriter runs tests to ensure the database is accepting connections and reading and writing are working as expected. Ghostwriter also checks disk usage is below 90% and at least 100MB of memory is available. These checks are can be adjusted via Ghostwriter CLI's `config set` command:
-
-* `HEALTHCHECK_DISK_USAGE_MAX` (Default is `90`)
-
-* `HEALTHCHECK_MEM_MIN` (Default is `100`)
+These tests are more thorough than the Docker health checks. For example, Docker will verify the database back end is listening and accepting connections, but Ghostwriter runs tests to ensure the database is accepting connections and reading and writing are working as expected.
 
 <Check>
 This endpoint can also return a JSON version of the test results if you set the `Accept: application/json` header.
@@ -67,6 +63,30 @@ You can visit the simplified endpoint, */status/simple/*, to run lightweight che
 
 
 The home dashboard displays a basic system health status. The status is based on the results from the simplified endpoint.
+
+### Configuration
+
+The dashboard services map to the following configuration variables:
+
+* DiskUsage: `HEALTHCHECK_DISK_USAGE_MAX` (Default is `90` [percentage])
+
+* MemoryUsage: `HEALTHCHECK_MEM_MIN` (Default is `100` [in MB])
+
+You can configure these values manually in the `.env` file or with Ghostwriter CLI (this sets and reads from `.env`). For changes in `.env` or using the CLI, bring containers `down` and `up`.
+
+Example `.env` snippet with default values:
+
+```sh
+HEALTHCHECK_DISK_USAGE_MAX='90'
+HEALTHCHECK_MEM_MIN='100'
+```
+
+Example using the CLI to set and get the disk usage value:
+
+```sh
+./ghostwriter-cli-linux config set HEALTHCHECK_DISK_USAGE_MAX 90
+./ghostwriter-cli-linux config get HEALTHCHECK_DISK_USAGE_MAX
+```
 
 ## Automated Monitoring
 

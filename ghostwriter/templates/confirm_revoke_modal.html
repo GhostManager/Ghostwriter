@@ -1,5 +1,5 @@
-<!-- Revoke button will redirect to the href of the element with ``id = caller-id`` property in this modal -->
-<div class="modal fade" id="confirm-revoke-modal" tabindex="-1" caller-id="" role="dialog"
+<!-- Revoke button will POST to the URL on the element that opened this modal. -->
+<div class="modal fade" id="confirm-revoke-modal" tabindex="-1" role="dialog"
      aria-labelledby="confirm-revoke-modal-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
@@ -23,31 +23,29 @@
   {% endcomment %}
 
 <script>
-  $('[data-target="#confirm-revoke-modal"]').each(function (index) {
-    $(this).click(function () {
-      $('#confirm-revoke-modal').attr('caller-id', $(this).attr('id'));
-    });
-  });
+  function getRevokeTargetValue($target, attributeName) {
+    return $target.attr('data-revoke-target-' + attributeName) || $target.attr('revoke-target-' + attributeName);
+  }
 
-  $('#confirm-revoke-modal').on('show.bs.modal', function () {
-    let caller = $('#confirm-revoke-button-modal').closest('.modal').attr('caller-id');
-    let $target = $('#' + caller);
-    let targetId = $target.attr('revoke-target-id');
-    let $previewContent = $('#key_name_' + targetId);
+  $('#confirm-revoke-modal').on('show.bs.modal', function (event) {
+    let $modal = $(this);
+    let $target = $(event.relatedTarget);
+    let previewContent = getRevokeTargetValue($target, 'preview') || '';
 
-    if ($previewContent) {
-      $('#object-preview-content').html(escapeHtml($previewContent.text()));
-    }
+    $modal.data('revoke-target', $target);
+    $('#object-preview-content').html(escapeHtml(previewContent));
   });
 
   $('#confirm-revoke-button-modal').click(function () {
-    // Get the ``id`` of the clicked element
-    let caller = $('#confirm-revoke-button-modal').closest('.modal').attr('caller-id');
-    let $target = $('#' + caller);
+    let $target = $('#confirm-revoke-modal').data('revoke-target');
+    if (!$target || !$target.length) {
+      return;
+    }
+
     // Values for the POST
-    let url = $target.attr('revoke-target-url');
-    let targetId = $target.attr('revoke-target-id');
-    let csrftoken = $target.attr('revoke-target-csrftoken');
+    let url = getRevokeTargetValue($target, 'url');
+    let targetId = getRevokeTargetValue($target, 'id');
+    let csrftoken = getRevokeTargetValue($target, 'csrftoken');
     // Selectors for each major parent object – tr, tbody, and table
     let $targetRow = $target.closest('tr');
     let $targetTbody = $target.closest('tbody');

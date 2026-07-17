@@ -67,7 +67,7 @@ insert_permissions:
         - activity_type_id
         - client_id
         - end_date
-        - note
+        - description
         - project_id
         - server_id
         - server_role_id
@@ -93,7 +93,7 @@ insert_permissions:
         - activity_type_id
         - client_id
         - end_date
-        - note
+        - description
         - project_id
         - server_id
         - server_role_id
@@ -111,8 +111,16 @@ select_permissions:
         - server_role_id
         - end_date
         - start_date
-        - note
+        - description
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -136,7 +144,7 @@ update_permissions:
         - activity_type_id
         - client_id
         - end_date
-        - note
+        - description
         - project_id
         - server_id
         - server_role_id
@@ -151,7 +159,7 @@ update_permissions:
         - activity_type_id
         - client_id
         - end_date
-        - note
+        - description
         - project_id
         - server_id
         - server_role_id

@@ -1,13 +1,25 @@
 {% extends "base_generic.html" %}
 
-{% block title %}Server Error{% endblock %}
+{% load static %}
+
+{% block title %}Server Error (500){% endblock %}
 
 {% block content %}
-    <h2>Ooops!!! 500</h2>
+    <h2>Server Error (500)</h2>
 
-    <h3>Looks like something went wrong!</h3>
+    <img src="{% static 'images/scared.png' %}" alt="500 Ghost Image" style="max-width: 250px;">
 
-    <p>We track these errors automatically, but if the problem persists feel free to contact us. In the meantime, try refreshing.</p>
+  <p class="mt-3">This is so embarassing! Something went wrong on our end.</p>
+
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">
+      <strong>Please Help Us:</strong> You should never see this page. If you do, please consider reporting
+      the steps you took leading up to this error to the Ghostwriter development team on
+      <a href="https://github.com/ghostwriter/ghostwriter/issues">GitHub</a>. Your administrator can
+      also collect the exception details from the server logs. Those logs will provide the necessary
+      information to help us identify and fix the issue.
+    </div>
+
+    <a href="{% url 'home:dashboard' %}" class="btn btn-primary mt-2">Return to Home</a>
 {% endblock content %}
 
 

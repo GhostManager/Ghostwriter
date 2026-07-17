@@ -5,21 +5,45 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - "**.md"
+      - "**.mdx"
+      - "**.html"
+      - "**.css"
+      - "DOCS/**"
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - "**.md"
+      - "**.mdx"
+      - "**.html"
+      - "**.css"
+      - "DOCS/**"
 
 jobs:
   run-unit-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build environment
         run: |
           chmod +x ghostwriter-cli-linux
-          ./ghostwriter-cli-linux install --dev
+          ./ghostwriter-cli-linux install --mode local-dev
+
+      - name: Get django logs
+        if: failure()
+        run: |
+          docker compose -f local.yml logs django > django-logs.txt
+
+      - name: Upload django logs artifact
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: django-logs
+          path: django-logs.txt
 
       - name: Generate Coverage report
         run: |
@@ -27,7 +51,7 @@ jobs:
           docker compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
 
       - name: Upload Coverage report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage/reports/coverage.xml
@@ -37,13 +61,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
 
       - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           name: codecov-ghostwriter

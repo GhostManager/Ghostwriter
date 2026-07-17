@@ -6,7 +6,7 @@ import { extraFieldsFromYdoc, extraFieldsToYdoc } from "../extra_fields";
 
 const GET = gql(`
     query GET_OBSERVATION($id: bigint!) {
-        reporting_observation_by_pk(id: $id) {
+        observation_by_pk(id: $id) {
             title, description, extraFields
         }
         tags(model: "observation", id: $id) {
@@ -26,7 +26,7 @@ const SET = gql(`
         $tags:[String!]!,
         $extraFields:jsonb!,
     ) {
-        update_reporting_observation_by_pk(pk_columns:{id:$id}, _set:{
+        update_observation_by_pk(pk_columns:{id:$id}, _set:{
             title: $title,
             description: $description,
             extraFields: $extraFields,
@@ -43,17 +43,18 @@ const ObservationHandler = simpleModelHandler(
     GET,
     SET,
     (doc, res) => {
-        const obj = res.reporting_observation_by_pk;
+        const obj = res.observation_by_pk;
         if (!obj) throw new Error("No object");
         const plain_fields = doc.get("plain_fields", Y.Map);
         plain_fields.set("title", obj.title);
         htmlToYjs(obj.description, doc.get("description", Y.XmlFragment));
         tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
         extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
+        return res.extraFieldSpec;
     },
-    (doc, id) => {
+    (doc, id, extraFieldSpec) => {
         const plainFields = doc.get("plain_fields", Y.Map);
-        const extraFields = extraFieldsFromYdoc(doc);
+        const extraFields = extraFieldsFromYdoc(extraFieldSpec, doc);
         return {
             id,
             title: (plainFields.get("title") as string | undefined) ?? "",

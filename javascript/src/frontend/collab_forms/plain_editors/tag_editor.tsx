@@ -57,7 +57,7 @@ export function TagEditor(props: {
         });
         taggify.current.on("remove", (ev) => {
             //console.log("remove", ev.detail);
-            map.delete(ev.detail.data!.value);
+            if (ev.detail.data !== undefined) map.delete(ev.detail.data.value);
         });
         taggify.current.on("edit:updated", (ev) => {
             //console.log("edit:updated", ev.detail);

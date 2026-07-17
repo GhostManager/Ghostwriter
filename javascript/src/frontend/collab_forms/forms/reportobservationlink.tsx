@@ -10,13 +10,14 @@ import ReactModal from "react-modal";
 import { ProvidePageEvidence } from "../../graphql/evidence";
 import PageGraphqlProvider from "../../graphql/client";
 import { Editor } from "@tiptap/core";
+import ErrorBoundary from "../error_boundary";
 
 const renderToolbarExtra = (editor: Editor) => (
     <EvidenceButton editor={editor} />
 );
 
 function ReportObservationLinkForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "report_observation_link",
     });
 
@@ -37,6 +38,7 @@ function ReportObservationLinkForm() {
                                 connected={connected}
                                 provider={provider}
                                 mapKey="title"
+                                setEditing={setEditing}
                             />
                         </div>
                     </div>
@@ -77,6 +79,7 @@ function ReportObservationLinkForm() {
                     connected={connected}
                     provider={provider}
                     toolbarExtra={renderToolbarExtra}
+                    setEditing={setEditing}
                 />
             </div>
         </ProvidePageEvidence>
@@ -89,8 +92,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     const root = createRoot(document.getElementById("collab-form-container")!);
     root.render(
-        <PageGraphqlProvider>
-            <ReportObservationLinkForm />
-        </PageGraphqlProvider>
+        <ErrorBoundary>
+            <PageGraphqlProvider>
+                <ReportObservationLinkForm />
+            </PageGraphqlProvider>
+        </ErrorBoundary>
     );
 });

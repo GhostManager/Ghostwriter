@@ -1,23 +1,38 @@
 
 import json
 import logging
+from socket import gaierror
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponseRedirect, JsonResponse
 from django.db.models import Max
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.html import escape
 from django.views import View
 from django.views.generic.detail import SingleObjectMixin
+from django.views.generic.edit import UpdateView
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.reporting.models import Observation, Report, ReportObservationLink
+from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+from ghostwriter.commandcenter.utils import has_rich_text_content, render_rich_text_value, wrap_plain_value
 from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+from ghostwriter.reporting.forms import AssignReportObservationForm
+from ghostwriter.reporting.models import Observation, Report, ReportObservationLink
+from ghostwriter.rolodex.models import ProjectAssignment
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
+
 
 class CloneObservationLinkToObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
@@ -136,6 +151,7 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
             report_link = ReportObservationLink(
                 title="Blank Template",
                 report=obj,
+                assigned_to=self.request.user,
                 position=position,
                 added_as_blank=True,
                 extra_fields=ExtraFieldSpec.initial_json(Observation),
@@ -206,6 +222,94 @@ class ReportObservationLinkUpdate(CollabModelUpdate):
     has_extra_fields = Observation
 
 
+class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Render a full preview of a reported observation with Jinja2 resolved."""
+
+    model = ReportObservationLink
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return HttpResponse(
+            '<div class="alert alert-danger">You do not have permission to access that.</div>',
+            content_type="text/html",
+            status=403,
+        )
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        report = obj.report
+        client = report.project.client
+
+        try:
+            exporter = ExportReportJson(
+                report,
+                include_bloodhound=report.include_bloodhound_data,
+            )
+            base_context = exporter.map_rich_texts()
+        except ReportExportTemplateError as error:
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                f"<strong>Template Error</strong><br>{escape(str(error))}"
+                "</div>",
+                content_type="text/html",
+            )
+        except ReportExportError as error:
+            logger.warning(
+                "Export error building preview for observation %s on report %s: %s",
+                obj.pk,
+                report.pk,
+                error,
+            )
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                "<strong>Preview Error</strong><br>"
+                "An unexpected error occurred while rendering this preview.</div>",
+                content_type="text/html",
+            )
+
+        obs_data = None
+        for o in base_context.get("observations", []):
+            if o.get("id") == obj.pk:
+                obs_data = o
+                break
+
+        if obs_data is None:
+            return HttpResponse(
+                '<div class="alert alert-warning">Observation not found in report data.</div>',
+                content_type="text/html",
+            )
+
+        parts = []
+        title = escape(obs_data.get("title", "Untitled Observation"))
+        parts.append(f"<h2>{title}</h2>")
+        parts.append("<hr>")
+
+        html = render_rich_text_value(obs_data.get("description_rt"))
+        if has_rich_text_content(html):
+            sanitized = expand_evidence_and_sanitize(html, report, client=client)
+            parts.append("<h3>Description</h3>")
+            parts.append(sanitized)
+
+        extra_fields = obs_data.get("extra_fields", {})
+        ef_display_names = {
+            spec.internal_name: spec.display_name
+            for spec in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label)
+        }
+        for ef_key, ef_value in extra_fields.items():
+            html = render_rich_text_value(ef_value)
+            if not has_rich_text_content(html):
+                continue
+            html = wrap_plain_value(ef_value, html)
+            sanitized = expand_evidence_and_sanitize(html, report, client=client)
+            label = escape(ef_display_names.get(ef_key, ef_key))
+            parts.append(f"<h3>{label}</h3>")
+            parts.append(sanitized)
+
+        return HttpResponse("\n".join(parts), content_type="text/html")
+
+
 @login_required
 def ajax_update_report_observation_order(request: HttpRequest):
     """
@@ -245,3 +349,121 @@ def ajax_update_report_observation_order(request: HttpRequest):
                 observation_id,
             )
     return JsonResponse({"result": "success"})
+
+
+class ReportObservationStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Update the ``complete`` field of an individual :model:`reporting.ReportObservationLink`."""
+
+    model = ReportObservationLink
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        status = self.kwargs["status"]
+        observation = self.get_object()
+
+        try:
+            result = "success"
+            if status.lower() == "edit":
+                observation.complete = False
+                message = "Successfully flagged observation for editing."
+                display_status = "Needs Editing"
+                classes = "burned"
+            elif status.lower() == "complete":
+                observation.complete = True
+                message = "Successfully marked observation as complete."
+                display_status = "Ready"
+                classes = "healthy"
+            else:
+                result = "error"
+                message = "Could not update the observation's status to: {}".format(status)
+                display_status = "Error"
+                classes = "burned"
+            observation.save()
+            data = {
+                "result": result,
+                "status": display_status,
+                "classes": classes,
+                "message": message,
+            }
+            logger.info(
+                "Set status of %s %s to %s by request of %s",
+                observation.__class__.__name__,
+                observation.id,
+                status,
+                self.request.user,
+            )
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update observation's status!"}
+
+        return JsonResponse(data)
+
+
+class ReportObservationLinkAssign(RoleBasedAccessControlMixin, UpdateView):
+    model = ReportObservationLink
+    form_class = AssignReportObservationForm
+    template_name = "reporting/report_observation_link_assign.html"
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = (
+            reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#observations"
+        )
+        return ctx
+
+    def get_form(self, form_class=None):
+        self.old_assignment = self.object.assigned_to
+        form = super().get_form(form_class)
+        user_primary_keys = ProjectAssignment.objects.filter(
+            project=self.object.report.project
+        ).values_list("operator", flat=True)
+        form.fields["assigned_to"].queryset = User.objects.filter(id__in=user_primary_keys)
+        return form
+
+    def form_valid(self, form: AssignReportObservationForm):
+        if self.old_assignment == self.object.assigned_to:
+            if self.object.assigned_to:
+                messages.info(self.request, "The observation was already assigned to this user. No changes made.")
+            else:
+                messages.info(self.request, "The observation was already unassigned. No changes made.")
+            return HttpResponseRedirect(self.get_success_url())
+        try:
+            # Send a message to the assigned user if `assigned_to` is set
+            if self.object.assigned_to:
+                async_to_sync(get_channel_layer().group_send)(
+                    f"notify_{self.object.assigned_to.get_clean_username()}",
+                    {
+                        "type": "message",
+                        "message": {
+                        "message": "You have been assigned to this observation for {}:\n{}".format(
+                            self.object.report, self.object.title
+                        ),
+                        "level": "info",
+                        "title": "New Assignment",
+                    },
+                },
+            )
+        except gaierror:
+            pass
+        if self.object.assigned_to:
+            messages.success(self.request, "Observation reassigned successfully.")
+        else:
+            messages.success(self.request, "Observation unassigned successfully.")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id}) + "#observations"

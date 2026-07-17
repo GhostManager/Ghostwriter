@@ -1,7 +1,12 @@
 """This contains customizations for displaying the Reporting application models in the admin panel."""
 
+# Standard Library Imports
+import os
+
 # Django Imports
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 
 # 3rd Party Libraries
 from import_export.admin import ImportExportMixin
@@ -46,24 +51,51 @@ class DocTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Evidence)
 class EvidenceAdmin(admin.ModelAdmin):
-    list_display = ("document", "upload_date", "uploaded_by", "tag_list")
+    list_display = ("friendly_name", "document_link", "upload_date", "uploaded_by", "tag_list")
     list_filter = ("uploaded_by", "tags")
-    list_display_links = ("document", "upload_date", "uploaded_by")
+    list_display_links = ("friendly_name", "upload_date", "uploaded_by")
+    readonly_fields = ("document_download_link",)
     fieldsets = (
         (
             "Evidence Document",
-            {"fields": ("friendly_name", "caption", "description", "document", "tags")},
+            {"fields": ("friendly_name", "caption", "description", "document", "document_download_link", "tags")},
         ),
         (
             "Report Information",
             {
                 "fields": (
-                    "finding",
+                    "report",
                     "uploaded_by",
                 )
             },
         ),
     )
+
+    class Media:
+        js = ('js/admin/evidence_admin.js',)
+
+    def document_link(self, obj):
+        """Display the document filename as a clickable link in the list view for viewing."""
+        if obj.document and os.path.exists(obj.document.path):
+            return format_html(
+                '<a href="{url}?view=true">{filename}</a>',
+                url=reverse("reporting:evidence_download", args=[obj.id]),
+                filename=os.path.basename(obj.document.name)
+            )
+        return "No File"
+    document_link.short_description = "Document"
+
+    def document_download_link(self, obj):
+        """Display a download link in the detail view."""
+        if obj.document and obj.id and os.path.exists(obj.document.path):
+            filename = os.path.basename(obj.document.name)
+            return format_html(
+                '<a href="{url}" download="{filename}">{filename}</a>',
+                url=reverse("reporting:evidence_download", args=[obj.id]),
+                filename=filename
+            )
+        return "File missing or not available for download"
+    document_download_link.short_description = "Download File"
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("tags")
@@ -117,6 +149,7 @@ class FindingAdmin(ImportExportMixin, CollabAdminBase):
                 )
             },
         ),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -151,7 +184,8 @@ class ReportAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Report Details", {"fields": ("project", "title", "created_by", "tags")}),
         ("Current Status", {"fields": ("complete", "delivered", "archived")}),
-        ("Templates", {"fields": ("docx_template", "pptx_template")}),
+        ("Templates", {"fields": ("docx_template", "pptx_template", "include_bloodhound_data")}),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -181,6 +215,7 @@ class ReportFindingLinkAdmin(CollabAdminBase):
                     "finding_type",
                     "severity",
                     "cvss_score",
+                    "cvss_vector",
                     "tags",
                 )
             },
@@ -204,6 +239,7 @@ class ReportFindingLinkAdmin(CollabAdminBase):
                 )
             },
         ),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -228,7 +264,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
         "last_update",
         "tag_list",
     )
-    readonly_fields = ("get_status",)
+    readonly_fields = ("get_status", "template_download_link")
     list_filter = (
         "client",
         "tags",
@@ -241,13 +277,25 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                 "fields": (
                     "name",
                     "document",
+                    "template_download_link",
                     "description",
                     "client",
                     "doc_type",
                     "p_style",
                     "evidence_image_width",
+                    "evidence_image_alignment",
+                    "tags",
                 )
             },
+        ),
+        (
+            "BloodHound",
+            {
+                "fields": (
+                    "contains_bloodhound_data",
+                    "bloodhound_heading_offset",
+                )
+            }
         ),
         (
             "Template Linting",
@@ -263,6 +311,21 @@ class ReportTemplateAdmin(admin.ModelAdmin):
             {"fields": ("protected",)},
         ),
     )
+
+    class Media:
+        js = ('js/admin/template_admin.js',)
+
+    def template_download_link(self, obj):
+        """Display a download link in the detail view."""
+        if obj.document and obj.id and os.path.exists(obj.document.path):
+            filename = os.path.basename(obj.document.name)
+            return format_html(
+                '<a href="{url}" download="{filename}">{filename}</a>',
+                url=reverse("reporting:template_download", args=[obj.id]),
+                filename=filename
+            )
+        return "File missing or not available for download"
+    template_download_link.short_description = "Download File"
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("tags")

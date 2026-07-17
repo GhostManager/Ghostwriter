@@ -6,9 +6,10 @@ import { TagEditor } from "../plain_editors/tag_editor";
 import RichTextEditor from "../rich_text_editor";
 import ExtraFieldsSection from "../extra_fields";
 import ReactModal from "react-modal";
+import ErrorBoundary from "../error_boundary";
 
 function ObservationForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "observation",
     });
 
@@ -29,6 +30,7 @@ function ObservationForm() {
                                 connected={connected}
                                 provider={provider}
                                 mapKey="title"
+                                setEditing={setEditing}
                             />
                         </div>
                     </div>
@@ -64,7 +66,11 @@ function ObservationForm() {
                     </div>
                 </div>
 
-                <ExtraFieldsSection connected={connected} provider={provider} />
+                <ExtraFieldsSection
+                    connected={connected}
+                    provider={provider}
+                    setEditing={setEditing}
+                />
 
                 <ConnectionStatus status={status} />
             </div>
@@ -77,5 +83,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelector("div.wrapper") as HTMLElement
     );
     const root = createRoot(document.getElementById("collab-form-container")!);
-    root.render(<ObservationForm />);
+    root.render(
+        <ErrorBoundary>
+            <ObservationForm />
+        </ErrorBoundary>
+    );
 });

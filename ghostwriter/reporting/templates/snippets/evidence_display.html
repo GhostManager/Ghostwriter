@@ -1,12 +1,42 @@
 {% load bleach_tags report_tags custom_tags static %}
 
 {% with evidence|get_file_type as file_type %}
+  {% if report_config.figure_caption_location == "top" %}
+    <p class="evidence-caption">{{ report_config.label_figure }}#{{ report_config.prefix_figure }}{{ evidence.caption }}</p>
+  {% endif %}
   {% if file_type == "image" %}
-    <img class="img-evidence" {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}src="{% url 'reporting:evidence_download' evidence.id %}"/>
+    <div class="evidence-image-preview-wrapper{% if evidence_image_alignment %} text-{{ evidence_image_alignment|lower }}{% endif %}"{% if evidence_image_alignment %} style="text-align: {{ evidence_image_alignment|lower }};"{% endif %}>
+      <img class="img-evidence {% if clickable %}evidence-preview-clickable js-open-lightbox{% endif %}"
+        style="{% if rich_text_preview %}display: inline-block; margin-left: 0; margin-right: 0;{% endif %}{% if evidence_image_width %} width: {{ evidence_image_width }}in; max-width: 100%; height: auto;{% endif %}{% if report_config.enable_borders %} border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};{% endif %}{% if clickable %} cursor: pointer;{% endif %}"
+        src="{% url 'reporting:evidence_download' evidence.id %}"
+        alt="{{ evidence.friendly_name }}"
+        {% if clickable %}
+          data-evidence-name="{{ evidence.friendly_name }}"
+          data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+          data-evidence-type="image"
+          title="Click to view full size"
+        {% endif %}
+        />
+    </div>
   {% elif evidence|get_file_type == "text" %}
     {% with evidence|get_file_content as file_content %}
       {% if file_content %}
-        <pre class="text-evidence" {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}><code>{{ file_content|bleach }}</code></pre>
+        <pre{% if rich_text_preview %}{% if clickable %} class="evidence-preview-clickable js-open-lightbox" style="cursor: pointer;"{% endif %}{% else %} class="text-evidence {% if clickable %}evidence-preview-clickable js-open-lightbox{% endif %}"
+            {% if report_config.enable_borders %}
+              style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }}; {% if clickable %}cursor: pointer;{% endif %}"
+            {% else %}
+              {% if clickable %}style="cursor: pointer;"{% endif %}
+            {% endif %}
+          {% endif %}
+          {% if clickable %}
+            data-evidence-name="{{ evidence.friendly_name }}"
+            data-evidence-url="{% url 'reporting:evidence_download' evidence.id %}"
+            data-evidence-type="text"
+            title="Click to view full content"
+            tabindex="0" role="button"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+          {% endif %}
+        ><code>{{ file_content }}</code></pre>
       {% else %}
         <p>No file content to display.</p>
       {% endif %}
@@ -21,5 +51,7 @@
       {% endif %}
     </div>
   {% endif %}
-  <p class="evidence-caption">{{ report_config.label_figure }}#{{ report_config.prefix_figure }}{{ evidence.caption }}</p>
+  {% if report_config.figure_caption_location != "top" %}
+    <p class="evidence-caption">{{ report_config.label_figure }}#{{ report_config.prefix_figure }}{{ evidence.caption }}</p>
+  {% endif %}
 {% endwith %}

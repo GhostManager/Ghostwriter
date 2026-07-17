@@ -12,6 +12,7 @@
         </form>
 
         <p class="mt-3">If sanitizing the <em>Command</em> field, Ghostwriter will delete everything after the first space (the tool/command name) to remove potentially sensitive information in arguments and parameters (e.g., hashes, keys).</p>
+        <p class="mt-3"><span class="bold">Note:</span> Selecting <em>Recordings</em> will <span class="bold">permanently delete</span> the recording files from disk. This cannot be undone.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -46,6 +47,34 @@
     }
   });
 
+  function updateOplogSanitizationStatus(sanitization) {
+    let $status = $('#oplog-sanitization-status');
+    if (!$status.length) {
+      return;
+    }
+
+    let fields = $('#sanitize-checklist-form input:checked').map(function () {
+      return $('label[for="' + this.id + '"]').clone().children().remove().end().text().trim()
+        .replace(' / Hostname', '');
+    }).get();
+    let sanitizedAt = new Date(sanitization.sanitized_at);
+    let date = sanitizedAt.toLocaleDateString(undefined, { dateStyle: 'long' });
+    let time = sanitizedAt.toLocaleTimeString(undefined, { timeStyle: 'short' });
+    let $fieldList = $('#oplog-sanitization-details-fields');
+
+    $('#oplog-sanitization-status-button').removeClass('badge-warning').addClass('badge-info');
+    $('#oplog-sanitization-status-icon').removeClass('fa-exclamation-triangle').addClass('fa-shield-alt');
+    $('#oplog-sanitization-status-text').text('Sanitized');
+    $('#oplog-sanitization-details-time').text(date + ' at ' + time);
+    $('#oplog-sanitization-details-user').text(sanitization.sanitized_by_name);
+    $('#oplog-sanitization-stale-message').addClass('d-none');
+    $fieldList.empty();
+    fields.forEach(function (field) {
+      $fieldList.append($('<span>', { class: 'badge badge-light border mr-1 mb-1', text: field }));
+    });
+    $status.show();
+  }
+
   $('#confirm-sanitize-button-modal').click(function () {
     // Get the ``id`` of the clicked element
     let caller = $('#confirm-sanitize-button-modal').closest('.modal').attr('caller-id');
@@ -77,6 +106,9 @@
       success: function (data) {
           if (data['message']) {
             displayToastTop({type:data['result'], string:data['message'], title:'Log Update'});
+          }
+          if (data['result'] === 'success') {
+            updateOplogSanitizationStatus(data['sanitization']);
           }
       },
       error: function(jqXHR, textStatus, errorThrown) {

@@ -1,16 +1,25 @@
 # Standard Libraries
+import base64
 from io import BytesIO
+import os
+import tempfile
 from zipfile import ZipFile
 
 # Django Imports
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 
 # 3rd Party Libraries
 import docx
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 from lxml import etree
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx
+from ghostwriter.commandcenter.models import ReportConfiguration
+from ghostwriter.factories import ReportDocxTemplateFactory
+from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx, HtmlToDocxWithEvidence
+from ghostwriter.reporting.models import EvidenceImageAlignment, EvidenceImageAlignmentOverride
 
 WORD_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:mv="urn:schemas-microsoft-com:mac:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14"><w:body>"""  # noqa: E501
@@ -19,7 +28,7 @@ WORD_SUFFIX = """<w:sectPr w:rsidR="00FC693F" w:rsidRPr="0006063C" w:rsidSect="0
 
 def clean_xml(xml):
     """
-    Pretty-formats XML, for comparsion and better diffs in case of test failures.
+    Pretty-formats XML, for comparison and better diffs in case of test failures.
     """
     if isinstance(xml, str):
         xml = xml.encode("utf-8")
@@ -67,8 +76,55 @@ def mk_test_docx(name, input, expected_output, p_style=None):
     return test_func
 
 
-class RichTextToDocxTests(TestCase):
+class RichTextToDocxTests(SimpleTestCase):
     maxDiff = None
+
+    def test_table_cell_paragraphs_remain_in_the_cell(self):
+        doc = docx.Document()
+        HtmlToDocx.run(
+            "<table><tr><td><p>AAAA</p><p>BBBB</p><p>CCCC</p></td></tr></table>",
+            doc,
+            None,
+        )
+
+        self.assertEqual(
+            [paragraph.text for paragraph in doc.tables[0].cell(0, 0).paragraphs],
+            ["AAAA", "BBBB", "CCCC"],
+        )
+        self.assertNotIn("BBBB", [paragraph.text for paragraph in doc.paragraphs])
+        self.assertNotIn("CCCC", [paragraph.text for paragraph in doc.paragraphs])
+
+    def test_safe_links_are_preserved(self):
+        doc = docx.Document()
+        HtmlToDocx.run('<p><a href="https://example.com">Example</a></p>', doc, None)
+        out = BytesIO()
+        doc.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/document.xml") as file:
+                document_xml = file.read().decode("utf-8")
+            with zip.open("word/_rels/document.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Example", document_xml)
+        self.assertIn("w:hyperlink", document_xml)
+        self.assertIn('Target="https://example.com"', rels_xml)
+
+    def test_unsafe_links_are_removed(self):
+        doc = docx.Document()
+        HtmlToDocx.run('<p><a href="javascript:alert(1)">Example</a></p>', doc, None)
+        out = BytesIO()
+        doc.part.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/document.xml") as file:
+                document_xml = file.read().decode("utf-8")
+            with zip.open("word/_rels/document.xml.rels") as file:
+                rels_xml = file.read().decode("utf-8")
+
+        self.assertIn("Example", document_xml)
+        self.assertNotIn("w:hyperlink", document_xml)
+        self.assertNotIn("javascript:alert(1)", rels_xml)
 
     test_paragraphs = mk_test_docx(
         "test_paragraphs",
@@ -483,7 +539,7 @@ class RichTextToDocxTests(TestCase):
             <w:tbl>
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
-                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblW w:type="pct" w:w="5000"/>
                     <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
@@ -547,7 +603,7 @@ class RichTextToDocxTests(TestCase):
             <w:tbl>
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
-                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblW w:type="pct" w:w="5000"/>
                     <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
@@ -617,7 +673,7 @@ class RichTextToDocxTests(TestCase):
             <w:tbl>
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
-                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblW w:type="pct" w:w="5000"/>
                     <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
@@ -667,3 +723,296 @@ class RichTextToDocxTests(TestCase):
         </w:p>
         """,
     )
+
+    test_paragraphs_with_invalid_chars = mk_test_docx(
+        "test_paragraphs_with_invalid_chars",
+        "<p>Hello&#20; World!</p><p>This is a test!</p>",
+        """<w:p><w:pPr/><w:r><w:t>Hello World!</w:t></w:r></w:p><w:p><w:pPr/><w:r><w:t>This is a test!</w:t></w:r></w:p>""",
+    )
+
+
+class FootnoteToDocxTests(SimpleTestCase):
+    """Tests for footnote HTML to DOCX conversion."""
+
+    maxDiff = None
+
+    def test_footnote_creates_footnote_in_document(self):
+        """Test that <span class="footnote"> elements create Word footnotes."""
+        html = '<p>Text with a footnote<span class="footnote">This is the footnote content.</span> and more text.</p>'
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        # Check that footnotes.xml exists and contains the footnote
+        with ZipFile(out) as zip:
+            self.assertIn("word/footnotes.xml", zip.namelist())
+            with zip.open("word/footnotes.xml") as file:
+                contents = file.read().decode("utf-8")
+                self.assertIn("This is the footnote content.", contents)
+
+    def test_multiple_footnotes(self):
+        """Test that multiple footnotes are created correctly."""
+        html = """
+            <p>First footnote<span class="footnote">Footnote one.</span> and
+            second footnote<span class="footnote">Footnote two.</span> in same paragraph.</p>
+        """
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/footnotes.xml") as file:
+                contents = file.read().decode("utf-8")
+                self.assertIn("Footnote one.", contents)
+                self.assertIn("Footnote two.", contents)
+
+    def test_footnote_with_formatted_content(self):
+        """Test that footnotes preserve basic text content."""
+        html = '<p>Text<span class="footnote">Footnote with content.</span></p>'
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/footnotes.xml") as file:
+                contents = file.read().decode("utf-8")
+                self.assertIn("Footnote with content.", contents)
+
+    def test_footnote_reference_in_document(self):
+        """Test that footnote reference is inserted in the document."""
+        html = '<p>Text with footnote<span class="footnote">The footnote.</span> here.</p>'
+        doc = docx.Document()
+        HtmlToDocx.run(html, doc, None)
+
+        out = BytesIO()
+        doc.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/document.xml") as file:
+                contents = file.read().decode("utf-8")
+                # Should contain a footnote reference element
+                self.assertIn("footnoteReference", contents)
+
+    def test_footnote_numbering_with_out_of_order_insertion(self):
+        """
+        Test that footnotes renumber correctly when inserted out of order.
+
+        Simulates editing scenario where a document is built incrementally
+        and a new footnote is inserted before existing ones.
+        """
+        # Create document with two footnotes first
+        doc = docx.Document()
+
+        # Add paragraphs 2 and 3 with footnotes (simulating original document)
+        html_initial = """
+            <p>Second paragraph<span class="footnote">Footnote A (added first).</span></p>
+            <p>Third paragraph<span class="footnote">Footnote B (added second).</span></p>
+        """
+        HtmlToDocx.run(html_initial, doc, None)
+
+        # Now simulate editing: insert a paragraph with footnote at the beginning
+        # This mimics the real-world scenario where user edits the TipTap editor
+        # Note: In reality, this would involve re-rendering the entire document
+        # but python-docx processes HTML sequentially, so we need to simulate
+        # the incremental addition that causes the issue
+
+        # For this test, let's verify that a full re-render produces sequential IDs
+        doc2 = docx.Document()
+        html_edited = """
+            <p>First paragraph<span class="footnote">Footnote C (added later).</span></p>
+            <p>Second paragraph<span class="footnote">Footnote A (added first).</span></p>
+            <p>Third paragraph<span class="footnote">Footnote B (added second).</span></p>
+        """
+        HtmlToDocx.run(html_edited, doc2, None)
+
+        out = BytesIO()
+        doc2.save(out)
+
+        with ZipFile(out) as zip:
+            with zip.open("word/document.xml") as file:
+                doc_xml = file.read().decode("utf-8")
+
+                # Extract footnote reference IDs in document order
+                import re
+
+                refs = re.findall(r'<w:footnoteReference[^>]*w:id="(\d+)"', doc_xml)
+
+                # Should be sequential: 1, 2, 3 (not 3, 1, 2 or 1, 1, 2)
+                self.assertEqual(
+                    refs,
+                    ["1", "2", "3"],
+                    f"Footnote IDs should be sequential in document order, got {refs}",
+                )
+
+            with zip.open("word/footnotes.xml") as file:
+                footnotes_xml = file.read().decode("utf-8")
+
+                # Verify footnote IDs match document references
+                import re
+
+                footnote_ids = re.findall(r'<w:footnote[^>]*w:id="(\d+)"', footnotes_xml)
+                # Filter out separators (-1, 0)
+                footnote_ids = [fid for fid in footnote_ids if int(fid) > 0]
+                self.assertEqual(sorted(footnote_ids), ["1", "2", "3"])
+
+
+class HtmlToDocxWithEvidenceTests(TestCase):
+    ONE_PIXEL_PNG = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yF9kAAAAASUVORK5CYII="
+    )
+
+    def build_converter(self, *, report_template=None, report_config=None, doc=None):
+        return HtmlToDocxWithEvidence(
+            doc or docx.Document(),
+            evidences={},
+            report_template=report_template or ReportDocxTemplateFactory(),
+            global_report_config=report_config or ReportConfiguration.get_solo(),
+            images={},
+        )
+
+    def test_heading_bookmarks_are_visible_with_hidden_reference_aliases(self):
+        doc = docx.Document()
+        report_template = ReportDocxTemplateFactory()
+        report_config = ReportConfiguration.get_solo()
+
+        converter = HtmlToDocxWithEvidence.run(
+            """<h2 data-bookmark='heading bookmark"quoted'>Heading</h2>""",
+            doc,
+            evidences={},
+            report_template=report_template,
+            global_report_config=report_config,
+            images={},
+        )
+        caption = doc.add_paragraph()
+        converter.make_caption(caption, "Figure", 'caption bookmark"quoted')
+        heading_reference = doc.add_paragraph()
+        converter.make_cross_ref(heading_reference, 'heading bookmark"quoted')
+        caption_reference = doc.add_paragraph()
+        converter.make_cross_ref(caption_reference, 'caption bookmark"quoted')
+
+        heading_starts = doc.paragraphs[0]._p.findall(qn("w:bookmarkStart"))
+        heading_ends = doc.paragraphs[0]._p.findall(qn("w:bookmarkEnd"))
+        self.assertEqual(
+            [start.get(qn("w:name")) for start in heading_starts],
+            ["heading_bookmark_quoted", "_Refheading_bookmark_quoted"],
+        )
+        self.assertEqual(
+            [end.get(qn("w:id")) for end in heading_ends],
+            [heading_starts[1].get(qn("w:id")), heading_starts[0].get(qn("w:id"))],
+        )
+
+        caption_starts = caption._p.findall(qn("w:bookmarkStart"))
+        self.assertEqual(
+            [start.get(qn("w:name")) for start in caption_starts],
+            ["_Refcaption_bookmark_quoted"],
+        )
+
+        heading_instruction = heading_reference._p.find(".//" + qn("w:instrText"))
+        caption_instruction = caption_reference._p.find(".//" + qn("w:instrText"))
+        self.assertEqual(
+            heading_instruction.text,
+            ' REF "_Refheading_bookmark_quoted" \\h ',
+        )
+        self.assertEqual(
+            caption_instruction.text,
+            ' REF "_Refcaption_bookmark_quoted" \\h ',
+        )
+
+    def test_text_evidence_uses_codeblock_style_without_forcing_alignment(self):
+        doc = docx.Document()
+        style = doc.styles.add_style("CodeBlock", WD_STYLE_TYPE.PARAGRAPH)
+        style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        converter = self.build_converter(doc=doc)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "gw-evidence-codeblock.txt"
+            evidence_path = os.path.join(temp_dir, evidence_name)
+            with open(evidence_path, "w", encoding="utf-8") as evidence_file:
+                evidence_file.write("printf('hello');")
+
+            with override_settings(MEDIA_ROOT=temp_dir):
+                paragraph = doc.add_paragraph()
+                converter.make_evidence(
+                    paragraph,
+                    {"path": evidence_name, "friendly_name": "code", "caption": ""},
+                )
+
+        self.assertEqual(paragraph.style.name, "CodeBlock")
+        self.assertIsNone(paragraph.alignment)
+
+    def test_text_evidence_falls_back_to_left_alignment_without_codeblock_style(self):
+        doc = docx.Document()
+        converter = self.build_converter(doc=doc)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "gw-evidence-plain.txt"
+            evidence_path = os.path.join(temp_dir, evidence_name)
+            with open(evidence_path, "w", encoding="utf-8") as evidence_file:
+                evidence_file.write("printf('hello');")
+
+            with override_settings(MEDIA_ROOT=temp_dir):
+                paragraph = doc.add_paragraph()
+                converter.make_evidence(
+                    paragraph,
+                    {"path": evidence_name, "friendly_name": "code", "caption": ""},
+                )
+
+        self.assertEqual(paragraph.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+
+    def test_image_alignment_uses_global_default_when_template_defers(self):
+        report_template = ReportDocxTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.USE_GLOBAL,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+        doc = docx.Document()
+        converter = self.build_converter(report_template=report_template, report_config=report_config, doc=doc)
+
+        with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
+            image_file.write(self.ONE_PIXEL_PNG)
+            image_file.flush()
+            paragraph = doc.add_paragraph()
+            converter._make_image(paragraph, image_file.name)
+
+        self.assertEqual(paragraph.alignment, WD_ALIGN_PARAGRAPH.RIGHT)
+
+    def test_image_alignment_uses_template_override(self):
+        report_template = ReportDocxTemplateFactory(
+            evidence_image_alignment=EvidenceImageAlignmentOverride.LEFT,
+        )
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
+        doc = docx.Document()
+        converter = self.build_converter(report_template=report_template, report_config=report_config, doc=doc)
+
+        with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
+            image_file.write(self.ONE_PIXEL_PNG)
+            image_file.flush()
+            paragraph = doc.add_paragraph()
+            converter._make_image(paragraph, image_file.name)
+
+        self.assertEqual(paragraph.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+
+    def test_image_width_uses_global_default_when_template_is_blank(self):
+        report_template = ReportDocxTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = 4.75
+
+        converter = self.build_converter(report_template=report_template, report_config=report_config)
+
+        self.assertEqual(converter.image_width, 4.75)
+
+    def test_image_width_falls_back_to_default_when_global_is_blank(self):
+        report_template = ReportDocxTemplateFactory(evidence_image_width=None)
+        report_config = ReportConfiguration.get_solo()
+        report_config.evidence_image_width = None
+
+        converter = self.build_converter(report_template=report_template, report_config=report_config)
+
+        self.assertEqual(converter.image_width, 6.5)

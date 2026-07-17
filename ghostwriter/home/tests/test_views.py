@@ -6,25 +6,29 @@ from io import StringIO
 # Django Imports
 from django.conf import settings
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import Q
 from django.test import Client, TestCase
-from django.test.utils import override_settings
 from django.urls import reverse
 
 # 3rd Party Libraries
-from django_otp.plugins.otp_static.models import StaticToken
+from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    ClientInviteFactory,
     GroupFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ProjectInviteFactory,
     ProjectObjectiveFactory,
     ReportFactory,
     ReportFindingLinkFactory,
+    ReportObservationLinkFactory,
     UserFactory,
 )
 from ghostwriter.home.templatetags import custom_tags
+from ghostwriter.reporting.models import ReportTemplate
 
 logging.disable(logging.CRITICAL)
 
@@ -63,6 +67,25 @@ class ManagementCommandsTestCase(TestCase):
         out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force")
         self.assertIn("Applying all fixtures.", out)
         self.assertIn("Found 17 new records to insert into the database.", out)
+
+    def test_loaddata_required_only_skips_optional_records(self):
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--required-only")
+        self.assertIn("Found 15 new records to insert into the database.", out)
+        self.assertFalse(ReportTemplate.objects.exists())
+
+    def test_loaddata_required_only_does_not_restore_deleted_optional_records(self):
+        self.call_command("ghostwriter/reporting/fixtures/initial.json")
+        self.assertEqual(ReportTemplate.objects.count(), 2)
+
+        ReportTemplate.objects.all().delete()
+
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--required-only")
+        self.assertIn("Found 3 new records to insert into the database.", out)
+        self.assertFalse(ReportTemplate.objects.exists())
+
+    def test_loaddata_force_and_required_only_are_rejected(self):
+        with self.assertRaisesMessage(CommandError, "--force and --required-only cannot be used together."):
+            self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force", "--required-only")
 
 
 # Tests related to custom template tags and filters
@@ -114,6 +137,16 @@ class TemplateTagTests(TestCase):
         self.assertEqual(projects[0], self.project)
         self.assertEqual(len(reports), 1)
         self.assertEqual(reports[0], self.report)
+        self.assertEqual(reports[0].project, self.project)
+
+    def test_get_assignment_data_prefetches_report_projects(self):
+        response = self.client_auth.get(self.uri)
+        request = response.wsgi_request
+
+        with self.assertNumQueries(2):
+            projects, reports = custom_tags.get_assignment_data(request)
+            self.assertEqual(projects[0].codename, self.project.codename)
+            self.assertEqual(reports[0].project.codename, self.project.codename)
 
         result = custom_tags.settings_value("DATE_FORMAT")
         self.assertEqual(result, settings.DATE_FORMAT)
@@ -157,15 +190,18 @@ class TemplateTagTests(TestCase):
         self.user.save()
         self.assertTrue(custom_tags.can_create_observation(self.user))
 
-        self.assertFalse(custom_tags.has_2fa(self.user))
-        self.user.totpdevice_set.create()
-        static_model = self.user.staticdevice_set.create()
-        static_model.token_set.create(token=StaticToken.random_token())
-        self.assertTrue(custom_tags.has_2fa(self.user))
+        self.assertFalse(custom_tags.has_mfa(self.user))
+        secret = generate_totp_secret()
+        TOTP.activate(self.user, secret)
+        self.assertTrue(custom_tags.has_mfa(self.user))
 
         test_string = "test,example,sample"
         result = custom_tags.split_and_join(test_string, ",")
         self.assertEqual(result, "test, example, sample")
+        result = custom_tags.humanize_comma_list(test_string)
+        self.assertEqual(result, "test, example, and sample")
+        result = custom_tags.humanize_comma_list("report,evidence")
+        self.assertEqual(result, "report and evidence")
 
         test_date = datetime(2024, 2, 20)
         result = custom_tags.add_days(test_date, 5)
@@ -185,6 +221,24 @@ class TemplateTagTests(TestCase):
         self.assertTrue(custom_tags.is_past(past_datetime))
         self.assertFalse(custom_tags.is_past(future_datetime))
 
+        # Test custom_tags.multiply
+        result = custom_tags.multiply(10, 5)
+        self.assertEqual(result, 50)
+        result = custom_tags.multiply(10, -2)
+        self.assertEqual(result, -20)
+        result = custom_tags.multiply("A", 5)
+        self.assertEqual(result, None)
+
+        # Test custom_tags.translate_domain_sid
+        domains = [
+            {"domain_sid": "S-1-5-21-1000", "name": "EXAMPLE_DOMAIN"},
+            {"domain_sid": "S-1-5-21-2000", "name": "ANOTHER_DOMAIN"},
+        ]
+        result = custom_tags.translate_domain_sid("S-1-5-21-1000", domains)
+        self.assertEqual(result, "EXAMPLE_DOMAIN")
+        result = custom_tags.translate_domain_sid("S-1-5-21-3000", domains)
+        self.assertEqual(result, "S-1-5-21-3000")
+
 
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""
@@ -192,16 +246,44 @@ class DashboardTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
+        cls.other_user = UserFactory(password=PASSWORD, name="Other Operator")
 
         cls.Project = ProjectFactory._meta.model
         cls.ProjectAssignment = ProjectAssignmentFactory._meta.model
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        cls.ReportObservationLink = ReportObservationLinkFactory._meta.model
 
         cls.current_project = ProjectFactory(
-            start_date=date.today() - timedelta(days=14), end_date=date.today(), complete=True
+            codename="CURRENT",
+            start_date=date.today() - timedelta(days=14),
+            end_date=date.today(),
+            complete=True,
         )
         cls.future_project = ProjectFactory(
-            start_date=date.today() + timedelta(days=14), end_date=date.today() + timedelta(days=28), complete=False
+            codename="FUTURE",
+            start_date=date.today() + timedelta(days=14),
+            end_date=date.today() + timedelta(days=28),
+            complete=False,
+        )
+        cls.other_project = ProjectFactory(
+            codename="OTHER",
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=21),
+            complete=False,
+        )
+        cls.unassigned_project = ProjectFactory(
+            codename="UNASSIGNED",
+            start_date=date.today() + timedelta(days=21),
+            end_date=date.today() + timedelta(days=35),
+            complete=False,
+        )
+        cls.inaccessible_project = ProjectFactory(
+            codename="INACCESSIBLE",
+            start_date=date.today() + timedelta(days=28),
+            end_date=date.today() + timedelta(days=42),
+            complete=False,
         )
         ProjectAssignmentFactory(
             project=cls.current_project,
@@ -215,12 +297,34 @@ class DashboardTests(TestCase):
             start_date=date.today() + timedelta(days=14),
             end_date=date.today() + timedelta(days=28),
         )
+        ProjectAssignmentFactory(
+            project=cls.other_project,
+            operator=cls.other_user,
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=21),
+        )
+        ProjectAssignmentFactory.create_batch(
+            3,
+            project=cls.unassigned_project,
+            operator=None,
+            start_date=date.today() + timedelta(days=21),
+            end_date=date.today() + timedelta(days=35),
+        )
+        ProjectInviteFactory(user=cls.user, project=cls.other_project)
+        ProjectInviteFactory(user=cls.user, project=cls.future_project)
+        ClientInviteFactory(user=cls.user, client=cls.unassigned_project.client)
 
         cls.report = ReportFactory(project=cls.current_project)
         ReportFindingLinkFactory.create_batch(3, report=cls.report, assigned_to=cls.user)
+        ReportObservationLinkFactory.create_batch(3, report=cls.report, assigned_to=cls.user)
 
-        cls.user_tasks = (
+        cls.assigned_findings = (
             cls.ReportFindingLink.objects.select_related("report", "report__project")
+            .filter(Q(assigned_to=cls.user) & Q(report__complete=False) & Q(complete=False))
+            .order_by("report__project__end_date")[:10]
+        )
+        cls.assigned_observations = (
+            cls.ReportObservationLink.objects.select_related("report", "report__project")
             .filter(Q(assigned_to=cls.user) & Q(report__complete=False) & Q(complete=False))
             .order_by("report__project__end_date")[:10]
         )
@@ -236,11 +340,27 @@ class DashboardTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_manager = Client()
+        self.client_admin = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_manager.login(username=self.manager.username, password=PASSWORD))
+        self.assertTrue(self.client_admin.login(username=self.admin.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_handles_assignment_without_dates(self):
+        ProjectAssignmentFactory(
+            project=self.future_project,
+            operator=self.user,
+            start_date=None,
+            end_date=None,
+        )
+
+        response = self.client_auth.get(self.uri)
+
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -257,12 +377,76 @@ class DashboardTests(TestCase):
         self.assertIn("user_projects", response.context)
         self.assertIn("active_projects", response.context)
         self.assertIn("recent_tasks", response.context)
-        self.assertIn("user_tasks", response.context)
+        self.assertIn("assigned_findings", response.context)
+        self.assertIn("assigned_observations", response.context)
         self.assertEqual(len(response.context["user_projects"]), 2)
         self.assertEqual(response.context["user_projects"][0], self.user_projects[0])
         self.assertEqual(len(response.context["active_projects"]), 1)
         self.assertEqual(response.context["active_projects"][0], self.active_projects[0])
-        self.assertEqual(len(response.context["user_tasks"]), 3)
+        self.assertEqual(len(response.context["assigned_findings"]), 3)
+        self.assertEqual(len(response.context["assigned_observations"]), 3)
+        self.assertEqual(len(response.context["calendar_events"]), 3)
+        self.assertEqual(
+            {event["extendedProps"]["calendarKind"] for event in response.context["calendar_events"]},
+            {"Project"},
+        )
+        self.assertEqual(
+            {event["url"] for event in response.context["calendar_events"]},
+            {
+                self.future_project.get_absolute_url(),
+                self.other_project.get_absolute_url(),
+                self.unassigned_project.get_absolute_url(),
+            },
+        )
+        future_project_event = next(
+            event
+            for event in response.context["calendar_events"]
+            if event["url"] == self.future_project.get_absolute_url()
+        )
+        self.assertIn(self.future_project.codename, future_project_event["title"])
+        self.assertIn(self.future_project.start_date.isoformat(), future_project_event["title"])
+        self.assertIn(self.future_project.end_date.isoformat(), future_project_event["title"])
+
+    def assert_privileged_calendar_shows_ongoing_projects(self, client):
+        response = client.get(self.uri)
+
+        calendar_events = response.context["calendar_events"]
+
+        self.assertEqual(len(calendar_events), 4)
+        self.assertEqual({event["extendedProps"]["calendarKind"] for event in calendar_events}, {"Project"})
+        self.assertEqual(
+            {event["url"] for event in calendar_events},
+            {
+                self.future_project.get_absolute_url(),
+                self.other_project.get_absolute_url(),
+                self.unassigned_project.get_absolute_url(),
+                self.inaccessible_project.get_absolute_url(),
+            },
+        )
+        other_project_event = next(
+            event for event in calendar_events if event["url"] == self.other_project.get_absolute_url()
+        )
+        self.assertIn(self.other_project.codename, other_project_event["title"])
+        self.assertIn(self.other_project.start_date.isoformat(), other_project_event["title"])
+        self.assertIn(self.other_project.end_date.isoformat(), other_project_event["title"])
+        self.assertEqual(len(other_project_event["extendedProps"]["assignedOperators"]), 1)
+        self.assertIn(self.other_user.name, other_project_event["extendedProps"]["assignedOperators"][0])
+        unassigned_project_events = [
+            event
+            for event in calendar_events
+            if event["url"] == self.unassigned_project.get_absolute_url()
+        ]
+        self.assertEqual(len(unassigned_project_events), 1)
+        self.assertEqual(
+            unassigned_project_events[0]["extendedProps"]["assignedOperators"],
+            ["No assigned operators"],
+        )
+
+    def test_managers_see_all_ongoing_projects_on_calendar(self):
+        self.assert_privileged_calendar_shows_ongoing_projects(self.client_manager)
+
+    def test_admins_see_all_ongoing_projects_on_calendar(self):
+        self.assert_privileged_calendar_shows_ongoing_projects(self.client_admin)
 
 
 class ManagementTests(TestCase):
@@ -486,31 +670,4 @@ class TestVirusTotalConnectionTests(TestCase):
 
     def test_view_requires_staff(self):
         response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 302)
-
-
-class ProtectedServeTest(TestCase):
-    """Collection of tests for :view:`home.protected_serve`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
-
-        cls.uri = "/media/templates"
-
-    def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-
-    @override_settings(DEBUG=True)
-    def test_view_uri(self):
-        assert settings.DEBUG
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 404)
-        self.assertContains(response, "ghostwriter.home.views.protected_serve", status_code=404)
-
-    def test_view_uri_requires_login(self):
-        response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)

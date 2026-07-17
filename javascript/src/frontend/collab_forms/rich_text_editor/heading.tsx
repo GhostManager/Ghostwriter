@@ -1,16 +1,21 @@
 import { useId, useState } from "react";
 import { HeadingWithId } from "../../../tiptap_gw/heading";
 import ReactModal from "react-modal";
-import { useCurrentEditor } from "@tiptap/react";
+import { Editor, useEditorState } from "@tiptap/react";
 import { MenuItem } from "@szhsin/react-menu";
 
-export default function HeadingIdButton() {
-    const editor = useCurrentEditor().editor!;
+export default function HeadingIdButton({ editor }: { editor: Editor }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [bookmark, setBookmark] = useState("");
     const fieldId = useId();
 
-    const enabled = editor.can().setHeadingBookmark("example");
+    const enabled = useEditorState({
+        editor,
+        selector: ({ editor }) => {
+            if (!editor.isInitialized) return false;
+            return editor.can().setHeadingBookmark("example");
+        },
+    });
 
     return (
         <>
@@ -19,7 +24,7 @@ export default function HeadingIdButton() {
                 disabled={!enabled}
                 onClick={() => {
                     setBookmark(
-                        editor.getAttributes(HeadingWithId.name).id || ""
+                        editor.getAttributes(HeadingWithId.name).bookmark || ""
                     );
                     setModalOpen(true);
                 }}
@@ -36,7 +41,20 @@ export default function HeadingIdButton() {
                     <div className="modal-header">
                         <h5 className="modal-title">Edit Heading Bookmark</h5>
                     </div>
-                    <div className="modal-body text-center">
+                    <form
+                        className="modal-body text-center"
+                        onSubmit={(ev) => {
+                            ev.preventDefault();
+                            const trimmedId = bookmark.trim();
+                            editor
+                                .chain()
+                                .setHeadingBookmark(
+                                    trimmedId === "" ? undefined : trimmedId
+                                )
+                                .run();
+                            setModalOpen(false);
+                        }}
+                    >
                         <div className="form-group">
                             <label htmlFor={fieldId}>Bookmark Name</label>
                             <input
@@ -44,30 +62,15 @@ export default function HeadingIdButton() {
                                 type="text"
                                 className="form-control"
                                 value={bookmark}
+                                autoFocus
                                 onChange={(e) => setBookmark(e.target.value)}
                             />
                         </div>
 
                         <div className="modal-footer">
+                            <button className="btn btn-primary">Save</button>
                             <button
-                                className="btn btn-primary"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    const trimmedId = bookmark.trim();
-                                    editor
-                                        .chain()
-                                        .setHeadingBookmark(
-                                            trimmedId === ""
-                                                ? undefined
-                                                : trimmedId
-                                        )
-                                        .run();
-                                    setModalOpen(false);
-                                }}
-                            >
-                                Save
-                            </button>
-                            <button
+                                type="button"
                                 className="btn btn-secondary"
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -77,7 +80,7 @@ export default function HeadingIdButton() {
                                 Cancel
                             </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </ReactModal>
         </>

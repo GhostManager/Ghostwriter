@@ -3,6 +3,7 @@
 # IF YOU EDIT THIS FILE: also update `linting_utils.py`
 
 # Standard Libraries
+import logging
 from datetime import datetime
 import zoneinfo
 
@@ -21,8 +22,11 @@ from rest_framework.serializers import (
 from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
+# Django Imports (additional)
+from django.core.exceptions import ObjectDoesNotExist
+
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, BloodHoundConfiguration
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
@@ -59,6 +63,8 @@ from ghostwriter.shepherd.models import (
 )
 from ghostwriter.users.models import User
 
+logger = logging.getLogger(__name__)
+
 
 def strip_html(value):
     """Strip HTML from a string."""
@@ -74,11 +80,11 @@ class CustomModelSerializer(serializers.ModelSerializer):
     """
 
     def __init__(self, *args, exclude=None, **kwargs):
+        super().__init__(*args, **kwargs)
         if exclude:
             exclude = set(exclude)
             for field in exclude:
-                self.fields.pop(field)
-        super().__init__(*args, **kwargs)
+                self.fields.pop(field, None)
 
     def to_representation(self, instance):
         """
@@ -89,6 +95,9 @@ class CustomModelSerializer(serializers.ModelSerializer):
         for key, value in data.items():
             try:
                 if value is None:
+                    data[key] = ""
+                # Convert empty paragraph HTML to empty string
+                elif isinstance(value, str) and value.strip() in ("<p></p>", "<p> </p>"):
                     data[key] = ""
             except KeyError:
                 pass
@@ -236,20 +245,11 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
     extra_fields = ExtraFieldsSerField(Finding._meta.label)
     cvss_data = SerializerMethodField("get_cvss_data")
+    cvss_score = SerializerMethodField("get_cvss_score")
     tags = TagListSerializerField()
 
     # Include a copy of the ``mitigation`` field as ``recommendation`` to match legacy JSON output
     recommendation = serializers.CharField(source="mitigation")
-
-    evidence = EvidenceSerializer(
-        source="evidence_set",
-        many=True,
-        exclude=[
-            "report",
-            "finding",
-            "uploaded_by",
-        ],
-    )
 
     class Meta:
         model = ReportFindingLink
@@ -271,6 +271,13 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
 
     def get_cvss_data(self, obj):
         return obj.cvss_data
+
+    def get_cvss_score(self, obj):
+        # If the score is empty, return `0.0` to ensure the value is always a float value
+        if obj.cvss_score in ("", None):
+            return 0.0
+        return obj.cvss_score
+
 
 
 class ObservationLinkSerializer(TaggitSerializer, CustomModelSerializer):
@@ -670,6 +677,10 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
         model = Project
         exclude = [
             "project_type",
+            "bloodhound_api_root_url",
+            "bloodhound_api_key_id",
+            "bloodhound_api_key_token",
+            "bloodhound_results",
         ]
 
     def get_name(self, obj):
@@ -752,6 +763,17 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
 
     tags = TagListSerializerField()
     extra_fields = ExtraFieldsSerField(OplogEntry._meta.label)
+    recording_url = serializers.SerializerMethodField()
+
+    def get_recording_url(self, obj):
+        try:
+            rec = obj.recording
+            if rec and rec.recording_file:
+                from django.urls import reverse
+                return reverse("oplog:oplog_entry_recording_download", kwargs={"pk": rec.pk})
+        except ObjectDoesNotExist:
+            pass
+        return None
 
     class Meta:
         model = OplogEntry
@@ -859,7 +881,7 @@ class ReportDataSerializer(CustomModelSerializer):
     deconflictions = DeconflictionSerializer(source="project.deconfliction_set", many=True, exclude=["id", "project"])
     whitecards = WhiteCardSerializer(source="project.whitecard_set", many=True, exclude=["id", "project"])
     infrastructure = ProjectInfrastructureSerializer(source="project")
-    evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["report", "finding"])
+    evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["report"])
     severities = SerializerMethodField("get_severities")
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",
@@ -903,6 +925,7 @@ class ReportDataSerializer(CustomModelSerializer):
     company = SerializerMethodField("get_company_info")
     tools = SerializerMethodField("get_tools")
     extra_fields = ExtraFieldsSerField(Report._meta.label)
+    bloodhound = SerializerMethodField("get_bloodhound")
 
     class Meta:
         model = Report
@@ -915,6 +938,12 @@ class ReportDataSerializer(CustomModelSerializer):
     def get_company_info(self, obj):
         serializer = CompanyInfoSerializer(CompanyInformation.get_solo())
         return serializer.data
+
+    @classmethod
+    def get_bloodhound(cls, obj: Report):
+        if obj.project.has_bloodhound_api():
+            return obj.project.bloodhound_results
+        return BloodHoundConfiguration.get_solo().bloodhound_results
 
     def get_tools(self, obj):
         tools = []

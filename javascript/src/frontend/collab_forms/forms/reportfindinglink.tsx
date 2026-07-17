@@ -8,13 +8,14 @@ import PageGraphqlProvider from "../../graphql/client";
 import { ProvidePageEvidence } from "../../graphql/evidence";
 import EvidenceButton from "../rich_text_editor/evidence";
 import RichTextEditor from "../rich_text_editor";
+import ErrorBoundary from "../error_boundary";
 
 const renderToolbarExtra = (editor: Editor) => (
     <EvidenceButton editor={editor} />
 );
 
 function ReportFindingLinkForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "report_finding_link",
     });
 
@@ -24,6 +25,7 @@ function ReportFindingLinkForm() {
             status={status}
             connected={connected}
             toolbarExtra={renderToolbarExtra}
+            setEditing={setEditing}
             extraTop={
                 <>
                     <h4 className="icon list-icon">Affected Entities</h4>
@@ -58,10 +60,12 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     const root = createRoot(document.getElementById("collab-form-container")!);
     root.render(
-        <PageGraphqlProvider>
-            <ProvidePageEvidence>
-                <ReportFindingLinkForm />
-            </ProvidePageEvidence>
-        </PageGraphqlProvider>
+        <ErrorBoundary>
+            <PageGraphqlProvider>
+                <ProvidePageEvidence>
+                    <ReportFindingLinkForm />
+                </ProvidePageEvidence>
+            </PageGraphqlProvider>
+        </ErrorBoundary>
     );
 });

@@ -24,10 +24,6 @@ omit =
     # Omit modules used and tested in views
     */modules/*
 
-
-plugins =
-    django_coverage_plugin
-
 [report]
 sort = -Miss
 exclude_lines =

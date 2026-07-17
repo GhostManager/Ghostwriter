@@ -89,7 +89,7 @@ class HistoryAdmin(admin.ModelAdmin):
             "Domain Use Information",
             {"fields": ("operator", "activity_type", "start_date", "end_date")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
 
@@ -167,7 +167,8 @@ class DomainAdmin(ImportExportModelAdmin):
                 )
             },
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -212,7 +213,7 @@ class ServerHistoryRoleAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
 
@@ -262,10 +263,11 @@ class StaticServerAdmin(ImportExportModelAdmin):
             {
                 "fields": (
                     "last_used_by",
-                    "note",
+                    "description",
                 )
             },
         ),
+        ("Extras", {"fields": ("extra_fields",)}),
     )
 
     def get_queryset(self, request):
@@ -293,7 +295,7 @@ class TransientServerRoleAdmin(admin.ModelAdmin):
             "Server Use Information",
             {"fields": ("server_provider", "server_role", "activity_type", "operator")},
         ),
-        ("Misc", {"fields": ("note",)}),
+        ("Misc", {"fields": ("description",)}),
     )
 
 

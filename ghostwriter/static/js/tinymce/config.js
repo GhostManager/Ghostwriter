@@ -22,14 +22,265 @@
 
     });
 
-    GW_TINYMCE_DEFAULT_CONFIG = {
+    function gwGetTinyMceTheme() {
+        const documentTheme = document.documentElement.getAttribute('data-theme');
+        if (documentTheme === 'dark' || documentTheme === 'light') {
+            return documentTheme;
+        }
+
+        try {
+            const storedTheme = localStorage.getItem('ghostwriter-theme');
+            if (storedTheme === 'dark' || storedTheme === 'light') {
+                return storedTheme;
+            }
+
+            if (storedTheme === 'auto' && window.matchMedia) {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+        } catch (error) {
+            // Fall back to the default light theme if storage is unavailable.
+        }
+
+        return 'light';
+    }
+
+    function gwGetTinyMceSkin() {
+        return gwGetTinyMceTheme() === 'dark' ? 'GhostwriterDark' : 'Ghostwriter';
+    }
+
+    function gwGetTinyMceContentCss() {
+        const tinyContentCss = gwGetTinyMceTheme() === 'dark'
+            ? '/static/js/tinymce/skins/content/GhostwriterDark/content.min.css'
+            : '/static/js/tinymce/skins/content/default/content.min.css';
+
+        return [tinyContentCss, '/static/css/wysiwyg_styles.css'];
+    }
+
+    function gwGetTinyMceThemeConfig(config) {
+        return {
+            ...config,
+            skin: gwGetTinyMceSkin(),
+            content_css: gwGetTinyMceContentCss(),
+        };
+    }
+
+    window.gwGetTinyMceThemeConfig = gwGetTinyMceThemeConfig;
+
+    function gwRequestFormSubmit(form) {
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            $(form).trigger('submit');
+        }
+    }
+
+    window.gwRequestFormSubmit = gwRequestFormSubmit;
+
+    function gwApplyTinyMceTheme(editor) {
+        if (!editor || editor.removed) {
+            return;
+        }
+
+        const theme = gwGetTinyMceTheme();
+        const container = editor.getContainer();
+        if (container) {
+            container.classList.toggle('gw-tinymce-dark', theme === 'dark');
+        }
+
+        const body = editor.getBody();
+        if (body) {
+            body.classList.toggle('gw-tinymce-dark', theme === 'dark');
+            body.setAttribute('data-gw-theme', theme);
+        }
+    }
+
+    function gwRefreshTinyMceLayout(editor) {
+        if (!editor || editor.removed || !editor.initialized || !editor.getBody()) {
+            return;
+        }
+
+        if (editor._gwTinyMceRefreshRafId) {
+            window.cancelAnimationFrame(editor._gwTinyMceRefreshRafId);
+            editor._gwTinyMceRefreshRafId = null;
+        }
+
+        gwApplyTinyMceTheme(editor);
+
+        if (typeof editor.execCommand === 'function') {
+            editor._gwTinyMceRefreshRafId = window.requestAnimationFrame(function () {
+                editor._gwTinyMceRefreshRafId = null;
+                if (!editor.removed && editor.initialized && editor.getBody()) {
+                    const activeElement = document.activeElement;
+                    const scrollContainer = editor.targetElm.closest('.modal-body');
+                    const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+                    const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+                    editor.execCommand('mceAutoResize');
+                    if (activeElement && activeElement !== document.activeElement && activeElement.isConnected) {
+                        activeElement.focus({preventScroll: true});
+                    }
+                    if (scrollContainer) {
+                        scrollContainer.scrollLeft = scrollLeft;
+                        scrollContainer.scrollTop = scrollTop;
+                    }
+                }
+            });
+        }
+    }
+
+    function gwClearTinyMceRefreshTimers(editor) {
+        if (!editor) {
+            return;
+        }
+
+        if (editor._gwTinyMceRefreshScheduleRafId) {
+            window.cancelAnimationFrame(editor._gwTinyMceRefreshScheduleRafId);
+            editor._gwTinyMceRefreshScheduleRafId = null;
+        }
+
+        if (editor._gwTinyMceRefreshTimeoutIds) {
+            editor._gwTinyMceRefreshTimeoutIds.forEach(function (timeoutId) {
+                window.clearTimeout(timeoutId);
+            });
+        }
+
+        editor._gwTinyMceRefreshTimeoutIds = [];
+    }
+
+    function gwScheduleTinyMceLayoutRefresh(editor) {
+        if (!editor || editor.removed) {
+            return;
+        }
+
+        gwClearTinyMceRefreshTimers(editor);
+
+        editor._gwTinyMceRefreshScheduleRafId = window.requestAnimationFrame(function () {
+            editor._gwTinyMceRefreshScheduleRafId = null;
+            gwRefreshTinyMceLayout(editor);
+        });
+
+        editor._gwTinyMceRefreshTimeoutIds = [100, 300].map(function (delay) {
+            return window.setTimeout(function () {
+                gwRefreshTinyMceLayout(editor);
+            }, delay);
+        });
+    }
+
+    function gwIsTinyMceEditorVisible(editor) {
+        if (!editor || editor.removed) {
+            return false;
+        }
+
+        const container = editor.getContainer();
+        if (!container) {
+            return false;
+        }
+
+        return !!(container.offsetWidth || container.offsetHeight || container.getClientRects().length);
+    }
+
+    function gwEditorNeedsThemeReinit(editor) {
+        if (!editor || editor.removed) {
+            return false;
+        }
+
+        const nextThemeConfig = gwGetTinyMceThemeConfig({});
+        const currentContentCss = Array.isArray(editor.settings.content_css)
+            ? editor.settings.content_css.join('|')
+            : editor.settings.content_css;
+        const nextContentCss = Array.isArray(nextThemeConfig.content_css)
+            ? nextThemeConfig.content_css.join('|')
+            : nextThemeConfig.content_css;
+
+        return editor.settings.skin !== nextThemeConfig.skin || currentContentCss !== nextContentCss;
+    }
+
+    function gwReinitializeTinyMceEditor(editor) {
+        if (!editor || editor.removed || !editor.targetElm) {
+            return;
+        }
+
+        const wasFocused = typeof editor.hasFocus === 'function' && editor.hasFocus();
+        let bookmark = null;
+        if (wasFocused && editor.selection) {
+            try {
+                bookmark = editor.selection.getBookmark(2, true);
+            } catch (error) {
+                bookmark = null;
+            }
+        }
+
+        editor.save();
+
+        const settings = {
+            ...gwGetTinyMceThemeConfig(editor.settings),
+            target: editor.targetElm,
+        };
+        delete settings.selector;
+
+        const existingInitInstanceCallback = settings.init_instance_callback;
+        settings.init_instance_callback = function (newEditor) {
+            if (typeof existingInitInstanceCallback === 'function') {
+                existingInitInstanceCallback(newEditor);
+            }
+
+            if (wasFocused) {
+                newEditor.focus();
+                if (bookmark && newEditor.selection) {
+                    try {
+                        newEditor.selection.moveToBookmark(bookmark);
+                    } catch (error) {
+                        // Ignore selection restore failures and leave the editor focused.
+                    }
+                }
+            }
+        };
+
+        editor.remove();
+        tinymce.init(settings);
+    }
+
+    let gwObservedTinyMceTheme = gwGetTinyMceTheme();
+    let gwTinyMceThemeObserverStarted = false;
+
+    function gwObserveTinyMceTheme() {
+        if (gwTinyMceThemeObserverStarted) {
+            return;
+        }
+
+        gwTinyMceThemeObserverStarted = true;
+
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.type !== 'attributes' || mutation.attributeName !== 'data-theme') {
+                    return;
+                }
+
+                const nextTheme = gwGetTinyMceTheme();
+                if (nextTheme === gwObservedTinyMceTheme) {
+                    return;
+                }
+
+                gwObservedTinyMceTheme = nextTheme;
+                tinymce.editors.slice().forEach(function (editor) {
+                    if (gwEditorNeedsThemeReinit(editor) && (gwIsTinyMceEditorVisible(editor) || editor.hasFocus())) {
+                        gwReinitializeTinyMceEditor(editor);
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme'],
+        });
+    }
+
+    const GW_TINYMCE_DEFAULT_CONFIG = window.GW_TINYMCE_DEFAULT_CONFIG = {
         entity_encoding: 'raw',
         branding: false,
         width: '100%',
         theme: 'silver',
-        skin: 'Ghostwriter',
         selector: 'textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)',
-        content_css: '/static/css/wysiwyg_styles.css',
         menubar: 'file edit insert view format table tools',
         visualchars_default_state: false,
         menu: {
@@ -45,7 +296,9 @@
             tools: {title: 'Tools', items: 'code wordcount'},
         },
         max_height: window_height - 250,
+        min_height: 160,
         autoresize_bottom_margin: 10,
+        autoresize_on_init: false,
         toolbar_mode: 'floating',
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
         toolbar: 'subscript superscript bold italic underline link blockquote case highlight | bullist numlist | richcode codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
@@ -203,6 +456,35 @@
                     tinymce.activeEditor.formatter.toggle('richcode');
                 }
             });
+
+            editor.on('init', function () {
+                gwApplyTinyMceTheme(editor);
+                gwScheduleTinyMceLayoutRefresh(editor);
+                gwObserveTinyMceTheme();
+            });
+
+            editor.on('keydown', function (event) {
+                if (
+                    event.key === 'Enter' &&
+                    (event.ctrlKey || event.metaKey) &&
+                    editor.targetElm.closest('[data-submit-on-mod-enter]')
+                ) {
+                    const form = editor.targetElm.closest('form');
+                    if (form) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        gwRequestFormSubmit(form);
+                    }
+                }
+            });
+
+            editor.on('remove', function () {
+                gwClearTinyMceRefreshTimers(editor);
+                if (editor._gwTinyMceRefreshRafId) {
+                    window.cancelAnimationFrame(editor._gwTinyMceRefreshRafId);
+                    editor._gwTinyMceRefreshRafId = null;
+                }
+            });
         },
         paste_preprocess: function(_, event) {
             if(tinymce.activeEditor.formatter.match("richcode")) {
@@ -221,12 +503,12 @@
     };
 
     // TinyMCE config for most fields
-    GW_TINYMCE_BASIC_CONFIG = {
+    const GW_TINYMCE_BASIC_CONFIG = window.GW_TINYMCE_BASIC_CONFIG = {
         ...GW_TINYMCE_DEFAULT_CONFIG,
     };
 
     // TinyMCE config for finding fields, with additional functionality for evidence uploads
-    GW_TINYMCE_FINDING_CONFIG = {
+    const GW_TINYMCE_FINDING_CONFIG = window.GW_TINYMCE_FINDING_CONFIG = {
         ...GW_TINYMCE_BASIC_CONFIG,
         selector: "textarea.enable-evidence-upload",
         setup: function (editor) {
@@ -335,34 +617,196 @@
         },
     };
 
-    /*
-    Initiate TinyMCE targeting ``textarea.enable-evidence-upload`` inputs
-
-    This must be initiated first because the default config will initiate all ``textarea`` inputs
-    */
-
-    $(() => tinymce.init(GW_TINYMCE_FINDING_CONFIG));
-
-    /*
-    Initiate TinyMCE targeting all ``textarea`` inputs
-
-    The init is wrapped in a function, so it can be called to reinitialize TinyMCE as needed
-
-    Editors must be reinitialized when an empty formset form is copied and added to a form
-    */
-
-    function tinyInit() {
-        tinymce.init(GW_TINYMCE_BASIC_CONFIG);
+    function gwShouldAutoInitTinyMce(textarea) {
+        return !textarea.classList.contains('empty-form') &&
+            !textarea.classList.contains('no-auto-tinymce') &&
+            !textarea.closest('[id^="empty-form-"]');
     }
-    $(tinyInit);
+
+    function gwIsInInactiveTab(textarea) {
+        const tabPane = textarea.closest('.tab-pane');
+        return tabPane && !tabPane.classList.contains('active');
+    }
+
+    function gwIsInTabPane(textarea) {
+        return !!textarea.closest('.tab-pane');
+    }
+
+    function gwHasTinyMceEditor(textarea) {
+        return tinymce.editors.some(function (editor) {
+            return editor.targetElm === textarea || (textarea.id && editor.id === textarea.id);
+        });
+    }
+
+    function gwRestoreWindowScroll(scrollX, scrollY) {
+        const restore = function () {
+            window.scrollTo(scrollX, scrollY);
+        };
+
+        restore();
+        window.requestAnimationFrame(function () {
+            restore();
+            window.setTimeout(restore, 100);
+            window.setTimeout(restore, 300);
+        });
+    }
+
+    function gwInitTinyMceTextarea(textarea) {
+        const sourceConfig = textarea.classList.contains('enable-evidence-upload')
+            ? GW_TINYMCE_FINDING_CONFIG
+            : GW_TINYMCE_BASIC_CONFIG;
+        const config = {
+            ...gwGetTinyMceThemeConfig(sourceConfig),
+            target: textarea,
+        };
+        const minimumHeightContainer = textarea.closest('[data-tinymce-min-height]');
+        if (minimumHeightContainer) {
+            const minimumHeight = Number.parseInt(minimumHeightContainer.dataset.tinymceMinHeight, 10);
+            if (Number.isFinite(minimumHeight)) {
+                config.min_height = minimumHeight;
+            }
+        }
+        delete config.selector;
+        const initResult = tinymce.init(config);
+        return initResult && typeof initResult.then === 'function' ? initResult : Promise.resolve(initResult);
+    }
+
+    function gwInitTinyMceTextareas(container, options) {
+        const root = container || document;
+        const includeInactiveTabs = options && options.includeInactiveTabs;
+        const skipTabPanes = options && options.skipTabPanes;
+        const preserveScroll = options && options.preserveScroll;
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        const textareas = root.matches && root.matches('textarea')
+            ? [root]
+            : Array.from(root.querySelectorAll('textarea'));
+
+        const initPromises = textareas.reduce(function (initPromises, textarea) {
+            if (
+                gwShouldAutoInitTinyMce(textarea) &&
+                !gwHasTinyMceEditor(textarea) &&
+                (!skipTabPanes || !gwIsInTabPane(textarea)) &&
+                (includeInactiveTabs || !gwIsInInactiveTab(textarea))
+            ) {
+                initPromises.push(gwInitTinyMceTextarea(textarea));
+            }
+            return initPromises;
+        }, []);
+
+        if (preserveScroll && initPromises.length) {
+            Promise.all(initPromises).finally(function () {
+                gwRestoreWindowScroll(scrollX, scrollY);
+            });
+        }
+
+        return initPromises;
+    }
+
+    function gwRefreshTinyMceEditors(container, options) {
+        const root = container || document;
+        const scheduleLayoutRefresh = options && options.scheduleLayoutRefresh;
+
+        tinymce.editors.slice().forEach(function (editor) {
+            if (!editor || editor.removed) {
+                return;
+            }
+
+            if (root !== document && editor.targetElm && !root.contains(editor.targetElm)) {
+                return;
+            }
+
+            if (gwEditorNeedsThemeReinit(editor) && (gwIsTinyMceEditorVisible(editor) || editor.hasFocus())) {
+                gwReinitializeTinyMceEditor(editor);
+                return;
+            }
+
+            if (scheduleLayoutRefresh) {
+                gwScheduleTinyMceLayoutRefresh(editor);
+            }
+        });
+    }
+
+    function gwStartInitialTinyMceScrollLock(scrollX, scrollY) {
+        const bodyStyle = document.body.style;
+        const originalPosition = bodyStyle.position;
+        const originalTop = bodyStyle.top;
+        const originalLeft = bodyStyle.left;
+        const originalRight = bodyStyle.right;
+        const originalWidth = bodyStyle.width;
+
+        bodyStyle.position = 'fixed';
+        bodyStyle.top = `-${scrollY}px`;
+        bodyStyle.left = '0';
+        bodyStyle.right = '0';
+        bodyStyle.width = '100%';
+
+        return function () {
+            bodyStyle.position = originalPosition;
+            bodyStyle.top = originalTop;
+            bodyStyle.left = originalLeft;
+            bodyStyle.right = originalRight;
+            bodyStyle.width = originalWidth;
+            window.scrollTo(scrollX, scrollY);
+        };
+    }
+
+    window.gwInitTinyMceTextareas = gwInitTinyMceTextareas;
+    window.tinyInit = function (container, options) {
+        return gwInitTinyMceTextareas(container || document, options);
+    };
+
+    $(function () {
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        const stopInitialScrollLock = gwStartInitialTinyMceScrollLock(scrollX, scrollY);
+        const initPromises = gwInitTinyMceTextareas(document);
+        let initialScrollLockFinished = false;
+        const finishInitialScrollLock = function () {
+            if (initialScrollLockFinished) {
+                return;
+            }
+            initialScrollLockFinished = true;
+            stopInitialScrollLock();
+        };
+
+        if (!initPromises.length) {
+            finishInitialScrollLock();
+            return;
+        }
+
+        Promise.all(initPromises).finally(function () {
+            window.requestAnimationFrame(function () {
+                window.setTimeout(finishInitialScrollLock, 1500);
+            });
+        });
+        window.setTimeout(finishInitialScrollLock, 3000);
+    });
+
+    $(document).on('shown.bs.tab', function (event) {
+        const selector = $(event.target).data('target') || $(event.target).attr('href');
+        if (selector) {
+            const pane = document.querySelector(selector);
+            if (pane) {
+                const scrollX = window.scrollX;
+                const scrollY = window.scrollY;
+                gwInitTinyMceTextareas(pane, {includeInactiveTabs: true, preserveScroll: true});
+                gwRefreshTinyMceEditors(pane);
+                gwRestoreWindowScroll(scrollX, scrollY);
+            }
+        }
+    });
+
+    $(document).on('focusin pointerdown', '.tab-pane textarea', function () {
+        gwInitTinyMceTextareas(this, {includeInactiveTabs: true});
+    });
+
+    $(document).on('shown.bs.modal shown.bs.collapse', function (event) {
+        gwInitTinyMceTextareas(event.target, {includeInactiveTabs: true});
+        gwRefreshTinyMceEditors(event.target, {scheduleLayoutRefresh: true});
+    });
 
 })($ || django.jQuery);
-
-function tinymceLogInit() {
-    let logConfig = { ...GW_TINYMCE_BASIC_CONFIG };
-    logConfig.selector = '.modal-content textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)';
-    tinymce.init(logConfig);
-}
 
 function tinymceRemove() {
     tinymce.remove();

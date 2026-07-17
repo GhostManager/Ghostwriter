@@ -16,10 +16,11 @@ from pptx.oxml.ns import nsdecls
 from pptx.enum.text import MSO_AUTO_SIZE
 
 from ghostwriter.commandcenter.models import CompanyInformation
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
+from ghostwriter.reporting.models import ReportTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class ExportBasePptx(ExportBase):
     Subclasses should override `run` to add slides to the `ppt_presentation` field, using `process_rich_text_pptx`
     to template and convert rich text fields, then return `super().run()` to save and return the presentation.
     """
+    report_template: ReportTemplate
     ppt_presentation: PresentationPart
     company_config: CompanyInformation
     linting: bool
@@ -47,7 +49,7 @@ class ExportBasePptx(ExportBase):
         self,
         object,
         *,
-        template_loc: str = None,
+        report_template: ReportTemplate,
         linting: bool = False,
         **kwargs
     ):
@@ -55,15 +57,16 @@ class ExportBasePptx(ExportBase):
             kwargs["jinja_debug"] = linting
         super().__init__(object, **kwargs)
         self.linting = linting
+        self.report_template = report_template
 
         try:
-            self.ppt_presentation = Presentation(template_loc)
+            self.ppt_presentation = Presentation(report_template.document.path)
         except PackageNotFoundError as err:
-            raise ReportExportError("Template document file could not be found - try re-uploading it") from err
+            raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
         except Exception:
             logger.exception(
                 "Failed to load the provided template document for unknown reason: %s",
-                template_loc,
+                report_template.document.path,
             )
             raise
 
@@ -74,7 +77,7 @@ class ExportBasePptx(ExportBase):
         Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor and inserting it into the passed in shape and slide.
         Converts HTML from the TinyMCE rich text editor and inserts it into the passed in slide and shape
         """
-        ReportExportError.map_jinja2_render_errors(
+        ReportExportTemplateError.map_errors(
             lambda: HtmlToPptxWithEvidence.run(
                 rich_text.render_html(),
                 slide=slide,
@@ -88,22 +91,22 @@ class ExportBasePptx(ExportBase):
         """
         Add footer elements (if there is one) to all slides based on the footer placeholder in the template
         """
-        for idx, slide in enumerate(self.ppt_presentation.slides):
+        for slide_idx, slide in enumerate(self.ppt_presentation.slides):
             date_placeholder_idx = -1
             footer_placeholder_idx = -1
             slide_number_placeholder_idx = -1
             slide_layout = slide.slide_layout
 
-            for idx, place in enumerate(slide_layout.placeholders):
+            for placeholder_idx, place in enumerate(slide_layout.placeholders):
                 if "Footer" in place.name:
-                    footer_placeholder_idx = idx
+                    footer_placeholder_idx = placeholder_idx
                 if "Slide Number" in place.name:
-                    slide_number_placeholder_idx = idx
+                    slide_number_placeholder_idx = placeholder_idx
                 if "Date" in place.name:
-                    date_placeholder_idx = idx
+                    date_placeholder_idx = placeholder_idx
 
             # Skip the title slide at index 0
-            if idx > 0:
+            if slide_idx > 0:
                 if footer_placeholder_idx > 0:
                     footer_layout_placeholder, footer_placeholder = clone_placeholder(
                         slide, slide_layout, footer_placeholder_idx
@@ -145,7 +148,7 @@ class ExportBasePptx(ExportBase):
                 warnings.append(
                     "Template can be used, but it has slides when it should be empty (see documentation)"
                 )
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.exception("Template failed linting: %s", error)
             errors.append(f"Linting failed: {error}")
         except Exception:
@@ -159,7 +162,6 @@ class ExportBasePptx(ExportBase):
 # Slide styles (From Master Style counting top to bottom from 0..n)
 SLD_LAYOUT_TITLE = 0
 SLD_LAYOUT_TITLE_AND_CONTENT = 1
-SLD_LAYOUT_FINAL = 12
 
 
 def add_slide_number(txtbox):

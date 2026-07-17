@@ -12,8 +12,8 @@
       <div class="modal-body extra-field-modal-content">
 
         <h5>Description</h5>
-        {% if project.note %}
-          {{ project.note|bleach }}
+        {% if project.description %}
+          {{ project.description|bleach }}
         {% else %}
           <p class="text-justify">No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
         {% endif %}

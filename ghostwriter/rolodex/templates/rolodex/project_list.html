@@ -49,7 +49,7 @@
           <td class="align-middle text-left"><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a>
           </td>
           <td class="align-middle text-left">{{ project.project_type }}</td>
-          <td class="align-middle text-left">{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
+          <td class="align-middle text-left" data-text="{{ project.start_date|date:"Y-m-d" }}">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
           <td class="align-middle">
             <div class="d-flex justify-content-center">
               <span
@@ -98,7 +98,7 @@
       $(function () {
         let availableClients = [
           {% for entry in autocomplete %}
-            '{{ entry.client.name|escapejs }}{% if entry.client.tags.names %} ({{ entry.client.tags.names|get_tags_list|escapejs }}){% endif %}',
+            '{{ entry.client.name|escapejs }}',
           {% endfor %}
         ];
         uniqueClients = Array.from(new Set(availableClients));
@@ -112,7 +112,7 @@
       $(function () {
         let availableCodenames = [
           {% for entry in autocomplete %}
-            '{{ entry.codename|escapejs }}{% if entry.tags.names %} ({{ entry.tags.names|get_tags_list|escapejs }}){% endif %}',
+            '{{ entry.codename|escapejs }}',
           {% endfor %}
         ];
         $('#id_codename').autocomplete({

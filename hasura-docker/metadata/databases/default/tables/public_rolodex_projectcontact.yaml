@@ -21,7 +21,7 @@ insert_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id
@@ -45,7 +45,7 @@ insert_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id
@@ -62,8 +62,16 @@ select_permissions:
         - name
         - phone
         - timezone
-        - note
+        - description
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:
@@ -75,7 +83,7 @@ select_permissions:
         - name
         - phone
         - timezone
-        - note
+        - description
       filter:
         project:
           _or:
@@ -96,7 +104,7 @@ update_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id
@@ -109,7 +117,7 @@ update_permissions:
         - email
         - job_title
         - name
-        - note
+        - description
         - phone
         - primary
         - project_id

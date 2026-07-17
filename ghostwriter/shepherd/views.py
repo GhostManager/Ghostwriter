@@ -39,6 +39,7 @@ from ghostwriter.commandcenter.models import (
     NamecheapConfiguration,
     VirusTotalConfiguration,
 )
+from ghostwriter.commandcenter.views import ExtraFieldJsonView
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.filters import DomainFilter, ServerFilter
@@ -737,7 +738,7 @@ def update(request):
             update_time = total_domains
         try:
             # Get the latest completed task from `Domain Updates`
-            queryset = Task.objects.filter(group="Domain Updates")[0]
+            queryset = Task.objects.filter(group="Domain Updates").order_by("-stopped")[0]
             # Get the task's start date and time
             cat_last_update_requested = queryset.started
             # Get the task's completed time
@@ -756,7 +757,7 @@ def update(request):
         dns_last_update_time = ""
         dns_last_result = ""
         try:
-            queryset = Task.objects.filter(group="DNS Updates")[0]
+            queryset = Task.objects.filter(group="DNS Updates").order_by("-stopped")[0]
             dns_last_update_requested = queryset.started
             dns_last_result = queryset.result
             if queryset.success:
@@ -773,7 +774,7 @@ def update(request):
         namecheap_last_result = ""
         if enable_namecheap:
             try:
-                queryset = Task.objects.filter(group="Namecheap Update")[0]
+                queryset = Task.objects.filter(group="Namecheap Update").order_by("-stopped")[0]
                 namecheap_last_update_requested = queryset.started
                 namecheap_last_result = queryset.result
                 if queryset.success:
@@ -794,7 +795,7 @@ def update(request):
         cloud_last_result = ""
         if enable_cloud_monitor:
             try:
-                queryset = Task.objects.filter(group="Cloud Infrastructure Review")[0]
+                queryset = Task.objects.filter(group="Cloud Infrastructure Review").order_by("-stopped")[0]
                 cloud_last_update_requested = queryset.started
                 cloud_last_result = queryset.result
                 if queryset.success:
@@ -893,7 +894,11 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         search_term = ""
-        domains = Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
+        domains = (
+            Domain.objects
+            .select_related("domain_status", "whois_status", "health_status")
+            .prefetch_related("tags")
+        )
 
         # Build autocomplete list
         for domain in domains:
@@ -967,7 +972,12 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         search_term = ""
-        servers = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+        servers = (
+            StaticServer.objects
+            .select_related("server_status", "server_provider")
+            .prefetch_related("tags", "auxserveraddress_set")
+            .order_by("ip_address")
+        )
 
         # Build autocomplete list
         for server in servers:
@@ -1085,6 +1095,10 @@ class DomainDetailView(RoleBasedAccessControlMixin, DetailView):
         return ctx
 
 
+class DomainExtraFieldJson(ExtraFieldJsonView):
+    model = Domain
+
+
 class HistoryCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.History`.
@@ -1168,13 +1182,18 @@ class HistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def form_valid(self, form):
+        # Preserve the original operator since it's not included in the form
+        form.instance.operator = self.object.operator
+        return super().form_valid(form)
+
     def get_success_url(self):
         messages.success(
             self.request,
             "Domain history successfully updated.",
             extra_tags="alert-success",
         )
-        return "{}#history".format(reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id}))
+        return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1353,6 +1372,10 @@ class ServerDetailView(RoleBasedAccessControlMixin, DetailView):
                 ctx["primary_address"] = address.ip_address
         ctx["server_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label)
         return ctx
+
+
+class ServerExtraFieldJson(ExtraFieldJsonView):
+    model = StaticServer
 
 
 class ServerCreate(RoleBasedAccessControlMixin, CreateView):
@@ -1596,6 +1619,11 @@ class ServerHistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
+
+    def form_valid(self, form):
+        # Preserve the original operator since it's not included in the form
+        form.instance.operator = self.object.operator
+        return super().form_valid(form)
 
     def get_success_url(self):
         messages.success(

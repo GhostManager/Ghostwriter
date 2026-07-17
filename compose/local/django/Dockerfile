@@ -1,4 +1,4 @@
-FROM python:3.10.9-alpine3.17
+FROM python:3.10.20-alpine3.23
 
 ENV PYTHONUNBUFFERED=1
 
@@ -21,11 +21,20 @@ RUN apk --no-cache add build-base curl \
     # Rust and Cargo required by the ``cryptography`` Python package
     && apk --no-cache add rust \
     && apk --no-cache add cargo \
+    # Git for installing packages from GitHub
+    && apk --no-cache add git \
     && pip install --no-cache-dir -U setuptools pip
 
 COPY ./requirements /requirements
 
-RUN pip install --no-cache-dir -r /requirements/local.txt
+RUN pip install --no-cache-dir -r /requirements/local.txt --no-binary psycopg2
+
+# Download spaCy model for passive voice detection
+# Default to English, can be overridden via SPACY_MODEL build arg
+# Available models: https://spacy.io/models
+ARG SPACY_MODEL=en_core_web_sm
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m spacy download "${SPACY_MODEL}"
 
 COPY ./compose/production/django/entrypoint /entrypoint
 

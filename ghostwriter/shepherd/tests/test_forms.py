@@ -70,25 +70,39 @@ class CheckoutFormTests(TestCase):
         cls.available_status = DomainStatusFactory(domain_status="Available")
         cls.unavailable_status = DomainStatusFactory(domain_status="Unavailable")
         cls.domain = DomainFactory(
+            name="checkout-available.example",
             expiration=date.today() + timedelta(days=360),
             expired=False,
             auto_renew=True,
             domain_status=cls.available_status,
         )
         cls.unavailable_domain = DomainFactory(
+            name="checkout-unavailable.example",
             domain_status=cls.unavailable_status,
             expiration=date.today() + timedelta(days=360),
             expired=False,
             auto_renew=True,
         )
         cls.expired_domain = DomainFactory(
-            expiration=date.today() - timedelta(days=30), auto_renew=False, expired=False
+            name="checkout-expired.example",
+            expiration=date.today() - timedelta(days=30),
+            auto_renew=False,
+            expired=False,
+            domain_status=cls.available_status,
         )
         cls.auto_renew_expired_domain = DomainFactory(
-            expiration=date.today() - timedelta(days=30), auto_renew=True, expired=False
+            name="checkout-auto-renew-expired.example",
+            expiration=date.today() - timedelta(days=30),
+            auto_renew=True,
+            expired=False,
+            domain_status=cls.available_status,
         )
         cls.set_expired_domain = DomainFactory(
-            expiration=date.today() + timedelta(days=30), auto_renew=True, expired=True
+            name="checkout-set-expired.example",
+            expiration=date.today() + timedelta(days=30),
+            auto_renew=True,
+            expired=True,
+            domain_status=cls.available_status,
         )
         cls.project = ProjectFactory()
         cls.user = UserFactory(password=PASSWORD)
@@ -203,7 +217,7 @@ class DomainFormTests(TestCase):
         expiration=None,
         last_health_check=None,
         vt_permalink=None,
-        note=None,
+        description=None,
         burned_explanation=None,
         auto_renew=None,
         reset_dns=None,
@@ -220,7 +234,7 @@ class DomainFormTests(TestCase):
                 "expiration": expiration,
                 "last_health_check": last_health_check,
                 "vt_permalink": vt_permalink,
-                "note": note,
+                "description": description,
                 "burned_explanation": burned_explanation,
                 "auto_renew": auto_renew,
                 "reset_dns": reset_dns,
@@ -538,7 +552,7 @@ class ServerFormTests(TestCase):
         name=None,
         server_status_id=None,
         server_provider_id=None,
-        note=None,
+        description=None,
         **kwargs,
     ):
         return ServerForm(
@@ -547,7 +561,7 @@ class ServerFormTests(TestCase):
                 "name": name,
                 "server_status": server_status_id,
                 "server_provider": server_provider_id,
-                "note": note,
+                "description": description,
             },
         )
 
@@ -663,7 +677,7 @@ class TransientServerFormTests(TestCase):
         activity_type_id=None,
         server_role_id=None,
         server_provider_id=None,
-        note=None,
+        description=None,
         **kwargs,
     ):
         return TransientServerForm(
@@ -677,7 +691,7 @@ class TransientServerFormTests(TestCase):
                 "activity_type": activity_type_id,
                 "server_role": server_role_id,
                 "server_provider": server_provider_id,
-                "note": note,
+                "description": description,
             },
         )
 

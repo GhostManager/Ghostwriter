@@ -19,6 +19,11 @@ STATICFILES_DIRS += [
     "/app/javascript/dist_frontend/"
 ]
 
+# MFA SETTINGS
+# Optional -- use for local development only
+# https://docs.allauth.org/en/dev/mfa/webauthn.html
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = True
+
 # CACHES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#caches
@@ -38,26 +43,15 @@ EMAIL_HOST = "localhost"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = 1025
 
-# django-debug-toolbar
-# ------------------------------------------------------------------------------
-# https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#prerequisites
-# INSTALLED_APPS += ["debug_toolbar"]  # noqa F405
-# https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#middleware
-# MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]  # noqa F405
-# https://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config
-# DEBUG_TOOLBAR_CONFIG = {
-#     "DISABLE_PANELS": ["debug_toolbar.panels.redirects.RedirectsPanel"],
-#     "SHOW_TEMPLATE_CONTEXT": True,
-# }
-# https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#internal-ips
-
 INTERNAL_IPS = ["127.0.0.1", "10.0.2.2"]
 if env("USE_DOCKER") == "yes":
-    # Standard Libraries
     import socket
-
-    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
-    INTERNAL_IPS += [ip[:-1] + "1" for ip in ips]
+    try:
+        _, _, ips = socket.gethostbyname_ex("nginx")
+        INTERNAL_IPS += ips
+    except socket.gaierror:
+        # nginx may not be resolvable yet during startup
+        pass
 
 # django-extensions
 # ------------------------------------------------------------------------------
@@ -74,4 +68,5 @@ if env("USE_DOCKER") == "yes":
 # Include files in `local.d`. These are added in alphabetical order - using a numeric prefix
 # like `10-subconfig.py` can be used to order inclusions
 
+# Load settings from the codebase (for `local-dev` mode)
 include_settings("./local.d/*.py")

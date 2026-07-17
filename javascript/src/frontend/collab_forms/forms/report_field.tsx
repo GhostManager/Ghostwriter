@@ -4,15 +4,20 @@ import { createRoot } from "react-dom/client";
 import { ExtraFieldInput, useExtraFieldSpecs } from "../extra_fields";
 import { Editor } from "@tiptap/core";
 import EvidenceButton from "../rich_text_editor/evidence";
+import OplogOutlineButton from "../rich_text_editor/oplog_outline";
 import PageGraphqlProvider from "../../graphql/client";
 import { ProvidePageEvidence } from "../../graphql/evidence";
+import ErrorBoundary from "../error_boundary";
 
 const renderToolbarExtra = (editor: Editor) => (
-    <EvidenceButton editor={editor} />
+    <>
+        <EvidenceButton editor={editor} />
+        <OplogOutlineButton editor={editor} />
+    </>
 );
 
 function ReportExtraFieldForm(props: { field: string }) {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "report",
     });
 
@@ -32,6 +37,7 @@ function ReportExtraFieldForm(props: { field: string }) {
                     provider={provider}
                     spec={extraField}
                     toolbarExtra={renderToolbarExtra}
+                    setEditing={setEditing}
                 />
                 {extraField.description && (
                     <small className="form-text text-muted">
@@ -51,10 +57,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const fieldName = el.getAttribute("data-extra-field-name")!;
     const root = createRoot(el);
     root.render(
-        <PageGraphqlProvider>
-            <ProvidePageEvidence>
-                <ReportExtraFieldForm field={fieldName} />
-            </ProvidePageEvidence>
-        </PageGraphqlProvider>
+        <ErrorBoundary>
+            <PageGraphqlProvider>
+                <ProvidePageEvidence>
+                    <ReportExtraFieldForm field={fieldName} />
+                </ProvidePageEvidence>
+            </PageGraphqlProvider>
+        </ErrorBoundary>
     );
 });

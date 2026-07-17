@@ -5,9 +5,10 @@ import { useEffect, useMemo, useReducer, useRef } from "react";
 
 /**
  * Gets and observes a YJS map key.
- * @param map The YJS map to observe
- * @param key The key of the YJS map to get and observe
- * @param defaultValue The value to return if the key is missing
+ * @param map The YJS map to observe.
+ * @param key The key of the YJS map to get and observe.
+ * @param defaultValue The value to return if the key is missing.
+ * @param onExternalChange Callback to call when a change to the field happens that wasn't caused by this client.
  * @returns The current value and a setter that sets the value on the YJS map.
  */
 export function usePlainField<T>(

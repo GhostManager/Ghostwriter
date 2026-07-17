@@ -3,6 +3,7 @@ import { simpleModelHandler } from "../base_handler";
 import * as Y from "yjs";
 import { htmlToYjs, tagsToYjs, yjsToHtml, yjsToTags } from "../yjs_converters";
 import { extraFieldsFromYdoc, extraFieldsToYdoc } from "../extra_fields";
+import { renderToStringWithData } from "@apollo/client/react/ssr";
 
 const GET = gql(`
     query GET_FINDING($id: bigint!) {
@@ -81,10 +82,11 @@ const FindingHandler = simpleModelHandler(
         );
         tagsToYjs(res.tags.tags, doc.get("tags", Y.Map<boolean>));
         extraFieldsToYdoc(res.extraFieldSpec, doc, obj.extraFields);
+        return res.extraFieldSpec;
     },
-    (doc, id) => {
+    (doc, id, extraFieldSpec) => {
         const plainFields = doc.get("plain_fields", Y.Map<any>);
-        const extraFields = extraFieldsFromYdoc(doc);
+        const extraFields = extraFieldsFromYdoc(extraFieldSpec, doc);
         return {
             id,
             set: {

@@ -11,8 +11,8 @@ from django.db.models import Model
 
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportError, rich_text_template
-from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate, rich_text_template
 
 
 class ExportBase:
@@ -31,10 +31,14 @@ class ExportBase:
     jinja_undefined_variables: set[str] | None
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
     evidences_by_id: dict
+    preview_extra_field_model_label: str | None
+    preview_extra_field_name: str | None
 
     def __init__(self, input_object: Any, *, is_raw=False, jinja_debug=False):
         self.evidences_by_id = {}
         self.extra_fields_spec_cache = {}
+        self.preview_extra_field_model_label = None
+        self.preview_extra_field_name = None
 
         if jinja_debug:
             self.jinja_env, self.jinja_undefined_variables = prepare_jinja2_env(debug=True)
@@ -82,10 +86,18 @@ class ExportBase:
             self.evidences_by_id[evi["id"]] = evi
         return out
 
-    def create_lazy_template(self, location: str | None, text: str, context: dict) -> LazilyRenderedTemplate:
+    def create_lazy_template(
+        self, location: str | None, text: str | None, context: dict, **kwargs
+    ) -> LazilyRenderedTemplate:
+        """
+        Creates a `LazilyRenderedTemplate` that will `text` as a jinja template when needed.
+
+        Implementations of `map_rich_texts` should call this on rich text fields, replacing the rich text field
+        with its return value.
+        """
         return LazilyRenderedTemplate(
-            ReportExportError.map_jinja2_render_errors(
-                lambda: rich_text_template(self.jinja_env, text),
+            ReportExportTemplateError.map_errors(
+                lambda: rich_text_template(self.jinja_env, text or "", **kwargs),
                 location,
             ),
             location,
@@ -102,6 +114,14 @@ class ExportBase:
             if field.internal_name not in extra_fields:
                 extra_fields[field.internal_name] = field.empty_value()
             if field.type == "rich_text":
+                if (
+                    self.preview_extra_field_model_label
+                    and (
+                        model._meta.label != self.preview_extra_field_model_label
+                        or field.internal_name != self.preview_extra_field_name
+                    )
+                ):
+                    continue
                 extra_fields[field.internal_name] = self.create_lazy_template(
                     f"extra field {field.internal_name} of {location}",
                     str(extra_fields[field.internal_name]),
@@ -109,6 +129,9 @@ class ExportBase:
                 )
 
     def map_rich_texts(self):
+        """
+        Replaces rich text entries in `self.data` with `LazilyRenderedTemplate` or `HtmlAndRich` instances.
+        """
         raise NotImplementedError()
 
     def run(self) -> io.BytesIO:
@@ -116,18 +139,22 @@ class ExportBase:
 
     @classmethod
     def mime_type(cls) -> str:
+        """Gets the mime type of the result from `run`"""
         raise NotImplementedError()
 
     @classmethod
     def extension(cls) -> str:
+        """Gets the file extension of the result from `run`, without the dot"""
         raise NotImplementedError()
 
     @classmethod
     def generate_lint_data(cls):
+        """Gets the data to use for linting"""
         raise NotImplementedError()
 
     @classmethod
     def check_filename_template(cls, filename_template: str):
+        """Checks if the filename Jinja template string can be formatted OK"""
         exporter = cls(
             cls.generate_lint_data(),
             is_raw=True,
@@ -151,7 +178,7 @@ class ExportBase:
         data["company_name"] = CompanyInformation.get_solo().company_name
         data["now"] = datetime.now()
 
-        report_name = ReportExportError.map_jinja2_render_errors(
+        report_name = ReportExportTemplateError.map_errors(
             lambda: self.jinja_env.from_string(filename_template).render(data),
             "the template filename"
         )
@@ -161,28 +188,11 @@ class ExportBase:
             ext = self.extension()
         return report_name.strip() + "." + ext
 
-
-def _valid_xml_char_ordinal(c):
-    """
-    Checks if the character is valid to include in XML.
-
-    Source:
-        https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
-
-    **Parameters**
-
-    ``c`` : string
-        String of characters to validate
-    """
-    codepoint = ord(c)
-    # Conditions ordered by presumed frequency
-    return (
-        0x20 <= codepoint <= 0xD7FF
-        or codepoint in (0x9, 0xA, 0xD)
-        or 0xE000 <= codepoint <= 0xFFFD
-        or 0x10000 <= codepoint <= 0x10FFFF
-    )
-
+    def bloodhound_heading_offset(self) -> int:
+        """
+        Number of levels to offset headers in the descriptions from BloodHound data. Default is zero.
+        """
+        return 0
 
 def _replace_filename_chars(name):
     """Remove illegal characters from the report name."""

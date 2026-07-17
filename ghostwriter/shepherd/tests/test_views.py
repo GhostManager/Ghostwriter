@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 # Django Imports
 from django.test import Client, TestCase
@@ -32,7 +32,6 @@ from ghostwriter.factories import (
     VirusTotalConfigurationFactory,
 )
 from ghostwriter.shepherd.forms_server import TransientServerForm
-from ghostwriter.shepherd.views import ServerHistoryCreate
 
 logging.disable(logging.CRITICAL)
 
@@ -270,6 +269,21 @@ class DomainListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
 
+    def test_view_handles_list_category_values(self):
+        DomainStatus = DomainStatusFactory._meta.model
+        available_status = DomainStatus.objects.get(domain_status="Available")
+        DomainFactory(
+            name="category-list.com",
+            categorization={"source": "demo", "categories": ["business", "technology"]},
+            domain_status=available_status,
+            expired=False,
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Business, Technology")
+
 
 class DomainDetailViewTests(TestCase):
     """Collection of tests for :view:`shepherd.DomainDetailView`."""
@@ -299,6 +313,15 @@ class DomainDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_detail.html")
+
+    def test_view_handles_list_category_values(self):
+        self.domain.categorization = {"source": "demo", "categories": ["business", "technology"]}
+        self.domain.save()
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Business, Technology")
 
 
 class DomainCreateViewTests(TestCase):
@@ -586,6 +609,43 @@ class HistoryUpdateViewTests(TestCase):
             "{}#history".format(reverse("shepherd:domain_detail", kwargs={"pk": self.entry.domain.pk})),
         )
         self.assertEqual(response.context["domain_name"], self.entry.domain.name.upper())
+
+    def test_operator_preserved_after_update(self):
+        """Test that the operator field is preserved (not set to null) after an update."""
+        # Ensure the entry's project belongs to the same client for form validation
+        self.entry.project.client = self.entry.client
+        self.entry.project.save()
+
+        # Store the original operator
+        original_operator = self.entry.operator
+        self.assertIsNotNone(original_operator, "Entry should have an operator before update")
+
+        # Prepare form data for update - update the description field
+        data = {
+            "domain": self.entry.domain.pk,
+            "client": self.entry.client.pk,
+            "project": self.entry.project.pk,
+            "start_date": self.entry.start_date.strftime("%Y-%m-%d"),
+            "end_date": self.entry.end_date.strftime("%Y-%m-%d"),
+            "activity_type": self.entry.activity_type.pk,
+            "description": "Updated description to verify operator is preserved",
+        }
+
+        # Submit the update
+        response = self.client_mgr.post(self.uri, data)
+        self.assertEqual(response.status_code, 302)
+
+        # Refresh the entry from the database
+        self.entry.refresh_from_db()
+
+        # Verify operator is still the original value
+        self.assertIsNotNone(self.entry.operator, "Operator should not be null after update")
+        self.assertEqual(
+            self.entry.operator.pk,
+            original_operator.pk,
+            "Operator should be preserved after update",
+        )
+        self.assertEqual(self.entry.description, "Updated description to verify operator is preserved")
 
 
 class HistoryDeleteViewTests(TestCase):
@@ -1049,6 +1109,44 @@ class ServerHistoryUpdateViewTests(TestCase):
             "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})),
         )
 
+    def test_operator_preserved_after_update(self):
+        """Test that the operator field is preserved (not set to null) after an update."""
+        # Ensure the entry's project belongs to the same client for form validation
+        self.entry.project.client = self.entry.client
+        self.entry.project.save()
+
+        # Store the original operator
+        original_operator = self.entry.operator
+        self.assertIsNotNone(original_operator, "Entry should have an operator before update")
+
+        # Prepare form data for update - update the description field
+        data = {
+            "server": self.entry.server.pk,
+            "client": self.entry.client.pk,
+            "project": self.entry.project.pk,
+            "start_date": self.entry.start_date.strftime("%Y-%m-%d"),
+            "end_date": self.entry.end_date.strftime("%Y-%m-%d"),
+            "activity_type": self.entry.activity_type.pk,
+            "server_role": self.entry.server_role.pk,
+            "description": "Updated server description to verify operator is preserved",
+        }
+
+        # Submit the update
+        response = self.client_mgr.post(self.uri, data)
+        self.assertEqual(response.status_code, 302)
+
+        # Refresh the entry from the database
+        self.entry.refresh_from_db()
+
+        # Verify operator is still the original value
+        self.assertIsNotNone(self.entry.operator, "Operator should not be null after update")
+        self.assertEqual(
+            self.entry.operator.pk,
+            original_operator.pk,
+            "Operator should be preserved after update",
+        )
+        self.assertEqual(self.entry.description, "Updated server description to verify operator is preserved")
+
 
 class ServerHistoryDeleteViewTests(TestCase):
     """Collection of tests for :view:`shepherd.ServerHistoryDelete`."""
@@ -1225,7 +1323,7 @@ class TransientServerCreateViewTests(TestCase):
         activity_type_id=None,
         server_role_id=None,
         server_provider_id=None,
-        note=None,
+        description=None,
         **kwargs,
     ):
         return TransientServerForm(
@@ -1239,13 +1337,13 @@ class TransientServerCreateViewTests(TestCase):
                 "activity_type": activity_type_id,
                 "server_role": server_role_id,
                 "server_provider": server_provider_id,
-                "note": note,
+                "description": description,
             },
         )
 
     def test_duplicate_server_submission(self):
         dupe_ip = "1.2.3.4"
-        dupe_aux_ip = ["1.2.3.5", "1.2.3.4.6", "1.2.3.4.7"]
+        dupe_aux_ip = ["1.2.3.5", "1.2.3.6", "1.2.3.7"]
 
         # Create a base cloud server
         vps_server = TransientServerFactory(project=self.project)

@@ -47,6 +47,7 @@
 
   <!-- Ghostwriter JS & CSS -->
   <script src="{% static 'js/project.js' %}"></script>
+  <script src="{% static 'js/active-report.js' %}"></script>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
 
   <!-- TinyMCE -->
@@ -66,6 +67,18 @@
   <!-- JSONView -->
   <script src="{% static 'js/jsonview.js' %}"></script>
   <link rel="stylesheet" type="text/css" href="{% static 'css/jsonview.css' %}">
+
+  <script>
+  (function() {
+    try {
+      var theme = localStorage.getItem('ghostwriter-theme') || 'light';
+      if (theme === 'auto') {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch(e) {}
+  })();
+  </script>
 </head>
 
 <body>
@@ -118,7 +131,7 @@
                                                 " activate-report-csrftoken="{{ csrf_token }}"
                        activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
                        activate-report-id="{{ report.id }}">
-                      {{ report.title }}</a>
+                      {{ report.title }} ({{ report.project.codename }})</a>
                   </li>
                 {% endfor %}
               {% else %}
@@ -378,13 +391,50 @@
             <a href="{% url 'account_login' %}" class="btn btn-primary col-9 icon login-icon">Login</a>
           {% endif %}
 
-          <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
-                                                   alt="SpecterOps"></a>
+          <!-- Theme Toggle -->
+          {% comment %}
+          <div class="mt-2 col-9 mx-auto">
+            <label for="theme-toggle" class="d-block mb-1" style="font-size: 14px; color: var(--sidebar-text-color);">Theme</label>
+            <select id="theme-toggle" class="form-control form-control-sm" style="font-size: 14px;">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto</option>
+            </select>
+          </div>
+          {% endcomment %}
+
+          <!-- Animated Theme Toggle -->
+          <div class="mt-2 col-9 mx-auto theme-toggle-container">
+            <div class="theme-toggle-wrapper">
+              <label class="theme-switch">
+                <input type="checkbox" id="theme-toggle-switch">
+                <span class="theme-slider">
+                  <div class="sun"></div>
+                  <div class="cloud"></div>
+                  <div class="moon"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                  <div class="star"></div>
+                </span>
+              </label>
+            </div>
+
+            <div class="auto-checkbox-wrapper">
+              <input type="checkbox" id="theme-auto-checkbox">
+              <label for="theme-auto-checkbox">Auto (follow system)</label>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="sidebar-footer col d-flex align-items-center justify-content-center mb-2">
+      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2">
         <span>v{{ VERSION }}, released {{ RELEASE_DATE }}</span>
+      </div>
+
+      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2"><a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
+                                                   alt="SpecterOps"></a>
       </div>
     </nav>
   {% endif %}
@@ -392,7 +442,7 @@
   <!-- Page Content Holder -->
   <div id="content">
     {% if user.is_authenticated %}
-      <div class="top-bar container-fluid align-middle">
+      <div class="top-bar container-fluid align-middle mb-3">
         <!-- Breadcrumb Links -->
         {% block breadcrumbs %}{% endblock %}
 
@@ -445,6 +495,46 @@
     $(selector).modal('show');
   }
 
+  function moveFocusOutOfModal(modal) {
+    const activeElement = document.activeElement;
+
+    if (!modal || !activeElement || !modal.contains(activeElement)) {
+      return;
+    }
+
+    const bodyHadTabindex = document.body.hasAttribute('tabindex');
+    const previousBodyTabindex = document.body.getAttribute('tabindex');
+
+    activeElement.blur();
+    document.body.setAttribute('tabindex', '-1');
+    document.body.focus({preventScroll: true});
+
+    if (bodyHadTabindex) {
+      document.body.setAttribute('tabindex', previousBodyTabindex);
+    } else {
+      document.body.removeAttribute('tabindex');
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const dismissButton = target.closest('[data-dismiss="modal"]');
+    const modal = dismissButton ? dismissButton.closest('.modal') : null;
+
+    if (modal) {
+      moveFocusOutOfModal(modal);
+    }
+  }, true);
+
+  $(document).on('hide.bs.modal', '.modal', function () {
+    moveFocusOutOfModal(this);
+  });
+
   {% comment %} Handle AJAX errors {% endcomment %}
   (function ($) {
     $(document).on('ajaxError', function (event, xhr) {
@@ -476,65 +566,9 @@
     $('html, body').animate({scrollTop: 0}, '300');
   });
 
-  {% comment %} Activate a report with AJAX {% endcomment %}
-  $('.js-activate-report').click(function (e) {
-    let url = $(this).attr('activate-report-url');
-    let reportId = $(this).attr('activate-report-id');
-    let csrftoken = $(this).attr('activate-report-csrftoken');
-    let shortcut = $('.active-report-shortcut');
-    let shortcut_url = shortcut.attr('href');
-    let url_tpl = '{% url 'reporting:report_detail' 0 %}';
-    $.ajaxSetup({
-      beforeSend: function (xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-          xhr.setRequestHeader('X-CSRFToken', csrftoken);
-        }
-      }
-    });
-    $.ajax({
-      url: url,
-      type: 'POST',
-      dataType: 'json',
-      data: {
-        'report': reportId
-      },
-      success: function (data) {
-        if (data['result'] === 'success') {
-          let $emptyReport = $('.empty-report')
-          $emptyReport.addClass('selected-report');
-          $emptyReport.toggleClass('empty-report');
-          $('.selected-report').each(function () {
-            if (reportId !== $(this).attr('activate-report-id')) {
-              $(this).toggleClass('selected-report');
-            }
-          });
-          $('a.js-activate-report').each(function () {
-            if (reportId === $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
-              $(this).toggleClass('selected-report');
-              $(this).addClass('toggle-on-icon');
-              $(this).removeClass('toggle-off-icon');
-            } else {
-              $(this).show(1000);
-              $(this).removeClass('toggle-on-icon');
-              $(this).addClass('toggle-off-icon');
-            }
-          });
-          {% comment %} Update shortcut button {% endcomment %}
-          let current_value = shortcut_url.substring(shortcut_url.lastIndexOf('/') + 1);
-          if (current_value === reportId) {
-            shortcut.attr('href', shortcut_url);
-          } else {
-            shortcut.attr('href', url_tpl.replace('0', reportId));
-            shortcut.text('Jump to Report');
-            shortcut.removeClass('btn-disabled');
-          }
-        }
-        if (data['message']) {
-          displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
-        }
-      }
-    });
-    e.stopImmediatePropagation();
+  {% comment %} Persist the active report in browser storage across login sessions {% endcomment %}
+  GhostwriterActiveReport.init({
+    reportUrlTemplate: '{% url 'reporting:report_detail' 0 %}',
   });
 
   {% comment %} Open and close the sidebar {% endcomment %}
@@ -563,6 +597,113 @@
   $(document).ready(function () {
     $('[data-toggle="tooltip"]').tooltip({boundary: "window"});
   });
+
+  {% comment %} Theme Toggle Functionality {% endcomment %}
+  (function() {
+    const THEME_STORAGE_KEY = 'ghostwriter-theme';
+    const themeToggleSwitch = document.getElementById('theme-toggle-switch');
+    const themeAutoCheckbox = document.getElementById('theme-auto-checkbox');
+
+    // Function to get the system theme preference
+    function getSystemTheme() {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
+    }
+
+    // Function to apply the theme
+    function applyTheme(theme) {
+      let actualTheme = theme;
+      if (theme === 'auto') {
+        actualTheme = getSystemTheme();
+      }
+      document.documentElement.setAttribute('data-theme', actualTheme);
+
+      // Swap images for dark mode
+      const sidebarHeaderImg = document.querySelector('.sidebar-header img');
+      const sidebarFooterImg = document.querySelector('a[href="https://www.specterops.io"] img');
+
+      if (actualTheme === 'dark') {
+        // Switch to dark mode images (when they exist)
+        if (sidebarHeaderImg) {
+          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt.png', 'inverted_header_alt_dark.png');
+        }
+        if (sidebarFooterImg) {
+          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain.png', 'domain_dark.png');
+        }
+      } else {
+        // Switch back to light mode images
+        if (sidebarHeaderImg) {
+          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt_dark.png', 'inverted_header_alt.png');
+        }
+        if (sidebarFooterImg) {
+          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain_dark.png', 'domain.png');
+        }
+      }
+
+      // Update toggle UI based on theme
+      if (themeToggleSwitch) {
+        if (theme === 'auto') {
+          themeToggleSwitch.checked = actualTheme === 'dark';
+        } else {
+          themeToggleSwitch.checked = theme === 'dark';
+        }
+      }
+    }
+
+    // Function to get current theme preference
+    function getCurrentTheme() {
+      return localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+    }
+
+    // Function to save and apply theme
+    function saveAndApplyTheme(theme) {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      applyTheme(theme);
+    }
+
+    // Initialize theme on page load
+    const savedTheme = getCurrentTheme();
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.checked = savedTheme === 'auto';
+    }
+    applyTheme(savedTheme);
+
+    // Handle toggle switch change
+    if (themeToggleSwitch) {
+      themeToggleSwitch.addEventListener('change', function() {
+        // If auto mode is enabled, disable it when user manually toggles
+        if (themeAutoCheckbox && themeAutoCheckbox.checked) {
+          themeAutoCheckbox.checked = false;
+        }
+        const selectedTheme = this.checked ? 'dark' : 'light';
+        saveAndApplyTheme(selectedTheme);
+      });
+    }
+
+    // Handle auto checkbox change
+    if (themeAutoCheckbox) {
+      themeAutoCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          saveAndApplyTheme('auto');
+        } else {
+          const manualTheme = themeToggleSwitch && themeToggleSwitch.checked ? 'dark' : 'light';
+          saveAndApplyTheme(manualTheme);
+        }
+      });
+    }
+
+    // Listen for system theme changes when in auto mode
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        const currentTheme = getCurrentTheme();
+        if (currentTheme === 'auto') {
+          applyTheme('auto');
+        }
+      });
+    }
+  })();
 
   {% comment %} All of the Toastr JavaScript {% endcomment %}
   $(document).ready(function () {
@@ -744,18 +885,25 @@
 {% block tabs %}
   <script>
     $(function () {
+      function getTabLink(hash) {
+        return $('ul.nav a[data-tab-hash="' + hash + '"], ul.nav a[href="' + hash + '"]').first();
+      }
+
       let hash = window.location.hash.replace(/[^\w-#]/g, '');
-      hash && $('ul.nav a[href="' + hash + '"]').tab('show');
+      let tabLink = hash ? getTabLink(hash) : $();
+      if (tabLink.length) {
+        tabLink.tab('show');
+      }
 
       $('.nav-tabs a').click(function (e) {
-        {%  comment %} Prevent the scrolling-to-tab animation {% endcomment %}
-        $('html,body').stop().animate({
-          scrollTop: $(this).offset().top - 175
-        }, 700, 'swing');
         e.preventDefault();
         e.stopImmediatePropagation();
         $(this).tab('show');
-        window.location.hash = $(this).attr('href');
+
+        const tabHash = $(this).data('tab-hash') || $(this).attr('href');
+        if (tabHash && window.location.hash !== tabHash) {
+          window.history.pushState(null, '', tabHash);
+        }
       });
     });
   </script>
@@ -764,6 +912,99 @@
 {% block tabforms %}
   {% comment %} Handle the Delete and Undo buttons {% endcomment %}
   <script>
+    window.gwHighlightNewFormset = function (formsetElement) {
+      if (!formsetElement) {
+        return;
+      }
+
+      const clearHighlights = function () {
+        document.querySelectorAll('.formset-new-highlight').forEach(function (highlightedFormset) {
+          if (highlightedFormset._gwFormsetHighlightTimeoutId) {
+            window.clearTimeout(highlightedFormset._gwFormsetHighlightTimeoutId);
+            highlightedFormset._gwFormsetHighlightTimeoutId = null;
+          }
+          highlightedFormset.classList.remove('formset-new-highlight');
+        });
+      };
+
+      const applyHighlight = function () {
+        if (window._gwFormsetHighlightRunId !== highlightRunId) {
+          return;
+        }
+
+        clearHighlights();
+        formsetElement.classList.remove('formset-new-highlight');
+        void formsetElement.offsetWidth;
+        formsetElement.classList.add('formset-new-highlight');
+        formsetElement._gwFormsetHighlightTimeoutId = window.setTimeout(function () {
+          formsetElement.classList.remove('formset-new-highlight');
+          formsetElement._gwFormsetHighlightTimeoutId = null;
+        }, 1800);
+      };
+
+      const scrollFormsetIntoView = function () {
+        const rect = formsetElement.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const topOffset = 175;
+        const bottomOffset = 32;
+        const prefersReducedMotion = window.matchMedia &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const targetScrollY = Math.max(window.scrollY + rect.top - topOffset, 0);
+
+        if (rect.top < topOffset || rect.bottom > viewportHeight - bottomOffset) {
+          const $scrollContainer = $('html, body');
+
+          if (
+            $scrollContainer.is(':animated') &&
+            Math.abs(window._gwFormsetScrollTargetY - targetScrollY) < 4
+          ) {
+            return;
+          }
+
+          if (prefersReducedMotion) {
+            $scrollContainer.stop(true, false);
+            window._gwFormsetScrollTargetY = null;
+            window.scrollTo(0, targetScrollY);
+            return;
+          }
+
+          window._gwFormsetScrollTargetY = targetScrollY;
+          $scrollContainer.stop(true, false).animate({
+            scrollTop: targetScrollY,
+          }, 550, 'swing').promise().always(function () {
+            if (Math.abs(window._gwFormsetScrollTargetY - targetScrollY) < 4) {
+              window._gwFormsetScrollTargetY = null;
+            }
+          });
+        }
+      };
+
+      const scheduleHighlight = function () {
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(function () {
+            scrollFormsetIntoView();
+            applyHighlight();
+          });
+        });
+      };
+
+      const highlightRunId = (window._gwFormsetHighlightRunId || 0) + 1;
+      window._gwFormsetHighlightRunId = highlightRunId;
+      clearHighlights();
+
+      [400, 700, 1000].forEach(function (delay, index) {
+        window.setTimeout(function () {
+          if (window._gwFormsetHighlightRunId === highlightRunId) {
+            if (index === 0) {
+              scheduleHighlight();
+            } else {
+              window.requestAnimationFrame(scrollFormsetIntoView);
+            }
+          }
+        }, delay);
+      });
+    };
+
     $(document).on('click', '.formset-del-button', function () {
       // Get the parent divs for this formset instance
       let parent_div = $(this).closest('div.formset-container');
@@ -805,7 +1046,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -819,7 +1060,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -832,7 +1073,7 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[href="#' + id + '"]').tab('show');
+        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;

@@ -1,0 +1,73 @@
+{% extends "admin/change_form.html" %}
+
+{% load json_enc %}
+
+{% block extrastyle %}
+    {{ block.super }}
+
+    <style>
+        .object-tool-form {
+            display: contents;
+        }
+        .object-tool-form input {
+            padding: 3px 12px;
+            background-color: var(--object-tools-bg);
+            color: var(--object-tools-fg);
+            border-radius: 15px;
+            font-weight: 400;
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            line-height: 1.25rem;
+            margin: 0;
+        }
+        .bh-warning-alert {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-left: 4px solid #e6a800;
+            border-radius: 0.375rem;
+            color: #664d03;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9375rem;
+            line-height: 1.5;
+            clear: both;
+        }
+        .bh-warning-alert .bh-warning-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            line-height: 1.5;
+        }
+    </style>
+{% endblock %}
+
+{% block object-tools %}
+    {{ block.super }}
+    <div class="bh-warning-alert" role="alert">
+        <span class="bh-warning-icon">&#9888;&#65039;</span>
+        <div>
+            <strong>Warning:</strong> This is a shared global BloodHound configuration. Projects can use it only if
+            <em>Allow Projects to Use Shared Configuration</em> is enabled, and any project using that fallback will
+            see and refresh the same cached results.
+        </div>
+    </div>
+{% endblock %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+
+    <li>
+        <form action="{% url 'rolodex:ajax_bloodhound_test' %}" method="POST" class="object-tool-form">
+            {% csrf_token %}
+            <input type="submit" value="Check Connectivity" />
+        </form>
+    </li>
+    <li>
+        <form action="{% url 'rolodex:ajax_bloodhound_fetch' %}" method="POST" class="object-tool-form">
+            {% csrf_token %}
+            <input type="submit" value="Fetch Findings" />
+        </form>
+    </li>
+{% endblock %}

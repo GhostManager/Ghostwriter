@@ -37,7 +37,7 @@ insert_permissions:
       check: {}
       columns:
         - end_date
-        - note
+        - description
         - operator_id
         - project_id
         - role_id
@@ -52,14 +52,22 @@ select_permissions:
         - role_id
         - end_date
         - start_date
-        - note
+        - description
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:
         - end_date
         - id
-        - note
+        - description
         - operator_id
         - project_id
         - role_id
@@ -82,7 +90,7 @@ update_permissions:
     permission:
       columns:
         - end_date
-        - note
+        - description
         - operator_id
         - project_id
         - role_id

@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "6.0.2"
+__version__ = "7.2.1"
 VERSION = __version__
-RELEASE_DATE = "8 August 2025"
+RELEASE_DATE = "9 July 2026"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -24,6 +24,14 @@ READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
     env.read_env(str(ROOT_DIR / ".env"))
+
+
+def env_float(name, default):
+    """Read a float env var while treating unset or empty values as default."""
+    value = env(name, default=default)
+    if value == "":
+        value = default
+    return float(value)
 
 # GENERAL
 # ------------------------------------------------------------------------------
@@ -40,8 +48,6 @@ LANGUAGE_CODE = "en-us"
 SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
-# https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = False
 # https://docs.djangoproject.com/en/4.0/ref/settings/#date-format
 DATE_FORMAT = env(
     "DJANGO_DATE_FORMAT",
@@ -89,28 +95,22 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "crispy_forms",
+    "crispy_bootstrap4",
     "allauth",
+    "allauth.mfa",
     "allauth.account",
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
-    "allauth_2fa",
     "allauth.socialaccount",
     "rest_framework",
     "rest_framework_api_key",
     "django_q",
     "django_filters",
     "import_export",
-    "tinymce",
     "django_bleach",
     "timezone_field",
     "health_check",
-    "health_check.db",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.psutil",
-    "health_check.contrib.redis",
     "taggit",
 ]
 
@@ -126,6 +126,7 @@ LOCAL_APPS = [
     "ghostwriter.api.apps.ApiConfig",
     "ghostwriter.status.apps.StatusConfig",
 ]
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -193,8 +194,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_otp.middleware.OTPMiddleware",
-    "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
-    "ghostwriter.middleware.Require2FAMiddleware",
+    "ghostwriter.middleware.RequireMFAMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
 
@@ -232,13 +232,9 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
         "DIRS": [str(APPS_DIR / "templates")],
+        # https://docs.djangoproject.com/en/4.2/ref/settings/#app-dirs
+        "APP_DIRS": True,
         "OPTIONS": {
-            # https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
-            # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
-            "loaders": [
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
-            ],
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -255,6 +251,7 @@ TEMPLATES = [
     }
 ]
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
+CRISPY_ALLOWED_TEMPLATE_PACKS = ("bootstrap4",)
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 # FIXTURES
@@ -275,11 +272,9 @@ SESSION_SAVE_EVERY_REQUEST = env("DJANGO_SESSION_SAVE_EVERY_REQUEST", default=Tr
 # https://docs.djangoproject.com/en/3.2/ref/settings/#session-cookie-secure
 SESSION_COOKIE_SECURE = env("DJANGO_SESSION_COOKIE_SECURE", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
-CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/3.2/ref/settings/#csrf-cookie-secure
 CSRF_COOKIE_SECURE = env("DJANGO_CSRF_COOKIE_SECURE", default=False)
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
-SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
@@ -320,35 +315,75 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
-# django-allauth
+# django-health-check
 # ------------------------------------------------------------------------------
+# These values are surfaced in Compose files and the Ghostwriter CLI. Keep them
+# in settings so administrators control detailed health-check thresholds rather
+# than falling back to django-health-check library defaults.
+HEALTH_CHECK = {
+    # Percent of disk usage that triggers a warning.
+    "DISK_USAGE_MAX": env_float("HEALTHCHECK_DISK_USAGE_MAX", 90),
+    # Minimum available memory in MB that triggers a warning.
+    "MEMORY_MIN": env_float("HEALTHCHECK_MEM_MIN", 100),
+}
+
+# django-allauth-mfa
+# ------------------------------------------------------------------------------
+
+# settings for django-allauth MFA
+MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"
+
+# Make sure "webauthn" is included.
+# https://docs.allauth.org/en/dev/mfa/webauthn.html
+MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
+
+# Ghostwriter deployments often cannot rely on email verification, and MFA setup
+# should not be blocked by an unverified email address.
+MFA_ALLOW_UNVERIFIED_EMAIL = env.bool("DJANGO_MFA_ALLOW_UNVERIFIED_EMAIL", True)
+
+# Enable support for logging in using a (WebAuthn) passkey.
+# https://docs.allauth.org/en/dev/mfa/webauthn.html
+MFA_PASSKEY_LOGIN_ENABLED = env.bool("DJANGO_MFA_PASSKEY_LOGIN_ENABLED", True)
+
+# django-allauth-mfa forms
+# https://docs.allauth.org/en/dev/mfa/configuration.html
+MFA_FORMS = {
+    "authenticate": "ghostwriter.users.forms.UserMFAAuthenticateForm",
+    "reauthenticate": "allauth.mfa.base.forms.AuthenticateForm",
+    "activate_totp": "ghostwriter.users.forms.UserMFADeviceForm",
+    "deactivate_totp": "ghostwriter.users.forms.UserMFADeviceRemoveForm",
+    "generate_recovery_codes": "allauth.mfa.recovery_codes.forms.GenerateRecoveryCodesForm",
+
+}
+
+MFA_REVEAL_TOKENS = env.bool("DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS", False)
+
+# Override the default django-allauth reauthentication timeout setting.
+# This controls how long allauth considers recent authentication fresh enough
+# for sensitive account-management actions. It is intentionally configurable
+# separately from SESSION_COOKIE_AGE.
+# https://docs.allauth.org/en/dev/account/configuration.html
+ACCOUNT_REAUTHENTICATION_TIMEOUT = env.int("DJANGO_ACCOUNT_REAUTHENTICATION_TIMEOUT", 32400)  # 9 hours
+
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
 SOCIAL_ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION", False)
 SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST = env("DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST", default="")
 SOCIALACCOUNT_LOGIN_ON_GET = env.bool("DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET", False)
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_AUTHENTICATION_METHOD = "username"
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_REQUIRED = True
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/dev/account/configuration.html
+ACCOUNT_LOGIN_METHODS = {"username"}
+# https://docs.allauth.org/en/dev/account/configuration.html
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+# https://docs.allauth.org/en/dev/account/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = env.bool("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_ADAPTER = "ghostwriter.users.adapters.CustomOTPAdapter"
-# https://django-allauth.readthedocs.io/en/latest/configuration.html
+# https://docs.allauth.org/en/dev/account/configuration.html
+ACCOUNT_ADAPTER = "ghostwriter.users.adapters.AccountAdapter"
+# https://docs.allauth.org/en/dev/account/configuration.html
 SOCIALACCOUNT_ADAPTER = "ghostwriter.users.adapters.SocialAccountAdapter"
 ACCOUNT_SIGNUP_FORM_CLASS = "ghostwriter.home.forms.SignupForm"
 ACCOUNT_FORMS = {
     "login": "ghostwriter.users.forms.UserLoginForm",
     "signup": "ghostwriter.users.forms.UserSignupForm",
 }
-ALLAUTH_2FA_FORMS = {
-    "authenticate": "ghostwriter.users.forms.User2FAAuthenticateForm",
-    "setup": "ghostwriter.users.forms.User2FADeviceForm",
-    "remove": "ghostwriter.users.forms.User2FADeviceRemoveForm",
-}
-ALLAUTH_2FA_ALWAYS_REVEAL_BACKUP_TOKENS = env("DJANGO_2FA_ALWAYS_REVEAL_BACKUP_TOKENS", default=False)
-ALLAUTH_2FA_SETUP_SUCCESS_URL = "users:redirect"
-ALLAUTH_2FA_REMOVE_SUCCESS_URL = "users:redirect"
 
 # django-compressor
 # ------------------------------------------------------------------------------
@@ -439,11 +474,19 @@ BLEACH_ALLOWED_TAGS = [
     "tfoot",
     "caption",
 ]
-# Which HTML attributes are allowed
-BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"]
+# Which HTML attributes are allowed, keyed by tag name.
+# The "*" wildcard applies to every allowed tag.
+BLEACH_ALLOWED_ATTRIBUTES = {
+    "*": ["class", "style"],
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "width", "height"],
+    "td": ["colspan", "rowspan", "scope"],
+    "th": ["colspan", "rowspan", "scope"],
+}
 # Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
 BLEACH_ALLOWED_STYLES = [
     "color",
+    "background-color",
     "font-family",
     "font-weight",
     "text-decoration",
@@ -494,17 +537,23 @@ HASURA_ACTION_SECRET = env(
 
 GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
 
-# Health Checks
-# ------------------------------------------------------------------------------
-HEALTH_CHECK = {
-    "DISK_USAGE_MAX": env("HEALTHCHECK_DISK_USAGE_MAX", default=90),
-    "MEMORY_MIN": env("HEALTHCHECK_MEM_MIN", default=100),
-}
+# Maximum file size (bytes) for API uploads and inline base64 download responses
+# Uploads exceeding this limit are rejected with 413 during request parsing
+# Downloads exceeding this limit are rejected with 413 before the file is read
+# Admins can override via the ``GHOSTWRITER_MAX_FILE_SIZE`` environment variable
+GHOSTWRITER_MAX_FILE_SIZE = env.int("GHOSTWRITER_MAX_FILE_SIZE", default=10 * 1024 * 1024)  # 10 MB
+
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
 
 # Tagging
 # ------------------------------------------------------------------------------
 TAGGIT_CASE_INSENSITIVE = True
+
+# spaCy NLP Configuration
+# ------------------------------------------------------------------------------
+# https://spacy.io/usage/models
+SPACY_MODEL = env("SPACY_MODEL", default="en_core_web_sm")
+SPACY_MAX_TEXT_LENGTH = env.int("SPACY_MAX_TEXT_LENGTH", default=100000)
 
 
 def include_settings(py_glob):

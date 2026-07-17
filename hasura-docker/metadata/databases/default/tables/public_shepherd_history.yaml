@@ -60,11 +60,19 @@ select_permissions:
         - domain_id
         - end_date
         - id
-        - note
+        - description
         - operator_id
         - project_id
         - start_date
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -89,7 +97,7 @@ update_permissions:
         - client_id
         - domain_id
         - end_date
-        - note
+        - description
         - project_id
         - start_date
       filter:
@@ -103,7 +111,7 @@ update_permissions:
         - client_id
         - domain_id
         - end_date
-        - note
+        - description
         - project_id
         - start_date
       filter:

@@ -61,6 +61,15 @@ array_relationships:
         table:
           name: shepherd_domainnote
           schema: public
+  - name: serviceTokenDomainAccesses
+    using:
+      manual_configuration:
+        column_mapping:
+          id: domain_id
+        insertion_order: null
+        remote_table:
+          name: api_service_token_domain_access
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -76,7 +85,7 @@ insert_permissions:
         - extra_fields
         - health_status_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
@@ -97,7 +106,7 @@ insert_permissions:
         - health_status_id
         - last_health_check
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
@@ -120,12 +129,19 @@ select_permissions:
         - last_health_check
         - last_used_by_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
         - whois_status_id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        serviceTokenDomainAccesses:
+          token_id:
+            _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -145,7 +161,7 @@ update_permissions:
         - extra_fields
         - health_status_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink
@@ -166,7 +182,7 @@ update_permissions:
         - extra_fields
         - health_status_id
         - name
-        - note
+        - description
         - registrar
         - reset_dns
         - vt_permalink

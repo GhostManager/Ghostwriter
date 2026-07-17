@@ -1,8 +1,11 @@
 
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 import io
+import json
 import os
 import logging
+import mimetypes
+import re
 import zipfile
 from socket import gaierror
 from asgiref.sync import async_to_sync
@@ -13,6 +16,7 @@ from django.http import (
     Http404,
     HttpResponse,
     HttpResponseRedirect,
+    JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -22,20 +26,22 @@ from django.views.generic.list import ListView
 from django.views.generic import View
 from django.conf import settings
 from django.contrib import messages
+from django.utils import dateformat, timezone
+from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
-from taggit.models import Tag
-
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
-from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
-from ghostwriter.modules.reportwriter.base import ReportExportError
+from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
 from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.modules.shared import get_tags_for_queryset
+from ghostwriter.oplog.models import Oplog, OplogEntry, _sanitize_rich_field
 from ghostwriter.reporting.archive import archive_report
 from ghostwriter.reporting.filters import ReportFilter, ReportTemplateFilter
 from ghostwriter.reporting.forms import ReportForm, ReportTemplateForm, SelectReportTemplateForm
@@ -44,6 +50,167 @@ from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
+JINJA_ENDRAW_RE = re.compile(r"{%[-+]?\s*endraw\s*[-+]?%}")
+
+
+def _outline_value(value):
+    """Return plain text content for outline sentences, defaulting blanks to ``N/A``."""
+    text = strip_tags(value or "").strip()
+    return text if text else "N/A"
+
+
+def _outline_rich_html(value):
+    """Return sanitized rich HTML content, or an empty string for blanks."""
+    rich_html = _sanitize_rich_field(value or "")
+    if not strip_tags(rich_html).strip():
+        return ""
+
+    if not rich_html.lstrip().lower().startswith(("<p", "<div", "<ul", "<ol", "<table", "<pre", "<blockquote", "<h")):
+        return f"<p>{rich_html}</p>"
+
+    return rich_html
+
+
+def _outline_command_value(command):
+    command_text = _outline_value(command)
+    return command_text if command_text != "N/A" else ""
+
+
+def _outline_jinja_raw_text(value):
+    """
+    Return text wrapped so later rich-text Jinja rendering treats it as literal output.
+    """
+    text = value or ""
+    return (
+        "{% raw %}"
+        + JINJA_ENDRAW_RE.sub(
+            lambda match: "{% endraw %}{{ " + repr(match.group(0)) + " }}{% raw %}",
+            text,
+        )
+        + "{% endraw %}"
+    )
+
+
+def _unavailable_template_response(request, report):
+    messages.error(
+        request,
+        "The selected report template is not available for this report.",
+        extra_tags="alert-danger",
+    )
+    return HttpResponseRedirect(
+        reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#generate"
+    )
+
+
+def _entry_start_utc(entry: OplogEntry) -> datetime:
+    """Normalize an oplog entry timestamp to an aware UTC ``datetime``."""
+    start_date = entry.start_date
+    if timezone.is_naive(start_date):
+        start_date = timezone.make_aware(start_date, dt_timezone.utc)
+    return start_date.astimezone(dt_timezone.utc)
+
+
+def _report_evidence_refs_for_entry(report: Report, entry: OplogEntry) -> list[tuple[str, int]]:
+    """
+    Return the linked evidence references for an entry that belong to the target report.
+
+    The result is ordered by friendly name so the generated outline is deterministic.
+    """
+    evidence_by_name: dict[str, int] = {}
+    for link in entry.evidence_links.all():
+        evidence = link.evidence
+        if evidence.report_id != report.id:
+            continue
+        friendly_name = evidence.friendly_name.strip()
+        if not friendly_name:
+            continue
+        evidence_by_name[friendly_name] = evidence.id
+    return [(name, evidence_by_name[name]) for name in sorted(evidence_by_name)]
+
+
+def _outline_entry_tag_query(report_config: ReportConfiguration) -> Q:
+    """
+    Build the tag filter used to decide which oplog entries belong in an outline.
+
+    Rules are sourced from :model:`commandcenter.ReportConfiguration` so admins can
+    add exact tags or prefix wildcards while preserving the built-in ``report`` and
+    ``evidence`` tags used by the initial MVP.
+    """
+
+    rules = report_config.parse_outline_tags(report_config.outline_tags)
+    tag_query = Q()
+    for tag_name in rules.exact_tags:
+        tag_query |= Q(tags__name__iexact=tag_name)
+    for prefix in rules.prefix_tags:
+        tag_query |= Q(tags__name__istartswith=prefix)
+    return tag_query
+
+
+def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str, int | str]]:
+    """
+    Build Tiptap-ready outline content for a report extra field from an oplog.
+
+    The returned blocks are narrative text, paragraph text, formatted HTML, code, or
+    evidence node references so the frontend can append real evidence embeds with
+    previews instead of legacy keyword text.
+    """
+    report_config = ReportConfiguration.get_solo()
+    entries = (
+        OplogEntry.objects.filter(
+            oplog_id=oplog,
+            start_date__isnull=False,
+        )
+        .filter(_outline_entry_tag_query(report_config))
+        .prefetch_related(
+            "evidence_links__evidence__report",
+        )
+        .order_by("start_date", "pk")
+        .distinct()
+    )
+
+    blocks: list[dict[str, int | str]] = []
+    previous_day = None
+    for entry in entries:
+        dt = _entry_start_utc(entry)
+        current_day = dt.date()
+        if current_day != previous_day:
+            timestamp = (
+                f"On {dateformat.format(dt, settings.DATE_FORMAT)} "
+                f"at {dt.strftime('%H:%M:%S')} UTC"
+            )
+            previous_day = current_day
+        else:
+            timestamp = f"At {dt.strftime('%H:%M:%S')} UTC"
+
+        comments = _outline_rich_html(entry.comments)
+        output = entry.output or ""
+        has_comments = bool(comments)
+        has_output = bool(output.strip())
+
+        blocks.append(
+            {
+                "type": "narrative",
+                "timestamp": timestamp,
+                "tool": _outline_value(entry.tool),
+                "command": _outline_command_value(entry.command),
+                "user_context": _outline_value(entry.user_context),
+                "dest": _outline_value(entry.dest_ip),
+                "has_comments": has_comments,
+            }
+        )
+
+        if has_comments:
+            blocks.append({"type": "html", "html": comments})
+
+        if has_output:
+            blocks.append({"type": "paragraph", "text": "Output:"})
+            blocks.append({"type": "code", "text": _outline_jinja_raw_text(output)})
+
+        for friendly_name, evidence_id in _report_evidence_refs_for_entry(report, entry):
+            blocks.append({"type": "paragraph", "text": "{{.ref " + friendly_name + "}}"})
+            blocks.append({"type": "evidence", "evidence_id": evidence_id})
+
+    return blocks
 
 class ReportListView(RoleBasedAccessControlMixin, ListView):
     """
@@ -61,11 +228,12 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
         return get_reports_list(self.request.user)
 
     def get(self, request, *args, **kwarg):
-        reports_filter = ReportFilter(request.GET, queryset=self.get_queryset())
+        queryset = self.get_queryset()
+        reports_filter = ReportFilter(request.GET, queryset=queryset)
         return render(
             request,
             "reporting/report_list.html",
-            {"filter": reports_filter, "tags": Tag.objects.all()}
+            {"filter": reports_filter, "tags": get_tags_for_queryset(queryset)}
         )
 
 
@@ -172,46 +340,28 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        form = SelectReportTemplateForm(instance=self.object)
-        form.fields["docx_template"].queryset = (
-            ReportTemplate.objects.filter(
-                doc_type__doc_type="docx",
-            )
-            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
-            .select_related(
-                "doc_type",
-                "client",
-            )
-        )
-        form.fields["pptx_template"].queryset = (
-            ReportTemplate.objects.filter(
-                doc_type__doc_type="pptx",
-            )
-            .filter(Q(client=self.object.project.client) | Q(client__isnull=True))
-            .select_related(
-                "doc_type",
-                "client",
-            )
+        form = SelectReportTemplateForm(
+            instance=self.object,
+            has_bloodhound=self.object.project.has_bloodhound_api() or BloodHoundConfiguration.get_solo().has_bloodhound_api(),
         )
         ctx["form"] = form
 
         # Build autocomplete list
         findings = (
-            Finding.objects.select_related("severity", "finding_type")
-            .all()
+            Finding.objects
+            .select_related("severity", "finding_type")
+            .prefetch_related("tags")
             .order_by("severity__weight", "-cvss_score", "finding_type", "title")
         )
         for finding in findings:
             self.finding_autocomplete.append(finding)
         ctx["finding_autocomplete"] = self.finding_autocomplete
 
-        observations = Observation.objects.all().order_by("title")
+        observations = Observation.objects.prefetch_related("tags").order_by("title")
         for obs in observations:
             self.observation_autocomplete.append(obs)
         ctx["observation_autocomplete"] = self.observation_autocomplete
-
         ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
-
         ctx["report_config"] = ReportConfiguration.get_solo()
 
         return ctx
@@ -426,7 +576,78 @@ class ReportExtraFieldEdit(CollabModelUpdate):
         ctx = super().get_context_data(**kwargs)
         field = get_object_or_404(ExtraFieldSpec.for_model(self.model), internal_name=self.extra_field_name)
         ctx["target_field"] = field
+        ctx["report_oplogs"] = list(
+            self.object.project.oplog_set.order_by("name", "pk").values("id", "name")
+        )
         return ctx
+
+
+class ReportExtraFieldJson(ExtraFieldJsonView):
+    model = Report
+
+
+class ReportExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    model = Report
+
+    def build_exporter(self, obj):
+        return ExportReportJson(obj)
+
+    def get_report_for_evidence(self, obj):
+        return obj
+
+    def get_client(self, obj):
+        return obj.project.client
+
+
+class ReportOplogOutlineGenerate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Generate Tiptap content blocks for an oplog narrative outline.
+
+    The frontend uses these blocks to append normal paragraphs and first-class evidence
+    embeds into a report extra field.
+    """
+
+    model = Report
+
+    def test_func(self):
+        return self.get_object().user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        return JsonResponse(
+            {
+                "result": "error",
+                "message": "You do not have permission to access that.",
+            },
+            status=403,
+        )
+
+    def post(self, request, *args, **kwargs):
+        report = self.get_object()
+
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (TypeError, json.JSONDecodeError):
+            return JsonResponse(
+                {"result": "error", "message": "Could not read the selected oplog."},
+                status=400,
+            )
+
+        oplog_id = payload.get("oplog_id")
+        if not isinstance(oplog_id, int):
+            return JsonResponse(
+                {"result": "error", "message": "Select an oplog before generating the outline."},
+                status=400,
+            )
+
+        oplog = get_object_or_404(Oplog, pk=oplog_id, project=report.project)
+        blocks = generate_oplog_outline_blocks(report, oplog)
+        return JsonResponse(
+            {
+                "result": "success",
+                "blocks": blocks,
+                "message": "Generated outline successfully.",
+            }
+        )
 
 
 class ReportTemplateListView(RoleBasedAccessControlMixin, ListView):
@@ -464,10 +685,7 @@ class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
     template_name = "reporting/report_template_detail.html"
 
     def test_func(self):
-        client = self.get_object().client
-        if client:
-            return client.user_can_view(self.request.user)
-        return self.request.user.is_active
+        return self.get_object().user_can_view(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -503,7 +721,7 @@ class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
         return {
             "changelog": initial_upload,
             "p_style": "Normal",
-            "evidence_image_width": 6.5,
+            "evidence_image_alignment": "USE_GLOBAL",
         }
 
     def get_success_url(self):
@@ -549,17 +767,17 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
         obj = self.get_object()
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
-        return self.request.user.is_active
+        return obj.user_can_view(self.request.user)
 
     def handle_no_permission(self):
         obj = self.get_object()
-        messages.error(self.request, "That template is protected – only an admin can edit it.")
-        return HttpResponseRedirect(
-            reverse(
-                "reporting:template_detail",
-                args=(obj.pk,),
-            )
-        )
+        if obj.protected:
+            messages.error(self.request, "That template is protected – only an admin can edit it.")
+        else:
+            messages.error(self.request, "You do not have permission to access that.")
+        if obj.user_can_view(self.request.user):
+            return HttpResponseRedirect(reverse("reporting:template_detail", args=(obj.pk,)))
+        return HttpResponseRedirect(reverse("reporting:templates"))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -650,19 +868,45 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
 
 
 class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Return the target :model:`reporting.ReportTemplate` template file for download."""
+    """Return the target :model:`reporting.ReportTemplate` template file for viewing or download."""
 
     model = ReportTemplate
 
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("reporting:templates")
+
     def get(self, *args, **kwargs):
-        obj = self.get_object()
-        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        obj = self.object
+        file_path = obj.document.path
         if os.path.exists(file_path):
-            return FileResponse(
+            # Detect the content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Check if inline viewing is explicitly requested via query parameter
+            # Default to download (as_attachment=True) for security
+            inline_view = self.request.GET.get("view", "").lower() in ("1", "true", "yes")
+
+            response = FileResponse(
                 open(file_path, "rb"),
-                as_attachment=True,
+                as_attachment=not inline_view,
                 filename=os.path.basename(file_path),
+                content_type=content_type,
             )
+
+            # Add security headers to mitigate XSS risks
+            response["X-Content-Type-Options"] = "nosniff"
+            if inline_view:
+                # Additional hardening for inline content
+                response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"
+
+            return response
         raise Http404
 
 class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -671,7 +915,6 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     queryset = Report.objects.all().prefetch_related(
         "tags",
         "reportfindinglink_set",
-        "reportfindinglink_set__evidence_set",
         "reportobservationlink_set",
         "evidence_set",
         "project__oplog_set",
@@ -679,15 +922,29 @@ class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         "project__oplog_set__entries__tags",
     ).select_related()
 
+    object: Report
+    include_bloodhound: bool
+
     def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
+        try:
+            return self.get_object().user_can_view(self.request.user)
+        except Http404:
+            return False
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
+        try:
+            self.object = self.get_object()
+        except Http404:
+            return self.handle_no_permission()
+
+        self.include_bloodhound = self.object.include_bloodhound_data
         return super().dispatch(request, *args, **kwargs)
 
 class GenerateReportJSON(GenerateReportBase):
@@ -703,7 +960,7 @@ class GenerateReportJSON(GenerateReportBase):
             self.request.user,
         )
 
-        json_report = ExportReportJson(obj).run()
+        json_report = ExportReportJson(obj, include_bloodhound=self.include_bloodhound).run()
         return HttpResponse(json_report.getvalue(), "application/json")
 
 
@@ -749,7 +1006,9 @@ class GenerateReportDOCX(GenerateReportBase):
                     extra_tags="alert-danger",
                 )
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.id}))
-        template_loc = report_template.document.path
+
+        if not report_template.user_can_apply_to_report(self.request.user, obj, "docx"):
+            return _unavailable_template_response(self.request, obj)
 
         # Check template's linting status
         template_status = report_template.get_status()
@@ -764,10 +1023,10 @@ class GenerateReportDOCX(GenerateReportBase):
         # Template available and passes linting checks, so proceed with generation
 
         try:
-            exporter = ExportReportDocx(obj, template_loc=template_loc)
+            exporter = ExportReportDocx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             docx = exporter.run()
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.error(
                 "DOCX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
@@ -818,7 +1077,7 @@ class GenerateReportXLSX(GenerateReportBase):
 
         try:
             report_config = ReportConfiguration.get_solo()
-            exporter = ExportReportXlsx(obj)
+            exporter = ExportReportXlsx(obj, include_bloodhound=self.include_bloodhound)
             report_name = exporter.render_filename(report_config.report_filename, ext="xlsx")
             output = exporter.run()
             response = HttpResponse(
@@ -867,7 +1126,9 @@ class GenerateReportPPTX(GenerateReportBase):
                 report_template = report_config.default_pptx_template
                 if not report_template:
                     raise MissingTemplate
-            template_loc = report_template.document.path
+
+            if not report_template.user_can_apply_to_report(self.request.user, obj, "pptx"):
+                return _unavailable_template_response(self.request, obj)
 
             # Check template's linting status
             template_status = report_template.get_status()
@@ -880,7 +1141,7 @@ class GenerateReportPPTX(GenerateReportBase):
                 return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
             # Template available and passes linting checks, so proceed with generation
-            exporter = ExportReportPptx(obj, template_loc=template_loc)
+            exporter = ExportReportPptx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
             report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
             pptx = exporter.run()
             response = HttpResponse(
@@ -890,7 +1151,7 @@ class GenerateReportPPTX(GenerateReportBase):
             add_content_disposition_header(response, report_name)
 
             return response
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.error(
                 "PPTX generation failed for %s %s and user %s: %s",
                 obj.__class__.__name__,
@@ -950,17 +1211,22 @@ class GenerateReportAll(GenerateReportBase):
                 if not pptx_template:
                     raise MissingTemplate
 
+            if not docx_template.user_can_apply_to_report(self.request.user, obj, "docx"):
+                return _unavailable_template_response(self.request, obj)
+            if not pptx_template.user_can_apply_to_report(self.request.user, obj, "pptx"):
+                return _unavailable_template_response(self.request, obj)
+
             exporters_and_filename_templates = [
                 (
-                    ExportReportDocx(obj, template_loc=docx_template.document.path),
+                    ExportReportDocx(obj, report_template=docx_template, include_bloodhound=self.include_bloodhound),
                     docx_template.filename_override or report_config.report_filename,
                 ),
                 (
-                    ExportReportPptx(obj, template_loc=pptx_template.document.path),
+                    ExportReportPptx(obj, report_template=pptx_template, include_bloodhound=self.include_bloodhound),
                     pptx_template.filename_override or report_config.report_filename,
                 ),
-                (ExportReportXlsx(obj), report_config.report_filename),
-                (ExportReportJson(obj), report_config.report_filename),
+                (ExportReportXlsx(obj, include_bloodhound=self.include_bloodhound), report_config.report_filename),
+                (ExportReportJson(obj, include_bloodhound=self.include_bloodhound), report_config.report_filename),
             ]
 
             zip_filename = exporters_and_filename_templates[0][0].render_filename(
@@ -982,7 +1248,7 @@ class GenerateReportAll(GenerateReportBase):
             response.write(zip_buffer.read())
 
             return response
-        except ReportExportError as error:
+        except ReportExportTemplateError as error:
             logger.exception(
                 "All report generation failed unexpectedly for %s %s and user %s",
                 obj.__class__.__name__,

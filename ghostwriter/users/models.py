@@ -81,10 +81,12 @@ class User(AbstractUser):
         help_text="Allow the user to delete observations in the library (only applies to accounts with the User role)",
         verbose_name="Allow Observation Deleting",
     )
-    require_2fa = BooleanField(
+    require_mfa = BooleanField(
+        # Keep the original database column name for backward compatibility with existing databases
+        db_column='require_2fa',
         default=False,
-        help_text="Require the user to set up two-factor authentication",
-        verbose_name="Require 2FA",
+        help_text="Require the user to set up multi-factor authentication",
+        verbose_name="Require MFA",
     )
 
     def get_absolute_url(self):

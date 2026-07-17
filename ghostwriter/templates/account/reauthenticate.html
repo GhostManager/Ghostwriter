@@ -1,0 +1,35 @@
+{% extends 'account/base_reauthenticate.html' %}
+
+{% load allauth %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+  {% block reauthenticate_content %}
+    {% element p %}
+    {% blocktranslate %}Enter your password:{% endblocktranslate %}
+    {% endelement %}
+
+    <!-- Form Error Section -->
+    {% if form.errors %}
+    <script>
+    {% for field in form %}
+      {% for error in field.errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+      displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+    {% endfor %}
+    </script>
+    {% endif %}
+    {% url 'account_reauthenticate' as action_url %}
+    <!-- Form Section -->
+    <div class="d-flex justify-content-center">
+      <form class="validate col-md-6" method="POST" action="{{ action_url }}" novalidate>
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button class="btn btn-primary col-md-4" type="submit">{% trans 'Confirm' %}</button>
+      </form>
+    </div>
+
+  {% endblock%}

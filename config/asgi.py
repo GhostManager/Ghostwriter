@@ -49,13 +49,3 @@ application = ProtocolTypeRouter(
         ),
     }
 )
-
-from config.websocket import websocket_application  # noqa isort:skip
-
-# async def application(scope, receive, send):
-#     if scope["type"] == "http":
-#         await django_application(scope, receive, send)
-#     elif scope["type"] == "websocket":
-#         await websocket_application(scope, receive, send)
-#     else:
-#         raise NotImplementedError(f"Unknown scope type {scope['type']}")

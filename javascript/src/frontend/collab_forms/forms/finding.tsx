@@ -5,9 +5,10 @@ import PageGraphqlProvider from "../../graphql/client";
 import { usePageConnection } from "../connection";
 import { FindingFormFields } from "../forms_common/finding";
 import RichTextEditor from "../rich_text_editor";
+import ErrorBoundary from "../error_boundary";
 
 function FindingForm() {
-    const { provider, status, connected } = usePageConnection({
+    const { provider, status, connected, setEditing } = usePageConnection({
         model: "finding",
     });
 
@@ -16,6 +17,7 @@ function FindingForm() {
             provider={provider}
             status={status}
             connected={connected}
+            setEditing={setEditing}
             extraBottom={
                 <>
                     <div className="form-group col-md-12">
@@ -42,8 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     const root = createRoot(document.getElementById("collab-form-container")!);
     root.render(
-        <PageGraphqlProvider>
-            <FindingForm />
-        </PageGraphqlProvider>
+        <ErrorBoundary>
+            <PageGraphqlProvider>
+                <FindingForm />
+            </PageGraphqlProvider>
+        </ErrorBoundary>
     );
 });

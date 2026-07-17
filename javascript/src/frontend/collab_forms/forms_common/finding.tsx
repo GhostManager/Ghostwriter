@@ -45,6 +45,7 @@ export function FindingFormFields({
     toolbarExtra,
     extraTop,
     extraBottom,
+    setEditing,
 }: {
     provider: HocuspocusProvider;
     status: ConnectionStatus;
@@ -52,6 +53,7 @@ export function FindingFormFields({
     toolbarExtra?: (editor: Editor) => React.ReactNode;
     extraTop?: React.ReactNode;
     extraBottom?: React.ReactNode;
+    setEditing?: (editing: boolean) => void;
 }) {
     return (
         <>
@@ -73,6 +75,7 @@ export function FindingFormFields({
                                 connected={connected}
                                 provider={provider}
                                 mapKey="title"
+                                setEditing={setEditing}
                             />
                         </div>
                     </div>
@@ -156,6 +159,7 @@ export function FindingFormFields({
                             mapKey="cvssScore"
                             connected={connected}
                             defaultValue={null}
+                            setEditing={setEditing}
                         />
                         <small className="form-text text-muted">
                             Set the CVSS score for this finding
@@ -175,6 +179,7 @@ export function FindingFormFields({
                             connected={connected}
                             provider={provider}
                             mapKey="cvssVector"
+                            setEditing={setEditing}
                         />
                         <small className="form-text text-muted">
                             Set the CVSS vector for this finding
@@ -310,6 +315,7 @@ export function FindingFormFields({
                     </>
                 }
                 toolbarExtra={toolbarExtra}
+                setEditing={setEditing}
             />
         </>
     );

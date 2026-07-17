@@ -62,7 +62,7 @@ insert_permissions:
         - aux_address
         - ip_address
         - name
-        - note
+        - description
         - project_id
         - server_provider_id
         - server_role_id
@@ -88,7 +88,7 @@ insert_permissions:
         - aux_address
         - ip_address
         - name
-        - note
+        - description
         - project_id
         - server_provider_id
         - server_role_id
@@ -105,8 +105,16 @@ select_permissions:
         - server_role_id
         - name
         - ip_address
-        - note
+        - description
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -131,7 +139,7 @@ update_permissions:
         - aux_address
         - ip_address
         - name
-        - note
+        - description
         - project_id
         - server_provider_id
         - server_role_id
@@ -144,7 +152,7 @@ update_permissions:
         - aux_address
         - ip_address
         - name
-        - note
+        - description
         - project_id
         - server_provider_id
         - server_role_id
