@@ -183,31 +183,39 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         except (json.JSONDecodeError, TypeError):
             fields_json = []
 
-        # Extract ``sanitize_recordings`` flag from the posted JSON before the existing field filtering
-        sanitize_recordings = any(
-            field["name"] == "recordings" for field in fields_json
+        if not isinstance(fields_json, list):
+            fields_json = []
+        requested_fields = list(
+            dict.fromkeys(
+                field["name"]
+                for field in fields_json
+                if isinstance(field, dict) and isinstance(field.get("name"), str)
+            )
         )
+
+        # Extract ``sanitize_recordings`` flag from the posted JSON before the existing field filtering
+        sanitize_recordings = "recordings" in requested_fields
 
         entry_field_specs = {
             spec.internal_name: spec for spec in ExtraFieldSpec.for_model(OplogEntry)
         }
         fields = [
-            field["name"]
-            for field in fields_json
-            if field["name"] == "command"
-            or field["name"] == "tags"
-            or field["name"] in self.clearable_fields
-            or field["name"] in entry_field_specs
+            field
+            for field in requested_fields
+            if field == "command"
+            or field == "tags"
+            or field in self.clearable_fields
+            or field in entry_field_specs
         ]
         if sanitize_recordings:
             fields.append("recordings")
 
         bulk_update_fields = [
-            field["name"]
-            for field in fields_json
-            if field["name"] == "command" or field["name"] in self.clearable_fields
+            field
+            for field in requested_fields
+            if field == "command" or field in self.clearable_fields
         ]
-        if any(field["name"] in entry_field_specs for field in fields_json):
+        if any(field in entry_field_specs for field in requested_fields):
             bulk_update_fields.append("extra_fields")
 
         # Allows a recordings-only sanitization that doesn't require any field selections, since recordings are handled separately
