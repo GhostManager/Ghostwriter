@@ -1204,6 +1204,19 @@ class OplogSanitizeViewTests(TestCase):
         )
         self.assertFalse(OplogSanitization.objects.filter(oplog=self.log).exists())
 
+    def test_view_with_malformed_field_payload_shape(self):
+        for fields in ('{"name": "output"}', '[null, {"value": "on"}]'):
+            with self.subTest(fields=fields):
+                response = self.client_mgr.post(
+                    self.uri,
+                    data={"fields": fields},
+                    **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["result"], "failed")
+        self.assertFalse(OplogSanitization.objects.filter(oplog=self.log).exists())
+
     def test_view_with_empty_fields(self):
         data = {
             "result": "failed",
@@ -1335,6 +1348,27 @@ class OplogSanitizeViewTests(TestCase):
             OplogSanitization.objects.get(oplog=self.log).fields,
             ["user_context", "recordings"],
         )
+
+    def test_failed_sanitization_preserves_recording_file(self):
+        recording = OplogEntryRecordingFactory(oplog_entry=self.entry)
+        recording_path = recording.recording_file.path
+
+        with patch(
+            "ghostwriter.oplog.views.OplogSanitization.objects.create",
+            side_effect=RuntimeError("audit write failed"),
+        ):
+            response = self.client_mgr.post(
+                self.uri,
+                data={"fields": '[{"name": "recordings", "value": "on"}]'},
+                **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"},
+            )
+
+        self.assertEqual(response.json()["result"], "failed")
+        self.assertTrue(OplogEntryRecording.objects.filter(pk=recording.pk).exists())
+        self.assertTrue(os.path.exists(recording_path))
+        recording.refresh_from_db()
+        with self.captureOnCommitCallbacks(execute=True):
+            recording.delete()
 
     def test_recording_sanitization_tolerates_entries_without_recordings(self):
         """Sanitizing recordings on a log where some entries have no recording must not raise an error."""

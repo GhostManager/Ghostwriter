@@ -275,7 +275,8 @@ class OplogEntryRecordingModelTests(TestCase):
         recording = OplogEntryRecordingFactory()
         file_path = recording.recording_file.path
         self.assertTrue(os.path.exists(file_path))
-        recording.delete()
+        with self.captureOnCommitCallbacks(execute=True):
+            recording.delete()
         self.assertFalse(os.path.exists(file_path))
 
     def test_recording_tag_added_on_create(self):
