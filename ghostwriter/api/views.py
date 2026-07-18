@@ -2691,9 +2691,7 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
 
 
 class ServiceTokenTagAccessMixin:
-    service_token_permission_requirements = (
-        SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,
-    )
+    service_token_tag_action = ServiceTokenPermission.Action.READ
     service_token_global_library_models = {"finding", "observation"}
 
     def get_service_token_tag_model(self) -> str | None:
@@ -2707,11 +2705,29 @@ class ServiceTokenTagAccessMixin:
                 return model.lower()
         return None
 
-    def authorize_service_token_action(self) -> bool:
+    def get_service_token_permission_requirements(
+        self,
+    ) -> tuple[dict[str, object], ...]:
         if self.get_service_token_tag_model() == "oplog_entry":
             return (
+                {
+                    "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
+                    "action": self.service_token_tag_action,
+                    "scope": SERVICE_TOKEN_SCOPE_ANY,
+                },
+            )
+        if self.service_token_tag_action == ServiceTokenPermission.Action.READ:
+            return (SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT,)
+        return ()
+
+    def authorize_service_token_action(self) -> bool:
+        if (
+            self.get_service_token_tag_model() == "oplog_entry"
+            and self.service_token_tag_action == ServiceTokenPermission.Action.READ
+        ):
+            return (
                 self.service_token_has_project_read_grant()
-                or self.service_token_has_oplog_read_grant()
+                or super().authorize_service_token_action()
             )
         return super().authorize_service_token_action()
 
@@ -2755,6 +2771,15 @@ class ServiceTokenTagAccessMixin:
             ) or self.service_token_has_permission(
                 ServiceTokenPermission.ResourceType.OPLOG,
                 ServiceTokenPermission.Action.READ,
+                obj.oplog_id_id,
+            )
+        return False
+
+    def service_token_can_edit_tag_object(self, model: str, obj) -> bool:
+        if model == "oplog_entry":
+            return self.service_token_has_permission(
+                ServiceTokenPermission.ResourceType.OPLOG,
+                ServiceTokenPermission.Action.UPDATE,
                 obj.oplog_id_id,
             )
         return False
@@ -2828,7 +2853,8 @@ class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
         return JsonResponse({"tags": list(obj.tags.names())})
 
 
-class SetTags(HasuraActionView):
+class SetTags(ServiceTokenTagAccessMixin, HasuraActionView):
+    service_token_tag_action = ServiceTokenPermission.Action.UPDATE
     required_inputs = ["model", "id", "tags"]
     available_models = {
         # Models here need to have a `tags` field and a `user_can_edit(user)` method.
@@ -2851,7 +2877,8 @@ class SetTags(HasuraActionView):
                 status=400,
             )
 
-        cls = self.available_models.get(self.input["model"].lower())
+        model = self.input["model"].lower()
+        cls = self.available_models.get(model)
         if cls is None:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
@@ -2868,7 +2895,22 @@ class SetTags(HasuraActionView):
                 status=404,
             )
 
-        if not is_admin and not obj.user_can_edit(self.user_obj):
+        if (
+            self.service_token_obj is not None
+            and not self.service_token_can_edit_tag_object(model, obj)
+        ):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Not allowed to edit", "Unauthorized"
+                ),
+                status=403,
+            )
+
+        if (
+            self.service_token_obj is None
+            and not is_admin
+            and not obj.user_can_edit(self.user_obj)
+        ):
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Not allowed to edit", "Unauthorized"
