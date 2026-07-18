@@ -34,7 +34,7 @@ $(document).ready(function () {
     let errorDisplayed = false;
     let pendingOperation = null;
     let selectedEntryId = null;
-    let pendingAutoSelectCreate = false;
+    let pendingAutoEditCreate = false;
 
     // Prevent deselecting the entry when a modal is open or in the process of closing.
     // Bootstrap closes non-fade modals synchronously, so hidden.bs.modal fires before our
@@ -642,7 +642,7 @@ $(document).ready(function () {
 
     // --- Global actions ---
     window.createEntry = function (id) {
-        pendingAutoSelectCreate = true;
+        pendingAutoEditCreate = true;
         socket.send(JSON.stringify({ action: 'create', oplog_id: id }));
         displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
     };
@@ -1077,13 +1077,21 @@ $(document).ready(function () {
                     selectEntry(firstId);
                 }
             } else if (message.action === 'create') {
+                let entry = message.data;
+                let entryId = entry.id;
+                let shouldAutoEdit = pendingAutoEditCreate;
+                if (shouldAutoEdit) {
+                    pendingAutoEditCreate = false;
+                }
+
                 if ($searchInput.val() !== '') {
                     fetch(true);
+                    if (shouldAutoEdit) {
+                        editEntry(entryId);
+                    }
                     return;
                 }
 
-                let entry = message.data;
-                let entryId = entry.id;
                 entryDataStore[entryId] = entry;
 
                 let $existing = $(`#entry-${entryId}`);
@@ -1097,6 +1105,10 @@ $(document).ready(function () {
                     if (selectedEntryId === entryId) {
                         renderDetail(entry);
                     }
+                    if (shouldAutoEdit) {
+                        selectEntry(entryId);
+                        editEntry(entryId);
+                    }
                 } else {
                     // New entry: prepend to DOM first, then rebuild the tablesorter
                     // cache from DOM order so the row stays at the top when no sort
@@ -1107,9 +1119,9 @@ $(document).ready(function () {
                     hideColumns();
                     $table.trigger('update', [true]);
                     $newRow.fadeIn(400, function () {
-                        if (pendingAutoSelectCreate) {
-                            pendingAutoSelectCreate = false;
+                        if (shouldAutoEdit) {
                             selectEntry(entryId);
+                            editEntry(entryId);
                         }
                     });
                 }
